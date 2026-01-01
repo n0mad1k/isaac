@@ -1,0 +1,17 @@
+[Unit]
+Description=Levi Dashboard Kiosk Mode
+After=graphical.target
+Wants=graphical.target
+
+[Service]
+Type=simple
+User=n0mad1k
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/n0mad1k/.Xauthority
+ExecStartPre=/bin/sleep 10
+ExecStart=/opt/levi/deploy/kiosk.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

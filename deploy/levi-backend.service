@@ -1,0 +1,20 @@
+[Unit]
+Description=Levi Farm Assistant Backend
+After=network.target
+
+[Service]
+Type=simple
+User=n0mad1k
+Group=n0mad1k
+WorkingDirectory=/opt/levi/backend
+Environment="PATH=/opt/levi/backend/venv/bin"
+ExecStart=/opt/levi/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=append:/opt/levi/logs/backend.log
+StandardError=append:/opt/levi/logs/backend-error.log
+
+[Install]
+WantedBy=multi-user.target

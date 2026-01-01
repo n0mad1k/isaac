@@ -1,0 +1,37 @@
+# Levi - Farm & Homestead Assistant
+# Backend Dependencies
+
+# Web Framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.18
+
+# Database
+sqlalchemy==2.0.36
+aiosqlite==0.20.0
+greenlet==3.3.0
+
+# Scheduling
+apscheduler==3.10.4
+
+# Email
+aiosmtplib==3.0.2
+email-validator==2.2.0
+
+# HTTP Client (for weather API)
+httpx==0.28.1
+
+# CalDAV sync
+caldav==1.4.0
+
+# Date/Time handling
+python-dateutil==2.9.0
+pytz==2024.2
+
+# Environment/Config
+python-dotenv==1.0.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# Utilities
+loguru==0.7.3
