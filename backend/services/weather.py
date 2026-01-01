@@ -14,6 +14,7 @@ from sqlalchemy import select, desc
 
 from config import settings
 from models.weather import WeatherReading, WeatherAlert, AlertSeverity
+from services.email import EmailService
 
 
 class NWSForecastService:
@@ -324,19 +325,43 @@ class WeatherService:
             )
             alerts.append(alert)
 
-        # Save alerts to database
+        # Save alerts to database and send email notifications
+        email_service = EmailService()
+
+        # Group related alert types (e.g., frost and freeze are related)
+        cold_alerts = {"frost_warning", "freeze_warning"}
+
         for alert in alerts:
-            # Delete any existing alerts of the same type
-            existing_alerts = await db.execute(
-                select(WeatherAlert)
-                .where(WeatherAlert.alert_type == alert.alert_type)
-            )
+            # Delete any existing alerts of the same type OR related types
+            if alert.alert_type in cold_alerts:
+                # Delete all cold-related alerts (frost replaces freeze, freeze replaces frost)
+                existing_alerts = await db.execute(
+                    select(WeatherAlert)
+                    .where(WeatherAlert.alert_type.in_(cold_alerts))
+                )
+            else:
+                existing_alerts = await db.execute(
+                    select(WeatherAlert)
+                    .where(WeatherAlert.alert_type == alert.alert_type)
+                )
             for old_alert in existing_alerts.scalars().all():
                 await db.delete(old_alert)
 
             # Add the new alert
             db.add(alert)
             logger.warning(f"Weather alert created: {alert.title}")
+
+            # Send email notification if enabled
+            if settings.email_alerts_enabled and email_service.is_configured():
+                try:
+                    await email_service.send_weather_alert({
+                        "title": alert.title,
+                        "message": alert.message,
+                        "severity": alert.severity.value,
+                        "recommended_actions": alert.recommended_actions,
+                    })
+                except Exception as e:
+                    logger.error(f"Failed to send email alert: {e}")
 
         await db.commit()
         return alerts

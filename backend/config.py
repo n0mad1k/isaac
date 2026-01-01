@@ -33,13 +33,14 @@ class Settings(BaseSettings):
     awn_app_key: Optional[str] = Field(default=None, description="Ambient Weather Application Key")
     weather_poll_interval: int = 300  # seconds (5 minutes)
 
-    # Email Settings
-    smtp_host: str = "smtp.gmail.com"
+    # Email Settings (Protonmail)
+    smtp_host: str = "smtp.protonmail.ch"
     smtp_port: int = 587
     smtp_user: Optional[str] = None
     smtp_password: Optional[str] = None
     smtp_from: Optional[str] = None
     notification_email: Optional[str] = None
+    email_alerts_enabled: bool = True
 
     # CalDAV Settings
     caldav_url: Optional[str] = Field(default=None, description="CalDAV server URL")
