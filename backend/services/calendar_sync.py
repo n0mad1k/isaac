@@ -496,10 +496,21 @@ class CalendarSyncService:
             if not calendar_uid:
                 continue
 
-            # Skip events that originated from Levi (have our UID pattern or levi_task_id)
-            if event_dict.get('levi_task_id'):
-                continue
-            if calendar_uid.startswith('levi-task-'):
+            # For Levi-originated tasks, sync completion status back from calendar
+            if calendar_uid.startswith('levi-task-') or event_dict.get('levi_task_id'):
+                # Check if this task was completed on the phone
+                if event_dict.get('is_completed'):
+                    result = await db.execute(
+                        select(Task).where(Task.calendar_uid == calendar_uid)
+                    )
+                    existing_task = result.scalar_one_or_none()
+                    if existing_task and not existing_task.is_completed:
+                        existing_task.is_completed = True
+                        existing_task.completed_at = datetime.now(pytz.UTC)
+                        updated += 1
+                        logger.info(f"Task '{existing_task.title}' completed on phone")
+                        # Delete the completed task from calendar so it doesn't re-sync
+                        await self.delete_task_from_calendar(existing_task.id, calendar_uid)
                 continue
 
             # Check if we already have this event as a task
