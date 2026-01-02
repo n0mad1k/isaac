@@ -57,6 +57,7 @@ class Plant(Base):
     location = Column(String(200))  # e.g., "North orchard, Row 3"
     latitude = Column(Float)
     longitude = Column(Float)
+    farm_area_id = Column(Integer, ForeignKey("farm_areas.id"), nullable=True)
 
     # Planting info
     date_planted = Column(DateTime)
@@ -123,6 +124,7 @@ class Plant(Base):
     # Relationships
     care_logs = relationship("PlantCareLog", back_populates="plant", cascade="all, delete-orphan")
     tags = relationship("Tag", secondary=plant_tags, back_populates="plants")
+    farm_area = relationship("FarmArea", back_populates="plants")
 
     @property
     def age_years(self):

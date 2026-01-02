@@ -69,6 +69,7 @@ class Animal(Base):
     # Location
     pasture = Column(String(100))
     barn = Column(String(100))
+    farm_area_id = Column(Integer, ForeignKey("farm_areas.id"), nullable=True)
 
     # === LIVESTOCK SPECIFIC ===
     # Slaughter planning (for livestock category)
@@ -124,6 +125,7 @@ class Animal(Base):
     expenses = relationship("AnimalExpense", back_populates="animal", cascade="all, delete-orphan")
     care_schedules = relationship("AnimalCareSchedule", back_populates="animal", cascade="all, delete-orphan")
     feeds = relationship("AnimalFeed", back_populates="animal", cascade="all, delete-orphan")
+    farm_area = relationship("FarmArea", back_populates="animals")
 
     @property
     def age_months(self):

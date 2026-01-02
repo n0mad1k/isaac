@@ -63,6 +63,10 @@ from routers import (
     dashboard_router,
     seeds_router,
     settings_router,
+    home_maintenance_router,
+    vehicles_router,
+    equipment_router,
+    farm_areas_router,
 )
 from routers.settings import get_setting
 
@@ -138,6 +142,10 @@ app.include_router(tasks_router)
 app.include_router(weather_router)
 app.include_router(seeds_router)
 app.include_router(settings_router)
+app.include_router(home_maintenance_router)
+app.include_router(vehicles_router)
+app.include_router(equipment_router)
+app.include_router(farm_areas_router)
 
 
 @app.get("/")
@@ -154,6 +162,10 @@ async def root():
             "animals": "/animals",
             "tasks": "/tasks",
             "weather": "/weather",
+            "home_maintenance": "/home-maintenance",
+            "vehicles": "/vehicles",
+            "equipment": "/equipment",
+            "farm_areas": "/farm-areas",
         },
     }
 

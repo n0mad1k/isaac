@@ -9,6 +9,10 @@ from .livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, Animal
 from .tasks import Task, TaskCategory, TaskRecurrence
 from .weather import WeatherReading, WeatherAlert
 from .settings import AppSetting
+from .home_maintenance import HomeMaintenance, HomeMaintenanceLog, HomeMaintenanceCategory
+from .vehicles import Vehicle, VehicleMaintenance, VehicleMaintenanceLog, VehicleType
+from .equipment import Equipment, EquipmentMaintenance, EquipmentMaintenanceLog, EquipmentType
+from .farm_areas import FarmArea, FarmAreaMaintenance, FarmAreaMaintenanceLog, FarmAreaType
 
 __all__ = [
     "Base",
@@ -35,4 +39,19 @@ __all__ = [
     "WeatherReading",
     "WeatherAlert",
     "AppSetting",
+    "HomeMaintenance",
+    "HomeMaintenanceLog",
+    "HomeMaintenanceCategory",
+    "Vehicle",
+    "VehicleMaintenance",
+    "VehicleMaintenanceLog",
+    "VehicleType",
+    "Equipment",
+    "EquipmentMaintenance",
+    "EquipmentMaintenanceLog",
+    "EquipmentType",
+    "FarmArea",
+    "FarmAreaMaintenance",
+    "FarmAreaMaintenanceLog",
+    "FarmAreaType",
 ]

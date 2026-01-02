@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, RefreshCw } from 'lucide-react'
+import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, RefreshCw, Car, Wrench, Fence } from 'lucide-react'
 import { getSettings } from '../services/api'
 
 function Layout() {
@@ -83,9 +83,13 @@ function Layout() {
     { to: '/', icon: Home, label: 'Home' },
     { to: '/todo', icon: ListTodo, label: 'To Do' },
     { to: '/calendar', icon: Calendar, label: 'Calendar' },
-    { to: '/animals', icon: PawPrint, label: 'Animals' },
     { to: '/plants', icon: Leaf, label: 'Plants' },
     { to: '/seeds', icon: Sprout, label: 'Seeds' },
+    { to: '/animals', icon: PawPrint, label: 'Animals' },
+    { to: '/home-maintenance', icon: Home, label: 'Maint' },
+    { to: '/vehicles', icon: Car, label: 'Vehicles' },
+    { to: '/equipment', icon: Wrench, label: 'Equip' },
+    { to: '/farm-areas', icon: Fence, label: 'Farm' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ]
 
