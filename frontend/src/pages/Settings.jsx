@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar } from 'lucide-react'
+import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench } from 'lucide-react'
 import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync } from '../services/api'
 
 function Settings() {
@@ -140,6 +140,54 @@ function Settings() {
   const calendarSettings = ['calendar_enabled', 'calendar_url', 'calendar_username', 'calendar_password', 'calendar_name', 'calendar_sync_interval']
   const displaySettings = ['dashboard_refresh_interval']
 
+  // Notification category settings - grouped by type
+  const animalNotifySettings = [
+    { key: 'notify_animal_hoof_trim', label: 'Hoof Trim' },
+    { key: 'notify_animal_worming', label: 'Worming' },
+    { key: 'notify_animal_vaccination', label: 'Vaccination' },
+    { key: 'notify_animal_dental', label: 'Dental' },
+    { key: 'notify_animal_vet', label: 'Vet Appointments' },
+    { key: 'notify_animal_slaughter', label: 'Slaughter Date' },
+    { key: 'notify_animal_labor', label: 'Expected Birth' },
+  ]
+  const plantNotifySettings = [
+    { key: 'notify_plant_watering', label: 'Watering' },
+    { key: 'notify_plant_fertilizing', label: 'Fertilizing' },
+    { key: 'notify_plant_harvest', label: 'Harvest' },
+    { key: 'notify_plant_pruning', label: 'Pruning' },
+    { key: 'notify_plant_sow', label: 'Sow Date' },
+  ]
+  const maintenanceNotifySettings = [
+    { key: 'notify_maintenance', label: 'Maintenance Reminders' },
+  ]
+
+  // Helper to parse notification channels
+  const parseChannels = (value) => {
+    const channels = (value || '').split(',').map(c => c.trim().toLowerCase())
+    return {
+      dashboard: channels.includes('dashboard'),
+      email: channels.includes('email'),
+      calendar: channels.includes('calendar'),
+    }
+  }
+
+  // Helper to build channel string from checkboxes
+  const buildChannelString = (channels) => {
+    const parts = []
+    if (channels.dashboard) parts.push('dashboard')
+    if (channels.email) parts.push('email')
+    if (channels.calendar) parts.push('calendar')
+    return parts.join(',')
+  }
+
+  // Handle notification channel toggle
+  const handleChannelToggle = (key, channel) => {
+    const current = settings[key]?.value || ''
+    const channels = parseChannels(current)
+    channels[channel] = !channels[channel]
+    handleChange(key, buildChannelString(channels))
+  }
+
   const renderSettingInput = (key, setting) => {
     const isBooleanSetting = setting.value === 'true' || setting.value === 'false'
 
@@ -199,6 +247,74 @@ function Settings() {
           )}
         </div>
         {renderSettingInput(key, setting)}
+      </div>
+    )
+  }
+
+  // Render notification channel checkboxes row
+  const renderNotifyRow = ({ key, label }) => {
+    const setting = settings[key]
+    if (!setting) return null
+
+    const channels = parseChannels(setting.value)
+    const isChanged = setting.value !== originalSettings[key]?.value
+
+    return (
+      <tr key={key} className={isChanged ? 'bg-farm-green/10' : ''}>
+        <td className="py-2 px-3 text-sm">
+          {label}
+          {isChanged && <span className="ml-2 text-xs text-farm-green">*</span>}
+        </td>
+        <td className="py-2 px-3 text-center">
+          <input
+            type="checkbox"
+            checked={channels.dashboard}
+            onChange={() => handleChannelToggle(key, 'dashboard')}
+            className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
+          />
+        </td>
+        <td className="py-2 px-3 text-center">
+          <input
+            type="checkbox"
+            checked={channels.email}
+            onChange={() => handleChannelToggle(key, 'email')}
+            className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
+          />
+        </td>
+        <td className="py-2 px-3 text-center">
+          <input
+            type="checkbox"
+            checked={channels.calendar}
+            onChange={() => handleChannelToggle(key, 'calendar')}
+            className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
+          />
+        </td>
+      </tr>
+    )
+  }
+
+  // Render a notification category table
+  const renderNotifyTable = (title, icon, items, color) => {
+    const IconComponent = icon
+    return (
+      <div className="mb-6 last:mb-0">
+        <h3 className={`text-sm font-semibold flex items-center gap-2 mb-2 ${color}`}>
+          <IconComponent className="w-4 h-4" />
+          {title}
+        </h3>
+        <table className="w-full">
+          <thead>
+            <tr className="text-xs text-gray-400 border-b border-gray-700">
+              <th className="py-2 px-3 text-left font-medium">Category</th>
+              <th className="py-2 px-3 text-center font-medium">Dashboard</th>
+              <th className="py-2 px-3 text-center font-medium">Email</th>
+              <th className="py-2 px-3 text-center font-medium">Calendar</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700/50">
+            {items.map(item => renderNotifyRow(item))}
+          </tbody>
+        </table>
       </div>
     )
   }
@@ -292,6 +408,24 @@ function Settings() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {alertSettings.map(key => renderSettingCard(key))}
+        </div>
+      </div>
+
+      {/* Notification Categories */}
+      <div className="bg-gray-800 rounded-xl p-6">
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+          <Bell className="w-5 h-5 text-yellow-400" />
+          Notification Categories
+        </h2>
+        <p className="text-sm text-gray-400 mb-4">
+          Choose which notification channels to use for each type of reminder.
+          Dashboard shows alerts on the home screen. Email sends notifications.
+          Calendar creates events in your synced calendar.
+        </p>
+        <div className="bg-gray-700/30 rounded-lg p-4">
+          {renderNotifyTable('Animal Care', PawPrint, animalNotifySettings, 'text-blue-400')}
+          {renderNotifyTable('Plant Care', Leaf, plantNotifySettings, 'text-green-400')}
+          {renderNotifyTable('Maintenance', Wrench, maintenanceNotifySettings, 'text-orange-400')}
         </div>
       </div>
 
