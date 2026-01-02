@@ -14,6 +14,11 @@ from pydantic import BaseModel
 from models.database import get_db
 from models.livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, AnimalExpense, AnimalCareSchedule, AnimalFeed
 from models.settings import AppSetting
+from services.auto_reminders import (
+    sync_animal_care_schedule_reminder,
+    sync_animal_slaughter_reminder,
+    delete_reminder,
+)
 
 
 router = APIRouter(prefix="/animals", tags=["Animals"])
@@ -298,6 +303,16 @@ async def create_animal(animal: AnimalCreate, db: AsyncSession = Depends(get_db)
     await db.commit()
     await db.refresh(db_animal)
 
+    # Sync slaughter date to calendar for livestock
+    if db_animal.category == AnimalCategory.LIVESTOCK and db_animal.slaughter_date:
+        await sync_animal_slaughter_reminder(
+            db=db,
+            animal_id=db_animal.id,
+            animal_name=db_animal.name,
+            slaughter_date=db_animal.slaughter_date,
+            processor=db_animal.processor,
+        )
+
     # Reload with expenses
     result = await db.execute(
         select(Animal).options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds)).where(Animal.id == db_animal.id)
@@ -332,19 +347,39 @@ async def update_animal(
     if not animal:
         raise HTTPException(status_code=404, detail="Animal not found")
 
+    # Track if slaughter date changed
+    old_slaughter_date = animal.slaughter_date
+
     for field, value in updates.model_dump(exclude_unset=True).items():
         setattr(animal, field, value)
 
     animal.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(animal)
+
+    # Sync slaughter date to calendar if it changed
+    if animal.category == AnimalCategory.LIVESTOCK:
+        if animal.slaughter_date and animal.slaughter_date != old_slaughter_date:
+            await sync_animal_slaughter_reminder(
+                db=db,
+                animal_id=animal.id,
+                animal_name=animal.name,
+                slaughter_date=animal.slaughter_date,
+                processor=animal.processor,
+            )
+        elif old_slaughter_date and not animal.slaughter_date:
+            # Slaughter date was removed, delete reminder
+            await delete_reminder(db, "animal_slaughter", animal.id)
+
     return animal_to_response(animal)
 
 
 @router.delete("/{animal_id}/")
 async def delete_animal(animal_id: int, db: AsyncSession = Depends(get_db)):
     """Deactivate an animal (soft delete)"""
-    result = await db.execute(select(Animal).where(Animal.id == animal_id))
+    result = await db.execute(
+        select(Animal).options(selectinload(Animal.care_schedules)).where(Animal.id == animal_id)
+    )
     animal = result.scalar_one_or_none()
     if not animal:
         raise HTTPException(status_code=404, detail="Animal not found")
@@ -352,6 +387,12 @@ async def delete_animal(animal_id: int, db: AsyncSession = Depends(get_db)):
     animal.is_active = False
     animal.updated_at = datetime.utcnow()
     await db.commit()
+
+    # Delete all calendar reminders for this animal
+    await delete_reminder(db, "animal_slaughter", animal_id)
+    for schedule in animal.care_schedules:
+        await delete_reminder(db, "animal_care_schedule", schedule.id)
+
     return {"message": "Animal deactivated"}
 
 
@@ -733,6 +774,19 @@ async def create_care_schedule(
     db.add(db_schedule)
     await db.commit()
     await db.refresh(db_schedule)
+
+    # Sync to calendar if due date exists
+    if db_schedule.due_date:
+        await sync_animal_care_schedule_reminder(
+            db=db,
+            animal_id=animal_id,
+            animal_name=animal.name,
+            schedule_id=db_schedule.id,
+            schedule_name=db_schedule.name,
+            due_date=db_schedule.due_date,
+            notes=db_schedule.notes,
+        )
+
     return care_schedule_to_response(db_schedule)
 
 
@@ -759,6 +813,26 @@ async def update_care_schedule(
     schedule.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(schedule)
+
+    # Update calendar reminder
+    if schedule.is_active and schedule.due_date:
+        # Get animal name for the reminder
+        animal_result = await db.execute(select(Animal).where(Animal.id == animal_id))
+        animal = animal_result.scalar_one_or_none()
+        if animal:
+            await sync_animal_care_schedule_reminder(
+                db=db,
+                animal_id=animal_id,
+                animal_name=animal.name,
+                schedule_id=schedule_id,
+                schedule_name=schedule.name,
+                due_date=schedule.due_date,
+                notes=schedule.notes,
+            )
+    elif not schedule.is_active:
+        # Schedule deactivated, delete reminder
+        await delete_reminder(db, "animal_care_schedule", schedule_id)
+
     return care_schedule_to_response(schedule)
 
 
@@ -785,6 +859,22 @@ async def complete_care_schedule(
     schedule.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(schedule)
+
+    # Update calendar with new due date (recalculated from last_performed + frequency_days)
+    if schedule.due_date:
+        animal_result = await db.execute(select(Animal).where(Animal.id == animal_id))
+        animal = animal_result.scalar_one_or_none()
+        if animal:
+            await sync_animal_care_schedule_reminder(
+                db=db,
+                animal_id=animal_id,
+                animal_name=animal.name,
+                schedule_id=schedule_id,
+                schedule_name=schedule.name,
+                due_date=schedule.due_date,
+                notes=schedule.notes,
+            )
+
     return care_schedule_to_response(schedule)
 
 
@@ -807,6 +897,10 @@ async def delete_care_schedule(
     schedule.is_active = False
     schedule.updated_at = datetime.utcnow()
     await db.commit()
+
+    # Delete the calendar reminder
+    await delete_reminder(db, "animal_care_schedule", schedule_id)
+
     return {"message": "Care schedule deleted"}
 
 
@@ -840,6 +934,9 @@ async def create_bulk_care_schedules(
             detail=f"Animals not found: {list(missing_ids)}"
         )
 
+    # Create dict for animal names lookup
+    animal_name_map = {a.id: a.name for a in animals}
+
     created = []
     for animal_id in data.animal_ids:
         db_schedule = AnimalCareSchedule(
@@ -855,9 +952,19 @@ async def create_bulk_care_schedules(
 
     await db.commit()
 
-    # Refresh all to get IDs
+    # Refresh all to get IDs and sync to calendar
     for schedule in created:
         await db.refresh(schedule)
+        if schedule.due_date:
+            await sync_animal_care_schedule_reminder(
+                db=db,
+                animal_id=schedule.animal_id,
+                animal_name=animal_name_map.get(schedule.animal_id, "Unknown"),
+                schedule_id=schedule.id,
+                schedule_name=schedule.name,
+                due_date=schedule.due_date,
+                notes=schedule.notes,
+            )
 
     return {
         "message": f"Created care schedule '{data.name}' for {len(created)} animals",

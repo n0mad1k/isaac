@@ -75,58 +75,58 @@ function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header with Date/Time */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">
+    <div className="space-y-4">
+      {/* Header with Date/Time and Stats inline */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-shrink-0">
+          <h1 className="text-2xl font-bold text-white">
             {format(currentTime, 'EEEE, MMMM d')}
           </h1>
-          <p className="text-gray-400">{format(currentTime, 'yyyy')}</p>
-        </div>
-        <div className="text-right">
-          <div className="text-4xl font-mono text-farm-green">
+          <div className="text-3xl font-mono text-farm-green">
             {format(currentTime, 'h:mm')}
-            <span className="text-2xl">{format(currentTime, ':ss a')}</span>
+            <span className="text-xl">{format(currentTime, ':ss a')}</span>
           </div>
         </div>
+
+        {/* Stats - compact inline */}
+        <div className="flex gap-2 flex-wrap justify-end flex-1">
+          <StatsCard
+            title="Plants"
+            value={data?.stats?.total_plants || 0}
+            icon={Leaf}
+            color="green"
+          />
+          <StatsCard
+            title="Animals"
+            value={data?.stats?.total_animals || 0}
+            icon={PawPrint}
+            color="blue"
+          />
+          <StatsCard
+            title="Tasks"
+            value={data?.stats?.tasks_today || 0}
+            icon={ListTodo}
+            color="yellow"
+          />
+          <StatsCard
+            title="Overdue"
+            value={data?.stats?.tasks_overdue || 0}
+            icon={Clock}
+            color={data?.stats?.tasks_overdue > 0 ? 'red' : 'green'}
+          />
+        </div>
       </div>
 
-      {/* Alerts */}
+      {/* Alerts - Priority positioning */}
       <AlertBanner alerts={data?.alerts} onDismiss={fetchData} />
 
-      {/* Stats Grid - moved above main content */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatsCard
-          title="Plants"
-          value={data?.stats?.total_plants || 0}
-          icon={Leaf}
-          color="green"
-        />
-        <StatsCard
-          title="Animals"
-          value={data?.stats?.total_animals || 0}
-          icon={PawPrint}
-          color="blue"
-        />
-        <StatsCard
-          title="Tasks Today"
-          value={data?.stats?.tasks_today || 0}
-          icon={ListTodo}
-          color="yellow"
-        />
-        <StatsCard
-          title="Overdue"
-          value={data?.stats?.tasks_overdue || 0}
-          icon={Clock}
-          color={data?.stats?.tasks_overdue > 0 ? 'red' : 'green'}
-        />
-      </div>
+      {/* Cold Protection Widget - Priority positioning right after alerts */}
+      <ColdProtectionWidget />
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left Column - Weather & Animal Feed */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           <WeatherWidget weather={data?.weather} />
 
           {/* Animal Feed Widget */}
@@ -134,7 +134,7 @@ function Dashboard() {
         </div>
 
         {/* Right Column - Today's Tasks */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           <TaskList
             title="Today's Schedule"
             tasks={data?.tasks_today}
@@ -153,9 +153,6 @@ function Dashboard() {
           )}
         </div>
       </div>
-
-      {/* Cold Protection Widget - bottom, compact */}
-      <ColdProtectionWidget />
     </div>
   )
 }

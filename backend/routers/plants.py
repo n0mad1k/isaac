@@ -7,11 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from pydantic import BaseModel
 
 from models.database import get_db
 from models.plants import Plant, PlantCareLog, Tag, GrowthRate, SunRequirement
+from services.auto_reminders import (
+    sync_plant_watering_reminder,
+    sync_plant_fertilizing_reminder,
+    sync_plant_harvest_reminder,
+    delete_reminder,
+)
 
 
 router = APIRouter(prefix="/plants", tags=["Plants"])
@@ -202,6 +208,35 @@ class CareLogResponse(BaseModel):
         from_attributes = True
 
 
+async def sync_plant_reminders(db: AsyncSession, plant: Plant):
+    """Sync all care reminders for a plant to calendar"""
+    # Sync watering
+    if plant.next_watering:
+        next_water_date = plant.next_watering.date() if isinstance(plant.next_watering, datetime) else plant.next_watering
+        await sync_plant_watering_reminder(
+            db=db,
+            plant_id=plant.id,
+            plant_name=plant.name,
+            next_watering=next_water_date,
+            location=plant.location,
+        )
+    else:
+        await delete_reminder(db, "plant_watering", plant.id)
+
+    # Sync fertilizing
+    if plant.next_fertilizing:
+        next_fert_date = plant.next_fertilizing.date() if isinstance(plant.next_fertilizing, datetime) else plant.next_fertilizing
+        await sync_plant_fertilizing_reminder(
+            db=db,
+            plant_id=plant.id,
+            plant_name=plant.name,
+            next_fertilizing=next_fert_date,
+            location=plant.location,
+        )
+    else:
+        await delete_reminder(db, "plant_fertilizing", plant.id)
+
+
 def plant_to_response(plant: Plant) -> dict:
     """Convert Plant model to response with computed fields"""
     data = {
@@ -302,6 +337,9 @@ async def create_plant(plant: PlantCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(db_plant)
 
+    # Sync care reminders to calendar
+    await sync_plant_reminders(db, db_plant)
+
     # Reload with tags
     result = await db.execute(
         select(Plant).options(selectinload(Plant.tags)).where(Plant.id == db_plant.id)
@@ -367,6 +405,9 @@ async def update_plant(
     await db.commit()
     await db.refresh(plant)
 
+    # Sync care reminders to calendar
+    await sync_plant_reminders(db, plant)
+
     # Reload with tags
     result = await db.execute(
         select(Plant).options(selectinload(Plant.tags)).where(Plant.id == plant_id)
@@ -386,6 +427,12 @@ async def delete_plant(plant_id: int, db: AsyncSession = Depends(get_db)):
     plant.is_active = False
     plant.updated_at = datetime.utcnow()
     await db.commit()
+
+    # Delete all calendar reminders for this plant
+    await delete_reminder(db, "plant_watering", plant_id)
+    await delete_reminder(db, "plant_fertilizing", plant_id)
+    await delete_reminder(db, "plant_harvest", plant_id)
+
     return {"message": "Plant deactivated"}
 
 
@@ -440,6 +487,12 @@ async def add_care_log(
     db.add(care_log)
     await db.commit()
     await db.refresh(care_log)
+    await db.refresh(plant)
+
+    # Sync updated care reminders to calendar (recalculated next dates)
+    if log.care_type in ["watered", "fertilized"]:
+        await sync_plant_reminders(db, plant)
+
     return care_log
 
 
