@@ -1,5 +1,5 @@
 import React from 'react'
-import { PawPrint } from 'lucide-react'
+import { PawPrint, MapPin, AlertTriangle } from 'lucide-react'
 
 // Predefined tags with colors (same as Animals.jsx)
 const ANIMAL_TAGS = {
@@ -64,8 +64,9 @@ function AnimalFeedWidget({ animals }) {
   )
 
   // Render a single feed row
-  // Order: Name → Tags → Food info → "Color Type" (grey, together)
-  const renderFeedRow = (key, name, feeds, color, animalType, tags = []) => {
+  // Order: Name → Tags → Food info → Location → "Color Type" (grey, together)
+  // Special instructions shown on second line if present
+  const renderFeedRow = (key, name, feeds, color, animalType, tags = [], location = null, specialInstructions = null) => {
     const importantTags = tags.filter(tag =>
       ['sick', 'injured', 'special_diet', 'pregnant'].includes(tag)
     )
@@ -76,47 +77,69 @@ function AnimalFeedWidget({ animals }) {
     return (
       <div
         key={key}
-        className="flex items-center gap-2 text-sm bg-gray-700/30 rounded px-2 py-1"
+        className="text-sm bg-gray-700/30 rounded px-2 py-1"
       >
-        {/* Name */}
-        <span className="font-medium text-white truncate">
-          {name}
-        </span>
+        {/* Main row */}
+        <div className="flex items-center gap-2">
+          {/* Name */}
+          <span className="font-medium text-white truncate">
+            {name}
+          </span>
 
-        {/* Tags - after name */}
-        {importantTags.slice(0, 1).map(tag => {
-          const tagInfo = ANIMAL_TAGS[tag]
-          if (!tagInfo) return null
-          return (
-            <span
-              key={tag}
-              className={`text-xs px-1 rounded flex-shrink-0 ${tagInfo.color}`}
-            >
-              {tagInfo.label}
-            </span>
-          )
-        })}
+          {/* Tags - after name */}
+          {importantTags.slice(0, 1).map(tag => {
+            const tagInfo = ANIMAL_TAGS[tag]
+            if (!tagInfo) return null
+            return (
+              <span
+                key={tag}
+                className={`text-xs px-1 rounded flex-shrink-0 ${tagInfo.color}`}
+              >
+                {tagInfo.label}
+              </span>
+            )
+          })}
 
-        {/* Separator */}
-        <span className="text-gray-600">·</span>
+          {/* Separator */}
+          <span className="text-gray-600">·</span>
 
-        {/* Feeds: amount, type, frequency */}
-        <span className="text-cyan-400 truncate">
-          {feeds.map((feed, idx) => (
-            <span key={idx}>
-              {[feed.amount, feed.feed_type, feed.frequency].filter(Boolean).join(' ')}
-              {idx < feeds.length - 1 && ' | '}
-            </span>
-          ))}
-        </span>
+          {/* Feeds: amount, type, frequency */}
+          <span className="text-cyan-400 truncate">
+            {feeds.map((feed, idx) => (
+              <span key={idx}>
+                {[feed.amount, feed.feed_type, feed.frequency].filter(Boolean).join(' ')}
+                {idx < feeds.length - 1 && ' | '}
+              </span>
+            ))}
+          </span>
 
-        {/* Separator */}
-        <span className="text-gray-600">·</span>
+          {/* Location if present */}
+          {location && (
+            <>
+              <span className="text-gray-600">·</span>
+              <span className="text-xs text-green-400 flex items-center gap-1 flex-shrink-0">
+                <MapPin className="w-3 h-3" />
+                {location}
+              </span>
+            </>
+          )}
 
-        {/* Color + Type together (grey) like "Black Dog" */}
-        <span className="text-xs text-gray-500 truncate">
-          {colorType}
-        </span>
+          {/* Separator */}
+          <span className="text-gray-600">·</span>
+
+          {/* Color + Type together (grey) like "Black Dog" */}
+          <span className="text-xs text-gray-500 truncate">
+            {colorType}
+          </span>
+        </div>
+
+        {/* Special instructions on second line */}
+        {specialInstructions && (
+          <div className="flex items-center gap-1 mt-1 ml-2 text-xs text-yellow-400">
+            <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{specialInstructions}</span>
+          </div>
+        )}
       </div>
     )
   }
@@ -135,13 +158,18 @@ function AnimalFeedWidget({ animals }) {
             ? animal.feeds
             : [{ feed_type: animal.feed_type, amount: animal.feed_amount, frequency: animal.feed_frequency }]
 
+          // Get location from pasture, barn, or farm_area
+          const location = animal.pasture || animal.barn || animal.farm_area?.name || null
+
           return renderFeedRow(
             `pet-${animal.id}`,
             animal.name,
             feeds,
             animal.color,
             animal.animal_type,
-            animal.tags || []
+            animal.tags || [],
+            location,
+            animal.special_instructions
           )
         })}
 
@@ -160,13 +188,33 @@ function AnimalFeedWidget({ animals }) {
 
           const color = isGrouped ? null : group.animals[0].color
 
+          // For grouped animals, combine unique locations
+          const locations = [...new Set(
+            group.animals
+              .map(a => a.pasture || a.barn || a.farm_area?.name)
+              .filter(Boolean)
+          )]
+          const location = isGrouped
+            ? (locations.length === 1 ? locations[0] : null)
+            : (group.animals[0].pasture || group.animals[0].barn || group.animals[0].farm_area?.name || null)
+
+          // For grouped animals, combine unique special instructions
+          const instructions = [...new Set(
+            group.animals
+              .map(a => a.special_instructions)
+              .filter(Boolean)
+          )]
+          const specialInstructions = instructions.length > 0 ? instructions.join('; ') : null
+
           return renderFeedRow(
             `livestock-${idx}`,
             displayName,
             group.feeds,
             color,
             group.animal_type,
-            groupTags
+            groupTags,
+            location,
+            specialInstructions
           )
         })}
       </div>

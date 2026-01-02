@@ -763,6 +763,7 @@ function AnimalCard({
         barn: animal.barn || '',
         farm_area_id: animal.farm_area_id || '',
         notes: animal.notes || '',
+        special_instructions: animal.special_instructions || '',
         target_weight: animal.target_weight || '',
         slaughter_date: animal.slaughter_date || '',
         processor: animal.processor || '',
@@ -1978,6 +1979,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
     pasture: animal?.pasture || '',
     farm_area_id: animal?.farm_area_id || '',
     notes: animal?.notes || '',
+    special_instructions: animal?.special_instructions || '',
     // Livestock
     target_weight: animal?.target_weight || '',
     slaughter_date: animal?.slaughter_date || '',
@@ -2303,6 +2305,18 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          {/* Special Instructions */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Special Instructions (shown in Feed Widget)</label>
+            <textarea
+              value={formData.special_instructions}
+              onChange={(e) => setFormData({ ...formData, special_instructions: e.target.value })}
+              rows={2}
+              placeholder="e.g., Give separately, needs soaked feed, check water daily..."
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>

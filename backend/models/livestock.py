@@ -115,6 +115,7 @@ class Animal(Base):
     status = Column(String(50), default="healthy")  # healthy, injured, sick, sold, deceased, slaughtered
     tags = Column(String(500))  # Comma-separated tags: sick, pregnant, for_sale, quarantine, etc.
     notes = Column(Text)
+    special_instructions = Column(Text)  # Feeding instructions shown in feed widget
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -52,6 +52,7 @@ class AnimalCreate(BaseModel):
     dental_frequency_days: Optional[int] = None
     wormer_rotation: Optional[str] = None
     notes: Optional[str] = None
+    special_instructions: Optional[str] = None
     # Cold tolerance
     cold_sensitive: Optional[bool] = None
     min_temp: Optional[float] = None
@@ -91,6 +92,7 @@ class AnimalUpdate(BaseModel):
     dental_frequency_days: Optional[int] = None
     wormer_rotation: Optional[str] = None
     notes: Optional[str] = None
+    special_instructions: Optional[str] = None
     # Cold tolerance
     cold_sensitive: Optional[bool] = None
     min_temp: Optional[float] = None
@@ -257,6 +259,7 @@ def animal_to_response(animal: Animal) -> dict:
         # Tags
         "tags": animal.tags.split(',') if animal.tags else [],
         "notes": animal.notes,
+        "special_instructions": animal.special_instructions,
         "created_at": animal.created_at,
         # Farm area
         "farm_area_id": animal.farm_area_id,
