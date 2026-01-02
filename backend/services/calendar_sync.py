@@ -322,7 +322,7 @@ class CalendarSyncService:
                     logger.debug(f"Created calendar event for task {task.id}")
             else:
                 # Handle VTODO (reminder)
-                # First, try to find and update existing todo
+                # First, try to find existing todo and check its status
                 found = False
                 try:
                     todos = calendar.todos(include_completed=True)
@@ -333,6 +333,15 @@ class CalendarSyncService:
                                 if component.name == "VTODO":
                                     todo_uid = str(component.get('uid', ''))
                                     if todo_uid == uid:
+                                        # Check if calendar has it marked as completed
+                                        cal_status = str(component.get('status', '')).upper()
+                                        if cal_status == 'COMPLETED' and not task.is_completed:
+                                            # Calendar says completed but our DB says not - don't overwrite
+                                            # This means it was completed on phone
+                                            logger.debug(f"Skipping update for task {task.id} - completed in calendar")
+                                            found = True
+                                            break
+                                        # Otherwise update it
                                         todo.data = ical_data
                                         todo.save()
                                         logger.debug(f"Updated calendar todo for task {task.id}")
