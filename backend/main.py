@@ -62,7 +62,9 @@ from routers import (
     weather_router,
     dashboard_router,
     seeds_router,
+    settings_router,
 )
+from routers.settings import get_setting
 
 
 # Configure logging
@@ -135,6 +137,7 @@ app.include_router(animals_router)
 app.include_router(tasks_router)
 app.include_router(weather_router)
 app.include_router(seeds_router)
+app.include_router(settings_router)
 
 
 @app.get("/")

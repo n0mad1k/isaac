@@ -1,14 +1,107 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Plus, Search, PawPrint, Calendar, AlertCircle, ChevronDown, ChevronUp,
   MapPin, DollarSign, Scale, Clock, Check, X, Syringe, Scissors,
-  Heart, Beef, Dog, Cat, Pencil
+  Heart, Beef, Dog, Cat, Pencil, Save
 } from 'lucide-react'
 import {
-  getAnimals, createAnimal, updateAnimal, addAnimalCareLog,
-  addAnimalExpense, getAnimalExpenses
+  getAnimals, createAnimal, updateAnimal, deleteAnimal, addAnimalCareLog,
+  addAnimalExpense, getAnimalExpenses, createCareSchedule, completeCareSchedule,
+  deleteCareSchedule, updateCareSchedule, createBulkCareSchedule,
+  createAnimalFeed, updateAnimalFeed, deleteAnimalFeed
 } from '../services/api'
-import { format, differenceInDays } from 'date-fns'
+import { format, differenceInDays, parseISO } from 'date-fns'
+
+// Predefined tags with colors
+const ANIMAL_TAGS = {
+  sick: { label: 'Sick', color: 'bg-red-600 text-white' },
+  injured: { label: 'Injured', color: 'bg-orange-600 text-white' },
+  pregnant: { label: 'Pregnant', color: 'bg-pink-600 text-white' },
+  nursing: { label: 'Nursing', color: 'bg-purple-600 text-white' },
+  quarantine: { label: 'Quarantine', color: 'bg-yellow-600 text-black' },
+  for_sale: { label: 'For Sale', color: 'bg-green-600 text-white' },
+  new: { label: 'New', color: 'bg-blue-600 text-white' },
+  special_diet: { label: 'Special Diet', color: 'bg-cyan-600 text-white' },
+  senior: { label: 'Senior', color: 'bg-gray-500 text-white' },
+  breeding: { label: 'Breeding', color: 'bg-rose-600 text-white' },
+}
+
+// Helper to safely parse date strings without timezone shift
+// Handles both "YYYY-MM-DD" (date only) and ISO datetime strings
+const safeParseDate = (dateStr) => {
+  if (!dateStr) return null
+  // If it's a date-only string (YYYY-MM-DD), parse as local date
+  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [year, month, day] = dateStr.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+  // Otherwise use parseISO for datetime strings
+  return parseISO(dateStr)
+}
+
+// Inline editable field component
+function EditableField({ label, value, field, type = 'text', options, onChange, placeholder }) {
+  const inputClass = "w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+
+  if (type === 'select' && options) {
+    return (
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <select
+          value={value || ''}
+          onChange={(e) => onChange(field, e.target.value)}
+          className={inputClass}
+        >
+          {options.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+    )
+  }
+
+  if (type === 'textarea') {
+    return (
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <textarea
+          value={value || ''}
+          onChange={(e) => onChange(field, e.target.value)}
+          placeholder={placeholder}
+          rows={3}
+          className={inputClass}
+        />
+      </div>
+    )
+  }
+
+  if (type === 'checkbox') {
+    return (
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={value || false}
+          onChange={(e) => onChange(field, e.target.checked)}
+          className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+        />
+        <span className="text-sm text-gray-300">{label}</span>
+      </label>
+    )
+  }
+
+  return (
+    <div>
+      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <input
+        type={type}
+        value={value || ''}
+        onChange={(e) => onChange(field, e.target.value)}
+        placeholder={placeholder}
+        className={inputClass}
+      />
+    </div>
+  )
+}
 
 function Animals() {
   const [animals, setAnimals] = useState([])
@@ -20,6 +113,11 @@ function Animals() {
   const [activeTab, setActiveTab] = useState('all') // all, pet, livestock
   const [showExpenseForm, setShowExpenseForm] = useState(null) // animal_id or null
   const [editDateModal, setEditDateModal] = useState(null) // { animalId, field, label, currentDate }
+  const [showCareScheduleForm, setShowCareScheduleForm] = useState(null) // animal_id or null
+  const [editingCareSchedule, setEditingCareSchedule] = useState(null) // schedule object
+  const [showBulkCareForm, setShowBulkCareForm] = useState(false)
+  const [showFeedForm, setShowFeedForm] = useState(null) // animal_id or null
+  const [editingFeed, setEditingFeed] = useState(null) // { animalId, ...feed }
 
   const fetchAnimals = async () => {
     try {
@@ -36,13 +134,24 @@ function Animals() {
     fetchAnimals()
   }, [])
 
-  const filteredAnimals = animals.filter((animal) => {
-    const matchesSearch = animal.name.toLowerCase().includes(search.toLowerCase()) ||
-      (animal.breed && animal.breed.toLowerCase().includes(search.toLowerCase()))
+  const filteredAnimals = animals
+    .filter((animal) => {
+      const matchesSearch = animal.name.toLowerCase().includes(search.toLowerCase()) ||
+        (animal.breed && animal.breed.toLowerCase().includes(search.toLowerCase()))
 
-    if (activeTab === 'all') return matchesSearch
-    return matchesSearch && animal.category === activeTab
-  })
+      if (activeTab === 'all') return matchesSearch
+      return matchesSearch && animal.category === activeTab
+    })
+    .sort((a, b) => {
+      // Sort by category first (pets before livestock), then by type, then by name
+      if (a.category !== b.category) {
+        return a.category === 'pet' ? -1 : 1
+      }
+      if (a.animal_type !== b.animal_type) {
+        return a.animal_type.localeCompare(b.animal_type)
+      }
+      return a.name.localeCompare(b.name)
+    })
 
   const pets = animals.filter(a => a.category === 'pet')
   const livestock = animals.filter(a => a.category === 'livestock')
@@ -50,6 +159,7 @@ function Animals() {
   const getAnimalIcon = (type) => {
     const icons = {
       horse: '🐴',
+      mini_horse: '🐴',
       cattle: '🐄',
       goat: '🐐',
       sheep: '🐑',
@@ -69,7 +179,9 @@ function Animals() {
 
   const getDaysUntil = (dateStr) => {
     if (!dateStr) return null
-    const days = differenceInDays(new Date(dateStr), new Date())
+    const parsedDate = safeParseDate(dateStr)
+    if (!parsedDate) return null
+    const days = differenceInDays(parsedDate, new Date())
     return days
   }
 
@@ -102,6 +214,30 @@ function Animals() {
     }
   }
 
+  const handleDelete = async (animalId, animalName) => {
+    if (!confirm(`Are you sure you want to remove ${animalName}? This action cannot be undone.`)) return
+    try {
+      await deleteAnimal(animalId)
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to delete animal:', error)
+      alert('Failed to delete animal')
+    }
+  }
+
+  const toggleTag = async (animalId, currentTags, tag) => {
+    const tagList = currentTags || []
+    const newTags = tagList.includes(tag)
+      ? tagList.filter(t => t !== tag)
+      : [...tagList, tag]
+    try {
+      await updateAnimal(animalId, { tags: newTags.join(',') })
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to update tags:', error)
+    }
+  }
+
   const updateCareDate = async (animalId, field, dateValue) => {
     try {
       await updateAnimal(animalId, { [field]: dateValue })
@@ -113,15 +249,103 @@ function Animals() {
     }
   }
 
+  const handleAddCareSchedule = async (animalId, scheduleData) => {
+    try {
+      await createCareSchedule(animalId, scheduleData)
+      setShowCareScheduleForm(null)
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to add care schedule:', error)
+      alert('Failed to add care schedule')
+    }
+  }
+
+  const handleCompleteCareSchedule = async (animalId, scheduleId) => {
+    try {
+      await completeCareSchedule(animalId, scheduleId)
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to complete care schedule:', error)
+      alert('Failed to complete care schedule')
+    }
+  }
+
+  const handleDeleteCareSchedule = async (animalId, scheduleId) => {
+    if (!confirm('Delete this care schedule item?')) return
+    try {
+      await deleteCareSchedule(animalId, scheduleId)
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to delete care schedule:', error)
+      alert('Failed to delete care schedule')
+    }
+  }
+
+  const handleUpdateCareSchedule = async (animalId, scheduleId, data) => {
+    try {
+      await updateCareSchedule(animalId, scheduleId, data)
+      setEditingCareSchedule(null)
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to update care schedule:', error)
+      alert('Failed to update care schedule')
+    }
+  }
+
+  const handleBulkCareSchedule = async (data) => {
+    try {
+      await createBulkCareSchedule(data)
+      setShowBulkCareForm(false)
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to create bulk care schedule:', error)
+      alert('Failed to create care schedule')
+    }
+  }
+
+  const handleAddFeed = async (animalId, feedData) => {
+    try {
+      await createAnimalFeed(animalId, feedData)
+      setShowFeedForm(null)
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to add feed:', error)
+      alert('Failed to add feed')
+    }
+  }
+
+  const handleUpdateFeed = async (animalId, feedId, data) => {
+    try {
+      await updateAnimalFeed(animalId, feedId, data)
+      setEditingFeed(null)
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to update feed:', error)
+      alert('Failed to update feed')
+    }
+  }
+
+  const handleDeleteFeed = async (animalId, feedId) => {
+    if (!confirm('Delete this feed entry?')) return
+    try {
+      await deleteAnimalFeed(animalId, feedId)
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to delete feed:', error)
+      alert('Failed to delete feed')
+    }
+  }
+
   // Stats
   const stats = {
     totalPets: pets.length,
     totalLivestock: livestock.length,
     needsAttention: animals.filter(a => {
-      if (a.category === 'pet') {
-        return a.worming_overdue || a.vaccination_overdue || a.hoof_trim_overdue || a.dental_overdue
-      }
-      return a.days_until_slaughter !== null && a.days_until_slaughter <= 14
+      // Check care schedules for overdue items
+      const hasOverdueCare = a.care_schedules?.some(cs => cs.is_overdue)
+      // Check slaughter date for livestock
+      const slaughterSoon = a.days_until_slaughter !== null && a.days_until_slaughter <= 14
+      return hasOverdueCare || slaughterSoon
     }).length,
     totalExpenses: animals.reduce((sum, a) => sum + (a.total_expenses || 0), 0),
   }
@@ -142,13 +366,22 @@ function Animals() {
           <PawPrint className="w-7 h-7 text-blue-500" />
           Animals
         </h1>
-        <button
-          onClick={() => { setEditingAnimal(null); setShowForm(true) }}
-          className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add Animal
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowBulkCareForm(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 rounded-lg transition-colors text-sm"
+          >
+            <Calendar className="w-4 h-4" />
+            Bulk Care
+          </button>
+          <button
+            onClick={() => { setEditingAnimal(null); setShowForm(true) }}
+            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Add Animal
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -232,7 +465,7 @@ function Animals() {
           <p>No animals found. Add your first animal!</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-1">
           {filteredAnimals.map((animal) => (
             <AnimalCard
               key={animal.id}
@@ -240,9 +473,18 @@ function Animals() {
               expanded={expandedAnimal === animal.id}
               onToggle={() => setExpandedAnimal(expandedAnimal === animal.id ? null : animal.id)}
               onLogCare={logCare}
-              onEdit={() => { setEditingAnimal(animal); setShowForm(true) }}
+              onDelete={() => handleDelete(animal.id, animal.name)}
               onAddExpense={() => setShowExpenseForm(animal.id)}
               onEditDate={setEditDateModal}
+              onToggleTag={(tag) => toggleTag(animal.id, animal.tags, tag)}
+              onAddCareSchedule={() => setShowCareScheduleForm(animal.id)}
+              onCompleteCareSchedule={(scheduleId) => handleCompleteCareSchedule(animal.id, scheduleId)}
+              onDeleteCareSchedule={(scheduleId) => handleDeleteCareSchedule(animal.id, scheduleId)}
+              onEditCareSchedule={(schedule) => setEditingCareSchedule({ animalId: animal.id, ...schedule })}
+              onAddFeed={() => setShowFeedForm(animal.id)}
+              onEditFeed={(feed) => setEditingFeed({ animalId: animal.id, ...feed })}
+              onDeleteFeed={(feedId) => handleDeleteFeed(animal.id, feedId)}
+              onSave={fetchAnimals}
               getAnimalIcon={getAnimalIcon}
               getDaysUntil={getDaysUntil}
               getUrgencyClass={getUrgencyClass}
@@ -279,207 +521,588 @@ function Animals() {
           onSave={(date) => updateCareDate(editDateModal.animalId, editDateModal.field, date)}
         />
       )}
+
+      {/* Add Care Schedule Modal */}
+      {showCareScheduleForm && (
+        <CareScheduleFormModal
+          animalName={animals.find(a => a.id === showCareScheduleForm)?.name}
+          onClose={() => setShowCareScheduleForm(null)}
+          onSave={(data) => handleAddCareSchedule(showCareScheduleForm, data)}
+        />
+      )}
+
+      {/* Edit Care Schedule Modal */}
+      {editingCareSchedule && (
+        <CareScheduleFormModal
+          schedule={editingCareSchedule}
+          animalName={animals.find(a => a.id === editingCareSchedule.animalId)?.name}
+          onClose={() => setEditingCareSchedule(null)}
+          onSave={(data) => handleUpdateCareSchedule(editingCareSchedule.animalId, editingCareSchedule.id, data)}
+        />
+      )}
+
+      {/* Bulk Care Schedule Modal */}
+      {showBulkCareForm && (
+        <BulkCareScheduleModal
+          animals={animals}
+          onClose={() => setShowBulkCareForm(false)}
+          onSave={handleBulkCareSchedule}
+        />
+      )}
+
+      {/* Add Feed Modal */}
+      {showFeedForm && (
+        <FeedFormModal
+          animalName={animals.find(a => a.id === showFeedForm)?.name}
+          onClose={() => setShowFeedForm(null)}
+          onSave={(data) => handleAddFeed(showFeedForm, data)}
+        />
+      )}
+
+      {/* Edit Feed Modal */}
+      {editingFeed && (
+        <FeedFormModal
+          feed={editingFeed}
+          animalName={animals.find(a => a.id === editingFeed.animalId)?.name}
+          onClose={() => setEditingFeed(null)}
+          onSave={(data) => handleUpdateFeed(editingFeed.animalId, editingFeed.id, data)}
+        />
+      )}
     </div>
   )
 }
 
 
-// Animal Card Component
-function AnimalCard({
-  animal, expanded, onToggle, onLogCare, onEdit, onAddExpense, onEditDate,
-  getAnimalIcon, getDaysUntil, getUrgencyClass
-}) {
-  const isPet = animal.category === 'pet'
-  const isLivestock = animal.category === 'livestock'
-  const slaughterDays = getDaysUntil(animal.slaughter_date)
+// Animal Type options
+const ANIMAL_TYPE_OPTIONS = [
+  { value: 'dog', label: 'Dog' },
+  { value: 'cat', label: 'Cat' },
+  { value: 'horse', label: 'Horse' },
+  { value: 'mini_horse', label: 'Mini Horse' },
+  { value: 'donkey', label: 'Donkey' },
+  { value: 'llama', label: 'Llama' },
+  { value: 'alpaca', label: 'Alpaca' },
+  { value: 'cattle', label: 'Cattle' },
+  { value: 'goat', label: 'Goat' },
+  { value: 'sheep', label: 'Sheep' },
+  { value: 'pig', label: 'Pig' },
+  { value: 'chicken', label: 'Chicken' },
+  { value: 'duck', label: 'Duck' },
+  { value: 'turkey', label: 'Turkey' },
+  { value: 'rabbit', label: 'Rabbit' },
+  { value: 'other', label: 'Other' },
+]
 
-  // Check for overdue care items (pets)
-  const overdueItems = []
-  if (isPet) {
-    if (animal.worming_overdue) overdueItems.push('Worming')
-    if (animal.vaccination_overdue) overdueItems.push('Vaccination')
-    if (animal.hoof_trim_overdue) overdueItems.push('Hoof Trim')
-    if (animal.dental_overdue) overdueItems.push('Dental')
+const CATEGORY_OPTIONS = [
+  { value: 'pet', label: 'Pet' },
+  { value: 'livestock', label: 'Livestock' },
+]
+
+const SEX_OPTIONS = [
+  { value: '', label: 'Not specified' },
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'neutered', label: 'Neutered Male' },
+  { value: 'spayed', label: 'Spayed Female' },
+]
+
+// Animal Card Component with inline editing
+function AnimalCard({
+  animal, expanded, onToggle, onLogCare, onDelete, onAddExpense, onEditDate, onToggleTag,
+  onAddCareSchedule, onCompleteCareSchedule, onDeleteCareSchedule, onEditCareSchedule,
+  onAddFeed, onEditFeed, onDeleteFeed, onSave, getAnimalIcon, getDaysUntil, getUrgencyClass
+}) {
+  // Local state for inline editing
+  const [editData, setEditData] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  // Initialize edit data when expanded
+  useEffect(() => {
+    if (expanded && !editData) {
+      setEditData({
+        name: animal.name || '',
+        animal_type: animal.animal_type || 'dog',
+        category: animal.category || 'pet',
+        breed: animal.breed || '',
+        color: animal.color || '',
+        tag_number: animal.tag_number || '',
+        microchip: animal.microchip || '',
+        sex: animal.sex || '',
+        birth_date: animal.birth_date || '',
+        acquisition_date: animal.acquisition_date || '',
+        current_weight: animal.current_weight || '',
+        pasture: animal.pasture || '',
+        barn: animal.barn || '',
+        notes: animal.notes || '',
+        target_weight: animal.target_weight || '',
+        slaughter_date: animal.slaughter_date || '',
+        processor: animal.processor || '',
+        worming_frequency_days: animal.worming_frequency_days || '',
+        vaccination_frequency_days: animal.vaccination_frequency_days || '',
+        hoof_trim_frequency_days: animal.hoof_trim_frequency_days || '',
+        dental_frequency_days: animal.dental_frequency_days || '',
+        cold_sensitive: animal.cold_sensitive || false,
+        min_temp: animal.min_temp || '',
+        needs_blanket_below: animal.needs_blanket_below || '',
+      })
+    }
+  }, [expanded, animal])
+
+  const handleFieldChange = (field, value) => {
+    setEditData(prev => ({ ...prev, [field]: value }))
   }
 
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const data = {
+        ...editData,
+        current_weight: editData.current_weight ? parseFloat(editData.current_weight) : null,
+        target_weight: editData.target_weight ? parseFloat(editData.target_weight) : null,
+        worming_frequency_days: editData.worming_frequency_days ? parseInt(editData.worming_frequency_days) : null,
+        vaccination_frequency_days: editData.vaccination_frequency_days ? parseInt(editData.vaccination_frequency_days) : null,
+        hoof_trim_frequency_days: editData.hoof_trim_frequency_days ? parseInt(editData.hoof_trim_frequency_days) : null,
+        dental_frequency_days: editData.dental_frequency_days ? parseInt(editData.dental_frequency_days) : null,
+        min_temp: editData.min_temp ? parseFloat(editData.min_temp) : null,
+        needs_blanket_below: editData.needs_blanket_below ? parseFloat(editData.needs_blanket_below) : null,
+        birth_date: editData.birth_date || null,
+        acquisition_date: editData.acquisition_date || null,
+        slaughter_date: editData.slaughter_date || null,
+      }
+      await updateAnimal(animal.id, data)
+      if (onSave) onSave()
+    } catch (error) {
+      console.error('Failed to save:', error)
+      alert('Failed to save changes')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const isPet = (editData?.category || animal.category) === 'pet'
+  const isLivestock = (editData?.category || animal.category) === 'livestock'
+  const slaughterDays = getDaysUntil(animal.slaughter_date)
+  const animalTags = animal.tags || []
+
+  // Check for overdue care items from dynamic care schedules
+  const overdueItems = (animal.care_schedules || [])
+    .filter(cs => cs.is_overdue)
+    .map(cs => cs.name)
+
   return (
-    <div className={`bg-gray-800 rounded-xl overflow-hidden ${
+    <div className={`bg-gray-800 rounded-lg overflow-hidden ${
       isPet ? 'border-l-4 border-pink-500' : isLivestock ? 'border-l-4 border-amber-500' : ''
     }`}>
-      {/* Card Header */}
+      {/* Compact Card Header - flows naturally */}
       <div
-        className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-750"
+        className="px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-750"
         onClick={onToggle}
       >
-        <div className="flex items-center gap-4">
-          <span className="text-3xl">{getAnimalIcon(animal.animal_type)}</span>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-lg">{animal.name}</h3>
-              <span className={`text-xs px-2 py-0.5 rounded ${
-                isPet ? 'bg-pink-900/30 text-pink-300' : 'bg-amber-900/30 text-amber-300'
-              }`}>
-                {isPet ? 'Pet' : 'Livestock'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              {animal.breed && <span>{animal.breed}</span>}
-              {animal.age_display && <span className="text-gray-500">• {animal.age_display}</span>}
-              {animal.current_weight && <span className="text-gray-500">• {animal.current_weight} lbs</span>}
-            </div>
-          </div>
-        </div>
+        {/* Icon */}
+        <span className="text-xl flex-shrink-0">{getAnimalIcon(animal.animal_type)}</span>
 
-        <div className="flex items-center gap-3">
-          {/* Quick status indicators */}
-          <div className="flex items-center gap-2">
-            {/* Overdue care for pets */}
-            {overdueItems.length > 0 && (
-              <span className="text-xs px-2 py-1 rounded bg-red-900/50 text-red-300 border border-red-700">
-                {overdueItems.length} overdue
-              </span>
-            )}
+        {/* Name */}
+        <span className="font-semibold text-white truncate">{animal.name}</span>
 
-            {/* Slaughter date for livestock */}
-            {isLivestock && slaughterDays !== null && (
-              <span className={`text-xs px-2 py-1 rounded ${getUrgencyClass(slaughterDays)}`}>
-                {slaughterDays <= 0 ? 'Ready' : `${slaughterDays}d`}
-              </span>
-            )}
-
-            {/* Total expenses */}
-            {animal.total_expenses > 0 && (
-              <span className="text-xs px-2 py-1 rounded bg-gray-700 text-gray-300">
-                ${animal.total_expenses.toFixed(0)}
-              </span>
-            )}
-
-            {/* Status badge */}
-            <span className={`text-xs px-2 py-1 rounded ${
-              animal.status === 'healthy' ? 'bg-green-900/30 text-green-300' :
-              animal.status === 'sick' || animal.status === 'injured' ? 'bg-red-900/30 text-red-300' :
-              'bg-gray-700 text-gray-300'
-            }`}>
-              {animal.status || 'Unknown'}
+        {/* Tags - after name */}
+        {animalTags.slice(0, 2).map(tag => {
+          const tagInfo = ANIMAL_TAGS[tag] || { label: tag, color: 'bg-gray-600 text-white' }
+          return (
+            <span key={tag} className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${tagInfo.color}`}>
+              {tagInfo.label}
             </span>
-          </div>
+          )
+        })}
 
-          {expanded ? (
-            <ChevronUp className="w-5 h-5 text-gray-400" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-gray-400" />
+        {/* Separator */}
+        <span className="text-gray-600">·</span>
+
+        {/* Feeding Info: amount, type, frequency */}
+        <span className="text-sm text-cyan-400 truncate">
+          {animal.feeds && animal.feeds.length > 0
+            ? animal.feeds.map(f => [f.amount, f.feed_type, f.frequency].filter(Boolean).join(' ')).join(' | ')
+            : [animal.feed_amount, animal.feed_type, animal.feed_frequency].filter(Boolean).join(' ')
+          }
+        </span>
+
+        {/* Separator */}
+        <span className="text-gray-600">·</span>
+
+        {/* Color + Type together (grey) like "Black Horse" */}
+        <span className="text-xs text-gray-500 truncate capitalize">
+          {[animal.color, animal.animal_type?.replace('_', ' ')].filter(Boolean).join(' ')}
+        </span>
+
+        {/* Spacer to push status indicators right */}
+        <span className="flex-1"></span>
+
+        {/* Status Indicators - right side: notes, slaughter, cost, overdue */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {animal.notes && (
+            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-400" title={animal.notes}>
+              See Notes
+            </span>
+          )}
+          {isLivestock && slaughterDays !== null && (
+            <span className={`text-xs px-2 py-1 rounded ${getUrgencyClass(slaughterDays)}`}>
+              {slaughterDays <= 0 ? 'Ready' : `${slaughterDays} days until slaughter`}
+            </span>
+          )}
+          {animal.total_expenses > 0 && (
+            <span className="text-xs px-2 py-1 rounded bg-green-900/30 text-green-300">
+              ${animal.total_expenses.toFixed(0)}
+            </span>
+          )}
+          {overdueItems.length > 0 && (
+            <span className="text-xs px-2 py-1 rounded bg-red-900/50 text-red-300 border border-red-700">
+              {overdueItems.length} due
+            </span>
           )}
         </div>
+
+        {/* Expand Icon */}
+        {expanded ? (
+          <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
+        ) : (
+          <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+        )}
       </div>
 
       {/* Expanded Details */}
-      {expanded && (
+      {expanded && editData && (
         <div className="px-4 pb-4 border-t border-gray-700 pt-4 space-y-4">
 
-          {/* Basic Info Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            {animal.birth_date && (
-              <div>
-                <span className="text-gray-500">Birth Date</span>
-                <p className="text-gray-300">{format(new Date(animal.birth_date), 'MMM d, yyyy')}</p>
+          {/* Action Buttons - Save, Quick actions, Delete */}
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleSave() }}
+              disabled={saving}
+              className="px-3 py-1.5 bg-farm-green hover:bg-farm-green-light rounded text-sm text-white transition-colors flex items-center gap-1 disabled:opacity-50"
+            >
+              <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onAddExpense() }}
+              className="px-3 py-1.5 bg-green-600/50 hover:bg-green-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <DollarSign className="w-3 h-3" /> Add Expense
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                const weight = prompt('Enter current weight (lbs):')
+                if (weight) {
+                  handleFieldChange('current_weight', weight)
+                  onLogCare(animal.id, 'weighed', { weight: parseFloat(weight) })
+                }
+              }}
+              className="px-3 py-1.5 bg-blue-900/50 hover:bg-blue-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <Scale className="w-3 h-3" /> Log Weight
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                const notes = prompt('Vet visit notes:')
+                if (notes) onLogCare(animal.id, 'vet_visit', { notes })
+              }}
+              className="px-3 py-1.5 bg-red-900/50 hover:bg-red-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              🏥 Vet Visit
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete() }}
+              className="px-3 py-1.5 bg-red-600/50 hover:bg-red-600 rounded text-sm text-white transition-colors flex items-center gap-1 ml-auto"
+            >
+              <X className="w-3 h-3" /> Delete
+            </button>
+          </div>
+
+          {/* Inline Editable Details */}
+          <div className="bg-gray-900/50 rounded-lg p-3">
+            <h4 className="text-sm font-medium text-gray-400 mb-3">Details</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <EditableField
+                label="Name"
+                value={editData.name}
+                field="name"
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Type"
+                value={editData.animal_type}
+                field="animal_type"
+                type="select"
+                options={ANIMAL_TYPE_OPTIONS}
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Category"
+                value={editData.category}
+                field="category"
+                type="select"
+                options={CATEGORY_OPTIONS}
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Breed"
+                value={editData.breed}
+                field="breed"
+                onChange={handleFieldChange}
+                placeholder="e.g., Labrador"
+              />
+              <EditableField
+                label="Color"
+                value={editData.color}
+                field="color"
+                onChange={handleFieldChange}
+                placeholder="e.g., Black"
+              />
+              <EditableField
+                label="Sex"
+                value={editData.sex}
+                field="sex"
+                type="select"
+                options={SEX_OPTIONS}
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Tag #"
+                value={editData.tag_number}
+                field="tag_number"
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Microchip"
+                value={editData.microchip}
+                field="microchip"
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Birth Date"
+                value={editData.birth_date}
+                field="birth_date"
+                type="date"
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Acquired Date"
+                value={editData.acquisition_date}
+                field="acquisition_date"
+                type="date"
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Current Weight (lbs)"
+                value={editData.current_weight}
+                field="current_weight"
+                type="number"
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Pasture/Location"
+                value={editData.pasture}
+                field="pasture"
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Barn"
+                value={editData.barn}
+                field="barn"
+                onChange={handleFieldChange}
+              />
+            </div>
+
+            {/* Notes - Full width */}
+            <div className="mt-3">
+              <EditableField
+                label="Notes"
+                value={editData.notes}
+                field="notes"
+                type="textarea"
+                onChange={handleFieldChange}
+                placeholder="Any notes about this animal..."
+              />
+            </div>
+          </div>
+
+          {/* Livestock-specific fields */}
+          {isLivestock && (
+            <div className="bg-gray-900/50 rounded-lg p-3">
+              <h4 className="text-sm font-medium text-gray-400 mb-3">Livestock Details</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <EditableField
+                  label="Target Weight (lbs)"
+                  value={editData.target_weight}
+                  field="target_weight"
+                  type="number"
+                  onChange={handleFieldChange}
+                />
+                <EditableField
+                  label="Slaughter Date"
+                  value={editData.slaughter_date}
+                  field="slaughter_date"
+                  type="date"
+                  onChange={handleFieldChange}
+                />
+                <EditableField
+                  label="Processor"
+                  value={editData.processor}
+                  field="processor"
+                  onChange={handleFieldChange}
+                  placeholder="Processor name"
+                />
               </div>
-            )}
-            {animal.acquisition_date && (
-              <div>
-                <span className="text-gray-500">Acquired</span>
-                <p className="text-gray-300">{format(new Date(animal.acquisition_date), 'MMM d, yyyy')}</p>
+            </div>
+          )}
+
+          {/* Care Frequency Settings */}
+          <div className="bg-gray-900/50 rounded-lg p-3">
+            <h4 className="text-sm font-medium text-gray-400 mb-3">Care Frequency (days)</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <EditableField
+                label="Worming"
+                value={editData.worming_frequency_days}
+                field="worming_frequency_days"
+                type="number"
+                onChange={handleFieldChange}
+                placeholder="e.g., 90"
+              />
+              <EditableField
+                label="Vaccination"
+                value={editData.vaccination_frequency_days}
+                field="vaccination_frequency_days"
+                type="number"
+                onChange={handleFieldChange}
+                placeholder="e.g., 365"
+              />
+              <EditableField
+                label="Hoof Trim"
+                value={editData.hoof_trim_frequency_days}
+                field="hoof_trim_frequency_days"
+                type="number"
+                onChange={handleFieldChange}
+                placeholder="e.g., 60"
+              />
+              <EditableField
+                label="Dental"
+                value={editData.dental_frequency_days}
+                field="dental_frequency_days"
+                type="number"
+                onChange={handleFieldChange}
+                placeholder="e.g., 365"
+              />
+            </div>
+          </div>
+
+          {/* Cold Sensitivity */}
+          <div className="bg-gray-900/50 rounded-lg p-3">
+            <h4 className="text-sm font-medium text-gray-400 mb-3">Cold Sensitivity</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+              <EditableField
+                label="Cold Sensitive"
+                value={editData.cold_sensitive}
+                field="cold_sensitive"
+                type="checkbox"
+                onChange={handleFieldChange}
+              />
+              {editData.cold_sensitive && (
+                <>
+                  <EditableField
+                    label="Min Temp (°F)"
+                    value={editData.min_temp}
+                    field="min_temp"
+                    type="number"
+                    onChange={handleFieldChange}
+                  />
+                  <EditableField
+                    label="Blanket Below (°F)"
+                    value={editData.needs_blanket_below}
+                    field="needs_blanket_below"
+                    type="number"
+                    onChange={handleFieldChange}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Feeding Info - Multiple Feeds */}
+          <div className="bg-gray-900/50 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-gray-400">Feeding</h4>
+              <button
+                onClick={(e) => { e.stopPropagation(); onAddFeed() }}
+                className="text-xs px-2 py-1 bg-cyan-700/50 hover:bg-cyan-600 rounded text-white transition-colors flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" /> Add Feed
+              </button>
+            </div>
+            {animal.feeds && animal.feeds.length > 0 ? (
+              <div className="space-y-2">
+                {animal.feeds.map(feed => (
+                  <div key={feed.id} className="flex items-center justify-between bg-gray-800 rounded px-3 py-2">
+                    <div className="flex-1 flex items-center gap-4 text-sm">
+                      <span className="font-medium text-cyan-400">{feed.feed_type}</span>
+                      {feed.amount && <span className="text-gray-300">{feed.amount}</span>}
+                      {feed.frequency && <span className="text-gray-400">{feed.frequency}</span>}
+                      {feed.notes && <span className="text-gray-500 text-xs truncate max-w-[200px]">{feed.notes}</span>}
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onEditFeed(feed) }}
+                        className="p-1 hover:bg-gray-700 rounded transition-colors"
+                        title="Edit"
+                      >
+                        <Pencil className="w-3 h-3 text-gray-400 hover:text-white" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDeleteFeed(feed.id) }}
+                        className="p-1 hover:bg-red-900/50 rounded transition-colors"
+                        title="Delete"
+                      >
+                        <X className="w-3 h-3 text-gray-400 hover:text-red-400" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-            {animal.current_weight && (
-              <div>
-                <span className="text-gray-500">Weight</span>
-                <p className="text-gray-300">{animal.current_weight} lbs</p>
-              </div>
-            )}
-            {(animal.pasture || animal.barn) && (
-              <div className="flex items-start gap-1">
-                <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                <div>
-                  <span className="text-gray-500">Location</span>
-                  <p className="text-gray-300">{animal.pasture || animal.barn}</p>
-                </div>
-              </div>
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-2">
+                No feeds added. Click "Add Feed" to create one.
+              </p>
             )}
           </div>
 
-          {/* Feeding Info */}
-          {(animal.feed_amount || animal.feed_frequency) && (
-            <div className="bg-gray-900/50 rounded-lg p-3">
-              <h4 className="text-sm font-medium text-gray-400 mb-2">Feeding</h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {animal.feed_amount && (
-                  <div>
-                    <span className="text-gray-500">Amount</span>
-                    <p className="text-gray-300">{animal.feed_amount}</p>
-                  </div>
-                )}
-                {animal.feed_frequency && (
-                  <div>
-                    <span className="text-gray-500">Frequency</span>
-                    <p className="text-gray-300">{animal.feed_frequency}</p>
-                  </div>
-                )}
-              </div>
+          {/* Dynamic Care Schedules */}
+          <div className="bg-gray-900/50 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-gray-400">Care Schedule</h4>
+              <button
+                onClick={(e) => { e.stopPropagation(); onAddCareSchedule() }}
+                className="text-xs px-2 py-1 bg-farm-green/50 hover:bg-farm-green rounded text-white transition-colors flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" /> Add
+              </button>
             </div>
-          )}
-
-          {/* PET: Care Schedule Cards */}
-          {isPet && (
-            <div className="bg-gray-900/50 rounded-lg p-3">
-              <h4 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {/* Worming */}
-                <CareCard
-                  title="Worming"
-                  icon="💊"
-                  lastDate={animal.last_wormed}
-                  nextDate={animal.next_worming}
-                  isOverdue={animal.worming_overdue}
-                  frequencyDays={animal.worming_frequency_days}
-                  onConfirm={() => onLogCare(animal.id, 'wormed')}
-                  onEditDate={() => onEditDate({ animalId: animal.id, field: 'last_wormed', label: 'Last Wormed', currentDate: animal.last_wormed })}
-                />
-                {/* Vaccination */}
-                <CareCard
-                  title="Vaccination"
-                  icon="💉"
-                  lastDate={animal.last_vaccinated}
-                  nextDate={animal.next_vaccination}
-                  isOverdue={animal.vaccination_overdue}
-                  frequencyDays={animal.vaccination_frequency_days}
-                  onConfirm={() => onLogCare(animal.id, 'vaccinated')}
-                  onEditDate={() => onEditDate({ animalId: animal.id, field: 'last_vaccinated', label: 'Last Vaccinated', currentDate: animal.last_vaccinated })}
-                />
-                {/* Hoof Trim */}
-                <CareCard
-                  title="Hoof Trim"
-                  icon="🔧"
-                  lastDate={animal.last_hoof_trim}
-                  nextDate={animal.next_hoof_trim}
-                  isOverdue={animal.hoof_trim_overdue}
-                  frequencyDays={animal.hoof_trim_frequency_days}
-                  onConfirm={() => onLogCare(animal.id, 'hoof_trim')}
-                  onEditDate={() => onEditDate({ animalId: animal.id, field: 'last_hoof_trim', label: 'Last Hoof Trim', currentDate: animal.last_hoof_trim })}
-                />
-                {/* Dental */}
-                <CareCard
-                  title="Dental"
-                  icon="🦷"
-                  lastDate={animal.last_dental}
-                  nextDate={animal.next_dental}
-                  isOverdue={animal.dental_overdue}
-                  frequencyDays={animal.dental_frequency_days}
-                  onConfirm={() => onLogCare(animal.id, 'dental')}
-                  onEditDate={() => onEditDate({ animalId: animal.id, field: 'last_dental', label: 'Last Dental', currentDate: animal.last_dental })}
-                />
+            {animal.care_schedules && animal.care_schedules.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {animal.care_schedules.map(schedule => (
+                  <DynamicCareCard
+                    key={schedule.id}
+                    schedule={schedule}
+                    onComplete={() => onCompleteCareSchedule(schedule.id)}
+                    onEdit={() => onEditCareSchedule(schedule)}
+                    onDelete={() => onDeleteCareSchedule(schedule.id)}
+                  />
+                ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-4">
+                No care items scheduled. Click "Add" to create one.
+              </p>
+            )}
+          </div>
 
           {/* LIVESTOCK: Slaughter & Expenses */}
           {isLivestock && (
@@ -495,7 +1118,7 @@ function AnimalCard({
                       {slaughterDays <= 0 ? 'Ready!' : `${slaughterDays} days`}
                     </span>
                   </div>
-                  <p className="text-sm">{format(new Date(animal.slaughter_date), 'MMMM d, yyyy')}</p>
+                  <p className="text-sm">{format(safeParseDate(animal.slaughter_date), 'MMMM d, yyyy')}</p>
                   {animal.target_weight && (
                     <p className="text-xs mt-1 opacity-75">Target: {animal.target_weight} lbs</p>
                   )}
@@ -507,7 +1130,7 @@ function AnimalCard({
 
               {/* Expense Summary */}
               <div className="bg-gray-700 p-3 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between">
                   <span className="font-medium flex items-center gap-2">
                     <DollarSign className="w-4 h-4" /> Total Investment
                   </span>
@@ -515,62 +1138,33 @@ function AnimalCard({
                     ${(animal.total_expenses || 0).toFixed(2)}
                   </span>
                 </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onAddExpense() }}
-                  className="w-full mt-2 px-3 py-1.5 bg-green-900/50 hover:bg-green-800/50 rounded text-sm text-green-300 transition-colors"
-                >
-                  + Add Expense
-                </button>
               </div>
             </div>
           )}
 
-          {/* Notes */}
-          {animal.notes && (
-            <div className="text-sm">
-              <span className="text-gray-500">Notes</span>
-              <p className="text-gray-300 mt-1">{animal.notes}</p>
+          {/* Tags */}
+          <div className="bg-gray-900/50 rounded-lg p-3">
+            <h4 className="text-sm font-medium text-gray-400 mb-2">Tags</h4>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(ANIMAL_TAGS).map(([key, { label, color }]) => {
+                const isActive = animalTags.includes(key)
+                return (
+                  <button
+                    key={key}
+                    onClick={(e) => { e.stopPropagation(); onToggleTag(key) }}
+                    className={`text-xs px-2 py-1 rounded transition-all ${
+                      isActive
+                        ? color
+                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
             </div>
-          )}
-
-          {/* Care Actions */}
-          <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-700">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                const weight = prompt('Enter current weight (lbs):')
-                if (weight) onLogCare(animal.id, 'weighed', { weight: parseFloat(weight) })
-              }}
-              className="flex items-center gap-1 px-3 py-2 bg-blue-900/50 hover:bg-blue-800/50 rounded-lg text-sm transition-colors"
-            >
-              <Scale className="w-4 h-4" /> Log Weight
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                const notes = prompt('Vet visit notes:')
-                if (notes) onLogCare(animal.id, 'vet_visit', { notes })
-              }}
-              className="flex items-center gap-1 px-3 py-2 bg-red-900/50 hover:bg-red-800/50 rounded-lg text-sm transition-colors"
-            >
-              🏥 Vet Visit
-            </button>
-            {isPet && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onAddExpense() }}
-                className="flex items-center gap-1 px-3 py-2 bg-green-900/50 hover:bg-green-800/50 rounded-lg text-sm transition-colors"
-              >
-                <DollarSign className="w-4 h-4" /> Add Expense
-              </button>
-            )}
-            <div className="flex-1" />
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit() }}
-              className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors"
-            >
-              Edit
-            </button>
           </div>
+
         </div>
       )}
     </div>
@@ -592,7 +1186,7 @@ function CareCard({ title, icon, lastDate, nextDate, isOverdue, frequencyDays, o
 
   const getDaysUntil = (dateStr) => {
     if (!dateStr) return null
-    return differenceInDays(new Date(dateStr), new Date())
+    return differenceInDays(safeParseDate(dateStr), new Date())
   }
 
   const daysUntil = getDaysUntil(nextDate)
@@ -611,7 +1205,7 @@ function CareCard({ title, icon, lastDate, nextDate, isOverdue, frequencyDays, o
       </div>
       <div className="text-xs font-medium">{title}</div>
       <div className="flex items-center gap-1 text-xs text-gray-500">
-        <span>Last: {lastDate ? format(new Date(lastDate), 'MMM d') : 'Never'}</span>
+        <span>Last: {lastDate ? format(safeParseDate(lastDate), 'MMM d') : 'Never'}</span>
         {onEditDate && (
           <button
             onClick={(e) => { e.stopPropagation(); onEditDate() }}
@@ -625,7 +1219,7 @@ function CareCard({ title, icon, lastDate, nextDate, isOverdue, frequencyDays, o
       {nextDate && (
         <div className={`text-xs ${isOverdue ? 'text-red-300' : 'text-gray-400'}`}>
           {isOverdue ? 'Was due: ' : 'Due: '}
-          {format(new Date(nextDate), 'MMM d')}
+          {format(safeParseDate(nextDate), 'MMM d')}
         </div>
       )}
       <button
@@ -643,6 +1237,582 @@ function CareCard({ title, icon, lastDate, nextDate, isOverdue, frequencyDays, o
 }
 
 
+// Dynamic Care Card for flexible care schedules
+function DynamicCareCard({ schedule, onComplete, onEdit, onDelete }) {
+  const daysUntil = schedule.days_until_due
+  const isOverdue = schedule.is_overdue
+
+  return (
+    <div className={`p-2 rounded-lg ${
+      isOverdue ? 'bg-red-900/50 border border-red-700' :
+      daysUntil !== null && daysUntil <= 7 ? 'bg-yellow-900/30' :
+      'bg-gray-800'
+    }`}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-medium truncate">{schedule.name}</span>
+        {isOverdue && (
+          <span className="text-xs bg-red-700 text-white px-1.5 py-0.5 rounded">DUE</span>
+        )}
+      </div>
+      <div className="text-xs text-gray-500">
+        {schedule.last_performed ? (
+          <span>Last: {format(safeParseDate(schedule.last_performed), 'MMM d')}</span>
+        ) : (
+          <span>Never done</span>
+        )}
+      </div>
+      {schedule.due_date && (
+        <div className={`text-xs ${isOverdue ? 'text-red-300' : 'text-gray-400'}`}>
+          {isOverdue ? 'Was due: ' : 'Due: '}
+          {format(safeParseDate(schedule.due_date), 'MMM d')}
+          {daysUntil !== null && !isOverdue && ` (${daysUntil}d)`}
+        </div>
+      )}
+      {schedule.frequency_days && (
+        <div className="text-xs text-gray-600">
+          Every {schedule.frequency_days}d
+        </div>
+      )}
+      <div className="flex gap-1 mt-2">
+        <button
+          onClick={(e) => { e.stopPropagation(); onComplete() }}
+          className={`flex-1 px-2 py-1 rounded text-xs flex items-center justify-center gap-1 transition-colors ${
+            isOverdue
+              ? 'bg-red-700 hover:bg-red-600 text-white'
+              : 'bg-farm-green/50 hover:bg-farm-green text-white'
+          }`}
+          title="Mark as done"
+        >
+          <Check className="w-3 h-3" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit() }}
+          className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs transition-colors"
+          title="Edit"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete() }}
+          className="px-2 py-1 bg-red-900/50 hover:bg-red-800 rounded text-xs text-red-300 transition-colors"
+          title="Delete"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+
+// Care Schedule Form Modal
+function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    name: schedule?.name || '',
+    frequency_days: schedule?.frequency_days || '',
+    last_performed: schedule?.last_performed || '',
+    manual_due_date: schedule?.manual_due_date || '',
+    notes: schedule?.notes || '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const data = {
+        name: formData.name,
+        frequency_days: formData.frequency_days ? parseInt(formData.frequency_days) : null,
+        last_performed: formData.last_performed || null,
+        manual_due_date: formData.manual_due_date || null,
+        notes: formData.notes || null,
+      }
+      await onSave(data)
+    } catch (error) {
+      console.error('Failed to save care schedule:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            {schedule ? 'Edit Care Item' : 'Add Care Item'} {animalName && `for ${animalName}`}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Care Item Name *</label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., Hoof Trim, Worming, Vaccinations"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Frequency (days)</label>
+            <input
+              type="number"
+              value={formData.frequency_days}
+              onChange={(e) => setFormData({ ...formData, frequency_days: e.target.value })}
+              placeholder="e.g., 60 for every 2 months"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+            <p className="text-xs text-gray-500 mt-1">Optional - leave empty for manual scheduling</p>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Last Performed</label>
+            <input
+              type="date"
+              value={formData.last_performed}
+              onChange={(e) => setFormData({ ...formData, last_performed: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Manual Due Date</label>
+            <input
+              type="date"
+              value={formData.manual_due_date}
+              onChange={(e) => setFormData({ ...formData, manual_due_date: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+            <p className="text-xs text-gray-500 mt-1">Overrides calculated due date from frequency</p>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={2}
+              placeholder="Optional notes about this care item"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : (schedule ? 'Update' : 'Add Care Item')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+
+// Bulk Care Schedule Modal - add same care item to multiple animals
+function BulkCareScheduleModal({ animals, onClose, onSave }) {
+  const [selectedAnimals, setSelectedAnimals] = useState([])
+  const [formData, setFormData] = useState({
+    name: '',
+    frequency_days: '',
+    last_performed: '',
+    manual_due_date: '',
+    notes: '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [filterType, setFilterType] = useState('all') // all, pet, livestock, or animal_type
+
+  // Group animals by type for easier selection
+  const animalsByType = animals.reduce((acc, animal) => {
+    const type = animal.animal_type
+    if (!acc[type]) acc[type] = []
+    acc[type].push(animal)
+    return acc
+  }, {})
+
+  const toggleAnimal = (id) => {
+    setSelectedAnimals(prev =>
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    )
+  }
+
+  const selectAllOfType = (type) => {
+    const ids = animalsByType[type].map(a => a.id)
+    const allSelected = ids.every(id => selectedAnimals.includes(id))
+    if (allSelected) {
+      setSelectedAnimals(prev => prev.filter(id => !ids.includes(id)))
+    } else {
+      setSelectedAnimals(prev => [...new Set([...prev, ...ids])])
+    }
+  }
+
+  const selectAll = () => {
+    if (selectedAnimals.length === animals.length) {
+      setSelectedAnimals([])
+    } else {
+      setSelectedAnimals(animals.map(a => a.id))
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (selectedAnimals.length === 0) {
+      alert('Please select at least one animal')
+      return
+    }
+    setSaving(true)
+    try {
+      const data = {
+        animal_ids: selectedAnimals,
+        name: formData.name,
+        frequency_days: formData.frequency_days ? parseInt(formData.frequency_days) : null,
+        last_performed: formData.last_performed || null,
+        manual_due_date: formData.manual_due_date || null,
+        notes: formData.notes || null,
+      }
+      await onSave(data)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
+          <h2 className="text-lg font-semibold">Add Care Item to Multiple Animals</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
+          <div className="p-4 space-y-4 flex-shrink-0">
+            {/* Care Item Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Care Item Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Worming, Nail Trim"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Frequency (days)</label>
+                <input
+                  type="number"
+                  value={formData.frequency_days}
+                  onChange={(e) => setFormData({ ...formData, frequency_days: e.target.value })}
+                  placeholder="e.g., 60"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+
+            {/* Animal Selection Header */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">
+                Select Animals ({selectedAnimals.length} selected)
+              </span>
+              <button
+                type="button"
+                onClick={selectAll}
+                className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded"
+              >
+                {selectedAnimals.length === animals.length ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable Animal List */}
+          <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="space-y-3">
+              {Object.entries(animalsByType).map(([type, typeAnimals]) => (
+                <div key={type} className="bg-gray-700/30 rounded-lg p-2">
+                  <button
+                    type="button"
+                    onClick={() => selectAllOfType(type)}
+                    className="flex items-center gap-2 w-full text-left mb-2 hover:bg-gray-700/50 rounded px-2 py-1"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={typeAnimals.every(a => selectedAnimals.includes(a.id))}
+                      onChange={() => {}}
+                      className="rounded border-gray-600 bg-gray-700 text-farm-green"
+                    />
+                    <span className="font-medium capitalize">{type}</span>
+                    <span className="text-xs text-gray-500">({typeAnimals.length})</span>
+                  </button>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 ml-6">
+                    {typeAnimals.map(animal => (
+                      <label
+                        key={animal.id}
+                        className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer text-sm ${
+                          selectedAnimals.includes(animal.id)
+                            ? 'bg-farm-green/20 text-white'
+                            : 'hover:bg-gray-700/50 text-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedAnimals.includes(animal.id)}
+                          onChange={() => toggleAnimal(animal.id)}
+                          className="rounded border-gray-600 bg-gray-700 text-farm-green"
+                        />
+                        <span className="truncate">{animal.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Submit */}
+          <div className="flex gap-3 p-4 border-t border-gray-700 flex-shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || selectedAnimals.length === 0}
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Creating...' : `Add to ${selectedAnimals.length} Animals`}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+
+// Inline Feeds Section for AnimalFormModal
+function FeedsSection({ animal, onFeedsChange }) {
+  const [feeds, setFeeds] = useState(animal?.feeds || [])
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [editingFeedId, setEditingFeedId] = useState(null)
+  const [formData, setFormData] = useState({ feed_type: '', amount: '', frequency: '', notes: '' })
+  const [saving, setSaving] = useState(false)
+
+  const resetForm = () => {
+    setFormData({ feed_type: '', amount: '', frequency: '', notes: '' })
+    setShowAddForm(false)
+    setEditingFeedId(null)
+  }
+
+  const handleAdd = async () => {
+    if (!formData.feed_type.trim()) return
+    setSaving(true)
+    try {
+      const response = await createAnimalFeed(animal.id, formData)
+      setFeeds([...feeds, response.data])
+      resetForm()
+      onFeedsChange()
+    } catch (error) {
+      console.error('Failed to add feed:', error)
+      alert('Failed to add feed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleEdit = async () => {
+    if (!formData.feed_type.trim()) return
+    setSaving(true)
+    try {
+      await updateAnimalFeed(animal.id, editingFeedId, formData)
+      setFeeds(feeds.map(f => f.id === editingFeedId ? { ...f, ...formData } : f))
+      resetForm()
+      onFeedsChange()
+    } catch (error) {
+      console.error('Failed to update feed:', error)
+      alert('Failed to update feed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (feedId) => {
+    if (!confirm('Delete this feed entry?')) return
+    try {
+      await deleteAnimalFeed(animal.id, feedId)
+      setFeeds(feeds.filter(f => f.id !== feedId))
+      onFeedsChange()
+    } catch (error) {
+      console.error('Failed to delete feed:', error)
+      alert('Failed to delete feed')
+    }
+  }
+
+  const startEdit = (feed) => {
+    setFormData({
+      feed_type: feed.feed_type || '',
+      amount: feed.amount || '',
+      frequency: feed.frequency || '',
+      notes: feed.notes || '',
+    })
+    setEditingFeedId(feed.id)
+    setShowAddForm(false)
+  }
+
+  const startAdd = () => {
+    setFormData({ feed_type: '', amount: '', frequency: '', notes: '' })
+    setShowAddForm(true)
+    setEditingFeedId(null)
+  }
+
+  return (
+    <div className="border-t border-gray-700 pt-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-medium text-cyan-400">Feeds</h3>
+        {!showAddForm && !editingFeedId && (
+          <button
+            type="button"
+            onClick={startAdd}
+            className="text-xs px-2 py-1 bg-cyan-700/50 hover:bg-cyan-600 rounded text-white transition-colors flex items-center gap-1"
+          >
+            <Plus className="w-3 h-3" /> Add Feed
+          </button>
+        )}
+      </div>
+
+      {/* Existing feeds list */}
+      {feeds.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {feeds.map(feed => (
+            <div key={feed.id} className={`flex items-center justify-between bg-gray-700/50 rounded px-3 py-2 ${editingFeedId === feed.id ? 'ring-2 ring-cyan-500' : ''}`}>
+              {editingFeedId === feed.id ? (
+                <div className="flex-1 text-sm text-cyan-300">Editing...</div>
+              ) : (
+                <div className="flex-1 flex items-center gap-3 text-sm">
+                  <span className="font-medium text-cyan-400">{feed.feed_type}</span>
+                  {feed.amount && <span className="text-gray-300">{feed.amount}</span>}
+                  {feed.frequency && <span className="text-gray-400">{feed.frequency}</span>}
+                </div>
+              )}
+              {editingFeedId !== feed.id && (
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(feed)}
+                    className="p-1 hover:bg-gray-600 rounded transition-colors"
+                    title="Edit"
+                  >
+                    <Pencil className="w-3 h-3 text-gray-400 hover:text-white" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(feed.id)}
+                    className="p-1 hover:bg-red-900/50 rounded transition-colors"
+                    title="Delete"
+                  >
+                    <X className="w-3 h-3 text-gray-400 hover:text-red-400" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add/Edit form */}
+      {(showAddForm || editingFeedId) && (
+        <div className="bg-gray-700/30 rounded-lg p-3 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Feed Type *</label>
+              <input
+                type="text"
+                value={formData.feed_type}
+                onChange={(e) => setFormData({ ...formData, feed_type: e.target.value })}
+                placeholder="e.g., Grain, Hay"
+                className="w-full px-2 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-cyan-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Amount</label>
+              <input
+                type="text"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                placeholder="e.g., 2 cups"
+                className="w-full px-2 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-cyan-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Frequency</label>
+            <select
+              value={formData.frequency}
+              onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+              className="w-full px-2 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            >
+              <option value="">-</option>
+              <option value="Once daily">Once daily</option>
+              <option value="Twice daily">Twice daily</option>
+              <option value="3 times daily">3 times daily</option>
+              <option value="Constant access">Constant access</option>
+              <option value="As needed">As needed</option>
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={resetForm}
+              className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={editingFeedId ? handleEdit : handleAdd}
+              disabled={saving || !formData.feed_type.trim()}
+              className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 rounded text-sm transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : (editingFeedId ? 'Update Feed' : 'Add Feed')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {feeds.length === 0 && !showAddForm && (
+        <p className="text-xs text-gray-500 text-center py-2">
+          No feeds added. Click "Add Feed" to create one.
+        </p>
+      )}
+    </div>
+  )
+}
+
+
 // Animal Form Modal
 function AnimalFormModal({ animal, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -650,13 +1820,12 @@ function AnimalFormModal({ animal, onClose, onSave }) {
     animal_type: animal?.animal_type || 'dog',
     category: animal?.category || 'pet',
     breed: animal?.breed || '',
+    color: animal?.color || '',
     tag_number: animal?.tag_number || '',
     sex: animal?.sex || '',
     birth_date: animal?.birth_date || '',
     acquisition_date: animal?.acquisition_date || '',
     current_weight: animal?.current_weight || '',
-    feed_amount: animal?.feed_amount || '',
-    feed_frequency: animal?.feed_frequency || '',
     pasture: animal?.pasture || '',
     notes: animal?.notes || '',
     // Livestock
@@ -780,6 +1949,7 @@ function AnimalFormModal({ animal, onClose, onSave }) {
                   <option value="dog">Dog</option>
                   <option value="cat">Cat</option>
                   <option value="horse">Horse</option>
+                  <option value="mini_horse">Mini Horse</option>
                   <option value="donkey">Donkey</option>
                   <option value="llama">Llama</option>
                   <option value="alpaca">Alpaca</option>
@@ -806,6 +1976,16 @@ function AnimalFormModal({ animal, onClose, onSave }) {
                 type="text"
                 value={formData.breed}
                 onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Color</label>
+              <input
+                type="text"
+                value={formData.color}
+                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                placeholder="e.g., Bay, Black, Sorrel, Brindle"
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
@@ -848,28 +2028,15 @@ function AnimalFormModal({ animal, onClose, onSave }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Feed Amount</label>
-              <input
-                type="text"
-                value={formData.feed_amount}
-                onChange={(e) => setFormData({ ...formData, feed_amount: e.target.value })}
-                placeholder="e.g., 2 cups, 5 lbs"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Feed Frequency</label>
-              <input
-                type="text"
-                value={formData.feed_frequency}
-                onChange={(e) => setFormData({ ...formData, feed_frequency: e.target.value })}
-                placeholder="e.g., twice daily"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
-            </div>
-          </div>
+          {/* Feeds Management - Only for existing animals (editing mode) */}
+          {animal && (
+            <FeedsSection
+              animal={animal}
+              onFeedsChange={async () => {
+                // This will refresh when modal closes via onSave
+              }}
+            />
+          )}
 
           {/* Livestock-specific fields */}
           {isLivestock && (
@@ -1042,13 +2209,19 @@ function AnimalFormModal({ animal, onClose, onSave }) {
 
 // Expense Form Modal
 function ExpenseFormModal({ animalId, animalName, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    expense_type: 'purchase',
-    description: '',
-    amount: '',
-    expense_date: new Date().toISOString().split('T')[0],
-    vendor: '',
-    notes: '',
+  const [formData, setFormData] = useState(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return {
+      expense_type: 'purchase',
+      description: '',
+      amount: '',
+      expense_date: `${year}-${month}-${day}`,
+      vendor: '',
+      notes: '',
+    }
   })
   const [saving, setSaving] = useState(false)
 
@@ -1167,10 +2340,18 @@ function ExpenseFormModal({ animalId, animalName, onClose, onSave }) {
 function EditDateModal({ label, currentDate, onClose, onSave }) {
   const [dateValue, setDateValue] = useState(() => {
     if (currentDate) {
-      const d = new Date(currentDate)
-      return d.toISOString().split('T')[0]
+      const d = safeParseDate(currentDate)
+      // Format as YYYY-MM-DD for input
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
     }
-    return new Date().toISOString().split('T')[0]
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   })
   const [saving, setSaving] = useState(false)
 
@@ -1187,7 +2368,11 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
   }
 
   const setToToday = () => {
-    setDateValue(new Date().toISOString().split('T')[0])
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    setDateValue(`${year}-${month}-${day}`)
   }
 
   const clearDate = async () => {
@@ -1252,6 +2437,115 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
               className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+
+// Feed Form Modal
+function FeedFormModal({ feed, animalName, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    feed_type: feed?.feed_type || '',
+    amount: feed?.amount || '',
+    frequency: feed?.frequency || '',
+    notes: feed?.notes || '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      await onSave(formData)
+    } catch (error) {
+      console.error('Failed to save feed:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            {feed ? 'Edit Feed' : 'Add Feed'} {animalName && `for ${animalName}`}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Feed Type *</label>
+            <input
+              type="text"
+              required
+              value={formData.feed_type}
+              onChange={(e) => setFormData({ ...formData, feed_type: e.target.value })}
+              placeholder="e.g., Grain, Hay, Pellets, Kibble"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Amount</label>
+            <input
+              type="text"
+              value={formData.amount}
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              placeholder="e.g., 2 cups, 1 scoop, 2 flakes"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Frequency</label>
+            <select
+              value={formData.frequency}
+              onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            >
+              <option value="">-</option>
+              <option value="Once daily">Once daily</option>
+              <option value="Twice daily">Twice daily</option>
+              <option value="3 times daily">3 times daily</option>
+              <option value="4 times daily">4 times daily</option>
+              <option value="Constant access">Constant access</option>
+              <option value="As needed">As needed</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={2}
+              placeholder="Optional notes about this feed"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : (feed ? 'Update' : 'Add Feed')}
             </button>
           </div>
         </form>

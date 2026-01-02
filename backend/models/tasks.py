@@ -17,6 +17,7 @@ class TaskCategory(enum.Enum):
     EQUIPMENT = "equipment"
     SEASONAL = "seasonal"
     CUSTOM = "custom"
+    OTHER = "other"
 
 
 class TaskRecurrence(enum.Enum):
@@ -31,6 +32,11 @@ class TaskRecurrence(enum.Enum):
     CUSTOM = "custom"
 
 
+class TaskType(enum.Enum):
+    TODO = "todo"      # Reminder/task - syncs as VTODO to iOS Reminders
+    EVENT = "event"    # Calendar event - syncs as VEVENT to iOS Calendar
+
+
 class Task(Base):
     """Tasks and scheduled reminders"""
     __tablename__ = "tasks"
@@ -38,11 +44,14 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False)
     description = Column(Text)
+    task_type = Column(Enum(TaskType), default=TaskType.TODO)  # todo or event
     category = Column(Enum(TaskCategory), default=TaskCategory.CUSTOM)
 
     # Scheduling
     due_date = Column(Date)
-    due_time = Column(String(10))  # "09:00" format
+    due_time = Column(String(10))  # "09:00" format - also used as start_time
+    end_time = Column(String(10))  # "10:00" format
+    location = Column(String(200))  # Event location
     recurrence = Column(Enum(TaskRecurrence), default=TaskRecurrence.ONCE)
     recurrence_interval = Column(Integer)  # For custom: every X days
 
@@ -79,6 +88,9 @@ class Task(Base):
 
     is_active = Column(Boolean, default=True)
     notes = Column(Text)
+
+    # Calendar sync
+    calendar_uid = Column(String(255), unique=True, nullable=True, index=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

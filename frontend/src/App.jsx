@@ -3,9 +3,10 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import Plants from './pages/Plants'
 import Animals from './pages/Animals'
-import Tasks from './pages/Tasks'
+import ToDo from './pages/ToDo'
 import Seeds from './pages/Seeds'
 import CalendarPage from './pages/CalendarPage'
+import Settings from './pages/Settings'
 import Layout from './components/Layout'
 
 function App() {
@@ -16,9 +17,10 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="plants" element={<Plants />} />
           <Route path="animals" element={<Animals />} />
-          <Route path="tasks" element={<Tasks />} />
+          <Route path="todo" element={<ToDo />} />
           <Route path="seeds" element={<Seeds />} />
           <Route path="calendar" element={<CalendarPage />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>

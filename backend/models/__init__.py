@@ -8,6 +8,7 @@ from .seeds import Seed, SeedCategory, SunRequirement, WaterRequirement
 from .livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, AnimalExpense
 from .tasks import Task, TaskCategory, TaskRecurrence
 from .weather import WeatherReading, WeatherAlert
+from .settings import AppSetting
 
 __all__ = [
     "Base",
@@ -33,4 +34,5 @@ __all__ = [
     "TaskRecurrence",
     "WeatherReading",
     "WeatherAlert",
+    "AppSetting",
 ]

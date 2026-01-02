@@ -1,8 +1,8 @@
 import React from 'react'
-import { Check, Circle, AlertCircle } from 'lucide-react'
+import { Check, Circle, AlertCircle, MapPin, Clock } from 'lucide-react'
 import { completeTask, uncompleteTask } from '../services/api'
 
-function TaskList({ tasks, title, onTaskToggle, showDate = false }) {
+function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLocation = false }) {
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 1:
@@ -67,14 +67,15 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false }) {
         {tasks.map((task) => (
           <div
             key={task.id}
-            className={`p-4 rounded-lg border-l-4 transition-all hover:scale-[1.01] ${getPriorityColor(
+            className={`p-3 rounded-lg border-l-4 transition-all hover:scale-[1.01] ${getPriorityColor(
               task.priority
             )} ${task.is_completed ? 'opacity-60' : ''}`}
           >
-            <div className="flex items-start gap-3">
+            {/* Main line: checkbox, icon, title, time, location */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => handleToggle(task)}
-                className="mt-1 flex-shrink-0 focus:outline-none"
+                className="flex-shrink-0 focus:outline-none"
               >
                 {task.is_completed ? (
                   <Check className="w-5 h-5 text-green-500" />
@@ -82,33 +83,39 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false }) {
                   <Circle className="w-5 h-5 text-gray-500 hover:text-green-400" />
                 )}
               </button>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span>{getCategoryIcon(task.category)}</span>
-                  <span
-                    className={`font-medium ${
-                      task.is_completed ? 'line-through text-gray-500' : ''
-                    }`}
-                  >
-                    {task.title}
-                  </span>
-                </div>
-                {task.description && (
-                  <p className="text-sm text-gray-400 mt-1 truncate">
-                    {task.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                  {showDate && task.date && (
-                    <span>{new Date(task.date).toLocaleDateString()}</span>
-                  )}
-                  {task.due_time && <span>🕐 {task.due_time}</span>}
-                </div>
-              </div>
+              <span className="flex-shrink-0">{getCategoryIcon(task.category)}</span>
+              <span
+                className={`font-medium ${
+                  task.is_completed ? 'line-through text-gray-500' : ''
+                }`}
+              >
+                {task.title}
+              </span>
+              {/* Time on same line */}
+              {(task.due_time || task.end_time) && (
+                <span className="text-xs text-gray-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {task.due_time}{task.end_time && ` - ${task.end_time}`}
+                </span>
+              )}
+              {/* Location on same line */}
+              {task.location && (
+                <span className="text-xs text-cyan-400 flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {task.location}
+                </span>
+              )}
+              {/* Priority indicator */}
               {task.priority === 1 && !task.is_completed && (
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 ml-auto" />
               )}
             </div>
+            {/* Second line: notes/description if available */}
+            {task.description && (
+              <p className="text-sm text-gray-400 mt-1 ml-7 truncate">
+                {task.description}
+              </p>
+            )}
           </div>
         ))}
       </div>

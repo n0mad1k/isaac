@@ -8,6 +8,7 @@ from .tasks import router as tasks_router
 from .weather import router as weather_router
 from .dashboard import router as dashboard_router
 from .seeds import router as seeds_router
+from .settings import router as settings_router
 
 __all__ = [
     "plants_router",
@@ -16,4 +17,5 @@ __all__ = [
     "weather_router",
     "dashboard_router",
     "seeds_router",
+    "settings_router",
 ]

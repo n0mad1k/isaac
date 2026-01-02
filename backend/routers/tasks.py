@@ -10,8 +10,8 @@ from datetime import datetime, date, timedelta
 from pydantic import BaseModel
 
 from models.database import get_db
-from models.tasks import Task, TaskCategory, TaskRecurrence, FLORIDA_MAINTENANCE_TASKS
-from services.caldav_sync import caldav_service
+from models.tasks import Task, TaskCategory, TaskRecurrence, TaskType, FLORIDA_MAINTENANCE_TASKS
+from services.calendar_sync import get_calendar_service
 
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
@@ -21,9 +21,12 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
 class TaskCreate(BaseModel):
     title: str
     description: Optional[str] = None
+    task_type: TaskType = TaskType.TODO
     category: TaskCategory = TaskCategory.CUSTOM
     due_date: Optional[date] = None
     due_time: Optional[str] = None
+    end_time: Optional[str] = None
+    location: Optional[str] = None
     recurrence: TaskRecurrence = TaskRecurrence.ONCE
     recurrence_interval: Optional[int] = None
     recurrence_month: Optional[int] = None
@@ -41,9 +44,12 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    task_type: Optional[TaskType] = None
     category: Optional[TaskCategory] = None
     due_date: Optional[date] = None
     due_time: Optional[str] = None
+    end_time: Optional[str] = None
+    location: Optional[str] = None
     priority: Optional[int] = None
     is_completed: Optional[bool] = None
     notify_email: Optional[bool] = None
@@ -54,9 +60,12 @@ class TaskResponse(BaseModel):
     id: int
     title: str
     description: Optional[str]
+    task_type: TaskType
     category: TaskCategory
     due_date: Optional[date]
     due_time: Optional[str]
+    end_time: Optional[str]
+    location: Optional[str]
     recurrence: TaskRecurrence
     priority: int
     is_completed: bool
@@ -102,6 +111,12 @@ async def create_task(task: TaskCreate, db: AsyncSession = Depends(get_db)):
     db.add(db_task)
     await db.commit()
     await db.refresh(db_task)
+
+    # Sync to calendar if enabled
+    calendar_service = await get_calendar_service(db)
+    if calendar_service:
+        await calendar_service.sync_task_to_calendar(db_task)
+
     return db_task
 
 
@@ -202,6 +217,12 @@ async def update_task(
     task.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(task)
+
+    # Sync to calendar if enabled
+    calendar_service = await get_calendar_service(db)
+    if calendar_service:
+        await calendar_service.sync_task_to_calendar(task)
+
     return task
 
 
@@ -221,6 +242,12 @@ async def complete_task(task_id: int, db: AsyncSession = Depends(get_db)):
 
     await db.commit()
     await db.refresh(task)
+
+    # Sync to calendar if enabled
+    calendar_service = await get_calendar_service(db)
+    if calendar_service:
+        await calendar_service.sync_task_to_calendar(task)
+
     return task
 
 
@@ -238,6 +265,12 @@ async def uncomplete_task(task_id: int, db: AsyncSession = Depends(get_db)):
 
     await db.commit()
     await db.refresh(task)
+
+    # Sync to calendar if enabled
+    calendar_service = await get_calendar_service(db)
+    if calendar_service:
+        await calendar_service.sync_task_to_calendar(task)
+
     return task
 
 
@@ -248,6 +281,11 @@ async def delete_task(task_id: int, db: AsyncSession = Depends(get_db)):
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    # Delete from calendar if enabled (pass calendar_uid for iPhone-originated items)
+    calendar_service = await get_calendar_service(db)
+    if calendar_service:
+        await calendar_service.delete_task_from_calendar(task.id, calendar_uid=task.calendar_uid)
 
     task.is_active = False
     task.updated_at = datetime.utcnow()

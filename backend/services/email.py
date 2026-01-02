@@ -242,3 +242,69 @@ class EmailService:
         """
 
         return await self.send_email(subject, html, html=True)
+
+    async def send_cold_protection_reminder(
+        self,
+        plants: List[dict],
+        forecast_low: float,
+        sunset_time: str,
+        recipients: str = None,
+    ) -> bool:
+        """Send cold protection reminder email before sunset"""
+        subject = f"Cold Protection Needed Tonight - Low of {forecast_low}°F"
+
+        plant_list_html = ""
+        for plant in plants:
+            plant_list_html += f"""
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{plant.get('name', 'Unknown')}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">{plant.get('min_temp', '--')}°F</td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">{plant.get('location', '--')}</td>
+            </tr>
+            """
+
+        html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #1e40af; color: white; padding: 20px; text-align: center;">
+                <h1>❄️ Cold Protection Reminder</h1>
+                <p>Sunset at {sunset_time} - Cover plants before dark!</p>
+            </div>
+            <div style="padding: 20px;">
+                <p style="font-size: 18px; color: #1e40af;">
+                    <strong>Tonight's forecast low: {forecast_low}°F</strong>
+                </p>
+                <p>The following {len(plants)} plant(s) need protection:</p>
+
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                    <thead>
+                        <tr style="background: #f0f9ff;">
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #1e40af;">Plant</th>
+                            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #1e40af;">Min Temp</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #1e40af;">Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {plant_list_html}
+                    </tbody>
+                </table>
+
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+                    <strong>Recommended Actions:</strong>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Cover frost-sensitive plants with frost cloth or blankets</li>
+                        <li>Move potted plants indoors or to a sheltered area</li>
+                        <li>Water plants well - moist soil retains heat better</li>
+                        <li>Add mulch around plant bases for extra insulation</li>
+                    </ul>
+                </div>
+
+                <p style="color: #666; font-size: 12px; margin-top: 30px;">
+                    Reminder sent at {datetime.now().strftime('%I:%M %p')} (1 hour before sunset)
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+
+        return await self.send_email(subject, html, to=recipients, html=True)

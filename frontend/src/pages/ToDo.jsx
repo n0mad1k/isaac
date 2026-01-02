@@ -5,14 +5,13 @@ import {
   Calendar,
   AlertCircle,
   CheckCircle,
-  Filter,
   Pencil,
   Trash2,
   X,
+  RefreshCw,
 } from 'lucide-react'
 import {
   getTasks,
-  getTodaysTasks,
   getUpcomingTasks,
   getOverdueTasks,
   createTask,
@@ -20,78 +19,93 @@ import {
   deleteTask,
   completeTask,
   uncompleteTask,
+  syncCalendar,
 } from '../services/api'
 import { format } from 'date-fns'
 
-function Tasks() {
-  const [tasks, setTasks] = useState([])
+function ToDo() {
+  const [todos, setTodos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
   const [showForm, setShowForm] = useState(false)
-  const [editingTask, setEditingTask] = useState(null)
-  const [view, setView] = useState('today')
+  const [editingTodo, setEditingTodo] = useState(null)
+  const [view, setView] = useState('all')  // Default to 'all' to show today + undated
 
-  const fetchTasks = async () => {
+  const fetchTodos = async () => {
     setLoading(true)
     try {
       let response
       switch (view) {
-        case 'today':
-          response = await getTodaysTasks()
-          break
         case 'upcoming':
           response = await getUpcomingTasks(14)
           break
         case 'overdue':
           response = await getOverdueTasks()
           break
+        case 'all':
         default:
+          // Get all incomplete to dos (includes today and undated)
           response = await getTasks({ completed: false })
       }
-      setTasks(response.data)
+      // Filter to only show todos, not events
+      const todosOnly = response.data.filter(t => t.task_type !== 'event' && t.task_type !== 'EVENT')
+      setTodos(todosOnly)
     } catch (error) {
-      console.error('Failed to fetch tasks:', error)
+      console.error('Failed to fetch to dos:', error)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchTasks()
+    fetchTodos()
   }, [view])
 
-  const handleToggle = async (task) => {
+  const handleSync = async () => {
+    setSyncing(true)
     try {
-      if (task.is_completed) {
-        await uncompleteTask(task.id)
-      } else {
-        await completeTask(task.id)
-      }
-      fetchTasks()
+      await syncCalendar()
+      await fetchTodos()
     } catch (error) {
-      console.error('Failed to toggle task:', error)
+      console.error('Failed to sync:', error)
+    } finally {
+      setSyncing(false)
     }
   }
 
-  const handleDelete = async (task) => {
-    if (confirm(`Delete "${task.title}"? This cannot be undone.`)) {
+  const handleToggle = async (todo) => {
+    try {
+      if (todo.is_completed) {
+        await uncompleteTask(todo.id)
+      } else {
+        await completeTask(todo.id)
+      }
+      fetchTodos()
+    } catch (error) {
+      console.error('Failed to toggle to do:', error)
+    }
+  }
+
+  const handleDelete = async (todo) => {
+    if (confirm(`Delete "${todo.title}"? This cannot be undone.`)) {
       try {
-        await deleteTask(task.id)
-        fetchTasks()
+        await deleteTask(todo.id)
+        fetchTodos()
       } catch (error) {
-        console.error('Failed to delete task:', error)
+        console.error('Failed to delete to do:', error)
       }
     }
   }
 
-  const handleEdit = (task) => {
-    setEditingTask(task)
+  const handleEdit = (todo) => {
+    setEditingTodo(todo)
     setShowForm(true)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     const formData = new FormData(e.target)
-    const taskData = {
+    const todoData = {
       title: formData.get('title'),
       description: formData.get('description'),
       category: formData.get('category'),
@@ -99,26 +113,26 @@ function Tasks() {
       due_time: formData.get('due_time') || null,
       priority: parseInt(formData.get('priority')) || 2,
       recurrence: formData.get('recurrence'),
-      notify_email: formData.get('notify_email') === 'on',
+      task_type: 'todo',  // Always create as todo from this page
     }
 
     try {
-      if (editingTask) {
-        await updateTask(editingTask.id, taskData)
+      if (editingTodo) {
+        await updateTask(editingTodo.id, todoData)
       } else {
-        await createTask(taskData)
+        await createTask(todoData)
       }
       setShowForm(false)
-      setEditingTask(null)
-      fetchTasks()
+      setEditingTodo(null)
+      fetchTodos()
     } catch (error) {
-      console.error('Failed to save task:', error)
+      console.error('Failed to save to do:', error)
     }
   }
 
   const closeForm = () => {
     setShowForm(false)
-    setEditingTask(null)
+    setEditingTodo(null)
   }
 
   const getPriorityColor = (priority) => {
@@ -161,24 +175,34 @@ function Tasks() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <ListTodo className="w-7 h-7 text-yellow-500" />
-          Tasks & Reminders
+          To Do
         </h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add Task
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 rounded-lg transition-colors disabled:opacity-50"
+            title="Sync with phone"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync'}
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Add To Do
+          </button>
+        </div>
       </div>
 
       {/* View Tabs */}
       <div className="flex gap-2 flex-wrap">
         {[
-          { key: 'today', label: "Today's Tasks", icon: Calendar },
-          { key: 'upcoming', label: 'Upcoming', icon: ListTodo },
+          { key: 'all', label: 'All To Dos', icon: ListTodo },
+          { key: 'upcoming', label: 'Upcoming', icon: Calendar },
           { key: 'overdue', label: 'Overdue', icon: AlertCircle },
-          { key: 'all', label: 'All Tasks', icon: Filter },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -195,41 +219,39 @@ function Tasks() {
         ))}
       </div>
 
-      {/* Task List */}
-      {tasks.length === 0 ? (
+      {/* To Do List */}
+      {todos.length === 0 ? (
         <div className="text-center py-12 text-gray-500 bg-gray-800 rounded-xl">
           <CheckCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
           <p>
-            {view === 'today'
-              ? 'No tasks for today!'
-              : view === 'overdue'
-              ? 'No overdue tasks!'
-              : 'No tasks found.'}
+            {view === 'overdue'
+              ? 'No overdue to dos!'
+              : 'No to dos found.'}
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {tasks.map((task) => (
+          {todos.map((todo) => (
             <div
-              key={task.id}
+              key={todo.id}
               className={`bg-gray-800 rounded-lg p-4 border-l-4 transition-all hover:bg-gray-750 ${getPriorityColor(
-                task.priority
-              )} ${task.is_completed ? 'opacity-60' : ''}`}
+                todo.priority
+              )} ${todo.is_completed ? 'opacity-60' : ''}`}
             >
               <div className="flex items-start gap-4">
                 {/* Checkbox */}
                 <button
-                  onClick={() => handleToggle(task)}
+                  onClick={() => handleToggle(todo)}
                   className="mt-1 flex-shrink-0"
                 >
                   <div
                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      task.is_completed
+                      todo.is_completed
                         ? 'bg-green-500 border-green-500'
                         : 'border-gray-500 hover:border-green-400'
                     }`}
                   >
-                    {task.is_completed && (
+                    {todo.is_completed && (
                       <CheckCircle className="w-4 h-4 text-white" />
                     )}
                   </div>
@@ -239,63 +261,66 @@ function Tasks() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">
-                      {getCategoryIcon(task.category)}
+                      {getCategoryIcon(todo.category)}
                     </span>
                     <h3
                       className={`font-medium ${
-                        task.is_completed ? 'line-through text-gray-500' : ''
+                        todo.is_completed ? 'line-through text-gray-500' : ''
                       }`}
                     >
-                      {task.title}
+                      {todo.title}
                     </h3>
                   </div>
-                  {task.description && (
+                  {todo.description && (
                     <p className="text-sm text-gray-400 mt-1">
-                      {task.description}
+                      {todo.description}
                     </p>
                   )}
                   <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                    {task.due_date && (
+                    {todo.due_date && (
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        {format(new Date(task.due_date), 'MMM d, yyyy')}
+                        {format(new Date(todo.due_date), 'MMM d, yyyy')}
                       </span>
                     )}
-                    {task.due_time && <span>🕐 {task.due_time}</span>}
-                    {task.recurrence && task.recurrence !== 'once' && (
+                    {todo.due_time && <span>🕐 {todo.due_time}</span>}
+                    {todo.recurrence && todo.recurrence !== 'once' && (
                       <span className="capitalize text-blue-400">
-                        🔄 {task.recurrence}
+                        🔄 {todo.recurrence}
                       </span>
+                    )}
+                    {!todo.due_date && (
+                      <span className="text-gray-600 italic">No date set</span>
                     )}
                   </div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {task.priority === 1 && (
+                  {todo.priority === 1 && (
                     <span className="px-2 py-1 bg-red-900/50 text-red-300 text-xs rounded">
                       High
                     </span>
                   )}
-                  {task.priority === 2 && (
+                  {todo.priority === 2 && (
                     <span className="px-2 py-1 bg-yellow-900/50 text-yellow-300 text-xs rounded">
                       Medium
                     </span>
                   )}
-                  {task.priority === 3 && (
+                  {todo.priority === 3 && (
                     <span className="px-2 py-1 bg-blue-900/50 text-blue-300 text-xs rounded">
                       Low
                     </span>
                   )}
                   <button
-                    onClick={() => handleEdit(task)}
+                    onClick={() => handleEdit(todo)}
                     className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
                     title="Edit"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(task)}
+                    onClick={() => handleDelete(todo)}
                     className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded-lg transition-colors"
                     title="Delete"
                   >
@@ -308,13 +333,13 @@ function Tasks() {
         </div>
       )}
 
-      {/* Add/Edit Task Modal */}
+      {/* Add/Edit To Do Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">
-                {editingTask ? 'Edit Task' : 'Add New Task'}
+                {editingTodo ? 'Edit To Do' : 'Add New To Do'}
               </h2>
               <button
                 onClick={closeForm}
@@ -330,7 +355,7 @@ function Tasks() {
                   type="text"
                   name="title"
                   required
-                  defaultValue={editingTask?.title || ''}
+                  defaultValue={editingTodo?.title || ''}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
@@ -341,7 +366,7 @@ function Tasks() {
                 <textarea
                   name="description"
                   rows={2}
-                  defaultValue={editingTask?.description || ''}
+                  defaultValue={editingTodo?.description || ''}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
@@ -350,7 +375,7 @@ function Tasks() {
                   <label className="block text-sm text-gray-400 mb-1">Category</label>
                   <select
                     name="category"
-                    defaultValue={editingTask?.category || 'custom'}
+                    defaultValue={editingTodo?.category || 'custom'}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="custom">Custom</option>
@@ -366,7 +391,7 @@ function Tasks() {
                   <label className="block text-sm text-gray-400 mb-1">Priority</label>
                   <select
                     name="priority"
-                    defaultValue={editingTask?.priority || 2}
+                    defaultValue={editingTodo?.priority || 2}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="1">High</option>
@@ -377,11 +402,11 @@ function Tasks() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Due Date</label>
+                  <label className="block text-sm text-gray-400 mb-1">Due Date (optional)</label>
                   <input
                     type="date"
                     name="due_date"
-                    defaultValue={editingTask?.due_date || ''}
+                    defaultValue={editingTodo?.due_date || ''}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
@@ -390,7 +415,7 @@ function Tasks() {
                   <input
                     type="time"
                     name="due_time"
-                    defaultValue={editingTask?.due_time || ''}
+                    defaultValue={editingTodo?.due_time || ''}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
@@ -399,7 +424,7 @@ function Tasks() {
                 <label className="block text-sm text-gray-400 mb-1">Recurrence</label>
                 <select
                   name="recurrence"
-                  defaultValue={editingTask?.recurrence || 'once'}
+                  defaultValue={editingTodo?.recurrence || 'once'}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   <option value="once">One-time</option>
@@ -410,18 +435,6 @@ function Tasks() {
                   <option value="quarterly">Quarterly</option>
                   <option value="annually">Annually</option>
                 </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  name="notify_email"
-                  id="notify_email"
-                  defaultChecked={editingTask?.notify_email ?? true}
-                  className="w-4 h-4"
-                />
-                <label htmlFor="notify_email" className="text-sm">
-                  Send email reminder
-                </label>
               </div>
               <div className="flex gap-3 pt-4">
                 <button
@@ -435,7 +448,7 @@ function Tasks() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
                 >
-                  {editingTask ? 'Save Changes' : 'Add Task'}
+                  {editingTodo ? 'Save Changes' : 'Add To Do'}
                 </button>
               </div>
             </form>
@@ -446,4 +459,4 @@ function Tasks() {
   )
 }
 
-export default Tasks
+export default ToDo

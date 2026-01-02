@@ -1,15 +1,92 @@
-import React from 'react'
-import { Outlet, NavLink } from 'react-router-dom'
-import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout } from 'lucide-react'
+import React, { useEffect, useState, useRef } from 'react'
+import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, RefreshCw } from 'lucide-react'
+import { getSettings } from '../services/api'
 
 function Layout() {
+  const [refreshInterval, setRefreshInterval] = useState(0) // 0 = disabled
+  const [lastRefresh, setLastRefresh] = useState(Date.now())
+  const [countdown, setCountdown] = useState(0)
+  const location = useLocation()
+  const intervalRef = useRef(null)
+  const countdownRef = useRef(null)
+
+  // Fetch refresh interval from settings
+  useEffect(() => {
+    const fetchRefreshSetting = async () => {
+      try {
+        const response = await getSettings()
+        const settings = response.data.settings
+        const interval = parseInt(settings?.dashboard_refresh_interval?.value || '0')
+        // Value is in minutes, convert to milliseconds (if value > 0)
+        if (interval > 0) {
+          setRefreshInterval(interval * 60 * 1000) // minutes to ms
+          setCountdown(interval * 60) // countdown in seconds
+        }
+      } catch (error) {
+        console.error('Failed to fetch refresh settings:', error)
+      }
+    }
+    fetchRefreshSetting()
+  }, [])
+
+  // Set up page refresh timer
+  useEffect(() => {
+    if (refreshInterval > 0) {
+      // Clear existing intervals
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (countdownRef.current) clearInterval(countdownRef.current)
+
+      // Set countdown timer (updates every second)
+      setCountdown(refreshInterval / 1000)
+      countdownRef.current = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            return refreshInterval / 1000
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      // Set refresh timer
+      intervalRef.current = setInterval(() => {
+        window.location.reload()
+      }, refreshInterval)
+
+      setLastRefresh(Date.now())
+
+      return () => {
+        if (intervalRef.current) clearInterval(intervalRef.current)
+        if (countdownRef.current) clearInterval(countdownRef.current)
+      }
+    }
+  }, [refreshInterval])
+
+  // Reset timer when navigating (optional - keeps timer running continuously)
+  // Uncomment below if you want timer to reset on navigation
+  // useEffect(() => {
+  //   if (refreshInterval > 0) {
+  //     setCountdown(refreshInterval / 1000)
+  //   }
+  // }, [location.pathname])
+
+  const formatCountdown = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    if (mins > 0) {
+      return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+    return `${secs}s`
+  }
+
   const navItems = [
     { to: '/', icon: Home, label: 'Home' },
-    { to: '/plants', icon: Leaf, label: 'Plants' },
-    { to: '/animals', icon: PawPrint, label: 'Animals' },
-    { to: '/tasks', icon: ListTodo, label: 'Tasks' },
-    { to: '/seeds', icon: Sprout, label: 'Seeds' },
+    { to: '/todo', icon: ListTodo, label: 'To Do' },
     { to: '/calendar', icon: Calendar, label: 'Calendar' },
+    { to: '/animals', icon: PawPrint, label: 'Animals' },
+    { to: '/plants', icon: Leaf, label: 'Plants' },
+    { to: '/seeds', icon: Sprout, label: 'Seeds' },
+    { to: '/settings', icon: Settings, label: 'Settings' },
   ]
 
   return (
@@ -37,6 +114,14 @@ function Layout() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Auto-refresh indicator */}
+        {refreshInterval > 0 && (
+          <div className="mt-auto mb-2 flex flex-col items-center text-gray-500">
+            <RefreshCw className="w-4 h-4 mb-1 animate-pulse" />
+            <span className="text-xs">{formatCountdown(countdown)}</span>
+          </div>
+        )}
       </aside>
 
       {/* Main content */}

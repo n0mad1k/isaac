@@ -12,7 +12,8 @@ from datetime import datetime, date, timedelta
 from pydantic import BaseModel
 
 from models.database import get_db
-from models.livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, AnimalExpense
+from models.livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, AnimalExpense, AnimalCareSchedule, AnimalFeed
+from models.settings import AppSetting
 
 
 router = APIRouter(prefix="/animals", tags=["Animals"])
@@ -24,6 +25,7 @@ class AnimalCreate(BaseModel):
     animal_type: AnimalType
     category: AnimalCategory
     breed: Optional[str] = None
+    color: Optional[str] = None
     tag_number: Optional[str] = None
     microchip: Optional[str] = None
     sex: Optional[str] = None
@@ -32,6 +34,7 @@ class AnimalCreate(BaseModel):
     current_weight: Optional[float] = None
     feed_amount: Optional[str] = None
     feed_frequency: Optional[str] = None
+    feed_type: Optional[str] = None
     pasture: Optional[str] = None
     barn: Optional[str] = None
     # Livestock specific
@@ -45,17 +48,29 @@ class AnimalCreate(BaseModel):
     dental_frequency_days: Optional[int] = None
     wormer_rotation: Optional[str] = None
     notes: Optional[str] = None
+    # Cold tolerance
+    cold_sensitive: Optional[bool] = None
+    min_temp: Optional[float] = None
+    needs_blanket_below: Optional[float] = None
+    # Tags
+    tags: Optional[str] = None
 
 
 class AnimalUpdate(BaseModel):
     name: Optional[str] = None
+    animal_type: Optional[AnimalType] = None
+    category: Optional[AnimalCategory] = None
     breed: Optional[str] = None
+    color: Optional[str] = None
     tag_number: Optional[str] = None
     microchip: Optional[str] = None
     sex: Optional[str] = None
+    birth_date: Optional[date] = None
+    acquisition_date: Optional[date] = None
     current_weight: Optional[float] = None
     feed_amount: Optional[str] = None
     feed_frequency: Optional[str] = None
+    feed_type: Optional[str] = None
     pasture: Optional[str] = None
     barn: Optional[str] = None
     status: Optional[str] = None
@@ -70,6 +85,12 @@ class AnimalUpdate(BaseModel):
     dental_frequency_days: Optional[int] = None
     wormer_rotation: Optional[str] = None
     notes: Optional[str] = None
+    # Cold tolerance
+    cold_sensitive: Optional[bool] = None
+    min_temp: Optional[float] = None
+    needs_blanket_below: Optional[float] = None
+    # Tags
+    tags: Optional[str] = None
 
 
 class ExpenseCreate(BaseModel):
@@ -122,6 +143,54 @@ class CareLogResponse(BaseModel):
         from_attributes = True
 
 
+# Care Schedule schemas
+class CareScheduleCreate(BaseModel):
+    name: str
+    frequency_days: Optional[int] = None
+    last_performed: Optional[date] = None
+    manual_due_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+class CareScheduleUpdate(BaseModel):
+    name: Optional[str] = None
+    frequency_days: Optional[int] = None
+    last_performed: Optional[date] = None
+    manual_due_date: Optional[date] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+def feed_to_response(feed: AnimalFeed) -> dict:
+    """Convert feed to response dict"""
+    return {
+        "id": feed.id,
+        "animal_id": feed.animal_id,
+        "feed_type": feed.feed_type,
+        "amount": feed.amount,
+        "frequency": feed.frequency,
+        "notes": feed.notes,
+    }
+
+
+def care_schedule_to_response(schedule: AnimalCareSchedule) -> dict:
+    """Convert care schedule to response with computed fields"""
+    return {
+        "id": schedule.id,
+        "animal_id": schedule.animal_id,
+        "name": schedule.name,
+        "frequency_days": schedule.frequency_days,
+        "last_performed": schedule.last_performed,
+        "manual_due_date": schedule.manual_due_date,
+        "due_date": schedule.due_date,
+        "is_overdue": schedule.is_overdue,
+        "days_until_due": schedule.days_until_due,
+        "notes": schedule.notes,
+        "is_active": schedule.is_active,
+        "created_at": schedule.created_at,
+    }
+
+
 def animal_to_response(animal: Animal) -> dict:
     """Convert Animal model to response with computed fields"""
     return {
@@ -130,6 +199,7 @@ def animal_to_response(animal: Animal) -> dict:
         "animal_type": animal.animal_type,
         "category": animal.category,
         "breed": animal.breed,
+        "color": animal.color,
         "tag_number": animal.tag_number,
         "microchip": animal.microchip,
         "sex": animal.sex,
@@ -138,6 +208,7 @@ def animal_to_response(animal: Animal) -> dict:
         "current_weight": animal.current_weight,
         "feed_amount": animal.feed_amount,
         "feed_frequency": animal.feed_frequency,
+        "feed_type": animal.feed_type,
         "pasture": animal.pasture,
         "barn": animal.barn,
         "status": animal.status,
@@ -175,8 +246,21 @@ def animal_to_response(animal: Animal) -> dict:
         "min_temp": animal.min_temp,
         "needs_blanket_below": animal.needs_blanket_below,
         "cold_sensitive": animal.cold_sensitive,
+        # Tags
+        "tags": animal.tags.split(',') if animal.tags else [],
         "notes": animal.notes,
         "created_at": animal.created_at,
+        # Care schedules
+        "care_schedules": [
+            care_schedule_to_response(cs)
+            for cs in animal.care_schedules
+            if cs.is_active
+        ] if hasattr(animal, 'care_schedules') and animal.care_schedules else [],
+        "feeds": [
+            feed_to_response(f)
+            for f in animal.feeds
+            if f.is_active
+        ] if hasattr(animal, 'feeds') and animal.feeds else [],
     }
 
 
@@ -189,7 +273,9 @@ async def list_animals(
     db: AsyncSession = Depends(get_db),
 ):
     """List all animals with optional filtering"""
-    query = select(Animal).options(selectinload(Animal.expenses))
+    query = select(Animal).options(
+        selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds)
+    )
 
     if active_only:
         query = query.where(Animal.is_active == True)
@@ -214,7 +300,7 @@ async def create_animal(animal: AnimalCreate, db: AsyncSession = Depends(get_db)
 
     # Reload with expenses
     result = await db.execute(
-        select(Animal).options(selectinload(Animal.expenses)).where(Animal.id == db_animal.id)
+        select(Animal).options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds)).where(Animal.id == db_animal.id)
     )
     db_animal = result.scalar_one()
     return animal_to_response(db_animal)
@@ -224,7 +310,7 @@ async def create_animal(animal: AnimalCreate, db: AsyncSession = Depends(get_db)
 async def get_animal(animal_id: int, db: AsyncSession = Depends(get_db)):
     """Get a specific animal by ID"""
     result = await db.execute(
-        select(Animal).options(selectinload(Animal.expenses)).where(Animal.id == animal_id)
+        select(Animal).options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds)).where(Animal.id == animal_id)
     )
     animal = result.scalar_one_or_none()
     if not animal:
@@ -232,7 +318,7 @@ async def get_animal(animal_id: int, db: AsyncSession = Depends(get_db)):
     return animal_to_response(animal)
 
 
-@router.patch("/{animal_id}")
+@router.patch("/{animal_id}/")
 async def update_animal(
     animal_id: int,
     updates: AnimalUpdate,
@@ -240,7 +326,7 @@ async def update_animal(
 ):
     """Update an animal's information"""
     result = await db.execute(
-        select(Animal).options(selectinload(Animal.expenses)).where(Animal.id == animal_id)
+        select(Animal).options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds)).where(Animal.id == animal_id)
     )
     animal = result.scalar_one_or_none()
     if not animal:
@@ -255,7 +341,7 @@ async def update_animal(
     return animal_to_response(animal)
 
 
-@router.delete("/{animal_id}")
+@router.delete("/{animal_id}/")
 async def delete_animal(animal_id: int, db: AsyncSession = Depends(get_db)):
     """Deactivate an animal (soft delete)"""
     result = await db.execute(select(Animal).where(Animal.id == animal_id))
@@ -320,7 +406,7 @@ async def add_expense(
 async def get_total_expenses(animal_id: int, db: AsyncSession = Depends(get_db)):
     """Get total expenses for an animal"""
     result = await db.execute(
-        select(Animal).options(selectinload(Animal.expenses)).where(Animal.id == animal_id)
+        select(Animal).options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds)).where(Animal.id == animal_id)
     )
     animal = result.scalar_one_or_none()
     if not animal:
@@ -406,7 +492,7 @@ async def get_pets(db: AsyncSession = Depends(get_db)):
     """Get all pets"""
     result = await db.execute(
         select(Animal)
-        .options(selectinload(Animal.expenses))
+        .options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds))
         .where(Animal.category == AnimalCategory.PET)
         .where(Animal.is_active == True)
         .order_by(Animal.name)
@@ -420,7 +506,7 @@ async def get_livestock(db: AsyncSession = Depends(get_db)):
     """Get all livestock"""
     result = await db.execute(
         select(Animal)
-        .options(selectinload(Animal.expenses))
+        .options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds))
         .where(Animal.category == AnimalCategory.LIVESTOCK)
         .where(Animal.is_active == True)
         .order_by(Animal.name)
@@ -438,7 +524,7 @@ async def get_animals_needing_worming(
     """Get pets needing worming (due or overdue)"""
     result = await db.execute(
         select(Animal)
-        .options(selectinload(Animal.expenses))
+        .options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds))
         .where(Animal.category == AnimalCategory.PET)
         .where(Animal.is_active == True)
         .where(Animal.worming_frequency_days.isnot(None))
@@ -463,7 +549,7 @@ async def get_animals_needing_vaccination(
     """Get pets needing vaccination (due or overdue)"""
     result = await db.execute(
         select(Animal)
-        .options(selectinload(Animal.expenses))
+        .options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds))
         .where(Animal.category == AnimalCategory.PET)
         .where(Animal.is_active == True)
         .where(Animal.vaccination_frequency_days.isnot(None))
@@ -488,7 +574,7 @@ async def get_animals_needing_hoof_trim(
     """Get pets needing hoof trim (due or overdue)"""
     result = await db.execute(
         select(Animal)
-        .options(selectinload(Animal.expenses))
+        .options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds))
         .where(Animal.category == AnimalCategory.PET)
         .where(Animal.is_active == True)
         .where(Animal.hoof_trim_frequency_days.isnot(None))
@@ -513,7 +599,7 @@ async def get_animals_needing_dental(
     """Get pets needing dental work (due or overdue)"""
     result = await db.execute(
         select(Animal)
-        .options(selectinload(Animal.expenses))
+        .options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds))
         .where(Animal.category == AnimalCategory.PET)
         .where(Animal.is_active == True)
         .where(Animal.dental_frequency_days.isnot(None))
@@ -539,7 +625,7 @@ async def get_livestock_approaching_slaughter(
     target_date = date.today() + timedelta(days=days)
     result = await db.execute(
         select(Animal)
-        .options(selectinload(Animal.expenses))
+        .options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds))
         .where(Animal.category == AnimalCategory.LIVESTOCK)
         .where(Animal.is_active == True)
         .where(Animal.slaughter_date.isnot(None))
@@ -560,7 +646,7 @@ async def get_cold_sensitive_animals(
     If temp is not provided, returns all cold-sensitive animals."""
     result = await db.execute(
         select(Animal)
-        .options(selectinload(Animal.expenses))
+        .options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds))
         .where(Animal.is_active == True)
         .where(Animal.cold_sensitive == True)
         .order_by(Animal.name)
@@ -579,17 +665,308 @@ async def get_cold_sensitive_animals(
 
 @router.get("/needs-blanket/")
 async def get_animals_needing_blanket(
-    temp: float = Query(..., description="Current temperature in F"),
+    temp: float = Query(..., description="Current/forecast temperature in F"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get animals that need a blanket at the given temperature"""
+    """Get animals that need a blanket at the given temperature (with buffer applied)"""
+    # Get cold protection buffer from settings (same as plants use)
+    buffer_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "cold_protection_buffer")
+    )
+    buffer_setting = buffer_result.scalar_one_or_none()
+    buffer = float(buffer_setting.value) if buffer_setting and buffer_setting.value else 7.0
+
+    # Add buffer to forecast temp to account for forecast error
+    # If forecast is 30 and buffer is 7, check if animal needs blanket at 23 (30-7)
+    # Or in other words: show animals whose threshold + buffer >= temp
     result = await db.execute(
         select(Animal)
-        .options(selectinload(Animal.expenses))
+        .options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds))
         .where(Animal.is_active == True)
         .where(Animal.needs_blanket_below.isnot(None))
-        .where(Animal.needs_blanket_below >= temp)
+        .where(Animal.needs_blanket_below + buffer >= temp)
         .order_by(Animal.name)
     )
     animals = result.scalars().all()
     return [animal_to_response(a) for a in animals]
+
+
+# === Care Schedule Endpoints ===
+@router.get("/{animal_id}/care-schedules/")
+async def get_care_schedules(
+    animal_id: int,
+    include_inactive: bool = False,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get care schedules for an animal"""
+    query = select(AnimalCareSchedule).where(AnimalCareSchedule.animal_id == animal_id)
+    if not include_inactive:
+        query = query.where(AnimalCareSchedule.is_active == True)
+    query = query.order_by(AnimalCareSchedule.name)
+
+    result = await db.execute(query)
+    schedules = result.scalars().all()
+    return [care_schedule_to_response(s) for s in schedules]
+
+
+@router.post("/{animal_id}/care-schedules/")
+async def create_care_schedule(
+    animal_id: int,
+    schedule: CareScheduleCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new care schedule item for an animal"""
+    # Verify animal exists
+    result = await db.execute(select(Animal).where(Animal.id == animal_id))
+    animal = result.scalar_one_or_none()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+
+    db_schedule = AnimalCareSchedule(
+        animal_id=animal_id,
+        name=schedule.name,
+        frequency_days=schedule.frequency_days,
+        last_performed=schedule.last_performed,
+        manual_due_date=schedule.manual_due_date,
+        notes=schedule.notes,
+    )
+    db.add(db_schedule)
+    await db.commit()
+    await db.refresh(db_schedule)
+    return care_schedule_to_response(db_schedule)
+
+
+@router.patch("/{animal_id}/care-schedules/{schedule_id}/")
+async def update_care_schedule(
+    animal_id: int,
+    schedule_id: int,
+    updates: CareScheduleUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a care schedule item"""
+    result = await db.execute(
+        select(AnimalCareSchedule)
+        .where(AnimalCareSchedule.id == schedule_id)
+        .where(AnimalCareSchedule.animal_id == animal_id)
+    )
+    schedule = result.scalar_one_or_none()
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Care schedule not found")
+
+    for field, value in updates.model_dump(exclude_unset=True).items():
+        setattr(schedule, field, value)
+
+    schedule.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(schedule)
+    return care_schedule_to_response(schedule)
+
+
+@router.post("/{animal_id}/care-schedules/{schedule_id}/complete/")
+async def complete_care_schedule(
+    animal_id: int,
+    schedule_id: int,
+    performed_date: Optional[date] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark a care schedule item as completed (updates last_performed to today or specified date)"""
+    result = await db.execute(
+        select(AnimalCareSchedule)
+        .where(AnimalCareSchedule.id == schedule_id)
+        .where(AnimalCareSchedule.animal_id == animal_id)
+    )
+    schedule = result.scalar_one_or_none()
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Care schedule not found")
+
+    schedule.last_performed = performed_date or date.today()
+    # Clear manual due date when completing, so it recalculates based on frequency
+    schedule.manual_due_date = None
+    schedule.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(schedule)
+    return care_schedule_to_response(schedule)
+
+
+@router.delete("/{animal_id}/care-schedules/{schedule_id}/")
+async def delete_care_schedule(
+    animal_id: int,
+    schedule_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a care schedule item (soft delete - sets is_active=False)"""
+    result = await db.execute(
+        select(AnimalCareSchedule)
+        .where(AnimalCareSchedule.id == schedule_id)
+        .where(AnimalCareSchedule.animal_id == animal_id)
+    )
+    schedule = result.scalar_one_or_none()
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Care schedule not found")
+
+    schedule.is_active = False
+    schedule.updated_at = datetime.utcnow()
+    await db.commit()
+    return {"message": "Care schedule deleted"}
+
+
+# Bulk Care Schedule Schema
+class BulkCareScheduleCreate(BaseModel):
+    animal_ids: List[int]
+    name: str
+    frequency_days: Optional[int] = None
+    last_performed: Optional[date] = None
+    manual_due_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+@router.post("/care-schedules/bulk/")
+async def create_bulk_care_schedules(
+    data: BulkCareScheduleCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create the same care schedule item for multiple animals at once"""
+    # Verify all animals exist
+    result = await db.execute(
+        select(Animal).where(Animal.id.in_(data.animal_ids))
+    )
+    animals = result.scalars().all()
+    found_ids = {a.id for a in animals}
+    missing_ids = set(data.animal_ids) - found_ids
+
+    if missing_ids:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Animals not found: {list(missing_ids)}"
+        )
+
+    created = []
+    for animal_id in data.animal_ids:
+        db_schedule = AnimalCareSchedule(
+            animal_id=animal_id,
+            name=data.name,
+            frequency_days=data.frequency_days,
+            last_performed=data.last_performed,
+            manual_due_date=data.manual_due_date,
+            notes=data.notes,
+        )
+        db.add(db_schedule)
+        created.append(db_schedule)
+
+    await db.commit()
+
+    # Refresh all to get IDs
+    for schedule in created:
+        await db.refresh(schedule)
+
+    return {
+        "message": f"Created care schedule '{data.name}' for {len(created)} animals",
+        "count": len(created),
+        "schedules": [care_schedule_to_response(s) for s in created]
+    }
+
+
+# ============================================
+# ANIMAL FEEDS CRUD
+# ============================================
+
+class FeedCreate(BaseModel):
+    feed_type: str
+    amount: Optional[str] = None
+    frequency: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class FeedUpdate(BaseModel):
+    feed_type: Optional[str] = None
+    amount: Optional[str] = None
+    frequency: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router.get("/{animal_id}/feeds/")
+async def get_animal_feeds(animal_id: int, db: AsyncSession = Depends(get_db)):
+    """Get all feeds for an animal"""
+    result = await db.execute(
+        select(Animal)
+        .where(Animal.id == animal_id)
+        .options(selectinload(Animal.feeds))
+    )
+    animal = result.scalar_one_or_none()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+
+    return [feed_to_response(f) for f in animal.feeds if f.is_active]
+
+
+@router.post("/{animal_id}/feeds/")
+async def create_animal_feed(
+    animal_id: int,
+    data: FeedCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new feed entry for an animal"""
+    result = await db.execute(select(Animal).where(Animal.id == animal_id))
+    animal = result.scalar_one_or_none()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+
+    db_feed = AnimalFeed(
+        animal_id=animal_id,
+        feed_type=data.feed_type,
+        amount=data.amount,
+        frequency=data.frequency,
+        notes=data.notes,
+    )
+    db.add(db_feed)
+    await db.commit()
+    await db.refresh(db_feed)
+
+    return feed_to_response(db_feed)
+
+
+@router.patch("/{animal_id}/feeds/{feed_id}/")
+async def update_animal_feed(
+    animal_id: int,
+    feed_id: int,
+    data: FeedUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a feed entry"""
+    result = await db.execute(
+        select(AnimalFeed)
+        .where(AnimalFeed.id == feed_id, AnimalFeed.animal_id == animal_id)
+    )
+    feed = result.scalar_one_or_none()
+    if not feed:
+        raise HTTPException(status_code=404, detail="Feed not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(feed, key, value)
+
+    await db.commit()
+    await db.refresh(feed)
+
+    return feed_to_response(feed)
+
+
+@router.delete("/{animal_id}/feeds/{feed_id}/")
+async def delete_animal_feed(
+    animal_id: int,
+    feed_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a feed entry (soft delete)"""
+    result = await db.execute(
+        select(AnimalFeed)
+        .where(AnimalFeed.id == feed_id, AnimalFeed.animal_id == animal_id)
+    )
+    feed = result.scalar_one_or_none()
+    if not feed:
+        raise HTTPException(status_code=404, detail="Feed not found")
+
+    feed.is_active = False
+    await db.commit()
+
+    return {"message": "Feed deleted"}

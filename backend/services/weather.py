@@ -14,7 +14,31 @@ from sqlalchemy import select, desc
 
 from config import settings
 from models.weather import WeatherReading, WeatherAlert, AlertSeverity
-from services.email import EmailService
+from models.settings import AppSetting
+
+
+# Default thresholds (mirrors routers/settings.py)
+DEFAULT_THRESHOLDS = {
+    "frost_warning_temp": 35.0,
+    "freeze_warning_temp": 32.0,
+    "heat_warning_temp": 95.0,
+    "wind_warning_speed": 25.0,
+    "rain_warning_inches": 2.0,
+}
+
+
+async def get_threshold(db: AsyncSession, key: str) -> float:
+    """Get a threshold value from the database, or return default"""
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == key)
+    )
+    setting = result.scalar_one_or_none()
+    if setting and setting.value is not None:
+        try:
+            return float(setting.value)
+        except ValueError:
+            pass
+    return DEFAULT_THRESHOLDS.get(key, 0.0)
 
 
 class NWSForecastService:
@@ -252,16 +276,23 @@ class WeatherService:
         """Check weather conditions and generate alerts if needed"""
         alerts = []
 
+        # Get dynamic thresholds from settings
+        frost_temp = await get_threshold(db, "frost_warning_temp")
+        freeze_temp = await get_threshold(db, "freeze_warning_temp")
+        heat_temp = await get_threshold(db, "heat_warning_temp")
+        wind_speed = await get_threshold(db, "wind_warning_speed")
+        rain_inches = await get_threshold(db, "rain_warning_inches")
+
         # Frost warning
-        if reading.temp_outdoor and reading.temp_outdoor <= settings.frost_warning_temp:
+        if reading.temp_outdoor and reading.temp_outdoor <= frost_temp:
             severity = (
                 AlertSeverity.CRITICAL
-                if reading.temp_outdoor <= settings.freeze_warning_temp
+                if reading.temp_outdoor <= freeze_temp
                 else AlertSeverity.WARNING
             )
             alert_type = (
                 "freeze_warning"
-                if reading.temp_outdoor <= settings.freeze_warning_temp
+                if reading.temp_outdoor <= freeze_temp
                 else "frost_warning"
             )
 
@@ -272,7 +303,7 @@ class WeatherService:
                 message=f"Temperature has dropped to {reading.temp_outdoor}°F. "
                 f"Protect frost-sensitive plants!",
                 trigger_value=reading.temp_outdoor,
-                threshold_value=settings.frost_warning_temp,
+                threshold_value=frost_temp,
                 recommended_actions="Cover frost-sensitive plants with blankets or frost cloth. "
                 "Move potted plants indoors. Check on citrus trees.",
                 expires_at=datetime.utcnow() + timedelta(hours=12),
@@ -280,7 +311,7 @@ class WeatherService:
             alerts.append(alert)
 
         # Heat warning
-        if reading.temp_outdoor and reading.temp_outdoor >= settings.heat_warning_temp:
+        if reading.temp_outdoor and reading.temp_outdoor >= heat_temp:
             alert = WeatherAlert(
                 alert_type="heat_warning",
                 severity=AlertSeverity.WARNING,
@@ -288,7 +319,7 @@ class WeatherService:
                 message=f"Temperature has reached {reading.temp_outdoor}°F. "
                 f"Ensure animals have shade and water.",
                 trigger_value=reading.temp_outdoor,
-                threshold_value=settings.heat_warning_temp,
+                threshold_value=heat_temp,
                 recommended_actions="Ensure all animals have access to shade and fresh water. "
                 "Consider additional watering for plants. Avoid working during peak heat.",
                 expires_at=datetime.utcnow() + timedelta(hours=8),
@@ -296,14 +327,14 @@ class WeatherService:
             alerts.append(alert)
 
         # High wind warning
-        if reading.wind_gust and reading.wind_gust >= settings.wind_warning_speed:
+        if reading.wind_gust and reading.wind_gust >= wind_speed:
             alert = WeatherAlert(
                 alert_type="wind_warning",
                 severity=AlertSeverity.WARNING,
                 title="High Wind Warning",
                 message=f"Wind gusts reaching {reading.wind_gust} mph.",
                 trigger_value=reading.wind_gust,
-                threshold_value=settings.wind_warning_speed,
+                threshold_value=wind_speed,
                 recommended_actions="Secure loose items. Check that animal shelters are stable. "
                 "Young trees may need staking.",
                 expires_at=datetime.utcnow() + timedelta(hours=6),
@@ -311,23 +342,21 @@ class WeatherService:
             alerts.append(alert)
 
         # Heavy rain warning
-        if reading.rain_daily and reading.rain_daily >= settings.rain_warning_inches:
+        if reading.rain_daily and reading.rain_daily >= rain_inches:
             alert = WeatherAlert(
                 alert_type="heavy_rain",
                 severity=AlertSeverity.INFO,
                 title="Heavy Rain",
                 message=f"Daily rainfall has reached {reading.rain_daily} inches.",
                 trigger_value=reading.rain_daily,
-                threshold_value=settings.rain_warning_inches,
+                threshold_value=rain_inches,
                 recommended_actions="Skip watering today. Check for standing water. "
                 "Ensure drainage is clear.",
                 expires_at=datetime.utcnow() + timedelta(hours=24),
             )
             alerts.append(alert)
 
-        # Save alerts to database and send email notifications
-        email_service = EmailService()
-
+        # Save alerts to database (email notifications handled by sunset scheduler)
         # Group related alert types (e.g., frost and freeze are related)
         cold_alerts = {"frost_warning", "freeze_warning"}
 
@@ -350,18 +379,6 @@ class WeatherService:
             # Add the new alert
             db.add(alert)
             logger.warning(f"Weather alert created: {alert.title}")
-
-            # Send email notification if enabled
-            if settings.email_alerts_enabled and email_service.is_configured():
-                try:
-                    await email_service.send_weather_alert({
-                        "title": alert.title,
-                        "message": alert.message,
-                        "severity": alert.severity.value,
-                        "recommended_actions": alert.recommended_actions,
-                    })
-                except Exception as e:
-                    logger.error(f"Failed to send email alert: {e}")
 
         await db.commit()
         return alerts

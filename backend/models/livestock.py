@@ -30,6 +30,7 @@ class AnimalType(enum.Enum):
     RABBIT = "rabbit"
     # Common pets
     HORSE = "horse"
+    MINI_HORSE = "mini_horse"
     DOG = "dog"
     CAT = "cat"
     DONKEY = "donkey"
@@ -61,6 +62,7 @@ class Animal(Base):
     current_weight = Column(Float)  # Current weight in lbs
 
     # Feeding info
+    feed_type = Column(String(200))  # e.g., "Hay", "Grain", "Pellets", etc.
     feed_amount = Column(String(100))  # e.g., "2 cups", "5 lbs"
     feed_frequency = Column(String(100))  # e.g., "twice daily", "once daily"
 
@@ -110,6 +112,7 @@ class Animal(Base):
     # Status
     is_active = Column(Boolean, default=True)
     status = Column(String(50), default="healthy")  # healthy, injured, sick, sold, deceased, slaughtered
+    tags = Column(String(500))  # Comma-separated tags: sick, pregnant, for_sale, quarantine, etc.
     notes = Column(Text)
 
     # Metadata
@@ -119,6 +122,8 @@ class Animal(Base):
     # Relationships
     care_logs = relationship("AnimalCareLog", back_populates="animal", cascade="all, delete-orphan")
     expenses = relationship("AnimalExpense", back_populates="animal", cascade="all, delete-orphan")
+    care_schedules = relationship("AnimalCareSchedule", back_populates="animal", cascade="all, delete-orphan")
+    feeds = relationship("AnimalFeed", back_populates="animal", cascade="all, delete-orphan")
 
     @property
     def age_months(self):
@@ -262,3 +267,94 @@ class AnimalExpense(Base):
 
     def __repr__(self):
         return f"<AnimalExpense ${self.amount} {self.expense_type} for {self.animal_id}>"
+
+
+class AnimalFeed(Base):
+    """Multiple feed entries per animal - e.g., grain once daily + hay constant access"""
+    __tablename__ = "animal_feeds"
+
+    id = Column(Integer, primary_key=True, index=True)
+    animal_id = Column(Integer, ForeignKey("animals.id"), nullable=False)
+
+    feed_type = Column(String(100), nullable=False)  # e.g., "Grain", "Hay", "Pellets"
+    amount = Column(String(100))  # e.g., "1 scoop", "2 flakes"
+    frequency = Column(String(100))  # e.g., "Once daily", "Constant access"
+    notes = Column(Text)
+
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    animal = relationship("Animal", back_populates="feeds")
+
+    def __repr__(self):
+        return f"<AnimalFeed {self.feed_type} for animal {self.animal_id}>"
+
+
+class AnimalCareSchedule(Base):
+    """Flexible care schedule items for animals"""
+    __tablename__ = "animal_care_schedules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    animal_id = Column(Integer, ForeignKey("animals.id"), nullable=False)
+
+    # Care item details
+    name = Column(String(100), nullable=False)  # e.g., "Hoof Trim", "Worming", "Vaccinations"
+
+    # Frequency in days (optional - if not set, must use manual due date)
+    frequency_days = Column(Integer)  # e.g., 42 for 6 weeks, 60 for 2 months
+
+    # Last performed date (optional)
+    last_performed = Column(Date)
+
+    # Manual due date (optional - overrides calculated due date)
+    manual_due_date = Column(Date)
+
+    # Notes about this care item
+    notes = Column(Text)
+
+    # Is this care item active?
+    is_active = Column(Boolean, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    animal = relationship("Animal", back_populates="care_schedules")
+
+    @property
+    def due_date(self):
+        """Calculate due date based on manual date, frequency, or default to today"""
+        # If manual due date is set, use it
+        if self.manual_due_date:
+            return self.manual_due_date
+
+        # If frequency and last performed are set, calculate next due date
+        if self.frequency_days and self.last_performed:
+            return self.last_performed + timedelta(days=self.frequency_days)
+
+        # If only frequency is set (never performed), due today
+        if self.frequency_days and not self.last_performed:
+            return date.today()
+
+        # No frequency set and no manual date - no due date
+        return None
+
+    @property
+    def is_overdue(self):
+        """Check if this care item is overdue"""
+        due = self.due_date
+        if due is None:
+            return False
+        return date.today() > due
+
+    @property
+    def days_until_due(self):
+        """Days until due (negative if overdue)"""
+        due = self.due_date
+        if due is None:
+            return None
+        return (due - date.today()).days
+
+    def __repr__(self):
+        return f"<AnimalCareSchedule {self.name} for animal {self.animal_id}>"

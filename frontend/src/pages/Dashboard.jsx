@@ -1,23 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Leaf, PawPrint, ListTodo, AlertTriangle, Clock } from 'lucide-react'
-import { getDashboard } from '../services/api'
+import { getDashboard, getAnimals } from '../services/api'
 import WeatherWidget from '../components/WeatherWidget'
 import TaskList from '../components/TaskList'
 import AlertBanner from '../components/AlertBanner'
 import StatsCard from '../components/StatsCard'
 import ColdProtectionWidget from '../components/ColdProtectionWidget'
+import AnimalFeedWidget from '../components/AnimalFeedWidget'
 import { format } from 'date-fns'
 
 function Dashboard() {
   const [data, setData] = useState(null)
+  const [animals, setAnimals] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [currentTime, setCurrentTime] = useState(new Date())
 
   const fetchData = useCallback(async () => {
     try {
-      const response = await getDashboard()
-      setData(response.data)
+      const [dashboardRes, animalsRes] = await Promise.all([
+        getDashboard(),
+        getAnimals()
+      ])
+      setData(dashboardRes.data)
+      setAnimals(animalsRes.data)
       setError(null)
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err)
@@ -89,72 +95,61 @@ function Dashboard() {
       {/* Alerts */}
       <AlertBanner alerts={data?.alerts} onDismiss={fetchData} />
 
+      {/* Stats Grid - moved above main content */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatsCard
+          title="Plants"
+          value={data?.stats?.total_plants || 0}
+          icon={Leaf}
+          color="green"
+        />
+        <StatsCard
+          title="Animals"
+          value={data?.stats?.total_animals || 0}
+          icon={PawPrint}
+          color="blue"
+        />
+        <StatsCard
+          title="Tasks Today"
+          value={data?.stats?.tasks_today || 0}
+          icon={ListTodo}
+          color="yellow"
+        />
+        <StatsCard
+          title="Overdue"
+          value={data?.stats?.tasks_overdue || 0}
+          icon={Clock}
+          color={data?.stats?.tasks_overdue > 0 ? 'red' : 'green'}
+        />
+      </div>
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Weather & Stats */}
+        {/* Left Column - Weather & Animal Feed */}
         <div className="space-y-6">
           <WeatherWidget weather={data?.weather} />
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <StatsCard
-              title="Plants"
-              value={data?.stats?.total_plants || 0}
-              icon={Leaf}
-              color="green"
-            />
-            <StatsCard
-              title="Animals"
-              value={data?.stats?.total_animals || 0}
-              icon={PawPrint}
-              color="blue"
-            />
-            <StatsCard
-              title="Tasks Today"
-              value={data?.stats?.tasks_today || 0}
-              icon={ListTodo}
-              color="yellow"
-            />
-            <StatsCard
-              title="Overdue"
-              value={data?.stats?.tasks_overdue || 0}
-              icon={Clock}
-              color={data?.stats?.tasks_overdue > 0 ? 'red' : 'green'}
-            />
-          </div>
+          {/* Animal Feed Widget */}
+          <AnimalFeedWidget animals={animals} />
         </div>
 
         {/* Right Column - Today's Tasks */}
-        <div>
+        <div className="space-y-6">
           <TaskList
-            title="Today's Tasks"
+            title="Today's Schedule"
             tasks={data?.tasks_today}
             onTaskToggle={fetchData}
+            showTimeAndLocation={true}
           />
 
-          {/* Upcoming This Week */}
-          {data?.upcoming_events?.length > 0 && (
-            <div className="mt-6 bg-gray-800 rounded-xl p-4">
-              <h2 className="text-lg font-semibold text-gray-300 mb-3">
-                Upcoming This Week
-              </h2>
-              <div className="space-y-2">
-                {data.upcoming_events
-                  .filter((e) => !e.is_completed)
-                  .slice(0, 5)
-                  .map((event) => (
-                    <div
-                      key={event.id}
-                      className="flex items-center justify-between bg-gray-700 rounded-lg px-3 py-2"
-                    >
-                      <p className="font-medium truncate">{event.title}</p>
-                      <p className="text-sm text-gray-400 ml-2 flex-shrink-0">
-                        {format(new Date(event.date), 'EEE, MMM d')}
-                      </p>
-                    </div>
-                  ))}
-              </div>
-            </div>
+          {/* Undated Todos Widget */}
+          {data?.undated_todos && data.undated_todos.length > 0 && (
+            <TaskList
+              title="To Do"
+              tasks={data?.undated_todos}
+              onTaskToggle={fetchData}
+              showTimeAndLocation={false}
+            />
           )}
         </div>
       </div>

@@ -74,6 +74,28 @@ export const getColdSensitiveAnimals = (temp) =>
   api.get('/animals/cold-sensitive/', { params: temp ? { temp } : {} })
 export const getAnimalsNeedingBlanket = (temp) =>
   api.get('/animals/needs-blanket/', { params: { temp } })
+// Animal Care Schedules
+export const getAnimalCareSchedules = (animalId) =>
+  api.get(`/animals/${animalId}/care-schedules/`)
+export const createCareSchedule = (animalId, data) =>
+  api.post(`/animals/${animalId}/care-schedules/`, data)
+export const updateCareSchedule = (animalId, scheduleId, data) =>
+  api.patch(`/animals/${animalId}/care-schedules/${scheduleId}/`, data)
+export const completeCareSchedule = (animalId, scheduleId) =>
+  api.post(`/animals/${animalId}/care-schedules/${scheduleId}/complete/`)
+export const deleteCareSchedule = (animalId, scheduleId) =>
+  api.delete(`/animals/${animalId}/care-schedules/${scheduleId}/`)
+export const createBulkCareSchedule = (data) =>
+  api.post('/animals/care-schedules/bulk/', data)
+// Animal Feeds
+export const getAnimalFeeds = (animalId) =>
+  api.get(`/animals/${animalId}/feeds/`)
+export const createAnimalFeed = (animalId, data) =>
+  api.post(`/animals/${animalId}/feeds/`, data)
+export const updateAnimalFeed = (animalId, feedId, data) =>
+  api.patch(`/animals/${animalId}/feeds/${feedId}/`, data)
+export const deleteAnimalFeed = (animalId, feedId) =>
+  api.delete(`/animals/${animalId}/feeds/${feedId}/`)
 
 // Tasks
 export const getTasks = (params) => api.get('/tasks/', { params })
@@ -98,5 +120,15 @@ export const updateSeed = (id, data) => api.patch(`/seeds/${id}/`, data)
 export const deleteSeed = (id) => api.delete(`/seeds/${id}/`)
 export const getSeedStats = () => api.get('/seeds/stats/')
 export const getSeedCategories = () => api.get('/seeds/categories/')
+
+// Settings
+export const getSettings = () => api.get('/settings/')
+export const getSetting = (key) => api.get(`/settings/${key}/`)
+export const updateSetting = (key, value) => api.put(`/settings/${key}/`, { value })
+export const resetSetting = (key) => api.post(`/settings/${key}/reset/`)
+export const resetAllSettings = () => api.post('/settings/reset-all/')
+export const testColdProtectionEmail = () => api.post('/settings/test-cold-protection-email/')
+export const testCalendarSync = () => api.post('/settings/test-calendar-sync/')
+export const syncCalendar = () => api.post('/settings/sync-calendar/')
 
 export default api

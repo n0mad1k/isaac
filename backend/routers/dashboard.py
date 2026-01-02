@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from models.database import get_db
 from models.plants import Plant
 from models.livestock import Animal, AnimalType
-from models.tasks import Task, TaskCategory
+from models.tasks import Task, TaskCategory, TaskType
 from models.weather import WeatherReading, WeatherAlert
 from services.weather import WeatherService, NWSForecastService
 
@@ -41,9 +41,13 @@ class DashboardTask(BaseModel):
     id: int
     title: str
     description: Optional[str]
+    task_type: str
     category: str
     priority: int
+    due_date: Optional[date]
     due_time: Optional[str]
+    end_time: Optional[str]
+    location: Optional[str]
     is_completed: bool
 
 
@@ -75,6 +79,7 @@ class CalendarEvent(BaseModel):
 class DashboardResponse(BaseModel):
     weather: Optional[DashboardWeather]
     tasks_today: List[DashboardTask]
+    undated_todos: List[DashboardTask]  # Todos without a specific date
     alerts: List[DashboardAlert]
     stats: DashboardStats
     upcoming_events: List[CalendarEvent]
@@ -117,7 +122,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             temp_low_today=temp_low,
         )
 
-    # Get today's tasks
+    # Get today's tasks (items with today's date)
     today = date.today()
     result = await db.execute(
         select(Task)
@@ -131,12 +136,43 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             id=t.id,
             title=t.title,
             description=t.description,
+            task_type=t.task_type.value if t.task_type else "todo",
             category=t.category.value if t.category else "custom",
             priority=t.priority,
+            due_date=t.due_date,
             due_time=t.due_time,
+            end_time=t.end_time,
+            location=t.location,
             is_completed=t.is_completed,
         )
         for t in tasks
+    ]
+
+    # Get undated todos (todos without a due date)
+    result = await db.execute(
+        select(Task)
+        .where(Task.due_date.is_(None))
+        .where(Task.is_active == True)
+        .where(Task.is_completed == False)
+        .order_by(Task.priority, Task.created_at)
+        .limit(10)
+    )
+    undated = result.scalars().all()
+    undated_todos = [
+        DashboardTask(
+            id=t.id,
+            title=t.title,
+            description=t.description,
+            task_type=t.task_type.value if t.task_type else "todo",
+            category=t.category.value if t.category else "custom",
+            priority=t.priority,
+            due_date=None,
+            due_time=t.due_time,
+            end_time=t.end_time,
+            location=t.location,
+            is_completed=t.is_completed,
+        )
+        for t in undated
     ]
 
     # Get active alerts
@@ -225,6 +261,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
     return DashboardResponse(
         weather=weather_data,
         tasks_today=tasks_today,
+        undated_todos=undated_todos,
         alerts=alert_list,
         stats=stats,
         upcoming_events=upcoming_events,
@@ -279,7 +316,7 @@ async def get_calendar_month(
     month: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get all tasks for a specific month"""
+    """Get calendar events for a specific month (only events, not todos)"""
     start_date = date(year, month, 1)
     if month == 12:
         end_date = date(year + 1, 1, 1) - timedelta(days=1)
@@ -291,6 +328,7 @@ async def get_calendar_month(
         .where(Task.due_date >= start_date)
         .where(Task.due_date <= end_date)
         .where(Task.is_active == True)
+        .where(Task.task_type == TaskType.EVENT)  # Only show events on calendar
         .order_by(Task.due_date, Task.priority)
     )
     tasks = result.scalars().all()
