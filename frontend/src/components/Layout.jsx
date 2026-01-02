@@ -30,6 +30,13 @@ function Layout() {
     fetchRefreshSetting()
   }, [])
 
+  // Check if any modal or form is open (to pause refresh)
+  const isModalOpen = () => {
+    // Check for any fixed overlay (modals use fixed positioning with bg-black/50)
+    const modals = document.querySelectorAll('.fixed.inset-0')
+    return modals.length > 0
+  }
+
   // Set up page refresh timer
   useEffect(() => {
     if (refreshInterval > 0) {
@@ -40,6 +47,10 @@ function Layout() {
       // Set countdown timer (updates every second)
       setCountdown(refreshInterval / 1000)
       countdownRef.current = setInterval(() => {
+        // Pause countdown if modal is open
+        if (isModalOpen()) {
+          return
+        }
         setCountdown(prev => {
           if (prev <= 1) {
             return refreshInterval / 1000
@@ -50,6 +61,10 @@ function Layout() {
 
       // Set refresh timer
       intervalRef.current = setInterval(() => {
+        // Don't refresh if a modal/form is open
+        if (isModalOpen()) {
+          return
+        }
         window.location.reload()
       }, refreshInterval)
 
@@ -80,13 +95,13 @@ function Layout() {
   }
 
   const navItems = [
-    { to: '/', icon: Home, label: 'Home' },
+    { to: '/', icon: Home, label: 'Dash' },
     { to: '/todo', icon: ListTodo, label: 'To Do' },
     { to: '/calendar', icon: Calendar, label: 'Calendar' },
     { to: '/plants', icon: Leaf, label: 'Plants' },
     { to: '/seeds', icon: Sprout, label: 'Seeds' },
     { to: '/animals', icon: PawPrint, label: 'Animals' },
-    { to: '/home-maintenance', icon: Home, label: 'Maint' },
+    { to: '/home-maintenance', icon: Home, label: 'Home' },
     { to: '/vehicles', icon: Car, label: 'Vehicles' },
     { to: '/equipment', icon: Wrench, label: 'Equip' },
     { to: '/farm-areas', icon: Fence, label: 'Farm' },

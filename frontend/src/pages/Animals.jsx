@@ -8,9 +8,9 @@ import {
   getAnimals, createAnimal, updateAnimal, deleteAnimal, addAnimalCareLog,
   addAnimalExpense, getAnimalExpenses, createCareSchedule, completeCareSchedule,
   deleteCareSchedule, updateCareSchedule, createBulkCareSchedule,
-  createAnimalFeed, updateAnimalFeed, deleteAnimalFeed
+  createAnimalFeed, updateAnimalFeed, deleteAnimalFeed, getFarmAreas
 } from '../services/api'
-import { format, differenceInDays, parseISO } from 'date-fns'
+import { format, differenceInDays, parseISO, startOfDay } from 'date-fns'
 
 // Predefined tags with colors
 const ANIMAL_TAGS = {
@@ -118,6 +118,7 @@ function Animals() {
   const [showBulkCareForm, setShowBulkCareForm] = useState(false)
   const [showFeedForm, setShowFeedForm] = useState(null) // animal_id or null
   const [editingFeed, setEditingFeed] = useState(null) // { animalId, ...feed }
+  const [farmAreas, setFarmAreas] = useState([])
 
   const fetchAnimals = async () => {
     try {
@@ -130,8 +131,18 @@ function Animals() {
     }
   }
 
+  const fetchFarmAreas = async () => {
+    try {
+      const response = await getFarmAreas()
+      setFarmAreas(response.data)
+    } catch (error) {
+      console.error('Failed to fetch farm areas:', error)
+    }
+  }
+
   useEffect(() => {
     fetchAnimals()
+    fetchFarmAreas()
   }, [])
 
   const filteredAnimals = animals
@@ -181,7 +192,8 @@ function Animals() {
     if (!dateStr) return null
     const parsedDate = safeParseDate(dateStr)
     if (!parsedDate) return null
-    const days = differenceInDays(parsedDate, new Date())
+    // Use startOfDay for both dates to avoid time-of-day issues
+    const days = differenceInDays(startOfDay(parsedDate), startOfDay(new Date()))
     return days
   }
 
@@ -470,6 +482,7 @@ function Animals() {
             <AnimalCard
               key={animal.id}
               animal={animal}
+              farmAreas={farmAreas}
               expanded={expandedAnimal === animal.id}
               onToggle={() => setExpandedAnimal(expandedAnimal === animal.id ? null : animal.id)}
               onLogCare={logCare}
@@ -497,6 +510,7 @@ function Animals() {
       {showForm && (
         <AnimalFormModal
           animal={editingAnimal}
+          farmAreas={farmAreas}
           onClose={() => { setShowForm(false); setEditingAnimal(null) }}
           onSave={() => { setShowForm(false); setEditingAnimal(null); fetchAnimals() }}
         />
@@ -598,17 +612,131 @@ const CATEGORY_OPTIONS = [
   { value: 'livestock', label: 'Livestock' },
 ]
 
-const SEX_OPTIONS = [
-  { value: '', label: 'Not specified' },
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'neutered', label: 'Neutered Male' },
-  { value: 'spayed', label: 'Spayed Female' },
-]
+// Sex options by animal type - more specific terminology
+const SEX_OPTIONS_BY_TYPE = {
+  horse: [
+    { value: '', label: '-' },
+    { value: 'mare', label: 'Mare' },
+    { value: 'stallion', label: 'Stallion' },
+    { value: 'gelding', label: 'Gelding' },
+    { value: 'filly', label: 'Filly (young female)' },
+    { value: 'colt', label: 'Colt (young male)' },
+  ],
+  mini_horse: [
+    { value: '', label: '-' },
+    { value: 'mare', label: 'Mare' },
+    { value: 'stallion', label: 'Stallion' },
+    { value: 'gelding', label: 'Gelding' },
+    { value: 'filly', label: 'Filly (young female)' },
+    { value: 'colt', label: 'Colt (young male)' },
+  ],
+  donkey: [
+    { value: '', label: '-' },
+    { value: 'jenny', label: 'Jenny (female)' },
+    { value: 'jack', label: 'Jack (intact male)' },
+    { value: 'gelding', label: 'Gelding' },
+  ],
+  cattle: [
+    { value: '', label: '-' },
+    { value: 'cow', label: 'Cow' },
+    { value: 'bull', label: 'Bull' },
+    { value: 'steer', label: 'Steer' },
+    { value: 'heifer', label: 'Heifer (young female)' },
+    { value: 'calf', label: 'Calf' },
+  ],
+  goat: [
+    { value: '', label: '-' },
+    { value: 'doe', label: 'Doe (female)' },
+    { value: 'buck', label: 'Buck (intact male)' },
+    { value: 'wether', label: 'Wether (castrated male)' },
+    { value: 'kid', label: 'Kid' },
+  ],
+  sheep: [
+    { value: '', label: '-' },
+    { value: 'ewe', label: 'Ewe (female)' },
+    { value: 'ram', label: 'Ram (intact male)' },
+    { value: 'wether', label: 'Wether (castrated male)' },
+    { value: 'lamb', label: 'Lamb' },
+  ],
+  pig: [
+    { value: '', label: '-' },
+    { value: 'sow', label: 'Sow (female)' },
+    { value: 'boar', label: 'Boar (intact male)' },
+    { value: 'barrow', label: 'Barrow (castrated male)' },
+    { value: 'gilt', label: 'Gilt (young female)' },
+    { value: 'piglet', label: 'Piglet' },
+  ],
+  chicken: [
+    { value: '', label: '-' },
+    { value: 'hen', label: 'Hen' },
+    { value: 'rooster', label: 'Rooster' },
+    { value: 'pullet', label: 'Pullet (young hen)' },
+    { value: 'cockerel', label: 'Cockerel (young rooster)' },
+    { value: 'chick', label: 'Chick' },
+  ],
+  duck: [
+    { value: '', label: '-' },
+    { value: 'hen', label: 'Hen (female)' },
+    { value: 'drake', label: 'Drake (male)' },
+    { value: 'duckling', label: 'Duckling' },
+  ],
+  turkey: [
+    { value: '', label: '-' },
+    { value: 'hen', label: 'Hen' },
+    { value: 'tom', label: 'Tom (male)' },
+    { value: 'poult', label: 'Poult (young)' },
+  ],
+  rabbit: [
+    { value: '', label: '-' },
+    { value: 'doe', label: 'Doe (female)' },
+    { value: 'buck', label: 'Buck (male)' },
+    { value: 'kit', label: 'Kit (young)' },
+  ],
+  dog: [
+    { value: '', label: '-' },
+    { value: 'female', label: 'Female' },
+    { value: 'male', label: 'Male' },
+    { value: 'spayed', label: 'Spayed Female' },
+    { value: 'neutered', label: 'Neutered Male' },
+  ],
+  cat: [
+    { value: '', label: '-' },
+    { value: 'female', label: 'Female (Queen)' },
+    { value: 'male', label: 'Male (Tom)' },
+    { value: 'spayed', label: 'Spayed Female' },
+    { value: 'neutered', label: 'Neutered Male' },
+  ],
+  llama: [
+    { value: '', label: '-' },
+    { value: 'female', label: 'Female' },
+    { value: 'male', label: 'Male (intact)' },
+    { value: 'gelding', label: 'Gelding' },
+    { value: 'cria', label: 'Cria (young)' },
+  ],
+  alpaca: [
+    { value: '', label: '-' },
+    { value: 'female', label: 'Female' },
+    { value: 'male', label: 'Male (intact)' },
+    { value: 'gelding', label: 'Gelding' },
+    { value: 'cria', label: 'Cria (young)' },
+  ],
+  default: [
+    { value: '', label: '-' },
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'neutered', label: 'Neutered Male' },
+    { value: 'spayed', label: 'Spayed Female' },
+  ],
+}
+
+// Get sex options for a specific animal type
+const getSexOptions = (animalType) => {
+  return SEX_OPTIONS_BY_TYPE[animalType] || SEX_OPTIONS_BY_TYPE.default
+}
 
 // Animal Card Component with inline editing
 function AnimalCard({
-  animal, expanded, onToggle, onLogCare, onDelete, onAddExpense, onEditDate, onToggleTag,
+  animal, farmAreas = [], expanded, onToggle, onLogCare, onDelete, onAddExpense, onEditDate, onToggleTag,
   onAddCareSchedule, onCompleteCareSchedule, onDeleteCareSchedule, onEditCareSchedule,
   onAddFeed, onEditFeed, onDeleteFeed, onSave, getAnimalIcon, getDaysUntil, getUrgencyClass
 }) {
@@ -633,6 +761,7 @@ function AnimalCard({
         current_weight: animal.current_weight || '',
         pasture: animal.pasture || '',
         barn: animal.barn || '',
+        farm_area_id: animal.farm_area_id || '',
         notes: animal.notes || '',
         target_weight: animal.target_weight || '',
         slaughter_date: animal.slaughter_date || '',
@@ -668,6 +797,7 @@ function AnimalCard({
         birth_date: editData.birth_date || null,
         acquisition_date: editData.acquisition_date || null,
         slaughter_date: editData.slaughter_date || null,
+        farm_area_id: editData.farm_area_id ? parseInt(editData.farm_area_id) : null,
       }
       await updateAnimal(animal.id, data)
       if (onSave) onSave()
@@ -732,6 +862,17 @@ function AnimalCard({
         <span className="text-xs text-gray-500 truncate capitalize">
           {[animal.color, animal.animal_type?.replace('_', ' ')].filter(Boolean).join(' ')}
         </span>
+
+        {/* Farm Area if assigned */}
+        {animal.farm_area && (
+          <>
+            <span className="text-gray-600">·</span>
+            <span className="text-xs text-emerald-500 flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              {animal.farm_area.name}
+            </span>
+          </>
+        )}
 
         {/* Spacer to push status indicators right */}
         <span className="flex-1"></span>
@@ -863,7 +1004,7 @@ function AnimalCard({
                 value={editData.sex}
                 field="sex"
                 type="select"
-                options={SEX_OPTIONS}
+                options={getSexOptions(editData.animal_type)}
                 onChange={handleFieldChange}
               />
               <EditableField
@@ -897,6 +1038,14 @@ function AnimalCard({
                 value={editData.current_weight}
                 field="current_weight"
                 type="number"
+                onChange={handleFieldChange}
+              />
+              <EditableField
+                label="Farm Area"
+                value={editData.farm_area_id}
+                field="farm_area_id"
+                type="select"
+                options={[{ value: '', label: 'No area' }, ...farmAreas.map(a => ({ value: a.id.toString(), label: a.name }))]}
                 onChange={handleFieldChange}
               />
               <EditableField
@@ -1814,7 +1963,7 @@ function FeedsSection({ animal, onFeedsChange }) {
 
 
 // Animal Form Modal
-function AnimalFormModal({ animal, onClose, onSave }) {
+function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
   const [formData, setFormData] = useState({
     name: animal?.name || '',
     animal_type: animal?.animal_type || 'dog',
@@ -1827,6 +1976,7 @@ function AnimalFormModal({ animal, onClose, onSave }) {
     acquisition_date: animal?.acquisition_date || '',
     current_weight: animal?.current_weight || '',
     pasture: animal?.pasture || '',
+    farm_area_id: animal?.farm_area_id || '',
     notes: animal?.notes || '',
     // Livestock
     target_weight: animal?.target_weight || '',
@@ -1861,6 +2011,7 @@ function AnimalFormModal({ animal, onClose, onSave }) {
         birth_date: formData.birth_date || null,
         acquisition_date: formData.acquisition_date || null,
         slaughter_date: formData.slaughter_date || null,
+        farm_area_id: formData.farm_area_id ? parseInt(formData.farm_area_id) : null,
       }
 
       if (animal) {
@@ -1996,12 +2147,9 @@ function AnimalFormModal({ animal, onClose, onSave }) {
                 onChange={(e) => setFormData({ ...formData, sex: e.target.value })}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               >
-                <option value="">-</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="gelding">Gelding</option>
-                <option value="steer">Steer</option>
-                <option value="wether">Wether</option>
+                {getSexOptions(formData.animal_type).map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -2023,6 +2171,29 @@ function AnimalFormModal({ animal, onClose, onSave }) {
                 step="0.1"
                 value={formData.current_weight}
                 onChange={(e) => setFormData({ ...formData, current_weight: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Farm Area</label>
+              <select
+                value={formData.farm_area_id}
+                onChange={(e) => setFormData({ ...formData, farm_area_id: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              >
+                <option value="">No area assigned</option>
+                {farmAreas.map(area => (
+                  <option key={area.id} value={area.id}>{area.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Pasture/Barn</label>
+              <input
+                type="text"
+                value={formData.pasture}
+                onChange={(e) => setFormData({ ...formData, pasture: e.target.value })}
+                placeholder="e.g., Front pasture, Barn stall 3"
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>

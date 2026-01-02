@@ -9,7 +9,13 @@ const TYPE_ICONS = {
   tractor: '🚜',
   motorcycle: '🏍️',
   atv: '🏎️',
+  utv: '🚙',
 }
+
+// Vehicle types that track hours instead of miles
+const HOURS_BASED_TYPES = ['tractor', 'atv', 'utv']
+
+const usesHours = (type) => HOURS_BASED_TYPES.includes(type)
 
 function Vehicles() {
   const [vehicles, setVehicles] = useState([])
@@ -31,8 +37,8 @@ function Vehicles() {
     year: new Date().getFullYear(),
     vin: '',
     license_plate: '',
-    current_mileage: 0,
-    current_hours: 0,
+    current_mileage: '',
+    current_hours: '',
     notes: '',
   })
 
@@ -95,10 +101,15 @@ function Vehicles() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      const submitData = {
+        ...formData,
+        current_mileage: formData.current_mileage ? parseInt(formData.current_mileage) : 0,
+        current_hours: formData.current_hours ? parseFloat(formData.current_hours) : 0,
+      }
       if (editingVehicle) {
-        await updateVehicle(editingVehicle.id, formData)
+        await updateVehicle(editingVehicle.id, submitData)
       } else {
-        await createVehicle(formData)
+        await createVehicle(submitData)
       }
       setShowAddForm(false)
       setEditingVehicle(null)
@@ -122,7 +133,8 @@ function Vehicles() {
   const handleAddMaintenance = async (e) => {
     e.preventDefault()
     try {
-      await createVehicleMaintenance(showAddMaintenance, {
+      const vehicleId = showAddMaintenance.vehicleId
+      await createVehicleMaintenance(vehicleId, {
         ...maintFormData,
         frequency_miles: maintFormData.frequency_miles ? parseInt(maintFormData.frequency_miles) : null,
         frequency_hours: maintFormData.frequency_hours ? parseInt(maintFormData.frequency_hours) : null,
@@ -130,7 +142,7 @@ function Vehicles() {
       })
       setShowAddMaintenance(null)
       setMaintFormData({ name: '', frequency_miles: '', frequency_hours: '', frequency_days: '', notes: '' })
-      fetchMaintenance(showAddMaintenance)
+      fetchMaintenance(vehicleId)
       fetchData()
     } catch (err) {
       console.error('Failed to add maintenance:', err)
@@ -175,8 +187,8 @@ function Vehicles() {
       year: new Date().getFullYear(),
       vin: '',
       license_plate: '',
-      current_mileage: 0,
-      current_hours: 0,
+      current_mileage: '',
+      current_hours: '',
       notes: '',
     })
   }
@@ -191,8 +203,8 @@ function Vehicles() {
       year: vehicle.year || new Date().getFullYear(),
       vin: vehicle.vin || '',
       license_plate: vehicle.license_plate || '',
-      current_mileage: vehicle.current_mileage || 0,
-      current_hours: vehicle.current_hours || 0,
+      current_mileage: vehicle.current_mileage?.toString() || '',
+      current_hours: vehicle.current_hours?.toString() || '',
       notes: vehicle.notes || '',
     })
     setShowAddForm(true)
@@ -250,10 +262,16 @@ function Vehicles() {
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <div className="flex items-center gap-2 text-sm">
-                    <Gauge className="w-4 h-4" />
-                    <span>{vehicle.current_mileage?.toLocaleString() || 0} mi</span>
-                    {vehicle.type === 'tractor' && (
-                      <span className="ml-2">| {vehicle.current_hours || 0} hrs</span>
+                    {usesHours(vehicle.type) ? (
+                      <>
+                        <Clock className="w-4 h-4" />
+                        <span>{vehicle.current_hours?.toLocaleString() || 0} hrs</span>
+                      </>
+                    ) : (
+                      <>
+                        <Gauge className="w-4 h-4" />
+                        <span>{vehicle.current_mileage?.toLocaleString() || 0} mi</span>
+                      </>
                     )}
                   </div>
                   {vehicle.overdue_count > 0 && (
@@ -284,7 +302,7 @@ function Vehicles() {
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold">Maintenance Schedule</h3>
                   <button
-                    onClick={() => setShowAddMaintenance(vehicle.id)}
+                    onClick={() => setShowAddMaintenance({ vehicleId: vehicle.id, vehicleType: vehicle.type })}
                     className="text-sm px-3 py-1 bg-gray-700 rounded-lg hover:bg-gray-600"
                   >
                     + Add Task
@@ -307,8 +325,10 @@ function Vehicles() {
                             <span className="font-medium">{task.name}</span>
                           </div>
                           <div className="text-sm text-gray-400 mt-1">
-                            {task.frequency_miles && `Every ${task.frequency_miles.toLocaleString()} mi`}
-                            {task.frequency_hours && ` | Every ${task.frequency_hours} hrs`}
+                            {usesHours(vehicle.type)
+                              ? task.frequency_hours && `Every ${task.frequency_hours} hrs`
+                              : task.frequency_miles && `Every ${task.frequency_miles.toLocaleString()} mi`
+                            }
                             {task.frequency_days && ` | Every ${task.frequency_days} days`}
                             {task.last_completed && (
                               <span className="ml-2">
@@ -320,7 +340,7 @@ function Vehicles() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
-                              setCompleteModal(task)
+                              setCompleteModal({ ...task, vehicleType: vehicle.type })
                               setCompleteData({
                                 mileage_at: vehicle.current_mileage?.toString() || '',
                                 hours_at: vehicle.current_hours?.toString() || '',
@@ -420,25 +440,32 @@ function Vehicles() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Current Mileage</label>
-                  <input
-                    type="number"
-                    value={formData.current_mileage}
-                    onChange={(e) => setFormData({ ...formData, current_mileage: parseInt(e.target.value) || 0 })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Current Hours</label>
-                  <input
-                    type="number"
-                    value={formData.current_hours}
-                    onChange={(e) => setFormData({ ...formData, current_hours: parseInt(e.target.value) || 0 })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
-                  />
-                </div>
+              <div>
+                {usesHours(formData.type) ? (
+                  <>
+                    <label className="block text-sm text-gray-400 mb-1">Current Hours</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={formData.current_hours}
+                      onChange={(e) => setFormData({ ...formData, current_hours: e.target.value.replace(/[^0-9.]/g, '') })}
+                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      placeholder="0"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <label className="block text-sm text-gray-400 mb-1">Current Mileage</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.current_mileage}
+                      onChange={(e) => setFormData({ ...formData, current_mileage: e.target.value.replace(/[^0-9]/g, '') })}
+                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      placeholder="0"
+                    />
+                  </>
+                )}
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">VIN/Serial</label>
@@ -495,26 +522,29 @@ function Vehicles() {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Every X Miles</label>
-                <input
-                  type="number"
-                  value={maintFormData.frequency_miles}
-                  onChange={(e) => setMaintFormData({ ...maintFormData, frequency_miles: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
-                  placeholder="e.g., 5000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Every X Hours (for tractors)</label>
-                <input
-                  type="number"
-                  value={maintFormData.frequency_hours}
-                  onChange={(e) => setMaintFormData({ ...maintFormData, frequency_hours: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
-                  placeholder="e.g., 100"
-                />
-              </div>
+              {usesHours(showAddMaintenance.vehicleType) ? (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Every X Hours</label>
+                  <input
+                    type="number"
+                    value={maintFormData.frequency_hours}
+                    onChange={(e) => setMaintFormData({ ...maintFormData, frequency_hours: e.target.value })}
+                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    placeholder="e.g., 100"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Every X Miles</label>
+                  <input
+                    type="number"
+                    value={maintFormData.frequency_miles}
+                    onChange={(e) => setMaintFormData({ ...maintFormData, frequency_miles: e.target.value })}
+                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    placeholder="e.g., 5000"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Every X Days (fallback)</label>
                 <input
@@ -551,25 +581,32 @@ function Vehicles() {
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Complete: {completeModal.name}</h2>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Mileage</label>
-                  <input
-                    type="number"
-                    value={completeData.mileage_at}
-                    onChange={(e) => setCompleteData({ ...completeData, mileage_at: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Hours</label>
-                  <input
-                    type="number"
-                    value={completeData.hours_at}
-                    onChange={(e) => setCompleteData({ ...completeData, hours_at: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
-                  />
-                </div>
+              <div>
+                {usesHours(completeModal.vehicleType) ? (
+                  <>
+                    <label className="block text-sm text-gray-400 mb-1">Current Hours</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={completeData.hours_at}
+                      onChange={(e) => setCompleteData({ ...completeData, hours_at: e.target.value.replace(/[^0-9.]/g, '') })}
+                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      placeholder="Current hours"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <label className="block text-sm text-gray-400 mb-1">Current Mileage</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={completeData.mileage_at}
+                      onChange={(e) => setCompleteData({ ...completeData, mileage_at: e.target.value.replace(/[^0-9]/g, '') })}
+                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      placeholder="Current mileage"
+                    />
+                  </>
+                )}
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Cost</label>

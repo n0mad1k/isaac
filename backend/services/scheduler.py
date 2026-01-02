@@ -362,18 +362,25 @@ class SchedulerService:
             logger.error(f"Error checking upcoming tasks: {e}")
 
     async def check_animal_schedules(self):
-        """Check for animals needing care (farrier, worming, etc.)"""
+        """Check for animals needing care and sync care schedules to tasks"""
         logger.debug("Checking animal care schedules...")
         try:
+            from services.auto_reminders import sync_all_animal_reminders
+
             async with async_session() as db:
                 today = date.today()
                 week_ahead = today + timedelta(days=7)
 
-                # Check horses for farrier
+                # Sync all animal care schedules to calendar/tasks
+                stats = await sync_all_animal_reminders(db)
+                logger.info(f"Animal care schedule sync: {stats}")
+
+                # Check horses for farrier (legacy - for email alerts)
                 result = await db.execute(
                     select(Animal)
                     .where(Animal.animal_type == AnimalType.HORSE)
                     .where(Animal.is_active == True)
+                    .where(Animal.next_farrier_date.isnot(None))
                     .where(Animal.next_farrier_date <= week_ahead)
                 )
                 horses_need_farrier = result.scalars().all()
@@ -392,6 +399,7 @@ class SchedulerService:
                 result = await db.execute(
                     select(Animal)
                     .where(Animal.is_active == True)
+                    .where(Animal.next_worming_date.isnot(None))
                     .where(Animal.next_worming_date <= week_ahead)
                 )
                 animals_need_worming = result.scalars().all()

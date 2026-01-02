@@ -148,19 +148,6 @@ function ToDo() {
     }
   }
 
-  const getCategoryIcon = (category) => {
-    const icons = {
-      plant_care: '🌱',
-      animal_care: '🐴',
-      home_maintenance: '🏠',
-      garden: '🌻',
-      equipment: '🔧',
-      seasonal: '📅',
-      custom: '📋',
-    }
-    return icons[category] || '📋'
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -259,18 +246,13 @@ function ToDo() {
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">
-                      {getCategoryIcon(todo.category)}
-                    </span>
-                    <h3
-                      className={`font-medium ${
-                        todo.is_completed ? 'line-through text-gray-500' : ''
-                      }`}
-                    >
-                      {todo.title}
-                    </h3>
-                  </div>
+                  <h3
+                    className={`font-medium ${
+                      todo.is_completed ? 'line-through text-gray-500' : ''
+                    }`}
+                  >
+                    {todo.title}
+                  </h3>
                   {todo.description && (
                     <p className="text-sm text-gray-400 mt-1">
                       {todo.description}

@@ -11,11 +11,14 @@ const TYPE_ICONS = {
   pasture: '🌾',
   pond: '💧',
   barn: '🏚️',
+  pole_barn: '🏗️',
+  workshop: '🔧',
   chicken_coop: '🐔',
   rabbit_hutch: '🐰',
   apiary: '🐝',
   greenhouse: '🏠',
   shed: '🛖',
+  garage: '🚗',
   custom: '⚙️',
 }
 

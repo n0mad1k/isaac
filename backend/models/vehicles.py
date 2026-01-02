@@ -16,6 +16,7 @@ class VehicleType(enum.Enum):
     TRACTOR = "tractor"
     MOTORCYCLE = "motorcycle"
     ATV = "atv"
+    UTV = "utv"
 
 
 class Vehicle(Base):

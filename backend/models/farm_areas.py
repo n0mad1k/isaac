@@ -18,11 +18,14 @@ class FarmAreaType(enum.Enum):
     PASTURE = "pasture"
     POND = "pond"
     BARN = "barn"
+    POLE_BARN = "pole_barn"
+    WORKSHOP = "workshop"
     CHICKEN_COOP = "chicken_coop"
     RABBIT_HUTCH = "rabbit_hutch"
     APIARY = "apiary"  # Bee yard
     GREENHOUSE = "greenhouse"
     SHED = "shed"
+    GARAGE = "garage"
     CUSTOM = "custom"
 
 

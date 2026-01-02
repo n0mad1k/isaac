@@ -35,7 +35,7 @@ function Equipment() {
     model: '',
     year: '',
     serial_number: '',
-    current_hours: 0,
+    current_hours: '',
     notes: '',
   })
 
@@ -96,7 +96,11 @@ function Equipment() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const data = { ...formData, year: formData.year ? parseInt(formData.year) : null }
+      const data = {
+        ...formData,
+        year: formData.year ? parseInt(formData.year) : null,
+        current_hours: formData.current_hours ? parseFloat(formData.current_hours) : 0,
+      }
       if (editingEquipment) {
         await updateEquipment(editingEquipment.id, data)
       } else {
@@ -175,7 +179,7 @@ function Equipment() {
       model: '',
       year: '',
       serial_number: '',
-      current_hours: 0,
+      current_hours: '',
       notes: '',
     })
   }
@@ -190,7 +194,7 @@ function Equipment() {
       model: equip.model || '',
       year: equip.year?.toString() || '',
       serial_number: equip.serial_number || '',
-      current_hours: equip.current_hours || 0,
+      current_hours: equip.current_hours?.toString() || '',
       notes: equip.notes || '',
     })
     setShowAddForm(true)
@@ -407,10 +411,12 @@ function Equipment() {
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Current Hours</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={formData.current_hours}
-                  onChange={(e) => setFormData({ ...formData, current_hours: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setFormData({ ...formData, current_hours: e.target.value.replace(/[^0-9.]/g, '') })}
                   className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  placeholder="0"
                 />
               </div>
               <div>
@@ -505,10 +511,12 @@ function Equipment() {
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Hours</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={completeData.hours_at}
-                  onChange={(e) => setCompleteData({ ...completeData, hours_at: e.target.value })}
+                  onChange={(e) => setCompleteData({ ...completeData, hours_at: e.target.value.replace(/[^0-9.]/g, '') })}
                   className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  placeholder="Current hours"
                 />
               </div>
               <div>

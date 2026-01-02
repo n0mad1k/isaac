@@ -16,25 +16,6 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
     }
   }
 
-  const getCategoryIcon = (category) => {
-    switch (category) {
-      case 'plant_care':
-        return '🌱'
-      case 'animal_care':
-        return '🐴'
-      case 'home_maintenance':
-        return '🏠'
-      case 'garden':
-        return '🌻'
-      case 'equipment':
-        return '🔧'
-      case 'seasonal':
-        return '📅'
-      default:
-        return '📋'
-    }
-  }
-
   const handleToggle = async (task) => {
     try {
       if (task.is_completed) {
@@ -83,7 +64,6 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
                   <Circle className="w-5 h-5 text-gray-500 hover:text-green-400" />
                 )}
               </button>
-              <span className="flex-shrink-0">{getCategoryIcon(task.category)}</span>
               <span
                 className={`font-medium ${
                   task.is_completed ? 'line-through text-gray-500' : ''
