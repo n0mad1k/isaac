@@ -187,6 +187,23 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
       {/* Expanded content with inline editing */}
       {isExpanded && editData && (
         <div className="px-4 pb-4 border-t border-gray-700 pt-4 space-y-4">
+          {/* Action Buttons - Save and Delete at top */}
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-3 py-1.5 bg-farm-green hover:bg-farm-green-light rounded text-sm text-white transition-colors flex items-center gap-1 disabled:opacity-50"
+            >
+              <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(seed.id) }}
+              className="px-3 py-1.5 bg-red-600/50 hover:bg-red-600 rounded text-sm text-white transition-colors flex items-center gap-1 ml-auto"
+            >
+              <X className="w-3 h-3" /> Delete
+            </button>
+          </div>
+
           {/* Basic Info */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField
@@ -455,23 +472,6 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
             rows={2}
           />
 
-          {/* Actions */}
-          <div className="flex gap-2 pt-3 border-t border-gray-700">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(seed.id) }}
-              className="px-4 py-2 bg-red-900/50 hover:bg-red-800/50 rounded-lg text-sm"
-            >
-              Remove
-            </button>
-          </div>
         </div>
       )}
     </div>

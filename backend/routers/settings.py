@@ -96,6 +96,65 @@ DEFAULT_SETTINGS = {
         "value": "30",
         "description": "How often to sync calendar (minutes)"
     },
+
+    # === Notification Category Settings ===
+    # Animal Care Notifications
+    "notify_animal_hoof_trim": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for animal hoof trimming due dates (comma-separated: dashboard,email,calendar)"
+    },
+    "notify_animal_worming": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for animal worming due dates"
+    },
+    "notify_animal_vaccination": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for animal vaccination due dates"
+    },
+    "notify_animal_dental": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for animal dental due dates"
+    },
+    "notify_animal_vet": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for vet appointments"
+    },
+    "notify_animal_slaughter": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for livestock slaughter dates"
+    },
+    "notify_animal_labor": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for expected birth/labor dates"
+    },
+
+    # Plant Care Notifications
+    "notify_plant_watering": {
+        "value": "dashboard,calendar",
+        "description": "Notifications for plant watering schedules"
+    },
+    "notify_plant_fertilizing": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for plant fertilizing schedules"
+    },
+    "notify_plant_harvest": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for plant harvest dates"
+    },
+    "notify_plant_pruning": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for plant pruning schedules"
+    },
+    "notify_plant_sow": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for seed sowing dates"
+    },
+
+    # Maintenance Notifications
+    "notify_maintenance": {
+        "value": "dashboard,email,calendar",
+        "description": "Notifications for preventive maintenance reminders"
+    },
 }
 
 

@@ -149,31 +149,31 @@ function WeatherWidget({ weather }) {
       <div className="mt-6 pt-4 border-t border-gray-700">
         <h3 className="text-sm font-semibold text-gray-400 mb-3">5-Day Forecast</h3>
         {forecastLoading ? (
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex-1 bg-gray-700 rounded-lg h-20 animate-pulse"></div>
+              <div key={i} className="flex-shrink-0 w-24 bg-gray-700 rounded-lg h-28 animate-pulse"></div>
             ))}
           </div>
         ) : forecast ? (
-          <div className="flex gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {forecast.map((day, index) => (
               <div
                 key={index}
-                className="flex-1 bg-gray-700/50 rounded-lg p-2 text-center"
+                className="bg-gray-700/50 rounded-lg p-2 text-center min-w-0"
               >
-                <div className="text-xs text-gray-400 truncate">{day.name}</div>
+                <div className="text-xs text-gray-400 font-medium truncate">{day.name}</div>
                 <div className="my-1 flex justify-center">
                   {getForecastIcon(day.forecast)}
                 </div>
                 <div className="flex justify-center gap-1 text-sm">
                   {day.high && (
-                    <span className="text-red-400">{day.high}°</span>
+                    <span className="text-red-400 font-semibold">{day.high}°</span>
                   )}
                   {day.low && (
                     <span className="text-blue-400">{day.low}°</span>
                   )}
                 </div>
-                <div className="text-xs text-gray-500 truncate mt-1" title={day.forecast}>
+                <div className="text-xs text-gray-500 mt-1 leading-tight line-clamp-2" title={day.forecast}>
                   {day.forecast}
                 </div>
               </div>

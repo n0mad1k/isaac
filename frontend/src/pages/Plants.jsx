@@ -5,7 +5,7 @@ import {
   Info, X, Tag as TagIcon, Pencil, Save
 } from 'lucide-react'
 import {
-  getPlants, createPlant, updatePlant, addPlantCareLog, getPlantTags, createPlantTag
+  getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag
 } from '../services/api'
 
 // Inline editable field component
@@ -162,6 +162,17 @@ function Plants() {
       fetchData()
     } catch (error) {
       console.error('Failed to log care:', error)
+    }
+  }
+
+  const handleDelete = async (plantId, plantName) => {
+    if (!confirm(`Are you sure you want to remove ${plantName}? This action cannot be undone.`)) return
+    try {
+      await deletePlant(plantId)
+      setExpandedPlant(null)
+      fetchData()
+    } catch (error) {
+      console.error('Failed to delete plant:', error)
     }
   }
 
@@ -323,6 +334,7 @@ function Plants() {
               onToggle={() => setExpandedPlant(expandedPlant === plant.id ? null : plant.id)}
               onLogCare={logCare}
               onEditDate={setEditDateModal}
+              onDelete={() => handleDelete(plant.id, plant.name)}
               onSave={fetchData}
               getTagColor={getTagColor}
               formatDate={formatDate}
@@ -359,7 +371,7 @@ function Plants() {
 
 // Plant Card Component with inline editing
 function PlantCard({
-  plant, tags, expanded, onToggle, onLogCare, onEditDate, onSave,
+  plant, tags, expanded, onToggle, onLogCare, onEditDate, onDelete, onSave,
   getTagColor, formatDate, formatRelativeDate, getSunLabel, getGrowthRateLabel
 }) {
   const [editData, setEditData] = useState(null)
@@ -512,6 +524,47 @@ function PlantCard({
       {/* Expanded Details with Inline Editing */}
       {expanded && editData && (
         <div className="px-4 pb-4 border-t border-gray-700 pt-4 space-y-4">
+          {/* Action Buttons - Save, Quick actions, Delete */}
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleSave() }}
+              disabled={saving}
+              className="px-3 py-1.5 bg-farm-green hover:bg-farm-green-light rounded text-sm text-white transition-colors flex items-center gap-1 disabled:opacity-50"
+            >
+              <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onLogCare(plant.id, 'watered') }}
+              className="px-3 py-1.5 bg-cyan-900/50 hover:bg-cyan-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <Droplets className="w-3 h-3" /> Water
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onLogCare(plant.id, 'fertilized') }}
+              className="px-3 py-1.5 bg-green-900/50 hover:bg-green-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <Leaf className="w-3 h-3" /> Fertilize
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onLogCare(plant.id, 'pruned') }}
+              className="px-3 py-1.5 bg-amber-900/50 hover:bg-amber-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <Scissors className="w-3 h-3" /> Prune
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onLogCare(plant.id, 'harvested') }}
+              className="px-3 py-1.5 bg-purple-900/50 hover:bg-purple-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <Apple className="w-3 h-3" /> Harvest
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete() }}
+              className="px-3 py-1.5 bg-red-600/50 hover:bg-red-600 rounded text-sm text-white transition-colors flex items-center gap-1 ml-auto"
+            >
+              <X className="w-3 h-3" /> Delete
+            </button>
+          </div>
+
           {/* Basic Info - Editable */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField label="Name" value={editData.name} field="name" onChange={handleFieldChange} />
@@ -684,46 +737,6 @@ function PlantCard({
             </div>
           </div>
 
-          {/* Care Actions & Save */}
-          <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-700">
-            <button
-              onClick={(e) => { e.stopPropagation(); onLogCare(plant.id, 'watered') }}
-              className="flex items-center gap-1 px-3 py-2 bg-blue-900/50 hover:bg-blue-800/50 rounded-lg text-sm transition-colors"
-            >
-              <Droplets className="w-4 h-4" />
-              Water
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onLogCare(plant.id, 'fertilized') }}
-              className="flex items-center gap-1 px-3 py-2 bg-green-900/50 hover:bg-green-800/50 rounded-lg text-sm transition-colors"
-            >
-              <Leaf className="w-4 h-4" />
-              Fertilize
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onLogCare(plant.id, 'pruned') }}
-              className="flex items-center gap-1 px-3 py-2 bg-amber-900/50 hover:bg-amber-800/50 rounded-lg text-sm transition-colors"
-            >
-              <Scissors className="w-4 h-4" />
-              Prune
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onLogCare(plant.id, 'harvested') }}
-              className="flex items-center gap-1 px-3 py-2 bg-purple-900/50 hover:bg-purple-800/50 rounded-lg text-sm transition-colors"
-            >
-              <Apple className="w-4 h-4" />
-              Harvest
-            </button>
-            <div className="flex-1" />
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg text-sm transition-colors disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
         </div>
       )}
     </div>

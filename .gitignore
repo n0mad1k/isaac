@@ -40,3 +40,4 @@ logs/
 # Build artifacts
 build/
 *.egg-info/
+cert.pem

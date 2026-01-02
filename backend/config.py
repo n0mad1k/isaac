@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     # Timezone & Location
     timezone: str = "America/New_York"
     usda_zone: str = "9b"
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    latitude: float = 28.913413  # Oxford, FL
+    longitude: float = -82.093794
 
     # Ambient Weather API
     awn_api_key: Optional[str] = Field(default=None, description="Ambient Weather API Key")
