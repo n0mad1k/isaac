@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from typing import List, Optional
 from datetime import datetime, date, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from models.database import get_db
 from models.tasks import Task, TaskCategory, TaskRecurrence, TaskType, FLORIDA_MAINTENANCE_TASKS
@@ -17,43 +17,43 @@ from services.calendar_sync import get_calendar_service
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 
-# Pydantic Schemas
+# Pydantic Schemas with validation
 class TaskCreate(BaseModel):
-    title: str
-    description: Optional[str] = None
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=5000)
     task_type: TaskType = TaskType.TODO
     category: TaskCategory = TaskCategory.CUSTOM
     due_date: Optional[date] = None
-    due_time: Optional[str] = None
-    end_time: Optional[str] = None
-    location: Optional[str] = None
+    due_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')  # HH:MM format
+    end_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+    location: Optional[str] = Field(None, max_length=200)
     recurrence: TaskRecurrence = TaskRecurrence.ONCE
-    recurrence_interval: Optional[int] = None
-    recurrence_month: Optional[int] = None
-    recurrence_day: Optional[int] = None
-    priority: int = 2
-    plant_id: Optional[int] = None
-    animal_id: Optional[int] = None
+    recurrence_interval: Optional[int] = Field(None, ge=1, le=365)
+    recurrence_month: Optional[int] = Field(None, ge=1, le=12)
+    recurrence_day: Optional[int] = Field(None, ge=1, le=31)
+    priority: int = Field(2, ge=1, le=3)
+    plant_id: Optional[int] = Field(None, ge=1)
+    animal_id: Optional[int] = Field(None, ge=1)
     weather_dependent: bool = False
     skip_if_rain: bool = False
     notify_email: bool = True
-    notify_days_before: int = 1
-    notes: Optional[str] = None
+    notify_days_before: int = Field(1, ge=0, le=30)
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class TaskUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=5000)
     task_type: Optional[TaskType] = None
     category: Optional[TaskCategory] = None
     due_date: Optional[date] = None
-    due_time: Optional[str] = None
-    end_time: Optional[str] = None
-    location: Optional[str] = None
-    priority: Optional[int] = None
+    due_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+    end_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+    location: Optional[str] = Field(None, max_length=200)
+    priority: Optional[int] = Field(None, ge=1, le=3)
     is_completed: Optional[bool] = None
     notify_email: Optional[bool] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class TaskResponse(BaseModel):

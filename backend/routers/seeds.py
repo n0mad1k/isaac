@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from models.database import get_db
 from models.seeds import Seed, SeedCategory, SunRequirement, WaterRequirement
@@ -18,91 +18,91 @@ router = APIRouter(prefix="/seeds", tags=["Seeds"])
 
 # Pydantic Schemas
 class SeedCreate(BaseModel):
-    name: str
-    latin_name: Optional[str] = None
-    variety: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=100)
+    latin_name: Optional[str] = Field(None, max_length=150)
+    variety: Optional[str] = Field(None, max_length=100)
     category: SeedCategory = SeedCategory.OTHER
-    quantity: Optional[str] = None
-    source: Optional[str] = None
-    days_to_germination: Optional[str] = None
-    days_to_maturity: Optional[str] = None
-    planting_depth: Optional[str] = None
-    spacing: Optional[str] = None
-    row_spacing: Optional[str] = None
-    optimal_germ_temp: Optional[str] = None
+    quantity: Optional[str] = Field(None, max_length=50)
+    source: Optional[str] = Field(None, max_length=200)
+    days_to_germination: Optional[str] = Field(None, max_length=50)
+    days_to_maturity: Optional[str] = Field(None, max_length=50)
+    planting_depth: Optional[str] = Field(None, max_length=50)
+    spacing: Optional[str] = Field(None, max_length=50)
+    row_spacing: Optional[str] = Field(None, max_length=50)
+    optimal_germ_temp: Optional[str] = Field(None, max_length=50)
     sun_requirement: SunRequirement = SunRequirement.FULL_SUN
-    light_to_germinate: Optional[str] = None
+    light_to_germinate: Optional[str] = Field(None, max_length=100)
     water_requirement: WaterRequirement = WaterRequirement.MODERATE
-    soil_type: Optional[str] = None
-    ph_range: Optional[str] = None
-    grow_zones: Optional[str] = None
-    spring_planting: Optional[str] = None
-    fall_planting: Optional[str] = None
-    sow_months: Optional[str] = None
-    harvest_months: Optional[str] = None
-    indoor_start: Optional[str] = None
+    soil_type: Optional[str] = Field(None, max_length=200)
+    ph_range: Optional[str] = Field(None, max_length=50)
+    grow_zones: Optional[str] = Field(None, max_length=50)
+    spring_planting: Optional[str] = Field(None, max_length=100)
+    fall_planting: Optional[str] = Field(None, max_length=100)
+    sow_months: Optional[str] = Field(None, max_length=50)
+    harvest_months: Optional[str] = Field(None, max_length=50)
+    indoor_start: Optional[str] = Field(None, max_length=100)
     direct_sow: bool = True
     frost_sensitive: bool = True
     heat_tolerant: bool = True
     drought_tolerant: bool = False
-    height: Optional[str] = None
-    spread: Optional[str] = None
+    height: Optional[str] = Field(None, max_length=50)
+    spread: Optional[str] = Field(None, max_length=50)
     is_perennial: bool = False
     is_native: bool = False
     attracts_pollinators: bool = False
     culinary_use: bool = False
     medicinal_use: bool = False
     ornamental_use: bool = False
-    special_requirements: Optional[str] = None
-    description: Optional[str] = None
-    growing_notes: Optional[str] = None
-    harvest_notes: Optional[str] = None
-    medicinal_notes: Optional[str] = None
-    notes: Optional[str] = None
+    special_requirements: Optional[str] = Field(None, max_length=1000)
+    description: Optional[str] = Field(None, max_length=5000)
+    growing_notes: Optional[str] = Field(None, max_length=2000)
+    harvest_notes: Optional[str] = Field(None, max_length=2000)
+    medicinal_notes: Optional[str] = Field(None, max_length=2000)
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class SeedUpdate(BaseModel):
-    name: Optional[str] = None
-    latin_name: Optional[str] = None
-    variety: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    latin_name: Optional[str] = Field(None, max_length=150)
+    variety: Optional[str] = Field(None, max_length=100)
     category: Optional[SeedCategory] = None
-    quantity: Optional[str] = None
-    source: Optional[str] = None
-    days_to_germination: Optional[str] = None
-    days_to_maturity: Optional[str] = None
-    planting_depth: Optional[str] = None
-    spacing: Optional[str] = None
-    row_spacing: Optional[str] = None
-    optimal_germ_temp: Optional[str] = None
+    quantity: Optional[str] = Field(None, max_length=50)
+    source: Optional[str] = Field(None, max_length=200)
+    days_to_germination: Optional[str] = Field(None, max_length=50)
+    days_to_maturity: Optional[str] = Field(None, max_length=50)
+    planting_depth: Optional[str] = Field(None, max_length=50)
+    spacing: Optional[str] = Field(None, max_length=50)
+    row_spacing: Optional[str] = Field(None, max_length=50)
+    optimal_germ_temp: Optional[str] = Field(None, max_length=50)
     sun_requirement: Optional[SunRequirement] = None
-    light_to_germinate: Optional[str] = None
+    light_to_germinate: Optional[str] = Field(None, max_length=100)
     water_requirement: Optional[WaterRequirement] = None
-    soil_type: Optional[str] = None
-    ph_range: Optional[str] = None
-    grow_zones: Optional[str] = None
-    spring_planting: Optional[str] = None
-    fall_planting: Optional[str] = None
-    sow_months: Optional[str] = None
-    harvest_months: Optional[str] = None
-    indoor_start: Optional[str] = None
+    soil_type: Optional[str] = Field(None, max_length=200)
+    ph_range: Optional[str] = Field(None, max_length=50)
+    grow_zones: Optional[str] = Field(None, max_length=50)
+    spring_planting: Optional[str] = Field(None, max_length=100)
+    fall_planting: Optional[str] = Field(None, max_length=100)
+    sow_months: Optional[str] = Field(None, max_length=50)
+    harvest_months: Optional[str] = Field(None, max_length=50)
+    indoor_start: Optional[str] = Field(None, max_length=100)
     direct_sow: Optional[bool] = None
     frost_sensitive: Optional[bool] = None
     heat_tolerant: Optional[bool] = None
     drought_tolerant: Optional[bool] = None
-    height: Optional[str] = None
-    spread: Optional[str] = None
+    height: Optional[str] = Field(None, max_length=50)
+    spread: Optional[str] = Field(None, max_length=50)
     is_perennial: Optional[bool] = None
     is_native: Optional[bool] = None
     attracts_pollinators: Optional[bool] = None
     culinary_use: Optional[bool] = None
     medicinal_use: Optional[bool] = None
     ornamental_use: Optional[bool] = None
-    special_requirements: Optional[str] = None
-    description: Optional[str] = None
-    growing_notes: Optional[str] = None
-    harvest_notes: Optional[str] = None
-    medicinal_notes: Optional[str] = None
-    notes: Optional[str] = None
+    special_requirements: Optional[str] = Field(None, max_length=1000)
+    description: Optional[str] = Field(None, max_length=5000)
+    growing_notes: Optional[str] = Field(None, max_length=2000)
+    harvest_notes: Optional[str] = Field(None, max_length=2000)
+    medicinal_notes: Optional[str] = Field(None, max_length=2000)
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class SeedResponse(BaseModel):

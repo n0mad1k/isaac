@@ -1,5 +1,5 @@
 import React from 'react'
-import { PawPrint, MapPin, AlertTriangle } from 'lucide-react'
+import { PawPrint, MapPin } from 'lucide-react'
 
 // Predefined tags with colors (same as Animals.jsx)
 const ANIMAL_TAGS = {
@@ -33,9 +33,21 @@ function AnimalFeedWidget({ animals }) {
     return null
   }
 
-  // Separate pets and livestock
-  const pets = animalsWithFeeding.filter(a => a.category === 'pet')
-  const livestock = animalsWithFeeding.filter(a => a.category === 'livestock')
+  // Sort function to match Animals.jsx (by type, then by name)
+  const sortAnimals = (a, b) => {
+    if (a.animal_type !== b.animal_type) {
+      return a.animal_type.localeCompare(b.animal_type)
+    }
+    return a.name.localeCompare(b.name)
+  }
+
+  // Separate pets and livestock, sorted to match Animals.jsx
+  const pets = animalsWithFeeding
+    .filter(a => a.category === 'pet')
+    .sort(sortAnimals)
+  const livestock = animalsWithFeeding
+    .filter(a => a.category === 'livestock')
+    .sort(sortAnimals)
 
   // Group livestock by type AND feed (so same type with same feeds are grouped)
   const groupedLivestock = livestock.reduce((acc, animal) => {
@@ -58,14 +70,17 @@ function AnimalFeedWidget({ animals }) {
     return acc
   }, {})
 
-  // Convert to array and sort by group size (larger groups first)
-  const livestockGroups = Object.values(groupedLivestock).sort(
-    (a, b) => b.animals.length - a.animals.length
-  )
+  // Convert to array and sort by animal type then by first animal name (to match Animals.jsx order)
+  const livestockGroups = Object.values(groupedLivestock).sort((a, b) => {
+    if (a.animal_type !== b.animal_type) {
+      return a.animal_type.localeCompare(b.animal_type)
+    }
+    // Within same type, sort by first animal's name
+    return a.animals[0].name.localeCompare(b.animals[0].name)
+  })
 
   // Render a single feed row
-  // Order: Name → Tags → Food info → Location → "Color Type" (grey, together)
-  // Special instructions shown on second line if present
+  // Order: Name → Tags → Food info → Location → "Color Type" → Special Instructions (inline, wraps if needed)
   const renderFeedRow = (key, name, feeds, color, animalType, tags = [], location = null, specialInstructions = null) => {
     const importantTags = tags.filter(tag =>
       ['sick', 'injured', 'special_diet', 'pregnant'].includes(tag)
@@ -79,10 +94,10 @@ function AnimalFeedWidget({ animals }) {
         key={key}
         className="text-sm bg-gray-700/30 rounded px-2 py-1"
       >
-        {/* Main row */}
-        <div className="flex items-center gap-2">
+        {/* Single row that can wrap */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           {/* Name */}
-          <span className="font-medium text-white truncate">
+          <span className="font-medium text-white">
             {name}
           </span>
 
@@ -104,7 +119,7 @@ function AnimalFeedWidget({ animals }) {
           <span className="text-gray-600">·</span>
 
           {/* Feeds: amount, type, frequency */}
-          <span className="text-cyan-400 truncate">
+          <span className="text-cyan-400">
             {feeds.map((feed, idx) => (
               <span key={idx}>
                 {[feed.amount, feed.feed_type, feed.frequency].filter(Boolean).join(' ')}
@@ -128,18 +143,20 @@ function AnimalFeedWidget({ animals }) {
           <span className="text-gray-600">·</span>
 
           {/* Color + Type together (grey) like "Black Dog" */}
-          <span className="text-xs text-gray-500 truncate">
+          <span className="text-xs text-gray-500">
             {colorType}
           </span>
-        </div>
 
-        {/* Special instructions on second line */}
-        {specialInstructions && (
-          <div className="flex items-center gap-1 mt-1 ml-2 text-xs text-yellow-400">
-            <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-            <span className="truncate">{specialInstructions}</span>
-          </div>
-        )}
+          {/* Special instructions inline */}
+          {specialInstructions && (
+            <>
+              <span className="text-gray-600">·</span>
+              <span className="text-xs text-yellow-400">
+                {specialInstructions}
+              </span>
+            </>
+          )}
+        </div>
       </div>
     )
   }

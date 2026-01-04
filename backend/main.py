@@ -12,6 +12,23 @@ from loguru import logger
 import sys
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers to all responses"""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        # Prevent MIME type sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        # Prevent clickjacking
+        response.headers["X-Frame-Options"] = "DENY"
+        # XSS protection (legacy but still useful)
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        # Referrer policy
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Permissions policy (restrict powerful features)
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        return response
+
+
 class TrailingSlashMiddleware(BaseHTTPMiddleware):
     """Normalize all paths to have trailing slashes to match router definitions"""
     async def dispatch(self, request: Request, call_next):
@@ -25,7 +42,7 @@ class TrailingSlashMiddleware(BaseHTTPMiddleware):
 
 
 class LocalNetworkOnlyMiddleware(BaseHTTPMiddleware):
-    """Restrict API access to localhost and local network only"""
+    """Restrict API access to localhost, local network, and Tailscale"""
     ALLOWED_PREFIXES = (
         "127.",      # localhost IPv4
         "::1",       # localhost IPv6
@@ -35,6 +52,7 @@ class LocalNetworkOnlyMiddleware(BaseHTTPMiddleware):
         "172.20.", "172.21.", "172.22.", "172.23.",
         "172.24.", "172.25.", "172.26.", "172.27.",
         "172.28.", "172.29.", "172.30.", "172.31.",
+        "100.",      # Tailscale CGNAT range (100.64.0.0/10)
     )
 
     async def dispatch(self, request: Request, call_next):
@@ -67,23 +85,27 @@ from routers import (
     vehicles_router,
     equipment_router,
     farm_areas_router,
+    production_router,
+    auth_router,
 )
 from routers.settings import get_setting
 
 
 # Configure logging
+# Security: Only enable DEBUG in debug mode, otherwise INFO level only
+log_level = "DEBUG" if settings.debug else "INFO"
 logger.remove()
 logger.add(
     sys.stderr,
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    level="DEBUG" if settings.debug else "INFO",
+    level=log_level,
 )
 logger.add(
     "logs/levi.log",
     rotation="10 MB",
     retention="30 days",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
-    level="DEBUG",
+    level=log_level,  # Match console level for security
 )
 
 # Scheduler instance
@@ -119,6 +141,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Security headers - add protective headers to all responses
+app.add_middleware(SecurityHeadersMiddleware)
+
 # Security - restrict to local network only
 app.add_middleware(LocalNetworkOnlyMiddleware)
 
@@ -126,15 +151,18 @@ app.add_middleware(LocalNetworkOnlyMiddleware)
 app.add_middleware(TrailingSlashMiddleware)
 
 # CORS middleware - allow frontend access
+# Security is handled by LocalNetworkOnlyMiddleware which restricts to local IPs
+# CORS allows access from any origin on local network since the middleware already filters
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend origin
+    allow_origins=["*"],  # LocalNetworkOnlyMiddleware handles network-level security
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
 
 # Include routers
+app.include_router(auth_router)  # Auth first for setup check
 app.include_router(dashboard_router)
 app.include_router(plants_router)
 app.include_router(animals_router)
@@ -146,6 +174,7 @@ app.include_router(home_maintenance_router)
 app.include_router(vehicles_router)
 app.include_router(equipment_router)
 app.include_router(farm_areas_router)
+app.include_router(production_router)
 
 
 @app.get("/")
@@ -166,6 +195,7 @@ async def root():
             "vehicles": "/vehicles",
             "equipment": "/equipment",
             "farm_areas": "/farm-areas",
+            "production": "/production",
         },
     }
 

@@ -1,9 +1,55 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save } from 'lucide-react'
+import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil } from 'lucide-react'
 import { getSeeds, createSeed, updateSeed, deleteSeed, getSeedStats, getSeedCategories } from '../services/api'
 
 // Reusable inline editable field component
-function EditableField({ label, value, onChange, type = 'text', options = null, placeholder = '', rows = 1 }) {
+function EditableField({ label, value, onChange, type = 'text', options = null, placeholder = '', rows = 1, editing = true }) {
+  const readOnlyClass = "text-sm text-gray-300"
+
+  // Read-only mode
+  if (!editing) {
+    if (type === 'checkbox') {
+      return (
+        <div className="flex items-center gap-2 bg-gray-900/30 rounded-lg p-3">
+          <span className="text-sm text-gray-300">{label}:</span>
+          <span className={value ? "text-green-400" : "text-gray-500"}>{value ? "Yes" : "No"}</span>
+        </div>
+      )
+    }
+
+    if (type === 'select' && options) {
+      const selectedOption = options.find(opt => opt.value === value)
+      const display = selectedOption?.label || value || '-'
+      return (
+        <div className="bg-gray-900/30 rounded-lg p-3">
+          <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+          <div className={readOnlyClass}>{display}</div>
+        </div>
+      )
+    }
+
+    if (type === 'textarea' && value) {
+      return (
+        <div className="bg-gray-900/30 rounded-lg p-3">
+          <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+          <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+            {value}
+          </div>
+        </div>
+      )
+    }
+
+    // Simple text display
+    if (!value) return null
+    return (
+      <div className="bg-gray-900/30 rounded-lg p-3">
+        <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+        <div className={readOnlyClass}>{value}</div>
+      </div>
+    )
+  }
+
+  // Edit mode
   if (type === 'select' && options) {
     return (
       <div className="bg-gray-900/30 rounded-lg p-3">
@@ -68,6 +114,26 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
 function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) {
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+
+  // Track seed updates to reset editData
+  const [lastSeedUpdate, setLastSeedUpdate] = useState(seed.updated_at)
+
+  // Reset editData when seed is updated externally
+  useEffect(() => {
+    if (seed.updated_at !== lastSeedUpdate) {
+      setLastSeedUpdate(seed.updated_at)
+      setEditData(null)
+      setIsEditing(false)
+    }
+  }, [seed.updated_at, lastSeedUpdate])
+
+  // Exit edit mode when card is collapsed
+  useEffect(() => {
+    if (!isExpanded) {
+      setIsEditing(false)
+    }
+  }, [isExpanded])
 
   // Initialize edit data when expanded
   useEffect(() => {
@@ -86,9 +152,15 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
     setSaving(true)
     try {
       await onSave(seed.id, editData)
+      setIsEditing(false)
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleCancel = () => {
+    setEditData({ ...seed })
+    setIsEditing(false)
   }
 
   const getCategoryColor = (category) => {
@@ -187,15 +259,32 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
       {/* Expanded content with inline editing */}
       {isExpanded && editData && (
         <div className="px-4 pb-4 border-t border-gray-700 pt-4 space-y-4">
-          {/* Action Buttons - Save and Delete at top */}
+          {/* Action Buttons - Edit/Save/Cancel and Delete */}
           <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-3 py-1.5 bg-farm-green hover:bg-farm-green-light rounded text-sm text-white transition-colors flex items-center gap-1 disabled:opacity-50"
-            >
-              <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-3 py-1.5 bg-farm-green hover:bg-farm-green-light rounded text-sm text-white transition-colors flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm text-white transition-colors flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm text-white transition-colors flex items-center gap-1"
+              >
+                <Pencil className="w-3 h-3" /> Edit
+              </button>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(seed.id) }}
               className="px-3 py-1.5 bg-red-600/50 hover:bg-red-600 rounded text-sm text-white transition-colors flex items-center gap-1 ml-auto"
@@ -210,17 +299,20 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               label="Name"
               value={editData.name}
               onChange={(v) => handleFieldChange('name', v)}
+              editing={isEditing}
             />
             <EditableField
               label="Latin Name"
               value={editData.latin_name}
               onChange={(v) => handleFieldChange('latin_name', v)}
               placeholder="Genus species"
+              editing={isEditing}
             />
             <EditableField
               label="Variety"
               value={editData.variety}
               onChange={(v) => handleFieldChange('variety', v)}
+              editing={isEditing}
             />
             <EditableField
               label="Category"
@@ -228,6 +320,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               onChange={(v) => handleFieldChange('category', v)}
               type="select"
               options={categories.map(c => ({ value: c.value, label: c.label }))}
+              editing={isEditing}
             />
           </div>
 
@@ -239,6 +332,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
             type="textarea"
             rows={2}
             placeholder="Plant appearance, uses, characteristics..."
+            editing={isEditing}
           />
 
           {/* Germination & Growth */}
@@ -249,24 +343,28 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               value={editData.days_to_germination}
               onChange={(v) => handleFieldChange('days_to_germination', v)}
               placeholder="e.g., 7-14 days"
+              editing={isEditing}
             />
             <EditableField
               label="Days to Maturity"
               value={editData.days_to_maturity}
               onChange={(v) => handleFieldChange('days_to_maturity', v)}
               placeholder="e.g., 60-90 days"
+              editing={isEditing}
             />
             <EditableField
               label="Optimal Germ Temp"
               value={editData.optimal_germ_temp}
               onChange={(v) => handleFieldChange('optimal_germ_temp', v)}
               placeholder="e.g., 70-85°F"
+              editing={isEditing}
             />
             <EditableField
               label="Light to Germinate"
               value={editData.light_to_germinate}
               onChange={(v) => handleFieldChange('light_to_germinate', v)}
               placeholder="e.g., Light required"
+              editing={isEditing}
             />
           </div>
 
@@ -276,12 +374,14 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               value={editData.grow_zones}
               onChange={(v) => handleFieldChange('grow_zones', v)}
               placeholder="e.g., 8-11"
+              editing={isEditing}
             />
             <EditableField
               label="Special Requirements"
               value={editData.special_requirements}
               onChange={(v) => handleFieldChange('special_requirements', v)}
               placeholder="e.g., Scarification, Cold stratification"
+              editing={isEditing}
             />
           </div>
 
@@ -293,24 +393,28 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               value={editData.planting_depth}
               onChange={(v) => handleFieldChange('planting_depth', v)}
               placeholder="e.g., 1/4 inch"
+              editing={isEditing}
             />
             <EditableField
               label="Plant Spacing"
               value={editData.spacing}
               onChange={(v) => handleFieldChange('spacing', v)}
               placeholder="e.g., 12 inches"
+              editing={isEditing}
             />
             <EditableField
               label="Soil Type"
               value={editData.soil_type}
               onChange={(v) => handleFieldChange('soil_type', v)}
               placeholder="e.g., Well-drained"
+              editing={isEditing}
             />
             <EditableField
               label="pH Range"
               value={editData.ph_range}
               onChange={(v) => handleFieldChange('ph_range', v)}
               placeholder="e.g., 6.0-7.0"
+              editing={isEditing}
             />
           </div>
 
@@ -323,6 +427,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               onChange={(v) => handleFieldChange('sun_requirement', v)}
               type="select"
               options={sunOptions}
+              editing={isEditing}
             />
             <EditableField
               label="Water Needs"
@@ -330,18 +435,21 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               onChange={(v) => handleFieldChange('water_requirement', v)}
               type="select"
               options={waterOptions}
+              editing={isEditing}
             />
             <EditableField
               label="Height"
               value={editData.height}
               onChange={(v) => handleFieldChange('height', v)}
               placeholder="e.g., 24-36 in"
+              editing={isEditing}
             />
             <EditableField
               label="Spread"
               value={editData.spread}
               onChange={(v) => handleFieldChange('spread', v)}
               placeholder="e.g., 12-18 in"
+              editing={isEditing}
             />
           </div>
 
@@ -353,24 +461,28 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               value={editData.sow_months}
               onChange={(v) => handleFieldChange('sow_months', v)}
               placeholder="e.g., Jan-Mar, Sep-Nov"
+              editing={isEditing}
             />
             <EditableField
               label="Harvest Time"
               value={editData.harvest_months}
               onChange={(v) => handleFieldChange('harvest_months', v)}
               placeholder="e.g., Apr-Jun"
+              editing={isEditing}
             />
             <EditableField
               label="Spring Planting (9b)"
               value={editData.spring_planting}
               onChange={(v) => handleFieldChange('spring_planting', v)}
               placeholder="e.g., Feb-Apr"
+              editing={isEditing}
             />
             <EditableField
               label="Fall Planting (9b)"
               value={editData.fall_planting}
               onChange={(v) => handleFieldChange('fall_planting', v)}
               placeholder="e.g., Sep-Nov"
+              editing={isEditing}
             />
           </div>
 
@@ -382,60 +494,70 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               value={editData.is_perennial}
               onChange={(v) => handleFieldChange('is_perennial', v)}
               type="checkbox"
+              editing={isEditing}
             />
             <EditableField
               label="Direct Sow"
               value={editData.direct_sow}
               onChange={(v) => handleFieldChange('direct_sow', v)}
               type="checkbox"
+              editing={isEditing}
             />
             <EditableField
               label="Frost Sensitive"
               value={editData.frost_sensitive}
               onChange={(v) => handleFieldChange('frost_sensitive', v)}
               type="checkbox"
+              editing={isEditing}
             />
             <EditableField
               label="Heat Tolerant"
               value={editData.heat_tolerant}
               onChange={(v) => handleFieldChange('heat_tolerant', v)}
               type="checkbox"
+              editing={isEditing}
             />
             <EditableField
               label="Drought Tolerant"
               value={editData.drought_tolerant}
               onChange={(v) => handleFieldChange('drought_tolerant', v)}
               type="checkbox"
+              editing={isEditing}
             />
             <EditableField
               label="Native Florida"
               value={editData.is_native}
               onChange={(v) => handleFieldChange('is_native', v)}
               type="checkbox"
+              editing={isEditing}
             />
             <EditableField
               label="Pollinators"
               value={editData.attracts_pollinators}
               onChange={(v) => handleFieldChange('attracts_pollinators', v)}
               type="checkbox"
+              editing={isEditing}
             />
             <EditableField
               label="Medicinal Use"
               value={editData.medicinal_use}
               onChange={(v) => handleFieldChange('medicinal_use', v)}
               type="checkbox"
+              editing={isEditing}
             />
             <EditableField
               label="Culinary Use"
               value={editData.culinary_use}
               onChange={(v) => handleFieldChange('culinary_use', v)}
               type="checkbox"
+              editing={isEditing}
             />
             <EditableField
               label="Ornamental Use"
               value={editData.ornamental_use}
               onChange={(v) => handleFieldChange('ornamental_use', v)}
               type="checkbox"
+              editing={isEditing}
             />
           </div>
 
@@ -448,6 +570,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               onChange={(v) => handleFieldChange('growing_notes', v)}
               type="textarea"
               rows={2}
+              editing={isEditing}
             />
             <EditableField
               label="Harvest Notes"
@@ -455,6 +578,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               onChange={(v) => handleFieldChange('harvest_notes', v)}
               type="textarea"
               rows={2}
+              editing={isEditing}
             />
           </div>
           <EditableField
@@ -463,6 +587,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
             onChange={(v) => handleFieldChange('medicinal_notes', v)}
             type="textarea"
             rows={2}
+            editing={isEditing}
           />
           <EditableField
             label="General Notes"
@@ -470,6 +595,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
             onChange={(v) => handleFieldChange('notes', v)}
             type="textarea"
             rows={2}
+            editing={isEditing}
           />
 
         </div>

@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// Build v2026.01.03.3 - Debug plants page issue
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -16,5 +17,12 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-v20260103-[hash].js`,
+        chunkFileNames: `assets/[name]-v20260103-[hash].js`,
+        assetFileNames: `assets/[name]-v20260103-[hash].[ext]`
+      }
+    }
   },
 })

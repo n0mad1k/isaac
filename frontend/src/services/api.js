@@ -5,7 +5,33 @@ const API_BASE = '/api'
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 10000,
+  withCredentials: true,  // Include cookies for session auth
 })
+
+// Add auth token to requests if available
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Handle 401 responses by redirecting to login
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_user')
+      // Only redirect if we're not already on the login page
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 // Dashboard
 export const getDashboard = () => api.get('/dashboard/')
@@ -13,6 +39,7 @@ export const getQuickStats = () => api.get('/dashboard/quick-stats/')
 export const getCalendarMonth = (year, month) =>
   api.get(`/dashboard/calendar/${year}/${month}/`)
 export const getColdProtection = () => api.get('/dashboard/cold-protection/')
+export const getFreezeWarning = () => api.get('/dashboard/freeze-warning/')
 
 // Weather
 export const getCurrentWeather = () => api.get('/weather/current/')
@@ -38,6 +65,8 @@ export const createPlantTag = (name, color) =>
 export const getPlantsNeedingWater = () => api.get('/plants/needs-water/today/')
 export const getPlantsNeedingFertilizer = () => api.get('/plants/needs-fertilizer/today/')
 export const getFrostSensitivePlants = () => api.get('/plants/frost-sensitive/list/')
+export const previewPlantImport = (url) => api.post('/plants/import/preview/', { url })
+export const importPlant = (url) => api.post('/plants/import/', { url })
 
 // Animals
 export const getAnimals = (params) => api.get('/animals/', { params })
@@ -138,6 +167,8 @@ export const createHomeMaintenance = (data) => api.post('/home-maintenance/', da
 export const updateHomeMaintenance = (id, data) => api.put(`/home-maintenance/${id}/`, data)
 export const deleteHomeMaintenance = (id) => api.delete(`/home-maintenance/${id}/`)
 export const completeHomeMaintenance = (id, data) => api.post(`/home-maintenance/${id}/complete/`, data)
+export const setHomeMaintenanceDueDate = (id, dueDate) =>
+  api.put(`/home-maintenance/${id}/due-date/`, { due_date: dueDate })
 export const getHomeMaintenanceLogs = (id) => api.get(`/home-maintenance/${id}/logs/`)
 export const getHomeMaintenanceCategories = () => api.get('/home-maintenance/categories/list/')
 
@@ -159,6 +190,8 @@ export const deleteVehicleMaintenance = (taskId) =>
   api.delete(`/vehicles/maintenance/${taskId}/`)
 export const completeVehicleMaintenance = (taskId, data) =>
   api.post(`/vehicles/maintenance/${taskId}/complete/`, data)
+export const setVehicleMaintenanceDueDate = (taskId, dueDate) =>
+  api.put(`/vehicles/maintenance/${taskId}/due-date/`, { due_date: dueDate })
 export const getVehicleLogs = (vehicleId) => api.get(`/vehicles/${vehicleId}/logs/`)
 export const getVehicleTypes = () => api.get('/vehicles/types/list/')
 
@@ -180,6 +213,8 @@ export const deleteEquipmentMaintenance = (taskId) =>
   api.delete(`/equipment/maintenance/${taskId}/`)
 export const completeEquipmentMaintenance = (taskId, data) =>
   api.post(`/equipment/maintenance/${taskId}/complete/`, data)
+export const setEquipmentMaintenanceDueDate = (taskId, dueDate) =>
+  api.put(`/equipment/maintenance/${taskId}/due-date/`, { due_date: dueDate })
 export const getEquipmentLogs = (equipmentId) => api.get(`/equipment/${equipmentId}/logs/`)
 export const getEquipmentTypes = () => api.get('/equipment/types/list/')
 
@@ -199,7 +234,54 @@ export const deleteFarmAreaMaintenance = (taskId) =>
   api.delete(`/farm-areas/maintenance/${taskId}/`)
 export const completeFarmAreaMaintenance = (taskId, data) =>
   api.post(`/farm-areas/maintenance/${taskId}/complete/`, data)
+export const setFarmAreaMaintenanceDueDate = (taskId, dueDate) =>
+  api.put(`/farm-areas/maintenance/${taskId}/due-date/`, { due_date: dueDate })
 export const getFarmAreaLogs = (areaId) => api.get(`/farm-areas/${areaId}/logs/`)
 export const getFarmAreaTypes = () => api.get('/farm-areas/types/list/')
+
+// Production
+export const getProductionStats = (year) =>
+  api.get('/production/stats/', { params: year ? { year } : {} })
+export const getLivestockProductions = (params) =>
+  api.get('/production/livestock/', { params })
+export const getLivestockProduction = (id) => api.get(`/production/livestock/${id}/`)
+export const archiveLivestock = (data) => api.post('/production/livestock/', data)
+export const updateLivestockProduction = (id, data) =>
+  api.patch(`/production/livestock/${id}/`, data)
+export const deleteLivestockProduction = (id) => api.delete(`/production/livestock/${id}/`)
+export const getPlantHarvests = (params) => api.get('/production/harvests/', { params })
+export const getPlantHarvest = (id) => api.get(`/production/harvests/${id}/`)
+export const recordPlantHarvest = (data) => api.post('/production/harvests/', data)
+export const updatePlantHarvest = (id, data) => api.patch(`/production/harvests/${id}/`, data)
+export const deletePlantHarvest = (id) => api.delete(`/production/harvests/${id}/`)
+
+// Authentication
+export const checkAuth = () => api.get('/auth/check')
+export const login = (username, password) =>
+  api.post('/auth/login', { username, password })
+export const logout = () => api.post('/auth/logout')
+export const getCurrentUser = () => api.get('/auth/me')
+export const updateCurrentUser = (data) => api.put('/auth/me', data)
+export const changePassword = (currentPassword, newPassword) =>
+  api.post('/auth/me/password', { current_password: currentPassword, new_password: newPassword })
+export const initialSetup = (data) => api.post('/auth/setup', data)
+
+// User Management (Admin only)
+export const getUsers = () => api.get('/auth/users')
+export const createUser = (data) => api.post('/auth/users', data)
+export const updateUser = (userId, data) => api.put(`/auth/users/${userId}`, data)
+export const updateUserRole = (userId, role) => api.put(`/auth/users/${userId}/role`, { role })
+export const toggleUserStatus = (userId) => api.put(`/auth/users/${userId}/status`)
+export const deleteUser = (userId) => api.delete(`/auth/users/${userId}`)
+export const resetUserPassword = (userId, newPassword) =>
+  api.post(`/auth/users/${userId}/reset-password`, { new_password: newPassword })
+
+// Role Management (Admin only)
+export const getRoles = () => api.get('/auth/roles')
+export const getRole = (roleId) => api.get(`/auth/roles/${roleId}`)
+export const createRole = (data) => api.post('/auth/roles', data)
+export const updateRole = (roleId, data) => api.put(`/auth/roles/${roleId}`, data)
+export const deleteRole = (roleId) => api.delete(`/auth/roles/${roleId}`)
+export const getPermissionCategories = () => api.get('/auth/permissions')
 
 export default api

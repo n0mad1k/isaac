@@ -2,16 +2,63 @@ import React, { useState, useEffect } from 'react'
 import {
   Plus, Search, Leaf, Droplets, Sun, Snowflake, ChevronDown, ChevronUp,
   Thermometer, MapPin, Calendar, Clock, Scissors, Apple, AlertTriangle,
-  Info, X, Tag as TagIcon, Pencil, Save
+  Info, X, Tag as TagIcon, Pencil, Save, Package
 } from 'lucide-react'
 import {
-  getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag
+  getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag,
+  recordPlantHarvest, previewPlantImport, importPlant
 } from '../services/api'
+import { Download, ExternalLink, Loader2 } from 'lucide-react'
 
 // Inline editable field component
-function EditableField({ label, value, field, type = 'text', options, onChange, placeholder }) {
+function EditableField({ label, value, field, type = 'text', options, onChange, placeholder, rows = 3, editing = true, displayValue }) {
   const inputClass = "w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+  const readOnlyClass = "text-sm text-gray-300"
 
+  // Read-only mode
+  if (!editing) {
+    if (type === 'checkbox') {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-300">{label}:</span>
+          <span className={value ? "text-green-400" : "text-gray-500"}>{value ? "Yes" : "No"}</span>
+        </div>
+      )
+    }
+
+    if (type === 'select' && options) {
+      const selectedOption = options.find(opt => opt.value === value)
+      const display = displayValue || selectedOption?.label || value || '-'
+      return (
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">{label}</label>
+          <div className={readOnlyClass}>{display}</div>
+        </div>
+      )
+    }
+
+    if (type === 'textarea' && value) {
+      return (
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">{label}</label>
+          <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto bg-gray-750 rounded p-2">
+            {value}
+          </div>
+        </div>
+      )
+    }
+
+    // Simple text display
+    if (!value && !displayValue) return null
+    return (
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <div className={readOnlyClass}>{displayValue || value}</div>
+      </div>
+    )
+  }
+
+  // Edit mode
   if (type === 'select' && options) {
     return (
       <div>
@@ -30,6 +77,8 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
   }
 
   if (type === 'textarea') {
+    // Calculate dynamic rows based on content length
+    const contentRows = value ? Math.max(rows, Math.min(12, Math.ceil(value.length / 80))) : rows
     return (
       <div>
         <label className="block text-xs text-gray-500 mb-1">{label}</label>
@@ -37,8 +86,8 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
           value={value || ''}
           onChange={(e) => onChange(field, e.target.value)}
           placeholder={placeholder}
-          rows={2}
-          className={inputClass}
+          rows={contentRows}
+          className={`${inputClass} resize-y min-h-[60px] max-h-[300px]`}
         />
       </div>
     )
@@ -72,6 +121,22 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
   )
 }
 
+// Scrollable text display for read-only long text
+function ScrollableText({ label, value, maxHeight = "150px" }) {
+  if (!value) return null
+  return (
+    <div>
+      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <div
+        className="bg-gray-900/50 rounded p-2 text-sm text-gray-300 whitespace-pre-wrap overflow-y-auto"
+        style={{ maxHeight }}
+      >
+        {value}
+      </div>
+    </div>
+  )
+}
+
 // Sun requirement options
 const SUN_OPTIONS = [
   { value: 'full_sun', label: 'Full Sun' },
@@ -97,6 +162,8 @@ function Plants() {
   const [filterTag, setFilterTag] = useState('all')
   const [filterSpecial, setFilterSpecial] = useState('all')
   const [editDateModal, setEditDateModal] = useState(null)
+  const [showHarvestForm, setShowHarvestForm] = useState(null) // plant object or null
+  const [showImportModal, setShowImportModal] = useState(false)
 
   const fetchData = async () => {
     try {
@@ -104,10 +171,10 @@ function Plants() {
         getPlants(),
         getPlantTags()
       ])
-      setPlants(plantsRes.data)
-      setTags(tagsRes.data)
+      setPlants(plantsRes.data || [])
+      setTags(tagsRes.data || [])
     } catch (error) {
-      console.error('Failed to fetch data:', error)
+      console.error('Failed to fetch plants:', error)
     } finally {
       setLoading(false)
     }
@@ -187,6 +254,17 @@ function Plants() {
     }
   }
 
+  const handleHarvest = async (data) => {
+    try {
+      await recordPlantHarvest(data)
+      setShowHarvestForm(null)
+      fetchData()
+    } catch (error) {
+      console.error('Failed to record harvest:', error)
+      alert('Failed to record harvest')
+    }
+  }
+
   const formatDate = (dateStr) => {
     if (!dateStr) return null
     const date = new Date(dateStr)
@@ -249,13 +327,22 @@ function Plants() {
           <Leaf className="w-7 h-7 text-green-500" />
           Plants & Trees
         </h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add Plant
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+          >
+            <Download className="w-5 h-5" />
+            Import
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Add Plant
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -336,6 +423,8 @@ function Plants() {
               onEditDate={setEditDateModal}
               onDelete={() => handleDelete(plant.id, plant.name)}
               onSave={fetchData}
+              onHarvest={(plant) => setShowHarvestForm(plant)}
+              onImport={(plant) => setShowImportModal(plant)}
               getTagColor={getTagColor}
               formatDate={formatDate}
               formatRelativeDate={formatRelativeDate}
@@ -364,6 +453,25 @@ function Plants() {
           onSave={(date) => updateCareDate(editDateModal.plantId, editDateModal.field, date)}
         />
       )}
+
+      {/* Harvest Modal */}
+      {showHarvestForm && (
+        <HarvestFormModal
+          plant={showHarvestForm}
+          onClose={() => setShowHarvestForm(null)}
+          onSave={handleHarvest}
+        />
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <ImportModal
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => { setShowImportModal(false); fetchData() }}
+          tags={tags}
+          existingPlant={typeof showImportModal === 'object' ? showImportModal : null}
+        />
+      )}
     </div>
   )
 }
@@ -371,11 +479,29 @@ function Plants() {
 
 // Plant Card Component with inline editing
 function PlantCard({
-  plant, tags, expanded, onToggle, onLogCare, onEditDate, onDelete, onSave,
+  plant, tags, expanded, onToggle, onLogCare, onEditDate, onDelete, onSave, onHarvest, onImport,
   getTagColor, formatDate, formatRelativeDate, getSunLabel, getGrowthRateLabel
 }) {
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [lastPlantUpdate, setLastPlantUpdate] = useState(plant.updated_at)
+  const [isEditing, setIsEditing] = useState(false)
+
+  // Reset editData and exit edit mode when plant data is updated (e.g., after import)
+  useEffect(() => {
+    if (plant.updated_at !== lastPlantUpdate) {
+      setLastPlantUpdate(plant.updated_at)
+      setEditData(null) // Force re-initialization
+      setIsEditing(false)
+    }
+  }, [plant.updated_at, lastPlantUpdate])
+
+  // Exit edit mode when card is collapsed
+  useEffect(() => {
+    if (!expanded) {
+      setIsEditing(false)
+    }
+  }, [expanded])
 
   // Initialize edit data when expanded
   useEffect(() => {
@@ -409,9 +535,11 @@ function PlantCard({
         how_to_harvest: plant.how_to_harvest || '',
         uses: plant.uses || '',
         propagation_methods: plant.propagation_methods || '',
+        cultivation_details: plant.cultivation_details || '',
         known_hazards: plant.known_hazards || '',
         special_considerations: plant.special_considerations || '',
         notes: plant.notes || '',
+        references: plant.references || '',
         tag_ids: plant.tags?.map(t => t.id) || [],
       })
     }
@@ -440,6 +568,7 @@ function PlantCard({
         needs_shade_above_temp: editData.needs_shade_above_temp ? parseFloat(editData.needs_shade_above_temp) : null,
       }
       await updatePlant(plant.id, data)
+      setIsEditing(false)
       if (onSave) onSave()
     } catch (error) {
       console.error('Failed to save:', error)
@@ -447,6 +576,47 @@ function PlantCard({
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleCancel = () => {
+    // Reset editData to original plant values
+    setEditData({
+      name: plant.name || '',
+      latin_name: plant.latin_name || '',
+      variety: plant.variety || '',
+      description: plant.description || '',
+      location: plant.location || '',
+      source: plant.source || '',
+      grow_zones: plant.grow_zones || '',
+      sun_requirement: plant.sun_requirement || 'full_sun',
+      soil_requirements: plant.soil_requirements || '',
+      plant_spacing: plant.plant_spacing || '',
+      size_full_grown: plant.size_full_grown || '',
+      growth_rate: plant.growth_rate || 'moderate',
+      min_temp: plant.min_temp || '',
+      frost_sensitive: plant.frost_sensitive || false,
+      needs_cover_below_temp: plant.needs_cover_below_temp || '',
+      heat_tolerant: plant.heat_tolerant ?? true,
+      drought_tolerant: plant.drought_tolerant || false,
+      salt_tolerant: plant.salt_tolerant || false,
+      needs_shade_above_temp: plant.needs_shade_above_temp || '',
+      water_schedule: plant.water_schedule || '',
+      fertilize_schedule: plant.fertilize_schedule || '',
+      prune_frequency: plant.prune_frequency || '',
+      prune_months: plant.prune_months || '',
+      produces_months: plant.produces_months || '',
+      harvest_frequency: plant.harvest_frequency || '',
+      how_to_harvest: plant.how_to_harvest || '',
+      uses: plant.uses || '',
+      propagation_methods: plant.propagation_methods || '',
+      cultivation_details: plant.cultivation_details || '',
+      known_hazards: plant.known_hazards || '',
+      special_considerations: plant.special_considerations || '',
+      notes: plant.notes || '',
+      references: plant.references || '',
+      tag_ids: plant.tags?.map(t => t.id) || [],
+    })
+    setIsEditing(false)
   }
 
   return (
@@ -471,18 +641,16 @@ function PlantCard({
                 )}
               </div>
             )}
-          </div>
-          <div className="flex items-center gap-3 mt-1 text-sm text-gray-400">
-            {plant.description && (
-              <span className="truncate max-w-[300px]">{plant.description}</span>
-            )}
             {plant.age_years && (
-              <span className="text-green-400 whitespace-nowrap">{plant.age_years} yrs old</span>
+              <span className="text-green-400 text-sm whitespace-nowrap">{plant.age_years} yrs old</span>
             )}
             {plant.min_temp && (
-              <span className="text-blue-400 whitespace-nowrap">Min: {plant.min_temp}°F</span>
+              <span className="text-blue-400 text-sm whitespace-nowrap">Min: {plant.min_temp}°F</span>
             )}
           </div>
+          {plant.description && (
+            <p className="text-sm text-gray-400 mt-1 line-clamp-2">{plant.description}</p>
+          )}
         </div>
 
         <div className="flex items-center gap-3 ml-4">
@@ -524,15 +692,32 @@ function PlantCard({
       {/* Expanded Details with Inline Editing */}
       {expanded && editData && (
         <div className="px-4 pb-4 border-t border-gray-700 pt-4 space-y-4">
-          {/* Action Buttons - Save, Quick actions, Delete */}
+          {/* Action Buttons - Edit/Save/Cancel, Quick actions, Delete */}
           <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={(e) => { e.stopPropagation(); handleSave() }}
-              disabled={saving}
-              className="px-3 py-1.5 bg-farm-green hover:bg-farm-green-light rounded text-sm text-white transition-colors flex items-center gap-1 disabled:opacity-50"
-            >
-              <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+            {isEditing ? (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleSave() }}
+                  disabled={saving}
+                  className="px-3 py-1.5 bg-farm-green hover:bg-farm-green-light rounded text-sm text-white transition-colors flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleCancel() }}
+                  className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm text-white transition-colors flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsEditing(true) }}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm text-white transition-colors flex items-center gap-1"
+              >
+                <Pencil className="w-3 h-3" /> Edit
+              </button>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); onLogCare(plant.id, 'watered') }}
               className="px-3 py-1.5 bg-cyan-900/50 hover:bg-cyan-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
@@ -558,6 +743,12 @@ function PlantCard({
               <Apple className="w-3 h-3" /> Harvest
             </button>
             <button
+              onClick={(e) => { e.stopPropagation(); onImport(plant) }}
+              className="px-3 py-1.5 bg-blue-900/50 hover:bg-blue-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <Download className="w-3 h-3" /> Import Data
+            </button>
+            <button
               onClick={(e) => { e.stopPropagation(); onDelete() }}
               className="px-3 py-1.5 bg-red-600/50 hover:bg-red-600 rounded text-sm text-white transition-colors flex items-center gap-1 ml-auto"
             >
@@ -567,27 +758,27 @@ function PlantCard({
 
           {/* Basic Info - Editable */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <EditableField label="Name" value={editData.name} field="name" onChange={handleFieldChange} />
-            <EditableField label="Latin Name" value={editData.latin_name} field="latin_name" onChange={handleFieldChange} placeholder="Genus species" />
-            <EditableField label="Variety" value={editData.variety} field="variety" onChange={handleFieldChange} />
-            <EditableField label="Location" value={editData.location} field="location" onChange={handleFieldChange} placeholder="e.g., North orchard" />
+            <EditableField label="Name" value={editData.name} field="name" onChange={handleFieldChange} editing={isEditing} />
+            <EditableField label="Latin Name" value={editData.latin_name} field="latin_name" onChange={handleFieldChange} placeholder="Genus species" editing={isEditing} />
+            <EditableField label="Variety" value={editData.variety} field="variety" onChange={handleFieldChange} editing={isEditing} />
+            <EditableField label="Location" value={editData.location} field="location" onChange={handleFieldChange} placeholder="e.g., North orchard" editing={isEditing} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <EditableField label="Description" value={editData.description} field="description" type="textarea" onChange={handleFieldChange} />
-            <EditableField label="Source" value={editData.source} field="source" onChange={handleFieldChange} placeholder="Where purchased" />
+            <EditableField label="Description" value={editData.description} field="description" type="textarea" onChange={handleFieldChange} editing={isEditing} />
+            <EditableField label="Source" value={editData.source} field="source" onChange={handleFieldChange} placeholder="Where purchased" editing={isEditing} />
           </div>
 
           {/* Growing Requirements */}
           <div className="bg-gray-900/50 rounded-lg p-3">
             <h4 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <EditableField label="Grow Zones" value={editData.grow_zones} field="grow_zones" onChange={handleFieldChange} placeholder="e.g., 9-11" />
-              <EditableField label="Sun Requirement" value={editData.sun_requirement} field="sun_requirement" type="select" options={SUN_OPTIONS} onChange={handleFieldChange} />
-              <EditableField label="Growth Rate" value={editData.growth_rate} field="growth_rate" type="select" options={GROWTH_RATE_OPTIONS} onChange={handleFieldChange} />
-              <EditableField label="Soil Requirements" value={editData.soil_requirements} field="soil_requirements" onChange={handleFieldChange} placeholder="e.g., Well-drained" />
-              <EditableField label="Plant Spacing" value={editData.plant_spacing} field="plant_spacing" onChange={handleFieldChange} placeholder="e.g., 15-20 feet" />
-              <EditableField label="Size Full Grown" value={editData.size_full_grown} field="size_full_grown" onChange={handleFieldChange} placeholder="e.g., 20-30 ft" />
+              <EditableField label="Grow Zones" value={editData.grow_zones} field="grow_zones" onChange={handleFieldChange} placeholder="e.g., 9-11" editing={isEditing} />
+              <EditableField label="Sun Requirement" value={editData.sun_requirement} field="sun_requirement" type="select" options={SUN_OPTIONS} onChange={handleFieldChange} editing={isEditing} />
+              <EditableField label="Growth Rate" value={editData.growth_rate} field="growth_rate" type="select" options={GROWTH_RATE_OPTIONS} onChange={handleFieldChange} editing={isEditing} />
+              <EditableField label="Soil Requirements" value={editData.soil_requirements} field="soil_requirements" onChange={handleFieldChange} placeholder="e.g., Well-drained" editing={isEditing} />
+              <EditableField label="Plant Spacing" value={editData.plant_spacing} field="plant_spacing" onChange={handleFieldChange} placeholder="e.g., 15-20 feet" editing={isEditing} />
+              <EditableField label="Size Full Grown" value={editData.size_full_grown} field="size_full_grown" onChange={handleFieldChange} placeholder="e.g., 20-30 ft" editing={isEditing} />
             </div>
           </div>
 
@@ -595,15 +786,15 @@ function PlantCard({
           <div className="bg-gray-900/50 rounded-lg p-3">
             <h4 className="text-sm font-medium text-gray-400 mb-3">Temperature & Tolerance</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <EditableField label="Min Temp (°F)" value={editData.min_temp} field="min_temp" type="number" onChange={handleFieldChange} />
-              <EditableField label="Cover Below (°F)" value={editData.needs_cover_below_temp} field="needs_cover_below_temp" type="number" onChange={handleFieldChange} />
-              <EditableField label="Shade Above (°F)" value={editData.needs_shade_above_temp} field="needs_shade_above_temp" type="number" onChange={handleFieldChange} />
+              <EditableField label="Min Temp (°F)" value={editData.min_temp} field="min_temp" type="number" onChange={handleFieldChange} editing={isEditing} />
+              <EditableField label="Cover Below (°F)" value={editData.needs_cover_below_temp} field="needs_cover_below_temp" type="number" onChange={handleFieldChange} editing={isEditing} />
+              <EditableField label="Shade Above (°F)" value={editData.needs_shade_above_temp} field="needs_shade_above_temp" type="number" onChange={handleFieldChange} editing={isEditing} />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-              <EditableField label="Frost Sensitive" value={editData.frost_sensitive} field="frost_sensitive" type="checkbox" onChange={handleFieldChange} />
-              <EditableField label="Heat Tolerant" value={editData.heat_tolerant} field="heat_tolerant" type="checkbox" onChange={handleFieldChange} />
-              <EditableField label="Drought Tolerant" value={editData.drought_tolerant} field="drought_tolerant" type="checkbox" onChange={handleFieldChange} />
-              <EditableField label="Salt Tolerant" value={editData.salt_tolerant} field="salt_tolerant" type="checkbox" onChange={handleFieldChange} />
+              <EditableField label="Frost Sensitive" value={editData.frost_sensitive} field="frost_sensitive" type="checkbox" onChange={handleFieldChange} editing={isEditing} />
+              <EditableField label="Heat Tolerant" value={editData.heat_tolerant} field="heat_tolerant" type="checkbox" onChange={handleFieldChange} editing={isEditing} />
+              <EditableField label="Drought Tolerant" value={editData.drought_tolerant} field="drought_tolerant" type="checkbox" onChange={handleFieldChange} editing={isEditing} />
+              <EditableField label="Salt Tolerant" value={editData.salt_tolerant} field="salt_tolerant" type="checkbox" onChange={handleFieldChange} editing={isEditing} />
             </div>
           </div>
 
@@ -612,15 +803,15 @@ function PlantCard({
             <h4 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h4>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <EditableField label="Water Schedule" value={editData.water_schedule} field="water_schedule" onChange={handleFieldChange} placeholder="summer:3,winter:10" />
-                <p className="text-xs text-gray-500 mt-1">Days between watering per season</p>
+                <EditableField label="Water Schedule" value={editData.water_schedule} field="water_schedule" onChange={handleFieldChange} placeholder="summer:3,winter:10" editing={isEditing} />
+                {isEditing && <p className="text-xs text-gray-500 mt-1">Days between watering per season</p>}
               </div>
               <div>
-                <EditableField label="Fertilize Schedule" value={editData.fertilize_schedule} field="fertilize_schedule" onChange={handleFieldChange} placeholder="spring:30,summer:45" />
-                <p className="text-xs text-gray-500 mt-1">Days between fertilizing (0=none)</p>
+                <EditableField label="Fertilize Schedule" value={editData.fertilize_schedule} field="fertilize_schedule" onChange={handleFieldChange} placeholder="spring:30,summer:45" editing={isEditing} />
+                {isEditing && <p className="text-xs text-gray-500 mt-1">Days between fertilizing (0=none)</p>}
               </div>
-              <EditableField label="Prune Frequency" value={editData.prune_frequency} field="prune_frequency" onChange={handleFieldChange} placeholder="e.g., Yearly after fruiting" />
-              <EditableField label="Prune Months" value={editData.prune_months} field="prune_months" onChange={handleFieldChange} placeholder="e.g., Feb-Mar" />
+              <EditableField label="Prune Frequency" value={editData.prune_frequency} field="prune_frequency" onChange={handleFieldChange} placeholder="e.g., Yearly after fruiting" editing={isEditing} />
+              <EditableField label="Prune Months" value={editData.prune_months} field="prune_months" onChange={handleFieldChange} placeholder="e.g., Feb-Mar" editing={isEditing} />
             </div>
 
             {/* Care Status Display */}
@@ -687,18 +878,28 @@ function PlantCard({
 
           {/* Production & Harvest */}
           <div className="bg-gray-900/50 rounded-lg p-3">
-            <h4 className="text-sm font-medium text-gray-400 mb-3">Production & Harvest</h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-gray-400">Production & Harvest</h4>
+              <button
+                onClick={(e) => { e.stopPropagation(); onHarvest(plant) }}
+                className="px-3 py-1 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg flex items-center gap-1 transition-colors"
+              >
+                <Package className="w-3 h-3" />
+                Record Harvest
+              </button>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <EditableField label="Produces Months" value={editData.produces_months} field="produces_months" onChange={handleFieldChange} placeholder="e.g., Jun-Aug" />
-              <EditableField label="Harvest Frequency" value={editData.harvest_frequency} field="harvest_frequency" onChange={handleFieldChange} placeholder="e.g., Weekly" />
-              <EditableField label="How to Harvest" value={editData.how_to_harvest} field="how_to_harvest" type="textarea" onChange={handleFieldChange} />
+              <EditableField label="Produces Months" value={editData.produces_months} field="produces_months" onChange={handleFieldChange} placeholder="e.g., Jun-Aug" editing={isEditing} />
+              <EditableField label="Harvest Frequency" value={editData.harvest_frequency} field="harvest_frequency" onChange={handleFieldChange} placeholder="e.g., Weekly" editing={isEditing} />
+              <EditableField label="How to Harvest" value={editData.how_to_harvest} field="how_to_harvest" type="textarea" onChange={handleFieldChange} editing={isEditing} />
             </div>
           </div>
 
           {/* Uses & Propagation */}
-          <div className="grid grid-cols-2 gap-3">
-            <EditableField label="Uses" value={editData.uses} field="uses" type="textarea" onChange={handleFieldChange} placeholder="e.g., Fresh eating, jams" />
-            <EditableField label="Propagation Methods" value={editData.propagation_methods} field="propagation_methods" type="textarea" onChange={handleFieldChange} placeholder="e.g., Cuttings, grafting" />
+          <div className="space-y-3">
+            <EditableField label="Uses" value={editData.uses} field="uses" type="textarea" onChange={handleFieldChange} placeholder="e.g., Fresh eating, jams" rows={4} editing={isEditing} />
+            <EditableField label="Propagation Methods" value={editData.propagation_methods} field="propagation_methods" type="textarea" onChange={handleFieldChange} placeholder="e.g., Cuttings, grafting" editing={isEditing} />
+            <EditableField label="Cultivation Details" value={editData.cultivation_details} field="cultivation_details" type="textarea" onChange={handleFieldChange} placeholder="Growing conditions, care tips, etc." rows={4} editing={isEditing} />
           </div>
 
           {/* Warnings */}
@@ -708,32 +909,48 @@ function PlantCard({
               Warnings & Considerations
             </h4>
             <div className="grid grid-cols-2 gap-3">
-              <EditableField label="Known Hazards" value={editData.known_hazards} field="known_hazards" type="textarea" onChange={handleFieldChange} placeholder="e.g., Thorns, toxic to pets" />
-              <EditableField label="Special Considerations" value={editData.special_considerations} field="special_considerations" type="textarea" onChange={handleFieldChange} placeholder="e.g., Needs hand pollination" />
+              <EditableField label="Known Hazards" value={editData.known_hazards} field="known_hazards" type="textarea" onChange={handleFieldChange} placeholder="e.g., Thorns, toxic to pets" editing={isEditing} />
+              <EditableField label="Special Considerations" value={editData.special_considerations} field="special_considerations" type="textarea" onChange={handleFieldChange} placeholder="e.g., Needs hand pollination" editing={isEditing} />
             </div>
           </div>
 
-          {/* Notes */}
-          <EditableField label="Notes" value={editData.notes} field="notes" type="textarea" onChange={handleFieldChange} />
+          {/* Notes & References */}
+          <EditableField label="Notes" value={editData.notes} field="notes" type="textarea" onChange={handleFieldChange} rows={3} editing={isEditing} />
+          <EditableField label="References" value={editData.references} field="references" type="textarea" onChange={handleFieldChange} rows={5} editing={isEditing} />
 
           {/* Tags */}
           <div>
             <h4 className="text-sm font-medium text-gray-400 mb-2">Tags</h4>
             <div className="flex flex-wrap gap-2">
-              {tags.map(tag => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => toggleTag(tag.id)}
-                  className={`px-3 py-1 rounded-full text-sm border transition-all ${
-                    editData.tag_ids.includes(tag.id)
-                      ? getTagColor(tag.color) + ' border-2 border-white/30'
-                      : 'bg-gray-700 text-gray-400 border-gray-600 hover:border-gray-500'
-                  }`}
-                >
-                  {tag.name}
-                </button>
-              ))}
+              {isEditing ? (
+                tags.map(tag => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.id)}
+                    className={`px-3 py-1 rounded-full text-sm border transition-all ${
+                      editData.tag_ids.includes(tag.id)
+                        ? getTagColor(tag.color) + ' border-2 border-white/30'
+                        : 'bg-gray-700 text-gray-400 border-gray-600 hover:border-gray-500'
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                ))
+              ) : (
+                plant.tags && plant.tags.length > 0 ? (
+                  plant.tags.map(tag => (
+                    <span
+                      key={tag.id}
+                      className={`px-3 py-1 rounded-full text-sm ${getTagColor(tag.color)}`}
+                    >
+                      {tag.name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">No tags</span>
+                )
+              )}
             </div>
           </div>
 
@@ -1058,6 +1275,779 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+
+// Harvest Form Modal - record plant harvests
+function HarvestFormModal({ plant, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    plant_id: plant.id,
+    harvest_date: new Date().toISOString().split('T')[0],
+    quantity: '',
+    unit: 'lbs',
+    quality: 'good',
+    notes: '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!formData.quantity) {
+      alert('Please enter a quantity')
+      return
+    }
+    setSaving(true)
+    try {
+      await onSave({
+        ...formData,
+        quantity: parseFloat(formData.quantity),
+      })
+    } catch (error) {
+      console.error('Failed to save harvest:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Package className="w-5 h-5 text-green-500" />
+              Record Harvest
+            </h2>
+            <p className="text-sm text-gray-400">{plant.name} {plant.variety && `(${plant.variety})`}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Harvest Date</label>
+            <input
+              type="date"
+              value={formData.harvest_date}
+              onChange={(e) => setFormData({ ...formData, harvest_date: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Quantity *</label>
+              <input
+                type="number"
+                step="0.1"
+                required
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                placeholder="Amount harvested"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Unit</label>
+              <select
+                value={formData.unit}
+                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              >
+                <option value="lbs">Pounds (lbs)</option>
+                <option value="oz">Ounces (oz)</option>
+                <option value="kg">Kilograms (kg)</option>
+                <option value="count">Count</option>
+                <option value="bunches">Bunches</option>
+                <option value="pints">Pints</option>
+                <option value="quarts">Quarts</option>
+                <option value="gallons">Gallons</option>
+                <option value="bushels">Bushels</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Quality</label>
+            <select
+              value={formData.quality}
+              onChange={(e) => setFormData({ ...formData, quality: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            >
+              <option value="excellent">Excellent</option>
+              <option value="good">Good</option>
+              <option value="fair">Fair</option>
+              <option value="poor">Poor</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={2}
+              placeholder="Any notes about this harvest..."
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Record Harvest'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// Import Modal - import plant data from PFAF/Permapeople URLs
+function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
+  const [url, setUrl] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [fetching, setFetching] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const [step, setStep] = useState('fetch') // 'fetch' or 'edit'
+
+  // Form data for editing
+  const [formData, setFormData] = useState({
+    name: '',
+    latin_name: '',
+    variety: '',
+    description: '',
+    location: '',
+    source: '',
+    grow_zones: '',
+    sun_requirement: 'full_sun',
+    soil_requirements: '',
+    plant_spacing: '',
+    size_full_grown: '',
+    growth_rate: 'moderate',
+    min_temp: '',
+    frost_sensitive: false,
+    needs_cover_below_temp: '',
+    heat_tolerant: true,
+    drought_tolerant: false,
+    salt_tolerant: false,
+    needs_shade_above_temp: '',
+    water_schedule: '',
+    fertilize_schedule: '',
+    prune_frequency: '',
+    prune_months: '',
+    produces_months: '',
+    harvest_frequency: '',
+    how_to_harvest: '',
+    uses: '',
+    propagation_methods: '',
+    cultivation_details: '',
+    known_hazards: '',
+    special_considerations: '',
+    notes: '',
+    references: '',
+    tag_ids: [],
+  })
+
+  // If importing to existing plant, pre-populate with existing data
+  useEffect(() => {
+    if (existingPlant) {
+      setFormData({
+        name: existingPlant.name || '',
+        latin_name: existingPlant.latin_name || '',
+        variety: existingPlant.variety || '',
+        description: existingPlant.description || '',
+        location: existingPlant.location || '',
+        source: existingPlant.source || '',
+        grow_zones: existingPlant.grow_zones || '',
+        sun_requirement: existingPlant.sun_requirement || 'full_sun',
+        soil_requirements: existingPlant.soil_requirements || '',
+        plant_spacing: existingPlant.plant_spacing || '',
+        size_full_grown: existingPlant.size_full_grown || '',
+        growth_rate: existingPlant.growth_rate || 'moderate',
+        min_temp: existingPlant.min_temp || '',
+        frost_sensitive: existingPlant.frost_sensitive || false,
+        needs_cover_below_temp: existingPlant.needs_cover_below_temp || '',
+        heat_tolerant: existingPlant.heat_tolerant ?? true,
+        drought_tolerant: existingPlant.drought_tolerant || false,
+        salt_tolerant: existingPlant.salt_tolerant || false,
+        needs_shade_above_temp: existingPlant.needs_shade_above_temp || '',
+        water_schedule: existingPlant.water_schedule || '',
+        fertilize_schedule: existingPlant.fertilize_schedule || '',
+        prune_frequency: existingPlant.prune_frequency || '',
+        prune_months: existingPlant.prune_months || '',
+        produces_months: existingPlant.produces_months || '',
+        harvest_frequency: existingPlant.harvest_frequency || '',
+        how_to_harvest: existingPlant.how_to_harvest || '',
+        uses: existingPlant.uses || '',
+        propagation_methods: existingPlant.propagation_methods || '',
+        cultivation_details: existingPlant.cultivation_details || '',
+        known_hazards: existingPlant.known_hazards || '',
+        special_considerations: existingPlant.special_considerations || '',
+        notes: existingPlant.notes || '',
+        references: existingPlant.references || '',
+        tag_ids: existingPlant.tags?.map(t => t.id) || [],
+      })
+    }
+  }, [existingPlant])
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) return
+    const pfafSearchUrl = `https://pfaf.org/user/DatabaseSearhResult.aspx?CName=${encodeURIComponent(searchQuery.trim())}%`
+    window.open(pfafSearchUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  }
+
+  const handleFetch = async () => {
+    if (!url.trim()) {
+      setError('Please enter a URL')
+      return
+    }
+
+    setFetching(true)
+    setError(null)
+
+    try {
+      const response = await previewPlantImport(url)
+      const importedData = response.data.data || response.data
+
+      // Merge imported data with existing form data (imported data takes precedence for non-empty values)
+      setFormData(prev => {
+        const merged = { ...prev }
+        Object.keys(importedData).forEach(key => {
+          if (importedData[key] !== null && importedData[key] !== undefined && importedData[key] !== '') {
+            // For existing plants, only fill empty fields unless it's a new plant
+            if (existingPlant) {
+              if (!prev[key] || prev[key] === '' || prev[key] === 'full_sun' || prev[key] === 'moderate') {
+                merged[key] = importedData[key]
+              }
+            } else {
+              merged[key] = importedData[key]
+            }
+          }
+        })
+        // References field now contains the source URL, so we don't need to add it to notes
+        return merged
+      })
+
+      setStep('edit')
+    } catch (err) {
+      console.error('Fetch failed:', err)
+      setError(err.response?.data?.detail || 'Failed to fetch plant data. Check the URL and try again.')
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      setError('Plant name is required')
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+
+    try {
+      const data = {
+        ...formData,
+        min_temp: formData.min_temp ? parseFloat(formData.min_temp) : null,
+        needs_cover_below_temp: formData.needs_cover_below_temp ? parseFloat(formData.needs_cover_below_temp) : null,
+        needs_shade_above_temp: formData.needs_shade_above_temp ? parseFloat(formData.needs_shade_above_temp) : null,
+      }
+
+      if (existingPlant) {
+        await updatePlant(existingPlant.id, data)
+      } else {
+        await createPlant(data)
+      }
+      onSuccess()
+    } catch (err) {
+      console.error('Save failed:', err)
+      setError(err.response?.data?.detail || 'Failed to save plant. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleTag = (tagId) => {
+    setFormData(prev => ({
+      ...prev,
+      tag_ids: prev.tag_ids.includes(tagId)
+        ? prev.tag_ids.filter(id => id !== tagId)
+        : [...prev.tag_ids, tagId]
+    }))
+  }
+
+  const getTagColor = (color) => {
+    const colors = {
+      green: 'bg-green-900/50 text-green-300 border-green-700',
+      purple: 'bg-purple-900/50 text-purple-300 border-purple-700',
+      cyan: 'bg-cyan-900/50 text-cyan-300 border-cyan-700',
+      amber: 'bg-amber-900/50 text-amber-300 border-amber-700',
+      gray: 'bg-gray-700 text-gray-300 border-gray-600',
+    }
+    return colors[color] || colors.gray
+  }
+
+  // Fetch step - search and enter URL
+  if (step === 'fetch') {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div className="bg-gray-800 rounded-xl w-full max-w-xl" onClick={e => e.stopPropagation()}>
+          <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Download className="w-5 h-5 text-green-500" />
+                {existingPlant ? `Import Data to ${existingPlant.name}` : 'Import Plant Data'}
+              </h2>
+              <p className="text-sm text-gray-400 mt-1">
+                Import from PFAF (pfaf.org) or Permapeople (permapeople.org)
+              </p>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4">
+            {/* Search PFAF */}
+            <div className="bg-gray-900/50 rounded-lg p-3">
+              <label className="block text-sm text-gray-400 mb-2">Search PFAF Database</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Search by plant name (e.g., Lemon, Tomato, Oak)"
+                  className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleSearch}
+                  disabled={!searchQuery.trim()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Search
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Opens PFAF in a new tab. Find your plant, then copy the URL.
+              </p>
+            </div>
+
+            {/* URL Input */}
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Plant URL</label>
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://pfaf.org/user/Plant.aspx?LatinName=..."
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="p-3 bg-red-900/30 border border-red-800 rounded-lg text-red-300 text-sm">
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="p-4 border-t border-gray-700 flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { setStep('edit'); setError(null) }}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors"
+            >
+              Skip - Enter Manually
+            </button>
+            <button
+              onClick={handleFetch}
+              disabled={fetching || !url.trim()}
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {fetching ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Fetching...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Fetch Data
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Edit step - full form with imported data
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">
+              {existingPlant ? `Update ${existingPlant.name}` : 'Add New Plant'}
+            </h2>
+            <p className="text-sm text-gray-400">Review and edit the imported data</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setStep('fetch'); setError(null) }}
+              className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+            >
+              Back
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+          {/* Error */}
+          {error && (
+            <div className="p-3 bg-red-900/30 border border-red-800 rounded-lg text-red-300 text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Basic Info */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Basic Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Latin Name</label>
+                <input
+                  type="text"
+                  value={formData.latin_name}
+                  onChange={(e) => setFormData({ ...formData, latin_name: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Variety</label>
+                <input
+                  type="text"
+                  value={formData.variety}
+                  onChange={(e) => setFormData({ ...formData, variety: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="e.g., North orchard"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm text-gray-400 mb-1">Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+          </div>
+
+          {/* Growing Requirements */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Grow Zones</label>
+                <input
+                  type="text"
+                  value={formData.grow_zones}
+                  onChange={(e) => setFormData({ ...formData, grow_zones: e.target.value })}
+                  placeholder="e.g., 9-11"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Sun Requirement</label>
+                <select
+                  value={formData.sun_requirement}
+                  onChange={(e) => setFormData({ ...formData, sun_requirement: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  {SUN_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Growth Rate</label>
+                <select
+                  value={formData.growth_rate}
+                  onChange={(e) => setFormData({ ...formData, growth_rate: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  {GROWTH_RATE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Size Full Grown</label>
+                <input
+                  type="text"
+                  value={formData.size_full_grown}
+                  onChange={(e) => setFormData({ ...formData, size_full_grown: e.target.value })}
+                  placeholder="e.g., 20-30 ft"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm text-gray-400 mb-1">Soil Requirements</label>
+                <input
+                  type="text"
+                  value={formData.soil_requirements}
+                  onChange={(e) => setFormData({ ...formData, soil_requirements: e.target.value })}
+                  placeholder="e.g., Well-drained, loamy"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Temperature */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Temperature Tolerance</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Min Temp (°F)</label>
+                <input
+                  type="number"
+                  value={formData.min_temp}
+                  onChange={(e) => setFormData({ ...formData, min_temp: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Cover Below (°F)</label>
+                <input
+                  type="number"
+                  value={formData.needs_cover_below_temp}
+                  onChange={(e) => setFormData({ ...formData, needs_cover_below_temp: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Shade Above (°F)</label>
+                <input
+                  type="number"
+                  value={formData.needs_shade_above_temp}
+                  onChange={(e) => setFormData({ ...formData, needs_shade_above_temp: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.frost_sensitive}
+                  onChange={(e) => setFormData({ ...formData, frost_sensitive: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Frost Sensitive</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.heat_tolerant}
+                  onChange={(e) => setFormData({ ...formData, heat_tolerant: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Heat Tolerant</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.drought_tolerant}
+                  onChange={(e) => setFormData({ ...formData, drought_tolerant: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Drought Tolerant</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.salt_tolerant}
+                  onChange={(e) => setFormData({ ...formData, salt_tolerant: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Salt Tolerant</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Uses & Info */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Uses & Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Uses</label>
+                <textarea
+                  value={formData.uses}
+                  onChange={(e) => setFormData({ ...formData, uses: e.target.value })}
+                  rows={3}
+                  placeholder="e.g., Edible fruit, medicinal"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Propagation Methods</label>
+                <textarea
+                  value={formData.propagation_methods}
+                  onChange={(e) => setFormData({ ...formData, propagation_methods: e.target.value })}
+                  rows={3}
+                  placeholder="e.g., Seed, cuttings, grafting"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Cultivation Details</label>
+                <textarea
+                  value={formData.cultivation_details}
+                  onChange={(e) => setFormData({ ...formData, cultivation_details: e.target.value })}
+                  rows={4}
+                  placeholder="Growing conditions, care tips, etc."
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Known Hazards</label>
+                <textarea
+                  value={formData.known_hazards}
+                  onChange={(e) => setFormData({ ...formData, known_hazards: e.target.value })}
+                  rows={2}
+                  placeholder="e.g., Thorns, toxic to pets"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">References</label>
+                <textarea
+                  value={formData.references}
+                  onChange={(e) => setFormData({ ...formData, references: e.target.value })}
+                  rows={3}
+                  placeholder="Source URLs and bibliography"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Tags */}
+          {tags && tags.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {tags.map(tag => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.id)}
+                    className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
+                      formData.tag_ids.includes(tag.id)
+                        ? getTagColor(tag.color) + ' border-2'
+                        : 'bg-gray-700 text-gray-400 border-gray-600 hover:border-gray-500'
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="p-4 border-t border-gray-700 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !formData.name.trim()}
+            className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              existingPlant ? 'Update Plant' : 'Add Plant'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )

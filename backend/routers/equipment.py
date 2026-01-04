@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, date, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from models.database import get_db
 from models.equipment import Equipment, EquipmentMaintenance, EquipmentMaintenanceLog, EquipmentType
@@ -19,59 +19,69 @@ router = APIRouter(prefix="/equipment", tags=["Equipment"])
 
 # Pydantic Schemas
 class EquipmentCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     type: EquipmentType
-    custom_type: Optional[str] = None
-    make: Optional[str] = None
-    model: Optional[str] = None
-    year: Optional[int] = None
-    serial_number: Optional[str] = None
+    custom_type: Optional[str] = Field(None, max_length=50)
+    make: Optional[str] = Field(None, max_length=100)
+    model: Optional[str] = Field(None, max_length=100)
+    year: Optional[int] = Field(None, ge=1900, le=2100)
+    serial_number: Optional[str] = Field(None, max_length=100)
     purchase_date: Optional[date] = None
-    purchase_price: Optional[float] = None
-    current_hours: int = 0
-    notes: Optional[str] = None
-    image_url: Optional[str] = None
+    purchase_price: Optional[float] = Field(None, ge=0, le=10000000)
+    current_hours: int = Field(0, ge=0, le=1000000)
+    notes: Optional[str] = Field(None, max_length=5000)
+    image_url: Optional[str] = Field(None, max_length=500)
 
 
 class EquipmentUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
     type: Optional[EquipmentType] = None
-    custom_type: Optional[str] = None
-    make: Optional[str] = None
-    model: Optional[str] = None
-    year: Optional[int] = None
-    serial_number: Optional[str] = None
+    custom_type: Optional[str] = Field(None, max_length=50)
+    make: Optional[str] = Field(None, max_length=100)
+    model: Optional[str] = Field(None, max_length=100)
+    year: Optional[int] = Field(None, ge=1900, le=2100)
+    serial_number: Optional[str] = Field(None, max_length=100)
     purchase_date: Optional[date] = None
-    purchase_price: Optional[float] = None
-    current_hours: Optional[int] = None
-    notes: Optional[str] = None
-    image_url: Optional[str] = None
+    purchase_price: Optional[float] = Field(None, ge=0, le=10000000)
+    current_hours: Optional[int] = Field(None, ge=0, le=1000000)
+    notes: Optional[str] = Field(None, max_length=5000)
+    image_url: Optional[str] = Field(None, max_length=500)
     is_active: Optional[bool] = None
 
 
 class MaintenanceCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
-    frequency_hours: Optional[int] = None
-    frequency_days: Optional[int] = None
-    notify_channels: str = "dashboard,calendar"
-    notes: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=1000)
+    frequency_hours: Optional[int] = Field(None, ge=1, le=100000)
+    frequency_days: Optional[int] = Field(None, ge=1, le=3650)
+    last_completed: Optional[datetime] = None  # When was this last done
+    last_hours: Optional[int] = Field(None, ge=0, le=1000000)
+    manual_due_date: Optional[datetime] = None
+    notify_channels: str = Field("dashboard,calendar", max_length=100)
+    notes: Optional[str] = Field(None, max_length=2000)
 
 
 class MaintenanceUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    frequency_hours: Optional[int] = None
-    frequency_days: Optional[int] = None
-    notify_channels: Optional[str] = None
-    notes: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=1000)
+    frequency_hours: Optional[int] = Field(None, ge=1, le=100000)
+    frequency_days: Optional[int] = Field(None, ge=1, le=3650)
+    last_completed: Optional[datetime] = None  # When was this last done
+    last_hours: Optional[int] = Field(None, ge=0, le=1000000)
+    manual_due_date: Optional[datetime] = None
+    notify_channels: Optional[str] = Field(None, max_length=100)
+    notes: Optional[str] = Field(None, max_length=2000)
     is_active: Optional[bool] = None
 
 
+class SetDueDateRequest(BaseModel):
+    due_date: datetime
+
+
 class LogCreate(BaseModel):
-    hours_at: Optional[int] = None
-    cost: Optional[float] = None
-    notes: Optional[str] = None
+    hours_at: Optional[int] = Field(None, ge=0, le=1000000)
+    cost: Optional[float] = Field(None, ge=0, le=1000000)
+    notes: Optional[str] = Field(None, max_length=2000)
     performed_at: Optional[datetime] = None
 
 
@@ -111,6 +121,7 @@ class MaintenanceResponse(BaseModel):
     last_hours: Optional[int]
     next_due_date: Optional[datetime]
     next_due_hours: Optional[int]
+    manual_due_date: Optional[datetime]
     notify_channels: str
     is_active: bool
     notes: Optional[str]
@@ -350,6 +361,7 @@ async def get_equipment_maintenance(equipment_id: int, active_only: bool = True,
         last_hours=t.last_hours,
         next_due_date=t.next_due_date,
         next_due_hours=t.next_due_hours,
+        manual_due_date=t.manual_due_date,
         notify_channels=t.notify_channels or "dashboard,calendar",
         is_active=t.is_active,
         notes=t.notes,
@@ -366,10 +378,23 @@ async def create_equipment_maintenance(equipment_id: int, data: MaintenanceCreat
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Equipment not found")
 
+    task_data = data.model_dump()
+    manual_due = task_data.pop('manual_due_date', None)
+    last_completed = task_data.pop('last_completed', None)
+    last_hours = task_data.pop('last_hours', None)
+
     task = EquipmentMaintenance(
         equipment_id=equipment_id,
-        **data.model_dump()
+        **task_data
     )
+
+    # If last_completed was provided, set it and calculate next due
+    if last_completed:
+        task.last_completed = last_completed
+        task.last_hours = last_hours
+        task.calculate_next_due()
+    elif manual_due:
+        task.set_manual_due_date(manual_due)
 
     db.add(task)
     await db.commit()
@@ -386,6 +411,7 @@ async def create_equipment_maintenance(equipment_id: int, data: MaintenanceCreat
         last_hours=task.last_hours,
         next_due_date=task.next_due_date,
         next_due_hours=task.next_due_hours,
+        manual_due_date=task.manual_due_date,
         notify_channels=task.notify_channels or "dashboard,calendar",
         is_active=task.is_active,
         notes=task.notes,
@@ -407,8 +433,21 @@ async def update_equipment_maintenance(task_id: int, data: MaintenanceUpdate, db
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    manual_due = update_data.pop('manual_due_date', None)
+    last_completed = update_data.pop('last_completed', None)
+    last_hours = update_data.pop('last_hours', None)
+
     for key, value in update_data.items():
         setattr(task, key, value)
+
+    # Handle last_completed update and recalculate next due
+    if last_completed is not None:
+        task.last_completed = last_completed
+        if last_hours is not None:
+            task.last_hours = last_hours
+        task.calculate_next_due()
+    elif manual_due is not None:
+        task.set_manual_due_date(manual_due)
 
     await db.commit()
     await db.refresh(task)
@@ -424,6 +463,7 @@ async def update_equipment_maintenance(task_id: int, data: MaintenanceUpdate, db
         last_hours=task.last_hours,
         next_due_date=task.next_due_date,
         next_due_hours=task.next_due_hours,
+        manual_due_date=task.manual_due_date,
         notify_channels=task.notify_channels or "dashboard,calendar",
         is_active=task.is_active,
         notes=task.notes,
@@ -501,6 +541,44 @@ async def complete_equipment_maintenance(task_id: int, data: LogCreate, db: Asyn
         last_hours=task.last_hours,
         next_due_date=task.next_due_date,
         next_due_hours=task.next_due_hours,
+        manual_due_date=task.manual_due_date,
+        notify_channels=task.notify_channels or "dashboard,calendar",
+        is_active=task.is_active,
+        notes=task.notes,
+        status=task.status,
+        created_at=task.created_at,
+        updated_at=task.updated_at
+    )
+
+
+@router.put("/maintenance/{task_id}/due-date", response_model=MaintenanceResponse)
+async def set_equipment_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db)):
+    """Set a manual due date for a maintenance task"""
+    result = await db.execute(
+        select(EquipmentMaintenance).where(EquipmentMaintenance.id == task_id)
+    )
+    task = result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Maintenance task not found")
+
+    task.set_manual_due_date(data.due_date)
+
+    await db.commit()
+    await db.refresh(task)
+
+    return MaintenanceResponse(
+        id=task.id,
+        equipment_id=task.equipment_id,
+        name=task.name,
+        description=task.description,
+        frequency_hours=task.frequency_hours,
+        frequency_days=task.frequency_days,
+        last_completed=task.last_completed,
+        last_hours=task.last_hours,
+        next_due_date=task.next_due_date,
+        next_due_hours=task.next_due_hours,
+        manual_due_date=task.manual_due_date,
         notify_channels=task.notify_channels or "dashboard,calendar",
         is_active=task.is_active,
         notes=task.notes,

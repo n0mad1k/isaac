@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, date, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from models.database import get_db
 from models.livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, AnimalExpense, AnimalCareSchedule, AnimalFeed
@@ -25,91 +25,93 @@ router = APIRouter(prefix="/animals", tags=["Animals"])
 
 # Pydantic Schemas
 class AnimalCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     animal_type: AnimalType
     category: AnimalCategory
-    breed: Optional[str] = None
-    color: Optional[str] = None
-    tag_number: Optional[str] = None
-    microchip: Optional[str] = None
-    sex: Optional[str] = None
+    breed: Optional[str] = Field(None, max_length=100)
+    color: Optional[str] = Field(None, max_length=50)
+    tag_number: Optional[str] = Field(None, max_length=50)
+    microchip: Optional[str] = Field(None, max_length=50)
+    sex: Optional[str] = Field(None, max_length=20)
     birth_date: Optional[date] = None
     acquisition_date: Optional[date] = None
-    current_weight: Optional[float] = None
-    feed_amount: Optional[str] = None
-    feed_frequency: Optional[str] = None
-    feed_type: Optional[str] = None
-    pasture: Optional[str] = None
-    barn: Optional[str] = None
+    current_weight: Optional[float] = Field(None, ge=0, le=10000)
+    feed_amount: Optional[str] = Field(None, max_length=100)
+    feed_frequency: Optional[str] = Field(None, max_length=100)
+    feed_type: Optional[str] = Field(None, max_length=200)
+    pasture: Optional[str] = Field(None, max_length=100)
+    barn: Optional[str] = Field(None, max_length=100)
     # Livestock specific
-    target_weight: Optional[float] = None
+    target_weight: Optional[float] = Field(None, ge=0, le=10000)
     slaughter_date: Optional[date] = None
-    processor: Optional[str] = None
+    processor: Optional[str] = Field(None, max_length=200)
+    pickup_date: Optional[date] = None
     # Pet care schedules (frequency in days)
-    worming_frequency_days: Optional[int] = None
-    vaccination_frequency_days: Optional[int] = None
-    hoof_trim_frequency_days: Optional[int] = None
-    dental_frequency_days: Optional[int] = None
-    wormer_rotation: Optional[str] = None
-    notes: Optional[str] = None
-    special_instructions: Optional[str] = None
+    worming_frequency_days: Optional[int] = Field(None, ge=1, le=730)
+    vaccination_frequency_days: Optional[int] = Field(None, ge=1, le=730)
+    hoof_trim_frequency_days: Optional[int] = Field(None, ge=1, le=365)
+    dental_frequency_days: Optional[int] = Field(None, ge=1, le=730)
+    wormer_rotation: Optional[str] = Field(None, max_length=500)
+    notes: Optional[str] = Field(None, max_length=5000)
+    special_instructions: Optional[str] = Field(None, max_length=2000)
     # Cold tolerance
     cold_sensitive: Optional[bool] = None
-    min_temp: Optional[float] = None
-    needs_blanket_below: Optional[float] = None
+    min_temp: Optional[float] = Field(None, ge=-50, le=120)
+    needs_blanket_below: Optional[float] = Field(None, ge=-50, le=120)
     # Tags
-    tags: Optional[str] = None
+    tags: Optional[str] = Field(None, max_length=500)
     # Farm area
-    farm_area_id: Optional[int] = None
+    farm_area_id: Optional[int] = Field(None, ge=1)
 
 
 class AnimalUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
     animal_type: Optional[AnimalType] = None
     category: Optional[AnimalCategory] = None
-    breed: Optional[str] = None
-    color: Optional[str] = None
-    tag_number: Optional[str] = None
-    microchip: Optional[str] = None
-    sex: Optional[str] = None
+    breed: Optional[str] = Field(None, max_length=100)
+    color: Optional[str] = Field(None, max_length=50)
+    tag_number: Optional[str] = Field(None, max_length=50)
+    microchip: Optional[str] = Field(None, max_length=50)
+    sex: Optional[str] = Field(None, max_length=20)
     birth_date: Optional[date] = None
     acquisition_date: Optional[date] = None
-    current_weight: Optional[float] = None
-    feed_amount: Optional[str] = None
-    feed_frequency: Optional[str] = None
-    feed_type: Optional[str] = None
-    pasture: Optional[str] = None
-    barn: Optional[str] = None
-    status: Optional[str] = None
+    current_weight: Optional[float] = Field(None, ge=0, le=10000)
+    feed_amount: Optional[str] = Field(None, max_length=100)
+    feed_frequency: Optional[str] = Field(None, max_length=100)
+    feed_type: Optional[str] = Field(None, max_length=200)
+    pasture: Optional[str] = Field(None, max_length=100)
+    barn: Optional[str] = Field(None, max_length=100)
+    status: Optional[str] = Field(None, max_length=50)
     # Livestock
-    target_weight: Optional[float] = None
+    target_weight: Optional[float] = Field(None, ge=0, le=10000)
     slaughter_date: Optional[date] = None
-    processor: Optional[str] = None
+    processor: Optional[str] = Field(None, max_length=200)
+    pickup_date: Optional[date] = None
     # Pet care schedules
-    worming_frequency_days: Optional[int] = None
-    vaccination_frequency_days: Optional[int] = None
-    hoof_trim_frequency_days: Optional[int] = None
-    dental_frequency_days: Optional[int] = None
-    wormer_rotation: Optional[str] = None
-    notes: Optional[str] = None
-    special_instructions: Optional[str] = None
+    worming_frequency_days: Optional[int] = Field(None, ge=1, le=730)
+    vaccination_frequency_days: Optional[int] = Field(None, ge=1, le=730)
+    hoof_trim_frequency_days: Optional[int] = Field(None, ge=1, le=365)
+    dental_frequency_days: Optional[int] = Field(None, ge=1, le=730)
+    wormer_rotation: Optional[str] = Field(None, max_length=500)
+    notes: Optional[str] = Field(None, max_length=5000)
+    special_instructions: Optional[str] = Field(None, max_length=2000)
     # Cold tolerance
     cold_sensitive: Optional[bool] = None
-    min_temp: Optional[float] = None
-    needs_blanket_below: Optional[float] = None
+    min_temp: Optional[float] = Field(None, ge=-50, le=120)
+    needs_blanket_below: Optional[float] = Field(None, ge=-50, le=120)
     # Tags
-    tags: Optional[str] = None
+    tags: Optional[str] = Field(None, max_length=500)
     # Farm area
-    farm_area_id: Optional[int] = None
+    farm_area_id: Optional[int] = Field(None, ge=1)
 
 
 class ExpenseCreate(BaseModel):
-    expense_type: str  # purchase, feed, medicine, vet, equipment, farrier, other
-    description: Optional[str] = None
-    amount: float
+    expense_type: str = Field(..., min_length=1, max_length=50)  # purchase, feed, medicine, vet, equipment, farrier, other
+    description: Optional[str] = Field(None, max_length=500)
+    amount: float = Field(..., ge=0, le=1000000)
     expense_date: Optional[date] = None
-    vendor: Optional[str] = None
-    notes: Optional[str] = None
+    vendor: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = Field(None, max_length=2000)
 
 
 class ExpenseResponse(BaseModel):
@@ -128,13 +130,13 @@ class ExpenseResponse(BaseModel):
 
 
 class CareLogCreate(BaseModel):
-    care_type: str  # wormed, vaccinated, hoof_trim, dental, vet_visit, weighed, medicated, groomed
-    details: Optional[str] = None
-    product_used: Optional[str] = None
-    dosage: Optional[str] = None
-    performed_by: Optional[str] = None
-    weight: Optional[float] = None
-    notes: Optional[str] = None
+    care_type: str = Field(..., min_length=1, max_length=50)  # wormed, vaccinated, hoof_trim, dental, vet_visit, weighed, medicated, groomed
+    details: Optional[str] = Field(None, max_length=1000)
+    product_used: Optional[str] = Field(None, max_length=200)
+    dosage: Optional[str] = Field(None, max_length=100)
+    performed_by: Optional[str] = Field(None, max_length=100)
+    weight: Optional[float] = Field(None, ge=0, le=10000)
+    notes: Optional[str] = Field(None, max_length=2000)
     performed_at: Optional[datetime] = None
 
 
@@ -155,19 +157,19 @@ class CareLogResponse(BaseModel):
 
 # Care Schedule schemas
 class CareScheduleCreate(BaseModel):
-    name: str
-    frequency_days: Optional[int] = None
+    name: str = Field(..., min_length=1, max_length=100)
+    frequency_days: Optional[int] = Field(None, ge=1, le=730)
     last_performed: Optional[date] = None
     manual_due_date: Optional[date] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=2000)
 
 
 class CareScheduleUpdate(BaseModel):
-    name: Optional[str] = None
-    frequency_days: Optional[int] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    frequency_days: Optional[int] = Field(None, ge=1, le=730)
     last_performed: Optional[date] = None
     manual_due_date: Optional[date] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=2000)
     is_active: Optional[bool] = None
 
 
@@ -231,6 +233,7 @@ def animal_to_response(animal: Animal) -> dict:
         "slaughter_date": animal.slaughter_date,
         "days_until_slaughter": animal.days_until_slaughter,
         "processor": animal.processor,
+        "pickup_date": animal.pickup_date,
         "total_expenses": animal.total_expenses,
         # Pet care schedules
         "last_wormed": animal.last_wormed,

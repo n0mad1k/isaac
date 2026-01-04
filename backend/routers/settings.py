@@ -7,8 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
+import re
 
 from models.database import get_db
 from models.settings import AppSetting
@@ -155,11 +156,23 @@ DEFAULT_SETTINGS = {
         "value": "dashboard,email,calendar",
         "description": "Notifications for preventive maintenance reminders"
     },
+
+    # Reminder Alert Settings
+    "default_reminder_alerts": {
+        "value": "0,60,1440",
+        "description": "Default reminder alert intervals in minutes before due (0=at time, 60=1hr, 1440=1day). Comma-separated."
+    },
+
+    # Bible Verse Settings
+    "bible_translation": {
+        "value": "ESV",
+        "description": "Bible translation for verse of the day (ESV, NKJV, KJV, NIV, NLT, NASB)"
+    },
 }
 
 
 class SettingUpdate(BaseModel):
-    value: str
+    value: str = Field(..., max_length=1000)  # Limit max value length
 
 
 class SettingResponse(BaseModel):
@@ -206,6 +219,16 @@ async def set_setting(db: AsyncSession, key: str, value: str) -> AppSetting:
     return setting
 
 
+# Sensitive settings that should be masked in responses
+SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password']
+
+def mask_sensitive_value(key: str, value: str) -> str:
+    """Mask sensitive settings for display"""
+    if key in SENSITIVE_SETTINGS and value:
+        return "••••••••"  # Mask with bullets
+    return value
+
+
 @router.get("/")
 async def get_all_settings(db: AsyncSession = Depends(get_db)):
     """Get all settings with their current values"""
@@ -213,7 +236,7 @@ async def get_all_settings(db: AsyncSession = Depends(get_db)):
     settings = {}
     for key, info in DEFAULT_SETTINGS.items():
         settings[key] = {
-            "value": info["value"],
+            "value": mask_sensitive_value(key, info["value"]),
             "description": info["description"],
             "is_default": True
         }
@@ -224,12 +247,12 @@ async def get_all_settings(db: AsyncSession = Depends(get_db)):
 
     for setting in db_settings:
         if setting.key in settings:
-            settings[setting.key]["value"] = setting.value
+            settings[setting.key]["value"] = mask_sensitive_value(setting.key, setting.value)
             settings[setting.key]["is_default"] = False
             settings[setting.key]["updated_at"] = setting.updated_at.isoformat() if setting.updated_at else None
         else:
             settings[setting.key] = {
-                "value": setting.value,
+                "value": mask_sensitive_value(setting.key, setting.value),
                 "description": setting.description,
                 "is_default": False,
                 "updated_at": setting.updated_at.isoformat() if setting.updated_at else None
@@ -246,16 +269,69 @@ async def get_setting_by_key(key: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"Setting '{key}' not found")
 
     description = DEFAULT_SETTINGS.get(key, {}).get("description")
-    return {"key": key, "value": value, "description": description}
+    return {"key": key, "value": mask_sensitive_value(key, value), "description": description}
+
+
+# Settings that require email format validation
+EMAIL_SETTINGS = ['email_recipients']
+# Settings that require numeric validation
+NUMERIC_SETTINGS = {
+    'frost_warning_temp': (-50, 150),
+    'freeze_warning_temp': (-50, 150),
+    'heat_warning_temp': (-50, 150),
+    'wind_warning_speed': (0, 200),
+    'rain_warning_inches': (0, 50),
+    'cold_protection_buffer': (0, 30),
+    'dashboard_refresh_interval': (0, 60),
+    'calendar_sync_interval': (1, 1440),
+}
+# Settings that require time format validation (HH:MM)
+TIME_SETTINGS = ['email_digest_time']
+
+
+def validate_email_list(value: str) -> bool:
+    """Validate comma-separated email list"""
+    if not value:
+        return True  # Empty is valid
+    email_pattern = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+    emails = [e.strip() for e in value.split(',') if e.strip()]
+    return all(email_pattern.match(email) for email in emails)
 
 
 @router.put("/{key}/")
 async def update_setting(key: str, data: SettingUpdate, db: AsyncSession = Depends(get_db)):
     """Update a setting value"""
+    # Validate email format for email settings
+    if key in EMAIL_SETTINGS and data.value:
+        if not validate_email_list(data.value):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid email format. Use comma-separated valid email addresses."
+            )
+
+    # Validate numeric settings
+    if key in NUMERIC_SETTINGS:
+        try:
+            num_value = float(data.value)
+            min_val, max_val = NUMERIC_SETTINGS[key]
+            if not (min_val <= num_value <= max_val):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Value must be between {min_val} and {max_val}"
+                )
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Value must be a number")
+
+    # Validate time format settings
+    if key in TIME_SETTINGS and data.value:
+        time_pattern = re.compile(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+        if not time_pattern.match(data.value):
+            raise HTTPException(status_code=400, detail="Time must be in HH:MM format")
+
     setting = await set_setting(db, key, data.value)
     return {
         "key": setting.key,
-        "value": setting.value,
+        "value": mask_sensitive_value(setting.key, setting.value),  # Mask sensitive values
         "description": setting.description,
         "updated_at": setting.updated_at.isoformat() if setting.updated_at else None
     }

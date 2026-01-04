@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from models.database import get_db
 from models.home_maintenance import HomeMaintenance, HomeMaintenanceLog, HomeMaintenanceCategory
@@ -19,29 +19,37 @@ router = APIRouter(prefix="/home-maintenance", tags=["Home Maintenance"])
 
 # Pydantic Schemas
 class MaintenanceCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     category: HomeMaintenanceCategory = HomeMaintenanceCategory.GENERAL
-    description: Optional[str] = None
-    frequency_days: int
-    frequency_label: Optional[str] = None
-    notify_channels: str = "dashboard,calendar"
-    notes: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=1000)
+    frequency_days: Optional[int] = Field(None, ge=1, le=3650)  # Now optional - can use manual_due_date instead
+    frequency_label: Optional[str] = Field(None, max_length=50)
+    last_completed: Optional[datetime] = None  # When was this last done
+    manual_due_date: Optional[datetime] = None
+    notify_channels: str = Field("dashboard,calendar", max_length=100)
+    notes: Optional[str] = Field(None, max_length=2000)
 
 
 class MaintenanceUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
     category: Optional[HomeMaintenanceCategory] = None
-    description: Optional[str] = None
-    frequency_days: Optional[int] = None
-    frequency_label: Optional[str] = None
-    notify_channels: Optional[str] = None
-    notes: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=1000)
+    frequency_days: Optional[int] = Field(None, ge=1, le=3650)
+    frequency_label: Optional[str] = Field(None, max_length=50)
+    last_completed: Optional[datetime] = None  # When was this last done
+    manual_due_date: Optional[datetime] = None
+    notify_channels: Optional[str] = Field(None, max_length=100)
+    notes: Optional[str] = Field(None, max_length=2000)
     is_active: Optional[bool] = None
 
 
+class SetDueDateRequest(BaseModel):
+    due_date: datetime
+
+
 class LogCreate(BaseModel):
-    notes: Optional[str] = None
-    cost: Optional[float] = None
+    notes: Optional[str] = Field(None, max_length=2000)
+    cost: Optional[float] = Field(None, ge=0, le=1000000)
     performed_at: Optional[datetime] = None
 
 
@@ -50,10 +58,11 @@ class MaintenanceResponse(BaseModel):
     name: str
     category: HomeMaintenanceCategory
     description: Optional[str]
-    frequency_days: int
+    frequency_days: Optional[int]
     frequency_label: Optional[str]
     last_completed: Optional[datetime]
     next_due: Optional[datetime]
+    manual_due_date: Optional[datetime]
     notify_channels: str
     is_active: bool
     notes: Optional[str]
@@ -106,6 +115,7 @@ async def get_all_maintenance(
         frequency_label=t.frequency_label,
         last_completed=t.last_completed,
         next_due=t.next_due,
+        manual_due_date=t.manual_due_date,
         notify_channels=t.notify_channels or "dashboard,calendar",
         is_active=t.is_active,
         notes=t.notes,
@@ -135,6 +145,7 @@ async def get_maintenance(task_id: int, db: AsyncSession = Depends(get_db)):
         frequency_label=task.frequency_label,
         last_completed=task.last_completed,
         next_due=task.next_due,
+        manual_due_date=task.manual_due_date,
         notify_channels=task.notify_channels or "dashboard,calendar",
         is_active=task.is_active,
         notes=task.notes,
@@ -157,6 +168,14 @@ async def create_maintenance(data: MaintenanceCreate, db: AsyncSession = Depends
         notes=data.notes
     )
 
+    # If last_completed was provided, set it and calculate next due
+    if data.last_completed:
+        task.last_completed = data.last_completed
+        task.calculate_next_due()
+    # If manual due date was provided, set it
+    elif data.manual_due_date:
+        task.set_manual_due_date(data.manual_due_date)
+
     db.add(task)
     await db.commit()
     await db.refresh(task)
@@ -170,6 +189,7 @@ async def create_maintenance(data: MaintenanceCreate, db: AsyncSession = Depends
         frequency_label=task.frequency_label,
         last_completed=task.last_completed,
         next_due=task.next_due,
+        manual_due_date=task.manual_due_date,
         notify_channels=task.notify_channels or "dashboard,calendar",
         is_active=task.is_active,
         notes=task.notes,
@@ -191,8 +211,18 @@ async def update_maintenance(task_id: int, data: MaintenanceUpdate, db: AsyncSes
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    manual_due = update_data.pop('manual_due_date', None)
+    last_completed = update_data.pop('last_completed', None)
+
     for key, value in update_data.items():
         setattr(task, key, value)
+
+    # Handle last_completed update and recalculate next due
+    if last_completed is not None:
+        task.last_completed = last_completed
+        task.calculate_next_due()
+    elif manual_due is not None:
+        task.set_manual_due_date(manual_due)
 
     await db.commit()
     await db.refresh(task)
@@ -206,6 +236,7 @@ async def update_maintenance(task_id: int, data: MaintenanceUpdate, db: AsyncSes
         frequency_label=task.frequency_label,
         last_completed=task.last_completed,
         next_due=task.next_due,
+        manual_due_date=task.manual_due_date,
         notify_channels=task.notify_channels or "dashboard,calendar",
         is_active=task.is_active,
         notes=task.notes,
@@ -269,6 +300,42 @@ async def complete_maintenance(task_id: int, data: LogCreate, db: AsyncSession =
         frequency_label=task.frequency_label,
         last_completed=task.last_completed,
         next_due=task.next_due,
+        manual_due_date=task.manual_due_date,
+        notify_channels=task.notify_channels or "dashboard,calendar",
+        is_active=task.is_active,
+        notes=task.notes,
+        status=task.status,
+        created_at=task.created_at,
+        updated_at=task.updated_at
+    )
+
+
+@router.put("/{task_id}/due-date", response_model=MaintenanceResponse)
+async def set_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db)):
+    """Set a manual due date for a maintenance task"""
+    result = await db.execute(
+        select(HomeMaintenance).where(HomeMaintenance.id == task_id)
+    )
+    task = result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Maintenance task not found")
+
+    task.set_manual_due_date(data.due_date)
+
+    await db.commit()
+    await db.refresh(task)
+
+    return MaintenanceResponse(
+        id=task.id,
+        name=task.name,
+        category=task.category,
+        description=task.description,
+        frequency_days=task.frequency_days,
+        frequency_label=task.frequency_label,
+        last_completed=task.last_completed,
+        next_due=task.next_due,
+        manual_due_date=task.manual_due_date,
         notify_channels=task.notify_channels or "dashboard,calendar",
         is_active=task.is_active,
         notes=task.notes,

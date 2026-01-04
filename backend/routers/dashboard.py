@@ -122,13 +122,14 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             temp_low_today=temp_low,
         )
 
-    # Get today's tasks (items with today's date)
+    # Get today's tasks (items due today OR overdue)
     today = date.today()
     result = await db.execute(
         select(Task)
-        .where(Task.due_date == today)
+        .where(Task.due_date <= today)  # Today and overdue
+        .where(Task.due_date.isnot(None))  # Must have a due date
         .where(Task.is_active == True)
-        .order_by(Task.is_completed, Task.priority, Task.due_time)
+        .order_by(Task.is_completed, Task.due_date, Task.priority, Task.due_time)
     )
     tasks = result.scalars().all()
     tasks_today = [
@@ -425,4 +426,55 @@ async def get_cold_protection_needed(db: AsyncSession = Depends(get_db)):
         "current_temp": current_temp,
         "forecast_low": forecast_low,
         "plants": plant_list,
+    }
+
+
+@router.get("/freeze-warning/")
+async def get_freeze_warning(db: AsyncSession = Depends(get_db)):
+    """
+    Check if freeze is forecasted and return irrigation/pipe protection reminder.
+    Returns warning if forecast low is at or below 32°F (with buffer).
+    """
+    from services.weather import get_threshold
+
+    # Get current weather and forecast
+    reading = await weather_service.get_latest_reading(db)
+    current_temp = reading.temp_outdoor if reading else None
+
+    # Get forecast - check tonight and next few nights
+    forecast = await forecast_service.get_forecast_simple()
+
+    freeze_threshold = await get_threshold(db, "freeze_warning_temp")  # Default 32°F
+    buffer_degrees = 5  # Be conservative for pipes
+
+    freeze_nights = []
+    if forecast:
+        for day in forecast[:4]:  # Check next 4 periods
+            low_temp = day.get("low")
+            if low_temp is not None and low_temp <= (freeze_threshold + buffer_degrees):
+                freeze_nights.append({
+                    "name": day.get("name"),
+                    "low": low_temp,
+                    "forecast": day.get("forecast")
+                })
+
+    if not freeze_nights:
+        return {
+            "freeze_warning": False,
+            "current_temp": current_temp,
+            "nights": []
+        }
+
+    return {
+        "freeze_warning": True,
+        "current_temp": current_temp,
+        "nights": freeze_nights,
+        "message": "Freeze forecasted! Protect exposed irrigation and pipes.",
+        "recommendations": [
+            "Disconnect and drain garden hoses",
+            "Cover exposed outdoor faucets/spigots",
+            "Drain or blow out irrigation lines if extended freeze expected",
+            "Open cabinet doors under sinks on exterior walls",
+            "Let faucets drip slightly to prevent pipe freeze"
+        ]
     }

@@ -76,6 +76,7 @@ class Animal(Base):
     target_weight = Column(Float)  # Target slaughter weight in lbs
     slaughter_date = Column(Date)  # Planned slaughter date
     processor = Column(String(200))  # Slaughter/processor name
+    pickup_date = Column(Date)  # Date to pickup from butcher
 
     # === PET SPECIFIC - Recurring Care Schedules ===
     # Each care type has: last_date, frequency_days, and computed next_date
@@ -313,6 +314,10 @@ class AnimalCareSchedule(Base):
     # Manual due date (optional - overrides calculated due date)
     manual_due_date = Column(Date)
 
+    # Original due date - set when task first becomes due if last_performed is None
+    # This prevents the due date from resetting to "today" every sync
+    original_due_date = Column(Date)
+
     # Notes about this care item
     notes = Column(Text)
 
@@ -327,7 +332,7 @@ class AnimalCareSchedule(Base):
 
     @property
     def due_date(self):
-        """Calculate due date based on manual date, frequency, or default to today"""
+        """Calculate due date based on manual date, frequency, or original date"""
         # If manual due date is set, use it
         if self.manual_due_date:
             return self.manual_due_date
@@ -336,8 +341,12 @@ class AnimalCareSchedule(Base):
         if self.frequency_days and self.last_performed:
             return self.last_performed + timedelta(days=self.frequency_days)
 
-        # If only frequency is set (never performed), due today
+        # If only frequency is set (never performed), use original_due_date if set
+        # This prevents the due date from resetting to "today" every sync
         if self.frequency_days and not self.last_performed:
+            if self.original_due_date:
+                return self.original_due_date
+            # Fallback to today only if no original date stored
             return date.today()
 
         # No frequency set and no manual date - no due date

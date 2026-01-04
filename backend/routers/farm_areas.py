@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from models.database import get_db
 from models.farm_areas import FarmArea, FarmAreaMaintenance, FarmAreaMaintenanceLog, FarmAreaType
@@ -21,58 +21,66 @@ router = APIRouter(prefix="/farm-areas", tags=["Farm Areas"])
 
 # Pydantic Schemas
 class AreaCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     type: FarmAreaType
-    custom_type: Optional[str] = None
-    description: Optional[str] = None
-    location_notes: Optional[str] = None
-    size_acres: Optional[float] = None
-    size_sqft: Optional[float] = None
-    soil_type: Optional[str] = None
-    irrigation_type: Optional[str] = None
-    notes: Optional[str] = None
+    custom_type: Optional[str] = Field(None, max_length=50)
+    description: Optional[str] = Field(None, max_length=2000)
+    location_notes: Optional[str] = Field(None, max_length=500)
+    size_acres: Optional[float] = Field(None, ge=0, le=100000)
+    size_sqft: Optional[float] = Field(None, ge=0, le=100000000)
+    soil_type: Optional[str] = Field(None, max_length=100)
+    irrigation_type: Optional[str] = Field(None, max_length=100)
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class AreaUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
     type: Optional[FarmAreaType] = None
-    custom_type: Optional[str] = None
-    description: Optional[str] = None
-    location_notes: Optional[str] = None
-    size_acres: Optional[float] = None
-    size_sqft: Optional[float] = None
-    soil_type: Optional[str] = None
-    irrigation_type: Optional[str] = None
-    notes: Optional[str] = None
+    custom_type: Optional[str] = Field(None, max_length=50)
+    description: Optional[str] = Field(None, max_length=2000)
+    location_notes: Optional[str] = Field(None, max_length=500)
+    size_acres: Optional[float] = Field(None, ge=0, le=100000)
+    size_sqft: Optional[float] = Field(None, ge=0, le=100000000)
+    soil_type: Optional[str] = Field(None, max_length=100)
+    irrigation_type: Optional[str] = Field(None, max_length=100)
+    notes: Optional[str] = Field(None, max_length=5000)
     is_active: Optional[bool] = None
 
 
 class MaintenanceCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
-    frequency_days: int
-    frequency_label: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=1000)
+    frequency_days: Optional[int] = Field(None, ge=1, le=3650)
+    frequency_label: Optional[str] = Field(None, max_length=50)
     seasonal: bool = False
-    active_months: Optional[str] = None
-    notify_channels: str = "dashboard,calendar"
-    notes: Optional[str] = None
+    active_months: Optional[str] = Field(None, max_length=50)
+    last_completed: Optional[datetime] = None  # When was this last done
+    manual_due_date: Optional[datetime] = None
+    notify_channels: str = Field("dashboard,calendar", max_length=100)
+    notes: Optional[str] = Field(None, max_length=2000)
 
 
 class MaintenanceUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    frequency_days: Optional[int] = None
-    frequency_label: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=1000)
+    frequency_days: Optional[int] = Field(None, ge=1, le=3650)
+    frequency_label: Optional[str] = Field(None, max_length=50)
     seasonal: Optional[bool] = None
-    active_months: Optional[str] = None
-    notify_channels: Optional[str] = None
-    notes: Optional[str] = None
+    active_months: Optional[str] = Field(None, max_length=50)
+    last_completed: Optional[datetime] = None  # When was this last done
+    manual_due_date: Optional[datetime] = None
+    notify_channels: Optional[str] = Field(None, max_length=100)
+    notes: Optional[str] = Field(None, max_length=2000)
     is_active: Optional[bool] = None
 
 
+class SetDueDateRequest(BaseModel):
+    due_date: datetime
+
+
 class LogCreate(BaseModel):
-    notes: Optional[str] = None
-    cost: Optional[float] = None
+    notes: Optional[str] = Field(None, max_length=2000)
+    cost: Optional[float] = Field(None, ge=0, le=1000000)
     performed_at: Optional[datetime] = None
 
 
@@ -131,12 +139,13 @@ class MaintenanceResponse(BaseModel):
     area_id: int
     name: str
     description: Optional[str]
-    frequency_days: int
+    frequency_days: Optional[int]
     frequency_label: Optional[str]
     seasonal: bool
     active_months: Optional[str]
     last_completed: Optional[datetime]
     next_due: Optional[datetime]
+    manual_due_date: Optional[datetime]
     notify_channels: str
     is_active: bool
     notes: Optional[str]
@@ -394,6 +403,7 @@ async def get_area_maintenance(area_id: int, active_only: bool = True, db: Async
         active_months=t.active_months,
         last_completed=t.last_completed,
         next_due=t.next_due,
+        manual_due_date=t.manual_due_date,
         notify_channels=t.notify_channels or "dashboard,calendar",
         is_active=t.is_active,
         notes=t.notes,
@@ -410,10 +420,21 @@ async def create_area_maintenance(area_id: int, data: MaintenanceCreate, db: Asy
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Farm area not found")
 
+    task_data = data.model_dump()
+    manual_due = task_data.pop('manual_due_date', None)
+    last_completed = task_data.pop('last_completed', None)
+
     task = FarmAreaMaintenance(
         area_id=area_id,
-        **data.model_dump()
+        **task_data
     )
+
+    # If last_completed was provided, set it and calculate next due
+    if last_completed:
+        task.last_completed = last_completed
+        task.calculate_next_due()
+    elif manual_due:
+        task.set_manual_due_date(manual_due)
 
     db.add(task)
     await db.commit()
@@ -430,6 +451,7 @@ async def create_area_maintenance(area_id: int, data: MaintenanceCreate, db: Asy
         active_months=task.active_months,
         last_completed=task.last_completed,
         next_due=task.next_due,
+        manual_due_date=task.manual_due_date,
         notify_channels=task.notify_channels or "dashboard,calendar",
         is_active=task.is_active,
         notes=task.notes,
@@ -451,8 +473,18 @@ async def update_area_maintenance(task_id: int, data: MaintenanceUpdate, db: Asy
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    manual_due = update_data.pop('manual_due_date', None)
+    last_completed = update_data.pop('last_completed', None)
+
     for key, value in update_data.items():
         setattr(task, key, value)
+
+    # Handle last_completed update and recalculate next due
+    if last_completed is not None:
+        task.last_completed = last_completed
+        task.calculate_next_due()
+    elif manual_due is not None:
+        task.set_manual_due_date(manual_due)
 
     await db.commit()
     await db.refresh(task)
@@ -468,6 +500,7 @@ async def update_area_maintenance(task_id: int, data: MaintenanceUpdate, db: Asy
         active_months=task.active_months,
         last_completed=task.last_completed,
         next_due=task.next_due,
+        manual_due_date=task.manual_due_date,
         notify_channels=task.notify_channels or "dashboard,calendar",
         is_active=task.is_active,
         notes=task.notes,
@@ -536,6 +569,44 @@ async def complete_area_maintenance(task_id: int, data: LogCreate, db: AsyncSess
         active_months=task.active_months,
         last_completed=task.last_completed,
         next_due=task.next_due,
+        manual_due_date=task.manual_due_date,
+        notify_channels=task.notify_channels or "dashboard,calendar",
+        is_active=task.is_active,
+        notes=task.notes,
+        status=task.status,
+        created_at=task.created_at,
+        updated_at=task.updated_at
+    )
+
+
+@router.put("/maintenance/{task_id}/due-date", response_model=MaintenanceResponse)
+async def set_area_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db)):
+    """Set a manual due date for a maintenance task"""
+    result = await db.execute(
+        select(FarmAreaMaintenance).where(FarmAreaMaintenance.id == task_id)
+    )
+    task = result.scalar_one_or_none()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Maintenance task not found")
+
+    task.set_manual_due_date(data.due_date)
+
+    await db.commit()
+    await db.refresh(task)
+
+    return MaintenanceResponse(
+        id=task.id,
+        area_id=task.area_id,
+        name=task.name,
+        description=task.description,
+        frequency_days=task.frequency_days,
+        frequency_label=task.frequency_label,
+        seasonal=task.seasonal,
+        active_months=task.active_months,
+        last_completed=task.last_completed,
+        next_due=task.next_due,
+        manual_due_date=task.manual_due_date,
         notify_channels=task.notify_channels or "dashboard,calendar",
         is_active=task.is_active,
         notes=task.notes,

@@ -91,9 +91,10 @@ async def create_or_update_reminder(
     existing_task = result.scalar_one_or_none()
 
     if existing_task:
-        # Update existing task
+        # Update existing task - but DON'T update the due_date
+        # This allows tasks to go overdue instead of resetting to today
         existing_task.title = title
-        existing_task.due_date = due_date
+        # existing_task.due_date = due_date  # REMOVED - preserve original due date
         existing_task.description = description
         existing_task.location = location
         existing_task.category = category
@@ -350,9 +351,10 @@ async def create_or_update_grouped_reminder(
     existing_task = result.scalar_one_or_none()
 
     if existing_task:
-        # Update existing task
+        # Update existing task - but DON'T update the due_date
+        # This allows tasks to go overdue instead of resetting to today
         existing_task.title = title
-        existing_task.due_date = due_date
+        # existing_task.due_date = due_date  # REMOVED - preserve original due date
         existing_task.description = description
         existing_task.location = location
         existing_task.category = category
@@ -495,6 +497,12 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
     # Group care schedules by date and care type
     care_groups = defaultdict(list)
     for schedule in schedules:
+        # Set original_due_date if not set and we have a frequency but no last_performed
+        # This prevents the due date from resetting to "today" every sync
+        if schedule.frequency_days and not schedule.last_performed and not schedule.original_due_date:
+            schedule.original_due_date = date.today()
+            logger.debug(f"Set original_due_date for schedule {schedule.id} ({schedule.name}) to {schedule.original_due_date}")
+
         if schedule.due_date:
             # Get animal for this schedule
             animal_result = await db.execute(
@@ -648,4 +656,227 @@ async def sync_all_plant_reminders(db: AsyncSession) -> Dict[str, int]:
                 stats["skipped"] += 1
 
     logger.info(f"Plant reminder sync: {stats}")
+    return stats
+
+
+# ============================================
+# Maintenance Auto-Reminders (Vehicles, Equipment, Home, Farm Areas)
+# ============================================
+
+async def sync_all_maintenance_reminders(db: AsyncSession) -> Dict[str, int]:
+    """Sync all maintenance tasks (vehicles, equipment, home, farm areas) to calendar."""
+    from models.vehicles import Vehicle, VehicleMaintenance
+    from models.equipment import Equipment, EquipmentMaintenance
+    from models.home_maintenance import HomeMaintenance
+    from models.farm_areas import FarmArea, FarmAreaMaintenance
+    from collections import defaultdict
+
+    stats = {"created": 0, "updated": 0, "skipped": 0, "cleaned": 0}
+    calendar_service = await get_calendar_service(db)
+
+    # Get all valid maintenance keys for cleanup later
+    valid_maint_keys = set()
+
+    # --- Vehicle Maintenance ---
+    result = await db.execute(
+        select(VehicleMaintenance)
+        .where(VehicleMaintenance.is_active == True)
+    )
+    vehicle_maint_tasks = result.scalars().all()
+
+    for maint in vehicle_maint_tasks:
+        due_date = maint.manual_due_date or maint.next_due_date
+        if not due_date:
+            continue
+
+        # Get vehicle name
+        vehicle_result = await db.execute(
+            select(Vehicle).where(Vehicle.id == maint.vehicle_id)
+        )
+        vehicle = vehicle_result.scalar_one_or_none()
+        if not vehicle:
+            continue
+
+        due_date_obj = due_date.date() if isinstance(due_date, datetime) else due_date
+        source_key = f"vehicle_maint:{maint.id}"
+        valid_maint_keys.add(f"auto:{source_key}")
+
+        title = f"{vehicle.name}: {maint.name}"
+        description = maint.notes or f"Vehicle maintenance: {maint.name}"
+        if maint.frequency_miles:
+            description += f"\nEvery {maint.frequency_miles} miles"
+        if maint.frequency_days:
+            description += f"\nEvery {maint.frequency_days} days"
+
+        task = await create_or_update_reminder(
+            db=db,
+            source_type="vehicle_maint",
+            source_id=maint.id,
+            title=title,
+            due_date=due_date_obj,
+            description=description,
+            category=TaskCategory.EQUIPMENT,
+            notification_setting_key="notify_maintenance",
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # --- Equipment Maintenance ---
+    result = await db.execute(
+        select(EquipmentMaintenance)
+        .where(EquipmentMaintenance.is_active == True)
+    )
+    equipment_maint_tasks = result.scalars().all()
+
+    for maint in equipment_maint_tasks:
+        due_date = maint.manual_due_date or maint.next_due_date
+        if not due_date:
+            continue
+
+        # Get equipment name
+        equip_result = await db.execute(
+            select(Equipment).where(Equipment.id == maint.equipment_id)
+        )
+        equipment = equip_result.scalar_one_or_none()
+        if not equipment:
+            continue
+
+        due_date_obj = due_date.date() if isinstance(due_date, datetime) else due_date
+        source_key = f"equipment_maint:{maint.id}"
+        valid_maint_keys.add(f"auto:{source_key}")
+
+        title = f"{equipment.name}: {maint.name}"
+        description = maint.notes or f"Equipment maintenance: {maint.name}"
+        if maint.frequency_hours:
+            description += f"\nEvery {maint.frequency_hours} hours"
+        if maint.frequency_days:
+            description += f"\nEvery {maint.frequency_days} days"
+
+        task = await create_or_update_reminder(
+            db=db,
+            source_type="equipment_maint",
+            source_id=maint.id,
+            title=title,
+            due_date=due_date_obj,
+            description=description,
+            category=TaskCategory.EQUIPMENT,
+            notification_setting_key="notify_maintenance",
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # --- Home Maintenance ---
+    result = await db.execute(
+        select(HomeMaintenance)
+        .where(HomeMaintenance.is_active == True)
+    )
+    home_maint_tasks = result.scalars().all()
+
+    for maint in home_maint_tasks:
+        due_date = maint.manual_due_date or maint.next_due
+        if not due_date:
+            continue
+
+        due_date_obj = due_date.date() if isinstance(due_date, datetime) else due_date
+        source_key = f"home_maint:{maint.id}"
+        valid_maint_keys.add(f"auto:{source_key}")
+
+        title = f"Home: {maint.name}"
+        description = maint.description or maint.notes or f"Home maintenance: {maint.name}"
+        if maint.frequency_label:
+            description += f"\n{maint.frequency_label}"
+
+        task = await create_or_update_reminder(
+            db=db,
+            source_type="home_maint",
+            source_id=maint.id,
+            title=title,
+            due_date=due_date_obj,
+            description=description,
+            category=TaskCategory.HOME_MAINTENANCE,
+            notification_setting_key="notify_maintenance",
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # --- Farm Area Maintenance ---
+    result = await db.execute(
+        select(FarmAreaMaintenance)
+        .where(FarmAreaMaintenance.is_active == True)
+    )
+    farm_maint_tasks = result.scalars().all()
+
+    for maint in farm_maint_tasks:
+        due_date = maint.manual_due_date or maint.next_due_date
+        if not due_date:
+            continue
+
+        # Get farm area name
+        area_result = await db.execute(
+            select(FarmArea).where(FarmArea.id == maint.area_id)
+        )
+        area = area_result.scalar_one_or_none()
+        if not area:
+            continue
+
+        due_date_obj = due_date.date() if isinstance(due_date, datetime) else due_date
+        source_key = f"farm_maint:{maint.id}"
+        valid_maint_keys.add(f"auto:{source_key}")
+
+        title = f"{area.name}: {maint.name}"
+        description = maint.notes or f"Farm area maintenance: {maint.name}"
+        if maint.frequency_label:
+            description += f"\n{maint.frequency_label}"
+
+        task = await create_or_update_reminder(
+            db=db,
+            source_type="farm_maint",
+            source_id=maint.id,
+            title=title,
+            due_date=due_date_obj,
+            description=description,
+            category=TaskCategory.GARDEN,
+            notification_setting_key="notify_maintenance",
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # --- Cleanup stale maintenance reminders ---
+    result = await db.execute(
+        select(Task).where(
+            Task.is_active == True,
+            Task.notes.isnot(None)
+        )
+    )
+    all_tasks = result.scalars().all()
+
+    for task in all_tasks:
+        if not task.notes:
+            continue
+
+        # Check for maintenance auto-reminders that are no longer valid
+        for prefix in ["auto:vehicle_maint:", "auto:equipment_maint:", "auto:home_maint:", "auto:farm_maint:"]:
+            if prefix in task.notes:
+                if task.notes not in valid_maint_keys:
+                    if calendar_service and calendar_service.connect():
+                        await calendar_service.delete_task_from_calendar(
+                            task.id,
+                            calendar_uid=task.calendar_uid
+                        )
+                    task.is_active = False
+                    stats["cleaned"] += 1
+                    logger.debug(f"Cleaned up stale maintenance reminder: {task.title}")
+                break
+
+    await db.commit()
+
+    logger.info(f"Maintenance reminder sync: {stats}")
     return stats

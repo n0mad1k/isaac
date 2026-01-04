@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Fence, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Leaf, PawPrint } from 'lucide-react'
-import { getFarmAreas, getFarmArea, createFarmArea, updateFarmArea, deleteFarmArea, getFarmAreaMaintenance, createFarmAreaMaintenance, completeFarmAreaMaintenance, deleteFarmAreaMaintenance, getFarmAreaTypes } from '../services/api'
-import { formatDistanceToNow } from 'date-fns'
+import { Fence, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Leaf, PawPrint, Edit, Calendar, Clock } from 'lucide-react'
+import { getFarmAreas, getFarmArea, createFarmArea, updateFarmArea, deleteFarmArea, getFarmAreaMaintenance, createFarmAreaMaintenance, updateFarmAreaMaintenance, completeFarmAreaMaintenance, deleteFarmAreaMaintenance, getFarmAreaTypes } from '../services/api'
+import { format, formatDistanceToNow } from 'date-fns'
 
 const TYPE_ICONS = {
   garden: '🥕',
@@ -33,6 +33,7 @@ function FarmAreas() {
   const [areaDetails, setAreaDetails] = useState({})
   const [maintenanceTasks, setMaintenanceTasks] = useState({})
   const [showAddMaintenance, setShowAddMaintenance] = useState(null)
+  const [editingMaintenance, setEditingMaintenance] = useState(null)
   const [completeModal, setCompleteModal] = useState(null)
 
   const [formData, setFormData] = useState({
@@ -52,6 +53,8 @@ function FarmAreas() {
     name: '',
     frequency_days: 30,
     frequency_label: 'Monthly',
+    last_completed: '',
+    manual_due_date: '',
     seasonal: false,
     active_months: '',
     notes: '',
@@ -151,14 +154,40 @@ function FarmAreas() {
   const handleAddMaintenance = async (e) => {
     e.preventDefault()
     try {
-      await createFarmAreaMaintenance(showAddMaintenance, maintFormData)
+      const areaId = showAddMaintenance
+      const data = {
+        ...maintFormData,
+        last_completed: maintFormData.last_completed ? new Date(maintFormData.last_completed).toISOString() : null,
+        manual_due_date: maintFormData.manual_due_date ? new Date(maintFormData.manual_due_date).toISOString() : null,
+      }
+      if (editingMaintenance) {
+        await updateFarmAreaMaintenance(editingMaintenance.id, data)
+      } else {
+        await createFarmAreaMaintenance(areaId, data)
+      }
       setShowAddMaintenance(null)
-      setMaintFormData({ name: '', frequency_days: 30, frequency_label: 'Monthly', seasonal: false, active_months: '', notes: '' })
-      fetchAreaDetails(showAddMaintenance)
+      setEditingMaintenance(null)
+      setMaintFormData({ name: '', frequency_days: 30, frequency_label: 'Monthly', last_completed: '', manual_due_date: '', seasonal: false, active_months: '', notes: '' })
+      fetchAreaDetails(areaId)
       fetchData()
     } catch (err) {
-      console.error('Failed to add maintenance:', err)
+      console.error('Failed to save maintenance:', err)
     }
+  }
+
+  const startEditMaintenance = (task, areaId) => {
+    setEditingMaintenance(task)
+    setMaintFormData({
+      name: task.name,
+      frequency_days: task.frequency_days,
+      frequency_label: task.frequency_label || '',
+      last_completed: task.last_completed ? format(new Date(task.last_completed), 'yyyy-MM-dd') : '',
+      manual_due_date: task.manual_due_date ? format(new Date(task.manual_due_date), 'yyyy-MM-dd') : '',
+      seasonal: task.seasonal || false,
+      active_months: task.active_months || '',
+      notes: task.notes || '',
+    })
+    setShowAddMaintenance(areaId)
   }
 
   const handleComplete = async () => {
@@ -378,9 +407,21 @@ function FarmAreas() {
                                   | Last: {formatDistanceToNow(new Date(task.last_completed), { addSuffix: true })}
                                 </span>
                               )}
+                              {(task.next_due_date || task.manual_due_date) && (
+                                <span className={`ml-2 ${task.status === 'overdue' ? 'text-red-400' : task.status === 'due_soon' ? 'text-yellow-400' : ''}`}>
+                                  | Due: {format(new Date(task.next_due_date || task.manual_due_date), 'MMM d')}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); startEditMaintenance(task, area.id); }}
+                              className="p-1 text-blue-400 hover:bg-blue-400/20 rounded"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -542,11 +583,13 @@ function FarmAreas() {
         </div>
       )}
 
-      {/* Add Maintenance Modal */}
+      {/* Add/Edit Maintenance Modal */}
       {showAddMaintenance && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add Maintenance Task</h2>
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">
+              {editingMaintenance ? 'Edit Maintenance Task' : 'Add Maintenance Task'}
+            </h2>
             <form onSubmit={handleAddMaintenance} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Task Name</label>
@@ -577,6 +620,32 @@ function FarmAreas() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Manual Due Date (optional)
+                </label>
+                <input
+                  type="date"
+                  value={maintFormData.manual_due_date}
+                  onChange={(e) => setMaintFormData({ ...maintFormData, manual_due_date: e.target.value })}
+                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                />
+                <p className="text-xs text-gray-500 mt-1">Set a specific due date. Clears after completion.</p>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Last Completed (optional)
+                </label>
+                <input
+                  type="date"
+                  value={maintFormData.last_completed}
+                  onChange={(e) => setMaintFormData({ ...maintFormData, last_completed: e.target.value })}
+                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                />
+                <p className="text-xs text-gray-500 mt-1">When was this last done? Next due will be calculated from here.</p>
+              </div>
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
@@ -600,7 +669,7 @@ function FarmAreas() {
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowAddMaintenance(null)}
+                  onClick={() => { setShowAddMaintenance(null); setEditingMaintenance(null); }}
                   className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
                 >
                   Cancel
@@ -609,7 +678,7 @@ function FarmAreas() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-farm-green rounded-lg hover:bg-farm-green-light"
                 >
-                  Add
+                  {editingMaintenance ? 'Update' : 'Add'}
                 </button>
               </div>
             </form>

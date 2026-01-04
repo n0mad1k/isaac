@@ -249,18 +249,97 @@ class EmailService:
         forecast_low: float,
         sunset_time: str,
         recipients: str = None,
+        animals: List[dict] = None,
+        freeze_warning: dict = None,
     ) -> bool:
         """Send cold protection reminder email before sunset"""
         subject = f"Cold Protection Needed Tonight - Low of {forecast_low}°F"
 
-        plant_list_html = ""
-        for plant in plants:
-            plant_list_html += f"""
-            <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">{plant.get('name', 'Unknown')}</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">{plant.get('min_temp', '--')}°F</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">{plant.get('location', '--')}</td>
-            </tr>
+        # Plant section
+        plant_section_html = ""
+        if plants:
+            plant_list_html = ""
+            for plant in plants:
+                plant_list_html += f"""
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{plant.get('name', 'Unknown')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">{plant.get('min_temp', '--')}°F</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{plant.get('location', '--')}</td>
+                </tr>
+                """
+
+            plant_section_html = f"""
+                <h2 style="color: #0891b2; margin-top: 25px;">🌿 Plants Needing Protection ({len(plants)})</h2>
+                <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                    <thead>
+                        <tr style="background: #f0f9ff;">
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #0891b2;">Plant</th>
+                            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #0891b2;">Min Temp</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #0891b2;">Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {plant_list_html}
+                    </tbody>
+                </table>
+                <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 12px; margin: 15px 0;">
+                    <strong>Plant Protection Tips:</strong>
+                    <ul style="margin: 8px 0; padding-left: 20px;">
+                        <li>Cover frost-sensitive plants with frost cloth or blankets</li>
+                        <li>Move potted plants indoors or to a sheltered area</li>
+                        <li>Water plants well - moist soil retains heat better</li>
+                    </ul>
+                </div>
+            """
+
+        # Animal section
+        animal_section_html = ""
+        if animals:
+            animal_list_html = ""
+            for animal in animals:
+                color_info = f" ({animal.get('color')})" if animal.get('color') else ""
+                animal_list_html += f"""
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{animal.get('name', 'Unknown')}{color_info}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{animal.get('animal_type', '--')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">Below {animal.get('needs_blanket_below', '--')}°F</td>
+                </tr>
+                """
+
+            animal_section_html = f"""
+                <h2 style="color: #7c3aed; margin-top: 25px;">🐴 Animals Needing Blankets ({len(animals)})</h2>
+                <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                    <thead>
+                        <tr style="background: #f5f3ff;">
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #7c3aed;">Animal</th>
+                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #7c3aed;">Type</th>
+                            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #7c3aed;">Blanket Needed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {animal_list_html}
+                    </tbody>
+                </table>
+            """
+
+        # Freeze/irrigation warning section
+        freeze_section_html = ""
+        if freeze_warning:
+            recommendations_html = ""
+            for rec in freeze_warning.get("recommendations", []):
+                recommendations_html += f"<li>{rec}</li>"
+
+            freeze_section_html = f"""
+                <h2 style="color: #dc2626; margin-top: 25px;">🚰 Freeze Warning - Protect Pipes & Irrigation</h2>
+                <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 15px 0;">
+                    <p style="margin: 0 0 10px 0; font-weight: bold; color: #dc2626;">
+                        {freeze_warning.get('message', 'Freeze forecasted!')}
+                    </p>
+                    <strong>Recommended Actions:</strong>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        {recommendations_html}
+                    </ul>
+                </div>
             """
 
         html = f"""
@@ -268,38 +347,18 @@ class EmailService:
         <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #1e40af; color: white; padding: 20px; text-align: center;">
                 <h1>❄️ Cold Protection Reminder</h1>
-                <p>Sunset at {sunset_time} - Cover plants before dark!</p>
+                <p>Sunset at {sunset_time} - Prepare before dark!</p>
             </div>
             <div style="padding: 20px;">
-                <p style="font-size: 18px; color: #1e40af;">
+                <p style="font-size: 18px; color: #1e40af; text-align: center; background: #eff6ff; padding: 15px; border-radius: 8px;">
                     <strong>Tonight's forecast low: {forecast_low}°F</strong>
                 </p>
-                <p>The following {len(plants)} plant(s) need protection:</p>
 
-                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-                    <thead>
-                        <tr style="background: #f0f9ff;">
-                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #1e40af;">Plant</th>
-                            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #1e40af;">Min Temp</th>
-                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #1e40af;">Location</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {plant_list_html}
-                    </tbody>
-                </table>
+                {plant_section_html}
+                {animal_section_html}
+                {freeze_section_html}
 
-                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
-                    <strong>Recommended Actions:</strong>
-                    <ul style="margin: 10px 0; padding-left: 20px;">
-                        <li>Cover frost-sensitive plants with frost cloth or blankets</li>
-                        <li>Move potted plants indoors or to a sheltered area</li>
-                        <li>Water plants well - moist soil retains heat better</li>
-                        <li>Add mulch around plant bases for extra insulation</li>
-                    </ul>
-                </div>
-
-                <p style="color: #666; font-size: 12px; margin-top: 30px;">
+                <p style="color: #666; font-size: 12px; margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 15px;">
                     Reminder sent at {datetime.now().strftime('%I:%M %p')} (1 hour before sunset)
                 </p>
             </div>

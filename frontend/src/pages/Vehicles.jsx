@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Car, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Gauge, Clock } from 'lucide-react'
-import { getVehicles, createVehicle, updateVehicle, deleteVehicle, getVehicleMaintenance, createVehicleMaintenance, completeVehicleMaintenance, deleteVehicleMaintenance, getVehicleTypes } from '../services/api'
+import { Car, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Gauge, Clock, Edit, Calendar } from 'lucide-react'
+import { getVehicles, createVehicle, updateVehicle, deleteVehicle, getVehicleMaintenance, createVehicleMaintenance, updateVehicleMaintenance, completeVehicleMaintenance, deleteVehicleMaintenance, getVehicleTypes } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 
 const TYPE_ICONS = {
@@ -27,6 +27,7 @@ function Vehicles() {
   const [expandedVehicle, setExpandedVehicle] = useState(null)
   const [maintenanceTasks, setMaintenanceTasks] = useState({})
   const [showAddMaintenance, setShowAddMaintenance] = useState(null)
+  const [editingMaintenance, setEditingMaintenance] = useState(null)
   const [completeModal, setCompleteModal] = useState(null)
 
   const [formData, setFormData] = useState({
@@ -47,6 +48,10 @@ function Vehicles() {
     frequency_miles: '',
     frequency_hours: '',
     frequency_days: '',
+    last_completed: '',
+    last_mileage: '',
+    last_hours: '',
+    manual_due_date: '',
     notes: '',
   })
 
@@ -134,19 +139,48 @@ function Vehicles() {
     e.preventDefault()
     try {
       const vehicleId = showAddMaintenance.vehicleId
-      await createVehicleMaintenance(vehicleId, {
-        ...maintFormData,
+      const submitData = {
+        name: maintFormData.name,
         frequency_miles: maintFormData.frequency_miles ? parseInt(maintFormData.frequency_miles) : null,
         frequency_hours: maintFormData.frequency_hours ? parseInt(maintFormData.frequency_hours) : null,
         frequency_days: maintFormData.frequency_days ? parseInt(maintFormData.frequency_days) : null,
-      })
+        last_completed: maintFormData.last_completed ? new Date(maintFormData.last_completed).toISOString() : null,
+        last_mileage: maintFormData.last_mileage ? parseInt(maintFormData.last_mileage) : null,
+        last_hours: maintFormData.last_hours ? parseInt(maintFormData.last_hours) : null,
+        manual_due_date: maintFormData.manual_due_date ? new Date(maintFormData.manual_due_date).toISOString() : null,
+        notes: maintFormData.notes || null,
+      }
+
+      if (editingMaintenance) {
+        await updateVehicleMaintenance(editingMaintenance.id, submitData)
+      } else {
+        await createVehicleMaintenance(vehicleId, submitData)
+      }
+
       setShowAddMaintenance(null)
-      setMaintFormData({ name: '', frequency_miles: '', frequency_hours: '', frequency_days: '', notes: '' })
+      setEditingMaintenance(null)
+      setMaintFormData({ name: '', frequency_miles: '', frequency_hours: '', frequency_days: '', last_completed: '', last_mileage: '', last_hours: '', manual_due_date: '', notes: '' })
       fetchMaintenance(vehicleId)
       fetchData()
     } catch (err) {
-      console.error('Failed to add maintenance:', err)
+      console.error('Failed to save maintenance:', err)
     }
+  }
+
+  const startEditMaintenance = (task, vehicleId, vehicleType) => {
+    setEditingMaintenance(task)
+    setMaintFormData({
+      name: task.name,
+      frequency_miles: task.frequency_miles?.toString() || '',
+      frequency_hours: task.frequency_hours?.toString() || '',
+      frequency_days: task.frequency_days?.toString() || '',
+      last_completed: task.last_completed ? format(new Date(task.last_completed), 'yyyy-MM-dd') : '',
+      last_mileage: task.last_mileage?.toString() || '',
+      last_hours: task.last_hours?.toString() || '',
+      manual_due_date: task.manual_due_date ? format(new Date(task.manual_due_date), 'yyyy-MM-dd') : '',
+      notes: task.notes || '',
+    })
+    setShowAddMaintenance({ vehicleId, vehicleType })
   }
 
   const handleComplete = async () => {
@@ -330,6 +364,11 @@ function Vehicles() {
                               : task.frequency_miles && `Every ${task.frequency_miles.toLocaleString()} mi`
                             }
                             {task.frequency_days && ` | Every ${task.frequency_days} days`}
+                            {task.next_due_date && (
+                              <span className="ml-2 text-cyan-400">
+                                | Due: {format(new Date(task.next_due_date), 'MMM d, yyyy')}
+                              </span>
+                            )}
                             {task.last_completed && (
                               <span className="ml-2">
                                 | Last: {formatDistanceToNow(new Date(task.last_completed), { addSuffix: true })}
@@ -338,6 +377,13 @@ function Vehicles() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => startEditMaintenance(task, vehicle.id, vehicle.type)}
+                            className="p-2 text-blue-400 hover:bg-blue-400/20 rounded-lg"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => {
                               setCompleteModal({ ...task, vehicleType: vehicle.type })
@@ -349,12 +395,14 @@ function Vehicles() {
                               })
                             }}
                             className="p-2 text-green-400 hover:bg-green-400/20 rounded-lg"
+                            title="Complete"
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteMaintenance(task.id, vehicle.id)}
                             className="p-2 text-red-400 hover:bg-red-400/20 rounded-lg"
+                            title="Delete"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -505,11 +553,13 @@ function Vehicles() {
         </div>
       )}
 
-      {/* Add Maintenance Modal */}
+      {/* Add/Edit Maintenance Modal */}
       {showAddMaintenance && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Add Maintenance Task</h2>
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">
+              {editingMaintenance ? 'Edit Maintenance Task' : 'Add Maintenance Task'}
+            </h2>
             <form onSubmit={handleAddMaintenance} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Task Name</label>
@@ -524,7 +574,7 @@ function Vehicles() {
               </div>
               {usesHours(showAddMaintenance.vehicleType) ? (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Every X Hours</label>
+                  <label className="block text-sm text-gray-400 mb-1">Every X Hours (recurring)</label>
                   <input
                     type="number"
                     value={maintFormData.frequency_hours}
@@ -535,7 +585,7 @@ function Vehicles() {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Every X Miles</label>
+                  <label className="block text-sm text-gray-400 mb-1">Every X Miles (recurring)</label>
                   <input
                     type="number"
                     value={maintFormData.frequency_miles}
@@ -546,7 +596,7 @@ function Vehicles() {
                 </div>
               )}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Every X Days (fallback)</label>
+                <label className="block text-sm text-gray-400 mb-1">Every X Days (recurring)</label>
                 <input
                   type="number"
                   value={maintFormData.frequency_days}
@@ -555,10 +605,74 @@ function Vehicles() {
                   placeholder="e.g., 180"
                 />
               </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Last Completed (optional)
+                </label>
+                <input
+                  type="date"
+                  value={maintFormData.last_completed}
+                  onChange={(e) => setMaintFormData({ ...maintFormData, last_completed: e.target.value })}
+                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                />
+                <p className="text-xs text-gray-500 mt-1">When was this last done? Next due will be calculated from here.</p>
+              </div>
+              {usesHours(showAddMaintenance.vehicleType) ? (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Hours at Last Service</label>
+                  <input
+                    type="number"
+                    value={maintFormData.last_hours}
+                    onChange={(e) => setMaintFormData({ ...maintFormData, last_hours: e.target.value })}
+                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    placeholder="e.g., 150"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Mileage at Last Service</label>
+                  <input
+                    type="number"
+                    value={maintFormData.last_mileage}
+                    onChange={(e) => setMaintFormData({ ...maintFormData, last_mileage: e.target.value })}
+                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    placeholder="e.g., 45000"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  <Calendar className="w-4 h-4 inline mr-1" />
+                  Manual Due Date (one-time override)
+                </label>
+                <input
+                  type="date"
+                  value={maintFormData.manual_due_date}
+                  onChange={(e) => setMaintFormData({ ...maintFormData, manual_due_date: e.target.value })}
+                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Set a specific date. After completing, it will use recurring schedule if set, otherwise clear.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <textarea
+                  value={maintFormData.notes}
+                  onChange={(e) => setMaintFormData({ ...maintFormData, notes: e.target.value })}
+                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  rows={2}
+                />
+              </div>
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowAddMaintenance(null)}
+                  onClick={() => {
+                    setShowAddMaintenance(null)
+                    setEditingMaintenance(null)
+                    setMaintFormData({ name: '', frequency_miles: '', frequency_hours: '', frequency_days: '', last_completed: '', last_mileage: '', last_hours: '', manual_due_date: '', notes: '' })
+                  }}
                   className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
                 >
                   Cancel
@@ -567,7 +681,7 @@ function Vehicles() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-farm-green rounded-lg hover:bg-farm-green-light"
                 >
-                  Add Task
+                  {editingMaintenance ? 'Update Task' : 'Add Task'}
                 </button>
               </div>
             </form>

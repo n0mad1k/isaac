@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Home, Plus, Check, Clock, AlertTriangle, ChevronDown, ChevronUp, X, Wrench } from 'lucide-react'
+import { Home, Plus, Check, Clock, AlertTriangle, ChevronDown, ChevronUp, X, Wrench, Calendar } from 'lucide-react'
 import { getHomeMaintenance, createHomeMaintenance, updateHomeMaintenance, deleteHomeMaintenance, completeHomeMaintenance, getHomeMaintenanceCategories } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 
@@ -39,6 +39,8 @@ function HomeMaintenance() {
     description: '',
     frequency_days: 30,
     frequency_label: 'Monthly',
+    last_completed: '',
+    manual_due_date: '',
     notes: '',
   })
 
@@ -78,10 +80,15 @@ function HomeMaintenance() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      const data = {
+        ...formData,
+        last_completed: formData.last_completed ? new Date(formData.last_completed).toISOString() : null,
+        manual_due_date: formData.manual_due_date ? new Date(formData.manual_due_date).toISOString() : null,
+      }
       if (editingTask) {
-        await updateHomeMaintenance(editingTask.id, formData)
+        await updateHomeMaintenance(editingTask.id, data)
       } else {
-        await createHomeMaintenance(formData)
+        await createHomeMaintenance(data)
       }
       setShowAddForm(false)
       setEditingTask(null)
@@ -125,6 +132,8 @@ function HomeMaintenance() {
       description: '',
       frequency_days: 30,
       frequency_label: 'Monthly',
+      last_completed: '',
+      manual_due_date: '',
       notes: '',
     })
   }
@@ -137,6 +146,8 @@ function HomeMaintenance() {
       description: task.description || '',
       frequency_days: task.frequency_days,
       frequency_label: task.frequency_label || '',
+      last_completed: task.last_completed ? format(new Date(task.last_completed), 'yyyy-MM-dd') : '',
+      manual_due_date: task.manual_due_date ? format(new Date(task.manual_due_date), 'yyyy-MM-dd') : '',
       notes: task.notes || '',
     })
     setShowAddForm(true)
@@ -362,6 +373,32 @@ function HomeMaintenance() {
                     <option key={opt.days} value={opt.days}>{opt.label}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Manual Due Date (optional)
+                </label>
+                <input
+                  type="date"
+                  value={formData.manual_due_date}
+                  onChange={(e) => setFormData({ ...formData, manual_due_date: e.target.value })}
+                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                />
+                <p className="text-xs text-gray-500 mt-1">Set a specific due date. Clears after completion.</p>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Last Completed (optional)
+                </label>
+                <input
+                  type="date"
+                  value={formData.last_completed}
+                  onChange={(e) => setFormData({ ...formData, last_completed: e.target.value })}
+                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                />
+                <p className="text-xs text-gray-500 mt-1">When was this last done? Next due will be calculated from here.</p>
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Description</label>

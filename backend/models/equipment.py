@@ -6,8 +6,16 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Foreig
 from sqlalchemy.orm import relationship
 from datetime import datetime, timedelta
 import enum
+import pytz
 
 from .database import Base
+from config import settings
+
+
+def get_local_now():
+    """Get current time in configured timezone"""
+    tz = pytz.timezone(settings.timezone)
+    return datetime.now(tz).replace(tzinfo=None)
 
 
 class EquipmentType(enum.Enum):
@@ -84,9 +92,10 @@ class EquipmentMaintenance(Base):
     last_completed = Column(DateTime)
     last_hours = Column(Integer, nullable=True)
 
-    # Next due (calculated)
+    # Next due (calculated or manual)
     next_due_date = Column(DateTime)
     next_due_hours = Column(Integer, nullable=True)
+    manual_due_date = Column(DateTime, nullable=True)  # User-set override
 
     # Notifications
     notify_channels = Column(String(100), default="dashboard,calendar")
@@ -104,19 +113,35 @@ class EquipmentMaintenance(Base):
     logs = relationship("EquipmentMaintenanceLog", back_populates="maintenance", cascade="all, delete-orphan")
 
     def calculate_next_due(self):
-        """Calculate next due based on frequency type"""
-        if self.last_completed and self.frequency_days:
-            self.next_due_date = self.last_completed + timedelta(days=self.frequency_days)
+        """Calculate next due based on frequency type or manual date"""
+        # If there's a recurring frequency, calculate from last completed
+        if self.last_completed:
+            if self.frequency_days:
+                self.next_due_date = self.last_completed + timedelta(days=self.frequency_days)
+                self.manual_due_date = None  # Clear manual date after recurring calc
+            elif self.manual_due_date:
+                # No recurring schedule - clear manual date after completion
+                # User will need to set a new manual date
+                self.next_due_date = None
+                self.manual_due_date = None
 
         if self.frequency_hours and self.last_hours is not None:
             self.next_due_hours = self.last_hours + self.frequency_hours
+
+    def set_manual_due_date(self, due_date):
+        """Set a manual due date override"""
+        self.manual_due_date = due_date
+        self.next_due_date = due_date
 
     @property
     def status(self):
         """Return status: ok, due_soon, overdue"""
         if self.next_due_date:
-            now = datetime.utcnow()
-            days_until = (self.next_due_date - now).days
+            now = get_local_now()
+            # Compare dates only (ignore time component)
+            today = now.date()
+            due = self.next_due_date.date() if hasattr(self.next_due_date, 'date') else self.next_due_date
+            days_until = (due - today).days
             if days_until < 0:
                 return "overdue"
             elif days_until <= 14:

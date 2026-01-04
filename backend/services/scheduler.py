@@ -36,6 +36,7 @@ DEFAULT_SETTINGS = {
     "wind_warning_speed": "25.0",
     "rain_warning_inches": "2.0",
     "cold_protection_buffer": "7",
+    "default_reminder_alerts": "0,60,1440",  # at time, 1 hour, 1 day before
 }
 
 
@@ -136,6 +137,15 @@ class SchedulerService:
             replace_existing=True,
         )
 
+        # Sync maintenance reminders - daily at 7:30 AM and when maintenance is modified
+        self.scheduler.add_job(
+            self.sync_maintenance_reminders,
+            CronTrigger(hour=7, minute=30),
+            id="sync_maintenance",
+            name="Sync Maintenance Reminders",
+            replace_existing=True,
+        )
+
         # Generate recurring tasks - daily at midnight
         self.scheduler.add_job(
             self.generate_recurring_tasks,
@@ -156,6 +166,15 @@ class SchedulerService:
 
         # Schedule calendar sync - check if enabled and set interval
         await self.schedule_calendar_sync()
+
+        # Check reminder alerts - every 5 minutes
+        self.scheduler.add_job(
+            self.check_reminder_alerts,
+            IntervalTrigger(minutes=5),
+            id="check_reminder_alerts",
+            name="Check Reminder Alerts",
+            replace_existing=True,
+        )
 
         self.scheduler.start()
         logger.info("Scheduler started with all jobs")
@@ -624,14 +643,187 @@ class SchedulerService:
                 for p in plants
             ]
 
+            # Get animals needing blankets
+            from models.database import async_session as get_session
+            animal_dicts = []
+            async with get_session() as db:
+                result = await db.execute(
+                    select(Animal)
+                    .where(Animal.is_active == True)
+                    .where(Animal.needs_blanket_below.isnot(None))
+                    .where(Animal.needs_blanket_below >= forecast_low)
+                    .order_by(Animal.name)
+                )
+                animals = result.scalars().all()
+                animal_dicts = [
+                    {
+                        "name": a.name,
+                        "animal_type": a.animal_type.value if a.animal_type else "Unknown",
+                        "color": a.color,
+                        "needs_blanket_below": a.needs_blanket_below,
+                    }
+                    for a in animals
+                ]
+
+            # Check for freeze warning (pipes/irrigation protection)
+            freeze_warning = None
+            freeze_threshold = float(await get_setting_value("freeze_warning_temp") or "32")
+            buffer_degrees = 5  # Conservative for pipes
+
+            if forecast_low <= (freeze_threshold + buffer_degrees):
+                freeze_warning = {
+                    "forecast_low": forecast_low,
+                    "message": "Freeze forecasted! Protect exposed irrigation and pipes.",
+                    "recommendations": [
+                        "Disconnect and drain garden hoses",
+                        "Cover exposed outdoor faucets/spigots",
+                        "Drain or blow out irrigation lines if extended freeze expected",
+                        "Open cabinet doors under sinks on exterior walls",
+                        "Let faucets drip slightly to prevent pipe freeze"
+                    ]
+                }
+
             await self.email_service.send_cold_protection_reminder(
                 plants=plant_dicts,
+                animals=animal_dicts,
                 forecast_low=forecast_low,
                 sunset_time=sunset_time,
                 recipients=recipients,
+                freeze_warning=freeze_warning,
             )
 
-            logger.info(f"Sent cold protection reminder for {len(plants)} plants to {recipients}")
+            logger.info(f"Sent cold protection reminder for {len(plants)} plants, {len(animal_dicts)} animals to {recipients}")
 
         except Exception as e:
             logger.error(f"Error sending cold protection email: {e}")
+
+    async def sync_maintenance_reminders(self):
+        """Sync all maintenance tasks to the task/calendar system"""
+        logger.debug("Syncing maintenance reminders...")
+        try:
+            from services.auto_reminders import sync_all_maintenance_reminders
+
+            async with async_session() as db:
+                stats = await sync_all_maintenance_reminders(db)
+                logger.info(f"Maintenance reminder sync: {stats}")
+
+        except Exception as e:
+            logger.error(f"Error syncing maintenance reminders: {e}")
+
+    async def check_reminder_alerts(self):
+        """Check for tasks that need alert emails sent based on their reminder_alerts intervals"""
+        try:
+            import pytz
+            import json
+            from datetime import datetime, timedelta
+
+            tz = pytz.timezone(settings.timezone)
+            now = datetime.now(tz)
+
+            # Get default alert intervals from settings
+            default_alerts_str = await get_setting_value("default_reminder_alerts")
+            default_alerts = [int(x.strip()) for x in default_alerts_str.split(",") if x.strip()]
+
+            async with async_session() as db:
+                # Get all active, incomplete tasks with due dates
+                result = await db.execute(
+                    select(Task)
+                    .where(Task.is_active == True)
+                    .where(Task.is_completed == False)
+                    .where(Task.due_date.isnot(None))
+                    .where(Task.notify_email == True)
+                )
+                tasks = result.scalars().all()
+
+                alerts_sent = 0
+                for task in tasks:
+                    # Calculate task due datetime
+                    due_date = task.due_date
+                    due_time = task.due_time or "09:00"  # Default 9 AM if no time set
+                    try:
+                        hour, minute = map(int, due_time.split(":"))
+                    except:
+                        hour, minute = 9, 0
+
+                    due_datetime = tz.localize(datetime.combine(due_date, datetime.min.time().replace(hour=hour, minute=minute)))
+
+                    # Get task-specific alerts or use defaults
+                    task_alerts = task.reminder_alerts if task.reminder_alerts else default_alerts
+                    task_alerts_sent = task.alerts_sent or {}
+
+                    # Check each alert interval
+                    for minutes_before in task_alerts:
+                        alert_key = str(minutes_before)
+                        alert_time = due_datetime - timedelta(minutes=minutes_before)
+
+                        # Skip if already sent for this interval
+                        if alert_key in task_alerts_sent:
+                            continue
+
+                        # Check if it's time to send this alert (within 5 minute window)
+                        time_until_alert = (alert_time - now).total_seconds() / 60  # minutes
+                        if -2 <= time_until_alert <= 5:  # Within window
+                            # Send the alert email
+                            await self.send_task_reminder_email(task, minutes_before)
+
+                            # Mark as sent
+                            task_alerts_sent[alert_key] = now.isoformat()
+                            task.alerts_sent = task_alerts_sent
+                            alerts_sent += 1
+
+                if alerts_sent > 0:
+                    await db.commit()
+                    logger.info(f"Sent {alerts_sent} reminder alert(s)")
+
+        except Exception as e:
+            logger.error(f"Error checking reminder alerts: {e}")
+
+    async def send_task_reminder_email(self, task: Task, minutes_before: int):
+        """Send a reminder email for a task at a specific interval"""
+        try:
+            recipients = await get_setting_value("email_recipients")
+            if not recipients:
+                logger.warning("No email recipients configured for task reminder")
+                return
+
+            # Format the timing description
+            if minutes_before == 0:
+                timing = "now due"
+            elif minutes_before < 60:
+                timing = f"due in {minutes_before} minutes"
+            elif minutes_before < 1440:
+                hours = minutes_before // 60
+                timing = f"due in {hours} hour{'s' if hours > 1 else ''}"
+            else:
+                days = minutes_before // 1440
+                timing = f"due in {days} day{'s' if days > 1 else ''}"
+
+            # Build email subject and body
+            subject = f"🔔 Reminder: {task.title} ({timing})"
+
+            due_str = task.due_date.strftime("%A, %B %d, %Y")
+            if task.due_time:
+                due_str += f" at {task.due_time}"
+
+            body = f"""
+<h2>Task Reminder: {task.title}</h2>
+<p>This task is <strong>{timing}</strong>.</p>
+<p><strong>Due:</strong> {due_str}</p>
+"""
+            if task.description:
+                body += f"<p><strong>Description:</strong> {task.description}</p>"
+            if task.location:
+                body += f"<p><strong>Location:</strong> {task.location}</p>"
+            if task.notes:
+                body += f"<p><strong>Notes:</strong> {task.notes}</p>"
+
+            await self.email_service.send_email(
+                to=recipients,
+                subject=subject,
+                html_content=body,
+            )
+
+            logger.info(f"Sent reminder email for task '{task.title}' ({timing})")
+
+        except Exception as e:
+            logger.error(f"Error sending task reminder email: {e}")

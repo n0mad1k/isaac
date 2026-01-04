@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react'
 import {
   Plus, Search, PawPrint, Calendar, AlertCircle, ChevronDown, ChevronUp,
   MapPin, DollarSign, Scale, Clock, Check, X, Syringe, Scissors,
-  Heart, Beef, Dog, Cat, Pencil, Save
+  Heart, Beef, Dog, Cat, Pencil, Save, Package
 } from 'lucide-react'
 import {
   getAnimals, createAnimal, updateAnimal, deleteAnimal, addAnimalCareLog,
   addAnimalExpense, getAnimalExpenses, createCareSchedule, completeCareSchedule,
   deleteCareSchedule, updateCareSchedule, createBulkCareSchedule,
-  createAnimalFeed, updateAnimalFeed, deleteAnimalFeed, getFarmAreas
+  createAnimalFeed, updateAnimalFeed, deleteAnimalFeed, getFarmAreas,
+  archiveLivestock
 } from '../services/api'
 import { format, differenceInDays, parseISO, startOfDay } from 'date-fns'
 
@@ -40,9 +41,54 @@ const safeParseDate = (dateStr) => {
 }
 
 // Inline editable field component
-function EditableField({ label, value, field, type = 'text', options, onChange, placeholder }) {
+function EditableField({ label, value, field, type = 'text', options, onChange, placeholder, editing = true }) {
   const inputClass = "w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+  const readOnlyClass = "text-sm text-gray-300"
 
+  // Read-only mode
+  if (!editing) {
+    if (type === 'checkbox') {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-300">{label}:</span>
+          <span className={value ? "text-green-400" : "text-gray-500"}>{value ? "Yes" : "No"}</span>
+        </div>
+      )
+    }
+
+    if (type === 'select' && options) {
+      const selectedOption = options.find(opt => opt.value === value)
+      const display = selectedOption?.label || value || '-'
+      return (
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">{label}</label>
+          <div className={readOnlyClass}>{display}</div>
+        </div>
+      )
+    }
+
+    if (type === 'textarea' && value) {
+      return (
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">{label}</label>
+          <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto bg-gray-750 rounded p-2">
+            {value}
+          </div>
+        </div>
+      )
+    }
+
+    // Simple text display
+    if (!value) return null
+    return (
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <div className={readOnlyClass}>{value}</div>
+      </div>
+    )
+  }
+
+  // Edit mode
   if (type === 'select' && options) {
     return (
       <div>
@@ -119,6 +165,7 @@ function Animals() {
   const [showFeedForm, setShowFeedForm] = useState(null) // animal_id or null
   const [editingFeed, setEditingFeed] = useState(null) // { animalId, ...feed }
   const [farmAreas, setFarmAreas] = useState([])
+  const [showArchiveForm, setShowArchiveForm] = useState(null) // animal object or null
 
   const fetchAnimals = async () => {
     try {
@@ -348,6 +395,18 @@ function Animals() {
     }
   }
 
+  const handleArchiveLivestock = async (data) => {
+    try {
+      await archiveLivestock(data)
+      setShowArchiveForm(null)
+      setExpandedAnimal(null)
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to archive livestock:', error)
+      alert('Failed to archive livestock')
+    }
+  }
+
   // Stats
   const stats = {
     totalPets: pets.length,
@@ -498,6 +557,7 @@ function Animals() {
               onEditFeed={(feed) => setEditingFeed({ animalId: animal.id, ...feed })}
               onDeleteFeed={(feedId) => handleDeleteFeed(animal.id, feedId)}
               onSave={fetchAnimals}
+              onArchive={(animal) => setShowArchiveForm(animal)}
               getAnimalIcon={getAnimalIcon}
               getDaysUntil={getDaysUntil}
               getUrgencyClass={getUrgencyClass}
@@ -580,6 +640,15 @@ function Animals() {
           animalName={animals.find(a => a.id === editingFeed.animalId)?.name}
           onClose={() => setEditingFeed(null)}
           onSave={(data) => handleUpdateFeed(editingFeed.animalId, editingFeed.id, data)}
+        />
+      )}
+
+      {/* Archive Livestock Modal */}
+      {showArchiveForm && (
+        <ArchiveFormModal
+          animal={showArchiveForm}
+          onClose={() => setShowArchiveForm(null)}
+          onSave={handleArchiveLivestock}
         />
       )}
     </div>
@@ -738,11 +807,31 @@ const getSexOptions = (animalType) => {
 function AnimalCard({
   animal, farmAreas = [], expanded, onToggle, onLogCare, onDelete, onAddExpense, onEditDate, onToggleTag,
   onAddCareSchedule, onCompleteCareSchedule, onDeleteCareSchedule, onEditCareSchedule,
-  onAddFeed, onEditFeed, onDeleteFeed, onSave, getAnimalIcon, getDaysUntil, getUrgencyClass
+  onAddFeed, onEditFeed, onDeleteFeed, onSave, onArchive, getAnimalIcon, getDaysUntil, getUrgencyClass
 }) {
   // Local state for inline editing
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+
+  // Track animal updates to reset editData
+  const [lastAnimalUpdate, setLastAnimalUpdate] = useState(animal.updated_at)
+
+  // Reset editData when animal is updated externally
+  useEffect(() => {
+    if (animal.updated_at !== lastAnimalUpdate) {
+      setLastAnimalUpdate(animal.updated_at)
+      setEditData(null)
+      setIsEditing(false)
+    }
+  }, [animal.updated_at, lastAnimalUpdate])
+
+  // Exit edit mode when card is collapsed
+  useEffect(() => {
+    if (!expanded) {
+      setIsEditing(false)
+    }
+  }, [expanded])
 
   // Initialize edit data when expanded
   useEffect(() => {
@@ -767,6 +856,7 @@ function AnimalCard({
         target_weight: animal.target_weight || '',
         slaughter_date: animal.slaughter_date || '',
         processor: animal.processor || '',
+        pickup_date: animal.pickup_date || '',
         worming_frequency_days: animal.worming_frequency_days || '',
         vaccination_frequency_days: animal.vaccination_frequency_days || '',
         hoof_trim_frequency_days: animal.hoof_trim_frequency_days || '',
@@ -798,9 +888,11 @@ function AnimalCard({
         birth_date: editData.birth_date || null,
         acquisition_date: editData.acquisition_date || null,
         slaughter_date: editData.slaughter_date || null,
+        pickup_date: editData.pickup_date || null,
         farm_area_id: editData.farm_area_id ? parseInt(editData.farm_area_id) : null,
       }
       await updateAnimal(animal.id, data)
+      setIsEditing(false)
       if (onSave) onSave()
     } catch (error) {
       console.error('Failed to save:', error)
@@ -808,6 +900,39 @@ function AnimalCard({
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleCancel = () => {
+    setEditData({
+      name: animal.name || '',
+      animal_type: animal.animal_type || 'dog',
+      category: animal.category || 'pet',
+      breed: animal.breed || '',
+      color: animal.color || '',
+      tag_number: animal.tag_number || '',
+      microchip: animal.microchip || '',
+      sex: animal.sex || '',
+      birth_date: animal.birth_date || '',
+      acquisition_date: animal.acquisition_date || '',
+      current_weight: animal.current_weight || '',
+      pasture: animal.pasture || '',
+      barn: animal.barn || '',
+      farm_area_id: animal.farm_area_id || '',
+      notes: animal.notes || '',
+      special_instructions: animal.special_instructions || '',
+      target_weight: animal.target_weight || '',
+      slaughter_date: animal.slaughter_date || '',
+      processor: animal.processor || '',
+      pickup_date: animal.pickup_date || '',
+      worming_frequency_days: animal.worming_frequency_days || '',
+      vaccination_frequency_days: animal.vaccination_frequency_days || '',
+      hoof_trim_frequency_days: animal.hoof_trim_frequency_days || '',
+      dental_frequency_days: animal.dental_frequency_days || '',
+      cold_sensitive: animal.cold_sensitive || false,
+      min_temp: animal.min_temp || '',
+      needs_blanket_below: animal.needs_blanket_below || '',
+    })
+    setIsEditing(false)
   }
 
   const isPet = (editData?.category || animal.category) === 'pet'
@@ -875,6 +1000,16 @@ function AnimalCard({
           </>
         )}
 
+        {/* Special Instructions if present */}
+        {animal.special_instructions && (
+          <>
+            <span className="text-gray-600">·</span>
+            <span className="text-xs text-yellow-400 truncate max-w-[200px]">
+              {animal.special_instructions}
+            </span>
+          </>
+        )}
+
         {/* Spacer to push status indicators right */}
         <span className="flex-1"></span>
 
@@ -914,15 +1049,32 @@ function AnimalCard({
       {expanded && editData && (
         <div className="px-4 pb-4 border-t border-gray-700 pt-4 space-y-4">
 
-          {/* Action Buttons - Save, Quick actions, Delete */}
+          {/* Action Buttons - Edit/Save/Cancel, Quick actions, Delete */}
           <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={(e) => { e.stopPropagation(); handleSave() }}
-              disabled={saving}
-              className="px-3 py-1.5 bg-farm-green hover:bg-farm-green-light rounded text-sm text-white transition-colors flex items-center gap-1 disabled:opacity-50"
-            >
-              <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+            {isEditing ? (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleSave() }}
+                  disabled={saving}
+                  className="px-3 py-1.5 bg-farm-green hover:bg-farm-green-light rounded text-sm text-white transition-colors flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleCancel() }}
+                  className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm text-white transition-colors flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" /> Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsEditing(true) }}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm text-white transition-colors flex items-center gap-1"
+              >
+                <Pencil className="w-3 h-3" /> Edit
+              </button>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); onAddExpense() }}
               className="px-3 py-1.5 bg-green-600/50 hover:bg-green-600 rounded text-sm text-white transition-colors flex items-center gap-1"
@@ -969,6 +1121,7 @@ function AnimalCard({
                 value={editData.name}
                 field="name"
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Type"
@@ -977,6 +1130,7 @@ function AnimalCard({
                 type="select"
                 options={ANIMAL_TYPE_OPTIONS}
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Category"
@@ -985,6 +1139,7 @@ function AnimalCard({
                 type="select"
                 options={CATEGORY_OPTIONS}
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Breed"
@@ -992,6 +1147,7 @@ function AnimalCard({
                 field="breed"
                 onChange={handleFieldChange}
                 placeholder="e.g., Labrador"
+                editing={isEditing}
               />
               <EditableField
                 label="Color"
@@ -999,6 +1155,7 @@ function AnimalCard({
                 field="color"
                 onChange={handleFieldChange}
                 placeholder="e.g., Black"
+                editing={isEditing}
               />
               <EditableField
                 label="Sex"
@@ -1007,18 +1164,21 @@ function AnimalCard({
                 type="select"
                 options={getSexOptions(editData.animal_type)}
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Tag #"
                 value={editData.tag_number}
                 field="tag_number"
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Microchip"
                 value={editData.microchip}
                 field="microchip"
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Birth Date"
@@ -1026,6 +1186,7 @@ function AnimalCard({
                 field="birth_date"
                 type="date"
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Acquired Date"
@@ -1033,6 +1194,7 @@ function AnimalCard({
                 field="acquisition_date"
                 type="date"
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Current Weight (lbs)"
@@ -1040,6 +1202,7 @@ function AnimalCard({
                 field="current_weight"
                 type="number"
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Farm Area"
@@ -1048,18 +1211,21 @@ function AnimalCard({
                 type="select"
                 options={[{ value: '', label: 'No area' }, ...farmAreas.map(a => ({ value: a.id.toString(), label: a.name }))]}
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Pasture/Location"
                 value={editData.pasture}
                 field="pasture"
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               <EditableField
                 label="Barn"
                 value={editData.barn}
                 field="barn"
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
             </div>
 
@@ -1072,6 +1238,20 @@ function AnimalCard({
                 type="textarea"
                 onChange={handleFieldChange}
                 placeholder="Any notes about this animal..."
+                editing={isEditing}
+              />
+            </div>
+
+            {/* Special Instructions - Full width */}
+            <div className="mt-3">
+              <EditableField
+                label="Special Instructions (shown in Feed Widget)"
+                value={editData.special_instructions}
+                field="special_instructions"
+                type="textarea"
+                onChange={handleFieldChange}
+                placeholder="e.g., Give separately, needs soaked feed, check water daily..."
+                editing={isEditing}
               />
             </div>
           </div>
@@ -1087,6 +1267,7 @@ function AnimalCard({
                   field="target_weight"
                   type="number"
                   onChange={handleFieldChange}
+                  editing={isEditing}
                 />
                 <EditableField
                   label="Slaughter Date"
@@ -1094,6 +1275,7 @@ function AnimalCard({
                   field="slaughter_date"
                   type="date"
                   onChange={handleFieldChange}
+                  editing={isEditing}
                 />
                 <EditableField
                   label="Processor"
@@ -1101,6 +1283,15 @@ function AnimalCard({
                   field="processor"
                   onChange={handleFieldChange}
                   placeholder="Processor name"
+                  editing={isEditing}
+                />
+                <EditableField
+                  label="Pickup Date"
+                  value={editData.pickup_date}
+                  field="pickup_date"
+                  type="date"
+                  onChange={handleFieldChange}
+                  editing={isEditing}
                 />
               </div>
             </div>
@@ -1117,6 +1308,7 @@ function AnimalCard({
                 type="number"
                 onChange={handleFieldChange}
                 placeholder="e.g., 90"
+                editing={isEditing}
               />
               <EditableField
                 label="Vaccination"
@@ -1125,6 +1317,7 @@ function AnimalCard({
                 type="number"
                 onChange={handleFieldChange}
                 placeholder="e.g., 365"
+                editing={isEditing}
               />
               <EditableField
                 label="Hoof Trim"
@@ -1133,6 +1326,7 @@ function AnimalCard({
                 type="number"
                 onChange={handleFieldChange}
                 placeholder="e.g., 60"
+                editing={isEditing}
               />
               <EditableField
                 label="Dental"
@@ -1141,6 +1335,7 @@ function AnimalCard({
                 type="number"
                 onChange={handleFieldChange}
                 placeholder="e.g., 365"
+                editing={isEditing}
               />
             </div>
           </div>
@@ -1155,6 +1350,7 @@ function AnimalCard({
                 field="cold_sensitive"
                 type="checkbox"
                 onChange={handleFieldChange}
+                editing={isEditing}
               />
               {editData.cold_sensitive && (
                 <>
@@ -1164,6 +1360,7 @@ function AnimalCard({
                     field="min_temp"
                     type="number"
                     onChange={handleFieldChange}
+                    editing={isEditing}
                   />
                   <EditableField
                     label="Blanket Below (°F)"
@@ -1171,6 +1368,7 @@ function AnimalCard({
                     field="needs_blanket_below"
                     type="number"
                     onChange={handleFieldChange}
+                    editing={isEditing}
                   />
                 </>
               )}
@@ -1288,6 +1486,17 @@ function AnimalCard({
                     ${(animal.total_expenses || 0).toFixed(2)}
                   </span>
                 </div>
+              </div>
+
+              {/* Archive Button */}
+              <div className="md:col-span-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onArchive(animal) }}
+                  className="w-full px-4 py-2 bg-orange-700 hover:bg-orange-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Package className="w-4 h-4" />
+                  Archive & Record Production
+                </button>
               </div>
             </div>
           )}
@@ -1984,6 +2193,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
     target_weight: animal?.target_weight || '',
     slaughter_date: animal?.slaughter_date || '',
     processor: animal?.processor || '',
+    pickup_date: animal?.pickup_date || '',
     // Pet care frequencies (in days)
     worming_frequency_days: animal?.worming_frequency_days || '',
     vaccination_frequency_days: animal?.vaccination_frequency_days || '',
@@ -2013,6 +2223,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
         birth_date: formData.birth_date || null,
         acquisition_date: formData.acquisition_date || null,
         slaughter_date: formData.slaughter_date || null,
+        pickup_date: formData.pickup_date || null,
         farm_area_id: formData.farm_area_id ? parseInt(formData.farm_area_id) : null,
       }
 
@@ -2235,13 +2446,22 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
-                <div className="col-span-2">
+                <div>
                   <label className="block text-sm text-gray-400 mb-1">Processor</label>
                   <input
                     type="text"
                     value={formData.processor}
                     onChange={(e) => setFormData({ ...formData, processor: e.target.value })}
                     placeholder="Slaughterhouse or processor name"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Pickup Date</label>
+                  <input
+                    type="date"
+                    value={formData.pickup_date}
+                    onChange={(e) => setFormData({ ...formData, pickup_date: e.target.value })}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
@@ -2731,6 +2951,193 @@ function FeedFormModal({ feed, animalName, onClose, onSave }) {
               className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : (feed ? 'Update' : 'Add Feed')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+
+// Archive Livestock Modal - record final weights and create production record
+function ArchiveFormModal({ animal, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    animal_id: animal.id,
+    slaughter_date: animal.slaughter_date || new Date().toISOString().split('T')[0],
+    processor: animal.processor || '',
+    pickup_date: animal.pickup_date || '',
+    live_weight: animal.current_weight || '',
+    hanging_weight: '',
+    final_weight: '',
+    processing_cost: '',
+    notes: '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      await onSave({
+        ...formData,
+        live_weight: formData.live_weight ? parseFloat(formData.live_weight) : null,
+        hanging_weight: formData.hanging_weight ? parseFloat(formData.hanging_weight) : null,
+        final_weight: formData.final_weight ? parseFloat(formData.final_weight) : null,
+        processing_cost: formData.processing_cost ? parseFloat(formData.processing_cost) : null,
+      })
+    } catch (error) {
+      console.error('Failed to archive:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Package className="w-5 h-5 text-orange-500" />
+              Archive {animal.name}
+            </h2>
+            <p className="text-sm text-gray-400">
+              Record production weights and archive this animal
+            </p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {/* Summary */}
+          <div className="bg-gray-700/50 rounded-lg p-3">
+            <div className="text-sm text-gray-400 mb-1">Total Investment</div>
+            <div className="text-xl font-bold text-green-400">
+              ${(animal.total_expenses || 0).toFixed(2)}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Slaughter Date</label>
+              <input
+                type="date"
+                value={formData.slaughter_date}
+                onChange={(e) => setFormData({ ...formData, slaughter_date: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Pickup Date</label>
+              <input
+                type="date"
+                value={formData.pickup_date}
+                onChange={(e) => setFormData({ ...formData, pickup_date: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Processor</label>
+            <input
+              type="text"
+              value={formData.processor}
+              onChange={(e) => setFormData({ ...formData, processor: e.target.value })}
+              placeholder="Butcher/Processor name"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Live Weight (lbs)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={formData.live_weight}
+                onChange={(e) => setFormData({ ...formData, live_weight: e.target.value })}
+                placeholder="Before slaughter"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Hanging Weight (lbs)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={formData.hanging_weight}
+                onChange={(e) => setFormData({ ...formData, hanging_weight: e.target.value })}
+                placeholder="Carcass weight"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Final Weight (lbs)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={formData.final_weight}
+                onChange={(e) => setFormData({ ...formData, final_weight: e.target.value })}
+                placeholder="Packaged meat"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Processing Cost ($)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.processing_cost}
+              onChange={(e) => setFormData({ ...formData, processing_cost: e.target.value })}
+              placeholder="Butcher fees"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={2}
+              placeholder="Any notes about the processing..."
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          {/* Cost Per Pound Preview */}
+          {formData.final_weight && parseFloat(formData.final_weight) > 0 && (
+            <div className="bg-cyan-900/30 rounded-lg p-3">
+              <div className="text-sm text-cyan-400">Estimated Cost Per Pound</div>
+              <div className="text-lg font-bold text-cyan-300">
+                ${(
+                  ((animal.total_expenses || 0) + (parseFloat(formData.processing_cost) || 0)) /
+                  parseFloat(formData.final_weight)
+                ).toFixed(2)}/lb
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Archiving...' : 'Archive & Record'}
             </button>
           </div>
         </form>

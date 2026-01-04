@@ -79,7 +79,11 @@ class Task(Base):
 
     # Notifications
     notify_email = Column(Boolean, default=True)
-    notify_days_before = Column(Integer, default=1)  # Days before due to notify
+    notify_days_before = Column(Integer, default=1)  # Days before due to notify (legacy)
+    # Alert intervals in minutes before due: 0=at time, 60=1hr, 1440=1day, etc.
+    # Format: JSON array like [0, 60, 1440] or null for global default
+    reminder_alerts = Column(JSON, nullable=True)  # e.g., [0, 60, 1440]
+    alerts_sent = Column(JSON, nullable=True)  # Track which alerts have been sent: {"0": "2026-01-03T10:00:00"}
     last_notified = Column(DateTime)
 
     # For tracking completion history on recurring tasks

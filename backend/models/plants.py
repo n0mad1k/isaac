@@ -108,6 +108,7 @@ class Plant(Base):
     # Propagation & Uses
     uses = Column(Text)  # e.g., "Fresh eating, jams, baking"
     propagation_methods = Column(String(200))  # e.g., "Cuttings, grafting, seed"
+    cultivation_details = Column(Text)  # Growing conditions, care tips, etc.
 
     # Warnings & Special considerations
     known_hazards = Column(Text)  # e.g., "Thorns, toxic to pets"
@@ -116,6 +117,7 @@ class Plant(Base):
     # Status
     is_active = Column(Boolean, default=True)
     notes = Column(Text)
+    references = Column(Text)  # Source URLs and bibliography
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)

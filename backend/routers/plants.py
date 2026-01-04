@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, date, timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from models.database import get_db
 from models.plants import Plant, PlantCareLog, Tag, GrowthRate, SunRequirement
@@ -18,6 +18,8 @@ from services.auto_reminders import (
     sync_plant_harvest_reminder,
     delete_reminder,
 )
+from services.plant_import import plant_import_service
+from loguru import logger
 
 
 router = APIRouter(prefix="/plants", tags=["Plants"])
@@ -34,98 +36,102 @@ class TagResponse(BaseModel):
 
 
 class PlantCreate(BaseModel):
-    name: str
-    latin_name: Optional[str] = None
-    variety: Optional[str] = None
-    description: Optional[str] = None
-    location: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=100)
+    latin_name: Optional[str] = Field(None, max_length=150)
+    variety: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = Field(None, max_length=5000)
+    location: Optional[str] = Field(None, max_length=200)
     date_planted: Optional[datetime] = None
-    source: Optional[str] = None
+    source: Optional[str] = Field(None, max_length=200)
 
     # Growing requirements
-    grow_zones: Optional[str] = None
+    grow_zones: Optional[str] = Field(None, max_length=50)
     sun_requirement: SunRequirement = SunRequirement.FULL_SUN
-    soil_requirements: Optional[str] = None
-    plant_spacing: Optional[str] = None
+    soil_requirements: Optional[str] = Field(None, max_length=500)
+    plant_spacing: Optional[str] = Field(None, max_length=100)
 
     # Size & Growth
-    size_full_grown: Optional[str] = None
+    size_full_grown: Optional[str] = Field(None, max_length=100)
     growth_rate: GrowthRate = GrowthRate.MODERATE
 
     # Cold tolerance
-    min_temp: Optional[float] = None
+    min_temp: Optional[float] = Field(None, ge=-50, le=120)
     frost_sensitive: bool = False
-    needs_cover_below_temp: Optional[float] = None
+    needs_cover_below_temp: Optional[float] = Field(None, ge=-50, le=120)
 
     # Heat/drought tolerance
     heat_tolerant: bool = True
     drought_tolerant: bool = False
     salt_tolerant: bool = False
-    needs_shade_above_temp: Optional[float] = None
+    needs_shade_above_temp: Optional[float] = Field(None, ge=0, le=150)
 
     # Watering & Fertilizing
-    water_schedule: Optional[str] = None  # "summer:3,winter:10,spring:5,fall:7"
-    fertilize_schedule: Optional[str] = None
+    water_schedule: Optional[str] = Field(None, max_length=200)  # "summer:3,winter:10,spring:5,fall:7"
+    fertilize_schedule: Optional[str] = Field(None, max_length=200)
 
     # Pruning
-    prune_frequency: Optional[str] = None
-    prune_months: Optional[str] = None
+    prune_frequency: Optional[str] = Field(None, max_length=100)
+    prune_months: Optional[str] = Field(None, max_length=50)
 
     # Production
-    produces_months: Optional[str] = None
-    harvest_frequency: Optional[str] = None
-    how_to_harvest: Optional[str] = None
+    produces_months: Optional[str] = Field(None, max_length=100)
+    harvest_frequency: Optional[str] = Field(None, max_length=100)
+    how_to_harvest: Optional[str] = Field(None, max_length=1000)
 
     # Uses & Propagation
-    uses: Optional[str] = None
-    propagation_methods: Optional[str] = None
+    uses: Optional[str] = Field(None, max_length=10000)
+    propagation_methods: Optional[str] = Field(None, max_length=500)
+    cultivation_details: Optional[str] = Field(None, max_length=10000)
 
     # Warnings
-    known_hazards: Optional[str] = None
-    special_considerations: Optional[str] = None
+    known_hazards: Optional[str] = Field(None, max_length=1000)
+    special_considerations: Optional[str] = Field(None, max_length=1000)
 
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=5000)
+    references: Optional[str] = Field(None, max_length=10000)
     tag_ids: Optional[List[int]] = None
 
 
 class PlantUpdate(BaseModel):
-    name: Optional[str] = None
-    latin_name: Optional[str] = None
-    variety: Optional[str] = None
-    description: Optional[str] = None
-    location: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    latin_name: Optional[str] = Field(None, max_length=150)
+    variety: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = Field(None, max_length=5000)
+    location: Optional[str] = Field(None, max_length=200)
     date_planted: Optional[datetime] = None
 
-    grow_zones: Optional[str] = None
+    grow_zones: Optional[str] = Field(None, max_length=50)
     sun_requirement: Optional[SunRequirement] = None
-    soil_requirements: Optional[str] = None
-    plant_spacing: Optional[str] = None
-    size_full_grown: Optional[str] = None
+    soil_requirements: Optional[str] = Field(None, max_length=500)
+    plant_spacing: Optional[str] = Field(None, max_length=100)
+    size_full_grown: Optional[str] = Field(None, max_length=100)
     growth_rate: Optional[GrowthRate] = None
 
-    min_temp: Optional[float] = None
+    min_temp: Optional[float] = Field(None, ge=-50, le=120)
     frost_sensitive: Optional[bool] = None
-    needs_cover_below_temp: Optional[float] = None
+    needs_cover_below_temp: Optional[float] = Field(None, ge=-50, le=120)
     heat_tolerant: Optional[bool] = None
     drought_tolerant: Optional[bool] = None
 
-    water_schedule: Optional[str] = None
-    fertilize_schedule: Optional[str] = None
+    water_schedule: Optional[str] = Field(None, max_length=200)
+    fertilize_schedule: Optional[str] = Field(None, max_length=200)
     last_watered: Optional[datetime] = None
     last_fertilized: Optional[datetime] = None
     last_pruned: Optional[datetime] = None
 
-    prune_frequency: Optional[str] = None
-    prune_months: Optional[str] = None
-    produces_months: Optional[str] = None
-    harvest_frequency: Optional[str] = None
-    how_to_harvest: Optional[str] = None
+    prune_frequency: Optional[str] = Field(None, max_length=100)
+    prune_months: Optional[str] = Field(None, max_length=50)
+    produces_months: Optional[str] = Field(None, max_length=100)
+    harvest_frequency: Optional[str] = Field(None, max_length=100)
+    how_to_harvest: Optional[str] = Field(None, max_length=1000)
 
-    uses: Optional[str] = None
-    propagation_methods: Optional[str] = None
-    known_hazards: Optional[str] = None
-    special_considerations: Optional[str] = None
-    notes: Optional[str] = None
+    uses: Optional[str] = Field(None, max_length=10000)
+    propagation_methods: Optional[str] = Field(None, max_length=500)
+    cultivation_details: Optional[str] = Field(None, max_length=10000)
+    known_hazards: Optional[str] = Field(None, max_length=1000)
+    special_considerations: Optional[str] = Field(None, max_length=1000)
+    notes: Optional[str] = Field(None, max_length=5000)
+    references: Optional[str] = Field(None, max_length=10000)
     tag_ids: Optional[List[int]] = None
 
 
@@ -169,11 +175,13 @@ class PlantResponse(BaseModel):
 
     uses: Optional[str]
     propagation_methods: Optional[str]
+    cultivation_details: Optional[str]
     known_hazards: Optional[str]
     special_considerations: Optional[str]
 
     is_active: bool
     notes: Optional[str]
+    references: Optional[str]
     created_at: datetime
 
     tags: List[TagResponse] = []
@@ -273,10 +281,12 @@ def plant_to_response(plant: Plant) -> dict:
         "how_to_harvest": plant.how_to_harvest,
         "uses": plant.uses,
         "propagation_methods": plant.propagation_methods,
+        "cultivation_details": plant.cultivation_details,
         "known_hazards": plant.known_hazards,
         "special_considerations": plant.special_considerations,
         "is_active": plant.is_active,
         "notes": plant.notes,
+        "references": plant.references,
         "created_at": plant.created_at,
         "tags": [{"id": t.id, "name": t.name, "color": t.color} for t in plant.tags],
         "age_years": plant.age_years,
@@ -551,3 +561,104 @@ async def get_plants_needing_fertilizer(db: AsyncSession = Depends(get_db)):
             needs_fert.append(plant_to_response(p))
 
     return needs_fert
+
+
+# Plant Import Schemas
+class PlantImportRequest(BaseModel):
+    url: str = Field(..., description="URL to import plant data from (pfaf.org or permapeople.org)")
+
+
+class PlantImportPreview(BaseModel):
+    """Preview of imported data before creating plant"""
+    data: dict
+    source_url: str
+
+
+@router.post("/import/preview/")
+async def preview_plant_import(request: PlantImportRequest):
+    """
+    Preview plant data from a URL before importing.
+    Supports pfaf.org and permapeople.org URLs.
+    Returns extracted plant data without creating a plant.
+    """
+    try:
+        data = await plant_import_service.import_from_url(request.url)
+        return PlantImportPreview(data=data, source_url=request.url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to import plant from {request.url}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch plant data: {str(e)}")
+
+
+@router.post("/import/", response_model=PlantResponse)
+async def import_plant(
+    request: PlantImportRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Import plant data from a URL and create a new plant.
+    Supports pfaf.org and permapeople.org URLs.
+    """
+    try:
+        data = await plant_import_service.import_from_url(request.url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to import plant from {request.url}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch plant data: {str(e)}")
+
+    if not data.get("name"):
+        raise HTTPException(status_code=400, detail="Could not extract plant name from URL")
+
+    # Map growth_rate string to enum
+    growth_rate = GrowthRate.MODERATE
+    if "growth_rate" in data:
+        rate_map = {
+            "slow": GrowthRate.SLOW,
+            "moderate": GrowthRate.MODERATE,
+            "fast": GrowthRate.FAST,
+            "very_fast": GrowthRate.VERY_FAST,
+        }
+        growth_rate = rate_map.get(data["growth_rate"], GrowthRate.MODERATE)
+
+    # Map sun_requirement string to enum
+    sun_requirement = SunRequirement.FULL_SUN
+    if "sun_requirement" in data:
+        sun_map = {
+            "full_sun": SunRequirement.FULL_SUN,
+            "partial_sun": SunRequirement.PARTIAL_SUN,
+            "partial_shade": SunRequirement.PARTIAL_SHADE,
+            "full_shade": SunRequirement.FULL_SHADE,
+        }
+        sun_requirement = sun_map.get(data["sun_requirement"], SunRequirement.FULL_SUN)
+
+    # Add source URL to notes
+    notes = data.get("notes", "")
+    notes = f"{notes}\nSource: {request.url}" if notes else f"Source: {request.url}"
+
+    # Create plant
+    plant = Plant(
+        name=data.get("name"),
+        latin_name=data.get("latin_name"),
+        variety=data.get("variety"),
+        description=data.get("description"),
+        grow_zones=data.get("grow_zones"),
+        sun_requirement=sun_requirement,
+        soil_requirements=data.get("soil_requirements"),
+        size_full_grown=data.get("size_full_grown"),
+        growth_rate=growth_rate,
+        min_temp=data.get("min_temp"),
+        frost_sensitive=data.get("frost_sensitive", False),
+        uses=data.get("uses"),
+        known_hazards=data.get("known_hazards"),
+        propagation_methods=data.get("propagation_methods"),
+        notes=notes,
+    )
+
+    db.add(plant)
+    await db.commit()
+    await db.refresh(plant)
+
+    logger.info(f"Imported plant '{plant.name}' from {request.url}")
+    return plant_to_response(plant)

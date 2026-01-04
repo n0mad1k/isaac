@@ -113,27 +113,27 @@ function WeatherWidget({ weather }) {
       </div>
 
       {/* Weather details */}
-      <div className="grid grid-cols-4 gap-4 mt-6 pt-4 border-t border-gray-700">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-4 border-t border-gray-700">
         <div className="text-center">
           <Thermometer className="w-5 h-5 mx-auto text-orange-400" />
-          <div className="text-sm text-gray-400 mt-1">Feels Like</div>
+          <div className="text-xs sm:text-sm text-gray-400 mt-1">Feels Like</div>
           <div className="font-semibold">{Math.round(weather.feels_like)}°</div>
         </div>
         <div className="text-center">
           <Droplets className="w-5 h-5 mx-auto text-blue-400" />
-          <div className="text-sm text-gray-400 mt-1">Humidity</div>
+          <div className="text-xs sm:text-sm text-gray-400 mt-1">Humidity</div>
           <div className="font-semibold">{weather.humidity}%</div>
         </div>
         <div className="text-center">
           <Wind className="w-5 h-5 mx-auto text-gray-400" />
-          <div className="text-sm text-gray-400 mt-1">Wind</div>
-          <div className="font-semibold">
-            {Math.round(weather.wind_speed)} mph {weather.wind_direction}
+          <div className="text-xs sm:text-sm text-gray-400 mt-1">Wind</div>
+          <div className="font-semibold text-sm sm:text-base">
+            {Math.round(weather.wind_speed)} {weather.wind_direction}
           </div>
         </div>
         <div className="text-center">
           <CloudRain className="w-5 h-5 mx-auto text-blue-400" />
-          <div className="text-sm text-gray-400 mt-1">Rain Today</div>
+          <div className="text-xs sm:text-sm text-gray-400 mt-1">Rain Today</div>
           <div className="font-semibold">{weather.rain_today?.toFixed(2) || '0'}"</div>
         </div>
       </div>
@@ -155,11 +155,11 @@ function WeatherWidget({ weather }) {
             ))}
           </div>
         ) : forecast ? (
-          <div className="grid grid-cols-5 gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:grid sm:grid-cols-5 sm:overflow-visible sm:pb-0">
             {forecast.map((day, index) => (
               <div
                 key={index}
-                className="bg-gray-700/50 rounded-lg p-2 text-center min-w-0"
+                className="flex-shrink-0 w-20 sm:w-auto bg-gray-700/50 rounded-lg p-2 text-center min-w-0"
               >
                 <div className="text-xs text-gray-400 font-medium truncate">{day.name}</div>
                 <div className="my-1 flex justify-center">
@@ -173,7 +173,7 @@ function WeatherWidget({ weather }) {
                     <span className="text-blue-400">{day.low}°</span>
                   )}
                 </div>
-                <div className="text-xs text-gray-500 mt-1 leading-tight line-clamp-2" title={day.forecast}>
+                <div className="text-xs text-gray-500 mt-1 leading-tight line-clamp-2 hidden sm:block" title={day.forecast}>
                   {day.forecast}
                 </div>
               </div>

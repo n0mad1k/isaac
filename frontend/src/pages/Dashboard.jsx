@@ -7,6 +7,7 @@ import AlertBanner from '../components/AlertBanner'
 import StatsCard from '../components/StatsCard'
 import ColdProtectionWidget from '../components/ColdProtectionWidget'
 import AnimalFeedWidget from '../components/AnimalFeedWidget'
+import BibleVerse from '../components/BibleVerse'
 import { format } from 'date-fns'
 
 function Dashboard() {
@@ -76,44 +77,53 @@ function Dashboard() {
 
   return (
     <div className="space-y-4">
-      {/* Header with Date/Time and Stats inline */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex-shrink-0">
-          <h1 className="text-2xl font-bold text-white">
-            {format(currentTime, 'EEEE, MMMM d')}
-          </h1>
-          <div className="text-3xl font-mono text-farm-green">
-            {format(currentTime, 'h:mm')}
-            <span className="text-xl">{format(currentTime, ':ss a')}</span>
+      {/* Header with Date/Time, Bible Verse, and Stats */}
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-4">
+        {/* Top row on mobile: Date/Time and Stats */}
+        <div className="flex items-start justify-between gap-2 lg:contents">
+          {/* Left - Date/Time */}
+          <div className="flex-shrink-0 min-w-0">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">
+              {format(currentTime, 'EEE, MMM d')}
+            </h1>
+            <div className="text-xl sm:text-2xl md:text-3xl font-mono text-farm-green">
+              {format(currentTime, 'h:mm')}
+              <span className="text-sm sm:text-lg md:text-xl">{format(currentTime, ':ss a')}</span>
+            </div>
+          </div>
+
+          {/* Stats - 2x2 grid on mobile, row on desktop */}
+          <div className="grid grid-cols-2 gap-1 sm:flex sm:gap-2 flex-shrink-0 lg:order-3">
+            <StatsCard
+              title="Plants"
+              value={data?.stats?.total_plants || 0}
+              icon={Leaf}
+              color="green"
+            />
+            <StatsCard
+              title="Animals"
+              value={data?.stats?.total_animals || 0}
+              icon={PawPrint}
+              color="blue"
+            />
+            <StatsCard
+              title="Tasks"
+              value={data?.stats?.tasks_today || 0}
+              icon={ListTodo}
+              color="yellow"
+            />
+            <StatsCard
+              title="Overdue"
+              value={data?.stats?.tasks_overdue || 0}
+              icon={Clock}
+              color={data?.stats?.tasks_overdue > 0 ? 'red' : 'green'}
+            />
           </div>
         </div>
 
-        {/* Stats - compact inline */}
-        <div className="flex gap-2 flex-wrap justify-end flex-1">
-          <StatsCard
-            title="Plants"
-            value={data?.stats?.total_plants || 0}
-            icon={Leaf}
-            color="green"
-          />
-          <StatsCard
-            title="Animals"
-            value={data?.stats?.total_animals || 0}
-            icon={PawPrint}
-            color="blue"
-          />
-          <StatsCard
-            title="Tasks"
-            value={data?.stats?.tasks_today || 0}
-            icon={ListTodo}
-            color="yellow"
-          />
-          <StatsCard
-            title="Overdue"
-            value={data?.stats?.tasks_overdue || 0}
-            icon={Clock}
-            color={data?.stats?.tasks_overdue > 0 ? 'red' : 'green'}
-          />
+        {/* Bible Verse - Full width below on mobile, center on desktop */}
+        <div className="w-full lg:flex-1 lg:order-2">
+          <BibleVerse />
         </div>
       </div>
 

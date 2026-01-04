@@ -13,6 +13,8 @@ from .home_maintenance import router as home_maintenance_router
 from .vehicles import router as vehicles_router
 from .equipment import router as equipment_router
 from .farm_areas import router as farm_areas_router
+from .production import router as production_router
+from .auth import router as auth_router
 
 __all__ = [
     "plants_router",
@@ -26,4 +28,6 @@ __all__ = [
     "vehicles_router",
     "equipment_router",
     "farm_areas_router",
+    "production_router",
+    "auth_router",
 ]

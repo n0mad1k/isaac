@@ -21,9 +21,16 @@ import {
   uncompleteTask,
   syncCalendar,
 } from '../services/api'
-import { format } from 'date-fns'
+import { format, isAfter, startOfDay, parseISO } from 'date-fns'
 
 function ToDo() {
+  // Check if a todo is overdue
+  const isOverdue = (todo) => {
+    if (!todo.due_date || todo.is_completed) return false
+    const today = startOfDay(new Date())
+    const dueDate = startOfDay(parseISO(todo.due_date))
+    return isAfter(today, dueDate)
+  }
   const [todos, setTodos] = useState([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
@@ -246,13 +253,21 @@ function ToDo() {
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <h3
-                    className={`font-medium ${
-                      todo.is_completed ? 'line-through text-gray-500' : ''
-                    }`}
-                  >
-                    {todo.title}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3
+                      className={`font-medium ${
+                        todo.is_completed ? 'line-through text-gray-500' : ''
+                      }`}
+                    >
+                      {todo.title}
+                    </h3>
+                    {/* Overdue badge */}
+                    {isOverdue(todo) && (
+                      <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded uppercase flex-shrink-0">
+                        Overdue
+                      </span>
+                    )}
+                  </div>
                   {todo.description && (
                     <p className="text-sm text-gray-400 mt-1">
                       {todo.description}

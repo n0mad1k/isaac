@@ -1,8 +1,16 @@
 import React from 'react'
 import { Check, Circle, AlertCircle, MapPin, Clock } from 'lucide-react'
 import { completeTask, uncompleteTask } from '../services/api'
+import { isAfter, startOfDay, parseISO } from 'date-fns'
 
 function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLocation = false }) {
+  const isOverdue = (task) => {
+    if (!task.due_date || task.is_completed) return false
+    const today = startOfDay(new Date())
+    const dueDate = startOfDay(parseISO(task.due_date))
+    return isAfter(today, dueDate)
+  }
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 1:
@@ -71,6 +79,12 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
               >
                 {task.title}
               </span>
+              {/* Overdue badge */}
+              {isOverdue(task) && (
+                <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded uppercase">
+                  Overdue
+                </span>
+              )}
               {/* Time on same line */}
               {(task.due_time || task.end_time) && (
                 <span className="text-xs text-gray-400 flex items-center gap-1">
