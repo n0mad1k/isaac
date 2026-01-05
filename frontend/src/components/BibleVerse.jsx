@@ -1,26 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { Book } from 'lucide-react'
-import { getSettings } from '../services/api'
-
-// Map setting values to bible-api.com translation codes
-const TRANSLATION_MAP = {
-  'KJV': 'kjv',
-  'ASV': 'asv',
-  'WEB': 'web',
-  'BBE': 'bbe',
-  'DARBY': 'darby',
-  'YLT': 'ylt',
-}
-
-// Display names for translations
-const TRANSLATION_NAMES = {
-  'KJV': 'King James Version',
-  'ASV': 'American Standard Version',
-  'WEB': 'World English Bible',
-  'BBE': 'Bible in Basic English',
-  'DARBY': 'Darby Translation',
-  'YLT': "Young's Literal Translation",
-}
 
 function BibleVerse() {
   const [verse, setVerse] = useState(null)
@@ -29,44 +8,28 @@ function BibleVerse() {
   useEffect(() => {
     const fetchVerse = async () => {
       try {
-        // Get translation setting
-        const settingsRes = await getSettings()
-        const translationSetting = settingsRes.data?.settings?.bible_translation?.value || 'KJV'
-        const apiTranslation = TRANSLATION_MAP[translationSetting] || 'kjv'
+        // Fetch bible.com verse of the day page
+        const response = await fetch('https://www.bible.com/verse-of-the-day')
+        const html = await response.text()
 
-        // First, get verse of the day reference from OurManna
-        const ourMannaRes = await fetch('https://beta.ourmanna.com/api/v1/get?format=json')
+        // Extract verse from og:description meta tag
+        const match = html.match(/og:description" content="([^"]+)"/)
+        if (match && match[1]) {
+          // Format: "Romans 12:2 Do not conform..."
+          const content = match[1]
+          const refMatch = content.match(/^([\d\s]*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\s+(.+)$/)
 
-        if (!ourMannaRes.ok) {
-          throw new Error('Failed to fetch verse of the day')
-        }
-
-        const ourMannaData = await ourMannaRes.json()
-        const reference = ourMannaData.verse?.details?.reference
-
-        if (!reference) {
-          throw new Error('No verse reference returned')
-        }
-
-        // Now fetch that verse in the user's preferred translation
-        const bibleApiRes = await fetch(
-          `https://bible-api.com/${encodeURIComponent(reference)}?translation=${apiTranslation}`
-        )
-
-        if (bibleApiRes.ok) {
-          const bibleData = await bibleApiRes.json()
-          setVerse({
-            text: bibleData.text?.trim() || ourMannaData.verse?.details?.text || '',
-            reference: bibleData.reference || reference,
-            version: translationSetting
-          })
+          if (refMatch) {
+            setVerse({
+              reference: refMatch[1],
+              text: refMatch[2],
+              version: 'NIV'
+            })
+          } else {
+            throw new Error('Could not parse verse')
+          }
         } else {
-          // Fallback to OurManna's text if bible-api fails
-          setVerse({
-            text: ourMannaData.verse?.details?.text || '',
-            reference: reference,
-            version: ourMannaData.verse?.details?.version || 'NIV'
-          })
+          throw new Error('Could not find verse in page')
         }
       } catch (err) {
         console.error('Failed to fetch Bible verse:', err)
@@ -74,7 +37,7 @@ function BibleVerse() {
         setVerse({
           text: 'He causes the grass to grow for the cattle, and vegetation for the service of man, that he may bring forth food from the earth.',
           reference: 'Psalm 104:14',
-          version: 'KJV'
+          version: 'NIV'
         })
       } finally {
         setLoading(false)

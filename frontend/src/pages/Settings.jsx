@@ -429,17 +429,7 @@ function Settings() {
   const alertSettings = ['frost_warning_temp', 'freeze_warning_temp', 'heat_warning_temp', 'wind_warning_speed', 'rain_warning_inches', 'cold_protection_buffer']
   const calendarSettings = ['calendar_enabled', 'calendar_url', 'calendar_username', 'calendar_password', 'calendar_name', 'calendar_sync_interval']
   const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
-  const displaySettings = ['dashboard_refresh_interval', 'bible_translation']
-
-  // Bible translation options (available from bible-api.com)
-  const bibleTranslationOptions = [
-    { value: 'KJV', label: 'King James Version (KJV)' },
-    { value: 'ASV', label: 'American Standard Version (ASV)' },
-    { value: 'WEB', label: 'World English Bible (WEB)' },
-    { value: 'BBE', label: 'Bible in Basic English (BBE)' },
-    { value: 'DARBY', label: 'Darby Translation' },
-    { value: 'YLT', label: "Young's Literal Translation (YLT)" },
-  ]
+  const displaySettings = ['dashboard_refresh_interval']
 
   // Notification category settings - grouped by type
   const animalNotifySettings = [
@@ -520,34 +510,6 @@ function Settings() {
   const renderSettingInput = (key, setting) => {
     const isBooleanSetting = setting.value === 'true' || setting.value === 'false'
     const isPasswordField = passwordFields.includes(key)
-    const isBibleTranslation = key === 'bible_translation'
-
-    if (isBibleTranslation) {
-      return (
-        <div className="flex items-center gap-2">
-          <select
-            value={setting.value || 'KJV'}
-            onChange={(e) => handleChange(key, e.target.value)}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-          >
-            {bibleTranslationOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {!setting.is_default && (
-            <button
-              onClick={() => handleReset(key)}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
-              title="Reset to default"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      )
-    }
 
     if (isBooleanSetting) {
       return (
@@ -1500,30 +1462,6 @@ function Settings() {
             </p>
             <div className="space-y-4">
               {renderSettingCard('dashboard_refresh_interval')}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bible Settings */}
-      <div className="bg-gray-800 rounded-xl p-6">
-        <div
-          className="flex items-center justify-between cursor-pointer"
-          onClick={() => toggleSection('bible')}
-        >
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            {expandedSections.bible ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-            <Book className="w-5 h-5 text-amber-400" />
-            Bible Settings
-          </h2>
-        </div>
-        {expandedSections.bible && (
-          <div className="mt-4">
-            <p className="text-sm text-gray-400 mb-4">
-              Choose your preferred Bible translation for the daily verse displayed on the dashboard.
-            </p>
-            <div className="space-y-4">
-              {renderSettingCard('bible_translation')}
             </div>
           </div>
         )}
