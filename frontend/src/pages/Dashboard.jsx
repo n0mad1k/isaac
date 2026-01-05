@@ -4,6 +4,7 @@ import { getDashboard, getAnimals } from '../services/api'
 import WeatherWidget from '../components/WeatherWidget'
 import TaskList from '../components/TaskList'
 import AlertBanner from '../components/AlertBanner'
+import StorageAlertWidget from '../components/StorageAlertWidget'
 import StatsCard from '../components/StatsCard'
 import ColdProtectionWidget from '../components/ColdProtectionWidget'
 import AnimalFeedWidget from '../components/AnimalFeedWidget'
@@ -129,6 +130,9 @@ function Dashboard() {
 
       {/* Alerts - Priority positioning */}
       <AlertBanner alerts={data?.alerts} onDismiss={fetchData} />
+
+      {/* Storage Alert - Only shows when storage is low/critical */}
+      <StorageAlertWidget />
 
       {/* Cold Protection Widget - Priority positioning right after alerts */}
       <ColdProtectionWidget />

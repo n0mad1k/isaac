@@ -168,6 +168,66 @@ DEFAULT_SETTINGS = {
         "value": "ESV",
         "description": "Bible translation for verse of the day (ESV, NKJV, KJV, NIV, NLT, NASB)"
     },
+
+    # === Location Settings ===
+    "timezone": {
+        "value": "America/New_York",
+        "description": "Your timezone (e.g., America/New_York, America/Los_Angeles)"
+    },
+    "latitude": {
+        "value": "",
+        "description": "Farm latitude for weather and sunrise/sunset calculations"
+    },
+    "longitude": {
+        "value": "",
+        "description": "Farm longitude for weather and sunrise/sunset calculations"
+    },
+    "usda_zone": {
+        "value": "",
+        "description": "USDA Hardiness Zone (e.g., 9b, 7a)"
+    },
+
+    # === Weather API Settings ===
+    "awn_api_key": {
+        "value": "",
+        "description": "Ambient Weather Network API Key (from ambientweather.net/account)"
+    },
+    "awn_app_key": {
+        "value": "",
+        "description": "Ambient Weather Network Application Key"
+    },
+
+    # === Email Server Settings ===
+    "smtp_host": {
+        "value": "smtp.gmail.com",
+        "description": "SMTP server hostname"
+    },
+    "smtp_port": {
+        "value": "587",
+        "description": "SMTP server port (usually 587 for TLS)"
+    },
+    "smtp_user": {
+        "value": "",
+        "description": "SMTP username/email address"
+    },
+    "smtp_password": {
+        "value": "",
+        "description": "SMTP password or app-specific password"
+    },
+    "smtp_from": {
+        "value": "",
+        "description": "From address for outgoing emails"
+    },
+
+    # === Storage Monitoring Settings ===
+    "storage_warning_percent": {
+        "value": "80",
+        "description": "Disk usage percentage to trigger warning alert"
+    },
+    "storage_critical_percent": {
+        "value": "95",
+        "description": "Disk usage percentage to trigger critical alert"
+    },
 }
 
 
@@ -220,7 +280,7 @@ async def set_setting(db: AsyncSession, key: str, value: str) -> AppSetting:
 
 
 # Sensitive settings that should be masked in responses
-SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password']
+SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key']
 
 def mask_sensitive_value(key: str, value: str) -> str:
     """Mask sensitive settings for display"""
@@ -284,6 +344,11 @@ NUMERIC_SETTINGS = {
     'cold_protection_buffer': (0, 30),
     'dashboard_refresh_interval': (0, 60),
     'calendar_sync_interval': (1, 1440),
+    'smtp_port': (1, 65535),
+    'latitude': (-90, 90),
+    'longitude': (-180, 180),
+    'storage_warning_percent': (1, 99),
+    'storage_critical_percent': (1, 99),
 }
 # Settings that require time format validation (HH:MM)
 TIME_SETTINGS = ['email_digest_time']
@@ -311,16 +376,18 @@ async def update_setting(key: str, data: SettingUpdate, db: AsyncSession = Depen
 
     # Validate numeric settings
     if key in NUMERIC_SETTINGS:
-        try:
-            num_value = float(data.value)
-            min_val, max_val = NUMERIC_SETTINGS[key]
-            if not (min_val <= num_value <= max_val):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Value must be between {min_val} and {max_val}"
-                )
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Value must be a number")
+        # Allow empty values for optional numeric settings (lat/long can be empty)
+        if data.value.strip():
+            try:
+                num_value = float(data.value)
+                min_val, max_val = NUMERIC_SETTINGS[key]
+                if not (min_val <= num_value <= max_val):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Value must be between {min_val} and {max_val}"
+                    )
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Value must be a number")
 
     # Validate time format settings
     if key in TIME_SETTINGS and data.value:
@@ -425,10 +492,12 @@ async def test_cold_protection_email(db: AsyncSession = Depends(get_db)):
     if not recipients:
         raise HTTPException(status_code=400, detail="No email recipients configured. Add recipients in Settings.")
 
-    # Send the email
-    email_service = EmailService()
-    if not email_service.is_configured():
-        raise HTTPException(status_code=400, detail="Email not configured. Check SMTP settings in .env")
+    # Send the email - get configured service from DB settings
+    from services.email import ConfigurationError
+    try:
+        email_service = await EmailService.get_configured_service(db)
+    except ConfigurationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     plant_dicts = [
         {

@@ -37,6 +37,8 @@ DEFAULT_SETTINGS = {
     "rain_warning_inches": "2.0",
     "cold_protection_buffer": "7",
     "default_reminder_alerts": "0,60,1440",  # at time, 1 hour, 1 day before
+    "storage_warning_percent": "80",
+    "storage_critical_percent": "95",
 }
 
 
@@ -173,6 +175,15 @@ class SchedulerService:
             IntervalTrigger(minutes=5),
             id="check_reminder_alerts",
             name="Check Reminder Alerts",
+            replace_existing=True,
+        )
+
+        # Check storage usage - every hour
+        self.scheduler.add_job(
+            self.check_storage_usage,
+            CronTrigger(minute=15),  # Every hour at :15
+            id="check_storage",
+            name="Check Storage Usage",
             replace_existing=True,
         )
 
@@ -827,3 +838,106 @@ class SchedulerService:
 
         except Exception as e:
             logger.error(f"Error sending task reminder email: {e}")
+
+    async def check_storage_usage(self):
+        """Check disk storage usage and create alerts if thresholds exceeded"""
+        import shutil
+        from pathlib import Path
+
+        logger.debug("Checking storage usage...")
+
+        try:
+            # SECURITY: Hardcoded paths only - no user input
+            isaac_data_dir = Path("/opt/isaac/data")
+            isaac_logs_dir = Path("/opt/isaac/logs")
+
+            # Get disk usage
+            total, used, free = shutil.disk_usage("/")
+            usage_percent = (used / total) * 100 if total > 0 else 0
+
+            # Get thresholds from settings
+            warning_threshold = float(await get_setting_value("storage_warning_percent") or "80")
+            critical_threshold = float(await get_setting_value("storage_critical_percent") or "95")
+
+            async with async_session() as db:
+                # Check if we need to create an alert
+                if usage_percent >= critical_threshold:
+                    # Check if there's already an active storage critical alert
+                    result = await db.execute(
+                        select(WeatherAlert)
+                        .where(WeatherAlert.alert_type == "storage_critical")
+                        .where(WeatherAlert.is_active == True)
+                    )
+                    existing = result.scalar_one_or_none()
+
+                    if not existing:
+                        # Create critical storage alert
+                        from models.weather import AlertSeverity
+                        alert = WeatherAlert(
+                            alert_type="storage_critical",
+                            title="Storage Critical",
+                            message=f"Disk usage at {usage_percent:.1f}% - only {free / (1024**3):.1f} GB remaining. Free up space immediately.",
+                            severity=AlertSeverity.CRITICAL,
+                            is_active=True,
+                        )
+                        db.add(alert)
+                        await db.commit()
+                        logger.warning(f"Created storage critical alert: {usage_percent:.1f}% used")
+
+                        # Send email alert
+                        recipients = await get_setting_value("email_recipients")
+                        if recipients:
+                            await self.email_service.send_email(
+                                to=recipients,
+                                subject="CRITICAL: Isaac Storage Full",
+                                body=f"""
+                                <h2>Storage Critical Alert</h2>
+                                <p>Disk usage has reached <strong>{usage_percent:.1f}%</strong>.</p>
+                                <p>Only {free / (1024**3):.1f} GB remaining on the disk.</p>
+                                <p>Please free up space immediately to prevent service disruption.</p>
+                                <p>Go to Settings > Storage Monitoring to clear logs or manage storage.</p>
+                                """,
+                                html=True,
+                            )
+
+                elif usage_percent >= warning_threshold:
+                    # Check for existing warning alert
+                    result = await db.execute(
+                        select(WeatherAlert)
+                        .where(WeatherAlert.alert_type == "storage_warning")
+                        .where(WeatherAlert.is_active == True)
+                    )
+                    existing = result.scalar_one_or_none()
+
+                    if not existing:
+                        # Create warning storage alert
+                        from models.weather import AlertSeverity
+                        alert = WeatherAlert(
+                            alert_type="storage_warning",
+                            title="Storage Low",
+                            message=f"Disk usage at {usage_percent:.1f}% - {free / (1024**3):.1f} GB remaining. Consider clearing logs.",
+                            severity=AlertSeverity.WARNING,
+                            is_active=True,
+                        )
+                        db.add(alert)
+                        await db.commit()
+                        logger.warning(f"Created storage warning alert: {usage_percent:.1f}% used")
+
+                else:
+                    # Clear any existing storage alerts if usage is back to normal
+                    result = await db.execute(
+                        select(WeatherAlert)
+                        .where(WeatherAlert.alert_type.in_(["storage_warning", "storage_critical"]))
+                        .where(WeatherAlert.is_active == True)
+                    )
+                    old_alerts = result.scalars().all()
+
+                    for alert in old_alerts:
+                        alert.is_active = False
+                        logger.info(f"Cleared storage alert: {alert.title}")
+
+                    if old_alerts:
+                        await db.commit()
+
+        except Exception as e:
+            logger.error(f"Error checking storage usage: {e}")

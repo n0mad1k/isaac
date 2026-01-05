@@ -2,17 +2,19 @@
 Weather Integration Service
 - Ambient Weather Network for current conditions
 - National Weather Service API for forecasts
+
+Settings are loaded from the database with fallback to config for backwards compatibility.
 """
 
 import httpx
 import json
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Tuple
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
-from config import settings
+from config import settings as config_settings
 from models.weather import WeatherReading, WeatherAlert, AlertSeverity
 from models.settings import AppSetting
 
@@ -39,6 +41,81 @@ async def get_threshold(db: AsyncSession, key: str) -> float:
         except ValueError:
             pass
     return DEFAULT_THRESHOLDS.get(key, 0.0)
+
+
+async def get_location_from_db(db: AsyncSession) -> Tuple[Optional[float], Optional[float]]:
+    """
+    Get latitude and longitude from database settings.
+    Returns (latitude, longitude) tuple, or (None, None) if not configured.
+    Falls back to config file values for backwards compatibility.
+    """
+    lat_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "latitude")
+    )
+    lon_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "longitude")
+    )
+
+    lat_setting = lat_result.scalar_one_or_none()
+    lon_setting = lon_result.scalar_one_or_none()
+
+    lat = None
+    lon = None
+
+    # Try DB settings first
+    if lat_setting and lat_setting.value:
+        try:
+            lat = float(lat_setting.value)
+        except ValueError:
+            pass
+
+    if lon_setting and lon_setting.value:
+        try:
+            lon = float(lon_setting.value)
+        except ValueError:
+            pass
+
+    # Fall back to config for backwards compatibility
+    if lat is None and config_settings.latitude:
+        lat = config_settings.latitude
+    if lon is None and config_settings.longitude:
+        lon = config_settings.longitude
+
+    return lat, lon
+
+
+async def get_awn_keys_from_db(db: AsyncSession) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Get Ambient Weather API keys from database settings.
+    Returns (api_key, app_key) tuple.
+    Falls back to config file values for backwards compatibility.
+    """
+    api_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "awn_api_key")
+    )
+    app_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "awn_app_key")
+    )
+
+    api_setting = api_result.scalar_one_or_none()
+    app_setting = app_result.scalar_one_or_none()
+
+    api_key = None
+    app_key = None
+
+    # Try DB settings first
+    if api_setting and api_setting.value:
+        api_key = api_setting.value
+    if app_setting and app_setting.value:
+        app_key = app_setting.value
+
+    # Fall back to config for backwards compatibility
+    if not api_key and config_settings.awn_api_key:
+        api_key = config_settings.awn_api_key
+    if not app_key and config_settings.awn_app_key:
+        app_key = config_settings.awn_app_key
+
+    return api_key, app_key
 
 
 class NWSForecastService:
@@ -84,8 +161,13 @@ class NWSForecastService:
 
     async def get_forecast(self, lat: float = None, lon: float = None) -> Optional[List[Dict[str, Any]]]:
         """Get 7-day forecast from NWS"""
-        lat = lat or settings.latitude
-        lon = lon or settings.longitude
+        # Fall back to config settings if not provided (used when called without DB)
+        lat = lat or config_settings.latitude
+        lon = lon or config_settings.longitude
+
+        if not lat or not lon:
+            logger.warning("Location not configured - cannot get forecast")
+            return None
 
         grid = await self.get_grid_info(lat, lon)
         if not grid:
@@ -164,10 +246,23 @@ class WeatherService:
 
     BASE_URL = "https://rt.ambientweather.net/v1"
 
-    def __init__(self):
-        self.api_key = settings.awn_api_key
-        self.app_key = settings.awn_app_key
+    def __init__(self, api_key: str = None, app_key: str = None):
+        """
+        Initialize weather service.
+        Keys can be passed directly or will fall back to config settings.
+        For DB-based keys, use configure_from_db() method.
+        """
+        self.api_key = api_key or config_settings.awn_api_key
+        self.app_key = app_key or config_settings.awn_app_key
         self._client: Optional[httpx.AsyncClient] = None
+
+    async def configure_from_db(self, db: AsyncSession) -> None:
+        """Load API keys from database settings"""
+        api_key, app_key = await get_awn_keys_from_db(db)
+        if api_key:
+            self.api_key = api_key
+        if app_key:
+            self.app_key = app_key
 
     async def get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
@@ -181,7 +276,7 @@ class WeatherService:
     async def fetch_current_weather(self) -> Optional[Dict[str, Any]]:
         """Fetch current weather from Ambient Weather API"""
         if not self.api_key or not self.app_key:
-            logger.warning("Ambient Weather API keys not configured")
+            logger.debug("Ambient Weather API keys not configured - using NWS forecast only")
             return None
 
         client = await self.get_client()

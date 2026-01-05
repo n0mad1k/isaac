@@ -160,6 +160,10 @@ export const testColdProtectionEmail = () => api.post('/settings/test-cold-prote
 export const testCalendarSync = () => api.post('/settings/test-calendar-sync/')
 export const syncCalendar = () => api.post('/settings/sync-calendar/')
 
+// Storage
+export const getStorageStats = () => api.get('/dashboard/storage/')
+export const clearLogs = () => api.post('/dashboard/storage/clear-logs/')
+
 // Home Maintenance
 export const getHomeMaintenance = (params) => api.get('/home-maintenance/', { params })
 export const getHomeMaintenanceTask = (id) => api.get(`/home-maintenance/${id}/`)

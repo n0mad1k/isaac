@@ -1,5 +1,6 @@
 """
 Email Notification Service
+Sends email notifications using SMTP settings from database or config
 """
 
 import aiosmtplib
@@ -8,20 +9,64 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from typing import Optional, List
 from loguru import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import settings
+
+class ConfigurationError(Exception):
+    """Raised when required configuration is missing"""
+    pass
 
 
 class EmailService:
     """Service for sending email notifications"""
 
-    def __init__(self):
-        self.host = settings.smtp_host
-        self.port = settings.smtp_port
-        self.user = settings.smtp_user
-        self.password = settings.smtp_password
-        self.from_addr = settings.smtp_from or settings.smtp_user
-        self.default_recipient = settings.notification_email
+    def __init__(
+        self,
+        host: str = None,
+        port: int = None,
+        user: str = None,
+        password: str = None,
+        from_addr: str = None,
+    ):
+        """
+        Initialize email service.
+        Settings can be passed directly or loaded from DB using get_configured_service()
+        """
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
+        self.from_addr = from_addr or user
+
+    @classmethod
+    async def get_configured_service(cls, db: AsyncSession) -> "EmailService":
+        """
+        Create an EmailService configured from database settings.
+        Raises ConfigurationError if SMTP is not configured.
+        """
+        from routers.settings import get_setting
+
+        host = await get_setting(db, "smtp_host")
+        port_str = await get_setting(db, "smtp_port")
+        user = await get_setting(db, "smtp_user")
+        password = await get_setting(db, "smtp_password")
+        from_addr = await get_setting(db, "smtp_from")
+
+        # Validate required settings
+        if not all([host, user, password]):
+            raise ConfigurationError(
+                "Email not configured. Go to Settings > Email Server (SMTP) to configure."
+            )
+
+        port = int(port_str) if port_str else 587
+
+        return cls(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            from_addr=from_addr or user,
+        )
 
     def is_configured(self) -> bool:
         """Check if email is properly configured"""
@@ -39,10 +84,11 @@ class EmailService:
             logger.warning("Email not configured, skipping notification")
             return False
 
-        recipient = to or self.default_recipient
-        if not recipient:
-            logger.error("No recipient specified and no default configured")
+        if not to:
+            logger.error("No recipient specified")
             return False
+
+        recipient = to
 
         try:
             message = MIMEMultipart("alternative")

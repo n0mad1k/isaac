@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, getRoles, createRole, updateRole, deleteRole, getPermissionCategories } from '../services/api'
+import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle } from 'lucide-react'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
 function Settings() {
@@ -33,21 +33,30 @@ function Settings() {
   const [showAddRole, setShowAddRole] = useState(false)
   const [newRole, setNewRole] = useState({ name: '', display_name: '', description: '', color: '#6B7280' })
 
+  // Storage state
+  const [storageStats, setStorageStats] = useState(null)
+  const [loadingStorage, setLoadingStorage] = useState(false)
+  const [clearingLogs, setClearingLogs] = useState(false)
+
   // Collapsible sections state - all collapsed by default
   const [expandedSections, setExpandedSections] = useState({
     users: false,
     roles: false,
+    location: false,
+    weatherApi: false,
+    emailServer: false,
     email: false,
     alerts: false,
     notifications: false,
     reminders: false,
     calendar: false,
     display: false,
-    bible: false
+    bible: false,
+    storage: false
   })
 
   // Fields that should be treated as passwords
-  const passwordFields = ['calendar_password', 'smtp_password']
+  const passwordFields = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key']
 
   const fetchSettings = async () => {
     try {
@@ -374,10 +383,52 @@ function Settings() {
     }
   }
 
+  const fetchStorageStats = async () => {
+    setLoadingStorage(true)
+    try {
+      const response = await getStorageStats()
+      setStorageStats(response.data)
+    } catch (error) {
+      console.error('Failed to fetch storage stats:', error)
+    } finally {
+      setLoadingStorage(false)
+    }
+  }
+
+  const handleClearLogs = async () => {
+    if (!confirm('Are you sure you want to clear all log files? This cannot be undone.')) return
+    setClearingLogs(true)
+    try {
+      const response = await clearLogs()
+      setMessage({
+        type: 'success',
+        text: `Cleared ${response.data.cleared_count} log files (${response.data.cleared_human} freed)`
+      })
+      setTimeout(() => setMessage(null), 5000)
+      fetchStorageStats()  // Refresh storage stats
+    } catch (error) {
+      console.error('Failed to clear logs:', error)
+      setMessage({ type: 'error', text: 'Failed to clear logs' })
+    } finally {
+      setClearingLogs(false)
+    }
+  }
+
+  // Fetch storage stats when section is expanded
+  useEffect(() => {
+    if (expandedSections.storage && !storageStats) {
+      fetchStorageStats()
+    }
+  }, [expandedSections.storage])
+
   // Group settings by category
+  const locationSettings = ['timezone', 'latitude', 'longitude', 'usda_zone']
+  const weatherApiSettings = ['awn_api_key', 'awn_app_key']
+  const emailServerSettings = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from']
   const emailSettings = ['email_alerts_enabled', 'email_recipients', 'email_daily_digest', 'email_digest_time']
   const alertSettings = ['frost_warning_temp', 'freeze_warning_temp', 'heat_warning_temp', 'wind_warning_speed', 'rain_warning_inches', 'cold_protection_buffer']
   const calendarSettings = ['calendar_enabled', 'calendar_url', 'calendar_username', 'calendar_password', 'calendar_name', 'calendar_sync_interval']
+  const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
   const displaySettings = ['dashboard_refresh_interval', 'bible_translation']
 
   // Bible translation options
@@ -1180,7 +1231,90 @@ function Settings() {
         </div>
       )}
 
-      {/* Email Settings (Admin Only) */}
+      {/* Location Settings (Admin Only) */}
+      {isAdmin && (
+        <div className="bg-gray-800 rounded-xl p-6">
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('location')}
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              {expandedSections.location ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              <MapPin className="w-5 h-5 text-red-400" />
+              Location Settings
+            </h2>
+          </div>
+          {expandedSections.location && (
+            <div className="mt-4">
+              <p className="text-sm text-gray-400 mb-4">
+                Configure your farm location for weather forecasts, sunrise/sunset calculations, and frost warnings.
+                Find your coordinates at <a href="https://www.latlong.net/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">latlong.net</a>
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {locationSettings.map(key => renderSettingCard(key))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Weather API Settings (Admin Only) */}
+      {isAdmin && (
+        <div className="bg-gray-800 rounded-xl p-6">
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('weatherApi')}
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              {expandedSections.weatherApi ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              <Cloud className="w-5 h-5 text-sky-400" />
+              Weather Integration
+            </h2>
+          </div>
+          {expandedSections.weatherApi && (
+            <div className="mt-4">
+              <p className="text-sm text-gray-400 mb-4">
+                Connect your Ambient Weather station for real-time local weather data.
+                Get API keys from <a href="https://ambientweather.net/account" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">ambientweather.net/account</a>.
+                Leave blank to use NWS forecast data only.
+              </p>
+              <div className="space-y-4">
+                {weatherApiSettings.map(key => renderSettingCard(key))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Email Server Settings (Admin Only) */}
+      {isAdmin && (
+        <div className="bg-gray-800 rounded-xl p-6">
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('emailServer')}
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              {expandedSections.emailServer ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              <Server className="w-5 h-5 text-teal-400" />
+              Email Server (SMTP)
+            </h2>
+          </div>
+          {expandedSections.emailServer && (
+            <div className="mt-4">
+              <p className="text-sm text-gray-400 mb-4">
+                Configure SMTP settings to send email notifications. For Gmail, use an{' '}
+                <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">App Password</a>.
+                For Protonmail, use Bridge or SMTP token.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {emailServerSettings.map(key => renderSettingCard(key))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Email Notification Settings (Admin Only) */}
       {isAdmin && (
         <div className="bg-gray-800 rounded-xl p-6">
           <div
@@ -1396,6 +1530,121 @@ function Settings() {
           </div>
         )}
       </div>
+
+      {/* Storage Monitoring (Admin Only) */}
+      {isAdmin && (
+        <div className="bg-gray-800 rounded-xl p-6">
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('storage')}
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              {expandedSections.storage ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              <HardDrive className="w-5 h-5 text-gray-400" />
+              Storage Monitoring
+            </h2>
+          </div>
+          {expandedSections.storage && (
+            <div className="mt-4">
+              {loadingStorage ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-farm-green"></div>
+                </div>
+              ) : storageStats ? (
+                <div className="space-y-4">
+                  {/* Storage Usage Progress Bar */}
+                  <div className="bg-gray-700/50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Disk Usage</span>
+                      <span className={`text-sm font-bold ${
+                        storageStats.alert_level === 'critical' ? 'text-red-400' :
+                        storageStats.alert_level === 'warning' ? 'text-yellow-400' :
+                        'text-green-400'
+                      }`}>
+                        {storageStats.disk_usage_percent}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-600 rounded-full h-3">
+                      <div
+                        className={`h-3 rounded-full transition-all ${
+                          storageStats.alert_level === 'critical' ? 'bg-red-500' :
+                          storageStats.alert_level === 'warning' ? 'bg-yellow-500' :
+                          'bg-green-500'
+                        }`}
+                        style={{ width: `${Math.min(storageStats.disk_usage_percent, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-2 text-xs text-gray-400">
+                      <span>Used: {storageStats.disk_total_human}</span>
+                      <span>Available: {storageStats.disk_available_human}</span>
+                    </div>
+                  </div>
+
+                  {/* Alert Status */}
+                  {storageStats.alert_level !== 'ok' && (
+                    <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                      storageStats.alert_level === 'critical' ? 'bg-red-900/30 border border-red-800 text-red-300' :
+                      'bg-yellow-900/30 border border-yellow-800 text-yellow-300'
+                    }`}>
+                      <AlertTriangle className="w-5 h-5" />
+                      <span className="text-sm">
+                        {storageStats.alert_level === 'critical'
+                          ? 'Storage critically low! Free up space immediately.'
+                          : 'Storage running low. Consider clearing logs or old data.'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Isaac App Breakdown */}
+                  <div className="bg-gray-700/50 rounded-lg p-4">
+                    <h3 className="text-sm font-medium mb-3">Isaac Storage Breakdown</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Database</span>
+                        <span>{storageStats.database_human}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Log Files</span>
+                        <span>{storageStats.logs_human}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Clear Logs Button */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleClearLogs}
+                      disabled={clearingLogs}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      {clearingLogs ? 'Clearing...' : 'Clear Logs'}
+                    </button>
+                    <button
+                      onClick={fetchStorageStats}
+                      disabled={loadingStorage}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors text-sm"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${loadingStorage ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </button>
+                  </div>
+
+                  {/* Alert Thresholds */}
+                  <div className="border-t border-gray-700 pt-4 mt-4">
+                    <h3 className="text-sm font-medium mb-3">Alert Thresholds</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {storageSettings.map(key => renderSettingCard(key))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-400 text-sm">Failed to load storage information</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Info */}
       <div className="bg-gray-800/50 rounded-xl p-6 text-sm text-gray-400">

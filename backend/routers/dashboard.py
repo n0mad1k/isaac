@@ -478,3 +478,164 @@ async def get_freeze_warning(db: AsyncSession = Depends(get_db)):
             "Let faucets drip slightly to prevent pipe freeze"
         ]
     }
+
+
+# === Storage Monitoring ===
+# SECURITY: All paths are hardcoded constants - no user input accepted
+from pathlib import Path
+import shutil
+
+# Hardcoded paths for security - prevents path traversal attacks
+ISAAC_DATA_DIR = Path("/opt/isaac/data")
+ISAAC_LOGS_DIR = Path("/opt/isaac/logs")
+
+
+class StorageStats(BaseModel):
+    """Storage statistics response model"""
+    # Whole disk stats
+    disk_total_bytes: int
+    disk_used_bytes: int
+    disk_available_bytes: int
+    disk_usage_percent: float
+
+    # Isaac app breakdown
+    database_bytes: int
+    logs_bytes: int
+    app_total_bytes: int
+
+    # Human-readable formats
+    disk_total_human: str
+    disk_available_human: str
+    database_human: str
+    logs_human: str
+
+    # Alert state for conditional dashboard display
+    alert_level: str  # "ok", "warning", "critical"
+
+
+def _format_bytes(size_bytes: int) -> str:
+    """Format bytes to human readable string"""
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if size_bytes < 1024:
+            return f"{size_bytes:.1f} {unit}"
+        size_bytes /= 1024
+    return f"{size_bytes:.1f} PB"
+
+
+def _safe_get_size(path: Path) -> int:
+    """
+    Get file size safely.
+    SECURITY: Rejects symlinks to prevent traversal attacks.
+    """
+    try:
+        if path.exists() and path.is_file() and not path.is_symlink():
+            return path.stat().st_size
+    except (OSError, PermissionError):
+        pass
+    return 0
+
+
+def _safe_dir_size(dir_path: Path) -> int:
+    """
+    Get total size of regular files in directory.
+    SECURITY: Only counts regular files, rejects symlinks.
+    """
+    total = 0
+    try:
+        if dir_path.exists() and dir_path.is_dir():
+            for f in dir_path.iterdir():
+                if f.is_file() and not f.is_symlink():
+                    try:
+                        total += f.stat().st_size
+                    except (OSError, PermissionError):
+                        pass
+    except (OSError, PermissionError):
+        pass
+    return total
+
+
+@router.get("/storage/", response_model=StorageStats)
+async def get_storage_stats(db: AsyncSession = Depends(get_db)):
+    """
+    Get storage statistics for disk and Isaac app components.
+    SECURITY: All paths are hardcoded - no user input accepted.
+    """
+    from routers.settings import get_setting
+
+    # Get whole disk usage (root partition)
+    try:
+        total, used, free = shutil.disk_usage("/")
+        usage_percent = (used / total) * 100 if total > 0 else 0
+    except OSError:
+        total, used, free = 0, 0, 0
+        usage_percent = 0
+
+    # Get Isaac component sizes from hardcoded paths only
+    db_size = _safe_get_size(ISAAC_DATA_DIR / "isaac.db")
+    log_size = _safe_dir_size(ISAAC_LOGS_DIR)
+    app_total = db_size + log_size
+
+    # Determine alert level based on settings
+    warning_threshold = float(await get_setting(db, "storage_warning_percent") or "80")
+    critical_threshold = float(await get_setting(db, "storage_critical_percent") or "95")
+
+    if usage_percent >= critical_threshold:
+        alert_level = "critical"
+    elif usage_percent >= warning_threshold:
+        alert_level = "warning"
+    else:
+        alert_level = "ok"
+
+    return StorageStats(
+        disk_total_bytes=total,
+        disk_used_bytes=used,
+        disk_available_bytes=free,
+        disk_usage_percent=round(usage_percent, 1),
+        database_bytes=db_size,
+        logs_bytes=log_size,
+        app_total_bytes=app_total,
+        disk_total_human=_format_bytes(total),
+        disk_available_human=_format_bytes(free),
+        database_human=_format_bytes(db_size),
+        logs_human=_format_bytes(log_size),
+        alert_level=alert_level,
+    )
+
+
+@router.post("/storage/clear-logs/")
+async def clear_logs():
+    """
+    Clear log files to free up space.
+    SECURITY: Only deletes regular files from hardcoded ISAAC_LOGS_DIR.
+    Symlinks and subdirectories are ignored.
+    """
+    cleared_count = 0
+    cleared_bytes = 0
+
+    try:
+        if ISAAC_LOGS_DIR.exists() and ISAAC_LOGS_DIR.is_dir():
+            for f in ISAAC_LOGS_DIR.iterdir():
+                # SECURITY: Only delete regular files, not symlinks or directories
+                if f.is_file() and not f.is_symlink():
+                    try:
+                        size = f.stat().st_size
+                        f.unlink()
+                        cleared_count += 1
+                        cleared_bytes += size
+                    except (OSError, PermissionError) as e:
+                        # Log but don't fail on individual file errors
+                        pass
+    except (OSError, PermissionError) as e:
+        return {
+            "success": False,
+            "error": "Permission denied accessing logs directory",
+            "cleared_count": 0,
+            "cleared_bytes": 0,
+        }
+
+    return {
+        "success": True,
+        "cleared_count": cleared_count,
+        "cleared_bytes": cleared_bytes,
+        "cleared_human": _format_bytes(cleared_bytes),
+    }
