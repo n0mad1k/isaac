@@ -408,6 +408,122 @@ async def create_tag(name: str, color: str = "gray", db: AsyncSession = Depends(
     return tag
 
 
+# Plant Import Schemas (must be before /{plant_id} routes)
+class PlantImportRequest(BaseModel):
+    url: str = Field(..., description="URL to import plant data from (pfaf.org or permapeople.org)")
+
+
+class PlantImportPreview(BaseModel):
+    """Preview of imported data before creating plant"""
+    data: dict
+    source_url: str
+
+
+@router.post("/import/preview/")
+async def preview_plant_import(request: PlantImportRequest):
+    """
+    Preview plant data from a URL before importing.
+    Supports pfaf.org and permapeople.org URLs.
+    Returns extracted plant data without creating a plant.
+    """
+    try:
+        data = await plant_import_service.import_from_url(request.url)
+        return PlantImportPreview(data=data, source_url=request.url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to import plant from {request.url}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch plant data: {str(e)}")
+
+
+@router.post("/import/", response_model=PlantResponse)
+async def import_plant(
+    request: PlantImportRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Import plant data from a URL and create a new plant.
+    Supports pfaf.org and permapeople.org URLs.
+    """
+    try:
+        data = await plant_import_service.import_from_url(request.url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to import plant from {request.url}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch plant data: {str(e)}")
+
+    if not data.get("name"):
+        raise HTTPException(status_code=400, detail="Could not extract plant name from URL")
+
+    # Map growth_rate string to enum
+    growth_rate = GrowthRate.MODERATE
+    if "growth_rate" in data:
+        rate_map = {
+            "slow": GrowthRate.SLOW,
+            "moderate": GrowthRate.MODERATE,
+            "fast": GrowthRate.FAST,
+            "very_fast": GrowthRate.VERY_FAST,
+        }
+        growth_rate = rate_map.get(data["growth_rate"], GrowthRate.MODERATE)
+
+    # Map sun_requirement string to enum
+    sun_requirement = SunRequirement.FULL_SUN
+    if "sun_requirement" in data:
+        sun_map = {
+            "full_sun": SunRequirement.FULL_SUN,
+            "partial_sun": SunRequirement.PARTIAL_SUN,
+            "partial_shade": SunRequirement.PARTIAL_SHADE,
+            "full_shade": SunRequirement.FULL_SHADE,
+        }
+        sun_requirement = sun_map.get(data["sun_requirement"], SunRequirement.FULL_SUN)
+
+    # Map moisture_preference string to enum
+    moisture_preference = None
+    if "moisture_preference" in data:
+        moisture_map = {
+            "dry": MoisturePreference.DRY,
+            "dry_moist": MoisturePreference.DRY_MOIST,
+            "moist": MoisturePreference.MOIST,
+            "moist_wet": MoisturePreference.MOIST_WET,
+            "wet": MoisturePreference.WET,
+        }
+        moisture_preference = moisture_map.get(data["moisture_preference"])
+
+    # Add source URL to notes
+    notes = data.get("notes", "")
+    notes = f"{notes}\nSource: {request.url}" if notes else f"Source: {request.url}"
+
+    # Create plant
+    plant = Plant(
+        name=data.get("name"),
+        latin_name=data.get("latin_name"),
+        variety=data.get("variety"),
+        description=data.get("description"),
+        grow_zones=data.get("grow_zones"),
+        sun_requirement=sun_requirement,
+        moisture_preference=moisture_preference,
+        soil_requirements=data.get("soil_requirements"),
+        size_full_grown=data.get("size_full_grown"),
+        growth_rate=growth_rate,
+        min_temp=data.get("min_temp"),
+        frost_sensitive=data.get("frost_sensitive", False),
+        uses=data.get("uses"),
+        known_hazards=data.get("known_hazards"),
+        propagation_methods=data.get("propagation_methods"),
+        cultivation_details=data.get("cultivation"),
+        references=data.get("references"),
+        notes=notes,
+    )
+
+    db.add(plant)
+    await db.commit()
+    await db.refresh(plant)
+
+    logger.info(f"Imported plant '{plant.name}' from {request.url}")
+    return plant_to_response(plant)
+
+
 @router.get("/{plant_id}")
 async def get_plant(plant_id: int, db: AsyncSession = Depends(get_db)):
     """Get a specific plant by ID"""
@@ -594,122 +710,6 @@ async def get_plants_needing_fertilizer(db: AsyncSession = Depends(get_db)):
             needs_fert.append(plant_to_response(p))
 
     return needs_fert
-
-
-# Plant Import Schemas
-class PlantImportRequest(BaseModel):
-    url: str = Field(..., description="URL to import plant data from (pfaf.org or permapeople.org)")
-
-
-class PlantImportPreview(BaseModel):
-    """Preview of imported data before creating plant"""
-    data: dict
-    source_url: str
-
-
-@router.post("/import/preview/")
-async def preview_plant_import(request: PlantImportRequest):
-    """
-    Preview plant data from a URL before importing.
-    Supports pfaf.org and permapeople.org URLs.
-    Returns extracted plant data without creating a plant.
-    """
-    try:
-        data = await plant_import_service.import_from_url(request.url)
-        return PlantImportPreview(data=data, source_url=request.url)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Failed to import plant from {request.url}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch plant data: {str(e)}")
-
-
-@router.post("/import/", response_model=PlantResponse)
-async def import_plant(
-    request: PlantImportRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Import plant data from a URL and create a new plant.
-    Supports pfaf.org and permapeople.org URLs.
-    """
-    try:
-        data = await plant_import_service.import_from_url(request.url)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Failed to import plant from {request.url}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch plant data: {str(e)}")
-
-    if not data.get("name"):
-        raise HTTPException(status_code=400, detail="Could not extract plant name from URL")
-
-    # Map growth_rate string to enum
-    growth_rate = GrowthRate.MODERATE
-    if "growth_rate" in data:
-        rate_map = {
-            "slow": GrowthRate.SLOW,
-            "moderate": GrowthRate.MODERATE,
-            "fast": GrowthRate.FAST,
-            "very_fast": GrowthRate.VERY_FAST,
-        }
-        growth_rate = rate_map.get(data["growth_rate"], GrowthRate.MODERATE)
-
-    # Map sun_requirement string to enum
-    sun_requirement = SunRequirement.FULL_SUN
-    if "sun_requirement" in data:
-        sun_map = {
-            "full_sun": SunRequirement.FULL_SUN,
-            "partial_sun": SunRequirement.PARTIAL_SUN,
-            "partial_shade": SunRequirement.PARTIAL_SHADE,
-            "full_shade": SunRequirement.FULL_SHADE,
-        }
-        sun_requirement = sun_map.get(data["sun_requirement"], SunRequirement.FULL_SUN)
-
-    # Map moisture_preference string to enum
-    moisture_preference = None
-    if "moisture_preference" in data:
-        moisture_map = {
-            "dry": MoisturePreference.DRY,
-            "dry_moist": MoisturePreference.DRY_MOIST,
-            "moist": MoisturePreference.MOIST,
-            "moist_wet": MoisturePreference.MOIST_WET,
-            "wet": MoisturePreference.WET,
-        }
-        moisture_preference = moisture_map.get(data["moisture_preference"])
-
-    # Add source URL to notes
-    notes = data.get("notes", "")
-    notes = f"{notes}\nSource: {request.url}" if notes else f"Source: {request.url}"
-
-    # Create plant
-    plant = Plant(
-        name=data.get("name"),
-        latin_name=data.get("latin_name"),
-        variety=data.get("variety"),
-        description=data.get("description"),
-        grow_zones=data.get("grow_zones"),
-        sun_requirement=sun_requirement,
-        moisture_preference=moisture_preference,
-        soil_requirements=data.get("soil_requirements"),
-        size_full_grown=data.get("size_full_grown"),
-        growth_rate=growth_rate,
-        min_temp=data.get("min_temp"),
-        frost_sensitive=data.get("frost_sensitive", False),
-        uses=data.get("uses"),
-        known_hazards=data.get("known_hazards"),
-        propagation_methods=data.get("propagation_methods"),
-        cultivation_details=data.get("cultivation"),
-        references=data.get("references"),
-        notes=notes,
-    )
-
-    db.add(plant)
-    await db.commit()
-    await db.refresh(plant)
-
-    logger.info(f"Imported plant '{plant.name}' from {request.url}")
-    return plant_to_response(plant)
 
 
 # Skip watering schemas

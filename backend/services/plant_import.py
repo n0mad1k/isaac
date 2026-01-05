@@ -467,10 +467,13 @@ class PlantImportService:
         # Extract temperature tolerance from cultivation notes
         cultivation = data.get("cultivation", "")
         if cultivation:
-            # Look for temperature patterns like "-6°c" or "0°c" or "-15 to -20c"
-            temp_matches = re.findall(r"(-?\d+)\s*(?:°|degrees?)?\s*[cC]", cultivation)
+            # Look for temperature patterns like "-6°C" or "0°c" or "-15 degrees c"
+            # Must have ° or "degrees" before C to avoid matching things like "78.74 in"
+            temp_matches = re.findall(r"(-?\d+)\s*(?:°|degrees)\s*[cC]", cultivation)
             if temp_matches:
                 temps = [int(t) for t in temp_matches]
+                # Filter out unreasonable temps (below -60°C or above 50°C is unlikely)
+                temps = [t for t in temps if -60 <= t <= 50]
                 if temps:
                     min_temp_c = min(temps)
                     # Convert to Fahrenheit
