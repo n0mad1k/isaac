@@ -1,0 +1,173 @@
+#!/bin/bash
+# Quick Deploy Script for Isaac
+# Run this from your local machine as your user (not root)
+#
+# Copy this to quick-deploy.sh and customize for your environment
+
+set -e
+
+# Configuration - customize these
+PI_HOST="${PI_HOST:-isaac.local}"
+PI_USER="${PI_USER:-pi}"
+LOCAL_DIR="$(dirname "$0")/.."
+
+echo "======================================"
+echo "  Isaac Quick Deploy"
+echo "======================================"
+
+# Step 1: Copy SSH key to Pi if needed
+echo ""
+echo "[Step 1] Checking SSH key setup..."
+if ! ssh -o BatchMode=yes -o ConnectTimeout=5 "$PI_USER@$PI_HOST" "echo ok" 2>/dev/null; then
+    echo "SSH key not set up. Copying public key to Pi..."
+    echo "You'll need to enter the Pi's password:"
+    ssh-copy-id "$PI_USER@$PI_HOST"
+fi
+
+echo ""
+echo "[Step 2] Creating directories on Pi..."
+ssh "$PI_USER@$PI_HOST" "sudo mkdir -p /opt/isaac/{backend,frontend,deploy,data,logs} && sudo chown -R $PI_USER:$PI_USER /opt/isaac"
+
+echo ""
+echo "[Step 3] Installing dependencies on Pi..."
+ssh "$PI_USER@$PI_HOST" << 'DEPS'
+set -e
+echo "Updating packages..."
+sudo apt-get update
+
+echo "Installing Python, Node, Nginx..."
+sudo apt-get install -y python3 python3-pip python3-venv nginx git curl rsync
+
+# Check if Node.js is installed
+if ! command -v node &> /dev/null || [[ $(node -v | cut -d. -f1 | tr -d 'v') -lt 18 ]]; then
+    echo "Installing Node.js 20.x..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+fi
+
+echo "Installing kiosk dependencies..."
+sudo apt-get install -y chromium-browser unclutter xdotool
+
+echo "Dependencies installed!"
+DEPS
+
+echo ""
+echo "[Step 4] Syncing files to Pi..."
+rsync -avz --delete \
+    --exclude '__pycache__' \
+    --exclude '*.pyc' \
+    --exclude 'venv' \
+    --exclude '.env' \
+    --exclude '*.db' \
+    --exclude 'node_modules' \
+    --exclude 'dist' \
+    "$LOCAL_DIR/backend/" \
+    "$PI_USER@$PI_HOST:/opt/isaac/backend/"
+
+rsync -avz --delete \
+    --exclude 'node_modules' \
+    --exclude 'dist' \
+    "$LOCAL_DIR/frontend/" \
+    "$PI_USER@$PI_HOST:/opt/isaac/frontend/"
+
+rsync -avz \
+    "$LOCAL_DIR/deploy/" \
+    "$PI_USER@$PI_HOST:/opt/isaac/deploy/"
+
+echo ""
+echo "[Step 5] Setting up Python environment and building frontend..."
+ssh "$PI_USER@$PI_HOST" << 'BUILD'
+set -e
+cd /opt/isaac
+
+# Python setup
+if [ ! -d "backend/venv" ]; then
+    echo "Creating Python virtual environment..."
+    cd backend
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    cd ..
+else
+    echo "Updating Python dependencies..."
+    cd backend
+    source venv/bin/activate
+    pip install -r requirements.txt
+    cd ..
+fi
+
+# Create .env if missing
+if [ ! -f "backend/.env" ]; then
+    cp backend/.env.example backend/.env
+    echo "Created .env from template"
+fi
+
+# Create logs directory
+mkdir -p backend/logs
+
+# Frontend build
+echo "Building frontend..."
+cd frontend
+npm install
+npm run build
+cd ..
+
+echo "Build complete!"
+BUILD
+
+echo ""
+echo "[Step 6] Setting up systemd services..."
+ssh "$PI_USER@$PI_HOST" << 'SERVICES'
+set -e
+
+# Copy service files
+sudo cp /opt/isaac/deploy/isaac-backend.service /etc/systemd/system/
+sudo cp /opt/isaac/deploy/isaac-kiosk.service /etc/systemd/system/
+
+# Make kiosk script executable
+sudo chmod +x /opt/isaac/deploy/kiosk.sh
+
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Enable backend service
+sudo systemctl enable isaac-backend
+
+echo "Services configured!"
+SERVICES
+
+echo ""
+echo "[Step 7] Configuring Nginx..."
+ssh "$PI_USER@$PI_HOST" << 'NGINX'
+set -e
+
+# Copy nginx config
+sudo cp /opt/isaac/deploy/nginx-isaac.conf /etc/nginx/sites-available/isaac
+sudo ln -sf /etc/nginx/sites-available/isaac /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Test and restart nginx
+sudo nginx -t
+sudo systemctl restart nginx
+
+echo "Nginx configured!"
+NGINX
+
+echo ""
+echo "[Step 8] Starting Isaac backend..."
+ssh "$PI_USER@$PI_HOST" "sudo systemctl restart isaac-backend && sleep 2 && sudo systemctl status isaac-backend --no-pager"
+
+echo ""
+echo "======================================"
+echo "  Deployment Complete!"
+echo "======================================"
+echo ""
+echo "Dashboard: http://isaac.local"
+echo "API Docs:  http://isaac.local/api/docs"
+echo ""
+echo "Next: Configure .env and start kiosk mode"
+echo "  ssh $PI_USER@$PI_HOST"
+echo "  nano /opt/isaac/backend/.env"
+echo "  sudo systemctl start isaac-kiosk"
+echo ""

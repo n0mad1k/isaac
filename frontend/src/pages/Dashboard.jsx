@@ -52,7 +52,7 @@ function Dashboard() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-farm-green mx-auto"></div>
-          <p className="mt-4 text-gray-400">Loading Levi...</p>
+          <p className="mt-4 text-gray-400">Loading Isaac...</p>
         </div>
       </div>
     )

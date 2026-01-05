@@ -1,0 +1,89 @@
+#!/bin/bash
+# Initial Raspberry Pi Setup for Isaac
+# Run this ON the Raspberry Pi ONCE after first boot
+#
+# Copy this to setup-pi.sh and customize for your environment
+
+set -e
+
+# Configuration - customize these
+PI_USER="${PI_USER:-pi}"
+TIMEZONE="${TIMEZONE:-America/New_York}"
+
+echo "======================================"
+echo "  Raspberry Pi Initial Setup for Isaac"
+echo "======================================"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Check if running as sudo
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run with sudo: sudo $0"
+    exit 1
+fi
+
+echo -e "${GREEN}[1/7] Updating system...${NC}"
+apt-get update && apt-get upgrade -y
+
+echo -e "${GREEN}[2/7] Installing core dependencies...${NC}"
+apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    nginx \
+    git \
+    curl \
+    rsync \
+    vim \
+    htop
+
+echo -e "${GREEN}[3/7] Installing Node.js 20.x...${NC}"
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get install -y nodejs
+
+echo -e "${GREEN}[4/7] Installing kiosk mode dependencies...${NC}"
+apt-get install -y \
+    chromium-browser \
+    unclutter \
+    xdotool
+
+echo -e "${GREEN}[5/7] Creating Isaac directories...${NC}"
+mkdir -p /opt/isaac/{backend,frontend,deploy,data,logs}
+chown -R $PI_USER:$PI_USER /opt/isaac
+
+echo -e "${GREEN}[6/7] Configuring system for kiosk mode...${NC}"
+# Disable screen blanking
+cat >> /etc/xdg/lxsession/LXDE-pi/autostart << 'EOF'
+@xset s off
+@xset -dpms
+@xset s noblank
+EOF
+
+# Configure boot to desktop (autologin)
+raspi-config nonint do_boot_behaviour B4
+
+echo -e "${GREEN}[7/7] Setting timezone...${NC}"
+timedatectl set-timezone $TIMEZONE
+
+echo ""
+echo -e "${GREEN}======================================"
+echo "  Initial Setup Complete!"
+echo "======================================${NC}"
+echo ""
+echo -e "${YELLOW}The Pi is ready for Isaac deployment.${NC}"
+echo ""
+echo "From your development machine, run:"
+echo "  ./scripts/deploy-to-pi.sh"
+echo ""
+echo "After deployment, configure:"
+echo "  nano /opt/isaac/backend/.env"
+echo ""
+echo "Then start Isaac:"
+echo "  sudo systemctl start isaac-backend"
+echo ""
+echo "Reboot is recommended to apply all changes:"
+echo "  sudo reboot"
+echo ""

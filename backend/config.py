@@ -1,5 +1,5 @@
 """
-Levi Configuration
+Isaac Configuration
 Environment-based settings for the farm assistant
 """
 
@@ -11,12 +11,12 @@ from pathlib import Path
 
 class Settings(BaseSettings):
     # Application
-    app_name: str = "Levi"
+    app_name: str = "Isaac"
     app_version: str = "1.0.0"
     debug: bool = False
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./data/levi.db"
+    database_url: str = "sqlite+aiosqlite:///./data/isaac.db"
 
     # Server
     host: str = "0.0.0.0"
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     caldav_url: Optional[str] = Field(default=None, description="CalDAV server URL")
     caldav_username: Optional[str] = Field(default=None, description="CalDAV username")
     caldav_password: Optional[str] = Field(default=None, description="CalDAV password")
-    caldav_calendar_name: str = Field(default="Levi Tasks", description="Calendar name for tasks")
+    caldav_calendar_name: str = Field(default="Isaac Tasks", description="Calendar name for tasks")
 
     # Alert Thresholds
     frost_warning_temp: float = 35.0  # Fahrenheit

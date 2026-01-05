@@ -96,7 +96,7 @@ def calculate_sunset(lat: float, lon: float, date_obj: date = None) -> datetime:
 
 
 class SchedulerService:
-    """Background task scheduler for Levi"""
+    """Background task scheduler for Isaac"""
 
     def __init__(self):
         self.scheduler = AsyncIOScheduler(timezone=settings.timezone)

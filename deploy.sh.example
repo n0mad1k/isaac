@@ -1,0 +1,64 @@
+#!/bin/bash
+# Isaac Deploy Script
+# Safely syncs code to remote server without deleting important files
+#
+# Copy this to deploy.sh and customize for your environment
+
+# Configure these for your setup
+SSH_KEY="$HOME/.ssh/isaac"
+PI_USER="pi"
+PI_HOST="isaac.local"
+REMOTE="$PI_USER@$PI_HOST"
+REMOTE_PATH="/opt/isaac"
+LOCAL_DIR="$(dirname "$0")"
+
+echo "=== Deploying Isaac ==="
+
+# ALWAYS backup database first
+echo "Creating pre-deploy backup..."
+ssh -i $SSH_KEY $REMOTE "$REMOTE_PATH/backup.sh"
+
+# Sync backend (excluding venv, data, logs, __pycache__)
+echo "Syncing backend..."
+rsync -avz \
+  --exclude 'venv/' \
+  --exclude 'data/' \
+  --exclude 'logs/' \
+  --exclude '__pycache__/' \
+  --exclude '*.pyc' \
+  --exclude '.env' \
+  -e "ssh -i $SSH_KEY" \
+  "$LOCAL_DIR/backend/" \
+  $REMOTE:$REMOTE_PATH/backend/
+
+# Sync frontend source (not node_modules or dist)
+echo "Syncing frontend source..."
+rsync -avz \
+  --exclude 'node_modules/' \
+  --exclude 'dist/' \
+  -e "ssh -i $SSH_KEY" \
+  "$LOCAL_DIR/frontend/src/" \
+  $REMOTE:$REMOTE_PATH/frontend/src/
+
+# Sync frontend config files if needed
+echo "Syncing frontend config..."
+rsync -avz \
+  -e "ssh -i $SSH_KEY" \
+  "$LOCAL_DIR/frontend/package.json" \
+  "$LOCAL_DIR/frontend/vite.config.js" \
+  "$LOCAL_DIR/frontend/tailwind.config.js" \
+  "$LOCAL_DIR/frontend/postcss.config.js" \
+  "$LOCAL_DIR/frontend/index.html" \
+  $REMOTE:$REMOTE_PATH/frontend/
+
+# Rebuild frontend on remote
+echo "Building frontend..."
+ssh -i $SSH_KEY $REMOTE "cd $REMOTE_PATH/frontend && npm run build"
+
+# Restart backend service
+echo "Restarting backend..."
+ssh -i $SSH_KEY $REMOTE "sudo systemctl restart isaac-backend"
+
+echo "=== Deploy Complete ==="
+echo "Checking backend status..."
+ssh -i $SSH_KEY $REMOTE "sudo systemctl status isaac-backend --no-pager | head -10"

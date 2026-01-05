@@ -1,4 +1,4 @@
-# Levi - Farm & Homestead Assistant
+# Isaac - Farm & Homestead Assistant
 # Backend Dependencies
 
 # Web Framework

@@ -90,7 +90,7 @@ DEFAULT_SETTINGS = {
         "description": "Calendar app-specific password"
     },
     "calendar_name": {
-        "value": "Mealey Family Farm",
+        "value": "My Farm",
         "description": "Name of the calendar to sync with"
     },
     "calendar_sync_interval": {

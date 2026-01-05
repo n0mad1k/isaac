@@ -1,0 +1,18 @@
+[Unit]
+Description=Isaac Dashboard Kiosk Mode
+After=graphical.target
+Wants=graphical.target
+
+[Service]
+Type=simple
+# Change to your username
+User=pi
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+ExecStartPre=/bin/sleep 10
+ExecStart=/opt/isaac/deploy/kiosk.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

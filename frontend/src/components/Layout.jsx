@@ -90,7 +90,7 @@ function Layout() {
       <header className="md:hidden bg-gray-800 px-4 py-3 flex items-center justify-between fixed top-0 left-0 right-0 z-50">
         <NavLink to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <span className="text-2xl">🌾</span>
-          <span className="text-lg font-semibold text-farm-green">Levi</span>
+          <span className="text-lg font-semibold text-farm-green">Isaac</span>
         </NavLink>
         <div className="flex items-center gap-2">
           {user && (

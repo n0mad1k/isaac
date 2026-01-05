@@ -1,6 +1,6 @@
 """
 Calendar Sync Service
-Bi-directional sync between Levi tasks and CalDAV calendars (Proton, etc.)
+Bi-directional sync between Isaac tasks and CalDAV calendars (Proton, etc.)
 """
 
 import caldav
@@ -24,7 +24,7 @@ DEFAULT_CALENDAR_SETTINGS = {
     "calendar_url": "http://127.0.0.1:5232",
     "calendar_username": "",
     "calendar_password": "",
-    "calendar_name": "Mealey Family Farm",
+    "calendar_name": "My Farm",
     "calendar_sync_interval": "30",  # minutes
 }
 
@@ -48,7 +48,7 @@ class CalendarSyncService:
         url: str,
         username: str,
         password: str,
-        calendar_name: str = "Mealey Family Farm",
+        calendar_name: str = "My Farm",
     ):
         self.url = url
         self.username = username
@@ -73,7 +73,7 @@ class CalendarSyncService:
             return False
 
     def get_or_create_calendar(self) -> Optional[caldav.Calendar]:
-        """Get the Levi calendar, or create it if it doesn't exist"""
+        """Get the Isaac calendar, or create it if it doesn't exist"""
         if self._calendar:
             return self._calendar
 
@@ -102,9 +102,9 @@ class CalendarSyncService:
             return None
 
     def task_to_ical(self, task: Task) -> str:
-        """Convert a Levi task to iCalendar format (VEVENT for events, VTODO for todos)"""
+        """Convert a Isaac task to iCalendar format (VEVENT for events, VTODO for todos)"""
         cal = icalendar.Calendar()
-        cal.add('prodid', '-//Levi Farm Assistant//mealey.family//')
+        cal.add('prodid', '-//Isaac Farm Assistant//example.com//')
         cal.add('version', '2.0')
         cal.add('calscale', 'GREGORIAN')  # Required for iOS compatibility
 
@@ -112,8 +112,8 @@ class CalendarSyncService:
         # Events have task_type=EVENT, Todos have task_type=TODO (or no type)
         is_event = task.task_type == TaskType.EVENT if task.task_type else False
 
-        # Use existing calendar_uid if set, otherwise create new levi-task UID
-        uid = task.calendar_uid if task.calendar_uid else f"levi-task-{task.id}@mealey.family"
+        # Use existing calendar_uid if set, otherwise create new isaac-task UID
+        uid = task.calendar_uid if task.calendar_uid else f"isaac-task-{task.id}@example.com"
         now_utc = datetime.now(pytz.UTC)
         eastern = pytz.timezone('America/New_York')
 
@@ -212,7 +212,7 @@ class CalendarSyncService:
         component.add('created', now_utc)
         component.add('dtstamp', now_utc)
         component.add('last-modified', now_utc)
-        component.add('x-levi-task-id', str(task.id))
+        component.add('x-isaac-task-id', str(task.id))
 
         cal.add_component(component)
         return cal.to_ical().decode('utf-8')
@@ -291,8 +291,8 @@ class CalendarSyncService:
         if uid:
             task_dict['calendar_uid'] = str(uid)
 
-        # Check if this is a Levi task
-        levi_task_id = component.get('x-levi-task-id')
+        # Check if this is a Isaac task
+        levi_task_id = component.get('x-isaac-task-id')
         if levi_task_id:
             task_dict['levi_task_id'] = int(str(levi_task_id))
 
@@ -306,8 +306,8 @@ class CalendarSyncService:
 
         try:
             ical_data = self.task_to_ical(task)
-            # Use existing calendar_uid if set, otherwise create new levi-task UID
-            uid = task.calendar_uid if task.calendar_uid else f"levi-task-{task.id}@mealey.family"
+            # Use existing calendar_uid if set, otherwise create new isaac-task UID
+            uid = task.calendar_uid if task.calendar_uid else f"isaac-task-{task.id}@example.com"
             is_event = task.task_type == TaskType.EVENT if task.task_type else False
 
             if is_event:
@@ -397,14 +397,14 @@ class CalendarSyncService:
         for task in tasks:
             # Skip tasks that were imported from phone (have a non-levi UID)
             # They already exist in the calendar, don't push duplicates
-            if task.calendar_uid and not task.calendar_uid.startswith('levi-task-'):
+            if task.calendar_uid and not task.calendar_uid.startswith('isaac-task-'):
                 logger.debug(f"Skipping imported task '{task.title}' - already in calendar")
                 continue
 
             # Check if this task was deleted on the phone
-            # If task has a levi-task UID and it's not in the calendar, it was deleted on phone
+            # If task has a isaac-task UID and it's not in the calendar, it was deleted on phone
             if calendar_uids is not None and task.calendar_uid:
-                if task.calendar_uid.startswith('levi-task-') and task.calendar_uid not in calendar_uids:
+                if task.calendar_uid.startswith('isaac-task-') and task.calendar_uid not in calendar_uids:
                     # Task was deleted on phone - mark as inactive in webapp
                     task.is_active = False
                     deleted_by_phone += 1
@@ -486,7 +486,7 @@ class CalendarSyncService:
         return result
 
     async def sync_calendar_to_tasks(self, db: AsyncSession) -> dict:
-        """Sync calendar events to Levi tasks (bi-directional with deletion detection)"""
+        """Sync calendar events to Isaac tasks (bi-directional with deletion detection)"""
         events = await self.get_calendar_events()
 
         # Build set of UIDs currently in calendar
@@ -505,8 +505,8 @@ class CalendarSyncService:
             if not calendar_uid:
                 continue
 
-            # For Levi-originated tasks, sync completion status back from calendar
-            if calendar_uid.startswith('levi-task-') or event_dict.get('levi_task_id'):
+            # For Isaac-originated tasks, sync completion status back from calendar
+            if calendar_uid.startswith('isaac-task-') or event_dict.get('levi_task_id'):
                 # Check if this task was completed on the phone
                 if event_dict.get('is_completed'):
                     result = await db.execute(
@@ -574,7 +574,7 @@ class CalendarSyncService:
                 created += 1
 
         # Detect deletions: tasks with calendar_uid that no longer exist in calendar
-        # Only check tasks that were imported from calendar (have calendar_uid but no levi-task UID pattern)
+        # Only check tasks that were imported from calendar (have calendar_uid but no isaac-task UID pattern)
         result = await db.execute(
             select(Task)
             .where(Task.calendar_uid.isnot(None))
@@ -583,8 +583,8 @@ class CalendarSyncService:
         tasks_with_uid = result.scalars().all()
 
         for task in tasks_with_uid:
-            # Skip tasks that originated from Levi (they have levi-task-X pattern)
-            if task.calendar_uid and task.calendar_uid.startswith('levi-task-'):
+            # Skip tasks that originated from Isaac (they have isaac-task-X pattern)
+            if task.calendar_uid and task.calendar_uid.startswith('isaac-task-'):
                 continue
             # If this task's calendar_uid is no longer in calendar, mark as deleted
             if task.calendar_uid and task.calendar_uid not in calendar_uids:
@@ -600,7 +600,7 @@ class CalendarSyncService:
         """Delete a task's calendar event or todo.
 
         Args:
-            task_id: The task ID (used to build levi-task UID if calendar_uid not provided)
+            task_id: The task ID (used to build isaac-task UID if calendar_uid not provided)
             calendar_uid: The actual calendar UID (for iPhone-originated items)
             task_type: Optional task type hint
         """
@@ -609,7 +609,7 @@ class CalendarSyncService:
             return False
 
         # Use provided calendar_uid, or build from task_id
-        uid = calendar_uid if calendar_uid else f"levi-task-{task_id}@mealey.family"
+        uid = calendar_uid if calendar_uid else f"isaac-task-{task_id}@example.com"
         deleted = False
 
         # Try to delete as VEVENT first
@@ -671,5 +671,5 @@ async def get_calendar_service(db: AsyncSession) -> Optional[CalendarSyncService
         url=url,
         username=username,
         password=password,
-        calendar_name=calendar_name or "Mealey Family Farm",
+        calendar_name=calendar_name or "My Farm",
     )

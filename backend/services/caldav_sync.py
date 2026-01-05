@@ -1,6 +1,6 @@
 """
 CalDAV Sync Service
-Synchronizes Levi tasks with CalDAV calendars (Proton, iCloud, Google, etc.)
+Synchronizes Isaac tasks with CalDAV calendars (Proton, iCloud, Google, etc.)
 """
 
 import caldav
@@ -43,7 +43,7 @@ class CalDAVService:
             principal = self.client.principal()
             calendars = principal.calendars()
 
-            # Find or create the Levi calendar
+            # Find or create the Isaac calendar
             for cal in calendars:
                 if cal.name == settings.caldav_calendar_name:
                     self.calendar = cal
@@ -74,10 +74,10 @@ class CalDAVService:
             return False
 
     def _task_to_vtodo(self, task) -> str:
-        """Convert a Levi task to VTODO format"""
-        uid = f"levi-task-{task.id}@{settings.app_name.lower()}"
+        """Convert a Isaac task to VTODO format"""
+        uid = f"isaac-task-{task.id}@{settings.app_name.lower()}"
 
-        # Priority mapping (Levi: 1=high, 2=medium, 3=low -> RFC 5545: 1=high, 5=medium, 9=low)
+        # Priority mapping (Isaac: 1=high, 2=medium, 3=low -> RFC 5545: 1=high, 5=medium, 9=low)
         priority_map = {1: 1, 2: 5, 3: 9}
         priority = priority_map.get(task.priority, 5)
 
@@ -88,7 +88,7 @@ class CalDAVService:
         lines = [
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
-            f"PRODID:-//Levi Farm Assistant//EN",
+            f"PRODID:-//Isaac Farm Assistant//EN",
             "BEGIN:VTODO",
             f"UID:{uid}",
             f"DTSTAMP:{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}",
@@ -143,7 +143,7 @@ class CalDAVService:
 
         try:
             vtodo = self._task_to_vtodo(task)
-            uid = f"levi-task-{task.id}@{settings.app_name.lower()}"
+            uid = f"isaac-task-{task.id}@{settings.app_name.lower()}"
 
             # Try to find existing event
             try:
@@ -172,7 +172,7 @@ class CalDAVService:
                 return False
 
         try:
-            uid = f"levi-task-{task_id}@{settings.app_name.lower()}"
+            uid = f"isaac-task-{task_id}@{settings.app_name.lower()}"
             existing = self.calendar.todo_by_uid(uid)
             if existing:
                 existing.delete()

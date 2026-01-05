@@ -55,7 +55,7 @@ class NWSForecastService:
             self._client = httpx.AsyncClient(
                 timeout=30.0,
                 follow_redirects=True,
-                headers={"User-Agent": "(Levi Farm Assistant, contact@example.com)"}
+                headers={"User-Agent": "(Isaac Farm Assistant, contact@example.com)"}
             )
         return self._client
 

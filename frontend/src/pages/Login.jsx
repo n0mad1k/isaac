@@ -51,7 +51,7 @@ function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-farm-green/20 mb-4">
             <span className="text-4xl">🌿</span>
           </div>
-          <h1 className="text-3xl font-bold text-white">Levi</h1>
+          <h1 className="text-3xl font-bold text-white">Isaac</h1>
           <p className="text-gray-400 mt-2">Farm & Homestead Assistant</p>
         </div>
 

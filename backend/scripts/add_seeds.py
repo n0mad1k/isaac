@@ -123,5 +123,5 @@ async def add_seeds():
 
 
 if __name__ == "__main__":
-    print("Adding seeds to Levi database...\n")
+    print("Adding seeds to Isaac database...\n")
     asyncio.run(add_seeds())

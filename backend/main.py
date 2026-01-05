@@ -1,5 +1,5 @@
 """
-Levi - Farm & Homestead Assistant
+Isaac - Farm & Homestead Assistant
 Main FastAPI Application
 """
 
@@ -101,7 +101,7 @@ logger.add(
     level=log_level,
 )
 logger.add(
-    "logs/levi.log",
+    "logs/isaac.log",
     rotation="10 MB",
     retention="30 days",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",

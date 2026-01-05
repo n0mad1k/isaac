@@ -1,5 +1,5 @@
 """
-Levi Database Models
+Isaac Database Models
 """
 
 from .database import Base, engine, async_session, init_db
