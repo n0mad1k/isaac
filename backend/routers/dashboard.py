@@ -486,8 +486,9 @@ from pathlib import Path
 import shutil
 
 # Hardcoded paths for security - prevents path traversal attacks
-ISAAC_DATA_DIR = Path("/opt/isaac/data")
-ISAAC_LOGS_DIR = Path("/opt/isaac/logs")
+# Uses /opt/levi for backwards compatibility with existing deployments
+ISAAC_DATA_DIR = Path("/opt/levi/data")
+ISAAC_LOGS_DIR = Path("/opt/levi/logs")
 
 
 class StorageStats(BaseModel):
@@ -571,7 +572,7 @@ async def get_storage_stats(db: AsyncSession = Depends(get_db)):
         usage_percent = 0
 
     # Get Isaac component sizes from hardcoded paths only
-    db_size = _safe_get_size(ISAAC_DATA_DIR / "isaac.db")
+    db_size = _safe_get_size(ISAAC_DATA_DIR / "levi.db")
     log_size = _safe_dir_size(ISAAC_LOGS_DIR)
     app_total = db_size + log_size
 
