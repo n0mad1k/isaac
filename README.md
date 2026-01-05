@@ -30,19 +30,19 @@ A self-hosted farm management dashboard designed to run on a Raspberry Pi. Track
 Your command center showing weather, today's tasks, overdue items, alerts, and quick stats. The cold protection widget automatically warns you when frost-sensitive plants need covering.
 
 ### Plant Management
-Complete plant database with care logging, automated reminders, and harvest tracking. Import plants from PFAF or Permapeople databases. [Learn more](https://github.com/n0mad1k/isaac/wiki/Plant-Management)
+Complete plant database with care logging, automated reminders, and harvest tracking. Import plants from PFAF or Permapeople databases.
 
 ### Animal Management
-Track pets and livestock with health records, care schedules (worming, vaccines, hoof care), feeding, and expenses. Automatic reminders for upcoming care. [Learn more](https://github.com/n0mad1k/isaac/wiki/Animal-Management)
+Track pets and livestock with health records, care schedules (worming, vaccines, hoof care), feeding, and expenses. Automatic reminders for upcoming care.
 
 ### Calendar
-Three views (day, week, month) showing both events and reminders. Visual distinction between event types. Syncs with your phone via CalDAV. [Learn more](https://github.com/n0mad1k/isaac/wiki/Tasks-and-Calendar)
+Three views (day, week, month) showing both events and reminders. Visual distinction between event types. Syncs with your phone via CalDAV.
 
 ### Maintenance Tracking
-Vehicles, equipment, home, and farm areas - all with customizable maintenance schedules, completion logging, and cost tracking. [Learn more](https://github.com/n0mad1k/isaac/wiki/Maintenance-Tracking)
+Vehicles, equipment, home, and farm areas - all with customizable maintenance schedules, completion logging, and cost tracking.
 
 ### Weather Integration
-Connect your Ambient Weather station for real-time local conditions. Automatic alerts for frost, freeze, heat, wind, and rain with configurable thresholds. [Learn more](https://github.com/n0mad1k/isaac/wiki/Weather-Integration)
+Connect your Ambient Weather station for real-time local conditions. Automatic alerts for frost, freeze, heat, wind, and rain with configurable thresholds.
 
 ## Hardware Requirements
 
@@ -392,19 +392,7 @@ sudo systemctl restart isaac-backend
 
 ## Documentation
 
-### Wiki
-Comprehensive documentation is available in the [Wiki](https://github.com/n0mad1k/isaac/wiki):
-
-- [Features Overview](https://github.com/n0mad1k/isaac/wiki/Features-Overview) - Complete feature list
-- [Dashboard](https://github.com/n0mad1k/isaac/wiki/Dashboard) - Dashboard widgets and layout
-- [Plant Management](https://github.com/n0mad1k/isaac/wiki/Plant-Management) - Plants, care, harvests
-- [Animal Management](https://github.com/n0mad1k/isaac/wiki/Animal-Management) - Pets, livestock, health
-- [Tasks & Calendar](https://github.com/n0mad1k/isaac/wiki/Tasks-and-Calendar) - Events, reminders, views
-- [Maintenance Tracking](https://github.com/n0mad1k/isaac/wiki/Maintenance-Tracking) - Vehicles, equipment, home
-- [Weather Integration](https://github.com/n0mad1k/isaac/wiki/Weather-Integration) - Weather stations, alerts
-- [Settings](https://github.com/n0mad1k/isaac/wiki/Settings) - Configuration options
-- [User Management](https://github.com/n0mad1k/isaac/wiki/User-Management) - Users, roles, permissions
-- [Integrations](https://github.com/n0mad1k/isaac/wiki/Integrations) - CalDAV, weather APIs, plant import
+Comprehensive documentation is available in the [Wiki](https://github.com/n0mad1k/isaac/wiki).
 
 ### API Documentation
 
