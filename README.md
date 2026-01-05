@@ -22,8 +22,6 @@ A self-hosted farm management dashboard designed to run on a Raspberry Pi. Track
 | **Production** | Harvest records, livestock processing, yield tracking |
 | **Multi-User** | Role-based access (Admin/Editor/Viewer), kiosk mode |
 
-> **Full documentation:** See the [Wiki](https://github.com/n0mad1k/isaac/wiki) for detailed feature guides.
-
 ## Quick Feature Overview
 
 ### Dashboard
