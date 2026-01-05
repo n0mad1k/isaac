@@ -37,6 +37,10 @@ DEFAULT_SETTINGS = {
         "value": "06:00",
         "description": "Time to send daily digest (24h format)"
     },
+    "email_digest_recipient": {
+        "value": "",
+        "description": "Email address for daily digest (leave empty to use alert recipients)"
+    },
 
     # Alert thresholds
     "frost_warning_temp": {
@@ -70,6 +74,14 @@ DEFAULT_SETTINGS = {
     "dashboard_refresh_interval": {
         "value": "5",
         "description": "Dashboard auto-refresh interval in minutes (0 to disable)"
+    },
+    "hide_completed_today": {
+        "value": "false",
+        "description": "Hide completed tasks from Today's Schedule on dashboard"
+    },
+    "time_format": {
+        "value": "12h",
+        "description": "Time display format (12h or 24h)"
     },
 
     # Calendar sync settings
@@ -512,12 +524,15 @@ async def test_cold_protection_email(db: AsyncSession = Depends(get_db)):
     from datetime import datetime
     sunset_time = "5:30 PM"  # Approximate for test
 
-    success = await email_service.send_cold_protection_reminder(
-        plants=plant_dicts,
-        forecast_low=forecast_low,
-        sunset_time=sunset_time,
-        recipients=recipients,
-    )
+    try:
+        success = await email_service.send_cold_protection_reminder(
+            plants=plant_dicts,
+            forecast_low=forecast_low,
+            sunset_time=sunset_time,
+            recipients=recipients,
+        )
+    except ConfigurationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     if success:
         return {
@@ -605,3 +620,179 @@ async def sync_calendar(db: AsyncSession = Depends(get_db)):
         "events_updated": sync_result.get("updated", 0),
         "events_deleted": sync_result.get("deleted", 0),
     }
+
+
+# ============================================
+# Version and Update Endpoints
+# ============================================
+
+@router.get("/version/")
+async def get_version_info():
+    """Get current version, changelog, and update status"""
+    import subprocess
+    import os
+
+    # Read version from VERSION file
+    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "VERSION")
+    current_version = "unknown"
+    try:
+        with open(version_file, "r") as f:
+            current_version = f.read().strip()
+    except:
+        pass
+
+    # Read changelog
+    changelog_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "CHANGELOG.md")
+    changelog = ""
+    try:
+        with open(changelog_file, "r") as f:
+            changelog = f.read()
+    except:
+        pass
+
+    # Get current git info
+    git_info = {
+        "branch": "",
+        "commit": "",
+        "commit_date": "",
+        "has_updates": False,
+        "commits_behind": 0,
+    }
+
+    try:
+        # Get current branch
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, cwd=os.path.dirname(version_file)
+        )
+        if result.returncode == 0:
+            git_info["branch"] = result.stdout.strip()
+
+        # Get current commit
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, cwd=os.path.dirname(version_file)
+        )
+        if result.returncode == 0:
+            git_info["commit"] = result.stdout.strip()
+
+        # Get commit date
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%ci"],
+            capture_output=True, text=True, cwd=os.path.dirname(version_file)
+        )
+        if result.returncode == 0:
+            git_info["commit_date"] = result.stdout.strip()
+
+        # Fetch to check for updates (don't pull yet)
+        subprocess.run(
+            ["git", "fetch", "--quiet"],
+            capture_output=True, cwd=os.path.dirname(version_file)
+        )
+
+        # Check how many commits behind
+        result = subprocess.run(
+            ["git", "rev-list", "--count", "HEAD..origin/" + git_info["branch"]],
+            capture_output=True, text=True, cwd=os.path.dirname(version_file)
+        )
+        if result.returncode == 0:
+            commits_behind = int(result.stdout.strip())
+            git_info["commits_behind"] = commits_behind
+            git_info["has_updates"] = commits_behind > 0
+    except Exception as e:
+        pass
+
+    # Get recent commits
+    recent_commits = []
+    try:
+        result = subprocess.run(
+            ["git", "log", "--oneline", "-10", "--format=%h|%s|%cr"],
+            capture_output=True, text=True, cwd=os.path.dirname(version_file)
+        )
+        if result.returncode == 0:
+            for line in result.stdout.strip().split("\n"):
+                if line:
+                    parts = line.split("|", 2)
+                    if len(parts) == 3:
+                        recent_commits.append({
+                            "hash": parts[0],
+                            "message": parts[1],
+                            "time": parts[2],
+                        })
+    except:
+        pass
+
+    git_info["recent_commits"] = recent_commits
+
+    return {
+        "version": current_version,
+        "changelog": changelog,
+        "git": git_info,
+    }
+
+
+@router.post("/update/")
+async def update_application():
+    """Pull latest changes and trigger rebuild"""
+    import subprocess
+    import os
+
+    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "VERSION")
+    project_dir = os.path.dirname(version_file)
+
+    results = {
+        "success": False,
+        "git_pull": "",
+        "message": "",
+    }
+
+    try:
+        # Git pull
+        result = subprocess.run(
+            ["git", "pull", "--ff-only"],
+            capture_output=True, text=True, cwd=project_dir
+        )
+        results["git_pull"] = result.stdout + result.stderr
+
+        if result.returncode != 0:
+            results["message"] = "Git pull failed"
+            return results
+
+        results["success"] = True
+        results["message"] = "Update pulled successfully. Restart the service to apply changes."
+
+    except Exception as e:
+        results["message"] = f"Update failed: {str(e)}"
+
+    return results
+
+
+@router.get("/recent-commits/")
+async def get_recent_commits():
+    """Get recent git commits"""
+    import subprocess
+    import os
+
+    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "VERSION")
+    project_dir = os.path.dirname(version_file)
+
+    commits = []
+    try:
+        result = subprocess.run(
+            ["git", "log", "--oneline", "-20", "--format=%h|%s|%cr"],
+            capture_output=True, text=True, cwd=project_dir
+        )
+        if result.returncode == 0:
+            for line in result.stdout.strip().split("\n"):
+                if line:
+                    parts = line.split("|", 2)
+                    if len(parts) == 3:
+                        commits.append({
+                            "hash": parts[0],
+                            "message": parts[1],
+                            "time": parts[2],
+                        })
+    except:
+        pass
+
+    return {"commits": commits}

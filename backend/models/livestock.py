@@ -67,8 +67,8 @@ class Animal(Base):
     feed_frequency = Column(String(100))  # e.g., "twice daily", "once daily"
 
     # Location
-    pasture = Column(String(100))
-    barn = Column(String(100))
+    pasture = Column(String(100))  # Primary location (now using as location field)
+    sub_location = Column(String(200))  # Sub-location detail (e.g., "3rd paddock", "Stall 5")
     farm_area_id = Column(Integer, ForeignKey("farm_areas.id"), nullable=True)
 
     # === LIVESTOCK SPECIFIC ===
@@ -313,6 +313,9 @@ class AnimalCareSchedule(Base):
 
     # Manual due date (optional - overrides calculated due date)
     manual_due_date = Column(Date)
+
+    # Preferred time for this care task (e.g., "08:00" for morning feeding)
+    due_time = Column(String(10))  # "HH:MM" format
 
     # Original due date - set when task first becomes due if last_performed is None
     # This prevents the due date from resetting to "today" every sync

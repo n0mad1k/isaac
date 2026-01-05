@@ -11,7 +11,7 @@ from datetime import datetime, date, timedelta
 from pydantic import BaseModel, Field
 
 from models.database import get_db
-from models.plants import Plant, PlantCareLog, Tag, GrowthRate, SunRequirement
+from models.plants import Plant, PlantCareLog, Tag, GrowthRate, SunRequirement, MoisturePreference
 from services.auto_reminders import (
     sync_plant_watering_reminder,
     sync_plant_fertilizing_reminder,
@@ -41,6 +41,7 @@ class PlantCreate(BaseModel):
     variety: Optional[str] = Field(None, max_length=100)
     description: Optional[str] = Field(None, max_length=5000)
     location: Optional[str] = Field(None, max_length=200)
+    sub_location: Optional[str] = Field(None, max_length=200)
     date_planted: Optional[datetime] = None
     source: Optional[str] = Field(None, max_length=200)
 
@@ -67,7 +68,14 @@ class PlantCreate(BaseModel):
 
     # Watering & Fertilizing
     water_schedule: Optional[str] = Field(None, max_length=200)  # "summer:3,winter:10,spring:5,fall:7"
+    moisture_preference: Optional[MoisturePreference] = None  # Used to auto-calculate water_schedule
     fertilize_schedule: Optional[str] = Field(None, max_length=200)
+
+    # Automatic watering
+    receives_rain: bool = False  # Plant gets natural rainfall
+    rain_threshold_inches: Optional[float] = Field(0.25, ge=0.1, le=2.0)  # Min rain to count as watering
+    sprinkler_enabled: bool = False  # Plant has sprinkler coverage
+    sprinkler_schedule: Optional[str] = Field(None, max_length=100)  # "days:0,1,3,5;time:06:00"
 
     # Pruning
     prune_frequency: Optional[str] = Field(None, max_length=100)
@@ -98,6 +106,7 @@ class PlantUpdate(BaseModel):
     variety: Optional[str] = Field(None, max_length=100)
     description: Optional[str] = Field(None, max_length=5000)
     location: Optional[str] = Field(None, max_length=200)
+    sub_location: Optional[str] = Field(None, max_length=200)
     date_planted: Optional[datetime] = None
 
     grow_zones: Optional[str] = Field(None, max_length=50)
@@ -114,10 +123,18 @@ class PlantUpdate(BaseModel):
     drought_tolerant: Optional[bool] = None
 
     water_schedule: Optional[str] = Field(None, max_length=200)
+    moisture_preference: Optional[MoisturePreference] = None
     fertilize_schedule: Optional[str] = Field(None, max_length=200)
     last_watered: Optional[datetime] = None
+    last_watering_decision: Optional[datetime] = None
     last_fertilized: Optional[datetime] = None
     last_pruned: Optional[datetime] = None
+
+    # Automatic watering
+    receives_rain: Optional[bool] = None
+    rain_threshold_inches: Optional[float] = Field(None, ge=0.1, le=2.0)
+    sprinkler_enabled: Optional[bool] = None
+    sprinkler_schedule: Optional[str] = Field(None, max_length=100)
 
     prune_frequency: Optional[str] = Field(None, max_length=100)
     prune_months: Optional[str] = Field(None, max_length=50)
@@ -142,6 +159,7 @@ class PlantResponse(BaseModel):
     variety: Optional[str]
     description: Optional[str]
     location: Optional[str]
+    sub_location: Optional[str]
     date_planted: Optional[datetime]
     source: Optional[str]
 
@@ -161,9 +179,17 @@ class PlantResponse(BaseModel):
     needs_shade_above_temp: Optional[float]
 
     water_schedule: Optional[str]
+    moisture_preference: Optional[MoisturePreference]
     last_watered: Optional[datetime]
+    last_watering_decision: Optional[datetime]
     fertilize_schedule: Optional[str]
     last_fertilized: Optional[datetime]
+
+    # Automatic watering
+    receives_rain: bool = False
+    rain_threshold_inches: Optional[float]
+    sprinkler_enabled: bool = False
+    sprinkler_schedule: Optional[str]
 
     prune_frequency: Optional[str]
     prune_months: Optional[str]
@@ -254,6 +280,7 @@ def plant_to_response(plant: Plant) -> dict:
         "variety": plant.variety,
         "description": plant.description,
         "location": plant.location,
+        "sub_location": plant.sub_location,
         "date_planted": plant.date_planted,
         "source": plant.source,
         "grow_zones": plant.grow_zones,
@@ -270,7 +297,13 @@ def plant_to_response(plant: Plant) -> dict:
         "salt_tolerant": plant.salt_tolerant,
         "needs_shade_above_temp": plant.needs_shade_above_temp,
         "water_schedule": plant.water_schedule,
+        "moisture_preference": plant.moisture_preference,
         "last_watered": plant.last_watered,
+        "last_watering_decision": plant.last_watering_decision,
+        "receives_rain": plant.receives_rain,
+        "rain_threshold_inches": plant.rain_threshold_inches,
+        "sprinkler_enabled": plant.sprinkler_enabled,
+        "sprinkler_schedule": plant.sprinkler_schedule,
         "fertilize_schedule": plant.fertilize_schedule,
         "last_fertilized": plant.last_fertilized,
         "prune_frequency": plant.prune_frequency,
@@ -633,6 +666,18 @@ async def import_plant(
         }
         sun_requirement = sun_map.get(data["sun_requirement"], SunRequirement.FULL_SUN)
 
+    # Map moisture_preference string to enum
+    moisture_preference = None
+    if "moisture_preference" in data:
+        moisture_map = {
+            "dry": MoisturePreference.DRY,
+            "dry_moist": MoisturePreference.DRY_MOIST,
+            "moist": MoisturePreference.MOIST,
+            "moist_wet": MoisturePreference.MOIST_WET,
+            "wet": MoisturePreference.WET,
+        }
+        moisture_preference = moisture_map.get(data["moisture_preference"])
+
     # Add source URL to notes
     notes = data.get("notes", "")
     notes = f"{notes}\nSource: {request.url}" if notes else f"Source: {request.url}"
@@ -645,6 +690,7 @@ async def import_plant(
         description=data.get("description"),
         grow_zones=data.get("grow_zones"),
         sun_requirement=sun_requirement,
+        moisture_preference=moisture_preference,
         soil_requirements=data.get("soil_requirements"),
         size_full_grown=data.get("size_full_grown"),
         growth_rate=growth_rate,
@@ -653,6 +699,8 @@ async def import_plant(
         uses=data.get("uses"),
         known_hazards=data.get("known_hazards"),
         propagation_methods=data.get("propagation_methods"),
+        cultivation_details=data.get("cultivation"),
+        references=data.get("references"),
         notes=notes,
     )
 
@@ -662,3 +710,159 @@ async def import_plant(
 
     logger.info(f"Imported plant '{plant.name}' from {request.url}")
     return plant_to_response(plant)
+
+
+# Skip watering schemas
+class SkipWateringRequest(BaseModel):
+    reason: str = Field(..., description="Reason for skip: soil_moist, rain, dormant, other")
+    notes: Optional[str] = None
+
+
+class WateringHistoryResponse(BaseModel):
+    total_events: int
+    waters: int
+    skips: int
+    skip_rate: float
+    avg_days_between: Optional[float]
+    suggestion: Optional[str]
+    suggested_adjustment: Optional[int]
+
+
+@router.post("/{plant_id}/skip-watering")
+async def skip_watering(
+    plant_id: int,
+    request: SkipWateringRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Skip watering for a plant.
+
+    This updates last_watering_decision (for schedule calculation) but NOT last_watered
+    (preserving actual watering history). Also logs the skip for trend analysis.
+    """
+    result = await db.execute(
+        select(Plant).where(Plant.id == plant_id)
+    )
+    plant = result.scalar_one_or_none()
+    if not plant:
+        raise HTTPException(status_code=404, detail="Plant not found")
+
+    now = datetime.now()
+
+    # Calculate days since last actual watering
+    days_since_water = None
+    if plant.last_watered:
+        days_since_water = (now - plant.last_watered).days
+
+    # Get current scheduled interval
+    scheduled_interval = plant.get_water_days_for_season()
+
+    # Create care log entry for the skip
+    care_log = PlantCareLog(
+        plant_id=plant_id,
+        care_type="skipped",
+        skip_reason=request.reason,
+        notes=request.notes,
+        days_since_last_water=days_since_water,
+        scheduled_interval=scheduled_interval,
+        performed_at=now,
+    )
+    db.add(care_log)
+
+    # Update last_watering_decision (NOT last_watered)
+    plant.last_watering_decision = now
+
+    await db.commit()
+
+    # Sync reminders so next watering date is calculated from new decision date
+    await db.refresh(plant, ["tags"])
+    await sync_plant_reminders(db, plant)
+
+    logger.info(f"Skipped watering for {plant.name}: {request.reason}")
+
+    return {
+        "message": f"Watering skipped for {plant.name}",
+        "reason": request.reason,
+        "next_watering": plant.next_watering,
+        "days_since_last_actual_water": days_since_water,
+    }
+
+
+@router.post("/{plant_id}/water")
+async def water_plant(
+    plant_id: int,
+    notes: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Mark a plant as watered.
+
+    Updates both last_watered and last_watering_decision, and logs the watering.
+    """
+    result = await db.execute(
+        select(Plant).where(Plant.id == plant_id)
+    )
+    plant = result.scalar_one_or_none()
+    if not plant:
+        raise HTTPException(status_code=404, detail="Plant not found")
+
+    now = datetime.now()
+
+    # Calculate days since last actual watering
+    days_since_water = None
+    if plant.last_watered:
+        days_since_water = (now - plant.last_watered).days
+
+    # Get current scheduled interval
+    scheduled_interval = plant.get_water_days_for_season()
+
+    # Create care log entry
+    care_log = PlantCareLog(
+        plant_id=plant_id,
+        care_type="watered",
+        notes=notes,
+        days_since_last_water=days_since_water,
+        scheduled_interval=scheduled_interval,
+        performed_at=now,
+    )
+    db.add(care_log)
+
+    # Update both timestamps
+    plant.last_watered = now
+    plant.last_watering_decision = now
+
+    await db.commit()
+
+    # Sync reminders
+    await db.refresh(plant, ["tags"])
+    await sync_plant_reminders(db, plant)
+
+    logger.info(f"Watered {plant.name}")
+
+    return {
+        "message": f"Watered {plant.name}",
+        "next_watering": plant.next_watering,
+    }
+
+
+@router.get("/{plant_id}/watering-history", response_model=WateringHistoryResponse)
+async def get_watering_history(
+    plant_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get watering history analysis for a plant.
+
+    Returns water/skip counts, patterns, and suggestions for schedule adjustments.
+    """
+    from services.watering_calculator import analyze_watering_history
+
+    result = await db.execute(
+        select(Plant).where(Plant.id == plant_id)
+    )
+    plant = result.scalar_one_or_none()
+    if not plant:
+        raise HTTPException(status_code=404, detail="Plant not found")
+
+    history = await analyze_watering_history(db, plant_id)
+    return history

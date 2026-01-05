@@ -15,6 +15,108 @@ from urllib.parse import urlparse, parse_qs
 _pfaf_references_cache: Dict[str, str] = {}
 
 
+def celsius_to_fahrenheit(celsius: float) -> float:
+    """Convert Celsius to Fahrenheit."""
+    return round(celsius * 9/5 + 32, 1)
+
+
+def meters_to_feet(meters: float) -> float:
+    """Convert meters to feet."""
+    return round(meters * 3.28084, 1)
+
+
+def cm_to_inches(cm: float) -> float:
+    """Convert centimeters to inches."""
+    return round(cm / 2.54, 1)
+
+
+def mm_to_inches(mm: float) -> float:
+    """Convert millimeters to inches."""
+    return round(mm / 25.4, 2)
+
+
+def kg_to_lbs(kg: float) -> float:
+    """Convert kilograms to pounds."""
+    return round(kg * 2.20462, 1)
+
+
+def convert_metric_measurements(text: str) -> str:
+    """
+    Convert metric measurements in text to imperial (US units).
+    Strips out metric values entirely, keeping only imperial.
+    Handles: meters, centimeters, millimeters, celsius, kilograms.
+    """
+    if not text:
+        return text
+
+    # First, handle existing "X m (Yft)" patterns - extract just the ft value
+    # Pattern: "15 m (49ft)" -> "49ft"
+    text = re.sub(r'\d+(?:\.\d+)?\s*m\s*\((\d+(?:\.\d+)?)\s*ft\)', r'\1 ft', text)
+
+    # Handle "X m (Yft Zin)" patterns - "1 m (3ft 3in)" -> "3ft 3in"
+    text = re.sub(r'\d+(?:\.\d+)?\s*m\s*\(([^)]+(?:ft|in)[^)]*)\)', r'\1', text)
+
+    # Convert temperatures: -4°c, 14°c, 40°C, etc.
+    def convert_temp(match):
+        temp_str = match.group(1).replace(',', '')
+        temp_c = float(temp_str)
+        temp_f = celsius_to_fahrenheit(temp_c)
+        return f"{temp_f}°F"
+
+    # Match temp with degree symbol
+    text = re.sub(r'(-?\d+(?:,\d{3})*(?:\.\d+)?)\s*°\s*[cC](?:elsius)?(?![a-zA-Z])', convert_temp, text)
+
+    # Convert meters: 15 m, 2.5m, 20 metres, 2,800 metres etc.
+    def convert_m(match):
+        meters_str = match.group(1).replace(',', '')
+        meters = float(meters_str)
+        feet = meters_to_feet(meters)
+        return f"{feet} ft"
+
+    text = re.sub(r'(\d+(?:,\d{3})*(?:\.\d+)?)\s*m(?:eters?|etres?)?(?=[\s,\.\)]|$)', convert_m, text)
+
+    # Convert centimeters: 12cm, 45 cm, etc.
+    def convert_cm(match):
+        cm_str = match.group(1).replace(',', '')
+        cm = float(cm_str)
+        inches = cm_to_inches(cm)
+        return f"{inches} in"
+
+    text = re.sub(r'(\d+(?:,\d{3})*(?:\.\d+)?)\s*cm(?=[\s,\.\)]|$)', convert_cm, text)
+
+    # Convert millimeters (rainfall): 500mm, 2000 mm, 2,000mm etc.
+    def convert_mm(match):
+        mm_str = match.group(1).replace(',', '')
+        mm = float(mm_str)
+        inches = mm_to_inches(mm)
+        return f"{inches} in"
+
+    text = re.sub(r'(\d+(?:,\d{3})*(?:\.\d+)?)\s*mm(?=[\s,\.\)]|$)', convert_mm, text)
+
+    # Convert kilograms: 15 kg, etc.
+    def convert_kg(match):
+        kg_str = match.group(1).replace(',', '')
+        kg = float(kg_str)
+        lbs = kg_to_lbs(kg)
+        return f"{lbs} lbs"
+
+    text = re.sub(r'(\d+(?:,\d{3})*(?:\.\d+)?)\s*kg(?=[\s,\.\)]|$)', convert_kg, text)
+
+    # Convert hectares to acres: 1 hectare = 2.47105 acres
+    def convert_hectare(match):
+        ha_str = match.group(1).replace(',', '')
+        ha = float(ha_str)
+        acres = round(ha * 2.47105, 1)
+        return f"{acres} acres"
+
+    text = re.sub(r'(\d+(?:,\d{3})*(?:\.\d+)?)\s*hectares?(?=[\s,\.\)]|$)', convert_hectare, text)
+
+    # Convert tonnes to tons (metric ton ≈ US ton for practical purposes)
+    text = re.sub(r'(\d+(?:,\d{3})*(?:\.\d+)?)\s*tonnes?(?=[\s,\.\)]|$)', r'\1 tons', text)
+
+    return text
+
+
 class PlantImportService:
     """Service for importing plant data from external sources"""
 
@@ -114,6 +216,76 @@ class PlantImportService:
             text = re.sub(r'\s+', ' ', text)
         return text.strip()
 
+    def _extract_care_icons(self, soup: BeautifulSoup) -> Dict[str, str]:
+        """
+        Extract care information from PFAF's Care field icons.
+        The Care row contains icons for hardiness, moisture, and sun requirements.
+
+        Icon mappings from https://pfaf.org/user/popup.aspx:
+        - Hardiness: H1 (Tender), H2 (Half Hardy), H3 (Frost Hardy), H4 (Fully Hardy)
+        - Moisture: water0 (Dry), water1 (Dry/Moist), water2 (Moist), water3 (Moist/Wet), water4 (Wet)
+        - Sun: sun (Full sun), semishade (Part shade), shade (Full shade)
+        """
+        care_data = {}
+
+        # Find the Care row - look for table with id "tblIcons"
+        icons_table = soup.find("table", {"id": "ContentPlaceHolder1_tblIcons"})
+        if not icons_table:
+            # Fallback: find by traversing from Care text
+            for row in soup.find_all("tr"):
+                if "Care" in row.get_text() and "(info)" in row.get_text():
+                    icons_table = row.find("table")
+                    break
+
+        if not icons_table:
+            return care_data
+
+        # Extract all images in the care icons table
+        for img in icons_table.find_all("img"):
+            alt = img.get("alt", "").lower()
+            title = img.get("title", "").lower()
+            src = img.get("src", "").lower()
+
+            # Determine the icon type and value
+            icon_text = alt or title
+
+            # Moisture icons - most reliable from src filename
+            if "water" in src:
+                if "water0" in src or "dry soil" in icon_text:
+                    care_data["moisture"] = "dry"
+                elif "water1" in src:
+                    care_data["moisture"] = "dry_moist"
+                elif "water2" in src or "moist soil" in icon_text:
+                    care_data["moisture"] = "moist"
+                elif "water3" in src:
+                    care_data["moisture"] = "moist_wet"
+                elif "water4" in src or "wet soil" in icon_text:
+                    care_data["moisture"] = "wet"
+            # Sun icons
+            elif "sun" in src or "shade" in src:
+                if "semishade" in src or "semi-shade" in src or "part" in icon_text:
+                    care_data["sun"] = "partial_shade"
+                elif "shade" in src and "semi" not in src:
+                    care_data["sun"] = "full_shade"
+                elif "sun" in src or "full sun" in icon_text:
+                    care_data["sun"] = "full_sun"
+            # Hardiness icons (H1-H4)
+            elif "h1" in src or "tender" in icon_text:
+                care_data["hardiness"] = "tender"
+                care_data["frost_sensitive"] = True
+            elif "h2" in src or "half hardy" in icon_text:
+                care_data["hardiness"] = "half_hardy"
+                care_data["frost_sensitive"] = True
+            elif "h3" in src or "frost hardy" in icon_text:
+                care_data["hardiness"] = "frost_hardy"
+                care_data["frost_sensitive"] = False
+            elif "h4" in src or "fully hardy" in icon_text:
+                care_data["hardiness"] = "fully_hardy"
+                care_data["frost_sensitive"] = False
+
+        logger.debug(f"Extracted care icons: {care_data}")
+        return care_data
+
     async def import_from_pfaf(self, url: str) -> Dict[str, Any]:
         """
         Scrape plant data from Plants For A Future (pfaf.org)
@@ -128,6 +300,15 @@ class PlantImportService:
         soup = BeautifulSoup(response.text, "lxml")
         data = {}
         all_reference_nums: Set[str] = set()
+
+        # Extract care icons FIRST - most reliable source for moisture/sun/hardiness
+        care_icons = self._extract_care_icons(soup)
+        if care_icons.get("moisture"):
+            data["moisture_preference"] = care_icons["moisture"]
+        if care_icons.get("sun"):
+            data["sun_requirement"] = care_icons["sun"]
+        if "frost_sensitive" in care_icons:
+            data["frost_sensitive"] = care_icons["frost_sensitive"]
 
         # Extract Latin name from URL parameter or title
         parsed_url = urlparse(url)
@@ -240,22 +421,24 @@ class PlantImportService:
                 rate_map = {"slow": "slow", "medium": "moderate", "fast": "fast", "very fast": "very_fast"}
                 data["growth_rate"] = rate_map.get(rate, "moderate")
 
-            # Extract frost sensitivity
-            if "frost tender" in desc_content.lower():
-                data["frost_sensitive"] = True
-            elif "frost hardy" in desc_content.lower() or "very hardy" in desc_content.lower():
-                data["frost_sensitive"] = False
+            # Extract frost sensitivity (only if not already set from care icons)
+            if "frost_sensitive" not in data:
+                if "frost tender" in desc_content.lower():
+                    data["frost_sensitive"] = True
+                elif "frost hardy" in desc_content.lower() or "very hardy" in desc_content.lower():
+                    data["frost_sensitive"] = False
 
-            # Extract sun requirement
-            if "cannot grow in the shade" in desc_content.lower():
-                data["sun_requirement"] = "full_sun"
-            elif "semi-shade" in desc_content.lower():
-                data["sun_requirement"] = "partial_shade"
-            elif "full shade" in desc_content.lower():
-                data["sun_requirement"] = "full_shade"
-            else:
-                # Default to partial shade if it mentions shade tolerance
-                data["sun_requirement"] = "partial_sun"
+            # Extract sun requirement (only if not already set from care icons)
+            if "sun_requirement" not in data:
+                if "cannot grow in the shade" in desc_content.lower():
+                    data["sun_requirement"] = "full_sun"
+                elif "semi-shade" in desc_content.lower():
+                    data["sun_requirement"] = "partial_shade"
+                elif "full shade" in desc_content.lower():
+                    data["sun_requirement"] = "full_shade"
+                else:
+                    # Default to partial shade if it mentions shade tolerance
+                    data["sun_requirement"] = "partial_sun"
 
             # Extract soil info - look for "Suitable for:" pattern
             soil_match = re.search(r"Suitable for[:\s]+([^.]+(?:soils|soil))", desc_content, re.I)
@@ -266,6 +449,20 @@ class PlantImportService:
             ph_match = re.search(r"Suitable pH[:\s]+([^.]+)", desc_content, re.I)
             if ph_match:
                 data["soil_ph"] = self._clean_text(ph_match.group(1))
+
+            # Extract moisture preference from description (only if not already set from care icons)
+            # Look for patterns like "Prefers dry soil", "dry or moist soil", etc.
+            if "moisture_preference" not in data:
+                moisture_pref = self._extract_moisture_preference(desc_content)
+                if moisture_pref:
+                    data["moisture_preference"] = moisture_pref
+
+        # Also check cultivation text for moisture hints (only if not already set)
+        cultivation = data.get("cultivation", "")
+        if cultivation and "moisture_preference" not in data:
+            moisture_pref = self._extract_moisture_preference(cultivation)
+            if moisture_pref:
+                data["moisture_preference"] = moisture_pref
 
         # Extract temperature tolerance from cultivation notes
         cultivation = data.get("cultivation", "")
@@ -440,6 +637,93 @@ class PlantImportService:
         elif "propagat" in label:
             data["propagation"] = value
 
+    def _extract_moisture_preference(self, text: str) -> Optional[str]:
+        """
+        Extract moisture preference from text.
+        Returns: dry, dry_moist, moist, moist_wet, wet, or None
+
+        Priority order:
+        1. "prefers X" statements (explicit preference)
+        2. Range statements like "dry or moist", "moist to wet"
+        3. "tolerates X" statements (secondary tolerance, not preference)
+        4. PFAF moisture codes (D, DM, M, MWe, We)
+        """
+        if not text:
+            return None
+
+        text_lower = text.lower()
+
+        # ===== PRIORITY 1: Explicit "prefers X" statements =====
+        # These are the strongest indicators of actual preference
+
+        # Wet/bog plants - explicit preference
+        if any(p in text_lower for p in ["bog", "aquatic", "water plant", "waterlogged"]):
+            return "wet"
+
+        # "prefers wet soil"
+        if re.search(r"prefers?\s+wet\s+soil", text_lower):
+            return "wet"
+
+        # "prefers moist soil" - check this BEFORE drought tolerance
+        if re.search(r"prefers?\s+moist\s+soil", text_lower):
+            return "moist"
+
+        # "prefers dry soil"
+        if re.search(r"prefers?\s+dry\s+soil", text_lower):
+            return "dry"
+
+        # ===== PRIORITY 2: Range statements =====
+        # These indicate adaptability across moisture levels
+
+        # Moist to wet range
+        if any(p in text_lower for p in ["moist or wet", "moist to wet", "wet or moist"]):
+            return "moist_wet"
+
+        # Dry or moist range (adaptable)
+        if re.search(r"dry\s+or\s+moist|dry\s+to\s+moist|moist\s+or\s+dry", text_lower):
+            return "dry_moist"
+
+        # ===== PRIORITY 3: Secondary moisture indicators =====
+        # Less explicit but still useful
+
+        # "moist but well-drained" - common phrase for average moisture
+        if re.search(r"moist\s+but\s+well[- ]drained", text_lower):
+            return "moist"
+
+        # "wet soil" without other context
+        if "wet soil" in text_lower:
+            return "moist_wet"
+
+        # "moist soil" without dry context
+        if "moist soil" in text_lower and "dry" not in text_lower:
+            return "moist"
+
+        # ===== PRIORITY 4: Tolerance statements =====
+        # Only use these if no preference was found
+        # "tolerates drought" doesn't mean it prefers dry - it can survive it
+
+        # "drought tolerant" as primary characteristic (no moisture preference stated)
+        if "drought tolerant" in text_lower and "moist" not in text_lower:
+            return "dry"
+
+        # ===== PRIORITY 5: PFAF moisture codes =====
+        # These appear in tables with format like "Moisture: D"
+        code_match = re.search(r"moisture[:\s]+([DMWea]+)", text_lower, re.I)
+        if code_match:
+            code = code_match.group(1).upper()
+            if code == "D":
+                return "dry"
+            elif code == "DM":
+                return "dry_moist"
+            elif code == "M":
+                return "moist"
+            elif code in ["MWE", "MWe"]:
+                return "moist_wet"
+            elif code in ["WE", "We", "WA", "Wa"]:
+                return "wet"
+
+        return None
+
     def _clean_text(self, text: str, strip_refs: bool = False) -> str:
         """Clean up text by removing extra whitespace and HTML entities"""
         if not text:
@@ -524,26 +808,41 @@ class PlantImportService:
         """
         Map scraped data to Plant model fields.
         Returns only fields that have values.
+        Converts metric measurements to imperial.
         """
         result = {}
 
-        # Direct mappings
+        # Direct mappings (no conversion needed)
         direct_fields = [
-            "name", "latin_name", "variety", "description", "grow_zones",
-            "soil_requirements", "size_full_grown", "growth_rate",
-            "frost_sensitive", "uses", "known_hazards", "propagation_methods",
-            "references"
+            "name", "latin_name", "variety", "grow_zones", "growth_rate",
+            "frost_sensitive", "propagation_methods", "references"
         ]
 
         for field in direct_fields:
             if field in data and data[field]:
                 result[field] = data[field]
 
+        # Text fields that may contain metric measurements - convert to imperial
+        text_fields_to_convert = [
+            "description", "soil_requirements", "size_full_grown",
+            "uses", "known_hazards"
+        ]
+
+        for field in text_fields_to_convert:
+            if field in data and data[field]:
+                result[field] = convert_metric_measurements(data[field])
+
         # Sun requirement (ensure valid enum value)
         if "sun_requirement" in data:
             valid_sun = ["full_sun", "partial_sun", "partial_shade", "full_shade"]
             if data["sun_requirement"] in valid_sun:
                 result["sun_requirement"] = data["sun_requirement"]
+
+        # Moisture preference (ensure valid enum value)
+        if "moisture_preference" in data:
+            valid_moisture = ["dry", "dry_moist", "moist", "moist_wet", "wet"]
+            if data["moisture_preference"] in valid_moisture:
+                result["moisture_preference"] = data["moisture_preference"]
 
         # Temperature (min_temp)
         if "min_temp" in data:
@@ -565,9 +864,9 @@ class PlantImportService:
             if "frost_sensitive" not in result:
                 result["frost_sensitive"] = True
 
-        # Map cultivation -> cultivation_details
+        # Map cultivation -> cultivation_details (with metric conversion)
         if "cultivation" in data and data["cultivation"]:
-            result["cultivation_details"] = data["cultivation"]
+            result["cultivation_details"] = convert_metric_measurements(data["cultivation"])
 
         logger.debug(f"Mapped plant data: {result}")
         return result

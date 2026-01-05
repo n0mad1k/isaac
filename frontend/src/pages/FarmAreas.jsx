@@ -4,21 +4,51 @@ import { getFarmAreas, getFarmArea, createFarmArea, updateFarmArea, deleteFarmAr
 import { format, formatDistanceToNow } from 'date-fns'
 
 const TYPE_ICONS = {
+  // Buildings
+  house: '🏠',
+  barn: '🏚️',
+  pole_barn: '🏗️',
+  workshop: '🔧',
+  greenhouse: '🌿',
+  shed: '🛖',
+  garage: '🚗',
+  storage: '📦',
+  // Indoor/Rooms
+  bedroom: '🛏️',
+  bathroom: '🚿',
+  kitchen: '🍳',
+  living_room: '🛋️',
+  office: '💼',
+  laundry: '🧺',
+  closet: '🚪',
+  attic: '🏚️',
+  basement: '🏚️',
+  // Outdoor/Growing
   garden: '🥕',
   nursery: '🌱',
   food_forest: '🌳',
   orchard: '🍎',
   pasture: '🌾',
+  yard: '🌿',
+  front_yard: '🌿',
+  back_yard: '🌿',
+  side_yard: '🌿',
+  // Water
   pond: '💧',
-  barn: '🏚️',
-  pole_barn: '🏗️',
-  workshop: '🔧',
+  pool: '🏊',
+  // Animal Housing
   chicken_coop: '🐔',
   rabbit_hutch: '🐰',
+  dog_kennel: '🐕',
+  stall: '🐴',
+  pen: '🐖',
   apiary: '🐝',
-  greenhouse: '🏠',
-  shed: '🛖',
-  garage: '🚗',
+  // Other
+  driveway: '🛣️',
+  deck: '🪵',
+  patio: '🪑',
+  porch: '🚪',
+  fence: '🚧',
   custom: '⚙️',
 }
 
@@ -40,6 +70,7 @@ function FarmAreas() {
     name: '',
     type: 'garden',
     custom_type: '',
+    parent_id: '',
     description: '',
     location_notes: '',
     size_acres: '',
@@ -124,6 +155,7 @@ function FarmAreas() {
     try {
       const data = {
         ...formData,
+        parent_id: formData.parent_id ? parseInt(formData.parent_id) : null,
         size_acres: formData.size_acres ? parseFloat(formData.size_acres) : null,
         size_sqft: formData.size_sqft ? parseFloat(formData.size_sqft) : null,
       }
@@ -293,8 +325,11 @@ function FarmAreas() {
                 <div className="flex items-center gap-3">
                   <span className="text-3xl">{TYPE_ICONS[area.type] || '🌿'}</span>
                   <div>
-                    <div className="font-bold text-lg">{area.name}</div>
-                    <div className="text-gray-400 text-sm">{area.display_type}</div>
+                    <div className="font-bold text-lg">{area.is_sub_location ? `↳ ${area.name}` : area.name}</div>
+                    <div className="text-gray-400 text-sm">
+                      {area.is_sub_location && <span className="text-cyan-400">{area.full_path.split(' > ')[0]} &gt; </span>}
+                      {area.display_type}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -467,15 +502,31 @@ function FarmAreas() {
               {editingArea ? 'Edit Area' : 'Add Farm Area'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Parent Location (optional)</label>
+                  <select
+                    value={formData.parent_id}
+                    onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
+                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  >
+                    <option value="">No parent (top level)</option>
+                    {areas.filter(a => !a.parent_id && a.id !== editingArea?.id).map(a => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Create sub-location (e.g., House &gt; Bedroom)</p>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

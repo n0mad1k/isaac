@@ -12,9 +12,166 @@ from pydantic import BaseModel, Field, field_validator
 from models.database import get_db
 from models.tasks import Task, TaskCategory, TaskRecurrence, TaskType, FLORIDA_MAINTENANCE_TASKS
 from services.calendar_sync import get_calendar_service
+from loguru import logger
 
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
+
+
+async def update_source_entity_on_complete(db: AsyncSession, notes: str):
+    """Update the source entity's last_performed/last_completed date when an auto-reminder is completed.
+
+    Notes format: "auto:source_type:source_id" or "auto:source_type:group_key"
+    """
+    try:
+        parts = notes.split(":", 2)
+        if len(parts) < 3:
+            return
+
+        _, source_type, source_id_or_key = parts
+        today = date.today()
+        now = datetime.utcnow()
+
+        # Plant watering
+        if source_type == "plant_watering":
+            from models.plants import Plant
+            plant_id = int(source_id_or_key)
+            result = await db.execute(select(Plant).where(Plant.id == plant_id))
+            plant = result.scalar_one_or_none()
+            if plant:
+                plant.last_watered = now
+                # Recalculate next_watering based on watering_frequency
+                if plant.watering_frequency:
+                    plant.next_watering = now + timedelta(days=plant.watering_frequency)
+                logger.info(f"Updated Plant {plant.name} last_watered to {today}")
+
+        # Plant fertilizing
+        elif source_type == "plant_fertilizing":
+            from models.plants import Plant
+            plant_id = int(source_id_or_key)
+            result = await db.execute(select(Plant).where(Plant.id == plant_id))
+            plant = result.scalar_one_or_none()
+            if plant:
+                plant.last_fertilized = now
+                # Recalculate next_fertilizing based on fertilizing_frequency
+                if plant.fertilizing_frequency:
+                    plant.next_fertilizing = now + timedelta(days=plant.fertilizing_frequency)
+                logger.info(f"Updated Plant {plant.name} last_fertilized to {today}")
+
+        # Vehicle maintenance
+        elif source_type == "vehicle_maint":
+            from models.vehicles import VehicleMaintenance, Vehicle
+            maint_id = int(source_id_or_key)
+            result = await db.execute(select(VehicleMaintenance).where(VehicleMaintenance.id == maint_id))
+            maint = result.scalar_one_or_none()
+            if maint:
+                # Get current mileage from vehicle if available
+                vehicle_result = await db.execute(select(Vehicle).where(Vehicle.id == maint.vehicle_id))
+                vehicle = vehicle_result.scalar_one_or_none()
+
+                maint.last_completed = now
+                if vehicle:
+                    maint.last_mileage = vehicle.current_mileage
+                    maint.last_hours = vehicle.current_hours
+
+                # Recalculate next due
+                if maint.frequency_days:
+                    maint.next_due_date = now + timedelta(days=maint.frequency_days)
+                if maint.frequency_miles and vehicle and vehicle.current_mileage:
+                    maint.next_due_mileage = vehicle.current_mileage + maint.frequency_miles
+                if maint.frequency_hours and vehicle and vehicle.current_hours:
+                    maint.next_due_hours = vehicle.current_hours + maint.frequency_hours
+                maint.manual_due_date = None  # Clear manual override
+                logger.info(f"Updated VehicleMaintenance {maint.name} last_completed to {today}")
+
+        # Equipment maintenance
+        elif source_type == "equipment_maint":
+            from models.equipment import EquipmentMaintenance, Equipment
+            maint_id = int(source_id_or_key)
+            result = await db.execute(select(EquipmentMaintenance).where(EquipmentMaintenance.id == maint_id))
+            maint = result.scalar_one_or_none()
+            if maint:
+                # Get current hours from equipment if available
+                equip_result = await db.execute(select(Equipment).where(Equipment.id == maint.equipment_id))
+                equipment = equip_result.scalar_one_or_none()
+
+                maint.last_completed = now
+                if equipment:
+                    maint.last_hours = equipment.current_hours
+
+                # Recalculate next due
+                if maint.frequency_days:
+                    maint.next_due_date = now + timedelta(days=maint.frequency_days)
+                if maint.frequency_hours and equipment and equipment.current_hours:
+                    maint.next_due_hours = equipment.current_hours + maint.frequency_hours
+                maint.manual_due_date = None  # Clear manual override
+                logger.info(f"Updated EquipmentMaintenance {maint.name} last_completed to {today}")
+
+        # Home maintenance
+        elif source_type == "home_maint":
+            from models.home_maintenance import HomeMaintenance
+            maint_id = int(source_id_or_key)
+            result = await db.execute(select(HomeMaintenance).where(HomeMaintenance.id == maint_id))
+            maint = result.scalar_one_or_none()
+            if maint:
+                maint.last_completed = now
+                maint.calculate_next_due()
+                logger.info(f"Updated HomeMaintenance {maint.name} last_completed to {today}")
+
+        # Farm area maintenance
+        elif source_type == "farm_maint":
+            from models.farm_areas import FarmAreaMaintenance
+            maint_id = int(source_id_or_key)
+            result = await db.execute(select(FarmAreaMaintenance).where(FarmAreaMaintenance.id == maint_id))
+            maint = result.scalar_one_or_none()
+            if maint:
+                maint.last_completed = now
+                maint.calculate_next_due()
+                logger.info(f"Updated FarmAreaMaintenance {maint.name} last_completed to {today}")
+
+        # Animal care schedule (individual)
+        elif source_type == "animal_care_schedule":
+            from models.livestock import AnimalCareSchedule
+            schedule_id = int(source_id_or_key)
+            result = await db.execute(select(AnimalCareSchedule).where(AnimalCareSchedule.id == schedule_id))
+            schedule = result.scalar_one_or_none()
+            if schedule:
+                schedule.last_performed = today
+                # due_date is a property that recalculates based on last_performed + frequency_days
+                logger.info(f"Updated AnimalCareSchedule {schedule.name} last_performed to {today}")
+
+        # Grouped care (care_group:date_carename)
+        elif source_type == "care_group":
+            from models.livestock import AnimalCareSchedule
+            # group_key format: "2026-01-15_worming"
+            parts = source_id_or_key.split("_", 1)
+            if len(parts) == 2:
+                due_date_str, care_name = parts
+                try:
+                    group_due_date = date.fromisoformat(due_date_str)
+                    # Find all care schedules with this name and due date
+                    result = await db.execute(
+                        select(AnimalCareSchedule).where(
+                            AnimalCareSchedule.is_active == True,
+                        )
+                    )
+                    schedules = result.scalars().all()
+                    updated_count = 0
+                    for schedule in schedules:
+                        if schedule.name.lower().strip() == care_name and schedule.due_date == group_due_date:
+                            schedule.last_performed = today
+                            updated_count += 1
+                    logger.info(f"Updated {updated_count} AnimalCareSchedules for care_group {care_name} on {due_date_str}")
+                except ValueError:
+                    pass
+
+        # Grouped slaughter (slaughter_group:date_processor)
+        elif source_type == "slaughter_group":
+            # For slaughter, we don't update anything - animals are processed and typically removed
+            logger.debug(f"Slaughter group completed: {source_id_or_key}")
+
+    except Exception as e:
+        logger.error(f"Error updating source entity for {notes}: {e}")
 
 
 # Pydantic Schemas with validation
@@ -228,7 +385,7 @@ async def update_task(
 
 @router.post("/{task_id}/complete/", response_model=TaskResponse)
 async def complete_task(task_id: int, db: AsyncSession = Depends(get_db)):
-    """Mark a task as completed"""
+    """Mark a task as completed and update source entity if auto-generated"""
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalar_one_or_none()
     if not task:
@@ -240,13 +397,30 @@ async def complete_task(task_id: int, db: AsyncSession = Depends(get_db)):
     task.last_completed = datetime.utcnow()
     task.updated_at = datetime.utcnow()
 
+    # For auto-generated recurring reminders, mark as inactive so a new one can be created
+    is_auto_reminder = task.notes and task.notes.startswith("auto:")
+    if is_auto_reminder:
+        await update_source_entity_on_complete(db, task.notes)
+        # Mark this completed task as inactive so next sync creates a new one
+        task.is_active = False
+        logger.info(f"Marked auto-reminder task {task_id} as inactive after completion")
+
     await db.commit()
     await db.refresh(task)
 
-    # Sync to calendar if enabled
+    # Sync to calendar if enabled (this will remove the completed task from calendar)
     calendar_service = await get_calendar_service(db)
     if calendar_service:
         await calendar_service.sync_task_to_calendar(task)
+
+    # For auto-reminders, trigger immediate re-sync to create the next occurrence
+    if is_auto_reminder and ("care_group" in task.notes or "animal_care" in task.notes):
+        from services.auto_reminders import sync_all_animal_reminders
+        try:
+            stats = await sync_all_animal_reminders(db)
+            logger.info(f"Re-synced animal reminders after completion: {stats}")
+        except Exception as e:
+            logger.error(f"Failed to re-sync animal reminders: {e}")
 
     return task
 

@@ -9,6 +9,8 @@ import {
   Trash2,
   X,
   RefreshCw,
+  CalendarDays,
+  Clock,
 } from 'lucide-react'
 import {
   getTasks,
@@ -20,10 +22,14 @@ import {
   completeTask,
   uncompleteTask,
   syncCalendar,
+  getSettings,
 } from '../services/api'
-import { format, isAfter, startOfDay, parseISO } from 'date-fns'
+import { format, isAfter, startOfDay, parseISO, addDays, endOfWeek, endOfMonth, isWithinInterval, isSameDay, isToday, isTomorrow } from 'date-fns'
+import { useSettings } from '../contexts/SettingsContext'
 
 function ToDo() {
+  const { formatTime } = useSettings()
+
   // Check if a todo is overdue
   const isOverdue = (todo) => {
     if (!todo.due_date || todo.is_completed) return false
@@ -36,27 +42,71 @@ function ToDo() {
   const [syncing, setSyncing] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingTodo, setEditingTodo] = useState(null)
-  const [view, setView] = useState('all')  // Default to 'all' to show today + undated
+  const [view, setView] = useState('upcoming')  // Default to 'upcoming' (today + tomorrow)
+  const [hideCompleted, setHideCompleted] = useState(false)
+
+  // Filter todos based on view
+  const filterTodosByView = (allTodos) => {
+    const today = startOfDay(new Date())
+    const tomorrow = addDays(today, 1)
+    const weekEnd = endOfWeek(today, { weekStartsOn: 0 })
+    const monthEnd = endOfMonth(today)
+
+    return allTodos.filter(todo => {
+      // Filter to only show todos, not events
+      if (todo.task_type === 'event' || todo.task_type === 'EVENT') return false
+
+      // Always include overdue items in all views except 'all'
+      if (isOverdue(todo) && view !== 'all') return true
+
+      if (!todo.due_date) {
+        // Undated items: show in 'all' view only
+        return view === 'all'
+      }
+
+      const dueDate = startOfDay(parseISO(todo.due_date))
+
+      switch (view) {
+        case 'today':
+          return isSameDay(dueDate, today)
+        case 'upcoming':
+          // Today and tomorrow
+          return isSameDay(dueDate, today) || isSameDay(dueDate, tomorrow)
+        case 'week':
+          return isWithinInterval(dueDate, { start: today, end: weekEnd })
+        case 'month':
+          return isWithinInterval(dueDate, { start: today, end: monthEnd })
+        case 'overdue':
+          return isOverdue(todo)
+        case 'all':
+        default:
+          return true  // Show all tasks (completed filtered upstream based on setting)
+      }
+    })
+  }
 
   const fetchTodos = async () => {
     setLoading(true)
     try {
-      let response
-      switch (view) {
-        case 'upcoming':
-          response = await getUpcomingTasks(14)
-          break
-        case 'overdue':
-          response = await getOverdueTasks()
-          break
-        case 'all':
-        default:
-          // Get all incomplete to dos (includes today and undated)
-          response = await getTasks({ completed: false })
+      // Fetch settings and tasks
+      const [settingsRes, response] = await Promise.all([
+        getSettings(),
+        getTasks()  // Get all tasks (both completed and incomplete)
+      ])
+
+      // Check hide_completed_today setting
+      const hideCompletedSetting = settingsRes.data?.settings?.hide_completed_today?.value
+      setHideCompleted(hideCompletedSetting === 'true')
+
+      let allTodos = response.data
+
+      // If hide completed is enabled, filter out completed tasks
+      if (hideCompletedSetting === 'true') {
+        allTodos = allTodos.filter(t => !t.is_completed)
       }
-      // Filter to only show todos, not events
-      const todosOnly = response.data.filter(t => t.task_type !== 'event' && t.task_type !== 'EVENT')
-      setTodos(todosOnly)
+
+      const filteredTodos = filterTodosByView(allTodos)
+      setTodos(filteredTodos)
     } catch (error) {
       console.error('Failed to fetch to dos:', error)
     } finally {
@@ -194,8 +244,11 @@ function ToDo() {
       {/* View Tabs */}
       <div className="flex gap-2 flex-wrap">
         {[
-          { key: 'all', label: 'All To Dos', icon: ListTodo },
-          { key: 'upcoming', label: 'Upcoming', icon: Calendar },
+          { key: 'upcoming', label: 'Upcoming', icon: Clock, description: 'Today & Tomorrow' },
+          { key: 'today', label: 'Today', icon: Calendar },
+          { key: 'week', label: 'This Week', icon: CalendarDays },
+          { key: 'month', label: 'This Month', icon: CalendarDays },
+          { key: 'all', label: 'All', icon: ListTodo },
           { key: 'overdue', label: 'Overdue', icon: AlertCircle },
         ].map((tab) => (
           <button
@@ -206,6 +259,7 @@ function ToDo() {
                 ? 'bg-farm-green text-white'
                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
             }`}
+            title={tab.description}
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
@@ -280,7 +334,7 @@ function ToDo() {
                         {format(new Date(todo.due_date), 'MMM d, yyyy')}
                       </span>
                     )}
-                    {todo.due_time && <span>🕐 {todo.due_time}</span>}
+                    {todo.due_time && <span>🕐 {formatTime(todo.due_time)}</span>}
                     {todo.recurrence && todo.recurrence !== 'once' && (
                       <span className="capitalize text-blue-400">
                         🔄 {todo.recurrence}

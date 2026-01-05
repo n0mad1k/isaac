@@ -27,6 +27,15 @@ function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState(null)
   const [selectedDayEvents, setSelectedDayEvents] = useState([])
   const scrollRef = useRef(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Update current time every minute for the time indicator
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000) // Update every minute
+    return () => clearInterval(timer)
+  }, [])
 
   const fetchCalendarData = useCallback(async () => {
     setLoading(true)
@@ -286,6 +295,7 @@ function CalendarPage() {
           {view === 'week' && (
             <WeekView
               currentDate={currentDate}
+              currentTime={currentTime}
               events={events}
               scrollRef={scrollRef}
               onEventClick={handleEditEvent}
@@ -296,6 +306,7 @@ function CalendarPage() {
           {view === 'day' && (
             <DayView
               currentDate={currentDate}
+              currentTime={currentTime}
               events={events}
               scrollRef={scrollRef}
               onEventClick={handleEditEvent}
@@ -392,6 +403,7 @@ function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent }
                         : 'bg-farm-green/20 text-farm-green'
                     }`}
                   >
+                    {event.due_time && <span className="opacity-75">{event.due_time} </span>}
                     {event.title}
                   </div>
                 ))}
@@ -410,8 +422,28 @@ function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent }
 }
 
 
+// Current Time Indicator Component
+function CurrentTimeIndicator({ currentTime }) {
+  const hours = currentTime.getHours()
+  const minutes = currentTime.getMinutes()
+  const topPosition = hours * 60 + minutes // 60px per hour
+
+  return (
+    <div
+      className="absolute left-0 right-0 z-10 pointer-events-none"
+      style={{ top: `${topPosition}px` }}
+    >
+      {/* Red dot at start of line */}
+      <div className="absolute -left-1.5 -top-1.5 w-3 h-3 bg-red-500 rounded-full" />
+      {/* Red line */}
+      <div className="h-0.5 bg-red-500 shadow-sm" />
+    </div>
+  )
+}
+
+
 // Week View Component
-function WeekView({ currentDate, events, scrollRef, onEventClick, onAddEvent, onToggleComplete }) {
+function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, onAddEvent, onToggleComplete }) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
@@ -489,10 +521,11 @@ function WeekView({ currentDate, events, scrollRef, onEventClick, onAddEvent, on
           {/* Day columns */}
           {weekDays.map((day) => {
             const { timed } = getEventsForDay(day)
+            const isTodayColumn = isToday(day)
             return (
               <div
                 key={`grid-${format(day, 'yyyy-MM-dd')}`}
-                className={`relative border-l border-gray-700 ${isToday(day) ? 'bg-farm-green/5' : ''}`}
+                className={`relative border-l border-gray-700 ${isTodayColumn ? 'bg-farm-green/5' : ''}`}
                 onClick={() => onAddEvent(day)}
               >
                 {HOURS.map((hour) => (
@@ -501,6 +534,8 @@ function WeekView({ currentDate, events, scrollRef, onEventClick, onAddEvent, on
                     className="h-[60px] border-b border-gray-700 hover:bg-gray-700/30 cursor-pointer"
                   />
                 ))}
+                {/* Current time indicator - only show on today's column */}
+                {isTodayColumn && <CurrentTimeIndicator currentTime={currentTime} />}
                 {/* Render timed events */}
                 {timed.map((event) => {
                   const [hours, minutes] = (event.due_time || '00:00').split(':').map(Number)
@@ -537,6 +572,9 @@ function WeekView({ currentDate, events, scrollRef, onEventClick, onAddEvent, on
                           {event.title}
                         </span>
                       </div>
+                      <div className="text-[10px] opacity-75 mt-0.5">
+                        {event.due_time}{event.end_time ? ` - ${event.end_time}` : ''}
+                      </div>
                     </div>
                   )
                 })}
@@ -551,11 +589,12 @@ function WeekView({ currentDate, events, scrollRef, onEventClick, onAddEvent, on
 
 
 // Day View Component
-function DayView({ currentDate, events, scrollRef, onEventClick, onAddEvent, onToggleComplete }) {
+function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, onAddEvent, onToggleComplete }) {
   const dateKey = format(currentDate, 'yyyy-MM-dd')
   const dayEvents = events[dateKey] || []
   const allDayEvents = dayEvents.filter(e => !e.due_time)
   const timedEvents = dayEvents.filter(e => e.due_time)
+  const isTodayView = isToday(currentDate)
 
   return (
     <div className="bg-gray-800 rounded-xl overflow-hidden">
@@ -596,6 +635,17 @@ function DayView({ currentDate, events, scrollRef, onEventClick, onAddEvent, onT
               <div className="flex-1 border-l border-gray-700" />
             </div>
           ))}
+
+          {/* Current time indicator - only show when viewing today */}
+          {isTodayView && (
+            <div
+              className="absolute left-16 right-0 z-10 pointer-events-none"
+              style={{ top: `${currentTime.getHours() * 60 + currentTime.getMinutes()}px` }}
+            >
+              <div className="absolute -left-1.5 -top-1.5 w-3 h-3 bg-red-500 rounded-full" />
+              <div className="h-0.5 bg-red-500 shadow-sm" />
+            </div>
+          )}
 
           {/* Render timed events */}
           {timedEvents.map((event) => {
@@ -670,9 +720,16 @@ function EventChip({ event, onClick, onToggle, expanded = false }) {
         ) : (
           <CalendarIcon className="w-3 h-3 flex-shrink-0" />
         )}
-        <span className={`truncate ${event.is_completed ? 'line-through' : ''}`}>
-          {event.title}
-        </span>
+        <div className="min-w-0">
+          <span className={`truncate ${event.is_completed ? 'line-through' : ''}`}>
+            {event.title}
+          </span>
+          {expanded && event.due_time && (
+            <div className="text-xs opacity-75">
+              {event.due_time}{event.end_time ? ` - ${event.end_time}` : ''}
+            </div>
+          )}
+        </div>
       </div>
       {expanded && (
         <button

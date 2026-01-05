@@ -55,7 +55,7 @@ export const dismissAlert = (id) => api.post(`/weather/alerts/${id}/dismiss/`)
 export const getPlants = (params) => api.get('/plants/', { params })
 export const getPlant = (id) => api.get(`/plants/${id}/`)
 export const createPlant = (data) => api.post('/plants/', data)
-export const updatePlant = (id, data) => api.patch(`/plants/${id}/`, data)
+export const updatePlant = (id, data) => api.patch(`/plants/${id}`, data)
 export const deletePlant = (id) => api.delete(`/plants/${id}/`)
 export const addPlantCareLog = (plantId, data) =>
   api.post(`/plants/${plantId}/care-logs/`, data)
@@ -69,6 +69,12 @@ export const getPlantsNeedingFertilizer = () => api.get('/plants/needs-fertilize
 export const getFrostSensitivePlants = () => api.get('/plants/frost-sensitive/list/')
 export const previewPlantImport = (url) => api.post('/plants/import/preview/', { url })
 export const importPlant = (url) => api.post('/plants/import/', { url })
+export const waterPlant = (plantId, notes = null) =>
+  api.post(`/plants/${plantId}/water`, null, { params: { notes } })
+export const skipWatering = (plantId, reason, notes = null) =>
+  api.post(`/plants/${plantId}/skip-watering`, { reason, notes })
+export const getWateringHistory = (plantId) =>
+  api.get(`/plants/${plantId}/watering-history`)
 
 // Animals
 export const getAnimals = (params) => api.get('/animals/', { params })
@@ -161,6 +167,9 @@ export const resetAllSettings = () => api.post('/settings/reset-all/')
 export const testColdProtectionEmail = () => api.post('/settings/test-cold-protection-email/')
 export const testCalendarSync = () => api.post('/settings/test-calendar-sync/')
 export const syncCalendar = () => api.post('/settings/sync-calendar/')
+export const getVersionInfo = () => api.get('/settings/version/')
+export const updateApplication = () => api.post('/settings/update/')
+export const getRecentCommits = () => api.get('/settings/recent-commits/')
 
 // Storage
 export const getStorageStats = () => api.get('/dashboard/storage/')

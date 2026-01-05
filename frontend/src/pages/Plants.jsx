@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react'
 import {
   Plus, Search, Leaf, Droplets, Sun, Snowflake, ChevronDown, ChevronUp,
   Thermometer, MapPin, Calendar, Clock, Scissors, Apple, AlertTriangle,
-  Info, X, Tag as TagIcon, Pencil, Save, Package
+  Info, X, Tag as TagIcon, Pencil, Save, Package, Copy
 } from 'lucide-react'
 import {
   getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag,
-  recordPlantHarvest, previewPlantImport, importPlant
+  recordPlantHarvest, previewPlantImport, importPlant, getFarmAreas
 } from '../services/api'
 import { Download, ExternalLink, Loader2 } from 'lucide-react'
 
@@ -137,6 +137,103 @@ function ScrollableText({ label, value, maxHeight = "150px" }) {
   )
 }
 
+// Location select component with farm areas dropdown + custom option + sub-location
+function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, editing = true, label = "Location" }) {
+  const [isCustom, setIsCustom] = useState(false)
+  const [customValue, setCustomValue] = useState('')
+
+  // Check if current value matches a farm area
+  const matchingArea = farmAreas.find(a => a.name === value)
+  const showCustomInput = isCustom || (value && !matchingArea)
+
+  useEffect(() => {
+    // If value doesn't match any farm area, it's a custom value
+    if (value && !farmAreas.find(a => a.name === value)) {
+      setIsCustom(true)
+      setCustomValue(value)
+    }
+  }, [value, farmAreas])
+
+  const handleSelectChange = (e) => {
+    const selected = e.target.value
+    if (selected === '__custom__') {
+      setIsCustom(true)
+      setCustomValue('')
+    } else {
+      setIsCustom(false)
+      setCustomValue('')
+      onChange(selected)
+    }
+  }
+
+  const handleCustomChange = (e) => {
+    const newValue = e.target.value
+    setCustomValue(newValue)
+    onChange(newValue)
+  }
+
+  if (!editing) {
+    const displayLocation = [value, subValue].filter(Boolean).join(' > ')
+    return (
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <div className="text-sm text-gray-300">{displayLocation || '-'}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        {showCustomInput ? (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customValue}
+              onChange={handleCustomChange}
+              placeholder="Enter custom location"
+              className="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+            />
+            <button
+              type="button"
+              onClick={() => { setIsCustom(false); setCustomValue(''); onChange('') }}
+              className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded"
+              title="Use dropdown"
+            >
+              ↓
+            </button>
+          </div>
+        ) : (
+          <select
+            value={value || ''}
+            onChange={handleSelectChange}
+            className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+          >
+            <option value="">No location</option>
+            {farmAreas.map(area => (
+              <option key={area.id} value={area.name}>
+                {area.is_sub_location ? `↳ ${area.name}` : area.name}
+              </option>
+            ))}
+            <option value="__custom__">+ Custom location...</option>
+          </select>
+        )}
+      </div>
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Sub-location</label>
+        <input
+          type="text"
+          value={subValue || ''}
+          onChange={(e) => onSubChange(e.target.value)}
+          placeholder="e.g., Row 3, Bed A, 3rd paddock"
+          className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+        />
+      </div>
+    </div>
+  )
+}
+
 // Sun requirement options
 const SUN_OPTIONS = [
   { value: 'full_sun', label: 'Full Sun' },
@@ -152,27 +249,42 @@ const GROWTH_RATE_OPTIONS = [
   { value: 'very_fast', label: 'Very Fast' },
 ]
 
+const MOISTURE_OPTIONS = [
+  { value: '', label: 'Not Set' },
+  { value: 'dry', label: 'Drought Tolerant' },
+  { value: 'dry_moist', label: 'Low Water' },
+  { value: 'moist', label: 'Average' },
+  { value: 'moist_wet', label: 'High Water' },
+  { value: 'wet', label: 'Bog/Aquatic' },
+]
+
 function Plants() {
   const [plants, setPlants] = useState([])
   const [tags, setTags] = useState([])
+  const [farmAreas, setFarmAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [duplicatePlant, setDuplicatePlant] = useState(null) // plant to duplicate
   const [expandedPlant, setExpandedPlant] = useState(null)
   const [search, setSearch] = useState('')
   const [filterTag, setFilterTag] = useState('all')
   const [filterSpecial, setFilterSpecial] = useState('all')
+  const [groupByLocation, setGroupByLocation] = useState(true)
+  const [collapsedLocations, setCollapsedLocations] = useState({})
   const [editDateModal, setEditDateModal] = useState(null)
   const [showHarvestForm, setShowHarvestForm] = useState(null) // plant object or null
   const [showImportModal, setShowImportModal] = useState(false)
 
   const fetchData = async () => {
     try {
-      const [plantsRes, tagsRes] = await Promise.all([
+      const [plantsRes, tagsRes, areasRes] = await Promise.all([
         getPlants(),
-        getPlantTags()
+        getPlantTags(),
+        getFarmAreas()
       ])
       setPlants(plantsRes.data || [])
       setTags(tagsRes.data || [])
+      setFarmAreas(areasRes.data || [])
     } catch (error) {
       console.error('Failed to fetch plants:', error)
     } finally {
@@ -201,6 +313,28 @@ function Plants() {
 
     return matchesSearch && matchesTag && matchesSpecial
   })
+
+  // Group plants by location
+  const plantsByLocation = filteredPlants.reduce((acc, plant) => {
+    const location = plant.location || 'No Location'
+    if (!acc[location]) acc[location] = []
+    acc[location].push(plant)
+    return acc
+  }, {})
+
+  // Sort locations alphabetically, but put "No Location" at the end
+  const sortedLocations = Object.keys(plantsByLocation).sort((a, b) => {
+    if (a === 'No Location') return 1
+    if (b === 'No Location') return -1
+    return a.localeCompare(b)
+  })
+
+  const toggleLocationCollapse = (location) => {
+    setCollapsedLocations(prev => ({
+      ...prev,
+      [location]: !prev[location]
+    }))
+  }
 
   const getTagColor = (color) => {
     const colors = {
@@ -402,6 +536,17 @@ function Plants() {
           <option value="needs_water">Needs Water Today</option>
           <option value="needs_fertilizer">Needs Fertilizer</option>
         </select>
+        <button
+          onClick={() => setGroupByLocation(!groupByLocation)}
+          className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+            groupByLocation
+              ? 'bg-farm-green text-white'
+              : 'bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700'
+          }`}
+        >
+          <MapPin className="w-4 h-4" />
+          Group by Location
+        </button>
       </div>
 
       {/* Plant List */}
@@ -410,13 +555,64 @@ function Plants() {
           <Leaf className="w-16 h-16 mx-auto mb-4 opacity-50" />
           <p>No plants found. Add your first plant!</p>
         </div>
+      ) : groupByLocation ? (
+        // Grouped by location view
+        <div className="space-y-4">
+          {sortedLocations.map((location) => (
+            <div key={location} className="bg-gray-800/50 rounded-xl overflow-hidden">
+              <button
+                onClick={() => toggleLocationCollapse(location)}
+                className="w-full px-4 py-3 flex items-center justify-between bg-gray-800 hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-farm-green" />
+                  <span className="font-medium">{location}</span>
+                  <span className="text-sm text-gray-400">({plantsByLocation[location].length} plants)</span>
+                </div>
+                {collapsedLocations[location] ? (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
+              {!collapsedLocations[location] && (
+                <div className="p-2 space-y-1">
+                  {plantsByLocation[location].map((plant) => (
+                    <PlantCard
+                      key={plant.id}
+                      plant={plant}
+                      tags={tags}
+                      farmAreas={farmAreas}
+                      expanded={expandedPlant === plant.id}
+                      onToggle={() => setExpandedPlant(expandedPlant === plant.id ? null : plant.id)}
+                      onLogCare={logCare}
+                      onEditDate={setEditDateModal}
+                      onDelete={() => handleDelete(plant.id, plant.name)}
+                      onSave={fetchData}
+                      onHarvest={(plant) => setShowHarvestForm(plant)}
+                      onImport={(plant) => setShowImportModal(plant)}
+                      onDuplicate={(plant) => setDuplicatePlant(plant)}
+                      getTagColor={getTagColor}
+                      formatDate={formatDate}
+                      formatRelativeDate={formatRelativeDate}
+                      getSunLabel={getSunLabel}
+                      getGrowthRateLabel={getGrowthRateLabel}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       ) : (
+        // Flat list view
         <div className="space-y-1">
           {filteredPlants.map((plant) => (
             <PlantCard
               key={plant.id}
               plant={plant}
               tags={tags}
+              farmAreas={farmAreas}
               expanded={expandedPlant === plant.id}
               onToggle={() => setExpandedPlant(expandedPlant === plant.id ? null : plant.id)}
               onLogCare={logCare}
@@ -425,6 +621,7 @@ function Plants() {
               onSave={fetchData}
               onHarvest={(plant) => setShowHarvestForm(plant)}
               onImport={(plant) => setShowImportModal(plant)}
+              onDuplicate={(plant) => setDuplicatePlant(plant)}
               getTagColor={getTagColor}
               formatDate={formatDate}
               formatRelativeDate={formatRelativeDate}
@@ -435,12 +632,24 @@ function Plants() {
         </div>
       )}
 
-      {/* Add Plant Modal (only for new plants) */}
+      {/* Add Plant Modal (for new plants) */}
       {showForm && (
         <PlantFormModal
           tags={tags}
+          farmAreas={farmAreas}
           onClose={() => setShowForm(false)}
           onSave={() => { setShowForm(false); fetchData() }}
+        />
+      )}
+
+      {/* Duplicate Plant Modal */}
+      {duplicatePlant && (
+        <PlantFormModal
+          tags={tags}
+          farmAreas={farmAreas}
+          initialData={duplicatePlant}
+          onClose={() => setDuplicatePlant(null)}
+          onSave={() => { setDuplicatePlant(null); fetchData() }}
         />
       )}
 
@@ -469,6 +678,7 @@ function Plants() {
           onClose={() => setShowImportModal(false)}
           onSuccess={() => { setShowImportModal(false); fetchData() }}
           tags={tags}
+          farmAreas={farmAreas}
           existingPlant={typeof showImportModal === 'object' ? showImportModal : null}
         />
       )}
@@ -479,7 +689,7 @@ function Plants() {
 
 // Plant Card Component with inline editing
 function PlantCard({
-  plant, tags, expanded, onToggle, onLogCare, onEditDate, onDelete, onSave, onHarvest, onImport,
+  plant, tags, farmAreas, expanded, onToggle, onLogCare, onEditDate, onDelete, onSave, onHarvest, onImport, onDuplicate,
   getTagColor, formatDate, formatRelativeDate, getSunLabel, getGrowthRateLabel
 }) {
   const [editData, setEditData] = useState(null)
@@ -512,6 +722,7 @@ function PlantCard({
         variety: plant.variety || '',
         description: plant.description || '',
         location: plant.location || '',
+        sub_location: plant.sub_location || '',
         source: plant.source || '',
         grow_zones: plant.grow_zones || '',
         sun_requirement: plant.sun_requirement || 'full_sun',
@@ -526,7 +737,12 @@ function PlantCard({
         drought_tolerant: plant.drought_tolerant || false,
         salt_tolerant: plant.salt_tolerant || false,
         needs_shade_above_temp: plant.needs_shade_above_temp || '',
+        moisture_preference: plant.moisture_preference || '',
         water_schedule: plant.water_schedule || '',
+        receives_rain: plant.receives_rain || false,
+        rain_threshold_inches: plant.rain_threshold_inches || 0.25,
+        sprinkler_enabled: plant.sprinkler_enabled || false,
+        sprinkler_schedule: plant.sprinkler_schedule || '',
         fertilize_schedule: plant.fertilize_schedule || '',
         prune_frequency: plant.prune_frequency || '',
         prune_months: plant.prune_months || '',
@@ -586,6 +802,7 @@ function PlantCard({
       variety: plant.variety || '',
       description: plant.description || '',
       location: plant.location || '',
+      sub_location: plant.sub_location || '',
       source: plant.source || '',
       grow_zones: plant.grow_zones || '',
       sun_requirement: plant.sun_requirement || 'full_sun',
@@ -600,6 +817,7 @@ function PlantCard({
       drought_tolerant: plant.drought_tolerant || false,
       salt_tolerant: plant.salt_tolerant || false,
       needs_shade_above_temp: plant.needs_shade_above_temp || '',
+      moisture_preference: plant.moisture_preference || '',
       water_schedule: plant.water_schedule || '',
       fertilize_schedule: plant.fertilize_schedule || '',
       prune_frequency: plant.prune_frequency || '',
@@ -640,6 +858,11 @@ function PlantCard({
                   <span className="text-xs text-gray-500">+{plant.tags.length - 3}</span>
                 )}
               </div>
+            )}
+            {plant.location && (
+              <span className="text-cyan-400 text-sm whitespace-nowrap flex items-center gap-1">
+                <MapPin className="w-3 h-3" />{plant.location}
+              </span>
             )}
             {plant.age_years && (
               <span className="text-green-400 text-sm whitespace-nowrap">{plant.age_years} yrs old</span>
@@ -749,6 +972,12 @@ function PlantCard({
               <Download className="w-3 h-3" /> Import Data
             </button>
             <button
+              onClick={(e) => { e.stopPropagation(); onDuplicate(plant) }}
+              className="px-3 py-1.5 bg-gray-600/50 hover:bg-gray-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <Copy className="w-3 h-3" /> Duplicate
+            </button>
+            <button
               onClick={(e) => { e.stopPropagation(); onDelete() }}
               className="px-3 py-1.5 bg-red-600/50 hover:bg-red-600 rounded text-sm text-white transition-colors flex items-center gap-1 ml-auto"
             >
@@ -761,7 +990,14 @@ function PlantCard({
             <EditableField label="Name" value={editData.name} field="name" onChange={handleFieldChange} editing={isEditing} />
             <EditableField label="Latin Name" value={editData.latin_name} field="latin_name" onChange={handleFieldChange} placeholder="Genus species" editing={isEditing} />
             <EditableField label="Variety" value={editData.variety} field="variety" onChange={handleFieldChange} editing={isEditing} />
-            <EditableField label="Location" value={editData.location} field="location" onChange={handleFieldChange} placeholder="e.g., North orchard" editing={isEditing} />
+            <LocationSelect
+              value={editData.location}
+              subValue={editData.sub_location}
+              onChange={(value) => handleFieldChange('location', value)}
+              onSubChange={(value) => handleFieldChange('sub_location', value)}
+              farmAreas={farmAreas}
+              editing={isEditing}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -803,8 +1039,27 @@ function PlantCard({
             <h4 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h4>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <EditableField label="Water Schedule" value={editData.water_schedule} field="water_schedule" onChange={handleFieldChange} placeholder="summer:3,winter:10" editing={isEditing} />
-                {isEditing && <p className="text-xs text-gray-500 mt-1">Days between watering per season</p>}
+                <EditableField
+                  label="Moisture Preference"
+                  value={editData.moisture_preference}
+                  field="moisture_preference"
+                  type="select"
+                  options={[
+                    { value: '', label: 'Not Set (defaults to Average)' },
+                    { value: 'dry', label: 'Drought Tolerant (cacti, succulents)' },
+                    { value: 'dry_moist', label: 'Low Water (Mediterranean, natives)' },
+                    { value: 'moist', label: 'Average' },
+                    { value: 'moist_wet', label: 'High Water (tropicals, veggies)' },
+                    { value: 'wet', label: 'Bog/Aquatic' },
+                  ]}
+                  onChange={handleFieldChange}
+                  editing={isEditing}
+                />
+                {isEditing && <p className="text-xs text-gray-500 mt-1">Auto-calculates watering schedule based on your zone</p>}
+              </div>
+              <div>
+                <EditableField label="Water Schedule Override" value={editData.water_schedule} field="water_schedule" onChange={handleFieldChange} placeholder="summer:3,winter:10" editing={isEditing} />
+                {isEditing && <p className="text-xs text-gray-500 mt-1">Optional: override auto-calculated schedule</p>}
               </div>
               <div>
                 <EditableField label="Fertilize Schedule" value={editData.fertilize_schedule} field="fertilize_schedule" onChange={handleFieldChange} placeholder="spring:30,summer:45" editing={isEditing} />
@@ -813,6 +1068,75 @@ function PlantCard({
               <EditableField label="Prune Frequency" value={editData.prune_frequency} field="prune_frequency" onChange={handleFieldChange} placeholder="e.g., Yearly after fruiting" editing={isEditing} />
               <EditableField label="Prune Months" value={editData.prune_months} field="prune_months" onChange={handleFieldChange} placeholder="e.g., Feb-Mar" editing={isEditing} />
             </div>
+
+            {/* Auto Watering Settings */}
+            {isEditing && (
+              <div className="mt-4 p-3 bg-cyan-900/20 rounded-lg border border-cyan-700/30">
+                <h5 className="text-xs font-medium text-cyan-400 mb-2 flex items-center gap-1">
+                  <Droplets className="w-3 h-3" />
+                  Automatic Watering
+                </h5>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`rain-${plant.id}`}
+                      checked={editData.receives_rain}
+                      onChange={(e) => handleFieldChange('receives_rain', e.target.checked)}
+                      className="rounded border-gray-600 bg-gray-800 text-cyan-500 focus:ring-cyan-500"
+                    />
+                    <label htmlFor={`rain-${plant.id}`} className="text-sm text-gray-300">Receives Rain</label>
+                  </div>
+                  {editData.receives_rain && (
+                    <div>
+                      <label className="text-xs text-gray-400">Rain Threshold (in)</label>
+                      <input
+                        type="number"
+                        step="0.05"
+                        value={editData.rain_threshold_inches}
+                        onChange={(e) => handleFieldChange('rain_threshold_inches', parseFloat(e.target.value) || 0.25)}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm"
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`sprinkler-${plant.id}`}
+                      checked={editData.sprinkler_enabled}
+                      onChange={(e) => handleFieldChange('sprinkler_enabled', e.target.checked)}
+                      className="rounded border-gray-600 bg-gray-800 text-cyan-500 focus:ring-cyan-500"
+                    />
+                    <label htmlFor={`sprinkler-${plant.id}`} className="text-sm text-gray-300">Sprinkler Coverage</label>
+                  </div>
+                  {editData.sprinkler_enabled && (
+                    <div>
+                      <label className="text-xs text-gray-400">Sprinkler Schedule</label>
+                      <input
+                        type="text"
+                        value={editData.sprinkler_schedule}
+                        onChange={(e) => handleFieldChange('sprinkler_schedule', e.target.value)}
+                        placeholder="days:0,2,4;time:06:00"
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Mon=0, Sun=6. e.g., days:0,2,4;time:06:00</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Show auto-watering status when not editing */}
+            {!isEditing && (editData.receives_rain || editData.sprinkler_enabled) && (
+              <div className="mt-3 p-2 bg-cyan-900/20 rounded border border-cyan-700/30">
+                <div className="flex items-center gap-2 text-xs text-cyan-400">
+                  <Droplets className="w-3 h-3" />
+                  <span>Auto-watering:</span>
+                  {editData.receives_rain && <span className="bg-cyan-700/30 px-1.5 py-0.5 rounded">Rain ({editData.rain_threshold_inches}" min)</span>}
+                  {editData.sprinkler_enabled && <span className="bg-cyan-700/30 px-1.5 py-0.5 rounded">Sprinkler</span>}
+                </div>
+              </div>
+            )}
 
             {/* Care Status Display */}
             <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
@@ -961,41 +1285,49 @@ function PlantCard({
 }
 
 
-// Plant Form Modal Component (for adding new plants only)
-function PlantFormModal({ tags, onClose, onSave }) {
+// Plant Form Modal Component (for adding new plants or duplicating)
+function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }) {
   const [formData, setFormData] = useState({
-    name: '',
-    latin_name: '',
-    variety: '',
-    description: '',
-    location: '',
-    source: '',
-    grow_zones: '',
-    sun_requirement: 'full_sun',
-    soil_requirements: '',
-    plant_spacing: '',
-    size_full_grown: '',
-    growth_rate: 'moderate',
-    min_temp: '',
-    frost_sensitive: false,
-    needs_cover_below_temp: '',
-    heat_tolerant: true,
-    drought_tolerant: false,
-    salt_tolerant: false,
-    needs_shade_above_temp: '',
-    water_schedule: '',
-    fertilize_schedule: '',
-    prune_frequency: '',
-    prune_months: '',
-    produces_months: '',
-    harvest_frequency: '',
-    how_to_harvest: '',
-    uses: '',
-    propagation_methods: '',
-    known_hazards: '',
-    special_considerations: '',
-    notes: '',
-    tag_ids: [],
+    name: initialData?.name ? `${initialData.name} (Copy)` : '',
+    latin_name: initialData?.latin_name || '',
+    variety: initialData?.variety || '',
+    description: initialData?.description || '',
+    location: initialData?.location || '',
+    sub_location: initialData?.sub_location || '',
+    source: initialData?.source || '',
+    grow_zones: initialData?.grow_zones || '',
+    sun_requirement: initialData?.sun_requirement || 'full_sun',
+    soil_requirements: initialData?.soil_requirements || '',
+    plant_spacing: initialData?.plant_spacing || '',
+    size_full_grown: initialData?.size_full_grown || '',
+    growth_rate: initialData?.growth_rate || 'moderate',
+    min_temp: initialData?.min_temp || '',
+    frost_sensitive: initialData?.frost_sensitive || false,
+    needs_cover_below_temp: initialData?.needs_cover_below_temp || '',
+    heat_tolerant: initialData?.heat_tolerant ?? true,
+    drought_tolerant: initialData?.drought_tolerant || false,
+    salt_tolerant: initialData?.salt_tolerant || false,
+    needs_shade_above_temp: initialData?.needs_shade_above_temp || '',
+    moisture_preference: initialData?.moisture_preference || '',
+    water_schedule: initialData?.water_schedule || '',
+    receives_rain: initialData?.receives_rain || false,
+    rain_threshold_inches: initialData?.rain_threshold_inches || 0.25,
+    sprinkler_enabled: initialData?.sprinkler_enabled || false,
+    sprinkler_schedule: initialData?.sprinkler_schedule || '',
+    fertilize_schedule: initialData?.fertilize_schedule || '',
+    prune_frequency: initialData?.prune_frequency || '',
+    prune_months: initialData?.prune_months || '',
+    produces_months: initialData?.produces_months || '',
+    harvest_frequency: initialData?.harvest_frequency || '',
+    how_to_harvest: initialData?.how_to_harvest || '',
+    uses: initialData?.uses || '',
+    propagation_methods: initialData?.propagation_methods || '',
+    cultivation_details: initialData?.cultivation_details || '',
+    known_hazards: initialData?.known_hazards || '',
+    special_considerations: initialData?.special_considerations || '',
+    notes: initialData?.notes || '',
+    references: initialData?.references || '',
+    tag_ids: initialData?.tags?.map(t => t.id) || [],
   })
 
   const [saving, setSaving] = useState(false)
@@ -1040,9 +1372,9 @@ function PlantFormModal({ tags, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Add New Plant</h2>
+      <div className="bg-gray-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between z-10">
+          <h2 className="text-xl font-semibold">{initialData ? 'Duplicate Plant' : 'Add New Plant'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>
@@ -1069,6 +1401,7 @@ function PlantFormModal({ tags, onClose, onSave }) {
                   type="text"
                   value={formData.latin_name}
                   onChange={(e) => setFormData({ ...formData, latin_name: e.target.value })}
+                  placeholder="Genus species"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
@@ -1083,41 +1416,112 @@ function PlantFormModal({ tags, onClose, onSave }) {
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Location</label>
+                <LocationSelect
+                  value={formData.location}
+                  subValue={formData.sub_location}
+                  onChange={(value) => setFormData({ ...formData, location: value })}
+                  onSubChange={(value) => setFormData({ ...formData, sub_location: value })}
+                  farmAreas={farmAreas}
+                  editing={true}
+                  label=""
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Source</label>
                 <input
                   type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., North orchard"
+                  value={formData.source}
+                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                  placeholder="Where purchased"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm text-gray-400 mb-1">Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={2}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+          </div>
+
+          {/* Growing Requirements */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Grow Zones</label>
+                <input
+                  type="text"
+                  value={formData.grow_zones}
+                  onChange={(e) => setFormData({ ...formData, grow_zones: e.target.value })}
+                  placeholder="e.g., 9-11"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Sun Requirement</label>
+                <select
+                  value={formData.sun_requirement}
+                  onChange={(e) => setFormData({ ...formData, sun_requirement: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  {SUN_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Growth Rate</label>
+                <select
+                  value={formData.growth_rate}
+                  onChange={(e) => setFormData({ ...formData, growth_rate: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  {GROWTH_RATE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Soil Requirements</label>
+                <input
+                  type="text"
+                  value={formData.soil_requirements}
+                  onChange={(e) => setFormData({ ...formData, soil_requirements: e.target.value })}
+                  placeholder="e.g., Well-drained, loamy"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Plant Spacing</label>
+                <input
+                  type="text"
+                  value={formData.plant_spacing}
+                  onChange={(e) => setFormData({ ...formData, plant_spacing: e.target.value })}
+                  placeholder="e.g., 15-20 feet"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Size Full Grown</label>
+                <input
+                  type="text"
+                  value={formData.size_full_grown}
+                  onChange={(e) => setFormData({ ...formData, size_full_grown: e.target.value })}
+                  placeholder="e.g., 20-30 ft tall"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
           </div>
 
-          {/* Tags */}
+          {/* Temperature & Tolerance */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Tags</h3>
-            <div className="flex flex-wrap gap-2">
-              {tags.map(tag => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => toggleTag(tag.id)}
-                  className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
-                    formData.tag_ids.includes(tag.id)
-                      ? getTagColor(tag.color) + ' border-2'
-                      : 'bg-gray-700 text-gray-400 border-gray-600 hover:border-gray-500'
-                  }`}
-                >
-                  {tag.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Temperature */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Temperature Tolerance</h3>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Temperature & Tolerance</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Min Temp (°F)</label>
@@ -1125,6 +1529,24 @@ function PlantFormModal({ tags, onClose, onSave }) {
                   type="number"
                   value={formData.min_temp}
                   onChange={(e) => setFormData({ ...formData, min_temp: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Cover Below (°F)</label>
+                <input
+                  type="number"
+                  value={formData.needs_cover_below_temp}
+                  onChange={(e) => setFormData({ ...formData, needs_cover_below_temp: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Shade Above (°F)</label>
+                <input
+                  type="number"
+                  value={formData.needs_shade_above_temp}
+                  onChange={(e) => setFormData({ ...formData, needs_shade_above_temp: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
@@ -1157,8 +1579,279 @@ function PlantFormModal({ tags, onClose, onSave }) {
                 />
                 <span className="text-sm">Drought Tolerant</span>
               </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.salt_tolerant}
+                  onChange={(e) => setFormData({ ...formData, salt_tolerant: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Salt Tolerant</span>
+              </label>
             </div>
           </div>
+
+          {/* Care Schedule */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Moisture Preference</label>
+                <select
+                  value={formData.moisture_preference}
+                  onChange={(e) => setFormData({ ...formData, moisture_preference: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  {MOISTURE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Water Schedule Override</label>
+                <input
+                  type="text"
+                  placeholder="summer:3,winter:10"
+                  value={formData.water_schedule}
+                  onChange={(e) => setFormData({ ...formData, water_schedule: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Fertilize Schedule</label>
+                <input
+                  type="text"
+                  placeholder="spring:30,summer:45"
+                  value={formData.fertilize_schedule}
+                  onChange={(e) => setFormData({ ...formData, fertilize_schedule: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Prune Frequency</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Yearly after fruiting"
+                  value={formData.prune_frequency}
+                  onChange={(e) => setFormData({ ...formData, prune_frequency: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Prune Months</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Feb-Mar"
+                  value={formData.prune_months}
+                  onChange={(e) => setFormData({ ...formData, prune_months: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Auto Watering */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Automatic Watering</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.receives_rain}
+                    onChange={(e) => setFormData({ ...formData, receives_rain: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">Receives Rain</span>
+                </label>
+                {formData.receives_rain && (
+                  <div className="mt-2">
+                    <label className="block text-xs text-gray-400 mb-1">Rain Threshold (inches)</label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      value={formData.rain_threshold_inches}
+                      onChange={(e) => setFormData({ ...formData, rain_threshold_inches: parseFloat(e.target.value) || 0.25 })}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.sprinkler_enabled}
+                    onChange={(e) => setFormData({ ...formData, sprinkler_enabled: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">Sprinkler Coverage</span>
+                </label>
+                {formData.sprinkler_enabled && (
+                  <div className="mt-2">
+                    <label className="block text-xs text-gray-400 mb-1">Sprinkler Schedule</label>
+                    <input
+                      type="text"
+                      value={formData.sprinkler_schedule}
+                      onChange={(e) => setFormData({ ...formData, sprinkler_schedule: e.target.value })}
+                      placeholder="days:0,2,4;time:06:00"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Mon=0, Sun=6</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Production & Harvest */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Production & Harvest</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Produces Months</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Jun-Aug"
+                  value={formData.produces_months}
+                  onChange={(e) => setFormData({ ...formData, produces_months: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Harvest Frequency</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Weekly"
+                  value={formData.harvest_frequency}
+                  onChange={(e) => setFormData({ ...formData, harvest_frequency: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div className="col-span-2 md:col-span-1">
+                <label className="block text-sm text-gray-400 mb-1">How to Harvest</label>
+                <textarea
+                  value={formData.how_to_harvest}
+                  onChange={(e) => setFormData({ ...formData, how_to_harvest: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Uses & Info */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Uses & Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Uses</label>
+                <textarea
+                  value={formData.uses}
+                  onChange={(e) => setFormData({ ...formData, uses: e.target.value })}
+                  rows={3}
+                  placeholder="e.g., Edible fruit, medicinal"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Propagation Methods</label>
+                <textarea
+                  value={formData.propagation_methods}
+                  onChange={(e) => setFormData({ ...formData, propagation_methods: e.target.value })}
+                  rows={3}
+                  placeholder="e.g., Seed, cuttings, grafting"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm text-gray-400 mb-1">Cultivation Details</label>
+                <textarea
+                  value={formData.cultivation_details}
+                  onChange={(e) => setFormData({ ...formData, cultivation_details: e.target.value })}
+                  rows={3}
+                  placeholder="Growing conditions, care tips, etc."
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Warnings */}
+          <div>
+            <h3 className="text-sm font-medium text-red-400 mb-3">Warnings & Considerations</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Known Hazards</label>
+                <textarea
+                  value={formData.known_hazards}
+                  onChange={(e) => setFormData({ ...formData, known_hazards: e.target.value })}
+                  rows={2}
+                  placeholder="e.g., Thorns, toxic to pets"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Special Considerations</label>
+                <textarea
+                  value={formData.special_considerations}
+                  onChange={(e) => setFormData({ ...formData, special_considerations: e.target.value })}
+                  rows={2}
+                  placeholder="e.g., Needs hand pollination"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Notes & References */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Notes & References</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">References</label>
+                <textarea
+                  value={formData.references}
+                  onChange={(e) => setFormData({ ...formData, references: e.target.value })}
+                  rows={3}
+                  placeholder="Source URLs and bibliography"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Tags */}
+          {tags && tags.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {tags.map(tag => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.id)}
+                    className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
+                      formData.tag_ids.includes(tag.id)
+                        ? getTagColor(tag.color) + ' border-2'
+                        : 'bg-gray-700 text-gray-400 border-gray-600 hover:border-gray-500'
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-gray-700">
@@ -1171,7 +1864,7 @@ function PlantFormModal({ tags, onClose, onSave }) {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !formData.name.trim()}
               className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Adding...' : 'Add Plant'}
@@ -1420,13 +2113,17 @@ function HarvestFormModal({ plant, onClose, onSave }) {
 }
 
 // Import Modal - import plant data from PFAF/Permapeople URLs
-function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
+function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null }) {
   const [url, setUrl] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [fetching, setFetching] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [step, setStep] = useState('fetch') // 'fetch' or 'edit'
+
+  // Track which fields have imported data and whether to use them
+  const [importedData, setImportedData] = useState({})
+  const [useImported, setUseImported] = useState({})
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -1435,6 +2132,7 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
     variety: '',
     description: '',
     location: '',
+    sub_location: '',
     source: '',
     grow_zones: '',
     sun_requirement: 'full_sun',
@@ -1449,7 +2147,12 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
     drought_tolerant: false,
     salt_tolerant: false,
     needs_shade_above_temp: '',
+    moisture_preference: '',
     water_schedule: '',
+    receives_rain: false,
+    rain_threshold_inches: 0.25,
+    sprinkler_enabled: false,
+    sprinkler_schedule: '',
     fertilize_schedule: '',
     prune_frequency: '',
     prune_months: '',
@@ -1475,6 +2178,7 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
         variety: existingPlant.variety || '',
         description: existingPlant.description || '',
         location: existingPlant.location || '',
+        sub_location: existingPlant.sub_location || '',
         source: existingPlant.source || '',
         grow_zones: existingPlant.grow_zones || '',
         sun_requirement: existingPlant.sun_requirement || 'full_sun',
@@ -1489,7 +2193,12 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
         drought_tolerant: existingPlant.drought_tolerant || false,
         salt_tolerant: existingPlant.salt_tolerant || false,
         needs_shade_above_temp: existingPlant.needs_shade_above_temp || '',
+        moisture_preference: existingPlant.moisture_preference || '',
         water_schedule: existingPlant.water_schedule || '',
+        receives_rain: existingPlant.receives_rain || false,
+        rain_threshold_inches: existingPlant.rain_threshold_inches || 0.25,
+        sprinkler_enabled: existingPlant.sprinkler_enabled || false,
+        sprinkler_schedule: existingPlant.sprinkler_schedule || '',
         fertilize_schedule: existingPlant.fertilize_schedule || '',
         prune_frequency: existingPlant.prune_frequency || '',
         prune_months: existingPlant.prune_months || '',
@@ -1531,24 +2240,38 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
 
     try {
       const response = await previewPlantImport(url)
-      const importedData = response.data.data || response.data
+      const fetched = response.data.data || response.data
 
-      // Merge imported data with existing form data (imported data takes precedence for non-empty values)
+      // Store imported data separately
+      setImportedData(fetched)
+
+      // For existing plants, let user choose which fields to overwrite
+      // For new plants, use all imported data by default
+      const newUseImported = {}
+      Object.keys(fetched).forEach(key => {
+        if (fetched[key] !== null && fetched[key] !== undefined && fetched[key] !== '') {
+          // For existing plants, default to NOT overwriting non-empty fields
+          if (existingPlant) {
+            const existingValue = formData[key]
+            const isEmpty = !existingValue || existingValue === '' || existingValue === 'full_sun' || existingValue === 'moderate'
+            newUseImported[key] = isEmpty
+          } else {
+            newUseImported[key] = true
+          }
+        }
+      })
+      setUseImported(newUseImported)
+
+      // Apply imported data based on useImported flags
       setFormData(prev => {
         const merged = { ...prev }
-        Object.keys(importedData).forEach(key => {
-          if (importedData[key] !== null && importedData[key] !== undefined && importedData[key] !== '') {
-            // For existing plants, only fill empty fields unless it's a new plant
-            if (existingPlant) {
-              if (!prev[key] || prev[key] === '' || prev[key] === 'full_sun' || prev[key] === 'moderate') {
-                merged[key] = importedData[key]
-              }
-            } else {
-              merged[key] = importedData[key]
+        Object.keys(fetched).forEach(key => {
+          if (fetched[key] !== null && fetched[key] !== undefined && fetched[key] !== '') {
+            if (newUseImported[key]) {
+              merged[key] = fetched[key]
             }
           }
         })
-        // References field now contains the source URL, so we don't need to add it to notes
         return merged
       })
 
@@ -1559,6 +2282,23 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
     } finally {
       setFetching(false)
     }
+  }
+
+  // Toggle whether to use imported value for a field
+  const toggleUseImported = (field) => {
+    setUseImported(prev => {
+      const newValue = !prev[field]
+      // Also update formData accordingly
+      if (newValue && importedData[field]) {
+        setFormData(fd => ({ ...fd, [field]: importedData[field] }))
+      }
+      return { ...prev, [field]: newValue }
+    })
+  }
+
+  // Check if a field has imported data available
+  const hasImportedData = (field) => {
+    return importedData[field] !== null && importedData[field] !== undefined && importedData[field] !== ''
   }
 
   const handleSave = async () => {
@@ -1748,6 +2488,40 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
             </div>
           )}
 
+          {/* Import Field Selector - shows when importing to existing plant */}
+          {existingPlant && Object.keys(importedData).length > 0 && (
+            <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-blue-300 mb-2">Select Fields to Import</h3>
+              <p className="text-xs text-gray-400 mb-3">Check the fields you want to overwrite with imported data:</p>
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                {Object.keys(importedData).filter(key =>
+                  importedData[key] !== null && importedData[key] !== undefined && importedData[key] !== '' && key !== 'tag_ids'
+                ).map(field => {
+                  const existingValue = existingPlant[field]
+                  const hasExisting = existingValue && existingValue !== '' && existingValue !== 'full_sun' && existingValue !== 'moderate'
+                  const fieldLabel = field.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                  return (
+                    <label key={field} className={`flex items-center gap-2 text-xs p-1.5 rounded cursor-pointer ${
+                      hasExisting ? 'bg-amber-900/30 border border-amber-700/50' : 'bg-gray-700/50'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={useImported[field] || false}
+                        onChange={() => toggleUseImported(field)}
+                        className="w-3 h-3"
+                      />
+                      <span className={hasExisting ? 'text-amber-200' : 'text-gray-300'}>
+                        {fieldLabel}
+                        {hasExisting && ' *'}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-amber-400 mt-2">* Fields with existing data (will be overwritten if checked)</p>
+            </div>
+          )}
+
           {/* Basic Info */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Basic Information</h3>
@@ -1768,6 +2542,7 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
                   type="text"
                   value={formData.latin_name}
                   onChange={(e) => setFormData({ ...formData, latin_name: e.target.value })}
+                  placeholder="Genus species"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
@@ -1782,11 +2557,23 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Location</label>
+                <LocationSelect
+                  value={formData.location}
+                  subValue={formData.sub_location}
+                  onChange={(value) => setFormData({ ...formData, location: value })}
+                  onSubChange={(value) => setFormData({ ...formData, sub_location: value })}
+                  farmAreas={farmAreas}
+                  editing={true}
+                  label=""
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Source</label>
                 <input
                   type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., North orchard"
+                  value={formData.source}
+                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                  placeholder="Where purchased"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
@@ -1796,7 +2583,7 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
+                rows={2}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
@@ -1841,16 +2628,6 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Size Full Grown</label>
-                <input
-                  type="text"
-                  value={formData.size_full_grown}
-                  onChange={(e) => setFormData({ ...formData, size_full_grown: e.target.value })}
-                  placeholder="e.g., 20-30 ft"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-                />
-              </div>
-              <div className="col-span-2">
                 <label className="block text-sm text-gray-400 mb-1">Soil Requirements</label>
                 <input
                   type="text"
@@ -1860,12 +2637,32 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Plant Spacing</label>
+                <input
+                  type="text"
+                  value={formData.plant_spacing}
+                  onChange={(e) => setFormData({ ...formData, plant_spacing: e.target.value })}
+                  placeholder="e.g., 15-20 feet"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Size Full Grown</label>
+                <input
+                  type="text"
+                  value={formData.size_full_grown}
+                  onChange={(e) => setFormData({ ...formData, size_full_grown: e.target.value })}
+                  placeholder="e.g., 20-30 ft tall"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Temperature */}
+          {/* Temperature & Tolerance */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Temperature Tolerance</h3>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Temperature & Tolerance</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Min Temp (°F)</label>
@@ -1933,6 +2730,149 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
                 <span className="text-sm">Salt Tolerant</span>
               </label>
             </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Moisture Preference</label>
+                <select
+                  value={formData.moisture_preference}
+                  onChange={(e) => setFormData({ ...formData, moisture_preference: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  {MOISTURE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Care Schedule */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Water Schedule</label>
+                <input
+                  type="text"
+                  value={formData.water_schedule}
+                  onChange={(e) => setFormData({ ...formData, water_schedule: e.target.value })}
+                  placeholder="e.g., Weekly"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Fertilize Schedule</label>
+                <input
+                  type="text"
+                  value={formData.fertilize_schedule}
+                  onChange={(e) => setFormData({ ...formData, fertilize_schedule: e.target.value })}
+                  placeholder="e.g., Monthly"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Prune Frequency</label>
+                <input
+                  type="text"
+                  value={formData.prune_frequency}
+                  onChange={(e) => setFormData({ ...formData, prune_frequency: e.target.value })}
+                  placeholder="e.g., Annually"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Prune Months</label>
+                <input
+                  type="text"
+                  value={formData.prune_months}
+                  onChange={(e) => setFormData({ ...formData, prune_months: e.target.value })}
+                  placeholder="e.g., Feb-Mar"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Auto Watering */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Auto Watering</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.receives_rain}
+                  onChange={(e) => setFormData({ ...formData, receives_rain: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Receives Rain</span>
+              </label>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Rain Threshold (in)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.rain_threshold_inches}
+                  onChange={(e) => setFormData({ ...formData, rain_threshold_inches: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.sprinkler_enabled}
+                  onChange={(e) => setFormData({ ...formData, sprinkler_enabled: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Sprinkler Enabled</span>
+              </label>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Sprinkler Schedule</label>
+                <input
+                  type="text"
+                  value={formData.sprinkler_schedule}
+                  onChange={(e) => setFormData({ ...formData, sprinkler_schedule: e.target.value })}
+                  placeholder="e.g., Mon/Wed/Fri"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Production & Harvest */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Production & Harvest</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Produces Months</label>
+                <input
+                  type="text"
+                  value={formData.produces_months}
+                  onChange={(e) => setFormData({ ...formData, produces_months: e.target.value })}
+                  placeholder="e.g., Jun-Sep"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Harvest Frequency</label>
+                <input
+                  type="text"
+                  value={formData.harvest_frequency}
+                  onChange={(e) => setFormData({ ...formData, harvest_frequency: e.target.value })}
+                  placeholder="e.g., Weekly"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div className="col-span-2 md:col-span-1">
+                <label className="block text-sm text-gray-400 mb-1">How to Harvest</label>
+                <input
+                  type="text"
+                  value={formData.how_to_harvest}
+                  onChange={(e) => setFormData({ ...formData, how_to_harvest: e.target.value })}
+                  placeholder="Harvesting instructions"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Uses & Info */}
@@ -1959,16 +2899,23 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
-              <div>
+              <div className="col-span-2">
                 <label className="block text-sm text-gray-400 mb-1">Cultivation Details</label>
                 <textarea
                   value={formData.cultivation_details}
                   onChange={(e) => setFormData({ ...formData, cultivation_details: e.target.value })}
-                  rows={4}
+                  rows={3}
                   placeholder="Growing conditions, care tips, etc."
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Warnings */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Warnings</h3>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Known Hazards</label>
                 <textarea
@@ -1979,6 +2926,23 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Special Considerations</label>
+                <textarea
+                  value={formData.special_considerations}
+                  onChange={(e) => setFormData({ ...formData, special_considerations: e.target.value })}
+                  rows={2}
+                  placeholder="Any special care notes"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Notes & References */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-400 mb-3">Notes & References</h3>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Notes</label>
                 <textarea
@@ -1993,7 +2957,7 @@ function ImportModal({ onClose, onSuccess, tags, existingPlant = null }) {
                 <textarea
                   value={formData.references}
                   onChange={(e) => setFormData({ ...formData, references: e.target.value })}
-                  rows={3}
+                  rows={2}
                   placeholder="Source URLs and bibliography"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
                 />

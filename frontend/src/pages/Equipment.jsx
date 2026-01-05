@@ -1,23 +1,152 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Wrench, Plus, Check, X, ChevronDown, ChevronUp, Clock, Edit, Calendar } from 'lucide-react'
-import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getEquipmentMaintenance, createEquipmentMaintenance, updateEquipmentMaintenance, completeEquipmentMaintenance, deleteEquipmentMaintenance, getEquipmentTypes } from '../services/api'
+import { Wrench, Plus, Check, X, ChevronDown, ChevronUp, Clock, Edit, Calendar, MapPin } from 'lucide-react'
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getEquipmentMaintenance, createEquipmentMaintenance, updateEquipmentMaintenance, completeEquipmentMaintenance, deleteEquipmentMaintenance, getEquipmentTypes, getFarmAreas } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 
 const TYPE_ICONS = {
+  // Farm Equipment
+  tractor: '🚜',
   mower: '🌿',
   chainsaw: '🪚',
+  brush_hog: '🌾',
+  tiller: '🌱',
+  cultivator: '🌱',
+  seeder: '🌾',
+  sprayer: '💧',
+  spreader: '🌾',
+  baler: '🌾',
+  loader: '🚜',
+  backhoe: '🚜',
+  post_driver: '🔨',
+  auger: '🔩',
+  chipper: '🪵',
+  log_splitter: '🪓',
+  fence_charger: '⚡',
+  water_pump: '💧',
+  irrigation: '💧',
+  // Power Equipment
   generator: '⚡',
   pressure_washer: '💦',
   welder: '🔥',
   air_compressor: '💨',
+  // Tools
   power_tools: '🔌',
   hand_tools: '🔧',
+  // Home Equipment
+  hvac: '❄️',
+  water_heater: '🔥',
+  water_softener: '💧',
+  well_pump: '💧',
+  septic: '🚽',
+  appliance: '🏠',
+  grill: '🍖',
+  pool_spa: '🏊',
+  lawn_equipment: '🌿',
+  snow_equipment: '❄️',
   other: '⚙️',
+}
+
+// Location select component with farm areas dropdown + custom option + sub-location
+function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, editing = true, label = "Location" }) {
+  const [isCustom, setIsCustom] = useState(false)
+  const [customValue, setCustomValue] = useState('')
+
+  // Check if current value matches a farm area
+  const matchingArea = farmAreas.find(a => a.name === value)
+  const showCustomInput = isCustom || (value && !matchingArea)
+
+  useEffect(() => {
+    // If value doesn't match any farm area, it's a custom value
+    if (value && !farmAreas.find(a => a.name === value)) {
+      setIsCustom(true)
+      setCustomValue(value)
+    }
+  }, [value, farmAreas])
+
+  const handleSelectChange = (e) => {
+    const selected = e.target.value
+    if (selected === '__custom__') {
+      setIsCustom(true)
+      setCustomValue('')
+    } else {
+      setIsCustom(false)
+      setCustomValue('')
+      onChange(selected)
+    }
+  }
+
+  const handleCustomChange = (e) => {
+    const newValue = e.target.value
+    setCustomValue(newValue)
+    onChange(newValue)
+  }
+
+  if (!editing) {
+    const displayLocation = [value, subValue].filter(Boolean).join(' > ')
+    return (
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <div className="text-sm text-gray-300">{displayLocation || '-'}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <div>
+        {label && <label className="block text-sm text-gray-400 mb-1">{label}</label>}
+        {showCustomInput ? (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customValue}
+              onChange={handleCustomChange}
+              placeholder="Enter custom location"
+              className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+            <button
+              type="button"
+              onClick={() => { setIsCustom(false); setCustomValue(''); onChange('') }}
+              className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded"
+              title="Use dropdown"
+            >
+              ↓
+            </button>
+          </div>
+        ) : (
+          <select
+            value={value || ''}
+            onChange={handleSelectChange}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+          >
+            <option value="">No location</option>
+            {farmAreas.map(area => (
+              <option key={area.id} value={area.name}>
+                {area.is_sub_location ? `↳ ${area.name}` : area.name}
+              </option>
+            ))}
+            <option value="__custom__">+ Custom location...</option>
+          </select>
+        )}
+      </div>
+      <div>
+        <label className="block text-sm text-gray-400 mb-1">Sub-location</label>
+        <input
+          type="text"
+          value={subValue || ''}
+          onChange={(e) => onSubChange(e.target.value)}
+          placeholder="e.g., Shelf 3, West wall"
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+        />
+      </div>
+    </div>
+  )
 }
 
 function Equipment() {
   const [equipment, setEquipment] = useState([])
   const [equipmentTypes, setEquipmentTypes] = useState([])
+  const [farmAreas, setFarmAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -37,6 +166,8 @@ function Equipment() {
     year: '',
     serial_number: '',
     current_hours: '',
+    location: '',
+    sub_location: '',
     notes: '',
   })
 
@@ -58,12 +189,14 @@ function Equipment() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [equipRes, typesRes] = await Promise.all([
+      const [equipRes, typesRes, areasRes] = await Promise.all([
         getEquipment(),
-        getEquipmentTypes()
+        getEquipmentTypes(),
+        getFarmAreas()
       ])
       setEquipment(equipRes.data)
       setEquipmentTypes(typesRes.data)
+      setFarmAreas(areasRes.data || [])
       setError(null)
     } catch (err) {
       console.error('Failed to fetch equipment:', err)
@@ -209,6 +342,8 @@ function Equipment() {
       year: '',
       serial_number: '',
       current_hours: '',
+      location: '',
+      sub_location: '',
       notes: '',
     })
   }
@@ -224,6 +359,8 @@ function Equipment() {
       year: equip.year?.toString() || '',
       serial_number: equip.serial_number || '',
       current_hours: equip.current_hours?.toString() || '',
+      location: equip.location || '',
+      sub_location: equip.sub_location || '',
       notes: equip.notes || '',
     })
     setShowAddForm(true)
@@ -280,9 +417,17 @@ function Equipment() {
                 {expandedEquipment === equip.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </div>
               <div className="flex items-center justify-between mt-2">
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  <Clock className="w-4 h-4" />
-                  <span>{equip.current_hours || 0} hours</span>
+                <div className="flex items-center gap-4 text-sm text-gray-400">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    <span>{equip.current_hours || 0} hours</span>
+                  </div>
+                  {equip.location && (
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      <span>{equip.location}</span>
+                    </div>
+                  )}
                 </div>
                 {equip.overdue_count > 0 && (
                   <span className="text-red-400 text-sm">{equip.overdue_count} overdue</span>
@@ -469,6 +614,14 @@ function Equipment() {
                   className="w-full bg-gray-700 rounded-lg px-4 py-2"
                 />
               </div>
+              <LocationSelect
+                value={formData.location}
+                subValue={formData.sub_location}
+                onChange={(value) => setFormData({ ...formData, location: value })}
+                onSubChange={(value) => setFormData({ ...formData, sub_location: value })}
+                farmAreas={farmAreas}
+                editing={true}
+              />
               <div className="flex gap-3">
                 <button
                   type="button"

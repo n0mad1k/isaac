@@ -187,6 +187,15 @@ class SchedulerService:
             replace_existing=True,
         )
 
+        # Cleanup old weather data - daily at 3 AM
+        self.scheduler.add_job(
+            self.cleanup_weather_data,
+            CronTrigger(hour=3, minute=0),
+            id="cleanup_weather",
+            name="Cleanup Old Weather Data",
+            replace_existing=True,
+        )
+
         self.scheduler.start()
         logger.info("Scheduler started with all jobs")
 
@@ -279,20 +288,68 @@ class SchedulerService:
                     reading = await self.weather_service.save_reading(db, data)
                     # Check for alerts (creates dashboard alerts, email handled by sunset scheduler)
                     await self.weather_service.check_alerts(db, reading)
+
+                    # Check for rain-based auto watering
+                    from services.auto_watering import run_auto_watering_check
+                    watering_stats = await run_auto_watering_check(db)
+                    if watering_stats.get("rain_watered") or watering_stats.get("sprinkler_watered"):
+                        logger.info(f"Auto watering: {watering_stats}")
         except Exception as e:
             logger.error(f"Error polling weather: {e}")
 
     async def send_daily_digest(self):
-        """Send daily digest email with tasks and weather"""
+        """Send daily digest email with verse of the day, tasks and weather"""
         # Check if daily digest is enabled
         digest_enabled = await get_setting_value("email_daily_digest")
         if digest_enabled != "true":
             logger.debug("Daily digest is disabled, skipping")
             return
 
-        logger.info("Sending daily digest...")
+        # Get recipient email (fall back to general alert recipients)
+        recipient = await get_setting_value("email_digest_recipient")
+        if not recipient:
+            recipient = await get_setting_value("email_recipients")
+            if recipient:
+                # Use first email from comma-separated list
+                recipient = recipient.split(",")[0].strip()
+        if not recipient:
+            logger.warning("Daily digest recipient not configured, skipping")
+            return
+
+        logger.info(f"Sending daily digest to {recipient}...")
         try:
             async with async_session() as db:
+                # Get verse of the day
+                import httpx
+                import re
+                verse = None
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(
+                            "https://www.bible.com/verse-of-the-day",
+                            timeout=10.0,
+                            follow_redirects=True
+                        )
+                        response.raise_for_status()
+                        html_content = response.text
+                        match = re.search(r'og:description" content="([^"]+)"', html_content)
+                        if match:
+                            content = match.group(1)
+                            ref_match = re.match(r'^([\d\s]*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\s+(.+)$', content)
+                            if ref_match:
+                                verse = {
+                                    "reference": ref_match.group(1),
+                                    "text": ref_match.group(2),
+                                    "version": "NIV"
+                                }
+                except Exception as e:
+                    logger.warning(f"Failed to fetch verse of the day: {e}")
+                    verse = {
+                        "reference": "Psalm 104:14",
+                        "text": "He causes the grass to grow for the cattle, and vegetation for the service of man, that he may bring forth food from the earth.",
+                        "version": "NIV"
+                    }
+
                 # Get today's tasks
                 today = date.today()
                 result = await db.execute(
@@ -332,6 +389,7 @@ class SchedulerService:
                         "description": t.description,
                         "priority": t.priority,
                         "category": t.category.value if t.category else None,
+                        "due_time": t.due_time,
                     }
                     for t in tasks
                 ]
@@ -349,6 +407,8 @@ class SchedulerService:
                     tasks=task_dicts,
                     weather=weather,
                     alerts=alert_dicts,
+                    recipient=recipient,
+                    verse=verse,
                 )
         except Exception as e:
             logger.error(f"Error sending daily digest: {e}")
@@ -941,3 +1001,17 @@ class SchedulerService:
 
         except Exception as e:
             logger.error(f"Error checking storage usage: {e}")
+
+    async def cleanup_weather_data(self):
+        """Clean up old weather readings to prevent database bloat"""
+        logger.debug("Running weather data cleanup...")
+        try:
+            from services.auto_watering import cleanup_old_weather_readings
+
+            async with async_session() as db:
+                deleted = await cleanup_old_weather_readings(db)
+                if deleted > 0:
+                    logger.info(f"Weather cleanup: removed {deleted} old readings")
+
+        except Exception as e:
+            logger.error(f"Error cleaning up weather data: {e}")

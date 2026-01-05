@@ -40,7 +40,7 @@ class AnimalCreate(BaseModel):
     feed_frequency: Optional[str] = Field(None, max_length=100)
     feed_type: Optional[str] = Field(None, max_length=200)
     pasture: Optional[str] = Field(None, max_length=100)
-    barn: Optional[str] = Field(None, max_length=100)
+    sub_location: Optional[str] = Field(None, max_length=200)
     # Livestock specific
     target_weight: Optional[float] = Field(None, ge=0, le=10000)
     slaughter_date: Optional[date] = None
@@ -80,7 +80,7 @@ class AnimalUpdate(BaseModel):
     feed_frequency: Optional[str] = Field(None, max_length=100)
     feed_type: Optional[str] = Field(None, max_length=200)
     pasture: Optional[str] = Field(None, max_length=100)
-    barn: Optional[str] = Field(None, max_length=100)
+    sub_location: Optional[str] = Field(None, max_length=200)
     status: Optional[str] = Field(None, max_length=50)
     # Livestock
     target_weight: Optional[float] = Field(None, ge=0, le=10000)
@@ -161,6 +161,7 @@ class CareScheduleCreate(BaseModel):
     frequency_days: Optional[int] = Field(None, ge=1, le=730)
     last_performed: Optional[date] = None
     manual_due_date: Optional[date] = None
+    due_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')  # HH:MM format
     notes: Optional[str] = Field(None, max_length=2000)
 
 
@@ -169,6 +170,7 @@ class CareScheduleUpdate(BaseModel):
     frequency_days: Optional[int] = Field(None, ge=1, le=730)
     last_performed: Optional[date] = None
     manual_due_date: Optional[date] = None
+    due_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')  # HH:MM format
     notes: Optional[str] = Field(None, max_length=2000)
     is_active: Optional[bool] = None
 
@@ -195,6 +197,7 @@ def care_schedule_to_response(schedule: AnimalCareSchedule) -> dict:
         "last_performed": schedule.last_performed,
         "manual_due_date": schedule.manual_due_date,
         "due_date": schedule.due_date,
+        "due_time": schedule.due_time,
         "is_overdue": schedule.is_overdue,
         "days_until_due": schedule.days_until_due,
         "notes": schedule.notes,
@@ -222,7 +225,7 @@ def animal_to_response(animal: Animal) -> dict:
         "feed_frequency": animal.feed_frequency,
         "feed_type": animal.feed_type,
         "pasture": animal.pasture,
-        "barn": animal.barn,
+        "sub_location": animal.sub_location,
         "status": animal.status,
         "is_active": animal.is_active,
         # Computed fields
@@ -768,6 +771,7 @@ async def create_care_schedule(
         frequency_days=schedule.frequency_days,
         last_performed=schedule.last_performed,
         manual_due_date=schedule.manual_due_date,
+        due_time=schedule.due_time,
         notes=schedule.notes,
     )
     db.add(db_schedule)

@@ -19,14 +19,45 @@ def get_local_now():
 
 
 class EquipmentType(enum.Enum):
+    # Farm Equipment
+    TRACTOR = "tractor"
     MOWER = "mower"
     CHAINSAW = "chainsaw"
+    BRUSH_HOG = "brush_hog"
+    TILLER = "tiller"
+    CULTIVATOR = "cultivator"
+    SEEDER = "seeder"
+    SPRAYER = "sprayer"
+    SPREADER = "spreader"
+    BALER = "baler"
+    LOADER = "loader"
+    BACKHOE = "backhoe"
+    POST_DRIVER = "post_driver"
+    AUGER = "auger"
+    CHIPPER = "chipper"
+    LOG_SPLITTER = "log_splitter"
+    FENCE_CHARGER = "fence_charger"
+    WATER_PUMP = "water_pump"
+    IRRIGATION = "irrigation"
+    # Power Equipment
     GENERATOR = "generator"
     PRESSURE_WASHER = "pressure_washer"
     WELDER = "welder"
     AIR_COMPRESSOR = "air_compressor"
+    # Tools
     POWER_TOOLS = "power_tools"
     HAND_TOOLS = "hand_tools"
+    # Home Equipment
+    HVAC = "hvac"
+    WATER_HEATER = "water_heater"
+    WATER_SOFTENER = "water_softener"
+    WELL_PUMP = "well_pump"
+    SEPTIC = "septic"
+    APPLIANCE = "appliance"
+    GRILL = "grill"
+    POOL_SPA = "pool_spa"
+    LAWN_EQUIPMENT = "lawn_equipment"
+    SNOW_EQUIPMENT = "snow_equipment"
     OTHER = "other"
 
 
@@ -38,6 +69,11 @@ class Equipment(Base):
     name = Column(String(200), nullable=False)  # e.g., "Husqvarna 455 Chainsaw"
     type = Column(Enum(EquipmentType), nullable=False)
     custom_type = Column(String(100))  # If type is OTHER
+
+    # Location
+    farm_area_id = Column(Integer, ForeignKey("farm_areas.id"), nullable=True)
+    location = Column(String(200))  # Custom location text if not using farm_area
+    sub_location = Column(String(200))  # Sub-location detail (e.g., "Shelf 3", "West wall")
 
     # Details
     make = Column(String(100))
@@ -63,6 +99,7 @@ class Equipment(Base):
 
     # Relationships
     maintenance_tasks = relationship("EquipmentMaintenance", back_populates="equipment", cascade="all, delete-orphan")
+    farm_area = relationship("FarmArea", back_populates="equipment")
 
     @property
     def display_type(self):

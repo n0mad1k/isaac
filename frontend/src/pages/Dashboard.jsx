@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Leaf, PawPrint, ListTodo, AlertTriangle, Clock } from 'lucide-react'
-import { getDashboard, getAnimals } from '../services/api'
+import { getDashboard, getAnimals, getSettings } from '../services/api'
 import WeatherWidget from '../components/WeatherWidget'
 import TaskList from '../components/TaskList'
 import AlertBanner from '../components/AlertBanner'
@@ -14,18 +14,23 @@ import { format } from 'date-fns'
 function Dashboard() {
   const [data, setData] = useState(null)
   const [animals, setAnimals] = useState([])
+  const [hideCompleted, setHideCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [currentTime, setCurrentTime] = useState(new Date())
 
   const fetchData = useCallback(async () => {
     try {
-      const [dashboardRes, animalsRes] = await Promise.all([
+      const [dashboardRes, animalsRes, settingsRes] = await Promise.all([
         getDashboard(),
-        getAnimals()
+        getAnimals(),
+        getSettings()
       ])
       setData(dashboardRes.data)
       setAnimals(animalsRes.data)
+      // Check hide_completed_today setting
+      const hideCompletedSetting = settingsRes.data?.settings?.hide_completed_today?.value
+      setHideCompleted(hideCompletedSetting === 'true')
       setError(null)
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err)
@@ -151,7 +156,9 @@ function Dashboard() {
         <div className="space-y-4">
           <TaskList
             title="Today's Schedule"
-            tasks={data?.tasks_today}
+            tasks={hideCompleted
+              ? data?.tasks_today?.filter(t => !t.is_completed)
+              : data?.tasks_today}
             onTaskToggle={fetchData}
             showTimeAndLocation={true}
           />

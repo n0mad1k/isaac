@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import {
   Plus, Search, PawPrint, Calendar, AlertCircle, ChevronDown, ChevronUp,
   MapPin, DollarSign, Scale, Clock, Check, X, Syringe, Scissors,
-  Heart, Beef, Dog, Cat, Pencil, Save, Package
+  Heart, Beef, Dog, Cat, Pencil, Save, Package, Copy
 } from 'lucide-react'
 import {
   getAnimals, createAnimal, updateAnimal, deleteAnimal, addAnimalCareLog,
@@ -149,14 +149,114 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
   )
 }
 
+// Location select component with farm areas dropdown + custom option
+function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, editing = true, label = "Location" }) {
+  const [isCustom, setIsCustom] = useState(false)
+  const [customValue, setCustomValue] = useState('')
+
+  // Check if current value matches a farm area
+  const matchingArea = farmAreas.find(a => a.name === value)
+  const showCustomInput = isCustom || (value && !matchingArea)
+
+  useEffect(() => {
+    // If value doesn't match any farm area, it's a custom value
+    if (value && !farmAreas.find(a => a.name === value)) {
+      setIsCustom(true)
+      setCustomValue(value)
+    }
+  }, [value, farmAreas])
+
+  const handleSelectChange = (e) => {
+    const selected = e.target.value
+    if (selected === '__custom__') {
+      setIsCustom(true)
+      setCustomValue('')
+    } else {
+      setIsCustom(false)
+      setCustomValue('')
+      onChange(selected)
+    }
+  }
+
+  const handleCustomChange = (e) => {
+    const newValue = e.target.value
+    setCustomValue(newValue)
+    onChange(newValue)
+  }
+
+  if (!editing) {
+    const displayLocation = [value, subValue].filter(Boolean).join(' > ')
+    return (
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <div className="text-sm text-gray-300">{displayLocation || '-'}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <div>
+        {label && <label className="block text-xs text-gray-500 mb-1">{label}</label>}
+        {showCustomInput ? (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customValue}
+              onChange={handleCustomChange}
+              placeholder="Enter custom location"
+              className="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            />
+            <button
+              type="button"
+              onClick={() => { setIsCustom(false); setCustomValue(''); onChange('') }}
+              className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded"
+              title="Use dropdown"
+            >
+              ↓
+            </button>
+          </div>
+        ) : (
+          <select
+            value={value || ''}
+            onChange={handleSelectChange}
+            className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+          >
+            <option value="">No location</option>
+            {farmAreas.map(area => (
+              <option key={area.id} value={area.name}>
+                {area.is_sub_location ? `↳ ${area.name}` : area.name}
+              </option>
+            ))}
+            <option value="__custom__">+ Custom location...</option>
+          </select>
+        )}
+      </div>
+      <div>
+        <label className="block text-xs text-gray-500 mb-1">Sub-location</label>
+        <input
+          type="text"
+          value={subValue || ''}
+          onChange={(e) => onSubChange(e.target.value)}
+          placeholder="e.g., 3rd paddock, Stall 5"
+          className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+        />
+      </div>
+    </div>
+  )
+}
+
 function Animals() {
   const [animals, setAnimals] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingAnimal, setEditingAnimal] = useState(null)
+  const [duplicateAnimal, setDuplicateAnimal] = useState(null)
   const [expandedAnimal, setExpandedAnimal] = useState(null)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState('all') // all, pet, livestock
+  const [groupByLocation, setGroupByLocation] = useState(true)
+  const [collapsedLocations, setCollapsedLocations] = useState({})
   const [showExpenseForm, setShowExpenseForm] = useState(null) // animal_id or null
   const [editDateModal, setEditDateModal] = useState(null) // { animalId, field, label, currentDate }
   const [showCareScheduleForm, setShowCareScheduleForm] = useState(null) // animal_id or null
@@ -213,6 +313,35 @@ function Animals() {
 
   const pets = animals.filter(a => a.category === 'pet')
   const livestock = animals.filter(a => a.category === 'livestock')
+
+  // Get location for an animal (farm_area name > pasture > "No Location")
+  const getAnimalLocation = (animal) => {
+    if (animal.farm_area?.name) return animal.farm_area.name
+    if (animal.pasture) return animal.pasture
+    return 'No Location'
+  }
+
+  // Group animals by location
+  const animalsByLocation = filteredAnimals.reduce((acc, animal) => {
+    const location = getAnimalLocation(animal)
+    if (!acc[location]) acc[location] = []
+    acc[location].push(animal)
+    return acc
+  }, {})
+
+  // Sort locations alphabetically, but put "No Location" at the end
+  const sortedAnimalLocations = Object.keys(animalsByLocation).sort((a, b) => {
+    if (a === 'No Location') return 1
+    if (b === 'No Location') return -1
+    return a.localeCompare(b)
+  })
+
+  const toggleLocationCollapse = (location) => {
+    setCollapsedLocations(prev => ({
+      ...prev,
+      [location]: !prev[location]
+    }))
+  }
 
   const getAnimalIcon = (type) => {
     const icons = {
@@ -527,6 +656,19 @@ function Animals() {
             className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
           />
         </div>
+
+        {/* Group by Location Toggle */}
+        <button
+          onClick={() => setGroupByLocation(!groupByLocation)}
+          className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+            groupByLocation
+              ? 'bg-farm-green text-white'
+              : 'bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700'
+          }`}
+        >
+          <MapPin className="w-4 h-4" />
+          Group by Location
+        </button>
       </div>
 
       {/* Animal List */}
@@ -535,7 +677,62 @@ function Animals() {
           <PawPrint className="w-16 h-16 mx-auto mb-4 opacity-50" />
           <p>No animals found. Add your first animal!</p>
         </div>
+      ) : groupByLocation ? (
+        // Grouped by location view
+        <div className="space-y-4">
+          {sortedAnimalLocations.map((location) => (
+            <div key={location} className="bg-gray-800/50 rounded-xl overflow-hidden">
+              <button
+                onClick={() => toggleLocationCollapse(location)}
+                className="w-full px-4 py-3 flex items-center justify-between bg-gray-800 hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-cyan-400" />
+                  <span className="font-medium">{location}</span>
+                  <span className="text-sm text-gray-400">({animalsByLocation[location].length} animals)</span>
+                </div>
+                {collapsedLocations[location] ? (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                )}
+              </button>
+              {!collapsedLocations[location] && (
+                <div className="p-2 space-y-1">
+                  {animalsByLocation[location].map((animal) => (
+                    <AnimalCard
+                      key={animal.id}
+                      animal={animal}
+                      farmAreas={farmAreas}
+                      expanded={expandedAnimal === animal.id}
+                      onToggle={() => setExpandedAnimal(expandedAnimal === animal.id ? null : animal.id)}
+                      onLogCare={logCare}
+                      onDelete={() => handleDelete(animal.id, animal.name)}
+                      onDuplicate={(animal) => setDuplicateAnimal(animal)}
+                      onAddExpense={() => setShowExpenseForm(animal.id)}
+                      onEditDate={setEditDateModal}
+                      onToggleTag={(tag) => toggleTag(animal.id, animal.tags, tag)}
+                      onAddCareSchedule={() => setShowCareScheduleForm(animal.id)}
+                      onCompleteCareSchedule={(scheduleId) => handleCompleteCareSchedule(animal.id, scheduleId)}
+                      onDeleteCareSchedule={(scheduleId) => handleDeleteCareSchedule(animal.id, scheduleId)}
+                      onEditCareSchedule={(schedule) => setEditingCareSchedule({ animalId: animal.id, ...schedule })}
+                      onAddFeed={() => setShowFeedForm(animal.id)}
+                      onEditFeed={(feed) => setEditingFeed({ animalId: animal.id, ...feed })}
+                      onDeleteFeed={(feedId) => handleDeleteFeed(animal.id, feedId)}
+                      onSave={fetchAnimals}
+                      onArchive={(animal) => setShowArchiveForm(animal)}
+                      getAnimalIcon={getAnimalIcon}
+                      getDaysUntil={getDaysUntil}
+                      getUrgencyClass={getUrgencyClass}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       ) : (
+        // Flat list view
         <div className="space-y-1">
           {filteredAnimals.map((animal) => (
             <AnimalCard
@@ -546,6 +743,7 @@ function Animals() {
               onToggle={() => setExpandedAnimal(expandedAnimal === animal.id ? null : animal.id)}
               onLogCare={logCare}
               onDelete={() => handleDelete(animal.id, animal.name)}
+              onDuplicate={(animal) => setDuplicateAnimal(animal)}
               onAddExpense={() => setShowExpenseForm(animal.id)}
               onEditDate={setEditDateModal}
               onToggleTag={(tag) => toggleTag(animal.id, animal.tags, tag)}
@@ -573,6 +771,17 @@ function Animals() {
           farmAreas={farmAreas}
           onClose={() => { setShowForm(false); setEditingAnimal(null) }}
           onSave={() => { setShowForm(false); setEditingAnimal(null); fetchAnimals() }}
+        />
+      )}
+
+      {/* Duplicate Animal Modal */}
+      {duplicateAnimal && (
+        <AnimalFormModal
+          animal={duplicateAnimal}
+          farmAreas={farmAreas}
+          isDuplicate={true}
+          onClose={() => setDuplicateAnimal(null)}
+          onSave={() => { setDuplicateAnimal(null); fetchAnimals() }}
         />
       )}
 
@@ -805,7 +1014,7 @@ const getSexOptions = (animalType) => {
 
 // Animal Card Component with inline editing
 function AnimalCard({
-  animal, farmAreas = [], expanded, onToggle, onLogCare, onDelete, onAddExpense, onEditDate, onToggleTag,
+  animal, farmAreas = [], expanded, onToggle, onLogCare, onDelete, onDuplicate, onAddExpense, onEditDate, onToggleTag,
   onAddCareSchedule, onCompleteCareSchedule, onDeleteCareSchedule, onEditCareSchedule,
   onAddFeed, onEditFeed, onDeleteFeed, onSave, onArchive, getAnimalIcon, getDaysUntil, getUrgencyClass
 }) {
@@ -849,7 +1058,7 @@ function AnimalCard({
         acquisition_date: animal.acquisition_date || '',
         current_weight: animal.current_weight || '',
         pasture: animal.pasture || '',
-        barn: animal.barn || '',
+        sub_location: animal.sub_location || '',
         farm_area_id: animal.farm_area_id || '',
         notes: animal.notes || '',
         special_instructions: animal.special_instructions || '',
@@ -916,7 +1125,7 @@ function AnimalCard({
       acquisition_date: animal.acquisition_date || '',
       current_weight: animal.current_weight || '',
       pasture: animal.pasture || '',
-      barn: animal.barn || '',
+      sub_location: animal.sub_location || '',
       farm_area_id: animal.farm_area_id || '',
       notes: animal.notes || '',
       special_instructions: animal.special_instructions || '',
@@ -989,13 +1198,13 @@ function AnimalCard({
           {[animal.color, animal.animal_type?.replace('_', ' ')].filter(Boolean).join(' ')}
         </span>
 
-        {/* Farm Area if assigned */}
-        {animal.farm_area && (
+        {/* Location: Farm Area or Pasture */}
+        {(animal.farm_area || animal.pasture) && (
           <>
             <span className="text-gray-600">·</span>
             <span className="text-xs text-emerald-500 flex items-center gap-1">
               <MapPin className="w-3 h-3" />
-              {animal.farm_area.name}
+              {animal.farm_area?.name || animal.pasture}
             </span>
           </>
         )}
@@ -1105,6 +1314,12 @@ function AnimalCard({
               🏥 Vet Visit
             </button>
             <button
+              onClick={(e) => { e.stopPropagation(); onDuplicate(animal) }}
+              className="px-3 py-1.5 bg-gray-600/50 hover:bg-gray-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <Copy className="w-3 h-3" /> Duplicate
+            </button>
+            <button
               onClick={(e) => { e.stopPropagation(); onDelete() }}
               className="px-3 py-1.5 bg-red-600/50 hover:bg-red-600 rounded text-sm text-white transition-colors flex items-center gap-1 ml-auto"
             >
@@ -1204,28 +1419,14 @@ function AnimalCard({
                 onChange={handleFieldChange}
                 editing={isEditing}
               />
-              <EditableField
-                label="Farm Area"
-                value={editData.farm_area_id}
-                field="farm_area_id"
-                type="select"
-                options={[{ value: '', label: 'No area' }, ...farmAreas.map(a => ({ value: a.id.toString(), label: a.name }))]}
-                onChange={handleFieldChange}
-                editing={isEditing}
-              />
-              <EditableField
-                label="Pasture/Location"
+              <LocationSelect
                 value={editData.pasture}
-                field="pasture"
-                onChange={handleFieldChange}
+                subValue={editData.sub_location}
+                onChange={(value) => handleFieldChange('pasture', value)}
+                onSubChange={(value) => handleFieldChange('sub_location', value)}
+                farmAreas={farmAreas}
                 editing={isEditing}
-              />
-              <EditableField
-                label="Barn"
-                value={editData.barn}
-                field="barn"
-                onChange={handleFieldChange}
-                editing={isEditing}
+                label="Location"
               />
             </div>
 
@@ -1624,6 +1825,7 @@ function DynamicCareCard({ schedule, onComplete, onEdit, onDelete }) {
         <div className={`text-xs ${isOverdue ? 'text-red-300' : 'text-gray-400'}`}>
           {isOverdue ? 'Was due: ' : 'Due: '}
           {format(safeParseDate(schedule.due_date), 'MMM d')}
+          {schedule.due_time && ` @ ${schedule.due_time}`}
           {daysUntil !== null && !isOverdue && ` (${daysUntil}d)`}
         </div>
       )}
@@ -1671,6 +1873,7 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
     frequency_days: schedule?.frequency_days || '',
     last_performed: schedule?.last_performed || '',
     manual_due_date: schedule?.manual_due_date || '',
+    due_time: schedule?.due_time || '',
     notes: schedule?.notes || '',
   })
   const [saving, setSaving] = useState(false)
@@ -1684,6 +1887,7 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
         frequency_days: formData.frequency_days ? parseInt(formData.frequency_days) : null,
         last_performed: formData.last_performed || null,
         manual_due_date: formData.manual_due_date || null,
+        due_time: formData.due_time || null,
         notes: formData.notes || null,
       }
       await onSave(data)
@@ -1741,16 +1945,27 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
             />
           </div>
 
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Manual Due Date</label>
-            <input
-              type="date"
-              value={formData.manual_due_date}
-              onChange={(e) => setFormData({ ...formData, manual_due_date: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
-            <p className="text-xs text-gray-500 mt-1">Overrides calculated due date from frequency</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Manual Due Date</label>
+              <input
+                type="date"
+                value={formData.manual_due_date}
+                onChange={(e) => setFormData({ ...formData, manual_due_date: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Time Due</label>
+              <input
+                type="time"
+                value={formData.due_time}
+                onChange={(e) => setFormData({ ...formData, due_time: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
           </div>
+          <p className="text-xs text-gray-500 -mt-2">Set specific date/time for this care task</p>
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>
@@ -2173,19 +2388,20 @@ function FeedsSection({ animal, onFeedsChange }) {
 
 
 // Animal Form Modal
-function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
+function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate = false }) {
   const [formData, setFormData] = useState({
-    name: animal?.name || '',
+    name: isDuplicate && animal?.name ? `${animal.name} (Copy)` : (animal?.name || ''),
     animal_type: animal?.animal_type || 'dog',
     category: animal?.category || 'pet',
     breed: animal?.breed || '',
     color: animal?.color || '',
-    tag_number: animal?.tag_number || '',
+    tag_number: isDuplicate ? '' : (animal?.tag_number || ''), // Clear tag number for duplicates
     sex: animal?.sex || '',
     birth_date: animal?.birth_date || '',
     acquisition_date: animal?.acquisition_date || '',
     current_weight: animal?.current_weight || '',
     pasture: animal?.pasture || '',
+    sub_location: animal?.sub_location || '',
     farm_area_id: animal?.farm_area_id || '',
     notes: animal?.notes || '',
     special_instructions: animal?.special_instructions || '',
@@ -2227,7 +2443,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
         farm_area_id: formData.farm_area_id ? parseInt(formData.farm_area_id) : null,
       }
 
-      if (animal) {
+      if (animal && !isDuplicate) {
         await updateAnimal(animal.id, data)
       } else {
         await createAnimal(data)
@@ -2248,7 +2464,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">{animal ? 'Edit Animal' : 'Add New Animal'}</h2>
+          <h2 className="text-xl font-semibold">{isDuplicate ? 'Duplicate Animal' : (animal ? 'Edit Animal' : 'Add New Animal')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>
@@ -2387,27 +2603,15 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Farm Area</label>
-              <select
-                value={formData.farm_area_id}
-                onChange={(e) => setFormData({ ...formData, farm_area_id: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              >
-                <option value="">No area assigned</option>
-                {farmAreas.map(area => (
-                  <option key={area.id} value={area.id}>{area.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Pasture/Barn</label>
-              <input
-                type="text"
+            <div className="col-span-2">
+              <LocationSelect
                 value={formData.pasture}
-                onChange={(e) => setFormData({ ...formData, pasture: e.target.value })}
-                placeholder="e.g., Front pasture, Barn stall 3"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                subValue={formData.sub_location}
+                onChange={(value) => setFormData({ ...formData, pasture: value })}
+                onSubChange={(value) => setFormData({ ...formData, sub_location: value })}
+                farmAreas={farmAreas}
+                editing={true}
+                label="Location"
               />
             </div>
           </div>
@@ -2602,7 +2806,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave }) {
               disabled={saving}
               className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
             >
-              {saving ? 'Saving...' : (animal ? 'Update Animal' : 'Add Animal')}
+              {saving ? 'Saving...' : (isDuplicate ? 'Create Copy' : (animal ? 'Update Animal' : 'Add Animal'))}
             </button>
           </div>
         </form>

@@ -15,6 +15,7 @@ import Production from './pages/Production'
 import Login from './pages/Login'
 import Layout from './components/Layout'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { SettingsProvider } from './contexts/SettingsContext'
 
 // Protected route wrapper
 function RequireAuth({ children }) {
@@ -69,7 +70,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <SettingsProvider>
+          <AppRoutes />
+        </SettingsProvider>
       </AuthProvider>
     </BrowserRouter>
   )

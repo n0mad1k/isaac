@@ -19,21 +19,56 @@ def get_local_now():
 
 
 class FarmAreaType(enum.Enum):
+    # Indoor/Buildings
+    HOUSE = "house"
+    BARN = "barn"
+    POLE_BARN = "pole_barn"
+    WORKSHOP = "workshop"
+    GREENHOUSE = "greenhouse"
+    SHED = "shed"
+    GARAGE = "garage"
+    STORAGE = "storage"
+
+    # Rooms/Indoor Sub-locations
+    BEDROOM = "bedroom"
+    BATHROOM = "bathroom"
+    KITCHEN = "kitchen"
+    LIVING_ROOM = "living_room"
+    OFFICE = "office"
+    LAUNDRY = "laundry"
+    CLOSET = "closet"
+    ATTIC = "attic"
+    BASEMENT = "basement"
+
+    # Outdoor/Growing
     GARDEN = "garden"
     NURSERY = "nursery"
     FOOD_FOREST = "food_forest"
     ORCHARD = "orchard"
     PASTURE = "pasture"
+    YARD = "yard"
+    FRONT_YARD = "front_yard"
+    BACK_YARD = "back_yard"
+    SIDE_YARD = "side_yard"
+
+    # Water Features
     POND = "pond"
-    BARN = "barn"
-    POLE_BARN = "pole_barn"
-    WORKSHOP = "workshop"
+    POOL = "pool"
+
+    # Animal Housing
     CHICKEN_COOP = "chicken_coop"
     RABBIT_HUTCH = "rabbit_hutch"
+    DOG_KENNEL = "dog_kennel"
+    STALL = "stall"
+    PEN = "pen"
     APIARY = "apiary"  # Bee yard
-    GREENHOUSE = "greenhouse"
-    SHED = "shed"
-    GARAGE = "garage"
+
+    # Other
+    DRIVEWAY = "driveway"
+    DECK = "deck"
+    PATIO = "patio"
+    PORCH = "porch"
+    FENCE = "fence"
     CUSTOM = "custom"
 
 
@@ -45,6 +80,9 @@ class FarmArea(Base):
     name = Column(String(200), nullable=False)  # e.g., "Front Pasture", "Main Garden"
     type = Column(Enum(FarmAreaType), nullable=False)
     custom_type = Column(String(100))  # If type is CUSTOM
+
+    # Hierarchical structure for sub-locations
+    parent_id = Column(Integer, ForeignKey("farm_areas.id"), nullable=True)
 
     # Details
     description = Column(Text)
@@ -70,6 +108,10 @@ class FarmArea(Base):
     maintenance_tasks = relationship("FarmAreaMaintenance", back_populates="area", cascade="all, delete-orphan")
     plants = relationship("Plant", back_populates="farm_area")
     animals = relationship("Animal", back_populates="farm_area")
+    equipment = relationship("Equipment", back_populates="farm_area")
+
+    # Hierarchical relationships
+    parent = relationship("FarmArea", remote_side=[id], backref="children")
 
     @property
     def display_type(self):
@@ -77,6 +119,18 @@ class FarmArea(Base):
         if self.type == FarmAreaType.CUSTOM and self.custom_type:
             return self.custom_type
         return self.type.value.replace("_", " ").title()
+
+    @property
+    def full_path(self):
+        """Return full hierarchical path (e.g., 'House > Master Bedroom')"""
+        if self.parent:
+            return f"{self.parent.full_path} > {self.name}"
+        return self.name
+
+    @property
+    def is_sub_location(self):
+        """Return True if this is a sub-location"""
+        return self.parent_id is not None
 
     def __repr__(self):
         return f"<FarmArea {self.name}>"

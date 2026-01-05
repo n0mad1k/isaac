@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs } from '../services/api'
+import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink } from 'lucide-react'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, getRecentCommits } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
 function Settings() {
@@ -38,6 +38,13 @@ function Settings() {
   const [loadingStorage, setLoadingStorage] = useState(false)
   const [clearingLogs, setClearingLogs] = useState(false)
 
+  // Version state
+  const [versionInfo, setVersionInfo] = useState(null)
+  const [loadingVersion, setLoadingVersion] = useState(false)
+  const [updating, setUpdating] = useState(false)
+  const [showChangelog, setShowChangelog] = useState(false)
+  const [showCommits, setShowCommits] = useState(false)
+
   // Collapsible sections state - all collapsed by default
   const [expandedSections, setExpandedSections] = useState({
     users: false,
@@ -74,6 +81,7 @@ function Settings() {
 
   useEffect(() => {
     fetchSettings()
+    fetchVersionInfo()
   }, [])
 
   // Fetch users and roles (admin only)
@@ -84,6 +92,36 @@ function Settings() {
       fetchPermissionCategories()
     }
   }, [isAdmin])
+
+  const fetchVersionInfo = async () => {
+    setLoadingVersion(true)
+    try {
+      const response = await getVersionInfo()
+      setVersionInfo(response.data)
+    } catch (error) {
+      console.error('Failed to fetch version info:', error)
+    } finally {
+      setLoadingVersion(false)
+    }
+  }
+
+  const handleUpdate = async () => {
+    if (!confirm('This will pull the latest changes. Continue?')) return
+    setUpdating(true)
+    try {
+      const response = await updateApplication()
+      if (response.data.success) {
+        setMessage({ type: 'success', text: response.data.message })
+        fetchVersionInfo() // Refresh version info
+      } else {
+        setMessage({ type: 'error', text: response.data.message || 'Update failed' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Update failed: ' + (error.response?.data?.detail || error.message) })
+    } finally {
+      setUpdating(false)
+    }
+  }
 
   const fetchUsers = async () => {
     setLoadingUsers(true)
@@ -429,7 +467,7 @@ function Settings() {
   const alertSettings = ['frost_warning_temp', 'freeze_warning_temp', 'heat_warning_temp', 'wind_warning_speed', 'rain_warning_inches', 'cold_protection_buffer']
   const calendarSettings = ['calendar_enabled', 'calendar_url', 'calendar_username', 'calendar_password', 'calendar_name', 'calendar_sync_interval']
   const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
-  const displaySettings = ['dashboard_refresh_interval']
+  const displaySettings = ['dashboard_refresh_interval', 'hide_completed_today', 'time_format']
 
   // Notification category settings - grouped by type
   const animalNotifySettings = [
@@ -1462,6 +1500,62 @@ function Settings() {
             </p>
             <div className="space-y-4">
               {renderSettingCard('dashboard_refresh_interval')}
+
+              {/* Time Format Toggle */}
+              <div className="bg-gray-750 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Time Format</h3>
+                    <p className="text-sm text-gray-400">Choose 12-hour (2:30 PM) or 24-hour (14:30) time format</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleSettingChange('time_format', '12h')}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        settings.time_format?.value === '12h' || !settings.time_format?.value
+                          ? 'bg-farm-green text-white'
+                          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                      }`}
+                    >
+                      12h
+                    </button>
+                    <button
+                      onClick={() => handleSettingChange('time_format', '24h')}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        settings.time_format?.value === '24h'
+                          ? 'bg-farm-green text-white'
+                          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                      }`}
+                    >
+                      24h
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hide Completed Tasks Toggle */}
+              <div className="bg-gray-750 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Hide Completed Tasks</h3>
+                    <p className="text-sm text-gray-400">Hide completed tasks from Today's Schedule on the dashboard</p>
+                  </div>
+                  <button
+                    onClick={() => handleSettingChange('hide_completed_today', settings.hide_completed_today?.value === 'true' ? 'false' : 'true')}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.hide_completed_today?.value === 'true'
+                        ? 'bg-farm-green'
+                        : 'bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.hide_completed_today?.value === 'true' ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1581,6 +1675,151 @@ function Settings() {
           )}
         </div>
       )}
+
+      {/* Feedback & Support */}
+      <div className="bg-gray-800 rounded-xl p-6">
+        <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+          <MessageSquare className="w-5 h-5 text-pink-400" />
+          Feedback & Support
+        </h2>
+        <p className="text-sm text-gray-400 mb-4">
+          Found a bug? Have a feature request? We'd love to hear from you!
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <a
+            href="https://github.com/n0mad1k/isaac/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-4 bg-gray-700/50 hover:bg-gray-700 rounded-lg transition-colors group"
+          >
+            <div className="w-10 h-10 bg-gray-600 rounded-lg flex items-center justify-center group-hover:bg-gray-500">
+              <ExternalLink className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-medium flex items-center gap-2">
+                GitHub Issues
+                <ExternalLink className="w-3 h-3 text-gray-500" />
+              </div>
+              <div className="text-sm text-gray-400">Report bugs or request features</div>
+            </div>
+          </a>
+          <a
+            href="mailto:isaac.clx8c@simplelogin.com?subject=Isaac%20Feedback"
+            className="flex items-center gap-3 p-4 bg-gray-700/50 hover:bg-gray-700 rounded-lg transition-colors group"
+          >
+            <div className="w-10 h-10 bg-gray-600 rounded-lg flex items-center justify-center group-hover:bg-gray-500">
+              <Mail className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-medium">Email Feedback</div>
+              <div className="text-sm text-gray-400">isaac.clx8c@simplelogin.com</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      {/* Version & Updates */}
+      <div className="bg-gray-800/50 rounded-xl p-6">
+        <h3 className="font-medium text-white mb-4 flex items-center gap-2">
+          <Server className="w-5 h-5 text-purple-400" />
+          Version & Updates
+        </h3>
+
+        {loadingVersion ? (
+          <div className="text-gray-400">Loading version info...</div>
+        ) : versionInfo ? (
+          <div className="space-y-4">
+            {/* Current Version */}
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-white">v{versionInfo.version}</div>
+                <div className="text-sm text-gray-400">
+                  {versionInfo.git?.branch && (
+                    <span className="mr-3">Branch: {versionInfo.git.branch}</span>
+                  )}
+                  {versionInfo.git?.commit && (
+                    <span className="text-gray-500">({versionInfo.git.commit})</span>
+                  )}
+                </div>
+                {versionInfo.git?.commit_date && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Last updated: {new Date(versionInfo.git.commit_date).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
+
+              {/* Update Button */}
+              <div className="flex flex-col items-end gap-2">
+                {versionInfo.git?.has_updates && (
+                  <span className="px-2 py-1 bg-green-600/30 text-green-400 text-xs rounded-full">
+                    {versionInfo.git.commits_behind} update{versionInfo.git.commits_behind > 1 ? 's' : ''} available
+                  </span>
+                )}
+                <button
+                  onClick={handleUpdate}
+                  disabled={updating || !versionInfo.git?.has_updates}
+                  className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                    versionInfo.git?.has_updates
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <RefreshCw className={`w-4 h-4 ${updating ? 'animate-spin' : ''}`} />
+                  {updating ? 'Updating...' : versionInfo.git?.has_updates ? 'Update Now' : 'Up to Date'}
+                </button>
+              </div>
+            </div>
+
+            {/* Changelog Toggle */}
+            <div>
+              <button
+                onClick={() => setShowChangelog(!showChangelog)}
+                className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300"
+              >
+                {showChangelog ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                View Changelog
+              </button>
+
+              {showChangelog && versionInfo.changelog && (
+                <div className="mt-3 p-4 bg-gray-900/50 rounded-lg max-h-96 overflow-y-auto">
+                  <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono">
+                    {versionInfo.changelog}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            {/* Recent Commits Toggle */}
+            <div>
+              <button
+                onClick={() => setShowCommits(!showCommits)}
+                className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300"
+              >
+                {showCommits ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                Recent Changes
+              </button>
+
+              {showCommits && (
+                <div className="mt-3 space-y-2">
+                  {versionInfo.git?.recent_commits?.length > 0 ? (
+                    versionInfo.git.recent_commits.map((commit, i) => (
+                      <div key={i} className="flex items-start gap-3 p-2 bg-gray-900/30 rounded text-sm">
+                        <code className="text-purple-400 font-mono">{commit.hash}</code>
+                        <span className="text-gray-300 flex-1">{commit.message}</span>
+                        <span className="text-gray-500 text-xs whitespace-nowrap">{commit.time}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-500 text-sm">No recent commits available</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="text-gray-500">Version information unavailable</div>
+        )}
+      </div>
 
       {/* Info */}
       <div className="bg-gray-800/50 rounded-xl p-6 text-sm text-gray-400">

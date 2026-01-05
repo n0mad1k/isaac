@@ -108,11 +108,18 @@ class EmailService:
                 username=self.user,
                 password=self.password,
                 start_tls=True,
+                timeout=30,
             )
 
             logger.info(f"Email sent: {subject} to {recipient}")
             return True
 
+        except aiosmtplib.SMTPAuthenticationError as e:
+            logger.error(f"SMTP authentication failed: {e}. Check username/password. For Protonmail, you need to use Protonmail Bridge credentials.")
+            raise ConfigurationError("SMTP authentication failed. Check username/password in Settings. For Protonmail, you need Protonmail Bridge credentials.")
+        except aiosmtplib.SMTPConnectError as e:
+            logger.error(f"Failed to connect to SMTP server: {e}")
+            raise ConfigurationError(f"Cannot connect to SMTP server {self.host}:{self.port}. Check server settings.")
         except Exception as e:
             logger.error(f"Failed to send email: {e}")
             return False
@@ -122,9 +129,21 @@ class EmailService:
         tasks: List[dict],
         weather: dict,
         alerts: List[dict],
+        recipient: str = None,
+        verse: dict = None,
     ) -> bool:
-        """Send daily digest email with tasks and weather"""
+        """Send daily digest email with verse of the day, tasks and weather"""
         subject = f"Daily Farm Digest - {datetime.now().strftime('%A, %B %d')}"
+
+        # Verse of the day section
+        verse_section = ""
+        if verse and verse.get("text"):
+            verse_section = f"""
+            <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 25px;">
+                <p style="font-size: 18px; font-style: italic; margin: 0 0 15px 0;">"{verse.get('text', '')}"</p>
+                <p style="font-size: 14px; margin: 0; opacity: 0.9;">— {verse.get('reference', '')} ({verse.get('version', 'NIV')})</p>
+            </div>
+            """
 
         html = f"""
         <html>
@@ -153,6 +172,7 @@ class EmailService:
                 <h1>🌾 Isaac Daily Digest</h1>
                 <p>{datetime.now().strftime('%A, %B %d, %Y')}</p>
             </div>
+            {verse_section}
         """
 
         # Weather section
@@ -229,7 +249,7 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, html, html=True)
+        return await self.send_email(subject, html, to=recipient, html=True)
 
     async def send_weather_alert(self, alert: dict) -> bool:
         """Send an immediate weather alert"""

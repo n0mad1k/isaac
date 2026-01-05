@@ -3,7 +3,7 @@ import { Check, Circle, AlertCircle, MapPin, Clock, ChevronDown, ChevronUp } fro
 import { completeTask, uncompleteTask } from '../services/api'
 import { isAfter, startOfDay, parseISO } from 'date-fns'
 
-function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLocation = false, maxVisibleCompleted = 3 }) {
+function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLocation = false, maxVisibleCompleted = 10 }) {
   const [showAllCompleted, setShowAllCompleted] = useState(false)
 
   const isOverdue = (task) => {

@@ -24,6 +24,7 @@ class AreaCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     type: FarmAreaType
     custom_type: Optional[str] = Field(None, max_length=50)
+    parent_id: Optional[int] = None  # For sub-locations
     description: Optional[str] = Field(None, max_length=2000)
     location_notes: Optional[str] = Field(None, max_length=500)
     size_acres: Optional[float] = Field(None, ge=0, le=100000)
@@ -37,6 +38,7 @@ class AreaUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     type: Optional[FarmAreaType] = None
     custom_type: Optional[str] = Field(None, max_length=50)
+    parent_id: Optional[int] = None  # For sub-locations
     description: Optional[str] = Field(None, max_length=2000)
     location_notes: Optional[str] = Field(None, max_length=500)
     size_acres: Optional[float] = Field(None, ge=0, le=100000)
@@ -110,6 +112,9 @@ class AreaResponse(BaseModel):
     type: FarmAreaType
     custom_type: Optional[str]
     display_type: str
+    parent_id: Optional[int] = None
+    full_path: str = ""  # e.g., "House > Master Bedroom"
+    is_sub_location: bool = False
     description: Optional[str]
     location_notes: Optional[str]
     size_acres: Optional[float]
@@ -122,6 +127,7 @@ class AreaResponse(BaseModel):
     updated_at: datetime
     plant_count: int = 0
     animal_count: int = 0
+    equipment_count: int = 0
     maintenance_count: int = 0
     overdue_count: int = 0
 
@@ -182,7 +188,9 @@ async def get_all_areas(
     query = select(FarmArea).options(
         selectinload(FarmArea.maintenance_tasks),
         selectinload(FarmArea.plants),
-        selectinload(FarmArea.animals)
+        selectinload(FarmArea.animals),
+        selectinload(FarmArea.equipment),
+        selectinload(FarmArea.parent),
     )
 
     if type:
@@ -190,7 +198,7 @@ async def get_all_areas(
     if active_only:
         query = query.where(FarmArea.is_active == True)
 
-    query = query.order_by(FarmArea.name)
+    query = query.order_by(FarmArea.parent_id.nullsfirst(), FarmArea.name)
 
     result = await db.execute(query)
     areas = result.scalars().all()
@@ -201,6 +209,9 @@ async def get_all_areas(
         type=a.type,
         custom_type=a.custom_type,
         display_type=a.display_type,
+        parent_id=a.parent_id,
+        full_path=a.full_path,
+        is_sub_location=a.is_sub_location,
         description=a.description,
         location_notes=a.location_notes,
         size_acres=a.size_acres,
@@ -213,6 +224,7 @@ async def get_all_areas(
         updated_at=a.updated_at,
         plant_count=len(a.plants),
         animal_count=len(a.animals),
+        equipment_count=len(a.equipment) if hasattr(a, 'equipment') and a.equipment else 0,
         maintenance_count=len(a.maintenance_tasks),
         overdue_count=sum(1 for m in a.maintenance_tasks if m.status == "overdue")
     ) for a in areas]

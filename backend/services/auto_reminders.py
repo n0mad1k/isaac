@@ -65,6 +65,7 @@ async def create_or_update_reminder(
     location: str = None,
     category: TaskCategory = TaskCategory.OTHER,
     notification_setting_key: str = None,
+    due_time: str = None,  # "HH:MM" format
 ) -> Optional[Task]:
     """Create or update a calendar reminder for an auto-generated task.
 
@@ -98,6 +99,8 @@ async def create_or_update_reminder(
         existing_task.description = description
         existing_task.location = location
         existing_task.category = category
+        if due_time:
+            existing_task.due_time = due_time
         existing_task.updated_at = datetime.utcnow()
         await db.commit()
 
@@ -114,6 +117,7 @@ async def create_or_update_reminder(
             title=title,
             description=description,
             due_date=due_date,
+            due_time=due_time,
             location=location,
             category=category,
             task_type=TaskType.TODO,  # Use TODO for reminders
@@ -180,6 +184,7 @@ async def sync_animal_care_schedule_reminder(
     schedule_name: str,
     due_date: date,
     notes: str = None,
+    due_time: str = None,  # "HH:MM" format
 ) -> Optional[Task]:
     """Create/update reminder for an animal care schedule item."""
     # Map schedule names to notification settings
@@ -210,6 +215,7 @@ async def sync_animal_care_schedule_reminder(
         description=description,
         category=TaskCategory.ANIMAL_CARE,
         notification_setting_key=setting_key,
+        due_time=due_time,
     )
 
 
@@ -325,6 +331,7 @@ async def create_or_update_grouped_reminder(
     location: str = None,
     category: TaskCategory = TaskCategory.OTHER,
     notification_setting_key: str = None,
+    due_time: str = None,  # "HH:MM" format
 ) -> Optional[Task]:
     """Create or update a grouped calendar reminder.
 
@@ -358,6 +365,8 @@ async def create_or_update_grouped_reminder(
         existing_task.description = description
         existing_task.location = location
         existing_task.category = category
+        if due_time:
+            existing_task.due_time = due_time
         existing_task.updated_at = datetime.utcnow()
         await db.commit()
 
@@ -374,6 +383,7 @@ async def create_or_update_grouped_reminder(
             title=title,
             description=description,
             due_date=due_date,
+            due_time=due_time,
             location=location,
             category=category,
             task_type=TaskType.TODO,
@@ -545,6 +555,8 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
 
         # Use date + care type as group key
         group_key = f"{due_date.isoformat()}_{care_name}"
+        # Use the first schedule's due_time (if any)
+        first_due_time = group_items[0][1].due_time if group_items else None
         task = await create_or_update_grouped_reminder(
             db=db,
             source_type="care_group",
@@ -554,6 +566,7 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             description=description,
             category=TaskCategory.ANIMAL_CARE,
             notification_setting_key=setting_key,
+            due_time=first_due_time,
         )
         if task:
             stats["created" if task.created_at == task.updated_at else "updated"] += 1

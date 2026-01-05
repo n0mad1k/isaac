@@ -29,6 +29,8 @@ class EquipmentCreate(BaseModel):
     purchase_date: Optional[date] = None
     purchase_price: Optional[float] = Field(None, ge=0, le=10000000)
     current_hours: int = Field(0, ge=0, le=1000000)
+    location: Optional[str] = Field(None, max_length=200)
+    sub_location: Optional[str] = Field(None, max_length=200)
     notes: Optional[str] = Field(None, max_length=5000)
     image_url: Optional[str] = Field(None, max_length=500)
 
@@ -44,6 +46,8 @@ class EquipmentUpdate(BaseModel):
     purchase_date: Optional[date] = None
     purchase_price: Optional[float] = Field(None, ge=0, le=10000000)
     current_hours: Optional[int] = Field(None, ge=0, le=1000000)
+    location: Optional[str] = Field(None, max_length=200)
+    sub_location: Optional[str] = Field(None, max_length=200)
     notes: Optional[str] = Field(None, max_length=5000)
     image_url: Optional[str] = Field(None, max_length=500)
     is_active: Optional[bool] = None
@@ -98,6 +102,8 @@ class EquipmentResponse(BaseModel):
     purchase_date: Optional[date]
     purchase_price: Optional[float]
     current_hours: int
+    location: Optional[str]
+    sub_location: Optional[str]
     is_active: bool
     notes: Optional[str]
     image_url: Optional[str]
@@ -181,6 +187,8 @@ async def get_all_equipment(
         purchase_date=e.purchase_date,
         purchase_price=e.purchase_price,
         current_hours=e.current_hours,
+        location=e.location,
+        sub_location=e.sub_location,
         is_active=e.is_active,
         notes=e.notes,
         image_url=e.image_url,
@@ -217,6 +225,8 @@ async def get_equipment(equipment_id: int, db: AsyncSession = Depends(get_db)):
         purchase_date=equipment.purchase_date,
         purchase_price=equipment.purchase_price,
         current_hours=equipment.current_hours,
+        location=equipment.location,
+        sub_location=equipment.sub_location,
         is_active=equipment.is_active,
         notes=equipment.notes,
         image_url=equipment.image_url,
@@ -249,6 +259,8 @@ async def create_equipment(data: EquipmentCreate, db: AsyncSession = Depends(get
         purchase_date=equipment.purchase_date,
         purchase_price=equipment.purchase_price,
         current_hours=equipment.current_hours,
+        location=equipment.location,
+        sub_location=equipment.sub_location,
         is_active=equipment.is_active,
         notes=equipment.notes,
         image_url=equipment.image_url,
@@ -292,6 +304,8 @@ async def update_equipment(equipment_id: int, data: EquipmentUpdate, db: AsyncSe
         purchase_date=equipment.purchase_date,
         purchase_price=equipment.purchase_price,
         current_hours=equipment.current_hours,
+        location=equipment.location,
+        sub_location=equipment.sub_location,
         is_active=equipment.is_active,
         notes=equipment.notes,
         image_url=equipment.image_url,
