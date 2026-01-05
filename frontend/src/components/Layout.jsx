@@ -48,9 +48,12 @@ function Layout() {
     return modals.length > 0
   }
 
-  // Set up page refresh timer
+  // Set up page refresh timer - ONLY on dashboard
   useEffect(() => {
-    if (refreshInterval > 0) {
+    // Only auto-refresh on the dashboard page
+    const isDashboard = location.pathname === '/'
+
+    if (refreshInterval > 0 && isDashboard) {
       // Clear existing intervals
       if (intervalRef.current) clearInterval(intervalRef.current)
 
@@ -66,8 +69,14 @@ function Layout() {
       return () => {
         if (intervalRef.current) clearInterval(intervalRef.current)
       }
+    } else {
+      // Clear interval when not on dashboard
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
     }
-  }, [refreshInterval])
+  }, [refreshInterval, location.pathname])
 
   const navItems = [
     { to: '/', icon: Home, label: 'Dash' },

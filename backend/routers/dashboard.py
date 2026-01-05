@@ -124,18 +124,42 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             temp_low_today=temp_low,
         )
 
-    # Get today's tasks (items due today OR overdue)
+    # Get today's tasks (items due today OR overdue todos - not overdue events)
     today = date.today()
+    now = datetime.now()
+    current_time_str = now.strftime('%H:%M')
+
     result = await db.execute(
         select(Task)
-        .where(Task.due_date <= today)  # Today and overdue
+        .where(
+            or_(
+                # Today's tasks (both events and todos)
+                Task.due_date == today,
+                # Overdue todos only (events don't carry over)
+                and_(
+                    Task.due_date < today,
+                    or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)),
+                    Task.is_completed == False
+                )
+            )
+        )
         .where(Task.due_date.isnot(None))  # Must have a due date
         .where(Task.is_active == True)
         .order_by(Task.is_completed, Task.due_date, Task.priority, Task.due_time)
     )
     tasks = result.scalars().all()
-    tasks_today = [
-        DashboardTask(
+
+    tasks_today = []
+    for t in tasks:
+        # For events, check if they're past their end time - auto-mark as completed
+        is_completed = t.is_completed
+        if t.task_type == TaskType.EVENT and t.due_date == today and not t.is_completed:
+            # Check if event end time has passed
+            end_time = t.end_time or t.due_time
+            if end_time and end_time < current_time_str:
+                is_completed = True
+
+        tasks_today.append(DashboardTask(
             id=t.id,
             title=t.title,
             description=t.description,
@@ -146,10 +170,8 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             due_time=t.due_time,
             end_time=t.end_time,
             location=t.location,
-            is_completed=t.is_completed,
-        )
-        for t in tasks
-    ]
+            is_completed=is_completed,
+        ))
 
     # Get undated todos (todos without a due date)
     result = await db.execute(
@@ -217,12 +239,14 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
     )
+    # Only count TODOs as overdue, not EVENTs (events are time-based, not action-based)
     overdue_count = await db.execute(
         select(func.count())
         .select_from(Task)
         .where(Task.due_date < today)
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
+        .where(or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)))
     )
     alert_count = await db.execute(
         select(func.count())
