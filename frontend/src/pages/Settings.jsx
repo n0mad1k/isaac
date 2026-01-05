@@ -1575,7 +1575,7 @@ function Settings() {
                       />
                     </div>
                     <div className="flex justify-between mt-2 text-xs text-gray-400">
-                      <span>Used: {storageStats.disk_total_human}</span>
+                      <span>Used: {storageStats.disk_used_human}</span>
                       <span>Available: {storageStats.disk_available_human}</span>
                     </div>
                   </div>

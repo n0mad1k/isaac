@@ -506,6 +506,7 @@ class StorageStats(BaseModel):
 
     # Human-readable formats
     disk_total_human: str
+    disk_used_human: str
     disk_available_human: str
     database_human: str
     logs_human: str
@@ -596,6 +597,7 @@ async def get_storage_stats(db: AsyncSession = Depends(get_db)):
         logs_bytes=log_size,
         app_total_bytes=app_total,
         disk_total_human=_format_bytes(total),
+        disk_used_human=_format_bytes(used),
         disk_available_human=_format_bytes(free),
         database_human=_format_bytes(db_size),
         logs_human=_format_bytes(log_size),
