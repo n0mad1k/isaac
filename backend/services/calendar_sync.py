@@ -453,8 +453,21 @@ class CalendarSyncService:
                             task_dict = self.vevent_to_task_dict(component)
                             if task_dict.get('title'):
                                 uid = task_dict.get('calendar_uid')
-                                if uid and uid not in seen_uids:
-                                    seen_uids.add(uid)
+                                # For recurring events, use UID + RECURRENCE-ID as unique key
+                                recurrence_id = component.get('recurrence-id')
+                                if recurrence_id:
+                                    rec_dt = recurrence_id.dt
+                                    if isinstance(rec_dt, datetime):
+                                        unique_key = f"{uid}_{rec_dt.strftime('%Y%m%d')}"
+                                    else:
+                                        unique_key = f"{uid}_{rec_dt.isoformat()}"
+                                    # Update the calendar_uid to include recurrence for tracking
+                                    task_dict['calendar_uid'] = unique_key
+                                else:
+                                    unique_key = uid
+
+                                if unique_key and unique_key not in seen_uids:
+                                    seen_uids.add(unique_key)
                                     result.append(task_dict)
                 except Exception as e:
                     logger.warning(f"Failed to parse calendar event: {e}")
