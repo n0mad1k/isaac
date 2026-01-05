@@ -9,6 +9,8 @@ from sqlalchemy import select, func, desc, or_, and_
 from typing import List, Optional
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel
+import httpx
+import re
 
 from models.database import get_db
 from models.plants import Plant
@@ -692,3 +694,45 @@ async def clear_logs():
         "cleared_bytes": cleared_bytes,
         "cleared_human": _format_bytes(cleared_bytes),
     }
+
+
+@router.get("/verse-of-the-day")
+async def get_verse_of_the_day():
+    """
+    Fetch verse of the day from bible.com
+    """
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://www.bible.com/verse-of-the-day",
+                timeout=10.0,
+                follow_redirects=True
+            )
+            response.raise_for_status()
+            html = response.text
+
+            # Extract verse from og:description meta tag
+            match = re.search(r'og:description" content="([^"]+)"', html)
+            if match:
+                content = match.group(1)
+                # Format: "Romans 12:2 Do not conform..."
+                ref_match = re.match(r'^([\d\s]*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\s+(.+)$', content)
+                if ref_match:
+                    return {
+                        "reference": ref_match.group(1),
+                        "text": ref_match.group(2),
+                        "version": "NIV"
+                    }
+
+        # Fallback
+        return {
+            "reference": "Psalm 104:14",
+            "text": "He causes the grass to grow for the cattle, and vegetation for the service of man, that he may bring forth food from the earth.",
+            "version": "NIV"
+        }
+    except Exception as e:
+        return {
+            "reference": "Psalm 104:14",
+            "text": "He causes the grass to grow for the cattle, and vegetation for the service of man, that he may bring forth food from the earth.",
+            "version": "NIV"
+        }

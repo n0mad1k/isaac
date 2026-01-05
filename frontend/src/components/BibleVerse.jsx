@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Book } from 'lucide-react'
+import api from '../services/api'
 
 function BibleVerse() {
   const [verse, setVerse] = useState(null)
@@ -8,29 +9,8 @@ function BibleVerse() {
   useEffect(() => {
     const fetchVerse = async () => {
       try {
-        // Fetch bible.com verse of the day page
-        const response = await fetch('https://www.bible.com/verse-of-the-day')
-        const html = await response.text()
-
-        // Extract verse from og:description meta tag
-        const match = html.match(/og:description" content="([^"]+)"/)
-        if (match && match[1]) {
-          // Format: "Romans 12:2 Do not conform..."
-          const content = match[1]
-          const refMatch = content.match(/^([\d\s]*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\s+(.+)$/)
-
-          if (refMatch) {
-            setVerse({
-              reference: refMatch[1],
-              text: refMatch[2],
-              version: 'NIV'
-            })
-          } else {
-            throw new Error('Could not parse verse')
-          }
-        } else {
-          throw new Error('Could not find verse in page')
-        }
+        const response = await api.get('/dashboard/verse-of-the-day')
+        setVerse(response.data)
       } catch (err) {
         console.error('Failed to fetch Bible verse:', err)
         // Show a default verse on error
