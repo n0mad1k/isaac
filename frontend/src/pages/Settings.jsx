@@ -431,16 +431,14 @@ function Settings() {
   const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
   const displaySettings = ['dashboard_refresh_interval', 'bible_translation']
 
-  // Bible translation options
+  // Bible translation options (available from bible-api.com)
   const bibleTranslationOptions = [
     { value: 'KJV', label: 'King James Version (KJV)' },
-    { value: 'NKJV', label: 'New King James Version (NKJV)' },
-    { value: 'ESV', label: 'English Standard Version (ESV)' },
-    { value: 'NIV', label: 'New International Version (NIV)' },
-    { value: 'NLT', label: 'New Living Translation (NLT)' },
-    { value: 'NASB', label: 'New American Standard Bible (NASB)' },
     { value: 'ASV', label: 'American Standard Version (ASV)' },
     { value: 'WEB', label: 'World English Bible (WEB)' },
+    { value: 'BBE', label: 'Bible in Basic English (BBE)' },
+    { value: 'DARBY', label: 'Darby Translation' },
+    { value: 'YLT', label: "Young's Literal Translation (YLT)" },
   ]
 
   // Notification category settings - grouped by type
