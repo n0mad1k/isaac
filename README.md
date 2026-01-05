@@ -22,7 +22,7 @@ A self-hosted farm management dashboard designed to run on a Raspberry Pi. Track
 | **Production** | Harvest records, livestock processing, yield tracking |
 | **Multi-User** | Role-based access (Admin/Editor/Viewer), kiosk mode |
 
-> **Full documentation:** See the [Wiki](wiki/Home.md) for detailed feature guides.
+> **Full documentation:** See the [Wiki](https://github.com/n0mad1k/isaac/wiki) for detailed feature guides.
 
 ## Quick Feature Overview
 
@@ -30,19 +30,19 @@ A self-hosted farm management dashboard designed to run on a Raspberry Pi. Track
 Your command center showing weather, today's tasks, overdue items, alerts, and quick stats. The cold protection widget automatically warns you when frost-sensitive plants need covering.
 
 ### Plant Management
-Complete plant database with care logging, automated reminders, and harvest tracking. Import plants from PFAF or Permapeople databases. [Learn more](wiki/Plant-Management.md)
+Complete plant database with care logging, automated reminders, and harvest tracking. Import plants from PFAF or Permapeople databases. [Learn more](https://github.com/n0mad1k/isaac/wiki/Plant-Management)
 
 ### Animal Management
-Track pets and livestock with health records, care schedules (worming, vaccines, hoof care), feeding, and expenses. Automatic reminders for upcoming care. [Learn more](wiki/Animal-Management.md)
+Track pets and livestock with health records, care schedules (worming, vaccines, hoof care), feeding, and expenses. Automatic reminders for upcoming care. [Learn more](https://github.com/n0mad1k/isaac/wiki/Animal-Management)
 
 ### Calendar
-Three views (day, week, month) showing both events and reminders. Visual distinction between event types. Syncs with your phone via CalDAV. [Learn more](wiki/Tasks-and-Calendar.md)
+Three views (day, week, month) showing both events and reminders. Visual distinction between event types. Syncs with your phone via CalDAV. [Learn more](https://github.com/n0mad1k/isaac/wiki/Tasks-and-Calendar)
 
 ### Maintenance Tracking
-Vehicles, equipment, home, and farm areas - all with customizable maintenance schedules, completion logging, and cost tracking. [Learn more](wiki/Maintenance-Tracking.md)
+Vehicles, equipment, home, and farm areas - all with customizable maintenance schedules, completion logging, and cost tracking. [Learn more](https://github.com/n0mad1k/isaac/wiki/Maintenance-Tracking)
 
 ### Weather Integration
-Connect your Ambient Weather station for real-time local conditions. Automatic alerts for frost, freeze, heat, wind, and rain with configurable thresholds. [Learn more](wiki/Weather-Integration.md)
+Connect your Ambient Weather station for real-time local conditions. Automatic alerts for frost, freeze, heat, wind, and rain with configurable thresholds. [Learn more](https://github.com/n0mad1k/isaac/wiki/Weather-Integration)
 
 ## Hardware Requirements
 
@@ -393,18 +393,18 @@ sudo systemctl restart isaac-backend
 ## Documentation
 
 ### Wiki
-Comprehensive documentation is available in the [Wiki](wiki/Home.md):
+Comprehensive documentation is available in the [Wiki](https://github.com/n0mad1k/isaac/wiki):
 
-- [Features Overview](wiki/Features-Overview.md) - Complete feature list
-- [Dashboard](wiki/Dashboard.md) - Dashboard widgets and layout
-- [Plant Management](wiki/Plant-Management.md) - Plants, care, harvests
-- [Animal Management](wiki/Animal-Management.md) - Pets, livestock, health
-- [Tasks & Calendar](wiki/Tasks-and-Calendar.md) - Events, reminders, views
-- [Maintenance Tracking](wiki/Maintenance-Tracking.md) - Vehicles, equipment, home
-- [Weather Integration](wiki/Weather-Integration.md) - Weather stations, alerts
-- [Settings](wiki/Settings.md) - Configuration options
-- [User Management](wiki/User-Management.md) - Users, roles, permissions
-- [Integrations](wiki/Integrations.md) - CalDAV, weather APIs, plant import
+- [Features Overview](https://github.com/n0mad1k/isaac/wiki/Features-Overview) - Complete feature list
+- [Dashboard](https://github.com/n0mad1k/isaac/wiki/Dashboard) - Dashboard widgets and layout
+- [Plant Management](https://github.com/n0mad1k/isaac/wiki/Plant-Management) - Plants, care, harvests
+- [Animal Management](https://github.com/n0mad1k/isaac/wiki/Animal-Management) - Pets, livestock, health
+- [Tasks & Calendar](https://github.com/n0mad1k/isaac/wiki/Tasks-and-Calendar) - Events, reminders, views
+- [Maintenance Tracking](https://github.com/n0mad1k/isaac/wiki/Maintenance-Tracking) - Vehicles, equipment, home
+- [Weather Integration](https://github.com/n0mad1k/isaac/wiki/Weather-Integration) - Weather stations, alerts
+- [Settings](https://github.com/n0mad1k/isaac/wiki/Settings) - Configuration options
+- [User Management](https://github.com/n0mad1k/isaac/wiki/User-Management) - Users, roles, permissions
+- [Integrations](https://github.com/n0mad1k/isaac/wiki/Integrations) - CalDAV, weather APIs, plant import
 
 ### API Documentation
 
