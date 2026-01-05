@@ -317,7 +317,7 @@ async def get_calendar_month(
     month: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get calendar events for a specific month (only events, not todos)"""
+    """Get calendar events and todos for a specific month"""
     start_date = date(year, month, 1)
     if month == 12:
         end_date = date(year + 1, 1, 1) - timedelta(days=1)
@@ -329,7 +329,6 @@ async def get_calendar_month(
         .where(Task.due_date >= start_date)
         .where(Task.due_date <= end_date)
         .where(Task.is_active == True)
-        .where(Task.task_type == TaskType.EVENT)  # Only show events on calendar
         .order_by(Task.due_date, Task.priority)
     )
     tasks = result.scalars().all()
@@ -343,14 +342,65 @@ async def get_calendar_month(
         calendar[date_str].append({
             "id": task.id,
             "title": task.title,
+            "task_type": task.task_type.value if task.task_type else "event",
             "category": task.category.value if task.category else "custom",
             "priority": task.priority,
             "is_completed": task.is_completed,
+            "due_time": task.due_time,
+            "end_time": task.end_time,
+            "location": task.location,
+            "description": task.description,
         })
 
     return {
         "year": year,
         "month": month,
+        "tasks": calendar,
+    }
+
+
+@router.get("/calendar/week/{year}/{month}/{day}")
+async def get_calendar_week(
+    year: int,
+    month: int,
+    day: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get calendar events and todos for a 7-day period starting from given date"""
+    start_date = date(year, month, day)
+    end_date = start_date + timedelta(days=6)
+
+    result = await db.execute(
+        select(Task)
+        .where(Task.due_date >= start_date)
+        .where(Task.due_date <= end_date)
+        .where(Task.is_active == True)
+        .order_by(Task.due_date, Task.due_time, Task.priority)
+    )
+    tasks = result.scalars().all()
+
+    # Group by date
+    calendar = {}
+    for task in tasks:
+        date_str = task.due_date.isoformat()
+        if date_str not in calendar:
+            calendar[date_str] = []
+        calendar[date_str].append({
+            "id": task.id,
+            "title": task.title,
+            "task_type": task.task_type.value if task.task_type else "event",
+            "category": task.category.value if task.category else "custom",
+            "priority": task.priority,
+            "is_completed": task.is_completed,
+            "due_time": task.due_time,
+            "end_time": task.end_time,
+            "location": task.location,
+            "description": task.description,
+        })
+
+    return {
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
         "tasks": calendar,
     }
 

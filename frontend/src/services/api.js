@@ -37,7 +37,9 @@ api.interceptors.response.use(
 export const getDashboard = () => api.get('/dashboard/')
 export const getQuickStats = () => api.get('/dashboard/quick-stats/')
 export const getCalendarMonth = (year, month) =>
-  api.get(`/dashboard/calendar/${year}/${month}/`)
+  api.get(`/dashboard/calendar/${year}/${month}`)
+export const getCalendarWeek = (year, month, day) =>
+  api.get(`/dashboard/calendar/week/${year}/${month}/${day}`)
 export const getColdProtection = () => api.get('/dashboard/cold-protection/')
 export const getFreezeWarning = () => api.get('/dashboard/freeze-warning/')
 
