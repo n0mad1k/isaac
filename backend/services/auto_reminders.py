@@ -626,49 +626,189 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
 
 
 async def sync_all_plant_reminders(db: AsyncSession) -> Dict[str, int]:
-    """Sync all plant care dates to calendar."""
+    """Sync all plant care dates to calendar.
+
+    Groups reminders by date and location to avoid duplicate entries.
+    Creates one reminder per care type (water/fertilize) per date per location.
+    """
     from models.plants import Plant
+    from collections import defaultdict
 
-    stats = {"created": 0, "updated": 0, "skipped": 0}
+    stats = {"created": 0, "updated": 0, "skipped": 0, "cleaned": 0}
 
+    # First, clean up old individual plant reminders (non-grouped)
+    old_individual_result = await db.execute(
+        select(Task).where(
+            Task.is_active == True,
+            Task.notes.isnot(None)
+        )
+    )
+    old_tasks = old_individual_result.scalars().all()
+
+    calendar_service = await get_calendar_service(db)
+
+    for task in old_tasks:
+        if task.notes and (
+            "auto:plant_watering:" in task.notes or
+            "auto:plant_fertilizing:" in task.notes or
+            "auto:plant_harvest:" in task.notes
+        ):
+            # This is an old individual plant reminder - delete it
+            if calendar_service and calendar_service.connect():
+                await calendar_service.delete_task_from_calendar(
+                    task.id,
+                    calendar_uid=task.calendar_uid
+                )
+            task.is_active = False
+            stats["cleaned"] += 1
+            logger.debug(f"Cleaned up old individual plant reminder: {task.title}")
+
+    await db.commit()
+
+    # Get all active plants
     result = await db.execute(
         select(Plant)
         .where(Plant.is_active == True)
     )
     plants = result.scalars().all()
 
+    # Group plants by (care_type, due_date, location)
+    watering_groups = defaultdict(list)  # (date, location) -> [plants]
+    fertilizing_groups = defaultdict(list)  # (date, location) -> [plants]
+
     for plant in plants:
-        # Sync watering
+        location = plant.location or "Unknown Location"
+
+        # Group watering
         if plant.next_watering:
             next_water_date = plant.next_watering.date() if isinstance(plant.next_watering, datetime) else plant.next_watering
-            task = await sync_plant_watering_reminder(
-                db=db,
-                plant_id=plant.id,
-                plant_name=plant.name,
-                next_watering=next_water_date,
-                location=plant.location,
-            )
-            if task:
-                stats["created" if task.created_at == task.updated_at else "updated"] += 1
-            else:
-                stats["skipped"] += 1
+            key = (next_water_date, location)
+            watering_groups[key].append(plant)
 
-        # Sync fertilizing
+        # Group fertilizing
         if plant.next_fertilizing:
             next_fert_date = plant.next_fertilizing.date() if isinstance(plant.next_fertilizing, datetime) else plant.next_fertilizing
-            task = await sync_plant_fertilizing_reminder(
-                db=db,
-                plant_id=plant.id,
-                plant_name=plant.name,
-                next_fertilizing=next_fert_date,
-                location=plant.location,
-            )
-            if task:
-                stats["created" if task.created_at == task.updated_at else "updated"] += 1
-            else:
-                stats["skipped"] += 1
+            key = (next_fert_date, location)
+            fertilizing_groups[key].append(plant)
 
-    logger.info(f"Plant reminder sync: {stats}")
+    # Create one reminder per watering group
+    for (due_date, location), group_plants in watering_groups.items():
+        if len(group_plants) == 1:
+            # Single plant - use specific name
+            plant = group_plants[0]
+            title = f"Water: {plant.name}"
+            description = f"Water {plant.name}"
+            if plant.location:
+                description += f" ({plant.location})"
+        else:
+            # Multiple plants - group them by location
+            title = f"Water: {location}"
+            plant_names = [p.name for p in group_plants]
+            description = f"Water the following plants:\n• " + "\n• ".join(plant_names)
+
+        # Use date + location as group key (sanitize location for key)
+        location_key = location.lower().replace(" ", "_").replace("/", "_")
+        group_key = f"{due_date.isoformat()}_water_{location_key}"
+        task = await create_or_update_grouped_reminder(
+            db=db,
+            source_type="plant_water_group",
+            group_key=group_key,
+            title=title,
+            due_date=due_date,
+            description=description,
+            location=location,
+            category=TaskCategory.GARDEN,
+            notification_setting_key="notify_plant_watering",
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # Create one reminder per fertilizing group
+    for (due_date, location), group_plants in fertilizing_groups.items():
+        if len(group_plants) == 1:
+            # Single plant - use specific name
+            plant = group_plants[0]
+            title = f"Fertilize: {plant.name}"
+            description = f"Fertilize {plant.name}"
+            if plant.location:
+                description += f" ({plant.location})"
+        else:
+            # Multiple plants - group them by location
+            title = f"Fertilize: {location}"
+            plant_names = [p.name for p in group_plants]
+            description = f"Fertilize the following plants:\n• " + "\n• ".join(plant_names)
+
+        # Use date + location as group key
+        location_key = location.lower().replace(" ", "_").replace("/", "_")
+        group_key = f"{due_date.isoformat()}_fertilize_{location_key}"
+        task = await create_or_update_grouped_reminder(
+            db=db,
+            source_type="plant_fertilize_group",
+            group_key=group_key,
+            title=title,
+            due_date=due_date,
+            description=description,
+            location=location,
+            category=TaskCategory.GARDEN,
+            notification_setting_key="notify_plant_fertilizing",
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # Clean up stale grouped plant reminders (dates/locations that no longer have plants)
+    grouped_result = await db.execute(
+        select(Task).where(
+            Task.is_active == True,
+            Task.notes.isnot(None)
+        )
+    )
+    grouped_tasks = grouped_result.scalars().all()
+
+    # Build set of valid group keys
+    valid_water_keys = set()
+    for (due_date, location), _ in watering_groups.items():
+        location_key = location.lower().replace(" ", "_").replace("/", "_")
+        valid_water_keys.add(f"auto:plant_water_group:{due_date.isoformat()}_water_{location_key}")
+
+    valid_fertilize_keys = set()
+    for (due_date, location), _ in fertilizing_groups.items():
+        location_key = location.lower().replace(" ", "_").replace("/", "_")
+        valid_fertilize_keys.add(f"auto:plant_fertilize_group:{due_date.isoformat()}_fertilize_{location_key}")
+
+    for task in grouped_tasks:
+        if not task.notes:
+            continue
+
+        # Check if this is a grouped plant reminder that's no longer valid
+        if "auto:plant_water_group:" in task.notes:
+            if task.notes not in valid_water_keys:
+                if calendar_service and calendar_service.connect():
+                    await calendar_service.delete_task_from_calendar(
+                        task.id,
+                        calendar_uid=task.calendar_uid
+                    )
+                task.is_active = False
+                stats["cleaned"] += 1
+                logger.debug(f"Cleaned up stale plant water group reminder: {task.title}")
+
+        elif "auto:plant_fertilize_group:" in task.notes:
+            if task.notes not in valid_fertilize_keys:
+                if calendar_service and calendar_service.connect():
+                    await calendar_service.delete_task_from_calendar(
+                        task.id,
+                        calendar_uid=task.calendar_uid
+                    )
+                task.is_active = False
+                stats["cleaned"] += 1
+                logger.debug(f"Cleaned up stale plant fertilize group reminder: {task.title}")
+
+    await db.commit()
+
+    logger.info(f"Plant reminder sync (grouped): {stats}")
     return stats
 
 

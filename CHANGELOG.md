@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.1.1] - 2026-01-05
+
+### Changed
+- Plant care reminders now grouped by location (e.g., "Water: Front Yard" with plant list)
+- Completing grouped reminder updates all plants in the group
+
 ## [1.1.0] - 2026-01-05
 
 ### Added

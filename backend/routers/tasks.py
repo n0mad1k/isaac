@@ -170,6 +170,64 @@ async def update_source_entity_on_complete(db: AsyncSession, notes: str):
             # For slaughter, we don't update anything - animals are processed and typically removed
             logger.debug(f"Slaughter group completed: {source_id_or_key}")
 
+        # Grouped plant watering (plant_water_group:date_water_location)
+        elif source_type == "plant_water_group":
+            from models.plants import Plant
+            # group_key format: "2026-01-05_water_front_yard"
+            parts = source_id_or_key.split("_water_", 1)
+            if len(parts) == 2:
+                due_date_str, location_key = parts
+                try:
+                    group_due_date = date.fromisoformat(due_date_str)
+                    # Find all active plants in this location with this watering date
+                    result = await db.execute(
+                        select(Plant).where(Plant.is_active == True)
+                    )
+                    plants = result.scalars().all()
+                    updated_count = 0
+                    for plant in plants:
+                        plant_location = plant.location or "Unknown Location"
+                        plant_location_key = plant_location.lower().replace(" ", "_").replace("/", "_")
+                        if plant_location_key == location_key and plant.next_watering:
+                            next_water_date = plant.next_watering.date() if isinstance(plant.next_watering, datetime) else plant.next_watering
+                            if next_water_date == group_due_date:
+                                plant.last_watered = now
+                                if plant.watering_frequency:
+                                    plant.next_watering = now + timedelta(days=plant.watering_frequency)
+                                updated_count += 1
+                    logger.info(f"Updated {updated_count} plants for plant_water_group at {location_key} on {due_date_str}")
+                except ValueError:
+                    pass
+
+        # Grouped plant fertilizing (plant_fertilize_group:date_fertilize_location)
+        elif source_type == "plant_fertilize_group":
+            from models.plants import Plant
+            # group_key format: "2026-01-05_fertilize_front_yard"
+            parts = source_id_or_key.split("_fertilize_", 1)
+            if len(parts) == 2:
+                due_date_str, location_key = parts
+                try:
+                    group_due_date = date.fromisoformat(due_date_str)
+                    # Find all active plants in this location with this fertilizing date
+                    result = await db.execute(
+                        select(Plant).where(Plant.is_active == True)
+                    )
+                    plants = result.scalars().all()
+                    updated_count = 0
+                    for plant in plants:
+                        plant_location = plant.location or "Unknown Location"
+                        plant_location_key = plant_location.lower().replace(" ", "_").replace("/", "_")
+                        if plant_location_key == location_key and plant.next_fertilizing:
+                            next_fert_date = plant.next_fertilizing.date() if isinstance(plant.next_fertilizing, datetime) else plant.next_fertilizing
+                            if next_fert_date == group_due_date:
+                                plant.last_fertilized = now
+                                if plant.fertilizing_frequency:
+                                    plant.next_fertilizing = now + timedelta(days=plant.fertilizing_frequency)
+                                updated_count += 1
+                    logger.info(f"Updated {updated_count} plants for plant_fertilize_group at {location_key} on {due_date_str}")
+                except ValueError:
+                    pass
+
     except Exception as e:
         logger.error(f"Error updating source entity for {notes}: {e}")
 
@@ -414,13 +472,22 @@ async def complete_task(task_id: int, db: AsyncSession = Depends(get_db)):
         await calendar_service.sync_task_to_calendar(task)
 
     # For auto-reminders, trigger immediate re-sync to create the next occurrence
-    if is_auto_reminder and ("care_group" in task.notes or "animal_care" in task.notes):
-        from services.auto_reminders import sync_all_animal_reminders
-        try:
-            stats = await sync_all_animal_reminders(db)
-            logger.info(f"Re-synced animal reminders after completion: {stats}")
-        except Exception as e:
-            logger.error(f"Failed to re-sync animal reminders: {e}")
+    if is_auto_reminder:
+        if "care_group" in task.notes or "animal_care" in task.notes:
+            from services.auto_reminders import sync_all_animal_reminders
+            try:
+                stats = await sync_all_animal_reminders(db)
+                logger.info(f"Re-synced animal reminders after completion: {stats}")
+            except Exception as e:
+                logger.error(f"Failed to re-sync animal reminders: {e}")
+
+        if "plant_water_group" in task.notes or "plant_fertilize_group" in task.notes:
+            from services.auto_reminders import sync_all_plant_reminders
+            try:
+                stats = await sync_all_plant_reminders(db)
+                logger.info(f"Re-synced plant reminders after completion: {stats}")
+            except Exception as e:
+                logger.error(f"Failed to re-sync plant reminders: {e}")
 
     return task
 
