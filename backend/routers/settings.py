@@ -451,11 +451,14 @@ async def get_version_info():
 
     git_info["recent_commits"] = recent_commits
 
+    from config import settings as app_settings
+
     return {
         "version": current_version,
         "recent_changes": recent_changes,
         "changelog": changelog,
         "git": git_info,
+        "is_dev_instance": app_settings.is_dev_instance,
     }
 
 
@@ -489,6 +492,96 @@ async def update_application(admin: User = Depends(require_admin)):
             results["message"] = f"Git pull failed: {result.stderr}"
     except Exception as e:
         results["message"] = f"Update failed: {str(e)}"
+
+    return results
+
+
+@router.post("/push-to-prod/")
+async def push_to_production(admin: User = Depends(require_admin)):
+    """Push changes from dev to production (dev instance only)"""
+    import subprocess
+    import os
+    from config import settings as app_settings
+
+    # Only allow on dev instance
+    if not app_settings.is_dev_instance:
+        raise HTTPException(status_code=403, detail="This action is only available on the dev instance")
+
+    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "VERSION")
+    project_dir = os.path.dirname(version_file)
+
+    results = {
+        "success": False,
+        "steps": [],
+        "message": "",
+    }
+
+    try:
+        # Step 1: Check for uncommitted changes
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True, text=True, cwd=project_dir
+        )
+        if result.stdout.strip():
+            results["steps"].append({"step": "check_changes", "status": "warning", "message": "Uncommitted changes detected. Commit them first."})
+            results["message"] = "Please commit your changes before pushing to production."
+            return results
+        results["steps"].append({"step": "check_changes", "status": "ok", "message": "No uncommitted changes"})
+
+        # Step 2: Push to private repo (origin)
+        result = subprocess.run(
+            ["git", "push", "origin", "main"],
+            capture_output=True, text=True, cwd=project_dir
+        )
+        if result.returncode != 0:
+            results["steps"].append({"step": "push_origin", "status": "error", "message": result.stderr})
+            results["message"] = "Failed to push to private repo"
+            return results
+        results["steps"].append({"step": "push_origin", "status": "ok", "message": "Pushed to private repo"})
+
+        # Step 3: SSH to production and pull changes
+        # Note: This requires SSH key access from dev Pi to itself (localhost) or proper SSH setup
+        result = subprocess.run(
+            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes",
+             "n0mad1k@localhost", "cd /opt/levi && git pull origin main"],
+            capture_output=True, text=True, timeout=60
+        )
+        if result.returncode != 0:
+            results["steps"].append({"step": "pull_prod", "status": "error", "message": result.stderr or "SSH/pull failed"})
+            results["message"] = "Failed to pull changes on production"
+            return results
+        results["steps"].append({"step": "pull_prod", "status": "ok", "message": "Pulled changes on production"})
+
+        # Step 4: Rebuild frontend on production
+        result = subprocess.run(
+            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes",
+             "n0mad1k@localhost", "cd /opt/levi/frontend && npm run build"],
+            capture_output=True, text=True, timeout=120
+        )
+        if result.returncode != 0:
+            results["steps"].append({"step": "build_frontend", "status": "error", "message": result.stderr or "Build failed"})
+            results["message"] = "Failed to build frontend on production"
+            return results
+        results["steps"].append({"step": "build_frontend", "status": "ok", "message": "Frontend rebuilt"})
+
+        # Step 5: Restart production backend
+        result = subprocess.run(
+            ["sudo", "systemctl", "restart", "levi-backend"],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode != 0:
+            results["steps"].append({"step": "restart_backend", "status": "error", "message": result.stderr or "Restart failed"})
+            results["message"] = "Failed to restart production backend"
+            return results
+        results["steps"].append({"step": "restart_backend", "status": "ok", "message": "Production backend restarted"})
+
+        results["success"] = True
+        results["message"] = "Successfully pushed to production!"
+
+    except subprocess.TimeoutExpired:
+        results["message"] = "Operation timed out"
+    except Exception as e:
+        results["message"] = f"Push to production failed: {str(e)}"
 
     return results
 

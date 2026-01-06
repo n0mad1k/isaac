@@ -170,6 +170,7 @@ export const testCalendarSync = () => api.post('/settings/test-calendar-sync/')
 export const syncCalendar = () => api.post('/settings/sync-calendar/')
 export const getVersionInfo = () => api.get('/settings/version/')
 export const updateApplication = () => api.post('/settings/update/')
+export const pushToProduction = () => api.post('/settings/push-to-prod/')
 export const getRecentCommits = () => api.get('/settings/recent-commits/')
 
 // Storage

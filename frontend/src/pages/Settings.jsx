@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication } from '../services/api'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
 function Settings() {
@@ -42,6 +42,8 @@ function Settings() {
   const [versionInfo, setVersionInfo] = useState(null)
   const [loadingVersion, setLoadingVersion] = useState(false)
   const [updating, setUpdating] = useState(false)
+  const [pushingToProd, setPushingToProd] = useState(false)
+  const [pushToProdResult, setPushToProdResult] = useState(null)
   const [showChangelog, setShowChangelog] = useState(false)
 
   // Collapsible sections state - all collapsed by default
@@ -119,6 +121,25 @@ function Settings() {
       setMessage({ type: 'error', text: 'Update failed: ' + (error.response?.data?.detail || error.message) })
     } finally {
       setUpdating(false)
+    }
+  }
+
+  const handlePushToProd = async () => {
+    if (!confirm('This will push all committed changes to production. Continue?')) return
+    setPushingToProd(true)
+    setPushToProdResult(null)
+    try {
+      const response = await pushToProduction()
+      setPushToProdResult(response.data)
+      if (response.data.success) {
+        setMessage({ type: 'success', text: response.data.message })
+      } else {
+        setMessage({ type: 'error', text: response.data.message || 'Push to production failed' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Push failed: ' + (error.response?.data?.detail || error.message) })
+    } finally {
+      setPushingToProd(false)
     }
   }
 
@@ -1768,6 +1789,49 @@ function Settings() {
                 </button>
               </div>
             </div>
+
+            {/* Push to Production (Dev Instance Only) */}
+            {versionInfo.is_dev_instance && (
+              <div className="p-4 bg-orange-900/20 border border-orange-600/30 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-orange-400 flex items-center gap-2">
+                      <Server className="w-4 h-4" />
+                      Development Instance
+                    </div>
+                    <div className="text-sm text-gray-400 mt-1">
+                      Push committed changes to production (levi.local)
+                    </div>
+                  </div>
+                  <button
+                    onClick={handlePushToProd}
+                    disabled={pushingToProd}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Send className={`w-4 h-4 ${pushingToProd ? 'animate-pulse' : ''}`} />
+                    {pushingToProd ? 'Pushing...' : 'Push to Production'}
+                  </button>
+                </div>
+
+                {/* Push Result Steps */}
+                {pushToProdResult?.steps?.length > 0 && (
+                  <div className="mt-3 space-y-1">
+                    {pushToProdResult.steps.map((step, i) => (
+                      <div key={i} className={`text-sm flex items-center gap-2 ${
+                        step.status === 'ok' ? 'text-green-400' :
+                        step.status === 'error' ? 'text-red-400' :
+                        'text-yellow-400'
+                      }`}>
+                        {step.status === 'ok' ? <Check className="w-3 h-3" /> :
+                         step.status === 'error' ? <X className="w-3 h-3" /> :
+                         <AlertTriangle className="w-3 h-3" />}
+                        {step.message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* What's New in This Version */}
             {versionInfo.recent_changes?.length > 0 && (

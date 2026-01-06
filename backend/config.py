@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     app_name: str = "Isaac"
     app_version: str = "1.0.0"
     debug: bool = False
+    is_dev_instance: bool = False  # Set to True for dev environment
 
     # Database (using levi.db for backwards compatibility)
     database_url: str = "sqlite+aiosqlite:///./data/levi.db"
