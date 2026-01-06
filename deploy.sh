@@ -45,6 +45,14 @@ rsync -avz \
   /home/n0mad1k/Tools/levi/frontend/index.html \
   $REMOTE:$REMOTE_PATH/frontend/
 
+# Sync VERSION and CHANGELOG for version tracking
+echo "Syncing version info..."
+rsync -avz \
+  -e "ssh -i $SSH_KEY" \
+  /home/n0mad1k/Tools/levi/VERSION \
+  /home/n0mad1k/Tools/levi/CHANGELOG.md \
+  $REMOTE:$REMOTE_PATH/
+
 # Rebuild frontend on remote
 echo "Building frontend..."
 ssh -i $SSH_KEY $REMOTE "cd $REMOTE_PATH/frontend && npm run build"
