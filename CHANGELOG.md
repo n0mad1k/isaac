@@ -9,6 +9,9 @@ All notable changes to Isaac will be documented in this file.
 - Bible verse of the day not loading (regex now handles multiline content)
 - Completed auto-reminders disappearing from dashboard (now shows today's completed tasks)
 - Delete button not working on completed auto-reminders (now hard-deletes deactivated tasks)
+- Dateless reminders now show as "due today" on ToDo page and Dashboard
+- Old completed dateless reminders no longer appear (only shows if completed today)
+- Deleting completed tasks now properly removes them from the list
 
 ### Added
 - Reusable EventModal component for creating events/reminders from any page
