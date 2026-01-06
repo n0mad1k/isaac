@@ -7,6 +7,7 @@ import secrets
 import hashlib
 from datetime import datetime, timedelta
 from typing import Optional, List
+from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -14,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from pydantic import BaseModel, Field, EmailStr
 from loguru import logger
+from passlib.context import CryptContext
 
 from models.database import get_db
 from models.users import User, Session, UserRole, Role, DEFAULT_PERMISSIONS
@@ -25,6 +27,16 @@ security = HTTPBearer(auto_error=False)
 # Session configuration
 SESSION_EXPIRY_DAYS = 30
 TOKEN_BYTES = 32
+
+# Account lockout configuration
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_DURATION_MINUTES = 15
+
+# Track failed login attempts: {username: [(timestamp, ip), ...]}
+_failed_attempts: dict = defaultdict(list)
+
+# Password hashing context - bcrypt is the recommended scheme
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # Pydantic Schemas
@@ -130,20 +142,70 @@ class UpdateRoleRequest(BaseModel):
 
 # Password hashing utilities
 def hash_password(password: str) -> str:
-    """Hash a password using SHA-256 with salt"""
-    salt = secrets.token_hex(16)
-    hashed = hashlib.sha256((salt + password).encode()).hexdigest()
-    return f"{salt}${hashed}"
+    """Hash a password using bcrypt (secure, slow algorithm)"""
+    return pwd_context.hash(password)
 
 
 def verify_password(password: str, hashed: str) -> bool:
-    """Verify a password against its hash"""
+    """Verify a password against its hash.
+
+    Supports both new bcrypt hashes and legacy SHA-256 hashes for backward compatibility.
+    """
+    if not hashed:
+        return False
+
+    # Check if this is a legacy SHA-256 hash (format: salt$hash, 32 hex + $ + 64 hex)
+    if '$' in hashed and not hashed.startswith('$2'):
+        try:
+            salt, hash_value = hashed.split('$')
+            # Legacy SHA-256 format: 32-char salt + 64-char hash
+            if len(salt) == 32 and len(hash_value) == 64:
+                check_hash = hashlib.sha256((salt + password).encode()).hexdigest()
+                return secrets.compare_digest(check_hash, hash_value)
+        except Exception:
+            pass
+
+    # Try bcrypt verification
     try:
-        salt, hash_value = hashed.split('$')
-        check_hash = hashlib.sha256((salt + password).encode()).hexdigest()
-        return secrets.compare_digest(check_hash, hash_value)
+        return pwd_context.verify(password, hashed)
     except Exception:
         return False
+
+
+def is_account_locked(username: str) -> tuple[bool, int]:
+    """Check if an account is locked due to too many failed attempts.
+
+    Returns: (is_locked, remaining_seconds)
+    """
+    now = datetime.utcnow()
+    cutoff = now - timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+
+    # Clean old attempts and count recent ones
+    recent_attempts = [
+        (ts, ip) for ts, ip in _failed_attempts.get(username, [])
+        if ts > cutoff
+    ]
+    _failed_attempts[username] = recent_attempts
+
+    if len(recent_attempts) >= MAX_FAILED_ATTEMPTS:
+        oldest_attempt = min(ts for ts, _ in recent_attempts)
+        unlock_time = oldest_attempt + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+        remaining = int((unlock_time - now).total_seconds())
+        return True, max(0, remaining)
+
+    return False, 0
+
+
+def record_failed_attempt(username: str, ip: str) -> None:
+    """Record a failed login attempt."""
+    _failed_attempts[username].append((datetime.utcnow(), ip))
+    logger.warning(f"Failed login attempt {len(_failed_attempts[username])} for user: {username} from IP: {ip}")
+
+
+def clear_failed_attempts(username: str) -> None:
+    """Clear failed login attempts after successful login."""
+    if username in _failed_attempts:
+        del _failed_attempts[username]
 
 
 def generate_token() -> str:
@@ -222,6 +284,18 @@ async def login(
     db: AsyncSession = Depends(get_db)
 ):
     """Login with username and password"""
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Check if account is locked
+    is_locked, remaining_seconds = is_account_locked(data.username)
+    if is_locked:
+        remaining_minutes = (remaining_seconds + 59) // 60  # Round up
+        logger.warning(f"Login attempt for locked account: {data.username} from IP: {client_ip}")
+        raise HTTPException(
+            status_code=429,
+            detail=f"Account temporarily locked due to too many failed attempts. Try again in {remaining_minutes} minute(s)."
+        )
+
     # Find user
     result = await db.execute(
         select(User).where(User.username == data.username)
@@ -229,7 +303,7 @@ async def login(
     user = result.scalar_one_or_none()
 
     if not user:
-        logger.warning(f"Failed login attempt for username: {data.username}")
+        record_failed_attempt(data.username, client_ip)
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     # Check password - kiosk users can login without password (empty string)
@@ -237,11 +311,14 @@ async def login(
         # Kiosk users can login with empty password or any password
         pass
     elif not user.hashed_password or not verify_password(data.password, user.hashed_password):
-        logger.warning(f"Failed login attempt for username: {data.username}")
+        record_failed_attempt(data.username, client_ip)
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     if not user.is_active:
         raise HTTPException(status_code=401, detail="Account is disabled")
+
+    # Clear failed attempts on successful login
+    clear_failed_attempts(data.username)
 
     # Create session
     token = generate_token()

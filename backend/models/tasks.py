@@ -65,6 +65,9 @@ class Task(Base):
     # Links to other entities
     plant_id = Column(Integer)  # Link to specific plant
     animal_id = Column(Integer)  # Link to specific animal
+    vehicle_id = Column(Integer)  # Link to specific vehicle
+    equipment_id = Column(Integer)  # Link to specific equipment
+    farm_area_id = Column(Integer)  # Link to specific farm area
 
     # Priority and status
     priority = Column(Integer, default=2)  # 1=high, 2=medium, 3=low

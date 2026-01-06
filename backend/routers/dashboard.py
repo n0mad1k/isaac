@@ -125,26 +125,44 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
         )
 
     # Get today's tasks (items due today OR overdue todos - not overdue events)
-    today = date.today()
-    now = datetime.now()
-    current_time_str = now.strftime('%H:%M')
+    # Also include today's completed tasks even if deactivated (auto-reminders)
+    import pytz
+    eastern = pytz.timezone('America/New_York')
+    now_eastern = datetime.now(eastern)
+    today = now_eastern.date()
+    current_time_str = now_eastern.strftime('%H:%M')
+
+    # Today's bounds in UTC for completed_at comparison
+    today_start_eastern = eastern.localize(datetime.combine(today, datetime.min.time()))
+    today_end_eastern = eastern.localize(datetime.combine(today, datetime.max.time()))
+    today_start_utc = today_start_eastern.astimezone(pytz.UTC).replace(tzinfo=None)
+    today_end_utc = today_end_eastern.astimezone(pytz.UTC).replace(tzinfo=None)
 
     result = await db.execute(
         select(Task)
         .where(
             or_(
-                # Today's tasks (both events and todos)
-                Task.due_date == today,
-                # Overdue todos only (events don't carry over)
+                # Today's active tasks (both events and todos)
+                and_(
+                    Task.due_date == today,
+                    Task.is_active == True
+                ),
+                # Overdue active todos only (events don't carry over)
                 and_(
                     Task.due_date < today,
                     or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)),
-                    Task.is_completed == False
+                    Task.is_completed == False,
+                    Task.is_active == True
+                ),
+                # Today's completed tasks (even if deactivated - for auto-reminders)
+                and_(
+                    Task.is_completed == True,
+                    Task.completed_at >= today_start_utc,
+                    Task.completed_at <= today_end_utc
                 )
             )
         )
         .where(Task.due_date.isnot(None))  # Must have a due date
-        .where(Task.is_active == True)
         .order_by(Task.is_completed, Task.due_date, Task.priority, Task.due_time)
     )
     tasks = result.scalars().all()
@@ -372,6 +390,7 @@ async def get_calendar_month(
             "category": task.category.value if task.category else "custom",
             "priority": task.priority,
             "is_completed": task.is_completed,
+            "due_date": date_str,  # Include due_date for editing
             "due_time": task.due_time,
             "end_time": task.end_time,
             "location": task.location,
@@ -418,6 +437,7 @@ async def get_calendar_week(
             "category": task.category.value if task.category else "custom",
             "priority": task.priority,
             "is_completed": task.is_completed,
+            "due_date": date_str,  # Include due_date for editing
             "due_time": task.due_time,
             "end_time": task.end_time,
             "location": task.location,
@@ -739,12 +759,20 @@ async def get_verse_of_the_day():
             match = re.search(r'og:description" content="([^"]+)"', html)
             if match:
                 content = match.group(1)
-                # Format: "Romans 12:2 Do not conform..."
-                ref_match = re.match(r'^([\d\s]*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\s+(.+)$', content)
+                # Format: "Isaiah 60:1 "Arise, shine..." or "Romans 12:2 Do not conform..."
+                # Content may have newlines so use re.DOTALL
+                # Handle optional quotes around the verse text
+                ref_match = re.match(r'^([\d\s]*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\s+["\u201c]?(.+)', content, re.DOTALL)
                 if ref_match:
+                    text = ref_match.group(2)
+                    # Clean up: remove trailing quotes, replace newlines with spaces
+                    text = text.replace('\n', ' ').strip()
+                    text = text.rstrip('"\u201d.')
+                    if text.endswith(','):
+                        text = text.rstrip(',') + '...'
                     return {
                         "reference": ref_match.group(1),
-                        "text": ref_match.group(2),
+                        "text": text,
                         "version": "NIV"
                     }
 

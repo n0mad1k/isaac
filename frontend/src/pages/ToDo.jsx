@@ -331,7 +331,7 @@ function ToDo() {
                     {todo.due_date && (
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        {format(new Date(todo.due_date), 'MMM d, yyyy')}
+                        {format(parseISO(todo.due_date), 'MMM d, yyyy')}
                       </span>
                     )}
                     {todo.due_time && <span>🕐 {formatTime(todo.due_time)}</span>}

@@ -214,6 +214,18 @@ class CalendarSyncService:
         component.add('last-modified', now_utc)
         component.add('x-isaac-task-id', str(task.id))
 
+        # Add VALARM for push notifications on iOS
+        # Use task.reminder_alerts if set, otherwise default to [0] (at time of event)
+        if task.due_date and not task.is_completed:
+            reminder_alerts = task.reminder_alerts if task.reminder_alerts else [0]
+            for alert_minutes in reminder_alerts:
+                alarm = icalendar.Alarm()
+                alarm.add('action', 'DISPLAY')
+                alarm.add('description', f'Reminder: {task.title}')
+                # Negative trigger means before the event
+                alarm.add('trigger', timedelta(minutes=-alert_minutes))
+                component.add_component(alarm)
+
         cal.add_component(component)
         return cal.to_ical().decode('utf-8')
 
@@ -251,6 +263,14 @@ class CalendarSyncService:
         if due:
             dt = due.dt
             if isinstance(dt, datetime):
+                # Convert to Eastern timezone before extracting date/time
+                # This prevents off-by-one day errors when UTC time is next day
+                eastern = pytz.timezone('America/New_York')
+                if dt.tzinfo is not None:
+                    dt = dt.astimezone(eastern)
+                else:
+                    # Assume UTC if no timezone
+                    dt = pytz.UTC.localize(dt).astimezone(eastern)
                 task_dict['due_date'] = dt.date()
                 # Extract start time from datetime
                 task_dict['due_time'] = dt.strftime('%H:%M')
@@ -262,6 +282,12 @@ class CalendarSyncService:
         if dtend:
             dt = dtend.dt
             if isinstance(dt, datetime):
+                # Convert to Eastern timezone before extracting time
+                eastern = pytz.timezone('America/New_York')
+                if dt.tzinfo is not None:
+                    dt = dt.astimezone(eastern)
+                else:
+                    dt = pytz.UTC.localize(dt).astimezone(eastern)
                 task_dict['end_time'] = dt.strftime('%H:%M')
 
         # Category
@@ -395,16 +421,20 @@ class CalendarSyncService:
         deleted_by_phone = 0
 
         for task in tasks:
-            # Skip tasks that were imported from phone (have a non-levi UID)
+            # Skip tasks that were imported from phone (have a non-app UID)
             # They already exist in the calendar, don't push duplicates
-            if task.calendar_uid and not task.calendar_uid.startswith('isaac-task-'):
+            is_app_uid = (
+                task.calendar_uid and
+                (task.calendar_uid.startswith('isaac-task-') or task.calendar_uid.startswith('levi-task-'))
+            )
+            if task.calendar_uid and not is_app_uid:
                 logger.debug(f"Skipping imported task '{task.title}' - already in calendar")
                 continue
 
             # Check if this task was deleted on the phone
-            # If task has a isaac-task UID and it's not in the calendar, it was deleted on phone
+            # If task has an app-originated UID and it's not in the calendar, it was deleted on phone
             if calendar_uids is not None and task.calendar_uid:
-                if task.calendar_uid.startswith('isaac-task-') and task.calendar_uid not in calendar_uids:
+                if is_app_uid and task.calendar_uid not in calendar_uids:
                     # Task was deleted on phone - mark as inactive in webapp
                     task.is_active = False
                     deleted_by_phone += 1
@@ -518,8 +548,15 @@ class CalendarSyncService:
             if not calendar_uid:
                 continue
 
-            # For Isaac-originated tasks, sync completion status back from calendar
-            if calendar_uid.startswith('isaac-task-') or event_dict.get('levi_task_id'):
+            # For Isaac/Levi-originated tasks, ONLY sync completion status back from calendar
+            # DO NOT overwrite title, date, description, etc. - webapp is the source of truth
+            # Check for both isaac-task- and levi-task- prefixes (legacy UIDs use levi-task-)
+            is_app_originated = (
+                calendar_uid.startswith('isaac-task-') or
+                calendar_uid.startswith('levi-task-') or
+                event_dict.get('levi_task_id')
+            )
+            if is_app_originated:
                 # Check if this task was completed on the phone
                 if event_dict.get('is_completed'):
                     result = await db.execute(
@@ -533,6 +570,7 @@ class CalendarSyncService:
                         logger.info(f"Task '{existing_task.title}' completed on phone")
                         # Delete the completed task from calendar so it doesn't re-sync
                         await self.delete_task_from_calendar(existing_task.id, calendar_uid)
+                # Skip any other updates for isaac-originated tasks - webapp is source of truth
                 continue
 
             # Check if we already have this event as a task
@@ -596,8 +634,11 @@ class CalendarSyncService:
         tasks_with_uid = result.scalars().all()
 
         for task in tasks_with_uid:
-            # Skip tasks that originated from Isaac (they have isaac-task-X pattern)
-            if task.calendar_uid and task.calendar_uid.startswith('isaac-task-'):
+            # Skip tasks that originated from app (they have isaac-task-X or levi-task-X pattern)
+            if task.calendar_uid and (
+                task.calendar_uid.startswith('isaac-task-') or
+                task.calendar_uid.startswith('levi-task-')
+            ):
                 continue
             # If this task's calendar_uid is no longer in calendar, mark as deleted
             if task.calendar_uid and task.calendar_uid not in calendar_uids:

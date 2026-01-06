@@ -37,5 +37,8 @@ pydantic-settings==2.6.1
 beautifulsoup4==4.12.3
 lxml==5.3.0
 
+# Security
+passlib[bcrypt]==1.7.4
+
 # Utilities
 loguru==0.7.3

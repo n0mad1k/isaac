@@ -249,6 +249,9 @@ class TaskCreate(BaseModel):
     priority: int = Field(2, ge=1, le=3)
     plant_id: Optional[int] = Field(None, ge=1)
     animal_id: Optional[int] = Field(None, ge=1)
+    vehicle_id: Optional[int] = Field(None, ge=1)
+    equipment_id: Optional[int] = Field(None, ge=1)
+    farm_area_id: Optional[int] = Field(None, ge=1)
     weather_dependent: bool = False
     skip_if_rain: bool = False
     notify_email: bool = True
@@ -287,6 +290,9 @@ class TaskResponse(BaseModel):
     completed_at: Optional[datetime]
     plant_id: Optional[int]
     animal_id: Optional[int]
+    vehicle_id: Optional[int]
+    equipment_id: Optional[int]
+    farm_area_id: Optional[int]
     weather_dependent: bool
     is_active: bool
     created_at: datetime
@@ -301,11 +307,43 @@ async def list_tasks(
     category: Optional[TaskCategory] = None,
     completed: Optional[bool] = None,
     priority: Optional[int] = None,
+    include_completed_today: bool = Query(default=True),
     limit: int = Query(default=100, le=500),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all tasks with optional filtering"""
-    query = select(Task).where(Task.is_active == True)
+    """List all tasks with optional filtering.
+
+    By default includes today's completed tasks even if they were deactivated
+    (e.g., auto-reminders that get regenerated after completion).
+    """
+    from sqlalchemy import or_
+    import pytz
+
+    # Get today's bounds in UTC (completed_at is stored in UTC)
+    eastern = pytz.timezone('America/New_York')
+    now_eastern = datetime.now(eastern)
+    today_eastern = now_eastern.date()
+
+    # Today's start/end in Eastern, converted to UTC for comparison
+    today_start_eastern = eastern.localize(datetime.combine(today_eastern, datetime.min.time()))
+    today_end_eastern = eastern.localize(datetime.combine(today_eastern, datetime.max.time()))
+    today_start_utc = today_start_eastern.astimezone(pytz.UTC).replace(tzinfo=None)
+    today_end_utc = today_end_eastern.astimezone(pytz.UTC).replace(tzinfo=None)
+
+    # Include active tasks OR today's completed tasks (even if deactivated)
+    if include_completed_today:
+        query = select(Task).where(
+            or_(
+                Task.is_active == True,
+                and_(
+                    Task.is_completed == True,
+                    Task.completed_at >= today_start_utc,
+                    Task.completed_at <= today_end_utc
+                )
+            )
+        )
+    else:
+        query = select(Task).where(Task.is_active == True)
 
     if category:
         query = query.where(Task.category == category)
@@ -330,7 +368,7 @@ async def create_task(task: TaskCreate, db: AsyncSession = Depends(get_db)):
     # Sync to calendar if enabled
     calendar_service = await get_calendar_service(db)
     if calendar_service:
-        await calendar_service.sync_task_to_calendar(db_task)
+        await calendar_service.sync_task_to_calendar(db_task, db)
 
     return db_task
 
@@ -436,7 +474,7 @@ async def update_task(
     # Sync to calendar if enabled
     calendar_service = await get_calendar_service(db)
     if calendar_service:
-        await calendar_service.sync_task_to_calendar(task)
+        await calendar_service.sync_task_to_calendar(task, db)
 
     return task
 
@@ -469,7 +507,7 @@ async def complete_task(task_id: int, db: AsyncSession = Depends(get_db)):
     # Sync to calendar if enabled (this will remove the completed task from calendar)
     calendar_service = await get_calendar_service(db)
     if calendar_service:
-        await calendar_service.sync_task_to_calendar(task)
+        await calendar_service.sync_task_to_calendar(task, db)
 
     # For auto-reminders, trigger immediate re-sync to create the next occurrence
     if is_auto_reminder:
@@ -510,14 +548,14 @@ async def uncomplete_task(task_id: int, db: AsyncSession = Depends(get_db)):
     # Sync to calendar if enabled
     calendar_service = await get_calendar_service(db)
     if calendar_service:
-        await calendar_service.sync_task_to_calendar(task)
+        await calendar_service.sync_task_to_calendar(task, db)
 
     return task
 
 
 @router.delete("/{task_id}/")
 async def delete_task(task_id: int, db: AsyncSession = Depends(get_db)):
-    """Deactivate a task (soft delete)"""
+    """Delete a task. Soft-deletes active tasks, hard-deletes already-deactivated tasks."""
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalar_one_or_none()
     if not task:
@@ -528,10 +566,17 @@ async def delete_task(task_id: int, db: AsyncSession = Depends(get_db)):
     if calendar_service:
         await calendar_service.delete_task_from_calendar(task.id, calendar_uid=task.calendar_uid)
 
-    task.is_active = False
-    task.updated_at = datetime.utcnow()
-    await db.commit()
-    return {"message": "Task deactivated"}
+    # If already deactivated (e.g., completed auto-reminder), hard delete
+    # Otherwise soft delete
+    if not task.is_active:
+        await db.delete(task)
+        await db.commit()
+        return {"message": "Task permanently deleted"}
+    else:
+        task.is_active = False
+        task.updated_at = datetime.utcnow()
+        await db.commit()
+        return {"message": "Task deactivated"}
 
 
 @router.post("/setup-maintenance/")

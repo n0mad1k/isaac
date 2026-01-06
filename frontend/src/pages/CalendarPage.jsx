@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Pencil, RefreshCw, Clock, CheckSquare } from 'lucide-react'
-import { getCalendarMonth, getCalendarWeek, createTask, updateTask, deleteTask, completeTask, uncompleteTask, syncCalendar } from '../services/api'
+import { getCalendarMonth, getCalendarWeek, createTask, updateTask, deleteTask, completeTask, uncompleteTask, syncCalendar, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas } from '../services/api'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, addDays, subDays, startOfWeek, addWeeks, subWeeks, isSameDay } from 'date-fns'
 
 // Task categories
@@ -852,9 +852,48 @@ function EventModal({ event, defaultDate, onClose, onSave }) {
     category: event?.category || 'other',
     priority: event?.priority || 2,
     task_type: event?.task_type || 'event',
+    animal_id: event?.animal_id || null,
+    plant_id: event?.plant_id || null,
+    vehicle_id: event?.vehicle_id || null,
+    equipment_id: event?.equipment_id || null,
+    farm_area_id: event?.farm_area_id || null,
   })
   const [saving, setSaving] = useState(false)
   const [isAllDay, setIsAllDay] = useState(!event?.due_time)
+  const [hasDate, setHasDate] = useState(!!event?.due_date || !!defaultDate)
+  const [entities, setEntities] = useState({ animals: [], plants: [], vehicles: [], equipment: [], farmAreas: [] })
+  const [linkType, setLinkType] = useState(
+    event?.animal_id ? 'animal' :
+    event?.plant_id ? 'plant' :
+    event?.vehicle_id ? 'vehicle' :
+    event?.equipment_id ? 'equipment' :
+    event?.farm_area_id ? 'farm_area' : 'none'
+  )
+
+  // Fetch entities for linking
+  useEffect(() => {
+    const fetchEntities = async () => {
+      try {
+        const [animals, plants, vehicles, equipment, farmAreas] = await Promise.all([
+          getAnimals().catch(() => ({ data: [] })),
+          getPlants().catch(() => ({ data: [] })),
+          getVehicles().catch(() => ({ data: [] })),
+          getEquipment().catch(() => ({ data: [] })),
+          getFarmAreas().catch(() => ({ data: [] })),
+        ])
+        setEntities({
+          animals: animals.data || [],
+          plants: plants.data || [],
+          vehicles: vehicles.data || [],
+          equipment: equipment.data || [],
+          farmAreas: farmAreas.data || [],
+        })
+      } catch (error) {
+        console.error('Failed to fetch entities:', error)
+      }
+    }
+    fetchEntities()
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -862,8 +901,15 @@ function EventModal({ event, defaultDate, onClose, onSave }) {
     try {
       const dataToSave = {
         ...formData,
-        due_time: isAllDay ? null : formData.due_time || null,
-        end_time: isAllDay ? null : formData.end_time || null,
+        due_date: hasDate ? formData.due_date || null : null,
+        due_time: (hasDate && !isAllDay) ? formData.due_time || null : null,
+        end_time: (hasDate && !isAllDay) ? formData.end_time || null : null,
+        // Clear all entity links except the selected type
+        animal_id: linkType === 'animal' ? formData.animal_id : null,
+        plant_id: linkType === 'plant' ? formData.plant_id : null,
+        vehicle_id: linkType === 'vehicle' ? formData.vehicle_id : null,
+        equipment_id: linkType === 'equipment' ? formData.equipment_id : null,
+        farm_area_id: linkType === 'farm_area' ? formData.farm_area_id : null,
       }
       await onSave(dataToSave)
     } finally {
@@ -920,30 +966,50 @@ function EventModal({ event, defaultDate, onClose, onSave }) {
             />
           </div>
 
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Date *</label>
-            <input
-              type="date"
-              required
-              value={formData.due_date}
-              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
-          </div>
+          {/* Has Date Toggle - only show for reminders */}
+          {formData.task_type === 'todo' && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasDate}
+                onChange={(e) => setHasDate(e.target.checked)}
+                className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+              />
+              <span className="text-sm text-gray-300">Has a due date</span>
+            </label>
+          )}
 
-          {/* All Day Toggle */}
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isAllDay}
-              onChange={(e) => setIsAllDay(e.target.checked)}
-              className="w-4 h-4 rounded bg-gray-700 border-gray-600"
-            />
-            <span className="text-sm text-gray-300">All day</span>
-          </label>
+          {/* Date field - required for events, optional for reminders */}
+          {(formData.task_type === 'event' || hasDate) && (
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">
+                Date {formData.task_type === 'event' ? '*' : ''}
+              </label>
+              <input
+                type="date"
+                required={formData.task_type === 'event'}
+                value={formData.due_date}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+          )}
 
-          {/* Time fields - only show if not all day */}
-          {!isAllDay && (
+          {/* All Day Toggle - only show if has date */}
+          {(formData.task_type === 'event' || hasDate) && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isAllDay}
+                onChange={(e) => setIsAllDay(e.target.checked)}
+                className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+              />
+              <span className="text-sm text-gray-300">All day</span>
+            </label>
+          )}
+
+          {/* Time fields - only show if has date and not all day */}
+          {(formData.task_type === 'event' || hasDate) && !isAllDay && (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Start Time</label>
@@ -1014,6 +1080,99 @@ function EventModal({ event, defaultDate, onClose, onSave }) {
               placeholder="Optional notes or description"
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
+          </div>
+
+          {/* Entity Linking Section */}
+          <div className="space-y-3 pt-3 border-t border-gray-700">
+            <label className="block text-sm text-gray-400">Link to (optional)</label>
+            <select
+              value={linkType}
+              onChange={(e) => {
+                setLinkType(e.target.value)
+                // Clear all entity IDs when changing type
+                setFormData({
+                  ...formData,
+                  animal_id: null,
+                  plant_id: null,
+                  vehicle_id: null,
+                  equipment_id: null,
+                  farm_area_id: null,
+                })
+              }}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            >
+              <option value="none">None</option>
+              <option value="animal">Animal</option>
+              <option value="plant">Plant</option>
+              <option value="vehicle">Vehicle</option>
+              <option value="equipment">Equipment</option>
+              <option value="farm_area">Farm Area</option>
+            </select>
+
+            {linkType === 'animal' && entities.animals.length > 0 && (
+              <select
+                value={formData.animal_id || ''}
+                onChange={(e) => setFormData({ ...formData, animal_id: e.target.value ? parseInt(e.target.value) : null })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              >
+                <option value="">Select an animal...</option>
+                {entities.animals.map(a => (
+                  <option key={a.id} value={a.id}>{a.name} ({a.animal_type})</option>
+                ))}
+              </select>
+            )}
+
+            {linkType === 'plant' && entities.plants.length > 0 && (
+              <select
+                value={formData.plant_id || ''}
+                onChange={(e) => setFormData({ ...formData, plant_id: e.target.value ? parseInt(e.target.value) : null })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              >
+                <option value="">Select a plant...</option>
+                {entities.plants.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}{p.location ? ` (${p.location})` : ''}</option>
+                ))}
+              </select>
+            )}
+
+            {linkType === 'vehicle' && entities.vehicles.length > 0 && (
+              <select
+                value={formData.vehicle_id || ''}
+                onChange={(e) => setFormData({ ...formData, vehicle_id: e.target.value ? parseInt(e.target.value) : null })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              >
+                <option value="">Select a vehicle...</option>
+                {entities.vehicles.map(v => (
+                  <option key={v.id} value={v.id}>{v.year} {v.make} {v.model}</option>
+                ))}
+              </select>
+            )}
+
+            {linkType === 'equipment' && entities.equipment.length > 0 && (
+              <select
+                value={formData.equipment_id || ''}
+                onChange={(e) => setFormData({ ...formData, equipment_id: e.target.value ? parseInt(e.target.value) : null })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              >
+                <option value="">Select equipment...</option>
+                {entities.equipment.map(eq => (
+                  <option key={eq.id} value={eq.id}>{eq.name}</option>
+                ))}
+              </select>
+            )}
+
+            {linkType === 'farm_area' && entities.farmAreas.length > 0 && (
+              <select
+                value={formData.farm_area_id || ''}
+                onChange={(e) => setFormData({ ...formData, farm_area_id: e.target.value ? parseInt(e.target.value) : null })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              >
+                <option value="">Select a farm area...</option>
+                {entities.farmAreas.map(fa => (
+                  <option key={fa.id} value={fa.id}>{fa.name}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">

@@ -13,6 +13,8 @@ import re
 
 from models.database import get_db
 from models.settings import AppSetting
+from models.users import User
+from routers.auth import require_admin
 
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
@@ -458,8 +460,8 @@ async def get_version_info():
 
 
 @router.post("/update/")
-async def update_application():
-    """Pull latest changes and trigger rebuild"""
+async def update_application(admin: User = Depends(require_admin)):
+    """Pull latest changes and trigger rebuild (admin only)"""
     import subprocess
     import os
 

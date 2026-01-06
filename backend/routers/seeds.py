@@ -172,11 +172,16 @@ async def list_seeds(
     if category:
         query = query.where(Seed.category == category)
     if search:
+        # Escape any SQL-like wildcards and create search pattern
+        # SQLAlchemy's ilike() properly parameterizes, but we explicitly
+        # escape any user-provided wildcards for clarity
+        safe_search = search.replace("%", r"\%").replace("_", r"\_")
+        search_pattern = f"%{safe_search}%"
         query = query.where(
             or_(
-                Seed.name.ilike(f"%{search}%"),
-                Seed.variety.ilike(f"%{search}%"),
-                Seed.notes.ilike(f"%{search}%"),
+                Seed.name.ilike(search_pattern),
+                Seed.variety.ilike(search_pattern),
+                Seed.notes.ilike(search_pattern),
             )
         )
     if medicinal is not None:

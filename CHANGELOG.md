@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.1.4] - 2026-01-06
+
+### Fixed
+- Reminder dates showing previous day (timezone issue with JavaScript Date parsing)
+- Bible verse of the day not loading (regex now handles multiline content)
+- Completed auto-reminders disappearing from dashboard (now shows today's completed tasks)
+- Delete button not working on completed auto-reminders (now hard-deletes deactivated tasks)
+
+### Added
+- Reusable EventModal component for creating events/reminders from any page
+
 ## [1.1.3] - 2026-01-05
 
 ### Changed
