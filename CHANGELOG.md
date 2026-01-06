@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.1.2] - 2026-01-05
+
+### Fixed
+- Plant save/edit validation errors (empty strings sent for enum fields)
+- Trailing slash consistency on all plant API routes
+
 ## [1.1.1] - 2026-01-05
 
 ### Changed
