@@ -140,6 +140,7 @@ export const getTodaysTasks = () => api.get('/tasks/today/')
 export const getUpcomingTasks = (days = 7) =>
   api.get('/tasks/upcoming/', { params: { days } })
 export const getOverdueTasks = () => api.get('/tasks/overdue/')
+export const getTasksByEntity = (entityType, entityId) => api.get(`/tasks/by-entity/${entityType}/${entityId}`)
 export const createTask = (data) => api.post('/tasks/', data)
 export const updateTask = (id, data) => api.patch(`/tasks/${id}/`, data)
 export const completeTask = (id) => api.post(`/tasks/${id}/complete/`)

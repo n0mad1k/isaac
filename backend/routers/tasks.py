@@ -419,6 +419,34 @@ async def get_overdue_tasks(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
+@router.get("/by-entity/{entity_type}/{entity_id}", response_model=List[TaskResponse])
+async def get_tasks_by_entity(
+    entity_type: str,
+    entity_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all tasks linked to a specific entity"""
+    entity_field_map = {
+        'animal': Task.animal_id,
+        'plant': Task.plant_id,
+        'vehicle': Task.vehicle_id,
+        'equipment': Task.equipment_id,
+        'farm_area': Task.farm_area_id,
+    }
+
+    if entity_type not in entity_field_map:
+        raise HTTPException(status_code=400, detail=f"Invalid entity type: {entity_type}")
+
+    field = entity_field_map[entity_type]
+    result = await db.execute(
+        select(Task)
+        .where(field == entity_id)
+        .where(Task.is_active == True)
+        .order_by(Task.is_completed, Task.due_date.nulls_last(), Task.priority)
+    )
+    return result.scalars().all()
+
+
 @router.get("/calendar/", response_model=List[TaskResponse])
 async def get_calendar_tasks(
     start_date: date,
@@ -566,9 +594,9 @@ async def delete_task(task_id: int, db: AsyncSession = Depends(get_db)):
     if calendar_service:
         await calendar_service.delete_task_from_calendar(task.id, calendar_uid=task.calendar_uid)
 
-    # If already deactivated (e.g., completed auto-reminder), hard delete
-    # Otherwise soft delete
-    if not task.is_active:
+    # Hard delete if: already deactivated OR completed
+    # Soft delete only for active incomplete tasks (preserves history if needed)
+    if not task.is_active or task.is_completed:
         await db.delete(task)
         await db.commit()
         return {"message": "Task permanently deleted"}

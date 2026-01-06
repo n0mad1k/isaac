@@ -4,11 +4,13 @@ import { format } from 'date-fns'
 import { createTask, updateTask, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas } from '../services/api'
 
 const TASK_CATEGORIES = [
+  { value: 'plant_care', label: 'Plant Care' },
+  { value: 'animal_care', label: 'Animal Care' },
   { value: 'garden', label: 'Garden' },
-  { value: 'livestock', label: 'Livestock' },
-  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'home_maintenance', label: 'Home Maintenance' },
+  { value: 'equipment', label: 'Equipment' },
   { value: 'seasonal', label: 'Seasonal' },
-  { value: 'household', label: 'Household' },
+  { value: 'custom', label: 'Custom' },
   { value: 'other', label: 'Other' },
 ]
 

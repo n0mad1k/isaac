@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Wrench, Plus, Check, X, ChevronDown, ChevronUp, Clock, Edit, Calendar, MapPin } from 'lucide-react'
-import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getEquipmentMaintenance, createEquipmentMaintenance, updateEquipmentMaintenance, completeEquipmentMaintenance, deleteEquipmentMaintenance, getEquipmentTypes, getFarmAreas } from '../services/api'
+import { Wrench, Plus, Check, X, ChevronDown, ChevronUp, Clock, Edit, Calendar, MapPin, CalendarPlus } from 'lucide-react'
+import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getEquipmentMaintenance, createEquipmentMaintenance, updateEquipmentMaintenance, completeEquipmentMaintenance, deleteEquipmentMaintenance, getEquipmentTypes, getFarmAreas, getTasksByEntity, completeTask, deleteTask } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
+import EventModal from '../components/EventModal'
 
 const TYPE_ICONS = {
   // Farm Equipment
@@ -156,6 +157,8 @@ function Equipment() {
   const [showAddMaintenance, setShowAddMaintenance] = useState(null)
   const [editingMaintenance, setEditingMaintenance] = useState(null)
   const [completeModal, setCompleteModal] = useState(null)
+  const [showReminderFor, setShowReminderFor] = useState(null)
+  const [linkedTasks, setLinkedTasks] = useState({})
 
   const [formData, setFormData] = useState({
     name: '',
@@ -212,10 +215,33 @@ function Equipment() {
 
   const fetchMaintenance = async (equipmentId) => {
     try {
-      const res = await getEquipmentMaintenance(equipmentId)
-      setMaintenanceTasks(prev => ({ ...prev, [equipmentId]: res.data }))
+      const [maintRes, tasksRes] = await Promise.all([
+        getEquipmentMaintenance(equipmentId),
+        getTasksByEntity('equipment', equipmentId)
+      ])
+      setMaintenanceTasks(prev => ({ ...prev, [equipmentId]: maintRes.data }))
+      setLinkedTasks(prev => ({ ...prev, [equipmentId]: tasksRes.data }))
     } catch (err) {
       console.error('Failed to fetch maintenance:', err)
+    }
+  }
+
+  const handleCompleteLinkedTask = async (taskId, equipmentId) => {
+    try {
+      await completeTask(taskId)
+      fetchMaintenance(equipmentId)
+    } catch (err) {
+      console.error('Failed to complete task:', err)
+    }
+  }
+
+  const handleDeleteLinkedTask = async (taskId, equipmentId) => {
+    if (!confirm('Delete this reminder?')) return
+    try {
+      await deleteTask(taskId)
+      fetchMaintenance(equipmentId)
+    } catch (err) {
+      console.error('Failed to delete task:', err)
     }
   }
 
@@ -454,6 +480,13 @@ function Equipment() {
                       Delete
                     </button>
                     <button
+                      onClick={(e) => { e.stopPropagation(); setShowReminderFor(equip); }}
+                      className="text-xs px-2 py-1 bg-cyan-600/30 text-cyan-400 rounded hover:bg-cyan-600/50 flex items-center gap-1"
+                      title="Add Reminder"
+                    >
+                      <CalendarPlus className="w-3 h-3" />
+                    </button>
+                    <button
                       onClick={(e) => { e.stopPropagation(); setShowAddMaintenance(equip.id); }}
                       className="text-xs px-2 py-1 bg-gray-600 rounded hover:bg-gray-500"
                     >
@@ -517,6 +550,59 @@ function Equipment() {
                   </div>
                 ) : (
                   <p className="text-gray-500 text-xs">No maintenance tasks</p>
+                )}
+
+                {/* Linked Reminders */}
+                {linkedTasks[equip.id]?.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-700">
+                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <CalendarPlus className="w-4 h-4 text-cyan-400" />
+                      Reminders ({linkedTasks[equip.id].length})
+                    </h4>
+                    <div className="space-y-2">
+                      {linkedTasks[equip.id].map(task => (
+                        <div
+                          key={task.id}
+                          className={`flex items-center justify-between p-2 rounded-lg text-sm ${
+                            task.is_completed ? 'bg-gray-700/30 opacity-60' : 'bg-cyan-900/30'
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={task.is_completed ? 'line-through text-gray-400' : ''}>
+                                {task.title}
+                              </span>
+                              {task.is_completed && (
+                                <span className="text-xs text-green-400">Done</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'No due date'}
+                              {task.due_time && ` at ${task.due_time}`}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {!task.is_completed && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleCompleteLinkedTask(task.id, equip.id); }}
+                                className="p-1 text-green-400 hover:bg-green-400/20 rounded"
+                                title="Complete"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteLinkedTask(task.id, equip.id); }}
+                              className="p-1 text-red-400 hover:bg-red-400/20 rounded"
+                              title="Delete"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -778,6 +864,18 @@ function Equipment() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add Reminder Modal */}
+      {showReminderFor && (
+        <EventModal
+          preselectedEntity={{ type: 'equipment', id: showReminderFor.id, name: showReminderFor.name }}
+          onClose={() => setShowReminderFor(null)}
+          onSaved={() => {
+            fetchMaintenance(showReminderFor.id)
+            setShowReminderFor(null)
+          }}
+        />
       )}
     </div>
   )

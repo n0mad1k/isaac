@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Fence, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Leaf, PawPrint, Edit, Calendar, Clock } from 'lucide-react'
-import { getFarmAreas, getFarmArea, createFarmArea, updateFarmArea, deleteFarmArea, getFarmAreaMaintenance, createFarmAreaMaintenance, updateFarmAreaMaintenance, completeFarmAreaMaintenance, deleteFarmAreaMaintenance, getFarmAreaTypes } from '../services/api'
+import { Fence, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Leaf, PawPrint, Edit, Calendar, Clock, CalendarPlus } from 'lucide-react'
+import { getFarmAreas, getFarmArea, createFarmArea, updateFarmArea, deleteFarmArea, getFarmAreaMaintenance, createFarmAreaMaintenance, updateFarmAreaMaintenance, completeFarmAreaMaintenance, deleteFarmAreaMaintenance, getFarmAreaTypes, getTasksByEntity, completeTask, deleteTask } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
+import EventModal from '../components/EventModal'
 
 const TYPE_ICONS = {
   // Buildings
@@ -65,6 +66,8 @@ function FarmAreas() {
   const [showAddMaintenance, setShowAddMaintenance] = useState(null)
   const [editingMaintenance, setEditingMaintenance] = useState(null)
   const [completeModal, setCompleteModal] = useState(null)
+  const [showReminderFor, setShowReminderFor] = useState(null)
+  const [linkedTasks, setLinkedTasks] = useState({})
 
   const [formData, setFormData] = useState({
     name: '',
@@ -128,12 +131,14 @@ function FarmAreas() {
 
   const fetchAreaDetails = async (areaId) => {
     try {
-      const [detailRes, maintRes] = await Promise.all([
+      const [detailRes, maintRes, tasksRes] = await Promise.all([
         getFarmArea(areaId),
-        getFarmAreaMaintenance(areaId)
+        getFarmAreaMaintenance(areaId),
+        getTasksByEntity('farm_area', areaId)
       ])
       setAreaDetails(prev => ({ ...prev, [areaId]: detailRes.data }))
       setMaintenanceTasks(prev => ({ ...prev, [areaId]: maintRes.data }))
+      setLinkedTasks(prev => ({ ...prev, [areaId]: tasksRes.data }))
     } catch (err) {
       console.error('Failed to fetch area details:', err)
     }
@@ -246,6 +251,25 @@ function FarmAreas() {
       fetchData()
     } catch (err) {
       console.error('Failed to delete maintenance:', err)
+    }
+  }
+
+  const handleCompleteLinkedTask = async (taskId, areaId) => {
+    try {
+      await completeTask(taskId)
+      fetchAreaDetails(areaId)
+    } catch (err) {
+      console.error('Failed to complete task:', err)
+    }
+  }
+
+  const handleDeleteLinkedTask = async (taskId, areaId) => {
+    if (!confirm('Delete this reminder?')) return
+    try {
+      await deleteTask(taskId)
+      fetchAreaDetails(areaId)
+    } catch (err) {
+      console.error('Failed to delete task:', err)
     }
   }
 
@@ -409,6 +433,13 @@ function FarmAreas() {
                         Delete
                       </button>
                       <button
+                        onClick={(e) => { e.stopPropagation(); setShowReminderFor(area); }}
+                        className="text-xs px-2 py-1 bg-cyan-600/30 text-cyan-400 rounded hover:bg-cyan-600/50 flex items-center gap-1"
+                        title="Add Reminder"
+                      >
+                        <CalendarPlus className="w-3 h-3" />
+                      </button>
+                      <button
                         onClick={(e) => { e.stopPropagation(); setShowAddMaintenance(area.id); }}
                         className="text-xs px-2 py-1 bg-gray-600 rounded hover:bg-gray-500"
                       >
@@ -481,6 +512,59 @@ function FarmAreas() {
                     <p className="text-gray-500 text-xs">No maintenance tasks</p>
                   )}
                 </div>
+
+                {/* Linked Reminders */}
+                {linkedTasks[area.id]?.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-700">
+                    <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <CalendarPlus className="w-4 h-4 text-cyan-400" />
+                      Reminders ({linkedTasks[area.id].length})
+                    </h4>
+                    <div className="space-y-2">
+                      {linkedTasks[area.id].map(task => (
+                        <div
+                          key={task.id}
+                          className={`flex items-center justify-between p-2 rounded-lg text-sm ${
+                            task.is_completed ? 'bg-gray-700/30 opacity-60' : 'bg-cyan-900/30'
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={task.is_completed ? 'line-through text-gray-400' : ''}>
+                                {task.title}
+                              </span>
+                              {task.is_completed && (
+                                <span className="text-xs text-green-400">Done</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'No due date'}
+                              {task.due_time && ` at ${task.due_time}`}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {!task.is_completed && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleCompleteLinkedTask(task.id, area.id); }}
+                                className="p-1 text-green-400 hover:bg-green-400/20 rounded"
+                                title="Complete"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteLinkedTask(task.id, area.id); }}
+                              className="p-1 text-red-400 hover:bg-red-400/20 rounded"
+                              title="Delete"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -779,6 +863,18 @@ function FarmAreas() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add Reminder Modal */}
+      {showReminderFor && (
+        <EventModal
+          preselectedEntity={{ type: 'farm_area', id: showReminderFor.id, name: showReminderFor.name }}
+          onClose={() => setShowReminderFor(null)}
+          onSaved={() => {
+            fetchAreaDetails(showReminderFor.id)
+            setShowReminderFor(null)
+          }}
+        />
       )}
     </div>
   )

@@ -147,6 +147,21 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
                     Task.due_date == today,
                     Task.is_active == True
                 ),
+                # Dateless incomplete todos treated as due today
+                and_(
+                    Task.due_date.is_(None),
+                    or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)),
+                    Task.is_active == True,
+                    Task.is_completed == False
+                ),
+                # Dateless todos completed today
+                and_(
+                    Task.due_date.is_(None),
+                    or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)),
+                    Task.is_completed == True,
+                    Task.completed_at >= today_start_utc,
+                    Task.completed_at <= today_end_utc
+                ),
                 # Overdue active todos only (events don't carry over)
                 and_(
                     Task.due_date < today,
@@ -162,8 +177,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
                 )
             )
         )
-        .where(Task.due_date.isnot(None))  # Must have a due date
-        .order_by(Task.is_completed, Task.due_date, Task.priority, Task.due_time)
+        .order_by(Task.is_completed, Task.due_date.nulls_first(), Task.priority, Task.due_time)
     )
     tasks = result.scalars().all()
 
@@ -253,7 +267,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
     tasks_today_count = await db.execute(
         select(func.count())
         .select_from(Task)
-        .where(Task.due_date == today)
+        .where(or_(Task.due_date == today, Task.due_date.is_(None)))
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
     )
@@ -318,11 +332,11 @@ async def get_quick_stats(db: AsyncSession = Depends(get_db)):
     """Get quick statistics for status bar"""
     today = date.today()
 
-    # Count pending items
+    # Count pending items (including dateless tasks as due today)
     tasks_pending = await db.execute(
         select(func.count())
         .select_from(Task)
-        .where(Task.due_date <= today)
+        .where(or_(Task.due_date <= today, Task.due_date.is_(None)))
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
     )

@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react'
 import {
   Plus, Search, PawPrint, Calendar, AlertCircle, ChevronDown, ChevronUp,
   MapPin, DollarSign, Scale, Clock, Check, X, Syringe, Scissors,
-  Heart, Beef, Dog, Cat, Pencil, Save, Package, Copy
+  Heart, Beef, Dog, Cat, Pencil, Save, Package, Copy, CalendarPlus
 } from 'lucide-react'
+import EventModal from '../components/EventModal'
 import {
   getAnimals, createAnimal, updateAnimal, deleteAnimal, addAnimalCareLog,
   addAnimalExpense, getAnimalExpenses, createCareSchedule, completeCareSchedule,
@@ -266,6 +267,7 @@ function Animals() {
   const [editingFeed, setEditingFeed] = useState(null) // { animalId, ...feed }
   const [farmAreas, setFarmAreas] = useState([])
   const [showArchiveForm, setShowArchiveForm] = useState(null) // animal object or null
+  const [showReminderFor, setShowReminderFor] = useState(null) // animal object for reminder modal
 
   const fetchAnimals = async () => {
     try {
@@ -721,6 +723,7 @@ function Animals() {
                       onDeleteFeed={(feedId) => handleDeleteFeed(animal.id, feedId)}
                       onSave={fetchAnimals}
                       onArchive={(animal) => setShowArchiveForm(animal)}
+                      onAddReminder={(animal) => setShowReminderFor(animal)}
                       getAnimalIcon={getAnimalIcon}
                       getDaysUntil={getDaysUntil}
                       getUrgencyClass={getUrgencyClass}
@@ -755,6 +758,7 @@ function Animals() {
               onEditFeed={(feed) => setEditingFeed({ animalId: animal.id, ...feed })}
               onDeleteFeed={(feedId) => handleDeleteFeed(animal.id, feedId)}
               onSave={fetchAnimals}
+              onAddReminder={(animal) => setShowReminderFor(animal)}
               onArchive={(animal) => setShowArchiveForm(animal)}
               getAnimalIcon={getAnimalIcon}
               getDaysUntil={getDaysUntil}
@@ -858,6 +862,15 @@ function Animals() {
           animal={showArchiveForm}
           onClose={() => setShowArchiveForm(null)}
           onSave={handleArchiveLivestock}
+        />
+      )}
+
+      {/* Add Reminder Modal */}
+      {showReminderFor && (
+        <EventModal
+          preselectedEntity={{ type: 'animal', id: showReminderFor.id, name: showReminderFor.name }}
+          onClose={() => setShowReminderFor(null)}
+          onSaved={() => setShowReminderFor(null)}
         />
       )}
     </div>
@@ -1016,7 +1029,7 @@ const getSexOptions = (animalType) => {
 function AnimalCard({
   animal, farmAreas = [], expanded, onToggle, onLogCare, onDelete, onDuplicate, onAddExpense, onEditDate, onToggleTag,
   onAddCareSchedule, onCompleteCareSchedule, onDeleteCareSchedule, onEditCareSchedule,
-  onAddFeed, onEditFeed, onDeleteFeed, onSave, onArchive, getAnimalIcon, getDaysUntil, getUrgencyClass
+  onAddFeed, onEditFeed, onDeleteFeed, onSave, onArchive, onAddReminder, getAnimalIcon, getDaysUntil, getUrgencyClass
 }) {
   // Local state for inline editing
   const [editData, setEditData] = useState(null)
@@ -1318,6 +1331,12 @@ function AnimalCard({
               className="px-3 py-1.5 bg-gray-600/50 hover:bg-gray-600 rounded text-sm text-white transition-colors flex items-center gap-1"
             >
               <Copy className="w-3 h-3" /> Duplicate
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onAddReminder(animal) }}
+              className="px-3 py-1.5 bg-cyan-600/50 hover:bg-cyan-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <CalendarPlus className="w-3 h-3" /> Add Reminder
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete() }}

@@ -56,15 +56,18 @@ function ToDo() {
       // Filter to only show todos, not events
       if (todo.task_type === 'event' || todo.task_type === 'EVENT') return false
 
+      // For dateless completed tasks, only show if completed today
+      if (!todo.due_date && todo.is_completed) {
+        if (!todo.completed_at) return false
+        const completedDate = startOfDay(parseISO(todo.completed_at))
+        if (!isSameDay(completedDate, today)) return false
+      }
+
       // Always include overdue items in all views except 'all'
       if (isOverdue(todo) && view !== 'all') return true
 
-      if (!todo.due_date) {
-        // Undated items: show in 'all' view only
-        return view === 'all'
-      }
-
-      const dueDate = startOfDay(parseISO(todo.due_date))
+      // Treat dateless items as due today
+      const dueDate = todo.due_date ? startOfDay(parseISO(todo.due_date)) : today
 
       switch (view) {
         case 'today':

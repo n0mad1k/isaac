@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react'
 import {
   Plus, Search, Leaf, Droplets, Sun, Snowflake, ChevronDown, ChevronUp,
   Thermometer, MapPin, Calendar, Clock, Scissors, Apple, AlertTriangle,
-  Info, X, Tag as TagIcon, Pencil, Save, Package, Copy
+  Info, X, Tag as TagIcon, Pencil, Save, Package, Copy, CalendarPlus
 } from 'lucide-react'
 import {
   getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag,
   recordPlantHarvest, previewPlantImport, importPlant, getFarmAreas
 } from '../services/api'
 import { Download, ExternalLink, Loader2 } from 'lucide-react'
+import EventModal from '../components/EventModal'
 
 // Inline editable field component
 function EditableField({ label, value, field, type = 'text', options, onChange, placeholder, rows = 3, editing = true, displayValue }) {
@@ -274,6 +275,7 @@ function Plants() {
   const [editDateModal, setEditDateModal] = useState(null)
   const [showHarvestForm, setShowHarvestForm] = useState(null) // plant object or null
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showReminderFor, setShowReminderFor] = useState(null) // plant object for reminder modal
 
   const fetchData = async () => {
     try {
@@ -592,6 +594,7 @@ function Plants() {
                       onHarvest={(plant) => setShowHarvestForm(plant)}
                       onImport={(plant) => setShowImportModal(plant)}
                       onDuplicate={(plant) => setDuplicatePlant(plant)}
+                      onAddReminder={(plant) => setShowReminderFor(plant)}
                       getTagColor={getTagColor}
                       formatDate={formatDate}
                       formatRelativeDate={formatRelativeDate}
@@ -622,6 +625,7 @@ function Plants() {
               onHarvest={(plant) => setShowHarvestForm(plant)}
               onImport={(plant) => setShowImportModal(plant)}
               onDuplicate={(plant) => setDuplicatePlant(plant)}
+              onAddReminder={(plant) => setShowReminderFor(plant)}
               getTagColor={getTagColor}
               formatDate={formatDate}
               formatRelativeDate={formatRelativeDate}
@@ -682,6 +686,15 @@ function Plants() {
           existingPlant={typeof showImportModal === 'object' ? showImportModal : null}
         />
       )}
+
+      {/* Add Reminder Modal */}
+      {showReminderFor && (
+        <EventModal
+          preselectedEntity={{ type: 'plant', id: showReminderFor.id, name: showReminderFor.name }}
+          onClose={() => setShowReminderFor(null)}
+          onSaved={() => setShowReminderFor(null)}
+        />
+      )}
     </div>
   )
 }
@@ -689,7 +702,7 @@ function Plants() {
 
 // Plant Card Component with inline editing
 function PlantCard({
-  plant, tags, farmAreas, expanded, onToggle, onLogCare, onEditDate, onDelete, onSave, onHarvest, onImport, onDuplicate,
+  plant, tags, farmAreas, expanded, onToggle, onLogCare, onEditDate, onDelete, onSave, onHarvest, onImport, onDuplicate, onAddReminder,
   getTagColor, formatDate, formatRelativeDate, getSunLabel, getGrowthRateLabel
 }) {
   const [editData, setEditData] = useState(null)
@@ -981,6 +994,12 @@ function PlantCard({
               className="px-3 py-1.5 bg-gray-600/50 hover:bg-gray-600 rounded text-sm text-white transition-colors flex items-center gap-1"
             >
               <Copy className="w-3 h-3" /> Duplicate
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onAddReminder(plant) }}
+              className="px-3 py-1.5 bg-cyan-600/50 hover:bg-cyan-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <CalendarPlus className="w-3 h-3" /> Add Reminder
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete() }}

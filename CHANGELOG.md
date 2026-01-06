@@ -12,6 +12,9 @@ All notable changes to Isaac will be documented in this file.
 
 ### Added
 - Reusable EventModal component for creating events/reminders from any page
+- "Add Reminder" button on Animals, Plants, Vehicles, Equipment, and Farm Areas pages
+- Linked reminders now display on entity cards (Farm Areas, Equipment, Vehicles)
+- Backend API endpoint to fetch tasks by entity type
 
 ## [1.1.3] - 2026-01-05
 
