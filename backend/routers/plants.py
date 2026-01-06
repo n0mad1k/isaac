@@ -12,12 +12,7 @@ from pydantic import BaseModel, Field
 
 from models.database import get_db
 from models.plants import Plant, PlantCareLog, Tag, GrowthRate, SunRequirement, MoisturePreference
-from services.auto_reminders import (
-    sync_plant_watering_reminder,
-    sync_plant_fertilizing_reminder,
-    sync_plant_harvest_reminder,
-    delete_reminder,
-)
+from services.auto_reminders import delete_reminder
 from services.plant_import import plant_import_service
 from loguru import logger
 
@@ -243,32 +238,16 @@ class CareLogResponse(BaseModel):
 
 
 async def sync_plant_reminders(db: AsyncSession, plant: Plant):
-    """Sync all care reminders for a plant to calendar"""
-    # Sync watering
-    if plant.next_watering:
-        next_water_date = plant.next_watering.date() if isinstance(plant.next_watering, datetime) else plant.next_watering
-        await sync_plant_watering_reminder(
-            db=db,
-            plant_id=plant.id,
-            plant_name=plant.name,
-            next_watering=next_water_date,
-            location=plant.location,
-        )
-    else:
-        await delete_reminder(db, "plant_watering", plant.id)
+    """Sync all care reminders for plants to calendar.
 
-    # Sync fertilizing
-    if plant.next_fertilizing:
-        next_fert_date = plant.next_fertilizing.date() if isinstance(plant.next_fertilizing, datetime) else plant.next_fertilizing
-        await sync_plant_fertilizing_reminder(
-            db=db,
-            plant_id=plant.id,
-            plant_name=plant.name,
-            next_fertilizing=next_fert_date,
-            location=plant.location,
-        )
-    else:
-        await delete_reminder(db, "plant_fertilizing", plant.id)
+    Since plant reminders are now grouped by location, we re-sync all plant
+    reminders when any plant is updated to ensure groups are correct.
+    """
+    from services.auto_reminders import sync_all_plant_reminders
+    try:
+        await sync_all_plant_reminders(db)
+    except Exception as e:
+        logger.error(f"Failed to sync plant reminders: {e}")
 
 
 def plant_to_response(plant: Plant) -> dict:
@@ -524,7 +503,7 @@ async def import_plant(
     return plant_to_response(plant)
 
 
-@router.get("/{plant_id}")
+@router.get("/{plant_id}/")
 async def get_plant(plant_id: int, db: AsyncSession = Depends(get_db)):
     """Get a specific plant by ID"""
     result = await db.execute(
@@ -536,7 +515,7 @@ async def get_plant(plant_id: int, db: AsyncSession = Depends(get_db)):
     return plant_to_response(plant)
 
 
-@router.patch("/{plant_id}")
+@router.patch("/{plant_id}/")
 async def update_plant(
     plant_id: int,
     updates: PlantUpdate,
@@ -575,7 +554,7 @@ async def update_plant(
     return plant_to_response(plant)
 
 
-@router.delete("/{plant_id}")
+@router.delete("/{plant_id}/")
 async def delete_plant(plant_id: int, db: AsyncSession = Depends(get_db)):
     """Deactivate a plant (soft delete)"""
     result = await db.execute(select(Plant).where(Plant.id == plant_id))
@@ -728,7 +707,7 @@ class WateringHistoryResponse(BaseModel):
     suggested_adjustment: Optional[int]
 
 
-@router.post("/{plant_id}/skip-watering")
+@router.post("/{plant_id}/skip-watering/")
 async def skip_watering(
     plant_id: int,
     request: SkipWateringRequest,
@@ -788,7 +767,7 @@ async def skip_watering(
     }
 
 
-@router.post("/{plant_id}/water")
+@router.post("/{plant_id}/water/")
 async def water_plant(
     plant_id: int,
     notes: Optional[str] = None,
@@ -845,7 +824,7 @@ async def water_plant(
     }
 
 
-@router.get("/{plant_id}/watering-history", response_model=WateringHistoryResponse)
+@router.get("/{plant_id}/watering-history/", response_model=WateringHistoryResponse)
 async def get_watering_history(
     plant_id: int,
     db: AsyncSession = Depends(get_db),

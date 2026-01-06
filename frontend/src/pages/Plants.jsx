@@ -777,11 +777,16 @@ function PlantCard({
   const handleSave = async () => {
     setSaving(true)
     try {
+      // Convert empty strings to null for optional fields
+      const cleanData = {}
+      for (const [key, value] of Object.entries(editData)) {
+        cleanData[key] = value === '' ? null : value
+      }
       const data = {
-        ...editData,
-        min_temp: editData.min_temp ? parseFloat(editData.min_temp) : null,
-        needs_cover_below_temp: editData.needs_cover_below_temp ? parseFloat(editData.needs_cover_below_temp) : null,
-        needs_shade_above_temp: editData.needs_shade_above_temp ? parseFloat(editData.needs_shade_above_temp) : null,
+        ...cleanData,
+        min_temp: cleanData.min_temp ? parseFloat(cleanData.min_temp) : null,
+        needs_cover_below_temp: cleanData.needs_cover_below_temp ? parseFloat(cleanData.needs_cover_below_temp) : null,
+        needs_shade_above_temp: cleanData.needs_shade_above_temp ? parseFloat(cleanData.needs_shade_above_temp) : null,
       }
       await updatePlant(plant.id, data)
       setIsEditing(false)
@@ -1336,11 +1341,16 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
     e.preventDefault()
     setSaving(true)
     try {
+      // Convert empty strings to null for optional fields
+      const cleanData = {}
+      for (const [key, value] of Object.entries(formData)) {
+        cleanData[key] = value === '' ? null : value
+      }
       const data = {
-        ...formData,
-        min_temp: formData.min_temp ? parseFloat(formData.min_temp) : null,
-        needs_cover_below_temp: formData.needs_cover_below_temp ? parseFloat(formData.needs_cover_below_temp) : null,
-        needs_shade_above_temp: formData.needs_shade_above_temp ? parseFloat(formData.needs_shade_above_temp) : null,
+        ...cleanData,
+        min_temp: cleanData.min_temp ? parseFloat(cleanData.min_temp) : null,
+        needs_cover_below_temp: cleanData.needs_cover_below_temp ? parseFloat(cleanData.needs_cover_below_temp) : null,
+        needs_shade_above_temp: cleanData.needs_shade_above_temp ? parseFloat(cleanData.needs_shade_above_temp) : null,
       }
       await createPlant(data)
       onSave()
@@ -2311,11 +2321,16 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
     setError(null)
 
     try {
+      // Convert empty strings to null for optional fields
+      const cleanData = {}
+      for (const [key, value] of Object.entries(formData)) {
+        cleanData[key] = value === '' ? null : value
+      }
       const data = {
-        ...formData,
-        min_temp: formData.min_temp ? parseFloat(formData.min_temp) : null,
-        needs_cover_below_temp: formData.needs_cover_below_temp ? parseFloat(formData.needs_cover_below_temp) : null,
-        needs_shade_above_temp: formData.needs_shade_above_temp ? parseFloat(formData.needs_shade_above_temp) : null,
+        ...cleanData,
+        min_temp: cleanData.min_temp ? parseFloat(cleanData.min_temp) : null,
+        needs_cover_below_temp: cleanData.needs_cover_below_temp ? parseFloat(cleanData.needs_cover_below_temp) : null,
+        needs_shade_above_temp: cleanData.needs_shade_above_temp ? parseFloat(cleanData.needs_shade_above_temp) : null,
       }
 
       if (existingPlant) {
