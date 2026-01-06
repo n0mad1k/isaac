@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.1.3] - 2026-01-05
+
+### Changed
+- "What's New" section now displayed above changelog in Settings
+- Removed unused "Recent Commits" section from Settings
+
 ## [1.1.2] - 2026-01-05
 
 ### Fixed

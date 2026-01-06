@@ -355,9 +355,23 @@ async def get_version_info():
     # Read changelog
     changelog_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "CHANGELOG.md")
     changelog = ""
+    recent_changes = []
     try:
         with open(changelog_file, "r") as f:
             changelog = f.read()
+
+        # Extract recent changes (just the current version's section)
+        import re
+        # Find the first version section and extract its bullet points
+        version_pattern = rf"## \[{re.escape(current_version)}\].*?\n(.*?)(?=\n## \[|$)"
+        match = re.search(version_pattern, changelog, re.DOTALL)
+        if match:
+            section = match.group(1)
+            # Extract all bullet points (lines starting with -)
+            for line in section.split('\n'):
+                line = line.strip()
+                if line.startswith('- '):
+                    recent_changes.append(line[2:])  # Remove "- " prefix
     except:
         pass
 
@@ -437,6 +451,7 @@ async def get_version_info():
 
     return {
         "version": current_version,
+        "recent_changes": recent_changes,
         "changelog": changelog,
         "git": git_info,
     }

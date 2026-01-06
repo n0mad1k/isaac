@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, getRecentCommits } from '../services/api'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
 function Settings() {
@@ -43,7 +43,6 @@ function Settings() {
   const [loadingVersion, setLoadingVersion] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [showChangelog, setShowChangelog] = useState(false)
-  const [showCommits, setShowCommits] = useState(false)
 
   // Collapsible sections state - all collapsed by default
   const [expandedSections, setExpandedSections] = useState({
@@ -1770,6 +1769,21 @@ function Settings() {
               </div>
             </div>
 
+            {/* What's New in This Version */}
+            {versionInfo.recent_changes?.length > 0 && (
+              <div className="p-4 bg-gray-900/30 rounded-lg">
+                <div className="text-sm font-medium text-gray-300 mb-2">What's New in v{versionInfo.version}</div>
+                <ul className="space-y-1">
+                  {versionInfo.recent_changes.map((change, i) => (
+                    <li key={i} className="text-sm text-gray-400 flex items-start gap-2">
+                      <span className="text-green-400 mt-1">•</span>
+                      <span>{change}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Changelog Toggle */}
             <div>
               <button
@@ -1777,7 +1791,7 @@ function Settings() {
                 className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300"
               >
                 {showChangelog ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                View Changelog
+                View Full Changelog
               </button>
 
               {showChangelog && versionInfo.changelog && (
@@ -1785,33 +1799,6 @@ function Settings() {
                   <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono">
                     {versionInfo.changelog}
                   </pre>
-                </div>
-              )}
-            </div>
-
-            {/* Recent Commits Toggle */}
-            <div>
-              <button
-                onClick={() => setShowCommits(!showCommits)}
-                className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300"
-              >
-                {showCommits ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                Recent Changes
-              </button>
-
-              {showCommits && (
-                <div className="mt-3 space-y-2">
-                  {versionInfo.git?.recent_commits?.length > 0 ? (
-                    versionInfo.git.recent_commits.map((commit, i) => (
-                      <div key={i} className="flex items-start gap-3 p-2 bg-gray-900/30 rounded text-sm">
-                        <code className="text-purple-400 font-mono">{commit.hash}</code>
-                        <span className="text-gray-300 flex-1">{commit.message}</span>
-                        <span className="text-gray-500 text-xs whitespace-nowrap">{commit.time}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-gray-500 text-sm">No recent commits available</div>
-                  )}
                 </div>
               )}
             </div>
