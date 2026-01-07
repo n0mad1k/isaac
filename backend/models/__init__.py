@@ -13,7 +13,7 @@ from .home_maintenance import HomeMaintenance, HomeMaintenanceLog, HomeMaintenan
 from .vehicles import Vehicle, VehicleMaintenance, VehicleMaintenanceLog, VehicleType
 from .equipment import Equipment, EquipmentMaintenance, EquipmentMaintenanceLog, EquipmentType
 from .farm_areas import FarmArea, FarmAreaMaintenance, FarmAreaMaintenanceLog, FarmAreaType
-from .production import LivestockProduction, PlantHarvest, HarvestQuality
+from .production import LivestockProduction, PlantHarvest, HarvestQuality, Sale, SaleCategory
 from .users import User, Session, UserRole
 
 __all__ = [
@@ -59,6 +59,8 @@ __all__ = [
     "LivestockProduction",
     "PlantHarvest",
     "HarvestQuality",
+    "Sale",
+    "SaleCategory",
     "User",
     "Session",
     "UserRole",

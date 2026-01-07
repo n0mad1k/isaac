@@ -12,7 +12,7 @@ from pathlib import Path
 class Settings(BaseSettings):
     # Application
     app_name: str = "Isaac"
-    app_version: str = "1.0.0"
+    app_version: str = "1.2.1"
     debug: bool = False
     is_dev_instance: bool = False  # Set to True for dev environment
 

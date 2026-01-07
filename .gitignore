@@ -45,6 +45,9 @@ cert.pem
 # Local backup
 .local-backup/
 
+# Security audit reports (contain sensitive vulnerability details)
+SECURITY_AUDIT*.md
+
 # Deploy scripts with personal config (use .example templates)
 deploy.sh
 scripts/deploy-to-pi.sh

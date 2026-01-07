@@ -11,6 +11,8 @@ import {
   RefreshCw,
   CalendarDays,
   Clock,
+  Archive,
+  ArrowUp,
 } from 'lucide-react'
 import {
   getTasks,
@@ -21,6 +23,7 @@ import {
   deleteTask,
   completeTask,
   uncompleteTask,
+  toggleBacklog,
   syncCalendar,
   getSettings,
 } from '../services/api'
@@ -55,6 +58,14 @@ function ToDo() {
     return allTodos.filter(todo => {
       // Filter to only show todos, not events
       if (todo.task_type === 'event' || todo.task_type === 'EVENT') return false
+
+      // Backlog view shows only backlog items
+      if (view === 'backlog') {
+        return todo.is_backlog === true
+      }
+
+      // All other views exclude backlog items
+      if (todo.is_backlog) return false
 
       // For dateless completed tasks, only show if completed today
       if (!todo.due_date && todo.is_completed) {
@@ -162,6 +173,15 @@ function ToDo() {
     setShowForm(true)
   }
 
+  const handleBacklog = async (todo) => {
+    try {
+      await toggleBacklog(todo.id)
+      fetchTodos()
+    } catch (error) {
+      console.error('Failed to toggle backlog:', error)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     const formData = new FormData(e.target)
@@ -252,6 +272,7 @@ function ToDo() {
           { key: 'week', label: 'This Week', icon: CalendarDays },
           { key: 'month', label: 'This Month', icon: CalendarDays },
           { key: 'all', label: 'All', icon: ListTodo },
+          { key: 'backlog', label: 'Backlog', icon: Archive, description: 'Parked items' },
           { key: 'overdue', label: 'Overdue', icon: AlertCircle },
         ].map((tab) => (
           <button
@@ -277,6 +298,8 @@ function ToDo() {
           <p>
             {view === 'overdue'
               ? 'No overdue to dos!'
+              : view === 'backlog'
+              ? 'No items in backlog.'
               : 'No to dos found.'}
           </p>
         </div>
@@ -366,6 +389,18 @@ function ToDo() {
                       Low
                     </span>
                   )}
+                  {/* Backlog toggle button */}
+                  <button
+                    onClick={() => handleBacklog(todo)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      todo.is_backlog
+                        ? 'text-farm-green hover:text-green-400 hover:bg-gray-700'
+                        : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+                    }`}
+                    title={todo.is_backlog ? 'Move to Today' : 'Move to Backlog'}
+                  >
+                    {todo.is_backlog ? <ArrowUp className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                  </button>
                   <button
                     onClick={() => handleEdit(todo)}
                     className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"

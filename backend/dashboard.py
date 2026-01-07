@@ -9,8 +9,6 @@ from sqlalchemy import select, func, desc, or_, and_
 from typing import List, Optional
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel
-import httpx
-import re
 
 from models.database import get_db
 from models.plants import Plant
@@ -51,7 +49,6 @@ class DashboardTask(BaseModel):
     end_time: Optional[str]
     location: Optional[str]
     is_completed: bool
-    is_backlog: bool = False
 
 
 class DashboardAlert(BaseModel):
@@ -83,7 +80,6 @@ class DashboardResponse(BaseModel):
     weather: Optional[DashboardWeather]
     tasks_today: List[DashboardTask]
     undated_todos: List[DashboardTask]  # Todos without a specific date
-    backlog_tasks: List[DashboardTask]  # Tasks marked as backlog
     alerts: List[DashboardAlert]
     stats: DashboardStats
     upcoming_events: List[CalendarEvent]
@@ -126,77 +122,18 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             temp_low_today=temp_low,
         )
 
-    # Get today's tasks (items due today OR overdue todos - not overdue events)
-    # Also include today's completed tasks even if deactivated (auto-reminders)
-    import pytz
-    eastern = pytz.timezone('America/New_York')
-    now_eastern = datetime.now(eastern)
-    today = now_eastern.date()
-    current_time_str = now_eastern.strftime('%H:%M')
-
-    # Today's bounds in UTC for completed_at comparison
-    today_start_eastern = eastern.localize(datetime.combine(today, datetime.min.time()))
-    today_end_eastern = eastern.localize(datetime.combine(today, datetime.max.time()))
-    today_start_utc = today_start_eastern.astimezone(pytz.UTC).replace(tzinfo=None)
-    today_end_utc = today_end_eastern.astimezone(pytz.UTC).replace(tzinfo=None)
-
+    # Get today's tasks (items due today OR overdue)
+    today = date.today()
     result = await db.execute(
         select(Task)
-        .where(
-            or_(
-                # Today's active tasks (both events and todos) - exclude backlog
-                and_(
-                    Task.due_date == today,
-                    Task.is_active == True,
-                    or_(Task.is_backlog == False, Task.is_backlog.is_(None))
-                ),
-                # Dateless incomplete todos treated as due today - exclude backlog
-                and_(
-                    Task.due_date.is_(None),
-                    or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)),
-                    Task.is_active == True,
-                    Task.is_completed == False,
-                    or_(Task.is_backlog == False, Task.is_backlog.is_(None))
-                ),
-                # Dateless todos completed today (show even if was backlog)
-                and_(
-                    Task.due_date.is_(None),
-                    or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)),
-                    Task.is_completed == True,
-                    Task.completed_at >= today_start_utc,
-                    Task.completed_at <= today_end_utc
-                ),
-                # Overdue active todos only (events don't carry over) - exclude backlog
-                and_(
-                    Task.due_date < today,
-                    or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)),
-                    Task.is_completed == False,
-                    Task.is_active == True,
-                    or_(Task.is_backlog == False, Task.is_backlog.is_(None))
-                ),
-                # Today's completed tasks (even if deactivated - for auto-reminders)
-                and_(
-                    Task.is_completed == True,
-                    Task.completed_at >= today_start_utc,
-                    Task.completed_at <= today_end_utc
-                )
-            )
-        )
-        .order_by(Task.is_completed, Task.due_date.nulls_first(), Task.priority, Task.due_time)
+        .where(Task.due_date <= today)  # Today and overdue
+        .where(Task.due_date.isnot(None))  # Must have a due date
+        .where(Task.is_active == True)
+        .order_by(Task.is_completed, Task.due_date, Task.priority, Task.due_time)
     )
     tasks = result.scalars().all()
-
-    tasks_today = []
-    for t in tasks:
-        # For events, check if they're past their end time - auto-mark as completed
-        is_completed = t.is_completed
-        if t.task_type == TaskType.EVENT and t.due_date == today and not t.is_completed:
-            # Check if event end time has passed
-            end_time = t.end_time or t.due_time
-            if end_time and end_time < current_time_str:
-                is_completed = True
-
-        tasks_today.append(DashboardTask(
+    tasks_today = [
+        DashboardTask(
             id=t.id,
             title=t.title,
             description=t.description,
@@ -207,17 +144,17 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             due_time=t.due_time,
             end_time=t.end_time,
             location=t.location,
-            is_completed=is_completed,
-            is_backlog=t.is_backlog or False,
-        ))
+            is_completed=t.is_completed,
+        )
+        for t in tasks
+    ]
 
-    # Get undated todos (todos without a due date) - exclude backlog
+    # Get undated todos (todos without a due date)
     result = await db.execute(
         select(Task)
         .where(Task.due_date.is_(None))
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
-        .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
         .order_by(Task.priority, Task.created_at)
         .limit(10)
     )
@@ -235,37 +172,8 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             end_time=t.end_time,
             location=t.location,
             is_completed=t.is_completed,
-            is_backlog=False,
         )
         for t in undated
-    ]
-
-    # Get backlog tasks
-    result = await db.execute(
-        select(Task)
-        .where(Task.is_backlog == True)
-        .where(Task.is_active == True)
-        .where(Task.is_completed == False)
-        .order_by(Task.priority, Task.created_at)
-        .limit(15)
-    )
-    backlog = result.scalars().all()
-    backlog_tasks = [
-        DashboardTask(
-            id=t.id,
-            title=t.title,
-            description=t.description,
-            task_type=t.task_type.value if t.task_type else "todo",
-            category=t.category.value if t.category else "custom",
-            priority=t.priority,
-            due_date=t.due_date,
-            due_time=t.due_time,
-            end_time=t.end_time,
-            location=t.location,
-            is_completed=t.is_completed,
-            is_backlog=True,
-        )
-        for t in backlog
     ]
 
     # Get active alerts
@@ -303,20 +211,16 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
     tasks_today_count = await db.execute(
         select(func.count())
         .select_from(Task)
-        .where(or_(Task.due_date == today, Task.due_date.is_(None)))
+        .where(Task.due_date == today)
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
-        .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
     )
-    # Only count TODOs as overdue, not EVENTs (events are time-based, not action-based)
     overdue_count = await db.execute(
         select(func.count())
         .select_from(Task)
         .where(Task.due_date < today)
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
-        .where(or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)))
-        .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
     )
     alert_count = await db.execute(
         select(func.count())
@@ -359,7 +263,6 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
         weather=weather_data,
         tasks_today=tasks_today,
         undated_todos=undated_todos,
-        backlog_tasks=backlog_tasks,
         alerts=alert_list,
         stats=stats,
         upcoming_events=upcoming_events,
@@ -371,14 +274,13 @@ async def get_quick_stats(db: AsyncSession = Depends(get_db)):
     """Get quick statistics for status bar"""
     today = date.today()
 
-    # Count pending items (including dateless tasks as due today) - exclude backlog
+    # Count pending items
     tasks_pending = await db.execute(
         select(func.count())
         .select_from(Task)
-        .where(or_(Task.due_date <= today, Task.due_date.is_(None)))
+        .where(Task.due_date <= today)
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
-        .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
     )
 
     # Animals needing care soon
@@ -415,7 +317,7 @@ async def get_calendar_month(
     month: int,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get calendar events and todos for a specific month"""
+    """Get calendar events for a specific month (only events, not todos)"""
     start_date = date(year, month, 1)
     if month == 12:
         end_date = date(year + 1, 1, 1) - timedelta(days=1)
@@ -427,6 +329,7 @@ async def get_calendar_month(
         .where(Task.due_date >= start_date)
         .where(Task.due_date <= end_date)
         .where(Task.is_active == True)
+        .where(Task.task_type == TaskType.EVENT)  # Only show events on calendar
         .order_by(Task.due_date, Task.priority)
     )
     tasks = result.scalars().all()
@@ -440,67 +343,14 @@ async def get_calendar_month(
         calendar[date_str].append({
             "id": task.id,
             "title": task.title,
-            "task_type": task.task_type.value if task.task_type else "event",
             "category": task.category.value if task.category else "custom",
             "priority": task.priority,
             "is_completed": task.is_completed,
-            "due_date": date_str,  # Include due_date for editing
-            "due_time": task.due_time,
-            "end_time": task.end_time,
-            "location": task.location,
-            "description": task.description,
         })
 
     return {
         "year": year,
         "month": month,
-        "tasks": calendar,
-    }
-
-
-@router.get("/calendar/week/{year}/{month}/{day}")
-async def get_calendar_week(
-    year: int,
-    month: int,
-    day: int,
-    db: AsyncSession = Depends(get_db),
-):
-    """Get calendar events and todos for a 7-day period starting from given date"""
-    start_date = date(year, month, day)
-    end_date = start_date + timedelta(days=6)
-
-    result = await db.execute(
-        select(Task)
-        .where(Task.due_date >= start_date)
-        .where(Task.due_date <= end_date)
-        .where(Task.is_active == True)
-        .order_by(Task.due_date, Task.due_time, Task.priority)
-    )
-    tasks = result.scalars().all()
-
-    # Group by date
-    calendar = {}
-    for task in tasks:
-        date_str = task.due_date.isoformat()
-        if date_str not in calendar:
-            calendar[date_str] = []
-        calendar[date_str].append({
-            "id": task.id,
-            "title": task.title,
-            "task_type": task.task_type.value if task.task_type else "event",
-            "category": task.category.value if task.category else "custom",
-            "priority": task.priority,
-            "is_completed": task.is_completed,
-            "due_date": date_str,  # Include due_date for editing
-            "due_time": task.due_time,
-            "end_time": task.end_time,
-            "location": task.location,
-            "description": task.description,
-        })
-
-    return {
-        "start_date": start_date.isoformat(),
-        "end_date": end_date.isoformat(),
         "tasks": calendar,
     }
 
@@ -656,7 +506,6 @@ class StorageStats(BaseModel):
 
     # Human-readable formats
     disk_total_human: str
-    disk_used_human: str
     disk_available_human: str
     database_human: str
     logs_human: str
@@ -723,7 +572,7 @@ async def get_storage_stats(db: AsyncSession = Depends(get_db)):
         usage_percent = 0
 
     # Get Isaac component sizes from hardcoded paths only
-    db_size = _safe_get_size(ISAAC_DATA_DIR / "levi.db")
+    db_size = _safe_get_size(ISAAC_DATA_DIR / "isaac.db")
     log_size = _safe_dir_size(ISAAC_LOGS_DIR)
     app_total = db_size + log_size
 
@@ -747,7 +596,6 @@ async def get_storage_stats(db: AsyncSession = Depends(get_db)):
         logs_bytes=log_size,
         app_total_bytes=app_total,
         disk_total_human=_format_bytes(total),
-        disk_used_human=_format_bytes(used),
         disk_available_human=_format_bytes(free),
         database_human=_format_bytes(db_size),
         logs_human=_format_bytes(log_size),
@@ -792,53 +640,3 @@ async def clear_logs():
         "cleared_bytes": cleared_bytes,
         "cleared_human": _format_bytes(cleared_bytes),
     }
-
-
-@router.get("/verse-of-the-day")
-async def get_verse_of_the_day():
-    """
-    Fetch verse of the day from bible.com
-    """
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                "https://www.bible.com/verse-of-the-day",
-                timeout=10.0,
-                follow_redirects=True
-            )
-            response.raise_for_status()
-            html = response.text
-
-            # Extract verse from og:description meta tag
-            match = re.search(r'og:description" content="([^"]+)"', html)
-            if match:
-                content = match.group(1)
-                # Format: "Isaiah 60:1 "Arise, shine..." or "Romans 12:2 Do not conform..."
-                # Content may have newlines so use re.DOTALL
-                # Handle optional quotes around the verse text
-                ref_match = re.match(r'^([\d\s]*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\s+["\u201c]?(.+)', content, re.DOTALL)
-                if ref_match:
-                    text = ref_match.group(2)
-                    # Clean up: remove trailing quotes, replace newlines with spaces
-                    text = text.replace('\n', ' ').strip()
-                    text = text.rstrip('"\u201d.')
-                    if text.endswith(','):
-                        text = text.rstrip(',') + '...'
-                    return {
-                        "reference": ref_match.group(1),
-                        "text": text,
-                        "version": "NIV"
-                    }
-
-        # Fallback
-        return {
-            "reference": "Psalm 104:14",
-            "text": "He causes the grass to grow for the cattle, and vegetation for the service of man, that he may bring forth food from the earth.",
-            "version": "NIV"
-        }
-    except Exception as e:
-        return {
-            "reference": "Psalm 104:14",
-            "text": "He causes the grass to grow for the cattle, and vegetation for the service of man, that he may bring forth food from the earth.",
-            "version": "NIV"
-        }

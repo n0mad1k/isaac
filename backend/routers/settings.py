@@ -498,17 +498,13 @@ async def update_application(admin: User = Depends(require_admin)):
 
 @router.post("/push-to-prod/")
 async def push_to_production(admin: User = Depends(require_admin)):
-    """Push changes from dev to production (dev instance only)"""
+    """Push changes from dev to production using deploy script (dev instance only)"""
     import subprocess
-    import os
     from config import settings as app_settings
 
     # Only allow on dev instance
     if not app_settings.is_dev_instance:
         raise HTTPException(status_code=403, detail="This action is only available on the dev instance")
-
-    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "VERSION")
-    project_dir = os.path.dirname(version_file)
 
     results = {
         "success": False,
@@ -516,70 +512,86 @@ async def push_to_production(admin: User = Depends(require_admin)):
         "message": "",
     }
 
+    # Deploy script that mirrors deploy.sh logic but for local Pi paths
+    deploy_script = '''#!/bin/bash
+set -e
+export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+
+echo "STEP:backup"
+# Backup production database
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+mkdir -p /opt/levi/data/backups
+if [ -f /opt/levi/data/levi.db ]; then
+    cp /opt/levi/data/levi.db /opt/levi/data/backups/levi_backup_$TIMESTAMP.db
+    echo "Backed up to levi_backup_$TIMESTAMP.db"
+fi
+
+echo "STEP:sync_backend"
+# Sync backend (exclude venv, data, logs, __pycache__)
+cd /opt/isaac/backend
+for item in *; do
+    if [[ "$item" != "venv" && "$item" != "data" && "$item" != "logs" && "$item" != "__pycache__" && "$item" != ".env" ]]; then
+        rm -rf /opt/levi/backend/$item
+        cp -r $item /opt/levi/backend/
+    fi
+done
+echo "Backend synced"
+
+echo "STEP:sync_frontend"
+# Sync frontend source
+rm -rf /opt/levi/frontend/src
+cp -r /opt/isaac/frontend/src /opt/levi/frontend/src
+echo "Frontend source synced"
+
+echo "STEP:sync_version"
+# Sync version files
+cp /opt/isaac/VERSION /opt/levi/VERSION
+cp /opt/isaac/CHANGELOG.md /opt/levi/CHANGELOG.md
+echo "Version files synced"
+
+echo "STEP:build_frontend"
+# Build frontend
+cd /opt/levi/frontend
+npm run build
+echo "Frontend built"
+
+echo "STEP:restart_backend"
+# Restart backend
+sudo systemctl restart levi-backend
+echo "Backend restarted"
+
+echo "STEP:done"
+'''
+
     try:
-        # Step 1: Check for uncommitted changes
         result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            capture_output=True, text=True, cwd=project_dir
+            ["/bin/bash", "-c", deploy_script],
+            capture_output=True, text=True, timeout=300
         )
-        if result.stdout.strip():
-            results["steps"].append({"step": "check_changes", "status": "warning", "message": "Uncommitted changes detected. Commit them first."})
-            results["message"] = "Please commit your changes before pushing to production."
-            return results
-        results["steps"].append({"step": "check_changes", "status": "ok", "message": "No uncommitted changes"})
 
-        # Step 2: Push to private repo (origin)
-        result = subprocess.run(
-            ["git", "push", "origin", "main"],
-            capture_output=True, text=True, cwd=project_dir
-        )
+        # Parse output to build steps
+        output = result.stdout + result.stderr
+        current_step = None
+        for line in output.split('\n'):
+            if line.startswith('STEP:'):
+                current_step = line.replace('STEP:', '')
+                if current_step != 'done':
+                    results["steps"].append({"step": current_step, "status": "ok", "message": ""})
+            elif current_step and results["steps"]:
+                # Append message to current step
+                if line.strip():
+                    results["steps"][-1]["message"] = line.strip()
+
         if result.returncode != 0:
-            results["steps"].append({"step": "push_origin", "status": "error", "message": result.stderr})
-            results["message"] = "Failed to push to private repo"
-            return results
-        results["steps"].append({"step": "push_origin", "status": "ok", "message": "Pushed to private repo"})
-
-        # Step 3: SSH to production and pull changes
-        # Note: This requires SSH key access from dev Pi to itself (localhost) or proper SSH setup
-        result = subprocess.run(
-            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes",
-             "n0mad1k@localhost", "cd /opt/levi && git pull origin main"],
-            capture_output=True, text=True, timeout=60
-        )
-        if result.returncode != 0:
-            results["steps"].append({"step": "pull_prod", "status": "error", "message": result.stderr or "SSH/pull failed"})
-            results["message"] = "Failed to pull changes on production"
-            return results
-        results["steps"].append({"step": "pull_prod", "status": "ok", "message": "Pulled changes on production"})
-
-        # Step 4: Rebuild frontend on production
-        result = subprocess.run(
-            ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes",
-             "n0mad1k@localhost", "cd /opt/levi/frontend && npm run build"],
-            capture_output=True, text=True, timeout=120
-        )
-        if result.returncode != 0:
-            results["steps"].append({"step": "build_frontend", "status": "error", "message": result.stderr or "Build failed"})
-            results["message"] = "Failed to build frontend on production"
-            return results
-        results["steps"].append({"step": "build_frontend", "status": "ok", "message": "Frontend rebuilt"})
-
-        # Step 5: Restart production backend
-        result = subprocess.run(
-            ["sudo", "systemctl", "restart", "levi-backend"],
-            capture_output=True, text=True, timeout=30
-        )
-        if result.returncode != 0:
-            results["steps"].append({"step": "restart_backend", "status": "error", "message": result.stderr or "Restart failed"})
-            results["message"] = "Failed to restart production backend"
-            return results
-        results["steps"].append({"step": "restart_backend", "status": "ok", "message": "Production backend restarted"})
-
-        results["success"] = True
-        results["message"] = "Successfully pushed to production!"
+            results["message"] = f"Deploy failed: {result.stderr or result.stdout}"
+            if results["steps"]:
+                results["steps"][-1]["status"] = "error"
+        else:
+            results["success"] = True
+            results["message"] = "Successfully pushed to production!"
 
     except subprocess.TimeoutExpired:
-        results["message"] = "Operation timed out"
+        results["message"] = "Operation timed out (5 min limit)"
     except Exception as e:
         results["message"] = f"Push to production failed: {str(e)}"
 

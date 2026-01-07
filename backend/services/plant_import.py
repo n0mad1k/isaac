@@ -1,9 +1,10 @@
 """
 Plant Data Import Service
-Fetches and parses plant data from external sources (PFAF, Permapeople)
+Fetches and parses plant data from external sources (PFAF, Gardenia.net, Growables.org)
 """
 
 import re
+import json
 import httpx
 from bs4 import BeautifulSoup
 from typing import Optional, Dict, Any, List, Set
@@ -132,20 +133,33 @@ class PlantImportService:
             "Plants For A Future cannot take any responsibility for any adverse effects from the use of plants. Always seek advice from a professional before using a plant medicinally.",
         ]
 
+    def _is_allowed_domain(self, domain: str, allowed: str) -> bool:
+        """
+        Safely check if domain matches allowed domain.
+
+        SECURITY: Uses exact match or subdomain match to prevent SSRF bypasses
+        like "pfaf.org.attacker.com" which would pass a simple "in" check.
+        """
+        return domain == allowed or domain.endswith("." + allowed)
+
     async def import_from_url(self, url: str) -> Dict[str, Any]:
         """
         Import plant data from a URL.
         Automatically detects the source and uses appropriate parser.
+
+        SECURITY: Domain whitelist is strictly enforced to prevent SSRF attacks.
         """
         parsed = urlparse(url)
         domain = parsed.netloc.lower()
 
-        if "pfaf.org" in domain:
+        if self._is_allowed_domain(domain, "pfaf.org"):
             return await self.import_from_pfaf(url)
-        elif "permapeople.org" in domain:
-            return await self.import_from_permapeople(url)
+        elif self._is_allowed_domain(domain, "gardenia.net"):
+            return await self.import_from_gardenia(url)
+        elif self._is_allowed_domain(domain, "growables.org"):
+            return await self.import_from_growables(url)
         else:
-            raise ValueError(f"Unsupported source: {domain}. Supported: pfaf.org, permapeople.org")
+            raise ValueError(f"Unsupported source: {domain}. Supported: pfaf.org, gardenia.net, growables.org")
 
     async def _fetch_pfaf_references(self, client: httpx.AsyncClient) -> Dict[str, str]:
         """Fetch and parse PFAF reference page, with caching"""
@@ -530,9 +544,9 @@ class PlantImportService:
         # Clean up and map to Plant model fields
         return self._map_to_plant_model(data, url)
 
-    async def import_from_permapeople(self, url: str) -> Dict[str, Any]:
+    async def import_from_gardenia(self, url: str) -> Dict[str, Any]:
         """
-        Scrape plant data from Permapeople.org
+        Scrape plant data from Gardenia.net using JSON-LD structured data
         """
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             response = await client.get(url, headers=self.headers)
@@ -541,104 +555,305 @@ class PlantImportService:
         soup = BeautifulSoup(response.text, "lxml")
         data = {}
 
-        # Extract plant name from h1
-        h1 = soup.find("h1")
-        if h1:
-            full_name = h1.get_text(strip=True)
-            # Format: "Solanum lycopersicum - Tomato"
-            if " - " in full_name:
-                parts = full_name.split(" - ", 1)
-                data["latin_name"] = parts[0].strip()
-                data["name"] = parts[1].strip()
+        # Find JSON-LD structured data
+        json_ld = None
+        for script in soup.find_all("script", type="application/ld+json"):
+            try:
+                json_data = json.loads(script.string)
+                if isinstance(json_data, dict) and "@graph" in json_data:
+                    json_ld = json_data["@graph"]
+                    break
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+        if not json_ld:
+            raise ValueError("Could not find plant data on this Gardenia.net page")
+
+        # Extract data from JSON-LD graph
+        taxon = None
+        dataset = None
+        article = None
+
+        for item in json_ld:
+            item_type = item.get("@type", "")
+            if item_type == "Taxon":
+                taxon = item
+            elif item_type == "Dataset":
+                dataset = item
+            elif item_type == "Article":
+                article = item
+
+        if taxon:
+            # Extract name from taxon
+            name = taxon.get("name", "")
+            if "(" in name and ")" in name:
+                # Format: "Quercus suber (Cork Oak)"
+                match = re.match(r"([^(]+)\(([^)]+)\)", name)
+                if match:
+                    data["latin_name"] = match.group(1).strip()
+                    data["name"] = match.group(2).strip()
             else:
-                data["name"] = full_name
+                data["name"] = name
 
-        # Find data fields - Permapeople uses structured field-value pairs
-        # Look for dt/dd pairs or specific class patterns
-        for row in soup.find_all(["tr", "div"], class_=re.compile(r"field|data|info", re.I)):
-            label_elem = row.find(["th", "dt", "label", "strong"])
-            value_elem = row.find(["td", "dd", "span"])
-            if label_elem and value_elem:
-                label = label_elem.get_text(strip=True).lower().rstrip(":")
-                value = value_elem.get_text(strip=True)
-                self._parse_permapeople_field(data, label, value)
+            # Get alternate names (common names)
+            alt_names = taxon.get("alternateName", [])
+            if alt_names and not data.get("name"):
+                data["name"] = alt_names[0] if isinstance(alt_names, list) else alt_names
 
-        # Also look for specific text patterns in the page
-        page_text = soup.get_text()
+            # Get description
+            if taxon.get("description"):
+                data["description"] = taxon["description"].strip()
 
-        # USDA zones
-        zone_match = re.search(r"USDA[^:]*:?\s*(\d+)\s*[-–]\s*(\d+)", page_text, re.I)
-        if zone_match:
-            data["grow_zones"] = f"{zone_match.group(1)}-{zone_match.group(2)}"
+            # Get family from parentTaxon
+            parent_taxa = taxon.get("parentTaxon", [])
+            for pt in parent_taxa:
+                if pt.get("taxonRank") == "family":
+                    data["family"] = pt.get("name")
 
-        # Light requirements
-        light_match = re.search(r"Light[^:]*:?\s*([^,\n]+)", page_text, re.I)
-        if light_match and "sun_requirement" not in data:
-            light = light_match.group(1).lower()
-            if "full sun" in light:
-                data["sun_requirement"] = "full_sun"
-            elif "partial" in light or "part" in light:
-                data["sun_requirement"] = "partial_sun"
-            elif "shade" in light:
-                data["sun_requirement"] = "partial_shade"
+        if dataset and "variableMeasured" in dataset:
+            # Parse PropertyValue fields
+            for prop in dataset["variableMeasured"]:
+                prop_name = prop.get("name", "").lower()
+                prop_value = prop.get("value")
 
-        # Height/Width
-        height_match = re.search(r"Height[^:]*:?\s*([\d.]+)\s*m?", page_text, re.I)
-        width_match = re.search(r"Width[^:]*:?\s*([\d.]+)\s*m?", page_text, re.I)
-        if height_match or width_match:
-            h = height_match.group(1) if height_match else "?"
-            w = width_match.group(1) if width_match else "?"
-            data["size_full_grown"] = f"{h}m tall x {w}m wide"
+                if prop_value is None:
+                    continue
 
-        # Growth rate
-        rate_match = re.search(r"Growth[^:]*:?\s*(Slow|Medium|Fast|Very Fast)", page_text, re.I)
-        if rate_match:
-            rate = rate_match.group(1).lower()
-            rate_map = {"slow": "slow", "medium": "moderate", "fast": "fast", "very fast": "very_fast"}
-            data["growth_rate"] = rate_map.get(rate, "moderate")
+                # Handle QuantitativeValue (height, spread)
+                if isinstance(prop_value, dict) and "@type" in prop_value:
+                    if prop_value["@type"] == "QuantitativeValue":
+                        min_val = prop_value.get("minValue")
+                        max_val = prop_value.get("maxValue")
+                        unit = prop_value.get("unitCode", "")
+                        if min_val and max_val:
+                            # Convert meters to feet
+                            if unit == "M":
+                                min_ft = round(min_val * 3.28084, 1)
+                                max_ft = round(max_val * 3.28084, 1)
+                                if "height" in prop_name:
+                                    data["height"] = f"{min_ft}-{max_ft} ft"
+                                elif "spread" in prop_name:
+                                    data["width"] = f"{min_ft}-{max_ft} ft"
+                    continue
+
+                # Handle list values
+                if isinstance(prop_value, list):
+                    prop_value = ", ".join(str(v) for v in prop_value)
+
+                # Map property names to data fields
+                if "hardiness zones" in prop_name:
+                    # USDA zones
+                    zones = [str(v) for v in prop.get("value", [])]
+                    if zones:
+                        data["grow_zones"] = f"{min(zones)}-{max(zones)}"
+                elif "sun requirement" in prop_name:
+                    sun_map = {
+                        "full sun": "full_sun",
+                        "partial shade": "partial_shade",
+                        "full shade": "full_shade",
+                        "partial sun": "partial_sun",
+                    }
+                    sun_val = prop_value.lower() if isinstance(prop_value, str) else ""
+                    for key, val in sun_map.items():
+                        if key in sun_val:
+                            data["sun_requirement"] = val
+                            break
+                elif "soil ph" in prop_name:
+                    data["soil_ph"] = prop_value
+                elif "soil type" in prop_name:
+                    data["soil_type"] = prop_value
+                elif "soil drainage" in prop_name:
+                    data["soil_drainage"] = prop_value
+                elif "water need" in prop_name:
+                    water_val = prop_value.lower() if isinstance(prop_value, str) else ""
+                    if "low" in water_val:
+                        data["moisture_preference"] = "dry"
+                    elif "average" in water_val:
+                        data["moisture_preference"] = "moist"
+                    elif "high" in water_val:
+                        data["moisture_preference"] = "wet"
+                elif "tolerance" in prop_name:
+                    tol_val = prop_value.lower() if isinstance(prop_value, str) else ""
+                    if "drought" in tol_val:
+                        data["drought_tolerant"] = True
+                elif "plant family" in prop_name and not data.get("family"):
+                    data["family"] = prop_value
+                elif "plant characteristics" in prop_name:
+                    char_val = prop_value.lower() if isinstance(prop_value, str) else ""
+                    if "evergreen" in char_val:
+                        data["evergreen"] = True
+
+        # Build size from height and width
+        if data.get("height") or data.get("width"):
+            h = data.pop("height", "?")
+            w = data.pop("width", "?")
+            data["size_full_grown"] = f"{h} tall x {w} wide"
+
+        # Combine soil info
+        soil_parts = []
+        if data.get("soil_type"):
+            soil_parts.append(f"Type: {data.pop('soil_type')}")
+        if data.get("soil_drainage"):
+            soil_parts.append(f"Drainage: {data.pop('soil_drainage')}")
+        if data.get("soil_ph"):
+            soil_parts.append(f"pH: {data.pop('soil_ph')}")
+        if soil_parts:
+            data["soil_requirements"] = "; ".join(soil_parts)
 
         # Add source reference
         data["references"] = f"Source: {url}"
 
+        logger.debug(f"Gardenia.net parsed data: {data}")
         return self._map_to_plant_model(data, url)
 
-    def _parse_permapeople_field(self, data: Dict, label: str, value: str):
-        """Parse a single field from Permapeople"""
+    async def import_from_growables(self, url: str) -> Dict[str, Any]:
+        """
+        Scrape plant data from Growables.org
+        Uses HTML tables with bold labels for field names
+        """
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            response = await client.get(url, headers=self.headers)
+            response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "lxml")
+        data = {}
+
+        # Extract title for name
+        title = soup.find("title")
+        if title:
+            title_text = title.get_text(strip=True)
+            # Format: "Papaya, Carica papaya" or "Plant Name - Scientific"
+            if "," in title_text:
+                parts = title_text.split(",", 1)
+                data["name"] = parts[0].strip()
+
+        # Find all bold text labels and their following text
+        # Growables uses <span style="font-weight: bold;">Label</span> followed by value
+        for bold in soup.find_all(["b", "strong", "span"]):
+            style = bold.get("style", "")
+            if "font-weight" not in style and bold.name not in ["b", "strong"]:
+                continue
+
+            label = bold.get_text(strip=True).lower().rstrip(":")
+
+            # Get the next sibling text or the parent's text after the bold
+            value = ""
+            next_sib = bold.next_sibling
+            if next_sib:
+                if hasattr(next_sib, 'get_text'):
+                    value = next_sib.get_text(strip=True)
+                else:
+                    value = str(next_sib).strip()
+
+            # Also check if the value is in a <br> separated format
+            if not value:
+                parent = bold.parent
+                if parent:
+                    parent_text = parent.get_text(separator="\n")
+                    lines = parent_text.split("\n")
+                    for i, line in enumerate(lines):
+                        if label in line.lower():
+                            # Get the next non-empty line
+                            for j in range(i + 1, min(i + 3, len(lines))):
+                                if lines[j].strip() and lines[j].strip() != label:
+                                    value = lines[j].strip()
+                                    break
+                            break
+
+            if not value or len(value) > 500:
+                continue
+
+            # Parse the field based on label
+            self._parse_growables_field(data, label, value)
+
+        # Also extract from the main title row if present
+        title_row = soup.find("th", class_="tableborderbbgb")
+        if title_row:
+            title_text = title_row.get_text(strip=True)
+            # Format: "Papaya - Carica papaya"
+            if " - " in title_text:
+                parts = title_text.split(" - ", 1)
+                if not data.get("name"):
+                    data["name"] = parts[0].strip()
+                # Extract latin name from italicized text
+                em = title_row.find("em")
+                if em:
+                    data["latin_name"] = em.get_text(strip=True)
+
+        # Add source reference
+        data["references"] = f"Source: {url}"
+
+        logger.debug(f"Growables.org parsed data: {data}")
+        return self._map_to_plant_model(data, url)
+
+    def _parse_growables_field(self, data: Dict, label: str, value: str):
+        """Parse a single field from Growables.org"""
         if not value or value.lower() in ["", "n/a", "none", "unknown"]:
             return
 
-        if "usda" in label or "hardiness" in label:
-            data["grow_zones"] = value
-        elif "light" in label or "sun" in label:
+        # Clean up the value
+        value = re.sub(r'\s+', ' ', value).strip()
+
+        if "scientific name" in label:
+            # Extract latin name, often has L. or author suffix
+            match = re.match(r"([A-Z][a-z]+ [a-z]+)", value)
+            if match:
+                data["latin_name"] = match.group(1)
+        elif "usda hardiness" in label or "hardiness zone" in label:
+            # Format: "9b-11a" or "9-11"
+            zone_match = re.search(r"(\d+[ab]?)\s*[-–]\s*(\d+[ab]?)", value)
+            if zone_match:
+                data["grow_zones"] = f"{zone_match.group(1)}-{zone_match.group(2)}"
+            else:
+                data["grow_zones"] = value
+        elif "family" in label:
+            # Format: "Caricaceae (papaya family)"
+            match = re.match(r"(\w+)", value)
+            if match:
+                data["family"] = match.group(1)
+        elif "height" in label:
+            data["height"] = convert_metric_measurements(value)
+        elif "spread" in label or "width" in label:
+            data["width"] = convert_metric_measurements(value)
+        elif "light requirement" in label or "sun" in label:
             lower = value.lower()
             if "full sun" in lower:
                 data["sun_requirement"] = "full_sun"
-            elif "partial" in lower:
+            elif "partial" in lower or "semi" in lower:
                 data["sun_requirement"] = "partial_sun"
             elif "shade" in lower:
                 data["sun_requirement"] = "partial_shade"
-        elif "water" in label:
-            data["water_requirement"] = value
-        elif "soil" in label and "ph" not in label:
+        elif "soil tolerance" in label or "soil type" in label:
             data["soil_requirements"] = value
         elif "ph" in label:
             data["soil_ph"] = value
-        elif "height" in label:
-            data["height"] = value
-        elif "width" in label or "spread" in label:
-            data["width"] = value
-        elif "growth" in label and "rate" in label:
-            rate = value.lower()
-            rate_map = {"slow": "slow", "medium": "moderate", "fast": "fast", "very fast": "very_fast"}
-            data["growth_rate"] = rate_map.get(rate, "moderate")
-        elif "edible" in label and "part" in label:
-            data["edible_parts"] = value
-        elif "family" in label:
-            data["family"] = value
-        elif "native" in label:
+        elif "drought tolerance" in label:
+            if "poor" not in value.lower():
+                data["drought_tolerant"] = True
+        elif "cold tolerance" in label:
+            # Extract temperature from text like "killed below 31°F"
+            temp_match = re.search(r"(-?\d+)\s*°?\s*[fF]", value)
+            if temp_match:
+                data["min_temp"] = float(temp_match.group(1))
+            elif "frost" in value.lower() or "freeze" in value.lower():
+                data["frost_sensitive"] = True
+        elif "growth rate" in label:
+            lower = value.lower()
+            if "rapid" in lower or "fast" in lower:
+                data["growth_rate"] = "fast"
+            elif "slow" in lower:
+                data["growth_rate"] = "slow"
+            else:
+                data["growth_rate"] = "moderate"
+        elif "origin" in label:
             data["native_range"] = value
-        elif "propagat" in label:
-            data["propagation"] = value
+        elif "uses" in label and "edible" not in label:
+            data["other_uses"] = value
+        elif "common name" in label:
+            # Take the first common name
+            names = value.split(",")
+            if names and not data.get("name"):
+                data["name"] = names[0].strip()
 
     def _extract_moisture_preference(self, text: str) -> Optional[str]:
         """

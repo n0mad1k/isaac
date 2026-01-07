@@ -145,6 +145,7 @@ export const createTask = (data) => api.post('/tasks/', data)
 export const updateTask = (id, data) => api.patch(`/tasks/${id}/`, data)
 export const completeTask = (id) => api.post(`/tasks/${id}/complete/`)
 export const uncompleteTask = (id) => api.post(`/tasks/${id}/uncomplete/`)
+export const toggleBacklog = (id) => api.post(`/tasks/${id}/backlog/`)
 export const deleteTask = (id) => api.delete(`/tasks/${id}/`)
 export const setupMaintenanceTasks = () => api.post('/tasks/setup-maintenance/')
 export const getCalDAVStatus = () => api.get('/tasks/caldav/status/')
@@ -170,7 +171,7 @@ export const testCalendarSync = () => api.post('/settings/test-calendar-sync/')
 export const syncCalendar = () => api.post('/settings/sync-calendar/')
 export const getVersionInfo = () => api.get('/settings/version/')
 export const updateApplication = () => api.post('/settings/update/')
-export const pushToProduction = () => api.post('/settings/push-to-prod/')
+export const pushToProduction = () => api.post('/settings/push-to-prod/', {}, { timeout: 300000 }) // 5 min for build
 export const getRecentCommits = () => api.get('/settings/recent-commits/')
 
 // Storage
@@ -271,6 +272,12 @@ export const getPlantHarvest = (id) => api.get(`/production/harvests/${id}/`)
 export const recordPlantHarvest = (data) => api.post('/production/harvests/', data)
 export const updatePlantHarvest = (id, data) => api.patch(`/production/harvests/${id}/`, data)
 export const deletePlantHarvest = (id) => api.delete(`/production/harvests/${id}/`)
+// Sales
+export const getSales = (params) => api.get('/production/sales/', { params })
+export const getSale = (id) => api.get(`/production/sales/${id}/`)
+export const createSale = (data) => api.post('/production/sales/', data)
+export const updateSale = (id, data) => api.patch(`/production/sales/${id}/`, data)
+export const deleteSale = (id) => api.delete(`/production/sales/${id}/`)
 
 // Authentication
 export const checkAuth = () => api.get('/auth/check')

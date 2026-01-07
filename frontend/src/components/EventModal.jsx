@@ -35,6 +35,7 @@ function EventModal({ event, defaultDate, preselectedEntity, onClose, onSaved })
     category: event?.category || 'other',
     priority: event?.priority || 2,
     task_type: event?.task_type || 'todo',
+    is_backlog: event?.is_backlog || false,
     animal_id: event?.animal_id || (preselectedEntity?.type === 'animal' ? preselectedEntity.id : null),
     plant_id: event?.plant_id || (preselectedEntity?.type === 'plant' ? preselectedEntity.id : null),
     vehicle_id: event?.vehicle_id || (preselectedEntity?.type === 'vehicle' ? preselectedEntity.id : null),
@@ -90,6 +91,7 @@ function EventModal({ event, defaultDate, preselectedEntity, onClose, onSaved })
         due_date: hasDate ? formData.due_date || null : null,
         due_time: (hasDate && !isAllDay) ? formData.due_time || null : null,
         end_time: (hasDate && !isAllDay) ? formData.end_time || null : null,
+        is_backlog: formData.task_type === 'todo' ? formData.is_backlog : false,
         // Clear all entity links except the selected type
         animal_id: linkType === 'animal' ? formData.animal_id : null,
         plant_id: linkType === 'plant' ? formData.plant_id : null,
@@ -168,17 +170,28 @@ function EventModal({ event, defaultDate, preselectedEntity, onClose, onSaved })
             />
           </div>
 
-          {/* Has Date Toggle - only show for reminders */}
+          {/* Options for reminders */}
           {formData.task_type === 'todo' && (
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hasDate}
-                onChange={(e) => setHasDate(e.target.checked)}
-                className="w-4 h-4 rounded bg-gray-700 border-gray-600"
-              />
-              <span className="text-sm text-gray-300">Has a due date</span>
-            </label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasDate}
+                  onChange={(e) => setHasDate(e.target.checked)}
+                  className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                />
+                <span className="text-sm text-gray-300">Has a due date</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_backlog}
+                  onChange={(e) => setFormData({ ...formData, is_backlog: e.target.checked })}
+                  className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                />
+                <span className="text-sm text-gray-300">Add to backlog (not due today)</span>
+              </label>
+            </div>
           )}
 
           {/* Date field - required for events, optional for reminders */}

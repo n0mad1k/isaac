@@ -104,8 +104,15 @@ class SchedulerService:
         self.scheduler = AsyncIOScheduler(timezone=settings.timezone)
         self.weather_service = WeatherService()
         self.forecast_service = NWSForecastService()
-        self.email_service = EmailService()
         self._sunset_job_scheduled = False
+
+    async def get_email_service(self, db) -> EmailService:
+        """Get email service configured from database settings"""
+        try:
+            return await EmailService.get_configured_service(db)
+        except Exception as e:
+            logger.warning(f"Email not configured: {e}")
+            return EmailService()  # Return unconfigured service (will skip sending)
 
     async def start(self):
         """Start the scheduler with all jobs"""
@@ -332,42 +339,67 @@ class SchedulerService:
                         )
                         response.raise_for_status()
                         html_content = response.text
-                        match = re.search(r'og:description" content="([^"]+)"', html_content)
+                        match = re.search(r'og:description" content="([^"]+)"', html_content, re.DOTALL)
                         if match:
-                            content = match.group(1)
-                            ref_match = re.match(r'^([\d\s]*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\s+(.+)$', content)
+                            content = match.group(1).replace('\n', ' ').strip()
+                            # Match reference followed by optional quote and text
+                            ref_match = re.match(r'^([\d\s]*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\s*["\u201c]?(.+?)["\u201d]?$', content)
                             if ref_match:
                                 verse = {
-                                    "reference": ref_match.group(1),
-                                    "text": ref_match.group(2),
+                                    "reference": ref_match.group(1).strip(),
+                                    "text": ref_match.group(2).strip().strip('"'),
                                     "version": "NIV"
                                 }
+                            else:
+                                # Fallback: split on first space after reference pattern
+                                parts = content.split(' ', 2)
+                                if len(parts) >= 2:
+                                    verse = {
+                                        "reference": parts[0] + ' ' + parts[1] if ':' in parts[1] else parts[0],
+                                        "text": ' '.join(parts[1:]) if ':' not in parts[1] else parts[2] if len(parts) > 2 else '',
+                                        "version": "NIV"
+                                    }
                 except Exception as e:
                     logger.warning(f"Failed to fetch verse of the day: {e}")
+
+                if not verse:
                     verse = {
                         "reference": "Psalm 104:14",
                         "text": "He causes the grass to grow for the cattle, and vegetation for the service of man, that he may bring forth food from the earth.",
                         "version": "NIV"
                     }
 
-                # Get today's tasks
+                # Get today's tasks: due today, overdue, or dateless (all "due today")
                 today = date.today()
                 result = await db.execute(
                     select(Task)
-                    .where(Task.due_date == today)
+                    .where(
+                        or_(
+                            Task.due_date <= today,  # Today or overdue
+                            Task.due_date.is_(None)  # Dateless reminders
+                        )
+                    )
                     .where(Task.is_completed == False)
                     .where(Task.is_active == True)
                     .order_by(Task.priority)
                 )
                 tasks = result.scalars().all()
 
-                # Get current weather
-                reading = await self.weather_service.get_latest_reading(db)
-                weather = (
-                    self.weather_service.get_weather_summary(reading)
-                    if reading
-                    else {}
-                )
+                # Get today's forecast from NWS
+                weather = {}
+                try:
+                    forecasts = await self.forecast_service.get_forecast_simple()
+                    if forecasts and len(forecasts) > 0:
+                        # First entry is current period (Today/This Afternoon/Tonight)
+                        f = forecasts[0]
+                        weather = {
+                            "high": f.get("high"),
+                            "low": f.get("low"),
+                            "conditions": f.get("forecast", ""),
+                            "rain_chance": f.get("precipitation_chance", 0),
+                        }
+                except Exception as e:
+                    logger.warning(f"Failed to fetch forecast: {e}")
 
                 # Get active alerts
                 result = await db.execute(
@@ -403,7 +435,9 @@ class SchedulerService:
                     for a in alerts
                 ]
 
-                await self.email_service.send_daily_digest(
+                # Get configured email service from database
+                email_service = await self.get_email_service(db)
+                await email_service.send_daily_digest(
                     tasks=task_dicts,
                     weather=weather,
                     alerts=alert_dicts,
@@ -435,8 +469,9 @@ class SchedulerService:
                 )
                 tasks = result.scalars().all()
 
+                email_service = await self.get_email_service(db)
                 for task in tasks:
-                    await self.email_service.send_task_reminder({
+                    await email_service.send_task_reminder({
                         "title": task.title,
                         "description": task.description,
                         "due_date": task.due_date,
@@ -465,6 +500,8 @@ class SchedulerService:
                 stats = await sync_all_animal_reminders(db)
                 logger.info(f"Animal care schedule sync: {stats}")
 
+                email_service = await self.get_email_service(db)
+
                 # Check horses for farrier (legacy - for email alerts)
                 result = await db.execute(
                     select(Animal)
@@ -477,7 +514,7 @@ class SchedulerService:
 
                 for horse in horses_need_farrier:
                     days_until = (horse.next_farrier_date - today).days
-                    await self.email_service.send_task_reminder({
+                    await email_service.send_task_reminder({
                         "title": f"Farrier needed for {horse.name}",
                         "description": f"{horse.name} is due for hoof trimming",
                         "due_date": horse.next_farrier_date,
@@ -496,7 +533,7 @@ class SchedulerService:
 
                 for animal in animals_need_worming:
                     days_until = (animal.next_worming_date - today).days
-                    await self.email_service.send_task_reminder({
+                    await email_service.send_task_reminder({
                         "title": f"Worming due for {animal.name}",
                         "description": f"{animal.name} ({animal.animal_type.value}) needs worming",
                         "due_date": animal.next_worming_date,
@@ -516,7 +553,7 @@ class SchedulerService:
 
                 for steer in cattle_ready:
                     days_until = (steer.estimated_slaughter_date - today).days
-                    await self.email_service.send_task_reminder({
+                    await email_service.send_task_reminder({
                         "title": f"Schedule slaughter for {steer.name}",
                         "description": f"Steer {steer.name} approaching target date",
                         "due_date": steer.estimated_slaughter_date,
@@ -736,32 +773,33 @@ class SchedulerService:
                     for a in animals
                 ]
 
-            # Check for freeze warning (pipes/irrigation protection)
-            freeze_warning = None
-            freeze_threshold = float(await get_setting_value("freeze_warning_temp") or "32")
-            buffer_degrees = 5  # Conservative for pipes
+                # Check for freeze warning (pipes/irrigation protection)
+                freeze_warning = None
+                freeze_threshold = float(await get_setting_value("freeze_warning_temp") or "32")
+                buffer_degrees = 5  # Conservative for pipes
 
-            if forecast_low <= (freeze_threshold + buffer_degrees):
-                freeze_warning = {
-                    "forecast_low": forecast_low,
-                    "message": "Freeze forecasted! Protect exposed irrigation and pipes.",
-                    "recommendations": [
-                        "Disconnect and drain garden hoses",
-                        "Cover exposed outdoor faucets/spigots",
-                        "Drain or blow out irrigation lines if extended freeze expected",
-                        "Open cabinet doors under sinks on exterior walls",
-                        "Let faucets drip slightly to prevent pipe freeze"
-                    ]
-                }
+                if forecast_low <= (freeze_threshold + buffer_degrees):
+                    freeze_warning = {
+                        "forecast_low": forecast_low,
+                        "message": "Freeze forecasted! Protect exposed irrigation and pipes.",
+                        "recommendations": [
+                            "Disconnect and drain garden hoses",
+                            "Cover exposed outdoor faucets/spigots",
+                            "Drain or blow out irrigation lines if extended freeze expected",
+                            "Open cabinet doors under sinks on exterior walls",
+                            "Let faucets drip slightly to prevent pipe freeze"
+                        ]
+                    }
 
-            await self.email_service.send_cold_protection_reminder(
-                plants=plant_dicts,
-                animals=animal_dicts,
-                forecast_low=forecast_low,
-                sunset_time=sunset_time,
-                recipients=recipients,
-                freeze_warning=freeze_warning,
-            )
+                email_service = await self.get_email_service(db)
+                await email_service.send_cold_protection_reminder(
+                    plants=plant_dicts,
+                    animals=animal_dicts,
+                    forecast_low=forecast_low,
+                    sunset_time=sunset_time,
+                    recipients=recipients,
+                    freeze_warning=freeze_warning,
+                )
 
             logger.info(f"Sent cold protection reminder for {len(plants)} plants, {len(animal_dicts)} animals to {recipients}")
 
@@ -852,6 +890,7 @@ class SchedulerService:
     async def send_task_reminder_email(self, task: Task, minutes_before: int):
         """Send a reminder email for a task at a specific interval"""
         try:
+            from models.database import async_session
             recipients = await get_setting_value("email_recipients")
             if not recipients:
                 logger.warning("No email recipients configured for task reminder")
@@ -888,11 +927,14 @@ class SchedulerService:
             if task.notes:
                 body += f"<p><strong>Notes:</strong> {task.notes}</p>"
 
-            await self.email_service.send_email(
-                to=recipients,
-                subject=subject,
-                html_content=body,
-            )
+            async with async_session() as db:
+                email_service = await self.get_email_service(db)
+                await email_service.send_email(
+                    to=recipients,
+                    subject=subject,
+                    body=body,
+                    html=True,
+                )
 
             logger.info(f"Sent reminder email for task '{task.title}' ({timing})")
 
@@ -947,7 +989,8 @@ class SchedulerService:
                         # Send email alert
                         recipients = await get_setting_value("email_recipients")
                         if recipients:
-                            await self.email_service.send_email(
+                            email_service = await self.get_email_service(db)
+                            await email_service.send_email(
                                 to=recipients,
                                 subject="CRITICAL: Isaac Storage Full",
                                 body=f"""

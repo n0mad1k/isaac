@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Leaf, PawPrint, ListTodo, AlertTriangle, Clock } from 'lucide-react'
-import { getDashboard, getAnimals, getSettings } from '../services/api'
+import { Leaf, PawPrint, ListTodo, AlertTriangle, Clock, Archive, Check, Circle, ArrowUp } from 'lucide-react'
+import { getDashboard, getAnimals, getSettings, completeTask, toggleBacklog } from '../services/api'
 import WeatherWidget from '../components/WeatherWidget'
 import TaskList from '../components/TaskList'
 import AlertBanner from '../components/AlertBanner'
@@ -163,14 +163,54 @@ function Dashboard() {
             showTimeAndLocation={true}
           />
 
-          {/* Undated Todos Widget */}
-          {data?.undated_todos && data.undated_todos.length > 0 && (
-            <TaskList
-              title="To Do"
-              tasks={data?.undated_todos}
-              onTaskToggle={fetchData}
-              showTimeAndLocation={false}
-            />
+          {/* Backlog Widget - Only shows if there are backlog items */}
+          {data?.backlog_tasks && data.backlog_tasks.length > 0 && (
+            <div className="bg-gray-800 rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                <Archive className="w-5 h-5" />
+                Backlog
+                <span className="text-sm font-normal text-gray-500">({data.backlog_tasks.length})</span>
+              </h2>
+              <div className="space-y-2">
+                {data.backlog_tasks.map(task => (
+                  <div
+                    key={task.id}
+                    className="p-3 rounded-lg bg-gray-700/50 border-l-4 border-l-gray-500 flex items-center gap-2"
+                  >
+                    <button
+                      onClick={async () => {
+                        try {
+                          await completeTask(task.id)
+                          fetchData()
+                        } catch (err) {
+                          console.error('Failed to complete task:', err)
+                        }
+                      }}
+                      className="flex-shrink-0 focus:outline-none"
+                      title="Complete"
+                    >
+                      <Circle className="w-5 h-5 text-gray-500 hover:text-green-400" />
+                    </button>
+                    <span className="flex-1 font-medium truncate">{task.title}</span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await toggleBacklog(task.id)
+                          fetchData()
+                        } catch (err) {
+                          console.error('Failed to move to today:', err)
+                        }
+                      }}
+                      className="flex-shrink-0 px-2 py-1 text-xs bg-farm-green/20 text-farm-green rounded hover:bg-farm-green/30 flex items-center gap-1"
+                      title="Move to Today"
+                    >
+                      <ArrowUp className="w-3 h-3" />
+                      Today
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>

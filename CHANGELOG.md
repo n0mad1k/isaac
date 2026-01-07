@@ -2,7 +2,66 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.2.1] - 2026-01-06
+
+### Security
+- Fixed SSRF bypass vulnerability in plant import domain whitelist
+  - Previous: `if "pfaf.org" in domain` allowed bypass via `pfaf.org.attacker.com`
+  - Fixed: Now uses exact match or proper subdomain matching
+- Comprehensive security audit completed (see SECURITY_AUDIT_DEEP_DIVE_2026-01-06.md)
+
+## [1.2.0] - 2026-01-06
+
+### Added
+- Backlog feature for tasks/reminders
+  - Mark tasks as "backlog" so they don't appear as due today
+  - Backlog widget on Dashboard with quick complete and "move to today" actions
+  - Backlog tab in ToDo page to view and manage backlog items
+  - Backlog toggle button on all todo items
+  - "Add to backlog" checkbox when creating reminders
+- Sales tracking on Production page
+  - Record sales of livestock, plants/nursery, produce, and other items
+  - Track quantity, unit price, and total revenue
+  - Sales tab with category filtering
+  - Revenue and Net Profit summary cards
+  - Page renamed to "Production & Sales"
+
+## [1.1.7] - 2026-01-06
+
+### Added
+- Plant import from Gardenia.net (uses JSON-LD structured data for accurate parsing)
+- Plant import from Growables.org (Florida tropical fruit and edible plants)
+
+### Removed
+- Permapeople.org plant import (replaced with better sources)
+
+## [1.1.6] - 2026-01-06
+
+### Changed
+- Dashboard simplified: removed redundant "To Do" section (dateless tasks already appear in Today's Schedule)
+
+## [1.1.5] - 2026-01-06
+
+### Changed
+- Daily digest now shows today's NWS forecast (high/low/conditions) instead of current weather
+- Daily digest includes all tasks: today's, overdue, and dateless reminders
+
+### Fixed
+- Daily digest email not sending (scheduler email service not loading SMTP settings from database)
+- Task reminder emails failing with wrong parameter name (html_content → body)
+- SMTP "From" address rejected when using display name only (now formats as "Name <email@domain>")
+- Verse of the day parsing for quoted text with newlines
+
 ## [1.1.4] - 2026-01-06
+
+### Added
+- Dev environment support (isaac.local separate from prod levi.local)
+- "Push to Production" button in Settings (dev instance only)
+- IS_DEV_INSTANCE configuration flag
+- Reusable EventModal component for creating events/reminders from any page
+- "Add Reminder" button on Animals, Plants, Vehicles, Equipment, and Farm Areas pages
+- Linked reminders now display on entity cards (Farm Areas, Equipment, Vehicles)
+- Backend API endpoint to fetch tasks by entity type
 
 ### Fixed
 - Reminder dates showing previous day (timezone issue with JavaScript Date parsing)
@@ -12,12 +71,7 @@ All notable changes to Isaac will be documented in this file.
 - Dateless reminders now show as "due today" on ToDo page and Dashboard
 - Old completed dateless reminders no longer appear (only shows if completed today)
 - Deleting completed tasks now properly removes them from the list
-
-### Added
-- Reusable EventModal component for creating events/reminders from any page
-- "Add Reminder" button on Animals, Plants, Vehicles, Equipment, and Farm Areas pages
-- Linked reminders now display on entity cards (Farm Areas, Equipment, Vehicles)
-- Backend API endpoint to fetch tasks by entity type
+- bcrypt/passlib compatibility issue on Python 3.13
 
 ## [1.1.3] - 2026-01-05
 

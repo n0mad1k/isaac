@@ -18,6 +18,13 @@ class HarvestQuality(enum.Enum):
     POOR = "poor"
 
 
+class SaleCategory(enum.Enum):
+    LIVESTOCK = "livestock"    # Live animal or meat sales
+    PLANT = "plant"            # Nursery plant sales
+    PRODUCE = "produce"        # Eggs, milk, harvest produce
+    OTHER = "other"            # Miscellaneous farm sales
+
+
 class LivestockProduction(Base):
     """Records for processed/archived livestock animals"""
     __tablename__ = "livestock_productions"
@@ -84,3 +91,37 @@ class PlantHarvest(Base):
 
     def __repr__(self):
         return f"<PlantHarvest {self.quantity} {self.unit} of {self.plant_name}>"
+
+
+class Sale(Base):
+    """Records for farm product sales"""
+    __tablename__ = "sales"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # Sale details
+    category = Column(Enum(SaleCategory), nullable=False)
+    item_name = Column(String(200), nullable=False)  # "Beef - Ground", "Tomato Seedling", "Eggs"
+    description = Column(Text)  # Optional notes
+
+    # Quantity and pricing
+    quantity = Column(Float, nullable=False)  # Amount sold
+    unit = Column(String(50), default="each")  # lbs, dozen, each, gallon, flat, etc.
+    unit_price = Column(Float, nullable=False)  # Price per unit
+    total_price = Column(Float)  # Calculated: quantity * unit_price
+
+    # Timing
+    sale_date = Column(Date, nullable=False, default=date.today)
+
+    # Optional entity links (for traceability)
+    animal_id = Column(Integer, ForeignKey("animals.id", ondelete="SET NULL"), nullable=True)
+    plant_id = Column(Integer, ForeignKey("plants.id", ondelete="SET NULL"), nullable=True)
+    harvest_id = Column(Integer, ForeignKey("plant_harvests.id", ondelete="SET NULL"), nullable=True)
+    livestock_production_id = Column(Integer, ForeignKey("livestock_productions.id", ondelete="SET NULL"), nullable=True)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Sale {self.item_name} - ${self.total_price}>"

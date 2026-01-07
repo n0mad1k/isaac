@@ -60,12 +60,19 @@ class EmailService:
 
         port = int(port_str) if port_str else 587
 
+        # Build from_addr: use display name if provided, always use user as the email
+        if from_addr and "@" not in from_addr:
+            # from_addr is a display name, not an email
+            from_address = f"{from_addr} <{user}>"
+        else:
+            from_address = from_addr or user
+
         return cls(
             host=host,
             port=port,
             user=user,
             password=password,
-            from_addr=from_addr or user,
+            from_addr=from_address,
         )
 
     def is_configured(self) -> bool:
@@ -175,29 +182,27 @@ class EmailService:
             {verse_section}
         """
 
-        # Weather section
+        # Weather forecast section
         if weather:
+            conditions = weather.get('conditions', 'No forecast available')
             html += f"""
             <div class="section">
-                <h2>☀️ Current Weather</h2>
+                <h2>🌤️ Today's Forecast</h2>
                 <div class="weather">
                     <div class="weather-item">
-                        <div class="weather-value">{weather.get('temperature', '--')}°F</div>
-                        <div class="weather-label">Temperature</div>
+                        <div class="weather-value">{weather.get('high', '--')}°</div>
+                        <div class="weather-label">High</div>
                     </div>
                     <div class="weather-item">
-                        <div class="weather-value">{weather.get('humidity', '--')}%</div>
-                        <div class="weather-label">Humidity</div>
+                        <div class="weather-value">{weather.get('low', '--')}°</div>
+                        <div class="weather-label">Low</div>
                     </div>
                     <div class="weather-item">
-                        <div class="weather-value">{weather.get('wind_speed', '--')} mph</div>
-                        <div class="weather-label">Wind</div>
-                    </div>
-                    <div class="weather-item">
-                        <div class="weather-value">{weather.get('rain_today', '0')}"</div>
-                        <div class="weather-label">Rain Today</div>
+                        <div class="weather-value">{weather.get('rain_chance', 0)}%</div>
+                        <div class="weather-label">Rain Chance</div>
                     </div>
                 </div>
+                <p style="text-align: center; color: #666; margin-top: 10px;">{conditions}</p>
             </div>
             """
 

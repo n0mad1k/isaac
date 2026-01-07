@@ -165,11 +165,16 @@ def verify_password(password: str, hashed: str) -> bool:
         except Exception:
             pass
 
-    # Try bcrypt verification
+    # Try bcrypt verification (use bcrypt directly due to passlib compatibility issues)
     try:
-        return pwd_context.verify(password, hashed)
+        import bcrypt as bcrypt_lib
+        return bcrypt_lib.checkpw(password.encode(), hashed.encode())
     except Exception:
-        return False
+        # Fallback to passlib
+        try:
+            return pwd_context.verify(password, hashed)
+        except Exception:
+            return False
 
 
 def is_account_locked(username: str) -> tuple[bool, int]:
@@ -341,11 +346,13 @@ async def login(
     logger.info(f"User {user.username} logged in successfully")
 
     # Set cookie for browser clients
+    # Detect if request came over HTTPS by checking headers (nginx sets X-Forwarded-Proto)
+    is_https = request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https"
     response.set_cookie(
         key="session_token",
         value=token,
         httponly=True,
-        secure=False,  # Set to True if using HTTPS
+        secure=is_https,  # Secure cookie only over HTTPS
         samesite="lax",
         max_age=SESSION_EXPIRY_DAYS * 24 * 60 * 60
     )

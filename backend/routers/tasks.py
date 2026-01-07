@@ -257,6 +257,7 @@ class TaskCreate(BaseModel):
     notify_email: bool = True
     notify_days_before: int = Field(1, ge=0, le=30)
     notes: Optional[str] = Field(None, max_length=5000)
+    is_backlog: bool = False  # True = in backlog, not due today
 
 
 class TaskUpdate(BaseModel):
@@ -272,6 +273,7 @@ class TaskUpdate(BaseModel):
     is_completed: Optional[bool] = None
     notify_email: Optional[bool] = None
     notes: Optional[str] = Field(None, max_length=5000)
+    is_backlog: Optional[bool] = None
 
 
 class TaskResponse(BaseModel):
@@ -295,6 +297,8 @@ class TaskResponse(BaseModel):
     farm_area_id: Optional[int]
     weather_dependent: bool
     is_active: bool
+    is_backlog: bool
+    notes: Optional[str]
     created_at: datetime
 
     class Config:
@@ -577,6 +581,23 @@ async def uncomplete_task(task_id: int, db: AsyncSession = Depends(get_db)):
     calendar_service = await get_calendar_service(db)
     if calendar_service:
         await calendar_service.sync_task_to_calendar(task, db)
+
+    return task
+
+
+@router.post("/{task_id}/backlog/", response_model=TaskResponse)
+async def toggle_backlog(task_id: int, db: AsyncSession = Depends(get_db)):
+    """Toggle a task's backlog status. Backlog tasks don't appear as due today."""
+    result = await db.execute(select(Task).where(Task.id == task_id))
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task.is_backlog = not task.is_backlog
+    task.updated_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(task)
 
     return task
 

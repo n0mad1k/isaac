@@ -11,7 +11,7 @@ from datetime import datetime, date
 from pydantic import BaseModel, Field
 
 from models.database import get_db
-from models.production import LivestockProduction, PlantHarvest, HarvestQuality
+from models.production import LivestockProduction, PlantHarvest, HarvestQuality, Sale, SaleCategory
 from models.livestock import Animal, AnimalExpense
 from models.plants import Plant
 
@@ -100,6 +100,56 @@ class PlantHarvestResponse(BaseModel):
         from_attributes = True
 
 
+# Sale Schemas
+class SaleCreate(BaseModel):
+    category: SaleCategory
+    item_name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=2000)
+    quantity: float = Field(..., ge=0, le=100000)
+    unit: str = Field("each", min_length=1, max_length=50)
+    unit_price: float = Field(..., ge=0, le=1000000)
+    sale_date: Optional[date] = None
+    animal_id: Optional[int] = None
+    plant_id: Optional[int] = None
+    harvest_id: Optional[int] = None
+    livestock_production_id: Optional[int] = None
+
+
+class SaleUpdate(BaseModel):
+    category: Optional[SaleCategory] = None
+    item_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=2000)
+    quantity: Optional[float] = Field(None, ge=0, le=100000)
+    unit: Optional[str] = Field(None, min_length=1, max_length=50)
+    unit_price: Optional[float] = Field(None, ge=0, le=1000000)
+    sale_date: Optional[date] = None
+    animal_id: Optional[int] = None
+    plant_id: Optional[int] = None
+    harvest_id: Optional[int] = None
+    livestock_production_id: Optional[int] = None
+
+
+class SaleResponse(BaseModel):
+    id: int
+    category: SaleCategory
+    item_name: str
+    description: Optional[str]
+    quantity: float
+    unit: str
+    unit_price: float
+    total_price: Optional[float]
+    sale_date: date
+    animal_id: Optional[int]
+    plant_id: Optional[int]
+    harvest_id: Optional[int]
+    livestock_production_id: Optional[int]
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
 # Routes
 
 @router.get("/stats/")
@@ -107,7 +157,7 @@ async def get_production_stats(
     year: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get production statistics"""
+    """Get production statistics including sales and profit data"""
     # Livestock stats
     livestock_query = select(LivestockProduction)
     if year:
@@ -126,7 +176,16 @@ async def get_production_stats(
     harvest_result = await db.execute(harvest_query)
     harvests = harvest_result.scalars().all()
 
-    # Calculate stats
+    # Sales stats
+    sales_query = select(Sale)
+    if year:
+        sales_query = sales_query.where(
+            extract('year', Sale.sale_date) == year
+        )
+    sales_result = await db.execute(sales_query)
+    sales = sales_result.scalars().all()
+
+    # Calculate livestock stats
     total_meat = sum(p.final_weight or 0 for p in livestock)
     total_expenses = sum(p.total_expenses or 0 for p in livestock)
     total_processing = sum(p.processing_cost or 0 for p in livestock)
@@ -146,6 +205,22 @@ async def get_production_stats(
         livestock_by_type[animal_type]["count"] += 1
         livestock_by_type[animal_type]["weight"] += p.final_weight or 0
 
+    # Sales stats by category
+    sales_by_category = {}
+    total_revenue = 0
+    for s in sales:
+        cat = s.category.value if hasattr(s.category, 'value') else str(s.category)
+        if cat not in sales_by_category:
+            sales_by_category[cat] = {"count": 0, "revenue": 0}
+        sales_by_category[cat]["count"] += 1
+        sales_by_category[cat]["revenue"] += s.total_price or 0
+        total_revenue += s.total_price or 0
+
+    # Calculate profit (revenue - livestock expenses)
+    livestock_costs = total_expenses + total_processing
+    livestock_revenue = sales_by_category.get("livestock", {}).get("revenue", 0)
+    livestock_profit = livestock_revenue - livestock_costs
+
     return {
         "livestock": {
             "total_processed": len(livestock),
@@ -158,6 +233,17 @@ async def get_production_stats(
         "harvests": {
             "total_harvests": len(harvests),
             "by_unit": harvest_by_unit,
+        },
+        "sales": {
+            "total_sales": len(sales),
+            "total_revenue": total_revenue,
+            "by_category": sales_by_category,
+        },
+        "profit": {
+            "livestock": livestock_profit,
+            "total_costs": livestock_costs,
+            "total_revenue": total_revenue,
+            "net": total_revenue - livestock_costs,
         },
         "year": year,
     }
@@ -407,3 +493,111 @@ async def delete_plant_harvest(
     await db.delete(harvest)
     await db.commit()
     return {"message": "Harvest record deleted"}
+
+
+# Sales Routes
+
+@router.get("/sales/", response_model=List[SaleResponse])
+async def list_sales(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    category: Optional[SaleCategory] = None,
+    limit: int = Query(default=100, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all sales records"""
+    query = select(Sale)
+
+    if year:
+        query = query.where(extract('year', Sale.sale_date) == year)
+    if month:
+        query = query.where(extract('month', Sale.sale_date) == month)
+    if category:
+        query = query.where(Sale.category == category)
+
+    query = query.order_by(Sale.sale_date.desc()).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+@router.post("/sales/", response_model=SaleResponse)
+async def create_sale(
+    data: SaleCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new sale record"""
+    # Calculate total price
+    total_price = data.quantity * data.unit_price
+
+    sale = Sale(
+        category=data.category,
+        item_name=data.item_name,
+        description=data.description,
+        quantity=data.quantity,
+        unit=data.unit,
+        unit_price=data.unit_price,
+        total_price=total_price,
+        sale_date=data.sale_date or date.today(),
+        animal_id=data.animal_id,
+        plant_id=data.plant_id,
+        harvest_id=data.harvest_id,
+        livestock_production_id=data.livestock_production_id,
+    )
+
+    db.add(sale)
+    await db.commit()
+    await db.refresh(sale)
+    return sale
+
+
+@router.get("/sales/{sale_id}/", response_model=SaleResponse)
+async def get_sale(
+    sale_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a specific sale record"""
+    result = await db.execute(select(Sale).where(Sale.id == sale_id))
+    sale = result.scalar_one_or_none()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+    return sale
+
+
+@router.patch("/sales/{sale_id}/", response_model=SaleResponse)
+async def update_sale(
+    sale_id: int,
+    updates: SaleUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a sale record"""
+    result = await db.execute(select(Sale).where(Sale.id == sale_id))
+    sale = result.scalar_one_or_none()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+
+    for field, value in updates.model_dump(exclude_unset=True).items():
+        setattr(sale, field, value)
+
+    # Recalculate total price if quantity or unit_price changed
+    sale.total_price = sale.quantity * sale.unit_price
+    sale.updated_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(sale)
+    return sale
+
+
+@router.delete("/sales/{sale_id}/")
+async def delete_sale(
+    sale_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a sale record"""
+    result = await db.execute(select(Sale).where(Sale.id == sale_id))
+    sale = result.scalar_one_or_none()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+
+    await db.delete(sale)
+    await db.commit()
+    return {"message": "Sale deleted"}

@@ -94,6 +94,7 @@ class Task(Base):
     completion_count = Column(Integer, default=0)
 
     is_active = Column(Boolean, default=True)
+    is_backlog = Column(Boolean, default=False)  # True = in backlog, not due today
     notes = Column(Text)
 
     # Calendar sync
