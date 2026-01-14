@@ -61,7 +61,7 @@ function Settings() {
   const [editingFeedback, setEditingFeedback] = useState(null)
   const [savingFeedback, setSavingFeedback] = useState(false)
   const [showNewFeedback, setShowNewFeedback] = useState(false)
-  const [newFeedback, setNewFeedback] = useState({ title: '', description: '', feedback_type: 'feature', submitted_by: '' })
+  const [newFeedback, setNewFeedback] = useState({ title: '', description: '', feedback_type: 'feature' })
   const [submittingFeedback, setSubmittingFeedback] = useState(false)
 
   // Collapsible sections state - all collapsed by default
@@ -185,8 +185,13 @@ function Settings() {
     }
     setSubmittingFeedback(true)
     try {
-      await submitFeedback(newFeedback)
-      setNewFeedback({ title: '', description: '', feedback_type: 'feature', submitted_by: '' })
+      // Auto-set submitted_by to current user's display_name or username
+      const feedbackData = {
+        ...newFeedback,
+        submitted_by: user?.display_name || user?.username || ''
+      }
+      await submitFeedback(feedbackData)
+      setNewFeedback({ title: '', description: '', feedback_type: 'feature' })
       setShowNewFeedback(false)
       fetchMyFeedback()
       setMessage({ type: 'success', text: 'Feedback submitted successfully!' })
@@ -2141,18 +2146,6 @@ function Settings() {
                           <option value="improvement">Improvement</option>
                           <option value="other">Other</option>
                         </select>
-                        <input
-                          type="text"
-                          value={newFeedback.submitted_by}
-                          onChange={(e) => setNewFeedback({ ...newFeedback, submitted_by: e.target.value })}
-                          placeholder="Your name (optional)"
-                          className="flex-1 px-3 py-2 rounded-lg border"
-                          style={{
-                            backgroundColor: 'var(--color-input-bg)',
-                            borderColor: 'var(--color-input-border)',
-                            color: 'var(--color-input-text)'
-                          }}
-                        />
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -2165,7 +2158,7 @@ function Settings() {
                           Submit
                         </button>
                         <button
-                          onClick={() => { setShowNewFeedback(false); setNewFeedback({ title: '', description: '', feedback_type: 'feature', submitted_by: '' }) }}
+                          onClick={() => { setShowNewFeedback(false); setNewFeedback({ title: '', description: '', feedback_type: 'feature' }) }}
                           className="px-4 py-2 rounded-lg text-sm"
                           style={{ backgroundColor: 'var(--color-btn-secondary-bg)', color: 'var(--color-btn-secondary-text)' }}
                         >

@@ -207,10 +207,11 @@ async def list_prod_feedback(
             return []
 
         # Get new feedback from prod (include kickback so user can respond)
+        # Use UPPER() for case-insensitive matching since enum may store as NEW or new
         cursor.execute("""
             SELECT id, title, description, feedback_type, submitted_by, created_at, status, admin_response
             FROM customer_feedback
-            WHERE status IN ('new', 'kickback')
+            WHERE UPPER(status) IN ('NEW', 'KICKBACK')
             ORDER BY created_at DESC
         """)
         feedbacks = cursor.fetchall()
