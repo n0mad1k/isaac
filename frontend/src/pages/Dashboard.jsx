@@ -208,7 +208,6 @@ function Dashboard() {
                 : data?.tasks_today}
               onTaskToggle={fetchData}
               showTimeAndLocation={true}
-              backgroundColor="var(--color-schedule-bg)"
             />
           </div>
 
@@ -247,7 +246,7 @@ function Dashboard() {
                       key={task.id}
                       className="p-2 rounded-lg"
                       style={{
-                        backgroundColor: 'var(--bg-hover)',
+                        backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#2a352c' : '#d4e5d0',
                         borderLeft: '3px solid var(--text-muted)'
                       }}
                     >

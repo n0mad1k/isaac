@@ -16,6 +16,22 @@
 4. Do NOT include "Claude" or AI references in commit messages
 5. Deploy scripts auto-commit if there are uncommitted changes (safety net)
 
+## Session Log (Clear at midnight daily)
+
+**2026-01-14:**
+- #127 UI Changes:
+  - Weather widget: static background `#c2c9cd` (removed dynamic gradients)
+  - Sun/moon widget: background `#c2c9cd` (matches weather)
+  - Forecast cards: `#b3bac0` (darker shade to match weather widget)
+  - Feeding guide cards: `#d4e5d0` (matches feeding guide widget)
+  - Backlog cards: `#d4e5d0` (matches backlog widget)
+  - Task/reminder cards in Today's Schedule: `#cab1a2` (NOT the widget background)
+  - Event blocks in Today's Schedule: `#cb936a`
+- #126 Feedback system: implemented approve/decline/kickback, auto-refresh
+- #128 Security fix: user feedback cross-account vulnerability
+- #129 ToDo page defaults to Today tab
+- Updated CLAUDE.md with task tracking rules, git requirements, deploy mode
+
 ## Dev Tracker Workflow
 
 **After completing each task, check the dev tracker for new items:**
@@ -187,3 +203,4 @@ When tasks are completed, the source entity is updated based on `task.notes`:
 - Settings page calls `/api/settings/version/`
 - Backend parses CHANGELOG.md and extracts `- ` lines under current version
 - These appear as "What's New in vX.X.X" in the Settings UI
+- Keep a running log of what I have asked and what you changed so you can remember what is going on. you can clear the log at midnight everyday

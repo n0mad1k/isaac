@@ -4,7 +4,7 @@ import { completeTask, uncompleteTask } from '../services/api'
 import { isAfter, startOfDay, parseISO, isSameDay } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
 
-function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLocation = false, maxVisibleCompleted = 10, className = '', fillContainer = false, backgroundColor = null }) {
+function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLocation = false, maxVisibleCompleted = 10, className = '', fillContainer = false }) {
   const [showAllCompleted, setShowAllCompleted] = useState(false)
   const { formatTime } = useSettings()
 
@@ -28,26 +28,27 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
   }
 
   const getPriorityStyles = (priority) => {
+    // All task/reminder cards use #cab1a2 background, border indicates priority
     switch (priority) {
       case 1:
         return {
           borderLeft: '4px solid var(--color-error-500)',
-          backgroundColor: 'var(--color-error-bg)'
+          backgroundColor: '#cab1a2'
         }
       case 2:
         return {
           borderLeft: '4px solid var(--color-warning-500)',
-          backgroundColor: 'var(--color-warning-bg)'
+          backgroundColor: '#cab1a2'
         }
       case 3:
         return {
           borderLeft: '4px solid var(--color-info-500)',
-          backgroundColor: 'var(--color-info-bg)'
+          backgroundColor: '#cab1a2'
         }
       default:
         return {
           borderLeft: '4px solid var(--color-border-default)',
-          backgroundColor: 'var(--color-bg-surface-soft)'
+          backgroundColor: '#cab1a2'
         }
     }
   }
@@ -70,7 +71,7 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
 
   // Container styles based on fillContainer prop
   const containerStyle = {
-    backgroundColor: backgroundColor || 'var(--bg-secondary)',
+    backgroundColor: 'var(--bg-secondary)',
     border: '1px solid var(--border-color)'
   }
 
