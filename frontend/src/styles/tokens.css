@@ -181,8 +181,8 @@
   --color-nav-item-text: #1a1a1a;    /* Black icons matching weather widget */
   --color-nav-item-text-hover: #000000;
   --color-nav-item-text-active: #000000;
-  --color-nav-item-bg-hover: #A8C8A4; /* Moss hover */
-  --color-nav-item-bg-active: #88B084; /* Active forest */
+  --color-nav-item-bg-hover: #a2a9a3; /* Plants counter color */
+  --color-nav-item-bg-active: #a2a9a3; /* Plants counter color */
 
   /* ----------------------------------------
      BADGES & CHIPS - Semantic colored labels
