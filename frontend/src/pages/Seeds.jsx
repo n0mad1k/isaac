@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil } from 'lucide-react'
+import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil, AlertTriangle } from 'lucide-react'
 import { getSeeds, createSeed, updateSeed, deleteSeed, getSeedStats, getSeedCategories } from '../services/api'
 
 // Reusable inline editable field component
@@ -244,8 +244,8 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
           {seed.heat_tolerant && <span className="px-2 py-0.5 bg-orange-900/30 text-orange-300 rounded text-xs">Heat Tolerant</span>}
           {seed.direct_sow && <span className="px-2 py-0.5 bg-green-900/30 text-green-300 rounded text-xs">Direct Sow</span>}
           {seed.special_requirements && (
-            <span className="px-2 py-0.5 bg-yellow-900/30 text-yellow-300 rounded text-xs">
-              ⚠️ {seed.special_requirements}
+            <span className="px-2 py-0.5 bg-yellow-900/30 text-yellow-300 rounded text-xs flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> {seed.special_requirements}
             </span>
           )}
           {seed.grow_zones && (

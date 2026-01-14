@@ -1,51 +1,58 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Wrench, Plus, Check, X, ChevronDown, ChevronUp, Clock, Edit, Calendar, MapPin, CalendarPlus } from 'lucide-react'
+import { Wrench, Plus, Check, X, ChevronDown, ChevronUp, Clock, Edit, Calendar, MapPin, CalendarPlus, Tractor, Leaf, Droplets, Wheat, Hammer, Zap, Flame, Wind, Plug, Snowflake, Home, Settings } from 'lucide-react'
 import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getEquipmentMaintenance, createEquipmentMaintenance, updateEquipmentMaintenance, completeEquipmentMaintenance, deleteEquipmentMaintenance, getEquipmentTypes, getFarmAreas, getTasksByEntity, completeTask, deleteTask } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 import EventModal from '../components/EventModal'
 import { useSettings } from '../contexts/SettingsContext'
 
-const TYPE_ICONS = {
+// Helper to render equipment type icon
+const getTypeIcon = (type) => {
+  const IconComponent = TYPE_ICON_COMPONENTS[type] || Settings
+  return <IconComponent className="w-6 h-6" style={{ color: 'var(--color-text-muted)' }} />
+}
+
+// Equipment type icons mapped to Lucide components
+const TYPE_ICON_COMPONENTS = {
   // Farm Equipment
-  tractor: '🚜',
-  mower: '🌿',
-  chainsaw: '🪚',
-  brush_hog: '🌾',
-  tiller: '🌱',
-  cultivator: '🌱',
-  seeder: '🌾',
-  sprayer: '💧',
-  spreader: '🌾',
-  baler: '🌾',
-  loader: '🚜',
-  backhoe: '🚜',
-  post_driver: '🔨',
-  auger: '🔩',
-  chipper: '🪵',
-  log_splitter: '🪓',
-  fence_charger: '⚡',
-  water_pump: '💧',
-  irrigation: '💧',
+  tractor: Tractor,
+  mower: Leaf,
+  chainsaw: Wrench,
+  brush_hog: Wheat,
+  tiller: Leaf,
+  cultivator: Leaf,
+  seeder: Wheat,
+  sprayer: Droplets,
+  spreader: Wheat,
+  baler: Wheat,
+  loader: Tractor,
+  backhoe: Tractor,
+  post_driver: Hammer,
+  auger: Wrench,
+  chipper: Wrench,
+  log_splitter: Wrench,
+  fence_charger: Zap,
+  water_pump: Droplets,
+  irrigation: Droplets,
   // Power Equipment
-  generator: '⚡',
-  pressure_washer: '💦',
-  welder: '🔥',
-  air_compressor: '💨',
+  generator: Zap,
+  pressure_washer: Droplets,
+  welder: Flame,
+  air_compressor: Wind,
   // Tools
-  power_tools: '🔌',
-  hand_tools: '🔧',
+  power_tools: Plug,
+  hand_tools: Wrench,
   // Home Equipment
-  hvac: '❄️',
-  water_heater: '🔥',
-  water_softener: '💧',
-  well_pump: '💧',
-  septic: '🚽',
-  appliance: '🏠',
-  grill: '🍖',
-  pool_spa: '🏊',
-  lawn_equipment: '🌿',
-  snow_equipment: '❄️',
-  other: '⚙️',
+  hvac: Snowflake,
+  water_heater: Flame,
+  water_softener: Droplets,
+  well_pump: Droplets,
+  septic: Home,
+  appliance: Home,
+  grill: Flame,
+  pool_spa: Droplets,
+  lawn_equipment: Leaf,
+  snow_equipment: Snowflake,
+  other: Settings,
 }
 
 // Location select component with farm areas dropdown + custom option + sub-location
@@ -439,7 +446,7 @@ function Equipment() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{TYPE_ICONS[equip.type] || '⚙️'}</span>
+                  <span>{getTypeIcon(equip.type)}</span>
                   <div>
                     <div className="font-bold">{equip.name}</div>
                     <div className="text-gray-400 text-sm">{equip.display_type}</div>

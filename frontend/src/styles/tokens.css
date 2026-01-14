@@ -85,6 +85,54 @@
   --color-teal-100: #edf6f6;
 
   /* ===========================
+     BLUE RAMP (Info / Edit)
+     =========================== */
+  --color-blue-800: #2a3a5a;
+  --color-blue-700: #3a4a6a;
+  --color-blue-600: #4a5a7a;
+  --color-blue-500: #5a6a8a;
+  --color-blue-400: #7a8aaa;
+  --color-blue-300: #9aaaca;
+  --color-blue-200: #bacaea;
+  --color-blue-100: #e6ecf4;
+
+  /* ===========================
+     PURPLE RAMP (Special Actions)
+     =========================== */
+  --color-purple-800: #3a2a4a;
+  --color-purple-700: #4a3a5a;
+  --color-purple-600: #6b5a7a;
+  --color-purple-500: #7b6a8a;
+  --color-purple-400: #9b8aaa;
+  --color-purple-300: #bbaaca;
+  --color-purple-200: #dacaea;
+  --color-purple-100: #f0ecf4;
+
+  /* ===========================
+     PINK RAMP (Pets)
+     =========================== */
+  --color-pink-800: #5a2a3a;
+  --color-pink-700: #6a3a4a;
+  --color-pink-600: #8b5a6b;
+  --color-pink-500: #9b6a7b;
+  --color-pink-400: #bb8a9b;
+  --color-pink-300: #dbaabb;
+  --color-pink-200: #f0cad6;
+  --color-pink-100: #f8e8ec;
+
+  /* ===========================
+     ORANGE RAMP (Livestock)
+     =========================== */
+  --color-orange-800: #5a3a1a;
+  --color-orange-700: #7a4a2a;
+  --color-orange-600: #a06040;
+  --color-orange-500: #b87050;
+  --color-orange-400: #d09070;
+  --color-orange-300: #e4b090;
+  --color-orange-200: #f0d0b0;
+  --color-orange-100: #fae8d8;
+
+  /* ===========================
      SEMANTIC STATUS COLORS
      =========================== */
   /* Success */
@@ -354,6 +402,54 @@ html[data-theme="dark"] {
   --color-teal-100: #D4EAE7;
 
   /* ----------------------------------------
+     BLUE RAMP (Info / Edit)
+     ---------------------------------------- */
+  --color-blue-800: #1a2a4a;
+  --color-blue-700: #2a3a5a;
+  --color-blue-600: #4b5b8b;
+  --color-blue-500: #5b6b9b;
+  --color-blue-400: #7b8bab;
+  --color-blue-300: #9babcb;
+  --color-blue-200: #bbcbeb;
+  --color-blue-100: #1a2030;
+
+  /* ----------------------------------------
+     PURPLE RAMP (Special Actions)
+     ---------------------------------------- */
+  --color-purple-800: #2a1a3a;
+  --color-purple-700: #3a2a4a;
+  --color-purple-600: #5b4b6b;
+  --color-purple-500: #6b5b7b;
+  --color-purple-400: #8b7b9b;
+  --color-purple-300: #ab9bbb;
+  --color-purple-200: #cbbbdb;
+  --color-purple-100: #201828;
+
+  /* ----------------------------------------
+     PINK RAMP (Pets)
+     ---------------------------------------- */
+  --color-pink-800: #3a1a2a;
+  --color-pink-700: #4a2a3a;
+  --color-pink-600: #8b4b6b;
+  --color-pink-500: #9b5b7b;
+  --color-pink-400: #bb7b9b;
+  --color-pink-300: #db9bbb;
+  --color-pink-200: #fbbbdb;
+  --color-pink-100: #281820;
+
+  /* ----------------------------------------
+     ORANGE RAMP (Livestock)
+     ---------------------------------------- */
+  --color-orange-800: #3a2a1a;
+  --color-orange-700: #5a3a2a;
+  --color-orange-600: #a8623a;
+  --color-orange-500: #b8724a;
+  --color-orange-400: #d8926a;
+  --color-orange-300: #e8b28a;
+  --color-orange-200: #f8d2aa;
+  --color-orange-100: #281c14;
+
+  /* ----------------------------------------
      SEMANTIC COLORS - Brighter for dark mode
      ---------------------------------------- */
   /* Success */
@@ -540,6 +636,7 @@ html[data-theme="dark"] {
 html[data-theme="dark"] {
   /* Layout */
   --color-bg: var(--color-bg-app);
+  --color-bg-tertiary: var(--color-bg-surface-muted);
   --color-card: var(--color-bg-surface);
   --color-card-hover: var(--color-bg-surface-hover);
 

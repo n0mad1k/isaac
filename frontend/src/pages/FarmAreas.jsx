@@ -1,57 +1,64 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Fence, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Leaf, PawPrint, Edit, Calendar, Clock, CalendarPlus } from 'lucide-react'
+import { Fence, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Leaf, PawPrint, Edit, Calendar, Clock, CalendarPlus, Home, Warehouse, TreeDeciduous, Droplets, Bird, Dog, Rabbit, Beef, Car, Box, Bed, Bath, CookingPot, Sofa, Briefcase, DoorOpen, Settings } from 'lucide-react'
 import { getFarmAreas, getFarmArea, createFarmArea, updateFarmArea, deleteFarmArea, getFarmAreaMaintenance, createFarmAreaMaintenance, updateFarmAreaMaintenance, completeFarmAreaMaintenance, deleteFarmAreaMaintenance, getFarmAreaTypes, getTasksByEntity, completeTask, deleteTask } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 import EventModal from '../components/EventModal'
 import { useSettings } from '../contexts/SettingsContext'
 
-const TYPE_ICONS = {
+// Helper to render area type icon
+const getAreaTypeIcon = (type) => {
+  const IconComponent = TYPE_ICON_COMPONENTS[type] || Settings
+  return <IconComponent className="w-6 h-6" style={{ color: 'var(--color-text-muted)' }} />
+}
+
+// Area type icons mapped to Lucide components
+const TYPE_ICON_COMPONENTS = {
   // Buildings
-  house: '🏠',
-  barn: '🏚️',
-  pole_barn: '🏗️',
-  workshop: '🔧',
-  greenhouse: '🌿',
-  shed: '🛖',
-  garage: '🚗',
-  storage: '📦',
+  house: Home,
+  barn: Warehouse,
+  pole_barn: Warehouse,
+  workshop: Wrench,
+  greenhouse: Leaf,
+  shed: Home,
+  garage: Car,
+  storage: Box,
   // Indoor/Rooms
-  bedroom: '🛏️',
-  bathroom: '🚿',
-  kitchen: '🍳',
-  living_room: '🛋️',
-  office: '💼',
-  laundry: '🧺',
-  closet: '🚪',
-  attic: '🏚️',
-  basement: '🏚️',
+  bedroom: Bed,
+  bathroom: Bath,
+  kitchen: CookingPot,
+  living_room: Sofa,
+  office: Briefcase,
+  laundry: Home,
+  closet: DoorOpen,
+  attic: Home,
+  basement: Home,
   // Outdoor/Growing
-  garden: '🥕',
-  nursery: '🌱',
-  food_forest: '🌳',
-  orchard: '🍎',
-  pasture: '🌾',
-  yard: '🌿',
-  front_yard: '🌿',
-  back_yard: '🌿',
-  side_yard: '🌿',
+  garden: Leaf,
+  nursery: Leaf,
+  food_forest: TreeDeciduous,
+  orchard: TreeDeciduous,
+  pasture: Leaf,
+  yard: Leaf,
+  front_yard: Leaf,
+  back_yard: Leaf,
+  side_yard: Leaf,
   // Water
-  pond: '💧',
-  pool: '🏊',
+  pond: Droplets,
+  pool: Droplets,
   // Animal Housing
-  chicken_coop: '🐔',
-  rabbit_hutch: '🐰',
-  dog_kennel: '🐕',
-  stall: '🐴',
-  pen: '🐖',
-  apiary: '🐝',
+  chicken_coop: Bird,
+  rabbit_hutch: Rabbit,
+  dog_kennel: Dog,
+  stall: Beef,
+  pen: Beef,
+  apiary: Leaf,
   // Other
-  driveway: '🛣️',
-  deck: '🪵',
-  patio: '🪑',
-  porch: '🚪',
-  fence: '🚧',
-  custom: '⚙️',
+  driveway: Home,
+  deck: Home,
+  patio: Home,
+  porch: DoorOpen,
+  fence: Fence,
+  custom: Settings,
 }
 
 function FarmAreas() {
@@ -352,7 +359,7 @@ function FarmAreas() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{TYPE_ICONS[area.type] || '🌿'}</span>
+                  <span>{getAreaTypeIcon(area.type)}</span>
                   <div>
                     <div className="font-bold text-lg">{area.is_sub_location ? `↳ ${area.name}` : area.name}</div>
                     <div className="text-gray-400 text-sm">

@@ -3,7 +3,7 @@ import {
   Plus, Search, PawPrint, Calendar, AlertCircle, ChevronDown, ChevronUp,
   MapPin, DollarSign, Scale, Clock, Check, X, Syringe, Scissors,
   Heart, Beef, Dog, Cat, Pencil, Save, Package, Copy, CalendarPlus,
-  Trash2, Download, FileText
+  Trash2, Download, FileText, Bird, Rabbit, Egg
 } from 'lucide-react'
 import EventModal from '../components/EventModal'
 import { useSettings } from '../contexts/SettingsContext'
@@ -361,24 +361,26 @@ function Animals() {
   }
 
   const getAnimalIcon = (type) => {
+    const iconStyle = { color: 'var(--color-text-muted)' }
+    const iconClass = 'w-5 h-5'
     const icons = {
-      horse: '🐴',
-      mini_horse: '🐴',
-      cattle: '🐄',
-      goat: '🐐',
-      sheep: '🐑',
-      pig: '🐷',
-      chicken: '🐔',
-      duck: '🦆',
-      turkey: '🦃',
-      rabbit: '🐰',
-      dog: '🐕',
-      cat: '🐈',
-      donkey: '🫏',
-      llama: '🦙',
-      alpaca: '🦙',
+      horse: <Beef className={iconClass} style={iconStyle} />,
+      mini_horse: <Beef className={iconClass} style={iconStyle} />,
+      cattle: <Beef className={iconClass} style={iconStyle} />,
+      goat: <Beef className={iconClass} style={iconStyle} />,
+      sheep: <Beef className={iconClass} style={iconStyle} />,
+      pig: <Beef className={iconClass} style={iconStyle} />,
+      chicken: <Bird className={iconClass} style={iconStyle} />,
+      duck: <Bird className={iconClass} style={iconStyle} />,
+      turkey: <Bird className={iconClass} style={iconStyle} />,
+      rabbit: <Rabbit className={iconClass} style={iconStyle} />,
+      dog: <Dog className={iconClass} style={iconStyle} />,
+      cat: <Cat className={iconClass} style={iconStyle} />,
+      donkey: <Beef className={iconClass} style={iconStyle} />,
+      llama: <Beef className={iconClass} style={iconStyle} />,
+      alpaca: <Beef className={iconClass} style={iconStyle} />,
     }
-    return icons[type] || '🐾'
+    return icons[type] || <PawPrint className={iconClass} style={iconStyle} />
   }
 
   const getDaysUntil = (dateStr) => {
@@ -587,7 +589,7 @@ function Animals() {
           <button
             onClick={() => setShowBulkCareForm(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm"
-            style={{ backgroundColor: 'var(--color-teal-100)', color: 'var(--color-teal-600)' }}
+            style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
           >
             <Calendar className="w-4 h-4" />
             Bulk Care
@@ -595,7 +597,7 @@ function Animals() {
           <button
             onClick={() => setShowSplitExpenseForm(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm"
-            style={{ backgroundColor: 'var(--color-success-100)', color: 'var(--color-success-600)' }}
+            style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
           >
             <DollarSign className="w-4 h-4" />
             Split Expense
@@ -603,7 +605,7 @@ function Animals() {
           <a
             href={exportAllExpenses()}
             className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm"
-            style={{ backgroundColor: 'var(--color-purple-100)', color: 'var(--color-purple-600)' }}
+            style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
           >
             <Download className="w-4 h-4" />
             Export All
@@ -1721,10 +1723,11 @@ function AnimalCard({
           {/* Feeding Info - Multiple Feeds */}
           <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium text-gray-400">Feeding</h4>
+              <h4 className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>Feeding</h4>
               <button
                 onClick={(e) => { e.stopPropagation(); onAddFeed() }}
-                className="text-xs px-2 py-1 bg-cyan-700/50 hover:bg-cyan-600 rounded text-white transition-colors flex items-center gap-1"
+                className="text-xs px-2 py-1 rounded transition-colors flex items-center gap-1"
+                style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
               >
                 <Plus className="w-3 h-3" /> Add Feed
               </button>
@@ -1732,34 +1735,40 @@ function AnimalCard({
             {animal.feeds && animal.feeds.length > 0 ? (
               <div className="space-y-2">
                 {animal.feeds.map(feed => (
-                  <div key={feed.id} className="flex items-center justify-between bg-gray-800 rounded px-3 py-2">
+                  <div
+                    key={feed.id}
+                    className="flex items-center justify-between rounded px-3 py-2"
+                    style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}
+                  >
                     <div className="flex-1 flex items-center gap-4 text-sm">
-                      <span className="font-medium text-cyan-400">{feed.feed_type}</span>
-                      {feed.amount && <span className="text-gray-300">{feed.amount}</span>}
-                      {feed.frequency && <span className="text-gray-400">{feed.frequency}</span>}
-                      {feed.notes && <span className="text-gray-500 text-xs truncate max-w-[200px]">{feed.notes}</span>}
+                      <span className="font-medium" style={{ color: 'var(--color-teal-600)' }}>{feed.feed_type}</span>
+                      {feed.amount && <span style={{ color: 'var(--color-text-secondary)' }}>{feed.amount}</span>}
+                      {feed.frequency && <span style={{ color: 'var(--color-text-muted)' }}>{feed.frequency}</span>}
+                      {feed.notes && <span className="text-xs truncate max-w-[200px]" style={{ color: 'var(--color-text-muted)' }}>{feed.notes}</span>}
                     </div>
                     <div className="flex gap-1">
                       <button
                         onClick={(e) => { e.stopPropagation(); onEditFeed(feed) }}
-                        className="p-1 hover:bg-gray-700 rounded transition-colors"
+                        className="p-1 rounded transition-colors"
+                        style={{ color: 'var(--color-text-muted)' }}
                         title="Edit"
                       >
-                        <Pencil className="w-3 h-3 text-gray-400 hover:text-white" />
+                        <Pencil className="w-3 h-3" />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onDeleteFeed(feed.id) }}
-                        className="p-1 hover:bg-red-900/50 rounded transition-colors"
+                        className="p-1 rounded transition-colors"
+                        style={{ color: 'var(--color-error-600)' }}
                         title="Delete"
                       >
-                        <X className="w-3 h-3 text-gray-400 hover:text-red-400" />
+                        <X className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 text-center py-2">
+              <p className="text-sm text-center py-2" style={{ color: 'var(--color-text-muted)' }}>
                 No feeds added. Click "Add Feed" to create one.
               </p>
             )}
@@ -1768,10 +1777,11 @@ function AnimalCard({
           {/* Dynamic Care Schedules */}
           <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium text-gray-400">Care Schedule</h4>
+              <h4 className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>Care Schedule</h4>
               <button
                 onClick={(e) => { e.stopPropagation(); onAddCareSchedule() }}
-                className="text-xs px-2 py-1 bg-farm-green/50 hover:bg-farm-green rounded text-white transition-colors flex items-center gap-1"
+                className="text-xs px-2 py-1 rounded transition-colors flex items-center gap-1"
+                style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
               >
                 <Plus className="w-3 h-3" /> Add
               </button>
@@ -1945,19 +1955,25 @@ function DynamicCareCard({ schedule, onComplete, onEdit, onDelete }) {
   const daysUntil = schedule.days_until_due
   const isOverdue = schedule.is_overdue
 
+  const getCardStyle = () => {
+    if (isOverdue) {
+      return { backgroundColor: 'var(--color-error-bg)', border: '1px solid var(--color-error-600)' }
+    }
+    if (daysUntil !== null && daysUntil <= 7) {
+      return { backgroundColor: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-600)' }
+    }
+    return { backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }
+  }
+
   return (
-    <div className={`p-2 rounded-lg ${
-      isOverdue ? 'bg-red-900/50 border border-red-700' :
-      daysUntil !== null && daysUntil <= 7 ? 'bg-yellow-900/30' :
-      'bg-gray-800'
-    }`}>
+    <div className="p-2 rounded-lg" style={getCardStyle()}>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium truncate">{schedule.name}</span>
+        <span className="text-xs font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{schedule.name}</span>
         {isOverdue && (
-          <span className="text-xs bg-red-700 text-white px-1.5 py-0.5 rounded">DUE</span>
+          <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--color-error-600)', color: '#ffffff' }}>DUE</span>
         )}
       </div>
-      <div className="text-xs text-gray-500">
+      <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
         {schedule.last_performed ? (
           <span>Last: {format(safeParseDate(schedule.last_performed), 'MMM d')}</span>
         ) : (
@@ -1965,7 +1981,7 @@ function DynamicCareCard({ schedule, onComplete, onEdit, onDelete }) {
         )}
       </div>
       {schedule.due_date && (
-        <div className={`text-xs ${isOverdue ? 'text-red-300' : 'text-gray-400'}`}>
+        <div className="text-xs" style={{ color: isOverdue ? 'var(--color-error-600)' : 'var(--color-text-muted)' }}>
           {isOverdue ? 'Was due: ' : 'Due: '}
           {format(safeParseDate(schedule.due_date), 'MMM d')}
           {schedule.due_time && ` @ ${formatTime(schedule.due_time)}`}
@@ -1973,32 +1989,34 @@ function DynamicCareCard({ schedule, onComplete, onEdit, onDelete }) {
         </div>
       )}
       {schedule.frequency_days && (
-        <div className="text-xs text-gray-600">
+        <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
           Every {schedule.frequency_days}d
         </div>
       )}
       <div className="flex gap-1 mt-2">
         <button
           onClick={(e) => { e.stopPropagation(); onComplete() }}
-          className={`flex-1 px-2 py-1 rounded text-xs flex items-center justify-center gap-1 transition-colors ${
-            isOverdue
-              ? 'bg-red-700 hover:bg-red-600 text-white'
-              : 'bg-farm-green/50 hover:bg-farm-green text-white'
-          }`}
+          className="flex-1 px-2 py-1 rounded text-xs flex items-center justify-center gap-1 transition-colors"
+          style={isOverdue
+            ? { backgroundColor: 'var(--color-error-600)', color: '#ffffff' }
+            : { backgroundColor: 'var(--color-success-600)', color: '#ffffff' }
+          }
           title="Mark as done"
         >
           <Check className="w-3 h-3" />
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onEdit() }}
-          className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs transition-colors"
+          className="px-2 py-1 rounded text-xs transition-colors"
+          style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
           title="Edit"
         >
           <Pencil className="w-3 h-3" />
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onDelete() }}
-          className="px-2 py-1 bg-red-900/50 hover:bg-red-800 rounded text-xs text-red-300 transition-colors"
+          className="px-2 py-1 rounded text-xs transition-colors"
+          style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-error-600)', border: '1px solid var(--color-border-default)' }}
           title="Delete"
         >
           <X className="w-3 h-3" />

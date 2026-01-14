@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ClipboardList, Plus, Check, X, AlertCircle, ChevronDown, ChevronUp, Edit, User, Phone, Mail, Trash2, Ban, Link, Unlink, ShoppingCart, Package, StickyNote, Play, RotateCcw, CheckCircle, Circle } from 'lucide-react'
+import { ClipboardList, Plus, Check, X, AlertCircle, ChevronDown, ChevronUp, Edit, User, Phone, Mail, Trash2, Ban, Link, Unlink, ShoppingCart, Package, StickyNote, Play, RotateCcw, CheckCircle, Circle, Brush, Wheat, Wrench, TreeDeciduous, Hammer } from 'lucide-react'
 import { getWorkers, getWorker, createWorker, updateWorker, deleteWorker, getWorkerTasks, completeWorkerTask, uncompleteWorkerTask, blockWorkerTask, unblockWorkerTask, updateWorkerNote, startWorkerTask, stopWorkerTask, getAssignableTasks, assignTaskToWorker, unassignTaskFromWorker, getWorkerSupplyRequests, createSupplyRequest, updateSupplyRequest, deleteSupplyRequest } from '../services/api'
 import { format } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
 import EventModal from '../components/EventModal'
 
-const ROLE_ICONS = {
-  maid: '🧹',
-  'farm hand': '🌾',
-  contractor: '🔧',
-  landscaper: '🌳',
-  handyman: '🛠️',
-  helper: 'user-icon', // Special marker for User icon component
+// Role icons mapped to Lucide components
+const ROLE_ICON_COMPONENTS = {
+  maid: Brush,
+  'farm hand': Wheat,
+  contractor: Wrench,
+  landscaper: TreeDeciduous,
+  handyman: Hammer,
+  helper: User,
 }
 
 function WorkerTasks() {
@@ -393,13 +394,12 @@ function WorkerTasks() {
 
 
   const getRoleIcon = (role, size = 'text-base') => {
-    if (!role) return <User className={`inline ${size === 'text-3xl' ? 'w-8 h-8' : 'w-5 h-5'}`} style={{ color: 'var(--color-text-muted)' }} />
+    const iconClass = size === 'text-3xl' ? 'w-8 h-8' : 'w-5 h-5'
+    const iconStyle = { color: 'var(--color-text-muted)' }
+    if (!role) return <User className={`inline ${iconClass}`} style={iconStyle} />
     const normalized = role.toLowerCase()
-    const icon = ROLE_ICONS[normalized]
-    if (icon === 'user-icon' || !icon) {
-      return <User className={`inline ${size === 'text-3xl' ? 'w-8 h-8' : 'w-5 h-5'}`} style={{ color: 'var(--color-text-muted)' }} />
-    }
-    return icon
+    const IconComponent = ROLE_ICON_COMPONENTS[normalized] || User
+    return <IconComponent className={`inline ${iconClass}`} style={iconStyle} />
   }
 
   const getPriorityLabel = (priority) => {
