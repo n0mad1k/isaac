@@ -584,11 +584,13 @@ html[data-theme="dark"] {
   --info: var(--color-info-500);
 }
 
-/* Today's Schedule widget - warm parchment background */
+/* Widget backgrounds - slate gray for feeding, backlog, schedule, verse */
 :root {
-  --color-schedule-bg: #cab1a2;
+  --color-widget-bg: #5e6d74;
+  --color-schedule-bg: #5e6d74;
 }
 
 html[data-theme="dark"] {
+  --color-widget-bg: var(--color-bg-surface);
   --color-schedule-bg: var(--color-bg-surface);
 }
