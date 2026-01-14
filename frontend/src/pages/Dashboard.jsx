@@ -250,7 +250,7 @@ function Dashboard() {
                       key={task.id}
                       className="p-2 rounded-lg"
                       style={{
-                        backgroundColor: 'var(--bg-secondary)',
+                        backgroundColor: '#cb936a',
                         borderLeft: '3px solid var(--text-muted)'
                       }}
                     >

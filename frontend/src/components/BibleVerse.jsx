@@ -31,7 +31,7 @@ function BibleVerse() {
     return (
       <div className="w-full rounded-lg p-2 md:p-3 lg:p-4"
            style={{
-             backgroundColor: 'var(--color-widget-bg)',
+             backgroundColor: '#d7c3b2',
              border: '1px solid var(--border-color)'
            }}>
         <div className="flex items-center justify-center gap-2">
@@ -45,7 +45,7 @@ function BibleVerse() {
   return (
     <div className="w-full rounded-lg p-2 md:p-3 lg:p-4"
          style={{
-           backgroundColor: 'var(--color-widget-bg)',
+           backgroundColor: '#d7c3b2',
            border: '1px solid var(--border-color)'
          }}>
       <div className="flex items-start gap-2 md:gap-3">
