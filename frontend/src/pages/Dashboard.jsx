@@ -295,7 +295,8 @@ function Dashboard() {
                               console.error('Failed to move to today:', err)
                             }
                           }}
-                          className="flex-shrink-0 px-1.5 py-0.5 text-xs rounded flex items-center gap-1 bg-green-900/50 text-green-300"
+                          className="flex-shrink-0 px-1.5 py-0.5 text-xs rounded flex items-center gap-1"
+                          style={{ backgroundColor: '#bec6c2', color: '#1a1a1a' }}
                           title="Move to Today"
                         >
                           <ArrowUp className="w-3 h-3" />
