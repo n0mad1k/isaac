@@ -17,9 +17,9 @@
    ============================================ */
 :root {
   /* ----------------------------------------
-     SURFACE COLORS - Rich forest backgrounds
+     SURFACE COLORS - Earthy sage palette
      ---------------------------------------- */
-  --color-bg-app: #f0e2d3;           /* Main app background - warm cream */
+  --color-bg-app: #c2c5aa;           /* Main app background - Dry Sage */
   --color-bg-surface: #E4F0E0;       /* Cards, panels - light fern */
   --color-bg-surface-soft: #C8DCC4;  /* Secondary surfaces - soft moss */
   --color-bg-surface-muted: #B8D0B4; /* Tertiary surfaces - sage green */
@@ -175,14 +175,14 @@
   --color-toggle-knob: #FFFFFF;
 
   /* ----------------------------------------
-     NAVIGATION - Deep forest
+     NAVIGATION - Ebony dark nav
      ---------------------------------------- */
-  --color-nav-bg: #dfcbb4;           /* Navigation bar background */
-  --color-nav-item-text: #1a1a1a;    /* Black icons matching weather widget */
-  --color-nav-item-text-hover: #000000;
-  --color-nav-item-text-active: #000000;
-  --color-nav-item-bg-hover: #a2a9a3; /* Plants counter color */
-  --color-nav-item-bg-active: #a2a9a3; /* Plants counter color */
+  --color-nav-bg: #414833;           /* Navigation bar background - Ebony */
+  --color-nav-item-text: #c2c5aa;    /* Dry Sage for contrast */
+  --color-nav-item-text-hover: #b6ad90;
+  --color-nav-item-text-active: #c2c5aa;
+  --color-nav-item-bg-hover: #656d4a; /* Dusty Olive */
+  --color-nav-item-bg-active: #656d4a; /* Dusty Olive */
 
   /* ----------------------------------------
      BADGES & CHIPS - Semantic colored labels
@@ -584,10 +584,10 @@ html[data-theme="dark"] {
   --info: var(--color-info-500);
 }
 
-/* Widget backgrounds - slate gray for feeding, backlog, schedule, verse */
+/* Widget backgrounds - Khaki Beige for feeding, backlog, schedule, verse */
 :root {
-  --color-widget-bg: #5e6d74;
-  --color-schedule-bg: #5e6d74;
+  --color-widget-bg: #b6ad90;
+  --color-schedule-bg: #b6ad90;
 }
 
 html[data-theme="dark"] {

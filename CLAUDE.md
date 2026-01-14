@@ -65,12 +65,12 @@ To remove [COLLAB]: `./dev-tracker.sh collab <id> off`
 
 ## CRITICAL: Deployment Rules
 
-**CURRENT MODE: Deploy to BOTH dev and prod**
-(User said "deploy to prod and dev until further notice")
+**CURRENT MODE: Deploy to DEV only**
+Only deploy to prod when the user explicitly asks.
 
-Run both deploy scripts after completing changes:
+Run deploy script after completing changes:
 ```bash
-/home/n0mad1k/Tools/levi/deploy-dev.sh && /home/n0mad1k/Tools/levi/deploy.sh
+/home/n0mad1k/Tools/levi/deploy-dev.sh
 ```
 
 ### Server Layout (SAME PHYSICAL SERVER)

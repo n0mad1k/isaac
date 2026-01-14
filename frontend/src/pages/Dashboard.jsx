@@ -136,10 +136,10 @@ function Dashboard() {
         <div className="flex items-start justify-between gap-2 lg:contents">
           {/* Left - Date/Time */}
           <div className="flex-shrink-0 min-w-0">
-            <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: '#5e6d74' }}>
+            <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: '#582f0e' }}>
               {format(currentTime, 'EEE, MMM d')}
             </h1>
-            <div className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-mono" style={{ color: '#5e6d74' }}>
+            <div className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-mono" style={{ color: '#582f0e' }}>
               {format(currentTime, 'h:mm')}
               <span className="text-sm sm:text-lg md:text-base lg:text-xl">{format(currentTime, ':ss a')}</span>
             </div>
@@ -152,28 +152,28 @@ function Dashboard() {
               value={data?.stats?.total_plants || 0}
               icon={Leaf}
               color="green"
-              bgColor="#a2a9a3"
+              bgColor="#a4ac86"
             />
             <StatsCard
               title="Animals"
               value={data?.stats?.total_animals || 0}
               icon={PawPrint}
               color="blue"
-              bgColor="#d7c3b2"
+              bgColor="#a68a64"
             />
             <StatsCard
               title="Tasks"
               value={data?.stats?.tasks_today || 0}
               icon={ListTodo}
               color="yellow"
-              bgColor="#5e6d74"
+              bgColor="#656d4a"
             />
             <StatsCard
               title="Overdue"
               value={data?.stats?.tasks_overdue || 0}
               icon={Clock}
               color={data?.stats?.tasks_overdue > 0 ? 'red' : 'green'}
-              bgColor="#cfae95"
+              bgColor="#936639"
             />
           </div>
         </div>
@@ -219,7 +219,8 @@ function Dashboard() {
           {data?.backlog_tasks && data.backlog_tasks.length > 0 && (
             <div className="rounded-xl overflow-hidden"
                  style={{
-                   backgroundColor: '#d7c3b2'
+                   backgroundColor: '#b6ad90',
+                   border: '1px solid #7f4f24'
                  }}>
               <button
                 onClick={() => {
@@ -232,14 +233,14 @@ function Dashboard() {
                 onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <div className="flex items-center gap-2">
-                  <Archive className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-                  <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Backlog</span>
-                  <span className="text-xs font-normal" style={{ color: 'var(--text-faint)' }}>({data.backlog_tasks.length})</span>
+                  <Archive className="w-4 h-4" style={{ color: '#7f4f24' }} />
+                  <span className="text-sm font-semibold" style={{ color: '#582f0e' }}>Backlog</span>
+                  <span className="text-xs font-normal" style={{ color: '#656d4a' }}>({data.backlog_tasks.length})</span>
                 </div>
                 {backlogCollapsed ? (
-                  <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                  <ChevronDown className="w-4 h-4" style={{ color: '#7f4f24' }} />
                 ) : (
-                  <ChevronUp className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                  <ChevronUp className="w-4 h-4" style={{ color: '#7f4f24' }} />
                 )}
               </button>
               {!backlogCollapsed && (
@@ -249,8 +250,8 @@ function Dashboard() {
                       key={task.id}
                       className="p-2 rounded-lg"
                       style={{
-                        backgroundColor: 'transparent',
-                        borderLeft: '3px solid var(--text-muted)'
+                        backgroundColor: '#a68a64',
+                        borderLeft: '3px solid #7f4f24'
                       }}
                     >
                       <div className="flex items-center gap-2">
@@ -266,21 +267,21 @@ function Dashboard() {
                           className="flex-shrink-0 focus:outline-none"
                           title="Complete"
                         >
-                          <Circle className="w-4 h-4 hover:opacity-80" style={{ color: 'var(--text-muted)' }} />
+                          <Circle className="w-4 h-4 hover:opacity-80" style={{ color: '#582f0e' }} />
                         </button>
-                        <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                        <span className="text-sm font-medium truncate" style={{ color: '#333d29' }}>
                           {task.title}
                         </span>
                         {/* Location badge */}
                         {task.linked_location && (
-                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: '#a2a9a3', color: '#1a1a1a' }}>
+                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: '#a4ac86', color: '#333d29' }}>
                             <MapPin className="w-3 h-3" />
                             {task.linked_location}
                           </span>
                         )}
-                        {/* Vehicle/Equipment badge (orange) */}
+                        {/* Vehicle/Equipment badge */}
                         {task.linked_entity && (
-                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0 bg-orange-900/50 text-orange-300">
+                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: '#936639', color: '#c2c5aa' }}>
                             <Wrench className="w-3 h-3" />
                             {task.linked_entity}
                           </span>
@@ -296,7 +297,7 @@ function Dashboard() {
                             }
                           }}
                           className="flex-shrink-0 px-1.5 py-0.5 text-xs rounded flex items-center gap-1"
-                          style={{ backgroundColor: '#bec6c2', color: '#1a1a1a' }}
+                          style={{ backgroundColor: '#a4ac86', color: '#333d29' }}
                           title="Move to Today"
                         >
                           <ArrowUp className="w-3 h-3" />
@@ -305,7 +306,7 @@ function Dashboard() {
                       </div>
                       {/* Description (shows animal names for grouped tasks) */}
                       {task.description && (
-                        <p className="text-xs mt-1 ml-6 truncate" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs mt-1 ml-6 truncate" style={{ color: '#656d4a' }}>
                           {task.description}
                         </p>
                       )}

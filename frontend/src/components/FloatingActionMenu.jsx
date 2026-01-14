@@ -116,9 +116,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 onClick={handleHardRefresh}
                 className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
-                  backgroundColor: '#dfcbb4',
-                  border: '2px solid #a17f66',
-                  color: '#1a1a1a'
+                  backgroundColor: '#b6ad90',
+                  border: '2px solid #7f4f24',
+                  color: '#582f0e'
                 }}
                 title="Hard Refresh"
               >
@@ -131,9 +131,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 onClick={handleOpenFeedback}
                 className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
-                  backgroundColor: '#dfcbb4',
-                  border: '2px solid #a17f66',
-                  color: '#1a1a1a'
+                  backgroundColor: '#b6ad90',
+                  border: '2px solid #7f4f24',
+                  color: '#582f0e'
                 }}
                 title="Submit Feedback"
               >
@@ -146,9 +146,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 onClick={handleToggleKeyboard}
                 className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
-                  backgroundColor: '#dfcbb4',
-                  border: '2px solid #a17f66',
-                  color: '#1a1a1a'
+                  backgroundColor: '#b6ad90',
+                  border: '2px solid #7f4f24',
+                  color: '#582f0e'
                 }}
                 title="Toggle Keyboard"
               >
@@ -164,9 +164,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
           onClick={() => setExpanded(!expanded)}
           className="p-4 rounded-full shadow-lg transition-all duration-200 active:scale-95 touch-manipulation"
           style={{
-            backgroundColor: expanded ? 'var(--color-error-600)' : '#dfcbb4',
-            border: '2px solid #a17f66',
-            color: expanded ? 'white' : '#1a1a1a',
+            backgroundColor: expanded ? '#582f0e' : '#414833',
+            border: '2px solid #7f4f24',
+            color: '#c2c5aa',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             minWidth: '56px',
             minHeight: '56px'

@@ -1,16 +1,17 @@
 import React from 'react'
 
 function StatsCard({ title, value, icon: Icon, color = 'green', subtitle, bgColor }) {
-  // Consistent styling for all stats cards
-  const iconColor = '#1a1a1a'  // Match weather widget text
-  const iconBgColor = '#f0e2d3'  // Match app background
-  const textColor = '#1a1a1a'
+  // Earthy palette - Dark Walnut text, Dry Sage icon background
+  const iconColor = '#582f0e'  // Dark Walnut
+  const iconBgColor = '#c2c5aa'  // Dry Sage (matches app background)
+  const textColor = '#582f0e'  // Dark Walnut
 
   return (
     <div
       className="rounded-lg p-2"
       style={{
-        backgroundColor: bgColor || '#d7c3b2',
+        backgroundColor: bgColor || '#b6ad90',
+        border: '1px solid #7f4f24',
         boxShadow: 'var(--shadow-sm)'
       }}
     >

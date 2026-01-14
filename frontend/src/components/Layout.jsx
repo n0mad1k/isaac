@@ -226,7 +226,7 @@ function Layout() {
 
       {/* Mobile Dropdown Menu - fixed to work with fixed header */}
       {mobileMenuOpen && (
-        <div className={`md:hidden fixed left-0 right-0 z-40 max-h-[70vh] overflow-y-auto ${isDevInstance ? 'top-[84px]' : 'top-14'}`} style={{ backgroundColor: 'var(--color-nav-bg, #1f2937)', borderBottom: '1px solid #1a1a1a' }}>
+        <div className={`md:hidden fixed left-0 right-0 z-40 max-h-[70vh] overflow-y-auto ${isDevInstance ? 'top-[84px]' : 'top-14'}`} style={{ backgroundColor: 'var(--color-nav-bg, #414833)', borderBottom: '1px solid #7f4f24' }}>
           <nav className="grid grid-cols-4 gap-1 p-2">
             {navItems.map((item) => (
               <NavLink
@@ -280,7 +280,7 @@ function Layout() {
         </nav>
 
         {/* Bottom section - Settings, Dev, User (expandable) */}
-        <div className="pt-1 flex flex-col items-center" style={{ borderTop: '1px solid #1a1a1a' }}>
+        <div className="pt-1 flex flex-col items-center" style={{ borderTop: '1px solid #7f4f24' }}>
           {/* Expanded options */}
           {mobileMenuOpen && (
             <>
