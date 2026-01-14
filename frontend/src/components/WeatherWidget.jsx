@@ -131,17 +131,17 @@ function WeatherWidget({ weather, className = '' }) {
           </div>
         </div>
 
-        {/* High/Low with red/blue colors */}
+        {/* High/Low colors */}
         <div className="text-right">
           <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" style={{ color: '#dc2626' }} />
-            <span className="font-semibold" style={{ color: '#dc2626' }}>
+            <TrendingUp className="w-3 h-3" style={{ color: '#738f9d' }} />
+            <span className="font-semibold" style={{ color: '#738f9d' }}>
               {weather.temp_high_today ? Math.round(weather.temp_high_today) : '--'}°
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <TrendingDown className="w-3 h-3" style={{ color: '#2563eb' }} />
-            <span className="font-semibold" style={{ color: '#2563eb' }}>
+            <TrendingDown className="w-3 h-3" style={{ color: '#093d57' }} />
+            <span className="font-semibold" style={{ color: '#093d57' }}>
               {weather.temp_low_today ? Math.round(weather.temp_low_today) : '--'}°
             </span>
           </div>
@@ -203,10 +203,10 @@ function WeatherWidget({ weather, className = '' }) {
                 </div>
                 <div className="flex justify-center gap-1 text-sm">
                   {day.high && (
-                    <span className="font-semibold" style={{ color: getTempColor(day.high) }}>{day.high}°</span>
+                    <span className="font-semibold" style={{ color: '#738f9d' }}>{day.high}°</span>
                   )}
                   {day.low && (
-                    <span style={{ color: getTempColor(day.low) }}>{day.low}°</span>
+                    <span style={{ color: '#093d57' }}>{day.low}°</span>
                   )}
                 </div>
                 <div className="text-[10px] leading-tight line-clamp-2 mt-1"

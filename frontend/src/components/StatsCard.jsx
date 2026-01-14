@@ -2,8 +2,8 @@ import React from 'react'
 
 function StatsCard({ title, value, icon: Icon, color = 'green', subtitle, bgColor }) {
   // Consistent styling for all stats cards
-  const iconColor = '#a2a9a3'
-  const iconBgColor = '#5e6d74'
+  const iconColor = '#1a1a1a'  // Match weather widget text
+  const iconBgColor = '#111827'  // Match dashboard background (bg-gray-900)
   const textColor = '#1a1a1a'
 
   return (
