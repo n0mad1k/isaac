@@ -93,7 +93,7 @@ function AnimalFeedWidget({ animals, className = '' }) {
       <div
         key={key}
         className="rounded px-3 py-2"
-        style={{ backgroundColor: '#cb936a' }}
+        style={{ backgroundColor: 'transparent' }}
       >
         {/* Single row that can wrap */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

@@ -89,7 +89,7 @@ function WeatherWidget({ weather, className = '' }) {
   // Static background color
   const getWidgetBackground = () => {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-    return isDark ? '#374151' : '#c2c9cd'
+    return isDark ? '#374151' : '#f0e2d3'
   }
 
   const getForecastIcon = (forecast) => {
