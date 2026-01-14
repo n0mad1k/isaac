@@ -165,8 +165,7 @@ function AnimalFeedWidget({ animals, className = '' }) {
   return (
     <div className={`rounded-xl p-4 flex flex-col min-h-0 ${className}`}
          style={{
-           backgroundColor: '#d7c3b2',
-           border: '1px solid var(--border-color)'
+           backgroundColor: '#d7c3b2'
          }}>
       <div className="flex items-center gap-2 mb-3 flex-shrink-0">
         <PawPrint className="w-5 h-5" style={{ color: 'var(--info)' }} />

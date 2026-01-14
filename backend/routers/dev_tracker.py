@@ -51,9 +51,9 @@ class ItemResponse(BaseModel):
     fail_note: Optional[str]
     fail_count: Optional[int]
     requires_collab: Optional[bool] = False  # When True, Claude must work interactively with user
-    created_at: datetime
-    updated_at: datetime
-    completed_at: Optional[datetime]
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
     is_archived: Optional[bool] = False
     archived_at: Optional[datetime] = None
 

@@ -71,8 +71,7 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
 
   // Container styles based on fillContainer prop
   const containerStyle = {
-    backgroundColor: '#d7c3b2',
-    border: '1px solid var(--border-color)'
+    backgroundColor: '#d7c3b2'
   }
 
   const containerClasses = fillContainer

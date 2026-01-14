@@ -31,8 +31,7 @@ function BibleVerse() {
     return (
       <div className="w-full rounded-lg p-2 md:p-3 lg:p-4"
            style={{
-             backgroundColor: '#d7c3b2',
-             border: '1px solid var(--border-color)'
+             backgroundColor: '#d7c3b2'
            }}>
         <div className="flex items-center justify-center gap-2">
           <Book className="w-4 h-4 md:w-5 md:h-5" style={{ color: 'var(--accent-gold)' }} />
@@ -45,8 +44,7 @@ function BibleVerse() {
   return (
     <div className="w-full rounded-lg p-2 md:p-3 lg:p-4"
          style={{
-           backgroundColor: '#d7c3b2',
-           border: '1px solid var(--border-color)'
+           backgroundColor: '#d7c3b2'
          }}>
       <div className="flex items-start gap-2 md:gap-3">
         <Book className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--accent-gold)' }} />

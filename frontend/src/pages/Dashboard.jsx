@@ -219,8 +219,7 @@ function Dashboard() {
           {data?.backlog_tasks && data.backlog_tasks.length > 0 && (
             <div className="rounded-xl overflow-hidden"
                  style={{
-                   backgroundColor: '#d7c3b2',
-                   border: '1px solid var(--border-color)'
+                   backgroundColor: '#d7c3b2'
                  }}>
               <button
                 onClick={() => {

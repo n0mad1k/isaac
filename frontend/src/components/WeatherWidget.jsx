@@ -116,8 +116,7 @@ function WeatherWidget({ weather, className = '' }) {
   return (
     <div className={`rounded-xl p-4 shadow-lg flex flex-col overflow-hidden ${className}`}
          style={{
-           background: getWidgetBackground(),
-           border: '1px solid var(--border-color)'
+           background: getWidgetBackground()
          }}>
       <div className="flex items-center justify-between">
         {/* Main temp and icon */}

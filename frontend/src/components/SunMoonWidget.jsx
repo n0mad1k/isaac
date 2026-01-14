@@ -80,8 +80,7 @@ function SunMoonWidget({ data, className = '' }) {
     <div
       className={`rounded-lg p-3 flex flex-col justify-center ${className}`}
       style={{
-        backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#f0e2d3',
-        border: '1px solid var(--color-border-default)'
+        backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#f0e2d3'
       }}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
