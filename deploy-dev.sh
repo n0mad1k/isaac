@@ -5,8 +5,19 @@
 SSH_KEY="/home/n0mad1k/.ssh/levi"
 REMOTE="n0mad1k@levi.local"
 REMOTE_PATH="/opt/isaac"
+LOCAL_PATH="/home/n0mad1k/Tools/levi"
 
 echo "=== Deploying to Dev (Isaac) ==="
+
+# Auto-commit any uncommitted changes
+cd $LOCAL_PATH
+if [[ -n $(git status --porcelain) ]]; then
+    echo "Committing uncommitted changes..."
+    git add -A
+    VERSION=$(cat VERSION)
+    git commit -m "v${VERSION} - Auto-commit before dev deploy"
+    echo "Changes committed."
+fi
 
 # Security: Run dependency audits (warnings only, don't block deploy)
 echo "Running security audit on Python dependencies..."

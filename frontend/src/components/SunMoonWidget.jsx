@@ -80,7 +80,7 @@ function SunMoonWidget({ data, className = '' }) {
     <div
       className={`rounded-lg p-3 flex flex-col justify-center ${className}`}
       style={{
-        backgroundColor: 'var(--color-bg-surface-soft)',
+        backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#c2c9cd',
         border: '1px solid var(--color-border-default)'
       }}
     >

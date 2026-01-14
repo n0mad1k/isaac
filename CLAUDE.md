@@ -14,6 +14,7 @@
 2. Use meaningful commit messages describing what was changed
 3. This provides rollback capability if something breaks
 4. Do NOT include "Claude" or AI references in commit messages
+5. Deploy scripts auto-commit if there are uncommitted changes (safety net)
 
 ## Dev Tracker Workflow
 
@@ -48,12 +49,13 @@ To remove [COLLAB]: `./dev-tracker.sh collab <id> off`
 
 ## CRITICAL: Deployment Rules
 
-**⚠️ NEVER DEPLOY TO PRODUCTION UNLESS THE USER EXPLICITLY ASKS YOU TO ⚠️**
+**CURRENT MODE: Deploy to BOTH dev and prod**
+(User said "deploy to prod and dev until further notice")
 
-- Do NOT run `deploy.sh` without explicit user permission
-- Do NOT run any rsync/scp to `/opt/levi/` without explicit permission
-- When making code changes, they stay LOCAL until the user says to deploy
-- If database model changes are needed, document them but do NOT apply to prod
+Run both deploy scripts after completing changes:
+```bash
+/home/n0mad1k/Tools/levi/deploy-dev.sh && /home/n0mad1k/Tools/levi/deploy.sh
+```
 
 ### Server Layout (SAME PHYSICAL SERVER)
 Both environments run on the same Pi (192.168.5.56 / levi.local):

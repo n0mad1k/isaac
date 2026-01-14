@@ -86,57 +86,10 @@ function WeatherWidget({ weather, className = '' }) {
     return '#3b82f6'                   // blue-500 - freezing
   }
 
-  // Get background gradient based on conditions - theme aware
+  // Static background color
   const getWidgetBackground = () => {
-    const temp = weather.temperature
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-
-    if (weather.rain_rate > 0) {
-      // Rainy - blue tones
-      return isDark
-        ? 'linear-gradient(to bottom right, #1e3a5f, #1e293b)'
-        : 'linear-gradient(to bottom right, #bfdbfe, #93c5fd)' // light blue
-    }
-    if (temp >= 95) {
-      // Extreme heat - red/orange
-      return isDark
-        ? 'linear-gradient(to bottom right, #7c2d12, #1e293b)'
-        : 'linear-gradient(to bottom right, #fecaca, #fca5a5)' // light red
-    }
-    if (temp >= 85) {
-      // Hot - amber/orange
-      return isDark
-        ? 'linear-gradient(to bottom right, #78350f, #1e293b)'
-        : 'linear-gradient(to bottom right, #fed7aa, #fdba74)' // light orange
-    }
-    if (temp >= 75) {
-      // Warm - light yellow/amber
-      return isDark
-        ? 'linear-gradient(to bottom right, #422006, #1e293b)'
-        : 'linear-gradient(to bottom right, #fef3c7, #fde68a)' // light yellow
-    }
-    if (temp <= 32) {
-      // Freezing - icy blue
-      return isDark
-        ? 'linear-gradient(to bottom right, #1e3a5f, #0f172a)'
-        : 'linear-gradient(to bottom right, #cffafe, #a5f3fc)' // light cyan/ice
-    }
-    if (temp <= 45) {
-      // Cold - cool blue
-      return isDark
-        ? 'linear-gradient(to bottom right, #164e63, #1e293b)'
-        : 'linear-gradient(to bottom right, #e0f2fe, #bae6fd)' // light sky blue
-    }
-    if (temp <= 55) {
-      // Cool - teal/cyan
-      return isDark
-        ? 'linear-gradient(to bottom right, #134e4a, #1e293b)'
-        : 'linear-gradient(to bottom right, #ccfbf1, #99f6e4)' // light teal
-    }
-    // Default (56-74) - pleasant neutral (gray)
-    return isDark
-      ? 'linear-gradient(to bottom right, #374151, #1f2937)' // gray-700 to gray-800
-      : 'linear-gradient(to bottom right, #c2c9cd, #a8afb3)' // cool gray
+    return isDark ? '#374151' : '#c2c9cd'
   }
 
   const getForecastIcon = (forecast) => {
