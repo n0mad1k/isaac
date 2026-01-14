@@ -3,8 +3,8 @@ import React from 'react'
 function StatsCard({ title, value, icon: Icon, color = 'green', subtitle, bgColor }) {
   // Consistent styling for all stats cards
   const iconColor = '#a2a9a3'
-  const iconBgColor = '#f0e2d3'
-  const textColor = '#a17f66'
+  const iconBgColor = '#5e6d74'
+  const textColor = '#1a1a1a'
 
   return (
     <div
