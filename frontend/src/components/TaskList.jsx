@@ -28,10 +28,9 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
   }
 
   const getPriorityStyles = (priority) => {
-    // All task/reminder cards use light beige, dark gold border (e-paper)
     return {
-      borderLeft: '3px solid #8a6f3b',
-      backgroundColor: '#c4b199'
+      borderLeft: '3px solid var(--color-border-default)',
+      backgroundColor: 'var(--color-bg-surface-soft)'
     }
   }
 
@@ -51,10 +50,10 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
     }
   }
 
-  // Container styles based on fillContainer prop - Warm tan with dark gold border (e-paper)
+  // Container styles based on fillContainer prop
   const containerStyle = {
-    backgroundColor: '#d4b483',
-    border: '1px solid #8a6f3b'
+    backgroundColor: 'var(--color-bg-surface)',
+    border: '1px solid var(--color-border-default)'
   }
 
   const containerClasses = fillContainer
@@ -64,8 +63,8 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
   if (!tasks || tasks.length === 0) {
     return (
       <div className={containerClasses} style={containerStyle}>
-        <h2 className="text-base font-semibold mb-3 flex-shrink-0" style={{ color: '#2d2316' }}>{title}</h2>
-        <div className="text-center py-4 flex-1 flex flex-col items-center justify-center" style={{ color: '#887f67' }}>
+        <h2 className="text-base font-semibold mb-3 flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>{title}</h2>
+        <div className="text-center py-4 flex-1 flex flex-col items-center justify-center" style={{ color: 'var(--color-text-muted)' }}>
           <Check className="w-8 h-8 mx-auto mb-1 opacity-50" />
           <p className="text-sm">No tasks!</p>
         </div>
@@ -85,9 +84,9 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
   const hiddenCompletedCount = completedTasks.length - maxVisibleCompleted
 
   const renderTask = (task) => {
-    // Events get special styling (muted taupe), tasks use priority-based styling (e-paper)
+    // Events get special styling, tasks use priority-based styling
     const taskStyles = task.task_type === 'event'
-      ? { borderLeft: '4px solid #887f67', backgroundColor: '#ad8b6f' }
+      ? { borderLeft: '4px solid var(--color-teal-600)', backgroundColor: 'var(--color-bg-surface-muted)' }
       : getPriorityStyles(task.priority)
 
     return (
@@ -104,60 +103,60 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
             disabled={task.task_type === 'event'}
           >
             {task.is_completed ? (
-              <Check className="w-5 h-5" style={{ color: '#887f67' }} />
+              <Check className="w-5 h-5" style={{ color: 'var(--color-success-600)' }} />
             ) : (
               <Circle className={`w-5 h-5 hover:opacity-80`}
-                      style={{ color: task.task_type === 'event' ? '#887f67' : '#4b3b2f' }} />
+                      style={{ color: task.task_type === 'event' ? 'var(--color-text-muted)' : 'var(--color-text-secondary)' }} />
             )}
           </button>
           <span
             className={`font-medium ${task.is_completed ? 'line-through' : ''}`}
-            style={{ color: task.is_completed ? '#887f67' : '#2d2316' }}
+            style={{ color: task.is_completed ? 'var(--color-text-muted)' : 'var(--color-text-primary)' }}
           >
             {task.title}
           </span>
           {/* Linked location (farm area) */}
           {task.linked_location && (
-            <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: '#ad8b6f', color: '#2d2316' }}>
+            <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-primary)' }}>
               <MapPin className="w-3 h-3" />
               {task.linked_location}
             </span>
           )}
           {/* Linked entity (vehicle/equipment) */}
           {task.linked_entity && (
-            <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: '#6f4b2a', color: '#c4b199' }}>
+            <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--color-gold-700)', color: 'var(--color-text-inverse)' }}>
               <Wrench className="w-3 h-3" />
               {task.linked_entity}
             </span>
           )}
           {/* Overdue badge */}
           {isOverdue(task) && (
-            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded uppercase" style={{ backgroundColor: '#731f1f', color: '#c4b199' }}>
+            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded uppercase" style={{ backgroundColor: 'var(--color-error-600)', color: 'var(--color-text-inverse)' }}>
               Overdue
             </span>
           )}
           {/* Time on same line */}
           {(task.due_time || task.end_time) && (
-            <span className="text-xs flex items-center gap-1" style={{ color: '#887f67' }}>
+            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
               <Clock className="w-3 h-3" />
               {formatTime(task.due_time)}{task.end_time && ` - ${formatTime(task.end_time)}`}
             </span>
           )}
           {/* Location on same line */}
           {task.location && (
-            <span className="text-xs flex items-center gap-1" style={{ color: '#887f67' }}>
+            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
               <MapPin className="w-3 h-3" />
               {task.location}
             </span>
           )}
           {/* Priority indicator */}
           {task.priority === 1 && !task.is_completed && (
-            <AlertCircle className="w-4 h-4 flex-shrink-0 ml-auto" style={{ color: '#731f1f' }} />
+            <AlertCircle className="w-4 h-4 flex-shrink-0 ml-auto" style={{ color: 'var(--color-error-600)' }} />
           )}
         </div>
         {/* Second line: notes/description if available */}
         {task.description && (
-          <p className="text-sm mt-1 ml-7 truncate" style={{ color: '#887f67' }}>
+          <p className="text-sm mt-1 ml-7 truncate" style={{ color: 'var(--color-text-muted)' }}>
             {task.description}
           </p>
         )}
@@ -172,7 +171,7 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
 
   return (
     <div className={containerClasses} style={containerStyle}>
-      <h2 className="text-base font-semibold mb-3 flex-shrink-0" style={{ color: '#2d2316' }}>{title}</h2>
+      <h2 className="text-base font-semibold mb-3 flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>{title}</h2>
       <div className={listClasses}>
         {/* Render incomplete tasks first */}
         {incompleteTasks.map(renderTask)}
@@ -186,8 +185,8 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
             onClick={() => setShowAllCompleted(!showAllCompleted)}
             className="w-full py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
             style={{
-              backgroundColor: '#ad8b6f',
-              color: '#2d2316'
+              backgroundColor: 'var(--color-bg-surface-muted)',
+              color: 'var(--color-text-primary)'
             }}
           >
             {showAllCompleted ? (
@@ -197,7 +196,7 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
               </>
             ) : (
               <>
-                <Check className="w-4 h-4" style={{ color: '#887f67' }} />
+                <Check className="w-4 h-4" style={{ color: 'var(--color-success-600)' }} />
                 {hiddenCompletedCount} more completed
                 <ChevronDown className="w-4 h-4" />
               </>

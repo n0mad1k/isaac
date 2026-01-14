@@ -116,9 +116,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 onClick={handleHardRefresh}
                 className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
-                  backgroundColor: '#d4b483',
-                  border: '2px solid #8a6f3b',
-                  color: '#2d2316'
+                  backgroundColor: 'var(--color-bg-surface)',
+                  border: '2px solid var(--color-border-default)',
+                  color: 'var(--color-text-primary)'
                 }}
                 title="Hard Refresh"
               >
@@ -131,9 +131,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 onClick={handleOpenFeedback}
                 className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
-                  backgroundColor: '#d4b483',
-                  border: '2px solid #8a6f3b',
-                  color: '#2d2316'
+                  backgroundColor: 'var(--color-bg-surface)',
+                  border: '2px solid var(--color-border-default)',
+                  color: 'var(--color-text-primary)'
                 }}
                 title="Submit Feedback"
               >
@@ -146,9 +146,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 onClick={handleToggleKeyboard}
                 className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
-                  backgroundColor: '#d4b483',
-                  border: '2px solid #8a6f3b',
-                  color: '#2d2316'
+                  backgroundColor: 'var(--color-bg-surface)',
+                  border: '2px solid var(--color-border-default)',
+                  color: 'var(--color-text-primary)'
                 }}
                 title="Toggle Keyboard"
               >
@@ -164,9 +164,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
           onClick={() => setExpanded(!expanded)}
           className="p-4 rounded-full shadow-lg transition-all duration-200 active:scale-95 touch-manipulation"
           style={{
-            backgroundColor: expanded ? '#6f4b2a' : '#4b3b2f',
-            border: '2px solid #8a6f3b',
-            color: '#c4b199',
+            backgroundColor: expanded ? 'var(--color-green-700)' : 'var(--color-nav-bg)',
+            border: '2px solid var(--color-border-strong)',
+            color: 'var(--color-text-inverse)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             minWidth: '56px',
             minHeight: '56px'

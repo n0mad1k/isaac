@@ -136,10 +136,10 @@ function Dashboard() {
         <div className="flex items-start justify-between gap-2 lg:contents">
           {/* Left - Date/Time */}
           <div className="flex-shrink-0 min-w-0">
-            <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: '#2d2316' }}>
+            <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
               {format(currentTime, 'EEE, MMM d')}
             </h1>
-            <div className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-mono" style={{ color: '#2d2316' }}>
+            <div className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-mono" style={{ color: 'var(--color-text-primary)' }}>
               {format(currentTime, 'h:mm')}
               <span className="text-sm sm:text-lg md:text-base lg:text-xl">{format(currentTime, ':ss a')}</span>
             </div>
@@ -152,28 +152,24 @@ function Dashboard() {
               value={data?.stats?.total_plants || 0}
               icon={Leaf}
               color="green"
-              bgColor="#d4b483"
             />
             <StatsCard
               title="Animals"
               value={data?.stats?.total_animals || 0}
               icon={PawPrint}
               color="blue"
-              bgColor="#ad8b6f"
             />
             <StatsCard
               title="Tasks"
               value={data?.stats?.tasks_today || 0}
               icon={ListTodo}
               color="yellow"
-              bgColor="#a68d78"
             />
             <StatsCard
               title="Overdue"
               value={data?.stats?.tasks_overdue || 0}
               icon={Clock}
               color={data?.stats?.tasks_overdue > 0 ? 'red' : 'green'}
-              bgColor="#887f67"
             />
           </div>
         </div>
@@ -219,8 +215,8 @@ function Dashboard() {
           {data?.backlog_tasks && data.backlog_tasks.length > 0 && (
             <div className="rounded-xl overflow-hidden"
                  style={{
-                   backgroundColor: '#d4b483',
-                   border: '1px solid #8a6f3b'
+                   backgroundColor: 'var(--color-bg-surface)',
+                   border: '1px solid var(--color-border-default)'
                  }}>
               <button
                 onClick={() => {
@@ -229,18 +225,18 @@ function Dashboard() {
                 }}
                 className="w-full p-2 px-3 flex items-center justify-between transition-colors"
                 style={{ backgroundColor: 'transparent' }}
-                onMouseOver={e => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)'}
+                onMouseOver={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-surface-hover)'}
                 onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <div className="flex items-center gap-2">
-                  <Archive className="w-4 h-4" style={{ color: '#6f4b2a' }} />
-                  <span className="text-sm font-semibold" style={{ color: '#2d2316' }}>Backlog</span>
-                  <span className="text-xs font-normal" style={{ color: '#887f67' }}>({data.backlog_tasks.length})</span>
+                  <Archive className="w-4 h-4" style={{ color: 'var(--color-gold-600)' }} />
+                  <span className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Backlog</span>
+                  <span className="text-xs font-normal" style={{ color: 'var(--color-text-muted)' }}>({data.backlog_tasks.length})</span>
                 </div>
                 {backlogCollapsed ? (
-                  <ChevronDown className="w-4 h-4" style={{ color: '#6f4b2a' }} />
+                  <ChevronDown className="w-4 h-4" style={{ color: 'var(--color-gold-600)' }} />
                 ) : (
-                  <ChevronUp className="w-4 h-4" style={{ color: '#6f4b2a' }} />
+                  <ChevronUp className="w-4 h-4" style={{ color: 'var(--color-gold-600)' }} />
                 )}
               </button>
               {!backlogCollapsed && (
@@ -250,8 +246,8 @@ function Dashboard() {
                       key={task.id}
                       className="p-2 rounded-lg"
                       style={{
-                        backgroundColor: '#c4b199',
-                        borderLeft: '3px solid #8a6f3b'
+                        backgroundColor: 'var(--color-bg-surface-soft)',
+                        borderLeft: '3px solid var(--color-border-default)'
                       }}
                     >
                       <div className="flex items-center gap-2">
@@ -267,21 +263,21 @@ function Dashboard() {
                           className="flex-shrink-0 focus:outline-none"
                           title="Complete"
                         >
-                          <Circle className="w-4 h-4 hover:opacity-80" style={{ color: '#4b3b2f' }} />
+                          <Circle className="w-4 h-4 hover:opacity-80" style={{ color: 'var(--color-text-secondary)' }} />
                         </button>
-                        <span className="text-sm font-medium truncate" style={{ color: '#2d2316' }}>
+                        <span className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
                           {task.title}
                         </span>
                         {/* Location badge */}
                         {task.linked_location && (
-                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: '#ad8b6f', color: '#2d2316' }}>
+                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-primary)' }}>
                             <MapPin className="w-3 h-3" />
                             {task.linked_location}
                           </span>
                         )}
                         {/* Vehicle/Equipment badge */}
                         {task.linked_entity && (
-                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: '#6f4b2a', color: '#c4b199' }}>
+                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: 'var(--color-gold-700)', color: 'var(--color-text-inverse)' }}>
                             <Wrench className="w-3 h-3" />
                             {task.linked_entity}
                           </span>
@@ -297,7 +293,7 @@ function Dashboard() {
                             }
                           }}
                           className="flex-shrink-0 px-1.5 py-0.5 text-xs rounded flex items-center gap-1"
-                          style={{ backgroundColor: '#ad8b6f', color: '#2d2316' }}
+                          style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-primary)' }}
                           title="Move to Today"
                         >
                           <ArrowUp className="w-3 h-3" />
@@ -306,7 +302,7 @@ function Dashboard() {
                       </div>
                       {/* Description (shows animal names for grouped tasks) */}
                       {task.description && (
-                        <p className="text-xs mt-1 ml-6 truncate" style={{ color: '#887f67' }}>
+                        <p className="text-xs mt-1 ml-6 truncate" style={{ color: 'var(--color-text-muted)' }}>
                           {task.description}
                         </p>
                       )}

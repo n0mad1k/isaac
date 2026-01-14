@@ -16,246 +16,242 @@
    Cream/parchment backgrounds with proper contrast
    ============================================ */
 :root {
-  /* ----------------------------------------
-     SURFACE COLORS - E-paper parchment palette
-     ---------------------------------------- */
-  --color-bg-app: #c4b199;           /* Main app background - Light beige/parchment */
-  --color-bg-surface: #d4b483;       /* Cards, panels - Warm tan/wheat */
-  --color-bg-surface-soft: #c4b199;  /* Secondary surfaces - Light beige */
-  --color-bg-surface-muted: #ad8b6f; /* Tertiary surfaces - Muted taupe */
-  --color-bg-surface-hover: #a68d78; /* Hover state backgrounds - Warm gray/taupe */
-  --color-bg-surface-active: #887f67; /* Active/pressed state backgrounds - Olive gray */
-  --color-bg-overlay: rgba(0, 0, 0, 0.5); /* Modal overlays */
-  --color-bg-tooltip: #4b3b2f;       /* Tooltip backgrounds - Dark coffee */
+  /* ===========================
+     SURFACE COLORS (Paper)
+     =========================== */
+  --color-bg-app: #f5f3ee;               /* Main paper background */
+  --color-bg-surface: #fbfaf7;           /* Cards */
+  --color-bg-surface-soft: #f0ede6;      /* Secondary */
+  --color-bg-surface-muted: #e8e4da;     /* Tertiary */
+  --color-bg-surface-hover: #e3dfd4;
+  --color-bg-surface-active: #d9d4c8;
+  --color-bg-overlay: rgba(40, 38, 32, 0.25);
+  --color-bg-tooltip: #2b2a26;
 
-  /* ----------------------------------------
-     BORDER COLORS - Warm brown borders
-     ---------------------------------------- */
-  --color-border-subtle: #a68d78;    /* Subtle dividers - Warm gray/taupe */
-  --color-border-default: #8a6f3b;   /* Standard borders - Dark gold/olive */
-  --color-border-strong: #6f4b2a;    /* Emphasized borders - Dark brown */
-  --color-border-focus: #8a6f3b;     /* Focus ring color - Dark gold/olive */
+  /* ===========================
+     BORDER COLORS
+     =========================== */
+  --color-border-subtle: #d8d3c7;
+  --color-border-default: #c9c3b6;
+  --color-border-strong: #a79f90;
+  --color-border-focus: #6f8f72;
 
-  /* ----------------------------------------
-     TEXT COLORS - Carbon e-paper feel
-     ---------------------------------------- */
-  --color-text-primary: #2d2316;     /* Primary text - Carbon black */
-  --color-text-secondary: #4b3b2f;   /* Secondary text - Dark coffee */
-  --color-text-muted: #887f67;       /* Muted/helper text - Olive gray */
-  --color-text-disabled: #a68d78;    /* Disabled text - Warm gray/taupe */
-  --color-text-inverse: #c4b199;     /* Text on dark backgrounds - Light beige */
-  --color-text-link: #6f4b2a;        /* Link text - Dark brown */
-  --color-text-link-hover: #731f1f;  /* Link hover - Deep burgundy */
+  /* ===========================
+     TEXT COLORS (Ink)
+     =========================== */
+  --color-text-primary: #2b2a26;          /* Carbon ink */
+  --color-text-secondary: #4a483f;
+  --color-text-muted: #7a7568;
+  --color-text-disabled: #a6a092;
+  --color-text-inverse: #fbfaf7;
+  --color-text-link: #4f7b5b;
+  --color-text-link-hover: #3e6448;
 
-  /* ----------------------------------------
-     PRIMARY GREEN RAMP - Olive/taupe tones for e-paper
-     ---------------------------------------- */
-  --color-green-900: #2d2316;
-  --color-green-800: #4b3b2f;
-  --color-green-700: #6f4b2a;
-  --color-green-600: #887f67;
-  --color-green-500: #a68d78;
-  --color-green-400: #ad8b6f;
-  --color-green-300: #c4b199;
-  --color-green-200: #d4b483;
-  --color-green-100: #d4b483;
+  /* ===========================
+     GREEN RAMP (Life)
+     =========================== */
+  --color-green-900: #1f3d2b;
+  --color-green-800: #2e5740;
+  --color-green-700: #3e7054;
+  --color-green-600: #4f8a67;
+  --color-green-500: #6aa07d;
+  --color-green-400: #8cb69a;
+  --color-green-300: #b2cec0;
+  --color-green-200: #d3e4db;
+  --color-green-100: #edf5f1;
 
-  /* ----------------------------------------
-     GOLD/BROWN ACCENT RAMP - Warm browns
-     ---------------------------------------- */
-  --color-gold-800: #6f4b2a;
-  --color-gold-700: #8a6f3b;
-  --color-gold-600: #ad8b6f;
-  --color-gold-500: #a68d78;
-  --color-gold-400: #c4b199;
-  --color-gold-300: #d4b483;
-  --color-gold-200: #d4b483;
-  --color-gold-100: #d4b483;
+  /* ===========================
+     GOLD / BROWN (Harvest / Time)
+     =========================== */
+  --color-gold-800: #6b5326;
+  --color-gold-700: #8a6a33;
+  --color-gold-600: #a78343;
+  --color-gold-500: #c09b5a;
+  --color-gold-400: #d6b87e;
+  --color-gold-300: #e6d3ad;
+  --color-gold-200: #f0e6cc;
+  --color-gold-100: #faf6ec;
 
-  /* ----------------------------------------
-     TEAL ACCENT RAMP - Tertiary accent
-     ---------------------------------------- */
-  --color-teal-800: #1F4A46;
-  --color-teal-700: #2F5F5A;
-  --color-teal-600: #3E7A74;
-  --color-teal-500: #5C9C95;
-  --color-teal-400: #82B9B3;
-  --color-teal-300: #B2D6D1;
-  --color-teal-200: #D4EAE7;
-  --color-teal-100: #EAF5F4;
+  /* ===========================
+     TEAL (Water / Weather)
+     =========================== */
+  --color-teal-800: #214c4d;
+  --color-teal-700: #2f6667;
+  --color-teal-600: #3f7f80;
+  --color-teal-500: #559899;
+  --color-teal-400: #78b2b3;
+  --color-teal-300: #a2cece;
+  --color-teal-200: #cfe6e6;
+  --color-teal-100: #edf6f6;
 
-  /* ----------------------------------------
-     SEMANTIC COLORS - Status & Feedback (E-paper)
-     ---------------------------------------- */
-  /* Success - Olive gray */
-  --color-success-700: #4b3b2f;
-  --color-success-600: #887f67;
-  --color-success-500: #887f67;
-  --color-success-400: #a68d78;
-  --color-success-bg: #c4b199;
-  --color-success-border: #887f67;
+  /* ===========================
+     SEMANTIC STATUS COLORS
+     =========================== */
+  /* Success */
+  --color-success-700: #2f6b47;
+  --color-success-600: #3f8a5d;
+  --color-success-500: #5aa77a;
+  --color-success-400: #86c3a0;
+  --color-success-bg: #e7f3ec;
+  --color-success-border: #9dcfb2;
 
-  /* Warning - Dark gold/olive */
-  --color-warning-700: #6f4b2a;
-  --color-warning-600: #8a6f3b;
-  --color-warning-500: #ad8b6f;
-  --color-warning-400: #c4b199;
-  --color-warning-bg: #d4b483;
-  --color-warning-border: #8a6f3b;
+  /* Warning */
+  --color-warning-700: #8a5b2d;
+  --color-warning-600: #a06f3a;
+  --color-warning-500: #ba874f;
+  --color-warning-400: #d2a576;
+  --color-warning-bg: #f4ebdd;
+  --color-warning-border: #e1c39a;
 
-  /* Error - Deep burgundy */
-  --color-error-700: #731f1f;
-  --color-error-600: #731f1f;
-  --color-error-500: #8a3a3a;
-  --color-error-400: #ad8b6f;
-  --color-error-bg: #c4b199;
-  --color-error-border: #731f1f;
+  /* Error */
+  --color-error-700: #7a3a32;
+  --color-error-600: #944a3f;
+  --color-error-500: #ad5e52;
+  --color-error-400: #c98980;
+  --color-error-bg: #f4e6e4;
+  --color-error-border: #ddb1aa;
 
-  /* Info - Olive gray */
-  --color-info-700: #4b3b2f;
-  --color-info-600: #887f67;
-  --color-info-500: #887f67;
-  --color-info-400: #a68d78;
-  --color-info-bg: #c4b199;
-  --color-info-border: #887f67;
+  /* Info */
+  --color-info-700: #355b63;
+  --color-info-600: #467580;
+  --color-info-500: #5e8f9a;
+  --color-info-400: #89b1ba;
+  --color-info-bg: #e6f0f3;
+  --color-info-border: #b3d2da;
 
-  /* ----------------------------------------
-     INTERACTIVE COLORS - Buttons & Controls (E-paper)
-     ---------------------------------------- */
-  /* Primary button - Dark coffee */
-  --color-btn-primary-bg: #4b3b2f;
-  --color-btn-primary-bg-hover: #6f4b2a;
-  --color-btn-primary-bg-active: #2d2316;
-  --color-btn-primary-text: #c4b199;
-  --color-btn-primary-border: #4b3b2f;
+  /* ===========================
+     BUTTONS
+     =========================== */
+  --color-btn-primary-bg: var(--color-green-600);
+  --color-btn-primary-bg-hover: var(--color-green-700);
+  --color-btn-primary-bg-active: var(--color-green-800);
+  --color-btn-primary-text: #ffffff;
+  --color-btn-primary-border: var(--color-green-800);
 
-  /* Secondary button */
-  --color-btn-secondary-bg: #c4b199;
-  --color-btn-secondary-bg-hover: #ad8b6f;
-  --color-btn-secondary-bg-active: #a68d78;
-  --color-btn-secondary-text: #2d2316;
-  --color-btn-secondary-border: #8a6f3b;
+  --color-btn-secondary-bg: var(--color-bg-surface-soft);
+  --color-btn-secondary-bg-hover: var(--color-bg-surface-hover);
+  --color-btn-secondary-bg-active: var(--color-bg-surface-active);
+  --color-btn-secondary-text: var(--color-text-primary);
+  --color-btn-secondary-border: var(--color-border-default);
 
-  /* Ghost/text button */
   --color-btn-ghost-bg: transparent;
-  --color-btn-ghost-bg-hover: #c4b199;
-  --color-btn-ghost-bg-active: #ad8b6f;
-  --color-btn-ghost-text: #4b3b2f;
+  --color-btn-ghost-bg-hover: var(--color-bg-surface-hover);
+  --color-btn-ghost-bg-active: var(--color-bg-surface-active);
+  --color-btn-ghost-text: var(--color-text-secondary);
 
-  /* Danger button - Deep burgundy */
-  --color-btn-danger-bg: #731f1f;
-  --color-btn-danger-bg-hover: #8a3a3a;
-  --color-btn-danger-bg-active: #5a1818;
-  --color-btn-danger-text: #c4b199;
-  --color-btn-danger-border: #731f1f;
+  --color-btn-danger-bg: var(--color-error-500);
+  --color-btn-danger-bg-hover: var(--color-error-600);
+  --color-btn-danger-bg-active: var(--color-error-700);
+  --color-btn-danger-text: #ffffff;
+  --color-btn-danger-border: var(--color-error-700);
 
-  /* ----------------------------------------
-     FORM CONTROLS - E-paper parchment
-     ---------------------------------------- */
-  --color-input-bg: #d4b483;
-  --color-input-bg-hover: #c4b199;
-  --color-input-bg-focus: #d4b483;
-  --color-input-bg-disabled: #ad8b6f;
-  --color-input-border: #8a6f3b;
-  --color-input-border-hover: #6f4b2a;
-  --color-input-border-focus: #4b3b2f;
-  --color-input-text: #2d2316;
-  --color-input-placeholder: #887f67;
+  /* ===========================
+     FORM CONTROLS
+     =========================== */
+  --color-input-bg: var(--color-bg-surface);
+  --color-input-bg-hover: var(--color-bg-surface-soft);
+  --color-input-bg-focus: var(--color-bg-surface);
+  --color-input-bg-disabled: var(--color-bg-surface-muted);
+  --color-input-border: var(--color-border-default);
+  --color-input-border-hover: var(--color-border-strong);
+  --color-input-border-focus: var(--color-border-focus);
+  --color-input-text: var(--color-text-primary);
+  --color-input-placeholder: var(--color-text-muted);
 
   /* Checkbox/Radio */
-  --color-checkbox-bg: #d4b483;
-  --color-checkbox-border: #8a6f3b;
-  --color-checkbox-checked-bg: #4b3b2f;
-  --color-checkbox-checked-border: #2d2316;
-  --color-checkbox-checkmark: #c4b199;
+  --color-checkbox-bg: var(--color-bg-surface);
+  --color-checkbox-border: var(--color-border-default);
+  --color-checkbox-checked-bg: var(--color-green-600);
+  --color-checkbox-checked-border: var(--color-green-700);
+  --color-checkbox-checkmark: #ffffff;
 
   /* Toggle/Switch */
-  --color-toggle-bg: #ad8b6f;
-  --color-toggle-bg-checked: #4b3b2f;
-  --color-toggle-knob: #d4b483;
+  --color-toggle-bg: var(--color-border-default);
+  --color-toggle-bg-checked: var(--color-green-600);
+  --color-toggle-knob: #ffffff;
 
-  /* ----------------------------------------
-     NAVIGATION - Dark coffee/carbon nav
-     ---------------------------------------- */
-  --color-nav-bg: #4b3b2f;           /* Navigation bar background - Dark coffee */
-  --color-nav-item-text: #c4b199;    /* Light beige for contrast */
-  --color-nav-item-text-hover: #d4b483;
-  --color-nav-item-text-active: #d4b483;
-  --color-nav-item-bg-hover: #6f4b2a; /* Dark brown */
-  --color-nav-item-bg-active: #6f4b2a; /* Dark brown */
+  /* ===========================
+     NAVIGATION
+     =========================== */
+  --color-nav-bg: #2b2a26;
+  --color-nav-item-text: #c9c3b6;
+  --color-nav-item-text-hover: #fbfaf7;
+  --color-nav-item-text-active: #8cb69a;
+  --color-nav-item-bg-hover: #3a3832;
+  --color-nav-item-bg-active: #3a3832;
 
-  /* ----------------------------------------
-     BADGES & CHIPS - Semantic colored labels
-     ---------------------------------------- */
+  /* ===========================
+     BADGES & CHIPS
+     =========================== */
   /* Success badge */
-  --color-badge-success-bg: #4F8A5B;
-  --color-badge-success-text: #FFFFFF;
+  --color-badge-success-bg: #3f8a5d;
+  --color-badge-success-text: #ffffff;
 
   /* Warning badge */
-  --color-badge-warning-bg: #C48F2A;
-  --color-badge-warning-text: #FFFFFF;
+  --color-badge-warning-bg: #a06f3a;
+  --color-badge-warning-text: #ffffff;
 
   /* Error badge */
-  --color-badge-error-bg: #A24E3D;
-  --color-badge-error-text: #FFFFFF;
+  --color-badge-error-bg: #944a3f;
+  --color-badge-error-text: #ffffff;
 
   /* Info badge */
-  --color-badge-info-bg: #4F7F7A;
-  --color-badge-info-text: #FFFFFF;
+  --color-badge-info-bg: #467580;
+  --color-badge-info-text: #ffffff;
 
   /* Neutral badge */
-  --color-badge-neutral-bg: #6F7F6F;
-  --color-badge-neutral-text: #FFFFFF;
+  --color-badge-neutral-bg: #7a7568;
+  --color-badge-neutral-text: #ffffff;
 
-  /* Category badges - for plant tags, etc. */
-  --color-badge-green-bg: #3E6646;
-  --color-badge-green-text: #FFFFFF;
+  /* Category badges */
+  --color-badge-green-bg: #3e7054;
+  --color-badge-green-text: #ffffff;
 
-  --color-badge-purple-bg: #5B4B6B;
-  --color-badge-purple-text: #FFFFFF;
+  --color-badge-purple-bg: #6b5a7a;
+  --color-badge-purple-text: #ffffff;
 
-  --color-badge-cyan-bg: #3E7A74;
-  --color-badge-cyan-text: #FFFFFF;
+  --color-badge-cyan-bg: #3f7f80;
+  --color-badge-cyan-text: #ffffff;
 
-  --color-badge-amber-bg: #A88234;
-  --color-badge-amber-text: #FFFFFF;
+  --color-badge-amber-bg: #a78343;
+  --color-badge-amber-text: #ffffff;
 
-  --color-badge-red-bg: #A24E3D;
-  --color-badge-red-text: #FFFFFF;
+  --color-badge-red-bg: #944a3f;
+  --color-badge-red-text: #ffffff;
 
-  --color-badge-pink-bg: #8B4B6B;
-  --color-badge-pink-text: #FFFFFF;
+  --color-badge-pink-bg: #8b5a6b;
+  --color-badge-pink-text: #ffffff;
 
-  --color-badge-lime-bg: #4B6B3B;
-  --color-badge-lime-text: #FFFFFF;
+  --color-badge-lime-bg: #4a7040;
+  --color-badge-lime-text: #ffffff;
 
-  --color-badge-blue-bg: #4B5B8B;
-  --color-badge-blue-text: #FFFFFF;
+  --color-badge-blue-bg: #4a5a7a;
+  --color-badge-blue-text: #ffffff;
 
-  --color-badge-orange-bg: #A8623A;
-  --color-badge-orange-text: #FFFFFF;
+  --color-badge-orange-bg: #a06040;
+  --color-badge-orange-text: #ffffff;
 
-  --color-badge-teal-bg: #3E6A66;
-  --color-badge-teal-text: #FFFFFF;
+  --color-badge-teal-bg: #3a6a66;
+  --color-badge-teal-text: #ffffff;
 
-  /* ----------------------------------------
-     CHARTS & DATA VISUALIZATION
-     ---------------------------------------- */
-  --color-chart-1: #4F7D57;  /* Primary green */
-  --color-chart-2: #C2A14D;  /* Gold */
-  --color-chart-3: #5C9C95;  /* Teal */
-  --color-chart-4: #A24E3D;  /* Terracotta */
-  --color-chart-5: #6B5B7B;  /* Muted purple */
-  --color-chart-6: #8B6B4B;  /* Brown */
-  --color-chart-grid: #C6CEB8;
-  --color-chart-axis: #6F7F6F;
+  /* ===========================
+     CHARTS
+     =========================== */
+  --color-chart-1: #4f8a67;
+  --color-chart-2: #78b2b3;
+  --color-chart-3: #c09b5a;
+  --color-chart-4: #ad5e52;
+  --color-chart-5: #8a6a33;
+  --color-chart-6: #5e8f9a;
+  --color-chart-grid: #d8d3c7;
+  --color-chart-axis: #7a7568;
 
-  /* ----------------------------------------
-     SCROLLBAR - E-paper browns
-     ---------------------------------------- */
-  --color-scrollbar-track: #c4b199;
-  --color-scrollbar-thumb: #8a6f3b;
-  --color-scrollbar-thumb-hover: #6f4b2a;
+  /* ===========================
+     SCROLLBAR
+     =========================== */
+  --color-scrollbar-track: #ebe7dd;
+  --color-scrollbar-thumb: #b7b0a1;
+  --color-scrollbar-thumb-hover: #9f9788;
 
   /* ----------------------------------------
      SHADOWS
@@ -584,10 +580,10 @@ html[data-theme="dark"] {
   --info: var(--color-info-500);
 }
 
-/* Widget backgrounds - Warm tan for feeding, backlog, schedule, verse */
+/* Widget backgrounds */
 :root {
-  --color-widget-bg: #d4b483;
-  --color-schedule-bg: #d4b483;
+  --color-widget-bg: var(--color-bg-surface);
+  --color-schedule-bg: var(--color-bg-surface);
 }
 
 html[data-theme="dark"] {

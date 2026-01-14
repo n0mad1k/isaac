@@ -93,20 +93,20 @@ function AnimalFeedWidget({ animals, className = '' }) {
       <div
         key={key}
         className="rounded px-3 py-2"
-        style={{ backgroundColor: '#c4b199' }}
+        style={{ backgroundColor: 'var(--color-bg-surface-soft)' }}
       >
         {/* Single row that can wrap */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {/* 1. Name */}
-          <span className="font-semibold text-base" style={{ color: '#2d2316' }}>
+          <span className="font-semibold text-base" style={{ color: 'var(--color-text-primary)' }}>
             {name}
           </span>
 
           {/* 2. Color + Type (e.g., "Black Dog") */}
           {colorType && (
             <>
-              <span style={{ color: '#887f67' }}>·</span>
-              <span className="text-sm" style={{ color: '#887f67' }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>·</span>
+              <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 {colorType}
               </span>
             </>
@@ -115,8 +115,8 @@ function AnimalFeedWidget({ animals, className = '' }) {
           {/* 3. Location if present */}
           {location && (
             <>
-              <span style={{ color: '#887f67' }}>·</span>
-              <span className="text-sm flex items-center gap-1 flex-shrink-0" style={{ color: '#887f67' }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>·</span>
+              <span className="text-sm flex items-center gap-1 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
                 <MapPin className="w-4 h-4" />
                 {location}
               </span>
@@ -124,8 +124,8 @@ function AnimalFeedWidget({ animals, className = '' }) {
           )}
 
           {/* 4. Feeds: amount, type, frequency */}
-          <span style={{ color: '#887f67' }}>·</span>
-          <span className="text-base" style={{ color: '#4b3b2f' }}>
+          <span style={{ color: 'var(--color-text-muted)' }}>·</span>
+          <span className="text-base" style={{ color: 'var(--color-text-secondary)' }}>
             {feeds.map((feed, idx) => (
               <span key={idx}>
                 {[feed.amount, feed.feed_type, feed.frequency].filter(Boolean).join(' ')}
@@ -151,8 +151,8 @@ function AnimalFeedWidget({ animals, className = '' }) {
           {/* 6. Special instructions inline */}
           {specialInstructions && (
             <>
-              <span style={{ color: '#887f67' }}>·</span>
-              <span className="text-sm" style={{ color: '#6f4b2a' }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>·</span>
+              <span className="text-sm" style={{ color: 'var(--color-warning-600)' }}>
                 {specialInstructions}
               </span>
             </>
@@ -165,12 +165,12 @@ function AnimalFeedWidget({ animals, className = '' }) {
   return (
     <div className={`rounded-xl p-4 flex flex-col min-h-0 ${className}`}
          style={{
-           backgroundColor: '#d4b483',
-           border: '1px solid #8a6f3b'
+           backgroundColor: 'var(--color-bg-surface)',
+           border: '1px solid var(--color-border-default)'
          }}>
       <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-        <PawPrint className="w-5 h-5" style={{ color: '#6f4b2a' }} />
-        <h2 className="text-base font-semibold" style={{ color: '#2d2316' }}>Feeding Guide</h2>
+        <PawPrint className="w-5 h-5" style={{ color: 'var(--color-gold-600)' }} />
+        <h2 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>Feeding Guide</h2>
       </div>
 
       <div className="space-y-2 flex-1 min-h-0 overflow-y-auto">

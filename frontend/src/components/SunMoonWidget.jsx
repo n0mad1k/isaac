@@ -80,31 +80,31 @@ function SunMoonWidget({ data, className = '' }) {
     <div
       className={`rounded-lg p-3 flex flex-col justify-center ${className}`}
       style={{
-        backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#374151' : '#d4b483',
-        border: '1px solid #8a6f3b'
+        backgroundColor: 'var(--color-bg-surface)',
+        border: '1px solid var(--color-border-default)'
       }}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Sun Section */}
         <div className="flex flex-wrap items-center gap-3">
           {data.is_daytime ? (
-            <Sun className="w-5 h-5" style={{ color: '#8a6f3b' }} />
+            <Sun className="w-5 h-5" style={{ color: 'var(--color-gold-500)' }} />
           ) : (
-            <Moon className="w-5 h-5" style={{ color: '#887f67' }} />
+            <Moon className="w-5 h-5" style={{ color: 'var(--color-teal-600)' }} />
           )}
           {/* Sunrise (civil dawn - when you can see outside) */}
           <div className="flex items-center gap-1.5" title="Sunrise - when you can see outside">
-            <Sunrise className="w-4 h-4" style={{ color: '#8a6f3b' }} />
-            <span className="text-sm" style={{ color: '#2d2316' }}>{data.sunrise}</span>
+            <Sunrise className="w-4 h-4" style={{ color: 'var(--color-gold-500)' }} />
+            <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{data.sunrise}</span>
           </div>
           {/* Sunset (civil dusk - when it goes dark) */}
           <div className="flex items-center gap-1.5" title="Sunset - when it goes dark">
-            <Sunset className="w-4 h-4" style={{ color: '#6f4b2a' }} />
-            <span className="text-sm" style={{ color: '#2d2316' }}>{data.sunset}</span>
+            <Sunset className="w-4 h-4" style={{ color: 'var(--color-gold-700)' }} />
+            <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{data.sunset}</span>
           </div>
           {/* Countdown */}
           {timeUntilNext && (
-            <span className="text-sm font-medium flex items-center gap-1" style={{ color: '#6f4b2a' }}>
+            <span className="text-sm font-medium flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
               <Clock className="w-4 h-4" />
               {timeUntilNext}
             </span>
@@ -115,8 +115,8 @@ function SunMoonWidget({ data, className = '' }) {
         <div className="flex items-center gap-2">
           <span className="text-xl">{data.moon_emoji}</span>
           <div className="text-right">
-            <div className="text-sm" style={{ color: '#2d2316' }}>{data.moon_phase}</div>
-            <div className="text-xs" style={{ color: '#887f67' }}>Illumination {data.moon_illumination}%</div>
+            <div className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{data.moon_phase}</div>
+            <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Illumination {data.moon_illumination}%</div>
           </div>
         </div>
       </div>
