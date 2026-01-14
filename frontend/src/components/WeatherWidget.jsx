@@ -186,7 +186,7 @@ function WeatherWidget({ weather, className = '' }) {
         {forecastLoading ? (
           <div className="flex gap-1">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex-1 h-24 rounded animate-pulse" style={{ backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#4b5563' : '#b3bac0' }}></div>
+              <div key={i} className="flex-1 h-24 rounded animate-pulse" style={{ backgroundColor: 'transparent' }}></div>
             ))}
           </div>
         ) : forecast ? (
@@ -195,7 +195,7 @@ function WeatherWidget({ weather, className = '' }) {
               <div
                 key={index}
                 className="rounded p-2 text-center flex flex-col justify-between"
-                style={{ backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#4b5563' : '#b3bac0' }}
+                style={{ backgroundColor: 'transparent' }}
               >
                 <div className="text-xs font-medium truncate" style={{ color: '#1a1a1a' }}>{day.name}</div>
                 <div className="my-1 flex justify-center items-center">
