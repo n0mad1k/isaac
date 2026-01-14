@@ -80,7 +80,7 @@ function Settings() {
     display: false,
     bible: false,
     storage: false,
-    myFeedback: false
+    myFeedback: true
   })
 
   // Fields that should be treated as passwords
