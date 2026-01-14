@@ -28,10 +28,10 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
   }
 
   const getPriorityStyles = (priority) => {
-    // All task/reminder cards use #cab1a2 background, same border as backlog
+    // All task/reminder cards use overdue counter background (#cfae95), same border as backlog
     return {
       borderLeft: '3px solid var(--text-muted)',
-      backgroundColor: '#cab1a2'
+      backgroundColor: '#cfae95'
     }
   }
 
