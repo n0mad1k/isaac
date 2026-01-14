@@ -102,9 +102,9 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
   const hiddenCompletedCount = completedTasks.length - maxVisibleCompleted
 
   const renderTask = (task) => {
-    // Events get special styling (plants counter color), tasks use priority-based styling
+    // Events get special styling, tasks use priority-based styling
     const taskStyles = task.task_type === 'event'
-      ? { borderLeft: '4px solid #a2a9a3', backgroundColor: '#a2a9a3' }
+      ? { borderLeft: '4px solid #bec6c2', backgroundColor: '#bec6c2' }
       : getPriorityStyles(task.priority)
 
     return (
