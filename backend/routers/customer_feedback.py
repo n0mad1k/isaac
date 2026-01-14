@@ -312,11 +312,12 @@ async def review_feedback(
             )
             db.add(tracker_item)
             await db.commit()
+            await db.refresh(tracker_item)
 
-            # Update prod feedback status
+            # Update prod feedback status with link to dev tracker item
             cursor.execute(
-                "UPDATE customer_feedback SET status = 'approved', reviewed_at = ? WHERE id = ?",
-                (datetime.utcnow().isoformat(), feedback_id)
+                "UPDATE customer_feedback SET status = 'approved', reviewed_at = ?, dev_tracker_item_id = ? WHERE id = ?",
+                (datetime.utcnow().isoformat(), tracker_item.id, feedback_id)
             )
             conn.commit()
             conn.close()
@@ -478,14 +479,14 @@ async def get_my_feedback(
 ):
     """Get feedback submitted by the current authenticated user.
     Feedback is filtered by username or display_name matching submitted_by field.
+    Includes dev tracker progress for approved items.
     """
     # Build list of identifiers to match - username and display_name
     user_identifiers = [current_user.username]
     if current_user.display_name:
         user_identifiers.append(current_user.display_name)
 
-    # Get feedback where submitted_by matches any of the user's identifiers
-    # Exclude DISMISSED and PULLED (already processed into dev tracker)
+    # Get all feedback for user (exclude only DISMISSED and PULLED)
     from sqlalchemy import or_, and_
     result = await db.execute(
         select(CustomerFeedback)
@@ -499,20 +500,68 @@ async def get_my_feedback(
     )
     feedbacks = result.scalars().all()
 
-    return [
-        {
+    # Get dev tracker item IDs to look up their status
+    tracker_item_ids = [f.dev_tracker_item_id for f in feedbacks if f.dev_tracker_item_id]
+
+    # Query dev tracker items to get current status
+    tracker_status_map = {}
+    if tracker_item_ids:
+        tracker_result = await db.execute(
+            select(DevTrackerItem).where(DevTrackerItem.id.in_(tracker_item_ids))
+        )
+        tracker_items = tracker_result.scalars().all()
+        for item in tracker_items:
+            tracker_status_map[item.id] = {
+                "status": item.status.value if item.status else "pending",
+                "completed_at": item.completed_at.isoformat() if item.completed_at else None
+            }
+
+    # Build response with progress info
+    response = []
+    completed_count = 0
+    for f in feedbacks:
+        # Determine display status based on feedback status and dev tracker progress
+        display_status = f.status.value
+        tracker_info = None
+        is_completed = False
+
+        if f.dev_tracker_item_id and f.dev_tracker_item_id in tracker_status_map:
+            tracker_info = tracker_status_map[f.dev_tracker_item_id]
+            tracker_status = tracker_info["status"]
+
+            # Map dev tracker status to user-friendly display
+            if tracker_status in ["verified", "done"]:
+                display_status = "completed"
+                is_completed = True
+            elif tracker_status == "testing":
+                display_status = "in_testing"
+            elif tracker_status in ["pending", "in_progress"]:
+                display_status = "in_development"
+        elif f.status == FeedbackStatus.APPROVED:
+            display_status = "in_development"
+
+        # Limit completed items to last 5
+        if is_completed:
+            completed_count += 1
+            if completed_count > 5:
+                continue
+
+        response.append({
             "id": f.id,
             "title": f.title,
             "description": f.description,
             "feedback_type": f.feedback_type.value,
             "status": f.status.value,
+            "display_status": display_status,
             "admin_response": f.admin_response,
             "submitted_by": f.submitted_by,
             "created_at": f.created_at.isoformat(),
             "reviewed_at": f.reviewed_at.isoformat() if f.reviewed_at else None,
-        }
-        for f in feedbacks
-    ]
+            "completed_at": tracker_info["completed_at"] if tracker_info and tracker_info.get("completed_at") else None,
+            "dev_tracker_item_id": f.dev_tracker_item_id,
+        })
+
+    return response
 
 
 class FeedbackUpdate(BaseModel):

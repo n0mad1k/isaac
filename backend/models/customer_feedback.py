@@ -47,10 +47,14 @@ class CustomerFeedback(Base):
     # Admin response (for declined/kickback - shown to user)
     admin_response = Column(Text, nullable=True)
 
+    # Link to dev tracker item (for tracking progress)
+    dev_tracker_item_id = Column(Integer, nullable=True)
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     pulled_at = Column(DateTime, nullable=True)  # When pulled to dev tracker
     reviewed_at = Column(DateTime, nullable=True)  # When admin reviewed
+    completed_at = Column(DateTime, nullable=True)  # When dev tracker item completed
 
     def __repr__(self):
         return f"<CustomerFeedback {self.id}: {self.title}>"

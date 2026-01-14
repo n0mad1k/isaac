@@ -87,6 +87,16 @@ function DevTracker() {
     }
   }, [])
 
+  // Auto-dismiss feedback messages after 5 seconds
+  useEffect(() => {
+    if (feedbackMessage) {
+      const timer = setTimeout(() => {
+        setFeedbackMessage(null)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [feedbackMessage])
+
   const loadData = async () => {
     try {
       setLoading(true)
@@ -474,12 +484,18 @@ function DevTracker() {
 
         {/* Feedback message */}
         {feedbackMessage && (
-          <div className={`mt-3 px-3 py-2 rounded text-sm font-medium ${
-            feedbackMessage.type === 'success' ? 'bg-green-600/40 text-green-100 border border-green-500' :
-            feedbackMessage.type === 'error' ? 'bg-red-600/40 text-red-100 border border-red-500' :
-            'bg-blue-600/40 text-blue-100 border border-blue-500'
+          <div className={`mt-3 px-4 py-3 rounded text-sm font-medium flex items-center justify-between ${
+            feedbackMessage.type === 'success' ? 'bg-green-600 text-white' :
+            feedbackMessage.type === 'error' ? 'bg-red-600 text-white' :
+            'bg-blue-600 text-white'
           }`}>
-            {feedbackMessage.text}
+            <span>{feedbackMessage.text}</span>
+            <button
+              onClick={() => setFeedbackMessage(null)}
+              className="ml-3 hover:opacity-70"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 

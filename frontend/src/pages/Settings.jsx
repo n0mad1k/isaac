@@ -2250,17 +2250,19 @@ function Settings() {
                                 {fb.feedback_type}
                               </span>
                               <span className={`px-2 py-0.5 text-xs rounded-full ${
-                                fb.status === 'new' ? 'bg-yellow-600' :
-                                fb.status === 'approved' ? 'bg-green-600' :
-                                fb.status === 'declined' ? 'bg-red-600' :
-                                fb.status === 'kickback' ? 'bg-orange-600' :
-                                fb.status === 'pulled' ? 'bg-purple-600' : 'bg-gray-600'
+                                fb.display_status === 'new' ? 'bg-yellow-600' :
+                                fb.display_status === 'in_development' ? 'bg-blue-600' :
+                                fb.display_status === 'in_testing' ? 'bg-purple-600' :
+                                fb.display_status === 'completed' ? 'bg-green-600' :
+                                fb.display_status === 'declined' ? 'bg-red-600' :
+                                fb.display_status === 'kickback' ? 'bg-orange-600' : 'bg-gray-600'
                               } text-white`}>
-                                {fb.status === 'new' ? 'Pending Review' :
-                                 fb.status === 'approved' ? 'Approved' :
-                                 fb.status === 'declined' ? 'Declined' :
-                                 fb.status === 'kickback' ? 'Needs Info' :
-                                 fb.status === 'pulled' ? 'In Progress' : fb.status}
+                                {fb.display_status === 'new' ? 'Pending Review' :
+                                 fb.display_status === 'in_development' ? 'In Development' :
+                                 fb.display_status === 'in_testing' ? 'In Testing' :
+                                 fb.display_status === 'completed' ? 'Completed' :
+                                 fb.display_status === 'declined' ? 'Declined' :
+                                 fb.display_status === 'kickback' ? 'Needs Info' : fb.display_status}
                               </span>
                             </div>
                             {fb.description && (
@@ -2278,6 +2280,11 @@ function Settings() {
                             <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
                               Submitted {new Date(fb.created_at).toLocaleDateString()}
                               {fb.submitted_by && ` by ${fb.submitted_by}`}
+                              {fb.completed_at && (
+                                <span className="ml-2 text-green-500">
+                                  • Completed {new Date(fb.completed_at).toLocaleDateString()}
+                                </span>
+                              )}
                             </p>
                           </div>
                           {(fb.status === 'new' || fb.status === 'kickback') && (
