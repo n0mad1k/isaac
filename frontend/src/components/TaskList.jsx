@@ -28,28 +28,10 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
   }
 
   const getPriorityStyles = (priority) => {
-    // All task/reminder cards use #cab1a2 background, border indicates priority
-    switch (priority) {
-      case 1:
-        return {
-          borderLeft: '4px solid var(--color-error-500)',
-          backgroundColor: '#cab1a2'
-        }
-      case 2:
-        return {
-          borderLeft: '4px solid var(--color-warning-500)',
-          backgroundColor: '#cab1a2'
-        }
-      case 3:
-        return {
-          borderLeft: '4px solid var(--color-info-500)',
-          backgroundColor: '#cab1a2'
-        }
-      default:
-        return {
-          borderLeft: '4px solid var(--color-border-default)',
-          backgroundColor: '#cab1a2'
-        }
+    // All task/reminder cards use #cab1a2 background, same border as backlog
+    return {
+      borderLeft: '3px solid var(--text-muted)',
+      backgroundColor: '#cab1a2'
     }
   }
 
