@@ -20,57 +20,57 @@
      SURFACE COLORS - Earthy sage palette
      ---------------------------------------- */
   --color-bg-app: #c2c5aa;           /* Main app background - Dry Sage */
-  --color-bg-surface: #E4F0E0;       /* Cards, panels - light fern */
-  --color-bg-surface-soft: #C8DCC4;  /* Secondary surfaces - soft moss */
-  --color-bg-surface-muted: #B8D0B4; /* Tertiary surfaces - sage green */
-  --color-bg-surface-hover: #A8C4A4; /* Hover state backgrounds - deeper moss */
-  --color-bg-surface-active: #98B894; /* Active/pressed state backgrounds */
+  --color-bg-surface: #b6ad90;       /* Cards, panels - Khaki Beige */
+  --color-bg-surface-soft: #a4ac86;  /* Secondary surfaces - Darker Dry Sage */
+  --color-bg-surface-muted: #a68a64; /* Tertiary surfaces - Camel */
+  --color-bg-surface-hover: #a4ac86; /* Hover state backgrounds - Darker Dry Sage */
+  --color-bg-surface-active: #936639; /* Active/pressed state backgrounds - Toffee Brown */
   --color-bg-overlay: rgba(0, 0, 0, 0.5); /* Modal overlays */
-  --color-bg-tooltip: #1E3A28;       /* Tooltip backgrounds - deep forest */
+  --color-bg-tooltip: #414833;       /* Tooltip backgrounds - Ebony */
 
   /* ----------------------------------------
-     BORDER COLORS - Rich forest borders
+     BORDER COLORS - Earthy brown borders
      ---------------------------------------- */
-  --color-border-subtle: #A8C8A4;    /* Subtle dividers - soft fern */
-  --color-border-default: #7CA878;   /* Standard borders - forest moss */
-  --color-border-strong: #5C8858;    /* Emphasized borders - deep fern */
-  --color-border-focus: #3E6646;     /* Focus ring color - forest green */
+  --color-border-subtle: #a68a64;    /* Subtle dividers - Camel */
+  --color-border-default: #7f4f24;   /* Standard borders - Saddle Brown */
+  --color-border-strong: #582f0e;    /* Emphasized borders - Dark Walnut */
+  --color-border-focus: #936639;     /* Focus ring color - Toffee Brown */
 
   /* ----------------------------------------
-     TEXT COLORS
+     TEXT COLORS - Earthy tones
      ---------------------------------------- */
-  --color-text-primary: #212529;     /* Primary text - near black */
-  --color-text-secondary: #495057;   /* Secondary text */
-  --color-text-muted: #6C757D;       /* Muted/helper text */
-  --color-text-disabled: #ADB5BD;    /* Disabled text */
-  --color-text-inverse: #FFFFFF;     /* Text on dark backgrounds */
-  --color-text-link: #3E6646;        /* Link text */
-  --color-text-link-hover: #2E4F36;  /* Link hover */
+  --color-text-primary: #333d29;     /* Primary text - Charcoal Brown */
+  --color-text-secondary: #582f0e;   /* Secondary text - Dark Walnut */
+  --color-text-muted: #656d4a;       /* Muted/helper text - Dusty Olive */
+  --color-text-disabled: #a68a64;    /* Disabled text - Camel */
+  --color-text-inverse: #c2c5aa;     /* Text on dark backgrounds - Dry Sage */
+  --color-text-link: #7f4f24;        /* Link text - Saddle Brown */
+  --color-text-link-hover: #582f0e;  /* Link hover - Dark Walnut */
 
   /* ----------------------------------------
-     PRIMARY GREEN RAMP - Main brand color
+     PRIMARY GREEN RAMP - Earthy olive/sage tones
      ---------------------------------------- */
-  --color-green-900: #1F3A28;
-  --color-green-800: #2E4F36;
-  --color-green-700: #3E6646;
-  --color-green-600: #4F7D57;
-  --color-green-500: #6B9A74;
-  --color-green-400: #8FB59A;
-  --color-green-300: #B4D0BC;
-  --color-green-200: #D4E6D8;
-  --color-green-100: #E9F2EB;
+  --color-green-900: #333d29;
+  --color-green-800: #414833;
+  --color-green-700: #656d4a;
+  --color-green-600: #656d4a;
+  --color-green-500: #a4ac86;
+  --color-green-400: #a4ac86;
+  --color-green-300: #b6ad90;
+  --color-green-200: #c2c5aa;
+  --color-green-100: #c2c5aa;
 
   /* ----------------------------------------
-     GOLD ACCENT RAMP - Secondary accent
+     GOLD/BROWN ACCENT RAMP - Earthy browns
      ---------------------------------------- */
-  --color-gold-800: #6B4F1A;
-  --color-gold-700: #8C6A2A;
-  --color-gold-600: #A88234;
-  --color-gold-500: #C2A14D;
-  --color-gold-400: #D8BF7A;
-  --color-gold-300: #EADCB0;
-  --color-gold-200: #F4ECD0;
-  --color-gold-100: #FAF6E8;
+  --color-gold-800: #582f0e;
+  --color-gold-700: #7f4f24;
+  --color-gold-600: #936639;
+  --color-gold-500: #a68a64;
+  --color-gold-400: #b6ad90;
+  --color-gold-300: #c2c5aa;
+  --color-gold-200: #c2c5aa;
+  --color-gold-100: #c2c5aa;
 
   /* ----------------------------------------
      TEAL ACCENT RAMP - Tertiary accent
@@ -87,92 +87,92 @@
   /* ----------------------------------------
      SEMANTIC COLORS - Status & Feedback
      ---------------------------------------- */
-  /* Success - natural green */
-  --color-success-700: #3D7048;
-  --color-success-600: #4F8A5B;
-  --color-success-500: #62A46E;
-  --color-success-400: #8FC09A;
-  --color-success-bg: #E3F1E6;
-  --color-success-border: #A8D4B0;
+  /* Success - Dusty Olive */
+  --color-success-700: #414833;
+  --color-success-600: #656d4a;
+  --color-success-500: #656d4a;
+  --color-success-400: #a4ac86;
+  --color-success-bg: #a4ac86;
+  --color-success-border: #656d4a;
 
-  /* Warning - harvest gold/amber */
-  --color-warning-700: #9A7020;
-  --color-warning-600: #C48F2A;
-  --color-warning-500: #D9A33A;
-  --color-warning-400: #E0B96A;
-  --color-warning-bg: #F6EDD7;
-  --color-warning-border: #E8D4A0;
+  /* Warning - Toffee/Saddle Brown */
+  --color-warning-700: #7f4f24;
+  --color-warning-600: #936639;
+  --color-warning-500: #a68a64;
+  --color-warning-400: #b6ad90;
+  --color-warning-bg: #b6ad90;
+  --color-warning-border: #936639;
 
-  /* Error - clay/terracotta red */
-  --color-error-700: #8A3D2E;
-  --color-error-600: #A24E3D;
-  --color-error-500: #BA604D;
-  --color-error-400: #D08A7C;
-  --color-error-bg: #F3E2DE;
-  --color-error-border: #E4C4BC;
+  /* Error - Dark Walnut */
+  --color-error-700: #582f0e;
+  --color-error-600: #582f0e;
+  --color-error-500: #7f4f24;
+  --color-error-400: #936639;
+  --color-error-bg: #a68a64;
+  --color-error-border: #7f4f24;
 
-  /* Info - river/sky blue-green */
-  --color-info-700: #3A6560;
-  --color-info-600: #4F7F7A;
-  --color-info-500: #649994;
-  --color-info-400: #8FB7B2;
-  --color-info-bg: #E4F1F0;
-  --color-info-border: #B8D8D4;
+  /* Info - Dusty Olive/Ebony */
+  --color-info-700: #414833;
+  --color-info-600: #656d4a;
+  --color-info-500: #656d4a;
+  --color-info-400: #a4ac86;
+  --color-info-bg: #a4ac86;
+  --color-info-border: #656d4a;
 
   /* ----------------------------------------
      INTERACTIVE COLORS - Buttons & Controls
      ---------------------------------------- */
-  /* Primary button */
-  --color-btn-primary-bg: #4F7D57;
-  --color-btn-primary-bg-hover: #3E6646;
-  --color-btn-primary-bg-active: #2E4F36;
-  --color-btn-primary-text: #FFFFFF;
-  --color-btn-primary-border: #3E6646;
+  /* Primary button - Dusty Olive */
+  --color-btn-primary-bg: #656d4a;
+  --color-btn-primary-bg-hover: #414833;
+  --color-btn-primary-bg-active: #333d29;
+  --color-btn-primary-text: #c2c5aa;
+  --color-btn-primary-border: #414833;
 
   /* Secondary button */
-  --color-btn-secondary-bg: #EDF1E4;
-  --color-btn-secondary-bg-hover: #DDE4CF;
-  --color-btn-secondary-bg-active: #C8D2B5;
-  --color-btn-secondary-text: #4A5A4A;
-  --color-btn-secondary-border: #B7C1A9;
+  --color-btn-secondary-bg: #b6ad90;
+  --color-btn-secondary-bg-hover: #a68a64;
+  --color-btn-secondary-bg-active: #936639;
+  --color-btn-secondary-text: #333d29;
+  --color-btn-secondary-border: #7f4f24;
 
   /* Ghost/text button */
   --color-btn-ghost-bg: transparent;
-  --color-btn-ghost-bg-hover: #E6ECD9;
-  --color-btn-ghost-bg-active: #DDE4CF;
-  --color-btn-ghost-text: #4F7D57;
+  --color-btn-ghost-bg-hover: #a4ac86;
+  --color-btn-ghost-bg-active: #b6ad90;
+  --color-btn-ghost-text: #582f0e;
 
-  /* Danger button */
-  --color-btn-danger-bg: #A24E3D;
-  --color-btn-danger-bg-hover: #8A3D2E;
-  --color-btn-danger-bg-active: #722F22;
-  --color-btn-danger-text: #FFFFFF;
-  --color-btn-danger-border: #8A3D2E;
+  /* Danger button - Dark Walnut */
+  --color-btn-danger-bg: #582f0e;
+  --color-btn-danger-bg-hover: #7f4f24;
+  --color-btn-danger-bg-active: #936639;
+  --color-btn-danger-text: #c2c5aa;
+  --color-btn-danger-border: #7f4f24;
 
   /* ----------------------------------------
-     FORM CONTROLS - Rich forest
+     FORM CONTROLS - Earthy tones
      ---------------------------------------- */
-  --color-input-bg: #E8F4E4;
-  --color-input-bg-hover: #D8E8D4;
-  --color-input-bg-focus: #E8F4E4;
-  --color-input-bg-disabled: #C8D8C4;
-  --color-input-border: #7CA878;
-  --color-input-border-hover: #5C8858;
-  --color-input-border-focus: #3E6646;
-  --color-input-text: #1E3420;
-  --color-input-placeholder: #5C7C5C;
+  --color-input-bg: #c2c5aa;
+  --color-input-bg-hover: #b6ad90;
+  --color-input-bg-focus: #c2c5aa;
+  --color-input-bg-disabled: #a68a64;
+  --color-input-border: #7f4f24;
+  --color-input-border-hover: #582f0e;
+  --color-input-border-focus: #936639;
+  --color-input-text: #333d29;
+  --color-input-placeholder: #656d4a;
 
   /* Checkbox/Radio */
-  --color-checkbox-bg: #E8F4E4;
-  --color-checkbox-border: #7CA878;
-  --color-checkbox-checked-bg: #3E6646;
-  --color-checkbox-checked-border: #2E5036;
-  --color-checkbox-checkmark: #FFFFFF;
+  --color-checkbox-bg: #c2c5aa;
+  --color-checkbox-border: #7f4f24;
+  --color-checkbox-checked-bg: #656d4a;
+  --color-checkbox-checked-border: #414833;
+  --color-checkbox-checkmark: #c2c5aa;
 
   /* Toggle/Switch */
-  --color-toggle-bg: #7CA878;
-  --color-toggle-bg-checked: #3E6646;
-  --color-toggle-knob: #FFFFFF;
+  --color-toggle-bg: #a68a64;
+  --color-toggle-bg-checked: #656d4a;
+  --color-toggle-knob: #c2c5aa;
 
   /* ----------------------------------------
      NAVIGATION - Ebony dark nav
@@ -251,11 +251,11 @@
   --color-chart-axis: #6F7F6F;
 
   /* ----------------------------------------
-     SCROLLBAR - Forest green
+     SCROLLBAR - Earthy browns
      ---------------------------------------- */
-  --color-scrollbar-track: #C8DCC4;
-  --color-scrollbar-thumb: #7CA878;
-  --color-scrollbar-thumb-hover: #5C8858;
+  --color-scrollbar-track: #b6ad90;
+  --color-scrollbar-thumb: #936639;
+  --color-scrollbar-thumb-hover: #7f4f24;
 
   /* ----------------------------------------
      SHADOWS
