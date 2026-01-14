@@ -116,7 +116,8 @@ function WeatherWidget({ weather, className = '' }) {
   return (
     <div className={`rounded-xl p-4 shadow-lg flex flex-col overflow-hidden ${className}`}
          style={{
-           background: getWidgetBackground()
+           background: getWidgetBackground(),
+           border: '1px solid #a17f66'
          }}>
       <div className="flex items-center justify-between">
         {/* Main temp and icon */}
@@ -149,7 +150,7 @@ function WeatherWidget({ weather, className = '' }) {
 
       {/* Weather details - grid for mobile responsiveness */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 text-sm"
-           style={{ borderTop: '1px solid var(--border-color)' }}>
+           style={{ borderTop: '1px solid #a17f66' }}>
         <div className="flex items-center gap-1.5">
           <Thermometer className="w-4 h-4 flex-shrink-0" style={{ color: '#1a1a1a' }} />
           <span style={{ color: '#1a1a1a' }}>Feels</span>
@@ -180,7 +181,7 @@ function WeatherWidget({ weather, className = '' }) {
       )}
 
       {/* 5-Day Forecast */}
-      <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+      <div className="mt-2 pt-2" style={{ borderTop: '1px solid #a17f66' }}>
         <h3 className="text-xs font-semibold mb-2" style={{ color: '#1a1a1a' }}>5-Day Forecast</h3>
         {forecastLoading ? (
           <div className="flex gap-1">
