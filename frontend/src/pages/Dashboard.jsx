@@ -152,24 +152,28 @@ function Dashboard() {
               value={data?.stats?.total_plants || 0}
               icon={Leaf}
               color="green"
+              bgColor="#a2a9a3"
             />
             <StatsCard
               title="Animals"
               value={data?.stats?.total_animals || 0}
               icon={PawPrint}
               color="blue"
+              bgColor="#cb936a"
             />
             <StatsCard
               title="Tasks"
               value={data?.stats?.tasks_today || 0}
               icon={ListTodo}
               color="yellow"
+              bgColor="#a6b4b2"
             />
             <StatsCard
               title="Overdue"
               value={data?.stats?.tasks_overdue || 0}
               icon={Clock}
               color={data?.stats?.tasks_overdue > 0 ? 'red' : 'green'}
+              bgColor="#cfae95"
             />
           </div>
         </div>

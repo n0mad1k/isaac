@@ -1,6 +1,6 @@
 import React from 'react'
 
-function StatsCard({ title, value, icon: Icon, color = 'green', subtitle }) {
+function StatsCard({ title, value, icon: Icon, color = 'green', subtitle, bgColor }) {
   // Use CSS token variables for theme-aware colors
   const colorStyles = {
     green: {
@@ -46,7 +46,7 @@ function StatsCard({ title, value, icon: Icon, color = 'green', subtitle }) {
     <div
       className="rounded-lg p-2"
       style={{
-        backgroundColor: style.background,
+        backgroundColor: bgColor || style.background,
         border: style.border,
         boxShadow: 'var(--shadow-sm)'
       }}
