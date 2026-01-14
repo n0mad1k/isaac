@@ -3,34 +3,34 @@ import { Home, Plus, Check, Clock, AlertTriangle, ChevronDown, ChevronUp, X, Wre
 import { getHomeMaintenance, createHomeMaintenance, updateHomeMaintenance, deleteHomeMaintenance, completeHomeMaintenance, getHomeMaintenanceCategories } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 
-// Available icons for category selection
+// Available icons for category selection - using CSS variable compatible styles
 const AVAILABLE_ICONS = {
-  Waves: { icon: Waves, label: 'Pool/Water', color: 'text-sky-400', bgColor: 'bg-sky-500/20 border-sky-500/50' },
-  Wind: { icon: Wind, label: 'A/C / HVAC', color: 'text-blue-400', bgColor: 'bg-blue-500/20 border-blue-500/50' },
-  Flame: { icon: Flame, label: 'Heating / Water Heater', color: 'text-orange-400', bgColor: 'bg-orange-500/20 border-orange-500/50' },
-  Car: { icon: Car, label: 'Garage / Vehicles', color: 'text-slate-400', bgColor: 'bg-slate-500/20 border-slate-500/50' },
-  Droplets: { icon: Droplets, label: 'Plumbing', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20 border-cyan-500/50' },
-  Zap: { icon: Zap, label: 'Electrical', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20 border-yellow-500/50' },
-  ShieldCheck: { icon: ShieldCheck, label: 'Safety', color: 'text-red-400', bgColor: 'bg-red-500/20 border-red-500/50' },
-  Snowflake: { icon: Snowflake, label: 'Refrigerator/Freezer', color: 'text-blue-300', bgColor: 'bg-blue-300/20 border-blue-300/50' },
-  Fan: { icon: Fan, label: 'Ventilation', color: 'text-gray-400', bgColor: 'bg-gray-500/20 border-gray-500/50' },
-  Thermometer: { icon: Thermometer, label: 'Temperature', color: 'text-orange-300', bgColor: 'bg-orange-300/20 border-orange-300/50' },
-  Trash2: { icon: Trash2, label: 'Waste / Septic', color: 'text-amber-600', bgColor: 'bg-amber-600/20 border-amber-600/50' },
-  Shirt: { icon: Shirt, label: 'Laundry', color: 'text-indigo-400', bgColor: 'bg-indigo-500/20 border-indigo-500/50' },
-  Lightbulb: { icon: Lightbulb, label: 'Lighting', color: 'text-yellow-300', bgColor: 'bg-yellow-300/20 border-yellow-300/50' },
-  Gauge: { icon: Gauge, label: 'Meters / Gauges', color: 'text-green-400', bgColor: 'bg-green-500/20 border-green-500/50' },
-  Home: { icon: Home, label: 'General Home', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20 border-emerald-500/50' },
-  Box: { icon: Box, label: 'Storage', color: 'text-stone-400', bgColor: 'bg-stone-500/20 border-stone-500/50' },
-  Server: { icon: Server, label: 'Appliances', color: 'text-purple-400', bgColor: 'bg-purple-500/20 border-purple-500/50' },
-  Wrench: { icon: Wrench, label: 'Tools / General', color: 'text-gray-400', bgColor: 'bg-gray-500/20 border-gray-500/50' },
-  Settings: { icon: Settings, label: 'General', color: 'text-gray-400', bgColor: 'bg-gray-500/20 border-gray-500/50' },
+  Waves: { icon: Waves, label: 'Pool/Water', colorVar: '--color-teal-600', bgColorVar: '--color-teal-100' },
+  Wind: { icon: Wind, label: 'A/C / HVAC', colorVar: '--color-info-600', bgColorVar: '--color-info-bg' },
+  Flame: { icon: Flame, label: 'Heating / Water Heater', colorVar: '--color-warning-600', bgColorVar: '--color-warning-bg' },
+  Car: { icon: Car, label: 'Garage / Vehicles', colorVar: '--color-text-secondary', bgColorVar: '--color-bg-surface-muted' },
+  Droplets: { icon: Droplets, label: 'Plumbing', colorVar: '--color-teal-600', bgColorVar: '--color-teal-100' },
+  Zap: { icon: Zap, label: 'Electrical', colorVar: '--color-gold-600', bgColorVar: '--color-gold-100' },
+  ShieldCheck: { icon: ShieldCheck, label: 'Safety', colorVar: '--color-error-600', bgColorVar: '--color-error-bg' },
+  Snowflake: { icon: Snowflake, label: 'Refrigerator/Freezer', colorVar: '--color-info-600', bgColorVar: '--color-info-bg' },
+  Fan: { icon: Fan, label: 'Ventilation', colorVar: '--color-text-muted', bgColorVar: '--color-bg-surface-muted' },
+  Thermometer: { icon: Thermometer, label: 'Temperature', colorVar: '--color-warning-600', bgColorVar: '--color-warning-bg' },
+  Trash2: { icon: Trash2, label: 'Waste / Septic', colorVar: '--color-gold-700', bgColorVar: '--color-gold-100' },
+  Shirt: { icon: Shirt, label: 'Laundry', colorVar: '--color-info-600', bgColorVar: '--color-info-bg' },
+  Lightbulb: { icon: Lightbulb, label: 'Lighting', colorVar: '--color-gold-500', bgColorVar: '--color-gold-100' },
+  Gauge: { icon: Gauge, label: 'Meters / Gauges', colorVar: '--color-green-600', bgColorVar: '--color-green-100' },
+  Home: { icon: Home, label: 'General Home', colorVar: '--color-green-600', bgColorVar: '--color-green-100' },
+  Box: { icon: Box, label: 'Storage', colorVar: '--color-text-muted', bgColorVar: '--color-bg-surface-muted' },
+  Server: { icon: Server, label: 'Appliances', colorVar: '--color-badge-purple-bg', bgColorVar: '--color-bg-surface-muted' },
+  Wrench: { icon: Wrench, label: 'Tools / General', colorVar: '--color-text-muted', bgColorVar: '--color-bg-surface-muted' },
+  Settings: { icon: Settings, label: 'General', colorVar: '--color-text-muted', bgColorVar: '--color-bg-surface-muted' },
 }
 
 const STATUS_COLORS = {
-  ok: 'text-green-400',
-  due_soon: 'text-yellow-400',
-  overdue: 'text-red-400',
-  unknown: 'text-gray-400',
+  ok: '--color-success-600',
+  due_soon: '--color-warning-600',
+  overdue: '--color-error-600',
+  unknown: '--color-text-muted',
 }
 
 function HomeMaintenance() {
@@ -236,25 +236,25 @@ function HomeMaintenance() {
       const iconConfig = AVAILABLE_ICONS[savedIcon]
       return {
         icon: iconConfig.icon,
-        color: iconConfig.color,
-        bgColor: iconConfig.bgColor
+        colorVar: iconConfig.colorVar,
+        bgColorVar: iconConfig.bgColorVar
       }
     }
     // Check for keyword matches in category name
     const catLower = category.toLowerCase()
-    if (catLower.includes('pool') || catLower.includes('water')) return { icon: Waves, color: 'text-sky-400', bgColor: 'bg-sky-500/20 border-sky-500/50' }
-    if (catLower.includes('hvac') || catLower.includes('a/c') || catLower.includes('air')) return { icon: Wind, color: 'text-blue-400', bgColor: 'bg-blue-500/20 border-blue-500/50' }
-    if (catLower.includes('heat') || catLower.includes('water heater')) return { icon: Flame, color: 'text-orange-400', bgColor: 'bg-orange-500/20 border-orange-500/50' }
-    if (catLower.includes('garage') || catLower.includes('vehicle')) return { icon: Car, color: 'text-slate-400', bgColor: 'bg-slate-500/20 border-slate-500/50' }
-    if (catLower.includes('plumb')) return { icon: Droplets, color: 'text-cyan-400', bgColor: 'bg-cyan-500/20 border-cyan-500/50' }
-    if (catLower.includes('electric')) return { icon: Zap, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20 border-yellow-500/50' }
-    if (catLower.includes('safety') || catLower.includes('smoke') || catLower.includes('fire')) return { icon: ShieldCheck, color: 'text-red-400', bgColor: 'bg-red-500/20 border-red-500/50' }
-    if (catLower.includes('appliance') || catLower.includes('dishwasher') || catLower.includes('fridge')) return { icon: Server, color: 'text-purple-400', bgColor: 'bg-purple-500/20 border-purple-500/50' }
-    if (catLower.includes('exterior') || catLower.includes('roof') || catLower.includes('gutter')) return { icon: Home, color: 'text-emerald-400', bgColor: 'bg-emerald-500/20 border-emerald-500/50' }
-    if (catLower.includes('septic') || catLower.includes('waste')) return { icon: Trash2, color: 'text-amber-600', bgColor: 'bg-amber-600/20 border-amber-600/50' }
-    if (catLower.includes('laundry')) return { icon: Shirt, color: 'text-indigo-400', bgColor: 'bg-indigo-500/20 border-indigo-500/50' }
+    if (catLower.includes('pool') || catLower.includes('water')) return { icon: Waves, colorVar: '--color-teal-600', bgColorVar: '--color-teal-100' }
+    if (catLower.includes('hvac') || catLower.includes('a/c') || catLower.includes('air')) return { icon: Wind, colorVar: '--color-info-600', bgColorVar: '--color-info-bg' }
+    if (catLower.includes('heat') || catLower.includes('water heater')) return { icon: Flame, colorVar: '--color-warning-600', bgColorVar: '--color-warning-bg' }
+    if (catLower.includes('garage') || catLower.includes('vehicle')) return { icon: Car, colorVar: '--color-text-secondary', bgColorVar: '--color-bg-surface-muted' }
+    if (catLower.includes('plumb')) return { icon: Droplets, colorVar: '--color-teal-600', bgColorVar: '--color-teal-100' }
+    if (catLower.includes('electric')) return { icon: Zap, colorVar: '--color-gold-600', bgColorVar: '--color-gold-100' }
+    if (catLower.includes('safety') || catLower.includes('smoke') || catLower.includes('fire')) return { icon: ShieldCheck, colorVar: '--color-error-600', bgColorVar: '--color-error-bg' }
+    if (catLower.includes('appliance') || catLower.includes('dishwasher') || catLower.includes('fridge')) return { icon: Server, colorVar: '--color-text-secondary', bgColorVar: '--color-bg-surface-muted' }
+    if (catLower.includes('exterior') || catLower.includes('roof') || catLower.includes('gutter')) return { icon: Home, colorVar: '--color-green-600', bgColorVar: '--color-green-100' }
+    if (catLower.includes('septic') || catLower.includes('waste')) return { icon: Trash2, colorVar: '--color-gold-700', bgColorVar: '--color-gold-100' }
+    if (catLower.includes('laundry')) return { icon: Shirt, colorVar: '--color-info-600', bgColorVar: '--color-info-bg' }
     // Default
-    return { icon: Wrench, color: 'text-gray-400', bgColor: 'bg-gray-500/20 border-gray-500/50' }
+    return { icon: Wrench, colorVar: '--color-text-muted', bgColorVar: '--color-bg-surface-muted' }
   }
 
   // Get the first task's saved icon for a category group
@@ -271,7 +271,7 @@ function HomeMaintenance() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-farm-green"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--color-green-600)' }}></div>
       </div>
     )
   }
@@ -281,12 +281,13 @@ function HomeMaintenance() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Home className="w-8 h-8 text-farm-green" />
-          <h1 className="text-2xl font-bold">Home Maintenance</h1>
+          <Home className="w-8 h-8" style={{ color: 'var(--color-green-600)' }} />
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Home Maintenance</h1>
         </div>
         <button
           onClick={() => { setShowAddForm(true); setEditingTask(null); resetForm(); }}
-          className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+          style={{ backgroundColor: 'var(--color-green-600)', color: '#ffffff' }}
         >
           <Plus className="w-5 h-5" />
           Add Task
@@ -294,34 +295,34 @@ function HomeMaintenance() {
       </div>
 
       {error && (
-        <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 text-red-400">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-error-bg)', border: '1px solid var(--color-error-600)', color: 'var(--color-error-600)' }}>
           {error}
         </div>
       )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-gray-800 rounded-lg p-4">
-          <div className="text-2xl font-bold">{tasks.length}</div>
-          <div className="text-gray-400 text-sm">Total Tasks</div>
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <div className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{tasks.length}</div>
+          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Total Tasks</div>
         </div>
-        <div className="bg-gray-800 rounded-lg p-4">
-          <div className="text-2xl font-bold text-green-400">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <div className="text-2xl font-bold" style={{ color: 'var(--color-success-600)' }}>
             {tasks.filter(t => t.status === 'ok').length}
           </div>
-          <div className="text-gray-400 text-sm">Up to Date</div>
+          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Up to Date</div>
         </div>
-        <div className="bg-gray-800 rounded-lg p-4">
-          <div className="text-2xl font-bold text-yellow-400">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <div className="text-2xl font-bold" style={{ color: 'var(--color-warning-600)' }}>
             {tasks.filter(t => t.status === 'due_soon').length}
           </div>
-          <div className="text-gray-400 text-sm">Due Soon</div>
+          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Due Soon</div>
         </div>
-        <div className="bg-gray-800 rounded-lg p-4">
-          <div className="text-2xl font-bold text-red-400">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <div className="text-2xl font-bold" style={{ color: 'var(--color-error-600)' }}>
             {tasks.filter(t => t.status === 'overdue').length}
           </div>
-          <div className="text-gray-400 text-sm">Overdue</div>
+          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Overdue</div>
         </div>
       </div>
 
@@ -346,49 +347,51 @@ function HomeMaintenance() {
           }
 
           return (
-            <div key={category} className="bg-gray-800 rounded-lg overflow-hidden">
+            <div key={category} className="rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
               {/* Category Header */}
               <button
                 onClick={toggleCategory}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-700/50"
+                className="w-full flex items-center justify-between p-4"
+                style={{ color: 'var(--color-text-primary)' }}
               >
                 <div className="flex items-center gap-3">
-                  <span className={`p-2 rounded-lg border ${categoryConfig.bgColor} ${categoryConfig.color}`}>
+                  <span className="p-2 rounded-lg" style={{ backgroundColor: `var(${categoryConfig.bgColorVar})`, color: `var(${categoryConfig.colorVar})`, border: `1px solid var(${categoryConfig.colorVar})` }}>
                     <CategoryIcon className="w-5 h-5" />
                   </span>
                   <span className="font-medium text-lg">{formatCategoryName(category)}</span>
-                  <span className="text-gray-400 text-sm">({stats.total} tasks)</span>
+                  <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>({stats.total} tasks)</span>
                   {stats.overdue > 0 && (
-                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-sm rounded-full">
+                    <span className="px-2 py-0.5 text-sm rounded-full" style={{ backgroundColor: 'var(--color-error-bg)', color: 'var(--color-error-600)' }}>
                       {stats.overdue} overdue
                     </span>
                   )}
                   {stats.dueSoon > 0 && stats.overdue === 0 && (
-                    <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-sm rounded-full">
+                    <span className="px-2 py-0.5 text-sm rounded-full" style={{ backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-600)' }}>
                       {stats.dueSoon} due soon
                     </span>
                   )}
                 </div>
-                {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                {isExpanded ? <ChevronUp className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} /> : <ChevronDown className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />}
               </button>
 
               {/* Tasks List */}
               {isExpanded && (
-                <div className="border-t border-gray-700">
+                <div style={{ borderTop: '1px solid var(--color-border-subtle)' }}>
                   {categoryTasks.map(task => (
                     <div
                       key={task.id}
-                      className="flex items-center justify-between p-4 border-b border-gray-700 last:border-0 hover:bg-gray-700/30"
+                      className="flex items-center justify-between p-4"
+                      style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${
-                            task.status === 'overdue' ? 'bg-red-400' :
-                            task.status === 'due_soon' ? 'bg-yellow-400' : 'bg-green-400'
-                          }`}></span>
-                          <span className="font-medium">{task.name}</span>
+                          <span className="w-2 h-2 rounded-full" style={{
+                            backgroundColor: task.status === 'overdue' ? 'var(--color-error-600)' :
+                              task.status === 'due_soon' ? 'var(--color-warning-600)' : 'var(--color-success-600)'
+                          }}></span>
+                          <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{task.name}</span>
                         </div>
-                        <div className="text-sm text-gray-400 mt-1">
+                        <div className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
                           {task.frequency_label || (task.frequency_days ? `Every ${task.frequency_days} days` : 'One-time')}
                           {task.last_completed && (
                             <span className="ml-2">
@@ -396,33 +399,36 @@ function HomeMaintenance() {
                             </span>
                           )}
                           {task.next_due && (
-                            <span className={`ml-2 ${STATUS_COLORS[task.status]}`}>
+                            <span className="ml-2" style={{ color: `var(${STATUS_COLORS[task.status]})` }}>
                               | Next: {format(new Date(task.next_due), 'MMM d')}
                             </span>
                           )}
                         </div>
                         {task.description && (
-                          <div className="text-sm text-gray-500 mt-1">{task.description}</div>
+                          <div className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>{task.description}</div>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setCompleteModal(task)}
-                          className="p-2 text-green-400 hover:bg-green-400/20 rounded-lg"
+                          className="p-2 rounded-lg transition-colors"
+                          style={{ color: 'var(--color-success-600)' }}
                           title="Mark Complete"
                         >
                           <Check className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => startEdit(task)}
-                          className="p-2 text-blue-400 hover:bg-blue-400/20 rounded-lg"
+                          className="p-2 rounded-lg transition-colors"
+                          style={{ color: 'var(--color-info-600)' }}
                           title="Edit"
                         >
                           <Wrench className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleDelete(task.id)}
-                          className="p-2 text-red-400 hover:bg-red-400/20 rounded-lg"
+                          className="p-2 rounded-lg transition-colors"
+                          style={{ color: 'var(--color-error-600)' }}
                           title="Delete"
                         >
                           <X className="w-5 h-5" />
@@ -437,7 +443,7 @@ function HomeMaintenance() {
         })}
 
         {tasks.length === 0 && !loading && (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12" style={{ color: 'var(--color-text-muted)' }}>
             <Home className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No maintenance tasks yet. Add one to get started!</p>
           </div>
@@ -447,24 +453,25 @@ function HomeMaintenance() {
       {/* Add/Edit Form Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">
+          <div className="rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+            <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>
               {editingTask ? 'Edit Task' : 'Add Maintenance Task'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Task Name</label>
+                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Task Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full rounded-lg px-4 py-2"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                   required
                   placeholder="e.g., Replace filter, Check pressure"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Category <span className="text-red-400">*</span></label>
+                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Category <span style={{ color: 'var(--color-error-600)' }}>*</span></label>
                 <select
                   value={useCustomCategory ? 'custom' : formData.category}
                   onChange={(e) => {
@@ -477,7 +484,8 @@ function HomeMaintenance() {
                       setFormData({ ...formData, category: e.target.value })
                     }
                   }}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full rounded-lg px-4 py-2"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                   required={!useCustomCategory}
                 >
                   <option value="">Select a category...</option>
@@ -495,14 +503,15 @@ function HomeMaintenance() {
                       setCustomCategoryName(e.target.value)
                       setFormData({ ...formData, category: value })
                     }}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2 mt-2"
+                    className="w-full rounded-lg px-4 py-2 mt-2"
+                    style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                     placeholder="Enter new category name..."
                     required
                   />
                 )}
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Category Icon</label>
+                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Category Icon</label>
                 <div className="grid grid-cols-6 gap-2">
                   {Object.entries(AVAILABLE_ICONS).map(([name, config]) => {
                     const IconComponent = config.icon
@@ -512,11 +521,12 @@ function HomeMaintenance() {
                         key={name}
                         type="button"
                         onClick={() => setFormData({ ...formData, category_icon: isSelected ? '' : name })}
-                        className={`p-2 rounded-lg border-2 transition-all ${
-                          isSelected
-                            ? `border-farm-green bg-farm-green/20 ${config.color}`
-                            : 'border-gray-600 hover:border-gray-500 text-gray-400'
-                        }`}
+                        className="p-2 rounded-lg border-2 transition-all"
+                        style={{
+                          borderColor: isSelected ? 'var(--color-green-600)' : 'var(--color-border-default)',
+                          backgroundColor: isSelected ? 'var(--color-green-100)' : 'transparent',
+                          color: isSelected ? `var(${config.colorVar})` : 'var(--color-text-muted)'
+                        }}
                         title={config.label}
                       >
                         <IconComponent className="w-5 h-5 mx-auto" />
@@ -524,10 +534,10 @@ function HomeMaintenance() {
                     )
                   })}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Select an icon for this category (optional, auto-detected if not set)</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Select an icon for this category (optional, auto-detected if not set)</p>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Frequency</label>
+                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Frequency</label>
                 <select
                   value={useCustomFreq ? 'custom' : formData.frequency_days}
                   onChange={(e) => {
@@ -543,7 +553,8 @@ function HomeMaintenance() {
                       })
                     }
                   }}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full rounded-lg px-4 py-2"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                 >
                   {frequencyOptions.map(opt => (
                     <option key={opt.days} value={opt.days}>{opt.label}</option>
@@ -555,7 +566,8 @@ function HomeMaintenance() {
                       type="number"
                       value={customFreqDays}
                       onChange={(e) => setCustomFreqDays(e.target.value)}
-                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      className="w-full rounded-lg px-4 py-2"
+                      style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                       placeholder="Number of days"
                       min="1"
                       max="3650"
@@ -564,7 +576,7 @@ function HomeMaintenance() {
                 )}
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                <label className="block text-sm mb-1 flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
                   <Calendar className="w-4 h-4" />
                   Manual Due Date (optional)
                 </label>
@@ -572,12 +584,13 @@ function HomeMaintenance() {
                   type="date"
                   value={formData.manual_due_date}
                   onChange={(e) => setFormData({ ...formData, manual_due_date: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full rounded-lg px-4 py-2"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                 />
-                <p className="text-xs text-gray-500 mt-1">Set a specific due date. Clears after completion.</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Set a specific due date. Clears after completion.</p>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                <label className="block text-sm mb-1 flex items-center gap-2" style={{ color: 'var(--color-text-muted)' }}>
                   <Clock className="w-4 h-4" />
                   Last Completed (optional)
                 </label>
@@ -585,31 +598,34 @@ function HomeMaintenance() {
                   type="date"
                   value={formData.last_completed}
                   onChange={(e) => setFormData({ ...formData, last_completed: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full rounded-lg px-4 py-2"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                 />
-                <p className="text-xs text-gray-500 mt-1">When was this last done? Next due will be calculated from here.</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>When was this last done? Next due will be calculated from here.</p>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Description</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full rounded-lg px-4 py-2"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                   rows={2}
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full rounded-lg px-4 py-2"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                   rows={2}
                 />
               </div>
               {/* Alerts Section */}
-              <div className="space-y-2 pt-3 border-t border-gray-700">
-                <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+              <div className="space-y-2 pt-3" style={{ borderTop: '1px solid var(--color-border-subtle)' }}>
+                <label className="block text-sm mb-2" style={{ color: 'var(--color-text-muted)' }}>Alerts (optional)</label>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { value: 0, label: 'At time' },
@@ -635,11 +651,12 @@ function HomeMaintenance() {
                             : [...current, opt.value].sort((a, b) => b - a)
                           setFormData({ ...formData, reminder_alerts: newAlerts.length > 0 ? newAlerts : null })
                         }}
-                        className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-                          isSelected
-                            ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
-                            : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
-                        }`}
+                        className="px-2 py-1 rounded text-xs font-medium transition-all"
+                        style={{
+                          backgroundColor: isSelected ? 'var(--color-teal-100)' : 'var(--color-bg-surface-muted)',
+                          border: isSelected ? '1px solid var(--color-teal-600)' : '1px solid var(--color-border-default)',
+                          color: isSelected ? 'var(--color-teal-700)' : 'var(--color-text-muted)'
+                        }}
                       >
                         {opt.label}
                       </button>
@@ -651,13 +668,15 @@ function HomeMaintenance() {
                 <button
                   type="button"
                   onClick={() => { setShowAddForm(false); setEditingTask(null); resetForm(); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 rounded-lg transition-colors"
+                  style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-primary)' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
+                  className="flex-1 px-4 py-2 rounded-lg transition-colors"
+                  style={{ backgroundColor: 'var(--color-green-600)', color: '#ffffff' }}
                 >
                   {editingTask ? 'Update' : 'Add Task'}
                 </button>
@@ -670,40 +689,44 @@ function HomeMaintenance() {
       {/* Complete Modal */}
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Complete: {completeModal.name}</h2>
+          <div className="rounded-lg p-6 w-full max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+            <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>Complete: {completeModal.name}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes (optional)</label>
+                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Notes (optional)</label>
                 <textarea
                   value={completeNotes}
                   onChange={(e) => setCompleteNotes(e.target.value)}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full rounded-lg px-4 py-2"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                   rows={2}
                   placeholder="Any notes about the work done..."
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Cost (optional)</label>
+                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Cost (optional)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={completeCost}
                   onChange={(e) => setCompleteCost(e.target.value)}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full rounded-lg px-4 py-2"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                   placeholder="0.00"
                 />
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => { setCompleteModal(null); setCompleteNotes(''); setCompleteCost(''); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 rounded-lg transition-colors"
+                  style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-primary)' }}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleComplete}
-                  className="flex-1 px-4 py-2 bg-green-600 rounded-lg hover:bg-green-500 flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                  style={{ backgroundColor: 'var(--color-success-600)', color: '#ffffff' }}
                 >
                   <Check className="w-5 h-5" />
                   Complete

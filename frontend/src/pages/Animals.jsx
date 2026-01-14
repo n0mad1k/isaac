@@ -17,18 +17,18 @@ import {
 } from '../services/api'
 import { format, differenceInDays, parseISO, startOfDay } from 'date-fns'
 
-// Predefined tags with colors
+// Predefined tags with colors using CSS variables
 const ANIMAL_TAGS = {
-  sick: { label: 'Sick', color: 'bg-red-600 text-white' },
-  injured: { label: 'Injured', color: 'bg-orange-600 text-white' },
-  pregnant: { label: 'Pregnant', color: 'bg-pink-600 text-white' },
-  nursing: { label: 'Nursing', color: 'bg-purple-600 text-white' },
-  quarantine: { label: 'Quarantine', color: 'bg-yellow-600 text-black' },
-  for_sale: { label: 'For Sale', color: 'bg-green-600 text-white' },
-  new: { label: 'New', color: 'bg-blue-600 text-white' },
-  special_diet: { label: 'Special Diet', color: 'bg-cyan-600 text-white' },
-  senior: { label: 'Senior', color: 'bg-gray-500 text-white' },
-  breeding: { label: 'Breeding', color: 'bg-rose-600 text-white' },
+  sick: { label: 'Sick', bgVar: '--color-error-600', textColor: '#ffffff' },
+  injured: { label: 'Injured', bgVar: '--color-orange-600', textColor: '#ffffff' },
+  pregnant: { label: 'Pregnant', bgVar: '--color-pink-600', textColor: '#ffffff' },
+  nursing: { label: 'Nursing', bgVar: '--color-purple-600', textColor: '#ffffff' },
+  quarantine: { label: 'Quarantine', bgVar: '--color-warning-600', textColor: '#000000' },
+  for_sale: { label: 'For Sale', bgVar: '--color-success-600', textColor: '#ffffff' },
+  new: { label: 'New', bgVar: '--color-blue-600', textColor: '#ffffff' },
+  special_diet: { label: 'Special Diet', bgVar: '--color-teal-600', textColor: '#ffffff' },
+  senior: { label: 'Senior', bgVar: '--color-text-muted', textColor: '#ffffff' },
+  breeding: { label: 'Breeding', bgVar: '--color-pink-600', textColor: '#ffffff' },
 }
 
 // Helper to safely parse date strings without timezone shift
@@ -46,16 +46,15 @@ const safeParseDate = (dateStr) => {
 
 // Inline editable field component
 function EditableField({ label, value, field, type = 'text', options, onChange, placeholder, editing = true }) {
-  const inputClass = "w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
-  const readOnlyClass = "text-sm text-gray-300"
+  const inputStyle = { backgroundColor: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }
 
   // Read-only mode
   if (!editing) {
     if (type === 'checkbox') {
       return (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-300">{label}:</span>
-          <span className={value ? "text-green-400" : "text-red-400"}>{value ? "Yes" : "No"}</span>
+          <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{label}:</span>
+          <span style={{ color: value ? 'var(--color-success-600)' : 'var(--color-error-600)' }}>{value ? "Yes" : "No"}</span>
         </div>
       )
     }
@@ -65,8 +64,8 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
       const display = selectedOption?.label || value || '-'
       return (
         <div>
-          <label className="block text-xs text-gray-500 mb-1">{label}</label>
-          <div className={readOnlyClass}>{display}</div>
+          <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
+          <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{display}</div>
         </div>
       )
     }
@@ -74,8 +73,8 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
     if (type === 'textarea' && value) {
       return (
         <div>
-          <label className="block text-xs text-gray-500 mb-1">{label}</label>
-          <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto bg-gray-750 rounded p-2">
+          <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
+          <div className="text-sm whitespace-pre-wrap max-h-[200px] overflow-y-auto rounded p-2" style={{ color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-bg-tertiary)' }}>
             {value}
           </div>
         </div>
@@ -86,8 +85,8 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
     if (!value) return null
     return (
       <div>
-        <label className="block text-xs text-gray-500 mb-1">{label}</label>
-        <div className={readOnlyClass}>{value}</div>
+        <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
+        <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{value}</div>
       </div>
     )
   }
@@ -96,11 +95,12 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
   if (type === 'select' && options) {
     return (
       <div>
-        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
         <select
           value={value || ''}
           onChange={(e) => onChange(field, e.target.value)}
-          className={inputClass}
+          className="w-full px-2 py-1 rounded text-sm focus:outline-none focus:ring-1"
+          style={inputStyle}
         >
           {options.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -113,13 +113,14 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
   if (type === 'textarea') {
     return (
       <div>
-        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
         <textarea
           value={value || ''}
           onChange={(e) => onChange(field, e.target.value)}
           placeholder={placeholder}
           rows={3}
-          className={inputClass}
+          className="w-full px-2 py-1 rounded text-sm focus:outline-none focus:ring-1"
+          style={inputStyle}
         />
       </div>
     )
@@ -132,22 +133,24 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
           type="checkbox"
           checked={value || false}
           onChange={(e) => onChange(field, e.target.checked)}
-          className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+          className="w-4 h-4 rounded"
+          style={{ backgroundColor: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border-default)' }}
         />
-        <span className="text-sm text-gray-300">{label}</span>
+        <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{label}</span>
       </label>
     )
   }
 
   return (
     <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
       <input
         type={type}
         value={value || ''}
         onChange={(e) => onChange(field, e.target.value)}
         placeholder={placeholder}
-        className={inputClass}
+        className="w-full px-2 py-1 rounded text-sm focus:outline-none focus:ring-1"
+        style={inputStyle}
       />
     </div>
   )
@@ -188,12 +191,14 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
     onChange(newValue)
   }
 
+  const inputStyle = { backgroundColor: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }
+
   if (!editing) {
     const displayLocation = [value, subValue].filter(Boolean).join(' > ')
     return (
       <div>
-        <label className="block text-xs text-gray-500 mb-1">{label}</label>
-        <div className="text-sm text-gray-300">{displayLocation || '-'}</div>
+        <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
+        <div className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{displayLocation || '-'}</div>
       </div>
     )
   }
@@ -201,7 +206,7 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
   return (
     <div className="space-y-2">
       <div>
-        {label && <label className="block text-xs text-gray-500 mb-1">{label}</label>}
+        {label && <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>}
         {showCustomInput ? (
           <div className="flex gap-2">
             <input
@@ -209,22 +214,25 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
               value={customValue}
               onChange={handleCustomChange}
               placeholder="Enter custom location"
-              className="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+              className="flex-1 px-2 py-1 rounded text-sm focus:outline-none focus:ring-1"
+              style={inputStyle}
             />
             <button
               type="button"
               onClick={() => { setIsCustom(false); setCustomValue(''); onChange('') }}
-              className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded"
+              className="px-2 py-1 text-xs rounded"
+              style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }}
               title="Use dropdown"
             >
-              ↓
+              <ChevronDown className="w-3 h-3" />
             </button>
           </div>
         ) : (
           <select
             value={value || ''}
             onChange={handleSelectChange}
-            className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            className="w-full px-2 py-1 rounded text-sm focus:outline-none focus:ring-1"
+            style={inputStyle}
           >
             <option value="">No location</option>
             {farmAreas.map(area => (
@@ -237,13 +245,14 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
         )}
       </div>
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Sub-location</label>
+        <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Sub-location</label>
         <input
           type="text"
           value={subValue || ''}
           onChange={(e) => onSubChange(e.target.value)}
           placeholder="e.g., 3rd paddock, Stall 5"
-          className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+          className="w-full px-2 py-1 rounded text-sm focus:outline-none focus:ring-1"
+          style={inputStyle}
         />
       </div>
     </div>
@@ -381,12 +390,12 @@ function Animals() {
     return days
   }
 
-  const getUrgencyClass = (days) => {
-    if (days === null) return 'bg-gray-700 text-gray-300'
-    if (days <= 0) return 'bg-red-900/50 text-red-300 border border-red-700'
-    if (days <= 7) return 'bg-red-900/30 text-red-300'
-    if (days <= 14) return 'bg-yellow-900/30 text-yellow-300'
-    return 'bg-gray-700 text-gray-300'
+  const getUrgencyStyle = (days) => {
+    if (days === null) return { backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }
+    if (days <= 0) return { backgroundColor: 'var(--color-error-100)', color: 'var(--color-error-600)', border: '1px solid var(--color-error-600)' }
+    if (days <= 7) return { backgroundColor: 'var(--color-error-100)', color: 'var(--color-error-600)' }
+    if (days <= 14) return { backgroundColor: 'var(--color-warning-100)', color: 'var(--color-warning-600)' }
+    return { backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-secondary)' }
   }
 
   const logCare = async (animalId, careType, extraData = {}) => {
@@ -570,35 +579,39 @@ function Animals() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <PawPrint className="w-7 h-7 text-blue-500" />
+        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+          <PawPrint className="w-7 h-7" style={{ color: 'var(--color-teal-600)' }} />
           Animals
         </h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowBulkCareForm(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 rounded-lg transition-colors text-sm"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm"
+            style={{ backgroundColor: 'var(--color-teal-100)', color: 'var(--color-teal-600)' }}
           >
             <Calendar className="w-4 h-4" />
             Bulk Care
           </button>
           <button
             onClick={() => setShowSplitExpenseForm(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-green-700 hover:bg-green-600 rounded-lg transition-colors text-sm"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm"
+            style={{ backgroundColor: 'var(--color-success-100)', color: 'var(--color-success-600)' }}
           >
             <DollarSign className="w-4 h-4" />
             Split Expense
           </button>
           <a
             href={exportAllExpenses()}
-            className="flex items-center gap-2 px-3 py-2 bg-purple-700 hover:bg-purple-600 rounded-lg transition-colors text-sm"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm"
+            style={{ backgroundColor: 'var(--color-purple-100)', color: 'var(--color-purple-600)' }}
           >
             <Download className="w-4 h-4" />
             Export All
           </a>
           <button
             onClick={() => { setEditingAnimal(null); setShowForm(true) }}
-            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'var(--color-success-600)', color: '#ffffff' }}
           >
             <Plus className="w-5 h-5" />
             Add Animal
@@ -608,60 +621,66 @@ function Animals() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gray-800 rounded-xl p-4">
+        <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-2 mb-1">
-            <Heart className="w-5 h-5 text-pink-400" />
-            <span className="text-2xl font-bold text-pink-400">{stats.totalPets}</span>
+            <Heart className="w-5 h-5" style={{ color: 'var(--color-error-600)' }} />
+            <span className="text-2xl font-bold" style={{ color: 'var(--color-error-600)' }}>{stats.totalPets}</span>
           </div>
-          <div className="text-sm text-gray-400">Pets</div>
+          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Pets</div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
+        <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-2 mb-1">
-            <Beef className="w-5 h-5 text-amber-400" />
-            <span className="text-2xl font-bold text-amber-400">{stats.totalLivestock}</span>
+            <Beef className="w-5 h-5" style={{ color: 'var(--color-gold-600)' }} />
+            <span className="text-2xl font-bold" style={{ color: 'var(--color-gold-600)' }}>{stats.totalLivestock}</span>
           </div>
-          <div className="text-sm text-gray-400">Livestock</div>
+          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Livestock</div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="text-2xl font-bold text-red-400">{stats.needsAttention}</div>
-          <div className="text-sm text-gray-400">Need Attention</div>
+        <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <div className="text-2xl font-bold" style={{ color: 'var(--color-error-600)' }}>{stats.needsAttention}</div>
+          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Need Attention</div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
+        <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-1">
-            <DollarSign className="w-5 h-5 text-green-400" />
-            <span className="text-2xl font-bold text-green-400">
+            <DollarSign className="w-5 h-5" style={{ color: 'var(--color-success-600)' }} />
+            <span className="text-2xl font-bold" style={{ color: 'var(--color-success-600)' }}>
               {stats.totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </span>
           </div>
-          <div className="text-sm text-gray-400">Total Expenses</div>
+          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Total Expenses</div>
         </div>
       </div>
 
       {/* Tabs and Filters */}
       <div className="flex flex-wrap gap-4">
         {/* Category Tabs */}
-        <div className="flex bg-gray-800 rounded-lg p-1">
+        <div className="flex rounded-lg p-1" style={{ backgroundColor: 'var(--color-bg-surface-muted)' }}>
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'all' ? 'bg-farm-green text-white' : 'text-gray-400 hover:text-white'
-            }`}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: activeTab === 'all' ? 'var(--color-green-600)' : 'transparent',
+              color: activeTab === 'all' ? '#ffffff' : 'var(--color-text-secondary)'
+            }}
           >
             All ({animals.length})
           </button>
           <button
             onClick={() => setActiveTab('pet')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
-              activeTab === 'pet' ? 'bg-pink-600 text-white' : 'text-gray-400 hover:text-white'
-            }`}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+            style={{
+              backgroundColor: activeTab === 'pet' ? 'var(--color-error-600)' : 'transparent',
+              color: activeTab === 'pet' ? '#ffffff' : 'var(--color-text-secondary)'
+            }}
           >
             <Heart className="w-4 h-4" /> Pets ({pets.length})
           </button>
           <button
             onClick={() => setActiveTab('livestock')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
-              activeTab === 'livestock' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white'
-            }`}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+            style={{
+              backgroundColor: activeTab === 'livestock' ? 'var(--color-gold-600)' : 'transparent',
+              color: activeTab === 'livestock' ? '#ffffff' : 'var(--color-text-secondary)'
+            }}
           >
             <Beef className="w-4 h-4" /> Livestock ({livestock.length})
           </button>
@@ -669,24 +688,26 @@ function Animals() {
 
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />
           <input
             type="text"
             placeholder="Search animals..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            className="w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+            style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
           />
         </div>
 
         {/* Group by Location Toggle */}
         <button
           onClick={() => setGroupByLocation(!groupByLocation)}
-          className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-            groupByLocation
-              ? 'bg-farm-green text-white'
-              : 'bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700'
-          }`}
+          className="px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          style={{
+            backgroundColor: groupByLocation ? 'var(--color-green-600)' : 'var(--color-bg-surface)',
+            border: groupByLocation ? 'none' : '1px solid var(--color-border-default)',
+            color: groupByLocation ? '#ffffff' : 'var(--color-text-secondary)'
+          }}
         >
           <MapPin className="w-4 h-4" />
           Group by Location
@@ -703,15 +724,16 @@ function Animals() {
         // Grouped by location view
         <div className="space-y-4">
           {sortedAnimalLocations.map((location) => (
-            <div key={location} className="bg-gray-800/50 rounded-xl overflow-hidden">
+            <div key={location} className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
               <button
                 onClick={() => toggleLocationCollapse(location)}
-                className="w-full px-4 py-3 flex items-center justify-between bg-gray-800 hover:bg-gray-700 transition-colors"
+                className="w-full px-4 py-3 flex items-center justify-between transition-colors"
+                style={{ backgroundColor: 'var(--color-bg-tertiary)' }}
               >
                 <div className="flex items-center gap-3">
-                  <MapPin className="w-5 h-5 text-cyan-400" />
-                  <span className="font-medium">{location}</span>
-                  <span className="text-sm text-gray-400">({animalsByLocation[location].length} animals)</span>
+                  <MapPin className="w-5 h-5" style={{ color: 'var(--color-teal-600)' }} />
+                  <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{location}</span>
+                  <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>({animalsByLocation[location].length} animals)</span>
                 </div>
                 {collapsedLocations[location] ? (
                   <ChevronDown className="w-5 h-5 text-gray-400" />
@@ -747,7 +769,7 @@ function Animals() {
                       onAddReminder={(animal) => setShowReminderFor(animal)}
                       getAnimalIcon={getAnimalIcon}
                       getDaysUntil={getDaysUntil}
-                      getUrgencyClass={getUrgencyClass}
+                      getUrgencyStyle={getUrgencyStyle}
                     />
                   ))}
                 </div>
@@ -784,7 +806,7 @@ function Animals() {
               onArchive={(animal) => setShowArchiveForm(animal)}
               getAnimalIcon={getAnimalIcon}
               getDaysUntil={getDaysUntil}
-              getUrgencyClass={getUrgencyClass}
+              getUrgencyStyle={getUrgencyStyle}
             />
           ))}
         </div>
@@ -1089,7 +1111,7 @@ const getSexOptions = (animalType) => {
 function AnimalCard({
   animal, farmAreas = [], expanded, onToggle, onLogCare, onDelete, onDuplicate, onAddExpense, onViewExpenses, onEditDate, onToggleTag,
   onAddCareSchedule, onCompleteCareSchedule, onDeleteCareSchedule, onEditCareSchedule,
-  onAddFeed, onEditFeed, onDeleteFeed, onSave, onArchive, onAddReminder, getAnimalIcon, getDaysUntil, getUrgencyClass
+  onAddFeed, onEditFeed, onDeleteFeed, onSave, onArchive, onAddReminder, getAnimalIcon, getDaysUntil, getUrgencyStyle
 }) {
   // Local state for inline editing
   const [editData, setEditData] = useState(null)
@@ -1228,25 +1250,30 @@ function AnimalCard({
     .map(cs => cs.name)
 
   return (
-    <div className={`bg-gray-800 rounded-lg overflow-hidden ${
-      isPet ? 'border-l-4 border-pink-500' : isLivestock ? 'border-l-4 border-amber-500' : ''
-    }`}>
+    <div
+      className="rounded-lg overflow-hidden"
+      style={{
+        backgroundColor: 'var(--color-bg-surface)',
+        border: '1px solid var(--color-border-default)',
+        borderLeft: isPet ? '4px solid var(--color-pink-600)' : isLivestock ? '4px solid var(--color-orange-600)' : undefined
+      }}
+    >
       {/* Compact Card Header - flows naturally */}
       <div
-        className="px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-750"
+        className="px-4 py-2 flex items-center gap-2 cursor-pointer"
         onClick={onToggle}
       >
         {/* Icon */}
         <span className="text-xl flex-shrink-0">{getAnimalIcon(animal.animal_type)}</span>
 
         {/* 1. Name */}
-        <span className="font-semibold text-white truncate">{animal.name}</span>
+        <span className="font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{animal.name}</span>
 
         {/* 2. Color + Type together (grey) like "Black Horse" */}
         {(animal.color || animal.animal_type) && (
           <>
-            <span className="text-gray-600">·</span>
-            <span className="text-xs text-gray-500 truncate capitalize">
+            <span style={{ color: 'var(--color-border-strong)' }}>·</span>
+            <span className="text-xs truncate capitalize" style={{ color: 'var(--color-text-muted)' }}>
               {[animal.color, animal.animal_type?.replace('_', ' ')].filter(Boolean).join(' ')}
             </span>
           </>
@@ -1256,7 +1283,7 @@ function AnimalCard({
         {(animal.farm_area || animal.pasture) && (
           <>
             <span className="text-gray-600">·</span>
-            <span className="text-xs text-emerald-500 flex items-center gap-1">
+            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--color-green-600)' }}>
               <MapPin className="w-3 h-3" />
               {animal.farm_area?.name || animal.pasture}
             </span>
@@ -1267,7 +1294,7 @@ function AnimalCard({
         {(animal.feeds?.length > 0 || animal.feed_type) && (
           <>
             <span className="text-gray-600">·</span>
-            <span className="text-sm text-cyan-400 truncate">
+            <span className="text-sm truncate" style={{ color: 'var(--color-teal-600)' }}>
               {animal.feeds && animal.feeds.length > 0
                 ? animal.feeds.map(f => [f.amount, f.feed_type, f.frequency].filter(Boolean).join(' ')).join(' | ')
                 : [animal.feed_amount, animal.feed_type, animal.feed_frequency].filter(Boolean).join(' ')
@@ -1278,9 +1305,13 @@ function AnimalCard({
 
         {/* 5. Tags */}
         {animalTags.slice(0, 2).map(tag => {
-          const tagInfo = ANIMAL_TAGS[tag] || { label: tag, color: 'bg-gray-600 text-white' }
+          const tagInfo = ANIMAL_TAGS[tag] || { label: tag, bgVar: '--color-bg-tertiary', textColor: 'var(--color-text-primary)' }
           return (
-            <span key={tag} className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${tagInfo.color}`}>
+            <span
+              key={tag}
+              className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
+              style={{ backgroundColor: `var(${tagInfo.bgVar})`, color: tagInfo.textColor }}
+            >
               {tagInfo.label}
             </span>
           )
@@ -1290,7 +1321,7 @@ function AnimalCard({
         {animal.special_instructions && (
           <>
             <span className="text-gray-600">·</span>
-            <span className="text-xs text-yellow-400 truncate max-w-[200px]">
+            <span className="text-xs truncate max-w-[200px]" style={{ color: 'var(--color-warning-600)' }}>
               {animal.special_instructions}
             </span>
           </>
@@ -1302,26 +1333,34 @@ function AnimalCard({
         {/* Status Indicators - right side: notes, slaughter, cost, overdue */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {animal.notes && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-400" title={animal.notes}>
+            <span
+              className="text-xs px-1.5 py-0.5 rounded"
+              style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}
+              title={animal.notes}
+            >
               See Notes
             </span>
           )}
           {isLivestock && slaughterDays !== null && (
-            <span className={`text-xs px-2 py-1 rounded ${getUrgencyClass(slaughterDays)}`}>
+            <span className="text-xs px-2 py-1 rounded" style={getUrgencyStyle(slaughterDays)}>
               {slaughterDays <= 0 ? 'Ready' : `${slaughterDays} days until slaughter`}
             </span>
           )}
           {animal.total_expenses > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); onViewExpenses() }}
-              className="text-xs px-2 py-1 rounded bg-green-900/30 text-green-300 hover:bg-green-900/50 transition-colors"
+              className="text-xs px-2 py-1 rounded transition-colors"
+              style={{ backgroundColor: 'var(--color-success-100)', color: 'var(--color-success-600)' }}
               title="View expenses"
             >
               ${animal.total_expenses.toFixed(0)}
             </button>
           )}
           {overdueItems.length > 0 && (
-            <span className="text-xs px-2 py-1 rounded bg-red-900/50 text-red-300 border border-red-700">
+            <span
+              className="text-xs px-2 py-1 rounded"
+              style={{ backgroundColor: 'var(--color-error-100)', color: 'var(--color-error-600)', border: '1px solid var(--color-error-600)' }}
+            >
               {overdueItems.length} due
             </span>
           )}
@@ -1329,15 +1368,15 @@ function AnimalCard({
 
         {/* Expand Icon */}
         {expanded ? (
-          <ChevronUp className="w-5 h-5 text-gray-400 flex-shrink-0" />
+          <ChevronUp className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
         ) : (
-          <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+          <ChevronDown className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }} />
         )}
       </div>
 
       {/* Expanded Details */}
       {expanded && editData && (
-        <div className="px-4 pb-4 border-t border-gray-700 pt-4 space-y-4">
+        <div className="px-4 pb-4 pt-4 space-y-4" style={{ borderTop: '1px solid var(--color-border-default)' }}>
 
           {/* Action Buttons - Edit/Save/Cancel, Quick actions, Delete */}
           <div className="flex gap-2 flex-wrap">
@@ -1346,13 +1385,15 @@ function AnimalCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); handleSave() }}
                   disabled={saving}
-                  className="px-3 py-1.5 bg-farm-green hover:bg-farm-green-light rounded text-sm text-white transition-colors flex items-center gap-1 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1 disabled:opacity-50"
+                  style={{ backgroundColor: 'var(--color-success-600)', color: '#ffffff' }}
                 >
                   <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleCancel() }}
-                  className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm text-white transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }}
                 >
                   <X className="w-3 h-3" /> Cancel
                 </button>
@@ -1360,20 +1401,23 @@ function AnimalCard({
             ) : (
               <button
                 onClick={(e) => { e.stopPropagation(); setIsEditing(true) }}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm text-white transition-colors flex items-center gap-1"
+                className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
+                style={{ backgroundColor: 'var(--color-blue-600)', color: '#ffffff' }}
               >
                 <Pencil className="w-3 h-3" /> Edit
               </button>
             )}
             <button
               onClick={(e) => { e.stopPropagation(); onAddExpense() }}
-              className="px-3 py-1.5 bg-green-600/50 hover:bg-green-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
+              style={{ backgroundColor: 'var(--color-success-100)', color: 'var(--color-success-600)' }}
             >
               <DollarSign className="w-3 h-3" /> Add Expense
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onViewExpenses() }}
-              className="px-3 py-1.5 bg-purple-600/50 hover:bg-purple-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
+              style={{ backgroundColor: 'var(--color-purple-100)', color: 'var(--color-purple-600)' }}
             >
               <FileText className="w-3 h-3" /> View Expenses
             </button>
@@ -1386,7 +1430,8 @@ function AnimalCard({
                   onLogCare(animal.id, 'weighed', { weight: parseFloat(weight) })
                 }
               }}
-              className="px-3 py-1.5 bg-blue-900/50 hover:bg-blue-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
+              style={{ backgroundColor: 'var(--color-blue-100)', color: 'var(--color-blue-600)' }}
             >
               <Scale className="w-3 h-3" /> Log Weight
             </button>
@@ -1396,33 +1441,37 @@ function AnimalCard({
                 const notes = prompt('Vet visit notes:')
                 if (notes) onLogCare(animal.id, 'vet_visit', { notes })
               }}
-              className="px-3 py-1.5 bg-red-900/50 hover:bg-red-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
+              style={{ backgroundColor: 'var(--color-error-100)', color: 'var(--color-error-600)' }}
             >
-              🏥 Vet Visit
+              <Heart className="w-3 h-3" /> Vet Visit
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDuplicate(animal) }}
-              className="px-3 py-1.5 bg-gray-600/50 hover:bg-gray-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
+              style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }}
             >
               <Copy className="w-3 h-3" /> Duplicate
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onAddReminder(animal) }}
-              className="px-3 py-1.5 bg-cyan-600/50 hover:bg-cyan-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
+              style={{ backgroundColor: 'var(--color-teal-100)', color: 'var(--color-teal-600)' }}
             >
               <CalendarPlus className="w-3 h-3" /> Add Reminder
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete() }}
-              className="px-3 py-1.5 bg-red-600/50 hover:bg-red-600 rounded text-sm text-white transition-colors flex items-center gap-1 ml-auto"
+              className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1 ml-auto"
+              style={{ backgroundColor: 'var(--color-error-100)', color: 'var(--color-error-600)' }}
             >
               <X className="w-3 h-3" /> Delete
             </button>
           </div>
 
           {/* Inline Editable Details */}
-          <div className="bg-gray-900/50 rounded-lg p-3">
-            <h4 className="text-sm font-medium text-gray-400 mb-3">Details</h4>
+          <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
+            <h4 className="text-sm font-medium mb-3" style={{ color: 'var(--color-text-muted)' }}>Details</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <EditableField
                 label="Name"
@@ -1552,7 +1601,7 @@ function AnimalCard({
 
           {/* Livestock-specific fields */}
           {isLivestock && (
-            <div className="bg-gray-900/50 rounded-lg p-3">
+            <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
               <h4 className="text-sm font-medium text-gray-400 mb-3">Livestock Details</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <EditableField
@@ -1592,7 +1641,7 @@ function AnimalCard({
           )}
 
           {/* Care Frequency Settings */}
-          <div className="bg-gray-900/50 rounded-lg p-3">
+          <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <h4 className="text-sm font-medium text-gray-400 mb-3">Care Frequency (days)</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <EditableField
@@ -1635,7 +1684,7 @@ function AnimalCard({
           </div>
 
           {/* Cold Sensitivity */}
-          <div className="bg-gray-900/50 rounded-lg p-3">
+          <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <h4 className="text-sm font-medium text-gray-400 mb-3">Cold Sensitivity</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
               <EditableField
@@ -1670,7 +1719,7 @@ function AnimalCard({
           </div>
 
           {/* Feeding Info - Multiple Feeds */}
-          <div className="bg-gray-900/50 rounded-lg p-3">
+          <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-medium text-gray-400">Feeding</h4>
               <button
@@ -1717,7 +1766,7 @@ function AnimalCard({
           </div>
 
           {/* Dynamic Care Schedules */}
-          <div className="bg-gray-900/50 rounded-lg p-3">
+          <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-medium text-gray-400">Care Schedule</h4>
               <button
@@ -1751,7 +1800,7 @@ function AnimalCard({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Slaughter Info */}
               {animal.slaughter_date && (
-                <div className={`p-3 rounded-lg ${getUrgencyClass(slaughterDays)}`}>
+                <div className="p-3 rounded-lg" style={getUrgencyStyle(slaughterDays)}>
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium flex items-center gap-2">
                       <Calendar className="w-4 h-4" /> Slaughter Date
@@ -1796,7 +1845,7 @@ function AnimalCard({
           )}
 
           {/* Tags */}
-          <div className="bg-gray-900/50 rounded-lg p-3">
+          <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <h4 className="text-sm font-medium text-gray-400 mb-2">Tags</h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(ANIMAL_TAGS).map(([key, { label, color }]) => {

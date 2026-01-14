@@ -195,34 +195,40 @@ function CalendarPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <CalendarIcon className="w-7 h-7 text-blue-500" />
+        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+          <CalendarIcon className="w-7 h-7" style={{ color: 'var(--color-teal-600)' }} />
           Calendar
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
           {/* View Switcher */}
-          <div className="flex bg-gray-700 rounded-lg p-1">
+          <div className="flex rounded-lg p-1" style={{ backgroundColor: 'var(--color-bg-surface-muted)' }}>
             <button
               onClick={() => setView('day')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                view === 'day' ? 'bg-farm-green text-white' : 'text-gray-300 hover:text-white'
-              }`}
+              className="px-3 py-1 rounded text-sm transition-colors"
+              style={{
+                backgroundColor: view === 'day' ? 'var(--color-green-600)' : 'transparent',
+                color: view === 'day' ? '#ffffff' : 'var(--color-text-secondary)'
+              }}
             >
               Day
             </button>
             <button
               onClick={() => setView('week')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                view === 'week' ? 'bg-farm-green text-white' : 'text-gray-300 hover:text-white'
-              }`}
+              className="px-3 py-1 rounded text-sm transition-colors"
+              style={{
+                backgroundColor: view === 'week' ? 'var(--color-green-600)' : 'transparent',
+                color: view === 'week' ? '#ffffff' : 'var(--color-text-secondary)'
+              }}
             >
               Week
             </button>
             <button
               onClick={() => setView('month')}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                view === 'month' ? 'bg-farm-green text-white' : 'text-gray-300 hover:text-white'
-              }`}
+              className="px-3 py-1 rounded text-sm transition-colors"
+              style={{
+                backgroundColor: view === 'month' ? 'var(--color-green-600)' : 'transparent',
+                color: view === 'month' ? '#ffffff' : 'var(--color-text-secondary)'
+              }}
             >
               Month
             </button>
@@ -230,7 +236,8 @@ function CalendarPage() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 text-white rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+            style={{ backgroundColor: 'var(--color-teal-600)', color: '#ffffff' }}
             title="Sync with phone calendar"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
@@ -238,14 +245,16 @@ function CalendarPage() {
           </button>
           <button
             onClick={() => handleAddEvent(new Date())}
-            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'var(--color-green-600)', color: '#ffffff' }}
           >
             <Plus className="w-5 h-5" />
             Add Event
           </button>
           <button
             onClick={goToToday}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            className="px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-primary)' }}
           >
             Today
           </button>
@@ -253,17 +262,19 @@ function CalendarPage() {
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between bg-gray-800 rounded-xl p-4">
+      <div className="flex items-center justify-between rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         <button
           onClick={goToPrev}
-          className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+          className="p-2 rounded-lg transition-colors"
+          style={{ color: 'var(--color-text-primary)' }}
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <h2 className="text-xl font-semibold">{getNavTitle()}</h2>
+        <h2 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>{getNavTitle()}</h2>
         <button
           onClick={goToNext}
-          className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+          className="p-2 rounded-lg transition-colors"
+          style={{ color: 'var(--color-text-primary)' }}
         >
           <ChevronRight className="w-6 h-6" />
         </button>
@@ -271,8 +282,8 @@ function CalendarPage() {
 
       {/* Calendar Views */}
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-gray-800 rounded-xl">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-farm-green"></div>
+        <div className="flex items-center justify-center h-64 rounded-xl" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--color-green-600)' }}></div>
         </div>
       ) : (
         <>
@@ -349,11 +360,11 @@ function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent, 
   const paddedDays = [...Array(startDay).fill(null), ...days]
 
   return (
-    <div className="bg-gray-800 rounded-xl p-4">
+    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
       {/* Day Headers */}
       <div className="grid grid-cols-7 gap-2 mb-2">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div key={day} className="text-center text-gray-400 text-sm font-medium py-2">
+          <div key={day} className="text-center text-sm font-medium py-2" style={{ color: 'var(--color-text-muted)' }}>
             {day}
           </div>
         ))}
@@ -375,36 +386,34 @@ function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent, 
             <div
               key={dateKey}
               onClick={() => onDayClick(day)}
-              className={`h-20 p-2 rounded-lg border transition-colors cursor-pointer ${
-                isSelected
-                  ? 'border-farm-green bg-farm-green/20'
-                  : isCurrentDay
-                  ? 'border-farm-green bg-farm-green/10'
-                  : 'border-gray-700 hover:border-gray-600 hover:bg-gray-700/50'
-              }`}
+              className="h-20 p-2 rounded-lg border transition-colors cursor-pointer"
+              style={{
+                borderColor: isSelected || isCurrentDay ? 'var(--color-green-600)' : 'var(--color-border-subtle)',
+                backgroundColor: isSelected ? 'var(--color-green-100)' : isCurrentDay ? 'var(--color-green-100)' : 'var(--color-bg-surface-soft)'
+              }}
             >
-              <div className={`text-sm font-medium mb-1 ${
-                isCurrentDay ? 'text-farm-green' : 'text-gray-300'
-              }`}>
+              <div className="text-sm font-medium mb-1" style={{ color: isCurrentDay ? 'var(--color-green-700)' : 'var(--color-text-primary)' }}>
                 {format(day, 'd')}
               </div>
               <div className="space-y-0.5 overflow-hidden">
                 {dayEvents.slice(0, 2).map((event, i) => (
                   <div
                     key={`${event.id}-${i}`}
-                    className={`text-xs truncate px-1 ${
-                      event.is_completed
-                        ? 'bg-gray-700 text-gray-500 line-through rounded'
-                        : event.task_type === 'todo'
-                        ? 'bg-blue-900/30 text-blue-300 border border-dashed border-blue-600 rounded'
-                        : event.is_multi_day
-                        ? `bg-purple-900/40 text-purple-300 ${
-                            event.is_span_start && event.is_span_end ? 'rounded' :
-                            event.is_span_start ? 'rounded-l' :
-                            event.is_span_end ? 'rounded-r' : ''
-                          }`
-                        : 'bg-farm-green/20 text-farm-green rounded'
-                    }`}
+                    className="text-xs truncate px-1 rounded"
+                    style={{
+                      backgroundColor: event.is_completed ? 'var(--color-bg-surface-muted)' :
+                        event.task_type === 'todo' ? 'var(--color-info-bg)' :
+                        event.is_multi_day ? 'var(--color-badge-purple-bg)' : 'var(--color-green-600)',
+                      color: event.is_completed ? 'var(--color-text-muted)' :
+                        event.task_type === 'todo' ? 'var(--color-info-700)' : '#ffffff',
+                      textDecoration: event.is_completed ? 'line-through' : 'none',
+                      border: event.task_type === 'todo' ? '1px dashed var(--color-info-600)' : 'none',
+                      borderRadius: event.is_multi_day ? (
+                        event.is_span_start && event.is_span_end ? '4px' :
+                        event.is_span_start ? '4px 0 0 4px' :
+                        event.is_span_end ? '0 4px 4px 0' : '0'
+                      ) : '4px'
+                    }}
                   >
                     {event.is_multi_day && !event.is_span_start ? (
                       <span className="opacity-50">↳</span>
@@ -418,7 +427,7 @@ function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent, 
                   </div>
                 ))}
                 {dayEvents.length > 2 && (
-                  <div className="text-xs text-gray-500 px-1">
+                  <div className="text-xs px-1" style={{ color: 'var(--color-text-muted)' }}>
                     +{dayEvents.length - 2}
                   </div>
                 )}
@@ -467,19 +476,21 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl overflow-hidden">
+    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
       {/* Day Headers */}
-      <div className="grid grid-cols-8 border-b border-gray-700">
-        <div className="p-2 text-center text-gray-500 text-sm">Time</div>
+      <div className="grid grid-cols-8" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+        <div className="p-2 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>Time</div>
         {weekDays.map((day) => (
           <div
             key={format(day, 'yyyy-MM-dd')}
-            className={`p-2 text-center border-l border-gray-700 ${
-              isToday(day) ? 'bg-farm-green/10' : ''
-            }`}
+            className="p-2 text-center"
+            style={{
+              borderLeft: '1px solid var(--color-border-subtle)',
+              backgroundColor: isToday(day) ? 'var(--color-green-100)' : 'transparent'
+            }}
           >
-            <div className="text-gray-400 text-xs">{format(day, 'EEE')}</div>
-            <div className={`text-lg font-semibold ${isToday(day) ? 'text-farm-green' : 'text-white'}`}>
+            <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{format(day, 'EEE')}</div>
+            <div className="text-lg font-semibold" style={{ color: isToday(day) ? 'var(--color-green-700)' : 'var(--color-text-primary)' }}>
               {format(day, 'd')}
             </div>
           </div>
@@ -487,14 +498,15 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
       </div>
 
       {/* All-day events section */}
-      <div className="grid grid-cols-8 border-b border-gray-700 min-h-[40px]">
-        <div className="p-2 text-xs text-gray-500 flex items-center justify-center">All day</div>
+      <div className="grid grid-cols-8 min-h-[40px]" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+        <div className="p-2 text-xs flex items-center justify-center" style={{ color: 'var(--color-text-muted)' }}>All day</div>
         {weekDays.map((day) => {
           const { allDay } = getEventsForDay(day)
           return (
             <div
               key={`allday-${format(day, 'yyyy-MM-dd')}`}
-              className="p-1 border-l border-gray-700 space-y-1"
+              className="p-1 space-y-1"
+              style={{ borderLeft: '1px solid var(--color-border-subtle)' }}
             >
               {allDay.map((event) => (
                 <EventChip
@@ -521,11 +533,12 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
       >
         <div className="grid grid-cols-8">
           {/* Time column */}
-          <div className="border-r border-gray-700">
+          <div style={{ borderRight: '1px solid var(--color-border-subtle)' }}>
             {HOURS.map((hour) => (
               <div
                 key={hour}
-                className="h-[60px] border-b border-gray-700 text-xs text-gray-500 text-right pr-2 pt-1"
+                className="h-[60px] text-xs text-right pr-2 pt-1"
+                style={{ borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-text-muted)' }}
               >
                 {formatTime(`${hour.toString().padStart(2, '0')}:00`)}
               </div>
@@ -539,13 +552,18 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
             return (
               <div
                 key={`grid-${format(day, 'yyyy-MM-dd')}`}
-                className={`relative border-l border-gray-700 ${isTodayColumn ? 'bg-farm-green/5' : ''}`}
+                className="relative cursor-pointer"
+                style={{
+                  borderLeft: '1px solid var(--color-border-subtle)',
+                  backgroundColor: isTodayColumn ? 'var(--color-green-100)' : 'transparent'
+                }}
                 onClick={() => onAddEvent(day)}
               >
                 {HOURS.map((hour) => (
                   <div
                     key={hour}
-                    className="h-[60px] border-b border-gray-700 hover:bg-gray-700/30 cursor-pointer"
+                    className="h-[60px] cursor-pointer"
+                    style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
                   />
                 ))}
                 {/* Current time indicator - only show on today's column */}
@@ -563,16 +581,15 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
                   return (
                     <div
                       key={event.id}
-                      className={`absolute left-1 right-1 rounded px-1 py-0.5 text-xs cursor-pointer overflow-hidden ${
-                        event.is_completed
-                          ? 'bg-gray-700 text-gray-500'
-                          : event.task_type === 'todo'
-                          ? 'bg-blue-900/50 text-blue-200 border border-dashed border-blue-500'
-                          : 'bg-farm-green/70 text-white'
-                      }`}
+                      className="absolute left-1 right-1 rounded px-1 py-0.5 text-xs cursor-pointer overflow-hidden"
                       style={{
                         top: `${top}px`,
                         minHeight: `${Math.max(duration, 20)}px`,
+                        backgroundColor: event.is_completed ? 'var(--color-bg-surface-muted)' :
+                          event.task_type === 'todo' ? 'var(--color-info-bg)' : 'var(--color-green-600)',
+                        color: event.is_completed ? 'var(--color-text-muted)' :
+                          event.task_type === 'todo' ? 'var(--color-info-700)' : '#ffffff',
+                        border: event.task_type === 'todo' ? '1px dashed var(--color-info-600)' : 'none'
                       }}
                       onClick={(e) => { e.stopPropagation(); onEventClick(event) }}
                     >
@@ -611,11 +628,11 @@ function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, on
   const isTodayView = isToday(currentDate)
 
   return (
-    <div className="bg-gray-800 rounded-xl overflow-hidden">
+    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
       {/* All-day events section */}
       {allDayEvents.length > 0 && (
-        <div className="p-3 border-b border-gray-700">
-          <div className="text-xs text-gray-500 mb-2">All day</div>
+        <div className="p-3" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+          <div className="text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>All day</div>
           <div className="space-y-2">
             {allDayEvents.map((event) => (
               <EventChip
@@ -641,13 +658,14 @@ function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, on
           {HOURS.map((hour) => (
             <div
               key={hour}
-              className="flex h-[60px] border-b border-gray-700 hover:bg-gray-700/30 cursor-pointer"
+              className="flex h-[60px] cursor-pointer"
+              style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
               onClick={() => onAddEvent(currentDate)}
             >
-              <div className="w-16 text-xs text-gray-500 text-right pr-3 pt-1 flex-shrink-0">
+              <div className="w-16 text-xs text-right pr-3 pt-1 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
                 {formatTime(`${hour.toString().padStart(2, '0')}:00`)}
               </div>
-              <div className="flex-1 border-l border-gray-700" />
+              <div className="flex-1" style={{ borderLeft: '1px solid var(--color-border-subtle)' }} />
             </div>
           ))}
 
@@ -657,8 +675,8 @@ function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, on
               className="absolute left-16 right-0 z-10 pointer-events-none"
               style={{ top: `${currentTime.getHours() * 60 + currentTime.getMinutes()}px` }}
             >
-              <div className="absolute -left-1.5 -top-1.5 w-3 h-3 bg-red-500 rounded-full" />
-              <div className="h-0.5 bg-red-500 shadow-sm" />
+              <div className="absolute -left-1.5 -top-1.5 w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--color-error-600)' }} />
+              <div className="h-0.5 shadow-sm" style={{ backgroundColor: 'var(--color-error-600)' }} />
             </div>
           )}
 
@@ -675,16 +693,15 @@ function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, on
             return (
               <div
                 key={event.id}
-                className={`absolute left-20 right-2 rounded px-2 py-1 cursor-pointer ${
-                  event.is_completed
-                    ? 'bg-gray-700 text-gray-500'
-                    : event.task_type === 'todo'
-                    ? 'bg-blue-900/50 text-blue-200 border border-dashed border-blue-500'
-                    : 'bg-farm-green/70 text-white'
-                }`}
+                className="absolute left-20 right-2 rounded px-2 py-1 cursor-pointer"
                 style={{
                   top: `${top}px`,
                   minHeight: `${Math.max(duration, 30)}px`,
+                  backgroundColor: event.is_completed ? 'var(--color-bg-surface-muted)' :
+                    event.task_type === 'todo' ? 'var(--color-info-bg)' : 'var(--color-green-600)',
+                  color: event.is_completed ? 'var(--color-text-muted)' :
+                    event.task_type === 'todo' ? 'var(--color-info-700)' : '#ffffff',
+                  border: event.task_type === 'todo' ? '1px dashed var(--color-info-600)' : 'none'
                 }}
                 onClick={(e) => { e.stopPropagation(); onEventClick(event) }}
               >
@@ -725,19 +742,23 @@ function EventChip({ event, onClick, onToggle, expanded = false, formatTime, isM
     return ''
   }
 
+  const getChipStyles = () => {
+    if (event.is_completed) {
+      return { backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-muted)' }
+    }
+    if (event.task_type === 'todo') {
+      return { backgroundColor: 'var(--color-info-bg)', color: 'var(--color-info-700)', border: '1px dashed var(--color-info-600)' }
+    }
+    if (isMultiDay) {
+      return { backgroundColor: 'var(--color-badge-purple-bg)', color: 'var(--color-text-primary)' }
+    }
+    return { backgroundColor: 'var(--color-green-600)', color: '#ffffff' }
+  }
+
   return (
     <div
-      className={`${getRounding()} px-2 py-1 cursor-pointer ${
-        expanded ? 'flex items-center justify-between' : 'text-xs truncate'
-      } ${
-        event.is_completed
-          ? 'bg-gray-700 text-gray-500'
-          : event.task_type === 'todo'
-          ? 'bg-blue-900/50 text-blue-200 border border-dashed border-blue-500'
-          : isMultiDay
-          ? 'bg-purple-900/50 text-purple-200'
-          : 'bg-farm-green/70 text-white'
-      }`}
+      className={`${getRounding()} px-2 py-1 cursor-pointer ${expanded ? 'flex items-center justify-between' : 'text-xs truncate'}`}
+      style={getChipStyles()}
       onClick={onClick}
     >
       <div className="flex items-center gap-2 min-w-0 flex-wrap">
@@ -758,13 +779,13 @@ function EventChip({ event, onClick, onToggle, expanded = false, formatTime, isM
         </div>
         {/* Show badges in expanded mode only */}
         {expanded && event.linked_location && (
-          <span className="text-[10px] text-purple-300 flex items-center gap-0.5 bg-purple-900/30 px-1 py-0.5 rounded flex-shrink-0">
+          <span className="text-[10px] flex items-center gap-0.5 px-1 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-badge-purple-bg)', color: 'var(--color-text-secondary)' }}>
             <MapPin className="w-2.5 h-2.5" />
             {event.linked_location}
           </span>
         )}
         {expanded && event.linked_entity && (
-          <span className="text-[10px] text-orange-300 flex items-center gap-0.5 bg-orange-900/30 px-1 py-0.5 rounded flex-shrink-0">
+          <span className="text-[10px] flex items-center gap-0.5 px-1 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-gold-100)', color: 'var(--color-gold-700)' }}>
             <Wrench className="w-2.5 h-2.5" />
             {event.linked_entity}
           </span>
@@ -773,7 +794,8 @@ function EventChip({ event, onClick, onToggle, expanded = false, formatTime, isM
       {expanded && (
         <button
           onClick={(e) => { e.stopPropagation(); onToggle() }}
-          className={`p-1 rounded ${event.is_completed ? 'bg-gray-600' : 'bg-farm-green/50 hover:bg-farm-green'}`}
+          className="p-1 rounded"
+          style={{ backgroundColor: event.is_completed ? 'var(--color-bg-surface-active)' : 'var(--color-green-600)' }}
         >
           <Check className="w-3 h-3" />
         </button>
@@ -786,21 +808,22 @@ function EventChip({ event, onClick, onToggle, expanded = false, formatTime, isM
 // Day Detail Panel Component
 function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDeleteEvent, onToggleComplete, formatTime }) {
   return (
-    <div className="bg-gray-800 rounded-xl p-4">
+    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">
+        <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
           {format(selectedDate, 'EEEE, MMMM d')}
         </h3>
         <button
           onClick={onAddEvent}
-          className="p-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
+          className="p-2 rounded-lg transition-colors"
+          style={{ backgroundColor: 'var(--color-green-600)', color: '#ffffff' }}
         >
           <Plus className="w-4 h-4" />
         </button>
       </div>
 
       {events.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">
+        <p className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
           No events for this day
         </p>
       ) : (
@@ -808,50 +831,50 @@ function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDelet
           {events.map((event) => (
             <div
               key={event.id}
-              className={`p-3 rounded-lg ${
-                event.is_completed ? 'bg-gray-700/50' : 'bg-gray-700'
-              }`}
+              className="p-3 rounded-lg"
+              style={{ backgroundColor: event.is_completed ? 'var(--color-bg-surface-soft)' : 'var(--color-bg-surface-muted)' }}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     {event.task_type === 'todo' ? (
-                      <CheckSquare className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                      <CheckSquare className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-info-600)' }} />
                     ) : (
-                      <CalendarIcon className="w-4 h-4 text-farm-green flex-shrink-0" />
+                      <CalendarIcon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-green-600)' }} />
                     )}
-                    <p className={`font-medium truncate ${
-                      event.is_completed ? 'text-gray-500 line-through' : 'text-white'
-                    }`}>
+                    <p className="font-medium truncate" style={{
+                      color: event.is_completed ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
+                      textDecoration: event.is_completed ? 'line-through' : 'none'
+                    }}>
                       {event.title}
                     </p>
                     {/* Location badge (purple) */}
                     {event.linked_location && (
-                      <span className="text-xs text-purple-400 flex items-center gap-0.5 bg-purple-900/30 px-1.5 py-0.5 rounded flex-shrink-0">
+                      <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-badge-purple-bg)', color: 'var(--color-text-secondary)' }}>
                         <MapPin className="w-3 h-3" />
                         {event.linked_location}
                       </span>
                     )}
                     {/* Vehicle/Equipment badge (orange) */}
                     {event.linked_entity && (
-                      <span className="text-xs text-orange-400 flex items-center gap-0.5 bg-orange-900/30 px-1.5 py-0.5 rounded flex-shrink-0">
+                      <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-gold-100)', color: 'var(--color-gold-700)' }}>
                         <Wrench className="w-3 h-3" />
                         {event.linked_entity}
                       </span>
                     )}
                   </div>
                   {event.due_time && (
-                    <span className="text-xs text-gray-400 ml-6">
+                    <span className="text-xs ml-6" style={{ color: 'var(--color-text-muted)' }}>
                       {formatTime(event.due_time)}{event.end_time ? ` - ${formatTime(event.end_time)}` : ''}
                     </span>
                   )}
                   {event.category && (
-                    <span className="text-xs text-gray-400 capitalize ml-2">
+                    <span className="text-xs capitalize ml-2" style={{ color: 'var(--color-text-muted)' }}>
                       • {event.category}
                     </span>
                   )}
                   {event.description && (
-                    <p className="text-sm text-gray-400 mt-1 ml-6 line-clamp-2">
+                    <p className="text-sm mt-1 ml-6 line-clamp-2" style={{ color: 'var(--color-text-muted)' }}>
                       {event.description}
                     </p>
                   )}
@@ -859,25 +882,24 @@ function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDelet
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     onClick={() => onToggleComplete(event)}
-                    className={`p-1.5 rounded transition-colors ${
-                      event.is_completed
-                        ? 'bg-gray-600 hover:bg-gray-500'
-                        : 'bg-farm-green/50 hover:bg-farm-green'
-                    }`}
+                    className="p-1.5 rounded transition-colors"
+                    style={{ backgroundColor: event.is_completed ? 'var(--color-bg-surface-active)' : 'var(--color-green-600)', color: '#ffffff' }}
                     title={event.is_completed ? 'Mark incomplete' : 'Mark complete'}
                   >
                     <Check className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => onEditEvent(event)}
-                    className="p-1.5 bg-gray-600 hover:bg-gray-500 rounded transition-colors"
+                    className="p-1.5 rounded transition-colors"
+                    style={{ backgroundColor: 'var(--color-bg-surface-active)', color: 'var(--color-text-primary)' }}
                     title="Edit"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => onDeleteEvent(event.id)}
-                    className="p-1.5 bg-red-900/50 hover:bg-red-800 rounded text-red-300 transition-colors"
+                    className="p-1.5 rounded transition-colors"
+                    style={{ backgroundColor: 'var(--color-error-bg)', color: 'var(--color-error-600)' }}
                     title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />

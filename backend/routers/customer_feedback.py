@@ -12,11 +12,14 @@ from datetime import datetime
 
 from models.database import get_db
 from models.customer_feedback import CustomerFeedback, FeedbackType, FeedbackStatus
-from models.dev_tracker import DevTrackerItem, ItemType, ItemPriority, ItemStatus
 from routers.settings import get_setting
 from routers.auth import require_admin, get_current_user
 from models.users import User
 from config import settings as app_settings
+
+# Only import dev tracker on dev instance (not available on prod)
+if app_settings.is_dev_instance:
+    from models.dev_tracker import DevTrackerItem, ItemType, ItemPriority, ItemStatus
 
 
 router = APIRouter(prefix="/feedback", tags=["Customer Feedback"])
