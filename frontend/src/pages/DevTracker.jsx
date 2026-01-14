@@ -474,10 +474,10 @@ function DevTracker() {
 
         {/* Feedback message */}
         {feedbackMessage && (
-          <div className={`mt-3 px-3 py-2 rounded text-sm ${
-            feedbackMessage.type === 'success' ? 'bg-green-500/20 text-green-300' :
-            feedbackMessage.type === 'error' ? 'bg-red-500/20 text-red-300' :
-            'bg-blue-500/20 text-blue-300'
+          <div className={`mt-3 px-3 py-2 rounded text-sm font-medium ${
+            feedbackMessage.type === 'success' ? 'bg-green-600/40 text-green-100 border border-green-500' :
+            feedbackMessage.type === 'error' ? 'bg-red-600/40 text-red-100 border border-red-500' :
+            'bg-blue-600/40 text-blue-100 border border-blue-500'
           }`}>
             {feedbackMessage.text}
           </div>
