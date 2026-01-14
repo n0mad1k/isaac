@@ -166,7 +166,7 @@ function Dashboard() {
               value={data?.stats?.tasks_today || 0}
               icon={ListTodo}
               color="yellow"
-              bgColor="#bec2c3"
+              bgColor="#5e6d74"
             />
             <StatsCard
               title="Overdue"
