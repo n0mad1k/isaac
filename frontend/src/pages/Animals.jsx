@@ -1393,7 +1393,7 @@ function AnimalCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); handleCancel() }}
                   className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
-                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }}
+                  style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
                 >
                   <X className="w-3 h-3" /> Cancel
                 </button>
@@ -1410,14 +1410,14 @@ function AnimalCard({
             <button
               onClick={(e) => { e.stopPropagation(); onAddExpense() }}
               className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
-              style={{ backgroundColor: 'var(--color-success-100)', color: 'var(--color-success-600)' }}
+              style={{ backgroundColor: 'var(--color-success-600)', color: '#ffffff' }}
             >
               <DollarSign className="w-3 h-3" /> Add Expense
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onViewExpenses() }}
               className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
-              style={{ backgroundColor: 'var(--color-purple-100)', color: 'var(--color-purple-600)' }}
+              style={{ backgroundColor: 'var(--color-purple-600)', color: '#ffffff' }}
             >
               <FileText className="w-3 h-3" /> View Expenses
             </button>
@@ -1431,7 +1431,7 @@ function AnimalCard({
                 }
               }}
               className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
-              style={{ backgroundColor: 'var(--color-blue-100)', color: 'var(--color-blue-600)' }}
+              style={{ backgroundColor: 'var(--color-blue-600)', color: '#ffffff' }}
             >
               <Scale className="w-3 h-3" /> Log Weight
             </button>
@@ -1442,28 +1442,28 @@ function AnimalCard({
                 if (notes) onLogCare(animal.id, 'vet_visit', { notes })
               }}
               className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
-              style={{ backgroundColor: 'var(--color-error-100)', color: 'var(--color-error-600)' }}
+              style={{ backgroundColor: 'var(--color-error-600)', color: '#ffffff' }}
             >
               <Heart className="w-3 h-3" /> Vet Visit
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDuplicate(animal) }}
               className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
-              style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)' }}
+              style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
             >
               <Copy className="w-3 h-3" /> Duplicate
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onAddReminder(animal) }}
               className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1"
-              style={{ backgroundColor: 'var(--color-teal-100)', color: 'var(--color-teal-600)' }}
+              style={{ backgroundColor: 'var(--color-teal-600)', color: '#ffffff' }}
             >
               <CalendarPlus className="w-3 h-3" /> Add Reminder
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete() }}
               className="px-3 py-1.5 rounded text-sm transition-colors flex items-center gap-1 ml-auto"
-              style={{ backgroundColor: 'var(--color-error-100)', color: 'var(--color-error-600)' }}
+              style={{ backgroundColor: 'var(--color-error-600)', color: '#ffffff' }}
             >
               <X className="w-3 h-3" /> Delete
             </button>

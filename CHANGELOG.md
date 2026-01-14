@@ -2,6 +2,23 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.18.3] - 2026-01-14
+
+### Changed
+- **E-paper theme applied to Calendar page**
+  - View switcher buttons, navigation, day/week/month views all use CSS variables
+  - Event chips and day detail panel now themed consistently
+- **E-paper theme applied to Home Maintenance page**
+  - Stats cards, category cards, task items use theme colors
+  - Status indicators (ok/due soon/overdue) use CSS variables
+  - All form modals updated with consistent styling
+- **E-paper theme applied to Animals page**
+  - Location styling on collapsed animal cards updated
+  - Action buttons (Edit, Add Expense, View Expenses, etc.) themed
+  - Animal tags now use CSS variable colors
+  - Urgency indicators for slaughter dates use theme colors
+  - Stats cards, header buttons, and grouped location views updated
+
 ## [1.18.2] - 2026-01-14
 
 ### Added

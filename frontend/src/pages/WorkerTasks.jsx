@@ -11,7 +11,7 @@ const ROLE_ICONS = {
   contractor: '🔧',
   landscaper: '🌳',
   handyman: '🛠️',
-  helper: '👤',
+  helper: 'user-icon', // Special marker for User icon component
 }
 
 function WorkerTasks() {
@@ -392,10 +392,14 @@ function WorkerTasks() {
   }
 
 
-  const getRoleIcon = (role) => {
-    if (!role) return '👤'
+  const getRoleIcon = (role, size = 'text-base') => {
+    if (!role) return <User className={`inline ${size === 'text-3xl' ? 'w-8 h-8' : 'w-5 h-5'}`} style={{ color: 'var(--color-text-muted)' }} />
     const normalized = role.toLowerCase()
-    return ROLE_ICONS[normalized] || '👤'
+    const icon = ROLE_ICONS[normalized]
+    if (icon === 'user-icon' || !icon) {
+      return <User className={`inline ${size === 'text-3xl' ? 'w-8 h-8' : 'w-5 h-5'}`} style={{ color: 'var(--color-text-muted)' }} />
+    }
+    return icon
   }
 
   const getPriorityLabel = (priority) => {
@@ -469,7 +473,7 @@ function WorkerTasks() {
           {/* Worker Info Bar */}
           <div className="flex items-center justify-between bg-gray-800 rounded-lg p-4">
             <div className="flex items-center gap-4">
-              <span className="text-3xl">{getRoleIcon(selectedWorker.role)}</span>
+              <span className="text-3xl">{getRoleIcon(selectedWorker.role, 'text-3xl')}</span>
               <div>
                 <h2 className="text-xl font-bold">{selectedWorker.name}</h2>
                 <p className="text-gray-400 text-sm">{selectedWorker.role || 'No role specified'}</p>
@@ -490,7 +494,8 @@ function WorkerTasks() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => startEditWorker(selectedWorker)}
-                className="p-2 text-blue-400 hover:bg-blue-400/20 rounded-lg"
+                className="p-2 rounded-lg"
+                style={{ color: 'var(--color-blue-600)' }}
                 title="Edit Worker"
               >
                 <Edit className="w-5 h-5" />
@@ -983,8 +988,8 @@ function WorkerTasks() {
           )}
         </div>
       ) : workers.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 bg-gray-800 rounded-lg">
-          <User className="w-12 h-12 mx-auto mb-4 opacity-50" />
+        <div className="text-center py-12 rounded-lg" style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-muted)' }}>
+          <User className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--color-text-muted)', opacity: 0.5 }} />
           <p>No workers yet. Add one to get started!</p>
           <button
             onClick={() => { setShowAddWorker(true); setEditingWorker(null); resetWorkerForm(); }}
