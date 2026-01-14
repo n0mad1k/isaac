@@ -1053,24 +1053,31 @@ class SchedulerService:
                         alert_key = str(minutes_before)
                         alert_time = due_datetime - timedelta(minutes=minutes_before)
 
+                        # Re-fetch alerts_sent from DB to get latest state (prevents race conditions)
+                        await db.refresh(task)
+                        task_alerts_sent = task.alerts_sent or {}
+
                         # Skip if already sent for this interval
                         if alert_key in task_alerts_sent:
                             continue
 
-                        # Check if it's time to send this alert (within 5 minute window)
+                        # Check if it's time to send this alert
+                        # Window: from 1 minute past due to 4 minutes before (scheduler runs every 5 min)
+                        # This prevents overlap between scheduler runs
                         time_until_alert = (alert_time - now).total_seconds() / 60  # minutes
-                        if -2 <= time_until_alert <= 5:  # Within window
-                            # Send the alert email
-                            await self.send_task_reminder_email(task, minutes_before)
-
-                            # Mark as sent
+                        if -1 <= time_until_alert <= 4:  # 5 minute window, no overlap
+                            # Mark as sent FIRST to prevent duplicates on rapid restarts
                             task_alerts_sent[alert_key] = now.isoformat()
                             task.alerts_sent = task_alerts_sent
+                            await db.commit()
+
+                            # Now send the alert email
+                            await self.send_task_reminder_email(task, minutes_before)
                             alerts_sent += 1
+                            logger.info(f"Sent reminder for task '{task.title}' ({minutes_before} min before)")
 
                 if alerts_sent > 0:
-                    await db.commit()
-                    logger.info(f"Sent {alerts_sent} reminder alert(s)")
+                    logger.info(f"Sent {alerts_sent} reminder alert(s) total")
 
         except Exception as e:
             logger.error(f"Error checking reminder alerts: {e}")

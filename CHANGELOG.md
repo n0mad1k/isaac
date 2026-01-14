@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.18.4] - 2026-01-14
+
+### Fixed
+- **Duplicate email reminders**
+  - Fixed race condition where scheduler could send same reminder multiple times
+  - Now commits to database immediately after marking alert as sent (before sending email)
+  - Tightened alert window to prevent overlap between 5-minute scheduler runs
+  - Added database refresh to check latest state before sending each alert
+
 ## [1.18.3] - 2026-01-14
 
 ### Changed
