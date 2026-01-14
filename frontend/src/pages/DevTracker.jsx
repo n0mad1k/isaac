@@ -453,21 +453,6 @@ function DevTracker() {
               )}
               {feedbackEnabled ? 'Enabled' : 'Disabled'}
             </button>
-
-            {/* Pull feedback from prod */}
-            <button
-              onClick={handlePullFeedback}
-              disabled={pullingFeedback}
-              className="flex items-center gap-2 px-3 py-2 bg-farm-green hover:bg-farm-green-dark text-white rounded-lg text-sm transition-colors disabled:opacity-50"
-              title="Pull feedback from production"
-            >
-              {pullingFeedback ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              Pull from Prod
-            </button>
           </div>
         </div>
 
