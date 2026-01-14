@@ -21,10 +21,11 @@ fi
 
 # Security: Run dependency audits (warnings only, don't block deploy)
 echo "Running security audit on Python dependencies..."
-if command -v pip-audit &> /dev/null; then
-    pip-audit -r /home/n0mad1k/Tools/levi/backend/requirements.txt --ignore-vuln PYSEC-2024-* 2>/dev/null || echo "  Note: pip-audit found issues (see above)"
+PIP_AUDIT="${HOME}/.local/bin/pip-audit"
+if [[ -x "$PIP_AUDIT" ]] || command -v pip-audit &> /dev/null; then
+    ${PIP_AUDIT:-pip-audit} -r /home/n0mad1k/Tools/levi/backend/requirements.txt --ignore-vuln PYSEC-2024-* 2>/dev/null || echo "  Note: pip-audit found issues (see above)"
 else
-    echo "  Skipped: pip-audit not installed (pip install pip-audit)"
+    echo "  Skipped: pip-audit not installed (pipx install pip-audit)"
 fi
 
 echo "Running security audit on Node dependencies..."
