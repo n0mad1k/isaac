@@ -316,7 +316,7 @@ async def review_feedback(
 
             # Update prod feedback status with link to dev tracker item
             cursor.execute(
-                "UPDATE customer_feedback SET status = 'approved', reviewed_at = ?, dev_tracker_item_id = ? WHERE id = ?",
+                "UPDATE customer_feedback SET status = 'APPROVED', reviewed_at = ?, dev_tracker_item_id = ? WHERE id = ?",
                 (datetime.utcnow().isoformat(), tracker_item.id, feedback_id)
             )
             conn.commit()
@@ -326,7 +326,7 @@ async def review_feedback(
 
         elif review.action == 'decline':
             cursor.execute(
-                "UPDATE customer_feedback SET status = 'declined', admin_response = ?, reviewed_at = ? WHERE id = ?",
+                "UPDATE customer_feedback SET status = 'DECLINED', admin_response = ?, reviewed_at = ? WHERE id = ?",
                 (review.note, datetime.utcnow().isoformat(), feedback_id)
             )
             conn.commit()
@@ -336,7 +336,7 @@ async def review_feedback(
 
         elif review.action == 'kickback':
             cursor.execute(
-                "UPDATE customer_feedback SET status = 'kickback', admin_response = ?, reviewed_at = ? WHERE id = ?",
+                "UPDATE customer_feedback SET status = 'KICKBACK', admin_response = ?, reviewed_at = ? WHERE id = ?",
                 (review.note, datetime.utcnow().isoformat(), feedback_id)
             )
             conn.commit()

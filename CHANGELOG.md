@@ -2,6 +2,23 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.18.2] - 2026-01-14
+
+### Added
+- **Duplicate expense feature for animals**
+  - Click the copy icon on any expense to create a duplicate
+  - Pre-filled form with today's date for quick editing before saving
+- **Pull from Prod button for user feedback**
+  - Manually refresh feedback from production without waiting for auto-refresh
+- **My Feedback status tracking**
+  - See your feedback progress: Pending Review → In Development → In Testing → Completed
+  - Production queries dev tracker for real-time status updates
+  - Last 5 completed items remain visible so users can see things get worked on
+
+### Changed
+- **Feeding guide and backlog cards now match widget background**
+  - Cleaner visual appearance with consistent theming
+
 ## [1.18.1] - 2026-01-14
 
 ### Fixed
