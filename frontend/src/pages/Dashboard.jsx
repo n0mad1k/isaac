@@ -136,10 +136,10 @@ function Dashboard() {
         <div className="flex items-start justify-between gap-2 lg:contents">
           {/* Left - Date/Time */}
           <div className="flex-shrink-0 min-w-0">
-            <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: '#d3b19a' }}>
+            <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: '#5e6d74' }}>
               {format(currentTime, 'EEE, MMM d')}
             </h1>
-            <div className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-mono" style={{ color: '#d3b19a' }}>
+            <div className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-mono" style={{ color: '#5e6d74' }}>
               {format(currentTime, 'h:mm')}
               <span className="text-sm sm:text-lg md:text-base lg:text-xl">{format(currentTime, ':ss a')}</span>
             </div>
