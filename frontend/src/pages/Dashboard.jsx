@@ -229,7 +229,7 @@ function Dashboard() {
                 }}
                 className="w-full p-2 px-3 flex items-center justify-between transition-colors"
                 style={{ backgroundColor: 'transparent' }}
-                onMouseOver={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+                onMouseOver={e => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)'}
                 onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <div className="flex items-center gap-2">
