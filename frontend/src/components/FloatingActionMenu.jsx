@@ -163,9 +163,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
           onClick={() => setExpanded(!expanded)}
           className="p-4 rounded-full shadow-lg transition-all duration-200 active:scale-95 touch-manipulation"
           style={{
-            backgroundColor: expanded ? 'var(--color-error-600)' : 'var(--color-bg-surface)',
-            border: '2px solid var(--color-border-default)',
-            color: expanded ? 'white' : 'var(--color-text-secondary)',
+            backgroundColor: expanded ? 'var(--color-error-600)' : '#dfcbb4',
+            border: '2px solid #a17f66',
+            color: expanded ? 'white' : '#1a1a1a',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             minWidth: '56px',
             minHeight: '56px'

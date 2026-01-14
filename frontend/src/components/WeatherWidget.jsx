@@ -131,17 +131,17 @@ function WeatherWidget({ weather, className = '' }) {
           </div>
         </div>
 
-        {/* High/Low with temperature colors */}
+        {/* High/Low with red/blue colors */}
         <div className="text-right">
           <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" style={{ color: weather.temp_high_today ? getTempColor(weather.temp_high_today) : 'var(--error)' }} />
-            <span className="font-semibold" style={{ color: weather.temp_high_today ? getTempColor(weather.temp_high_today) : 'var(--text-muted)' }}>
+            <TrendingUp className="w-3 h-3" style={{ color: '#dc2626' }} />
+            <span className="font-semibold" style={{ color: '#dc2626' }}>
               {weather.temp_high_today ? Math.round(weather.temp_high_today) : '--'}°
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <TrendingDown className="w-3 h-3" style={{ color: weather.temp_low_today ? getTempColor(weather.temp_low_today) : 'var(--info)' }} />
-            <span className="font-semibold" style={{ color: weather.temp_low_today ? getTempColor(weather.temp_low_today) : 'var(--text-muted)' }}>
+            <TrendingDown className="w-3 h-3" style={{ color: '#2563eb' }} />
+            <span className="font-semibold" style={{ color: '#2563eb' }}>
               {weather.temp_low_today ? Math.round(weather.temp_low_today) : '--'}°
             </span>
           </div>
@@ -150,7 +150,7 @@ function WeatherWidget({ weather, className = '' }) {
 
       {/* Weather details - grid for mobile responsiveness */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 text-sm"
-           style={{ borderTop: '1px solid #a17f66' }}>
+           style={{ borderTop: '1px solid #1a1a1a' }}>
         <div className="flex items-center gap-1.5">
           <Thermometer className="w-4 h-4 flex-shrink-0" style={{ color: '#1a1a1a' }} />
           <span style={{ color: '#1a1a1a' }}>Feels</span>
@@ -181,7 +181,7 @@ function WeatherWidget({ weather, className = '' }) {
       )}
 
       {/* 5-Day Forecast */}
-      <div className="mt-2 pt-2" style={{ borderTop: '1px solid #a17f66' }}>
+      <div className="mt-2 pt-2" style={{ borderTop: '1px solid #1a1a1a' }}>
         <h3 className="text-xs font-semibold mb-2" style={{ color: '#1a1a1a' }}>5-Day Forecast</h3>
         {forecastLoading ? (
           <div className="flex gap-1">

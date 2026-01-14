@@ -71,8 +71,7 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
 
   // Container styles based on fillContainer prop
   const containerStyle = {
-    backgroundColor: '#d7c3b2',
-    border: '1px solid #a17f66'
+    backgroundColor: '#d7c3b2'
   }
 
   const containerClasses = fillContainer
@@ -136,7 +135,7 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
           </span>
           {/* Linked location (farm area) */}
           {task.linked_location && (
-            <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-purple-900/50 text-purple-300">
+            <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: '#a2a9a3', color: '#1a1a1a' }}>
               <MapPin className="w-3 h-3" />
               {task.linked_location}
             </span>

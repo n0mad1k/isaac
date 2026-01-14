@@ -11,7 +11,6 @@ function StatsCard({ title, value, icon: Icon, color = 'green', subtitle, bgColo
       className="rounded-lg p-2"
       style={{
         backgroundColor: bgColor || '#d7c3b2',
-        border: '1px solid #a17f66',
         boxShadow: 'var(--shadow-sm)'
       }}
     >

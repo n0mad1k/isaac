@@ -219,8 +219,7 @@ function Dashboard() {
           {data?.backlog_tasks && data.backlog_tasks.length > 0 && (
             <div className="rounded-xl overflow-hidden"
                  style={{
-                   backgroundColor: '#d7c3b2',
-                   border: '1px solid #a17f66'
+                   backgroundColor: '#d7c3b2'
                  }}>
               <button
                 onClick={() => {
@@ -272,9 +271,9 @@ function Dashboard() {
                         <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
                           {task.title}
                         </span>
-                        {/* Location badge (purple) */}
+                        {/* Location badge */}
                         {task.linked_location && (
-                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0 bg-purple-900/50 text-purple-300">
+                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: '#a2a9a3', color: '#1a1a1a' }}>
                             <MapPin className="w-3 h-3" />
                             {task.linked_location}
                           </span>
