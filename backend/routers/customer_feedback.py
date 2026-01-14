@@ -481,6 +481,9 @@ async def get_my_feedback(
     Feedback is filtered by username or display_name matching submitted_by field.
     Includes dev tracker progress for approved items.
     """
+    import sqlite3
+    import os
+
     # Build list of identifiers to match - username and display_name
     user_identifiers = [current_user.username]
     if current_user.display_name:
@@ -504,17 +507,50 @@ async def get_my_feedback(
     tracker_item_ids = [f.dev_tracker_item_id for f in feedbacks if f.dev_tracker_item_id]
 
     # Query dev tracker items to get current status
+    # On prod, we need to query the DEV database since that's where tracker items live
     tracker_status_map = {}
     if tracker_item_ids:
-        tracker_result = await db.execute(
-            select(DevTrackerItem).where(DevTrackerItem.id.in_(tracker_item_ids))
-        )
-        tracker_items = tracker_result.scalars().all()
-        for item in tracker_items:
-            tracker_status_map[item.id] = {
-                "status": item.status.value if item.status else "pending",
-                "completed_at": item.completed_at.isoformat() if item.completed_at else None
-            }
+        # First try local database (works on dev instance)
+        if app_settings.is_dev_instance:
+            tracker_result = await db.execute(
+                select(DevTrackerItem).where(DevTrackerItem.id.in_(tracker_item_ids))
+            )
+            tracker_items = tracker_result.scalars().all()
+            for item in tracker_items:
+                tracker_status_map[item.id] = {
+                    "status": item.status.value if item.status else "pending",
+                    "completed_at": item.completed_at.isoformat() if item.completed_at else None
+                }
+        else:
+            # On prod, query the dev database directly
+            dev_db_path = "/opt/isaac/backend/data/levi.db"
+            if os.path.exists(dev_db_path):
+                try:
+                    conn = sqlite3.connect(dev_db_path)
+                    cursor = conn.cursor()
+
+                    # Check if dev_tracker_items table exists
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='dev_tracker_items'"
+                    )
+                    if cursor.fetchone():
+                        placeholders = ','.join('?' * len(tracker_item_ids))
+                        cursor.execute(f"""
+                            SELECT id, status, completed_at
+                            FROM dev_tracker_items
+                            WHERE id IN ({placeholders})
+                        """, tracker_item_ids)
+
+                        for row in cursor.fetchall():
+                            item_id, status, completed_at = row
+                            tracker_status_map[item_id] = {
+                                "status": status or "pending",
+                                "completed_at": completed_at
+                            }
+                    conn.close()
+                except Exception as e:
+                    # If we can't query dev DB, just show approved status
+                    pass
 
     # Build response with progress info
     response = []
@@ -538,6 +574,7 @@ async def get_my_feedback(
             elif tracker_status in ["pending", "in_progress"]:
                 display_status = "in_development"
         elif f.status == FeedbackStatus.APPROVED:
+            # Approved but no tracker info yet - show as in_development
             display_status = "in_development"
 
         # Limit completed items to last 5
