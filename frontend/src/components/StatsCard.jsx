@@ -1,17 +1,17 @@
 import React from 'react'
 
 function StatsCard({ title, value, icon: Icon, color = 'green', subtitle, bgColor }) {
-  // Earthy palette - Dark Walnut text, Dry Sage icon background
-  const iconColor = '#582f0e'  // Dark Walnut
-  const iconBgColor = '#c2c5aa'  // Dry Sage (matches app background)
-  const textColor = '#582f0e'  // Dark Walnut
+  // E-paper palette - carbon text on parchment
+  const iconColor = '#4b3b2f'  // Dark coffee
+  const iconBgColor = '#c4b199'  // Light beige
+  const textColor = '#2d2316'  // Carbon black
 
   return (
     <div
       className="rounded-lg p-2"
       style={{
-        backgroundColor: bgColor || '#b6ad90',
-        border: '1px solid #7f4f24',
+        backgroundColor: bgColor || '#d4b483',
+        border: '1px solid #8a6f3b',
         boxShadow: 'var(--shadow-sm)'
       }}
     >

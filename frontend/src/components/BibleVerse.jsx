@@ -31,12 +31,12 @@ function BibleVerse() {
     return (
       <div className="w-full rounded-lg p-2 md:p-3 lg:p-4"
            style={{
-             backgroundColor: '#b6ad90',
-             border: '1px solid #7f4f24'
+             backgroundColor: '#d4b483',
+             border: '1px solid #8a6f3b'
            }}>
         <div className="flex items-center justify-center gap-2">
-          <Book className="w-4 h-4 md:w-5 md:h-5" style={{ color: '#936639' }} />
-          <span className="text-xs md:text-sm" style={{ color: '#656d4a' }}>Loading verse...</span>
+          <Book className="w-4 h-4 md:w-5 md:h-5" style={{ color: '#6f4b2a' }} />
+          <span className="text-xs md:text-sm" style={{ color: '#887f67' }}>Loading verse...</span>
         </div>
       </div>
     )
@@ -45,16 +45,16 @@ function BibleVerse() {
   return (
     <div className="w-full rounded-lg p-2 md:p-3 lg:p-4"
          style={{
-           backgroundColor: '#b6ad90',
-           border: '1px solid #7f4f24'
+           backgroundColor: '#d4b483',
+           border: '1px solid #8a6f3b'
          }}>
       <div className="flex items-start gap-2 md:gap-3">
-        <Book className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0 mt-0.5" style={{ color: '#936639' }} />
+        <Book className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0 mt-0.5" style={{ color: '#6f4b2a' }} />
         <div className="min-w-0 flex-1">
-          <p className="text-xs md:text-sm italic leading-relaxed text-center" style={{ color: '#333d29' }}>
+          <p className="text-xs md:text-sm italic leading-relaxed text-center" style={{ color: '#2d2316' }}>
             "{verse.text}"
           </p>
-          <p className="text-xs mt-1 md:mt-2 font-medium text-center" style={{ color: '#7f4f24' }}>
+          <p className="text-xs mt-1 md:mt-2 font-medium text-center" style={{ color: '#6f4b2a' }}>
             — {verse.reference} ({verse.version})
           </p>
         </div>
