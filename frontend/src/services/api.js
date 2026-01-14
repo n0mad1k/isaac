@@ -404,6 +404,7 @@ export const toggleFeedbackOnProd = (enable) =>
 export const getProdFeedbackStatus = () => api.get('/feedback/prod-status/')
 export const listProdFeedback = () => api.get('/feedback/prod-list/')
 export const reviewFeedback = (id, data) => api.post(`/feedback/review/${id}/`, data)
+export const deleteProdFeedback = (id) => api.delete(`/feedback/prod/${id}/`)
 
 // User feedback management (for viewing/editing own feedback)
 export const getMyFeedback = () => api.get('/feedback/my/')

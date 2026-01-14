@@ -66,6 +66,8 @@ function DevTracker() {
   const [reviewingId, setReviewingId] = useState(null)
   const [reviewNote, setReviewNote] = useState('')
   const [reviewPriority, setReviewPriority] = useState('medium')
+  const [feedbackCollapsed, setFeedbackCollapsed] = useState(false)
+  const [deletingFeedbackId, setDeletingFeedbackId] = useState(null)
   const feedbackRefreshRef = useRef(null)
 
   useEffect(() => {
@@ -156,6 +158,20 @@ function DevTracker() {
       setFeedbackMessage({ type: 'error', text: err.response?.data?.detail || 'Failed to review feedback' })
     } finally {
       setReviewingId(null)
+    }
+  }
+
+  // Delete feedback from production (no review, just remove)
+  const handleDeleteFeedback = async (feedbackId) => {
+    setDeletingFeedbackId(feedbackId)
+    try {
+      await api.deleteProdFeedback(feedbackId)
+      setFeedbackMessage({ type: 'success', text: 'Feedback deleted' })
+      loadProdFeedback()
+    } catch (err) {
+      setFeedbackMessage({ type: 'error', text: err.response?.data?.detail || 'Failed to delete feedback' })
+    } finally {
+      setDeletingFeedbackId(null)
     }
   }
 
@@ -471,10 +487,14 @@ function DevTracker() {
         {prodFeedback.length > 0 && (
           <div className="mt-4 border-t border-gray-700 pt-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+              <button
+                onClick={() => setFeedbackCollapsed(!feedbackCollapsed)}
+                className="text-sm font-medium text-gray-300 flex items-center gap-2 hover:text-white"
+              >
+                {feedbackCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 <MessageSquarePlus className="w-4 h-4 text-purple-400" />
                 Pending Feedback from Production ({prodFeedback.length})
-              </h4>
+              </button>
               <button
                 onClick={loadProdFeedback}
                 disabled={loadingProdFeedback}
@@ -484,6 +504,7 @@ function DevTracker() {
                 Refresh
               </button>
             </div>
+            {!feedbackCollapsed && (
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {prodFeedback.map(fb => (
                 <div key={fb.id} className="p-4 rounded-lg border border-gray-700" style={{ backgroundColor: 'var(--color-bg-surface-soft)' }}>
@@ -567,10 +588,28 @@ function DevTracker() {
                       placeholder="Add note (required for decline/kickback)..."
                       className="mt-2 w-full px-3 py-2 text-sm bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-500"
                     />
+
+                    {/* Delete button */}
+                    <div className="mt-2 pt-2 border-t border-gray-700 flex justify-end">
+                      <button
+                        onClick={() => handleDeleteFeedback(fb.id)}
+                        disabled={deletingFeedbackId === fb.id}
+                        className="flex items-center gap-1 px-3 py-1 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded text-xs transition-colors"
+                        title="Delete feedback permanently"
+                      >
+                        {deletingFeedbackId === fb.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
+            )}
           </div>
         )}
       </div>

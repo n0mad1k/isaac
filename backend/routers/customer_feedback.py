@@ -485,14 +485,14 @@ async def get_my_feedback(
         user_identifiers.append(current_user.display_name)
 
     # Get feedback where submitted_by matches any of the user's identifiers
-    from sqlalchemy import or_
+    # Exclude DISMISSED and PULLED (already processed into dev tracker)
+    from sqlalchemy import or_, and_
     result = await db.execute(
         select(CustomerFeedback)
         .where(
-            CustomerFeedback.status != FeedbackStatus.DISMISSED,
-            or_(
-                CustomerFeedback.submitted_by.in_(user_identifiers),
-                # Also include feedback submitted with no name (anonymous) if user is admin
+            and_(
+                CustomerFeedback.status.notin_([FeedbackStatus.DISMISSED, FeedbackStatus.PULLED]),
+                CustomerFeedback.submitted_by.in_(user_identifiers)
             )
         )
         .order_by(CustomerFeedback.created_at.desc())
@@ -670,6 +670,50 @@ async def get_prod_feedback_status(
 
     except Exception as e:
         return {"enabled": False, "error": str(e)}
+
+
+@router.delete("/prod/{feedback_id}/")
+async def delete_prod_feedback(
+    feedback_id: int,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    """Delete feedback directly from production database (dev instance only)"""
+    import sqlite3
+    import os
+
+    if not app_settings.is_dev_instance:
+        raise HTTPException(
+            status_code=403,
+            detail="This action is only available on the dev instance"
+        )
+
+    prod_db_path = "/opt/levi/backend/data/levi.db"
+
+    if not os.path.exists(prod_db_path):
+        raise HTTPException(status_code=404, detail="Production database not found")
+
+    try:
+        conn = sqlite3.connect(prod_db_path)
+        cursor = conn.cursor()
+
+        # Check if feedback exists
+        cursor.execute("SELECT id FROM customer_feedback WHERE id = ?", (feedback_id,))
+        if not cursor.fetchone():
+            conn.close()
+            raise HTTPException(status_code=404, detail="Feedback not found")
+
+        # Delete the feedback
+        cursor.execute("DELETE FROM customer_feedback WHERE id = ?", (feedback_id,))
+        conn.commit()
+        conn.close()
+
+        return {"message": "Feedback deleted"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/toggle-on-prod/")
