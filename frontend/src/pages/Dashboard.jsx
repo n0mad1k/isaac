@@ -159,14 +159,14 @@ function Dashboard() {
               value={data?.stats?.total_animals || 0}
               icon={PawPrint}
               color="blue"
-              bgColor="#cb936a"
+              bgColor="#d7c3b2"
             />
             <StatsCard
               title="Tasks"
               value={data?.stats?.tasks_today || 0}
               icon={ListTodo}
               color="yellow"
-              bgColor="#a6b4b2"
+              bgColor="#bec2c3"
             />
             <StatsCard
               title="Overdue"
