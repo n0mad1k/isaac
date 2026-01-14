@@ -11,16 +11,60 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 
 from models.database import get_db
-from models.home_maintenance import HomeMaintenance, HomeMaintenanceLog, HomeMaintenanceCategory
+from models.home_maintenance import HomeMaintenance, HomeMaintenanceLog, DEFAULT_CATEGORIES, get_local_now
+from models.tasks import Task
+from models.users import User
+from services.permissions import require_create, require_edit, require_delete, require_interact
 
 
 router = APIRouter(prefix="/home-maintenance", tags=["Home Maintenance"])
 
 
+# ============================================
+# Static routes MUST come before dynamic /{task_id} routes
+# ============================================
+
+@router.get("/categories/list")
+async def get_categories(db: AsyncSession = Depends(get_db)):
+    """Get all available categories (default + custom from existing tasks)"""
+    # Get custom categories from existing tasks
+    result = await db.execute(
+        select(HomeMaintenance.category)
+        .where(HomeMaintenance.category.isnot(None))
+        .where(HomeMaintenance.category != "")
+        .distinct()
+    )
+    custom_categories = [row[0] for row in result.fetchall()]
+
+    # Merge with defaults, removing duplicates
+    all_categories = set(DEFAULT_CATEGORIES) | set(custom_categories)
+
+    # Return sorted list with labels
+    return sorted([
+        {"value": c, "label": c.replace("_", " ").title()}
+        for c in all_categories
+    ], key=lambda x: x["label"])
+
+
+@router.get("/areas/list")
+async def get_areas(db: AsyncSession = Depends(get_db)):
+    """Get all unique area/appliance values from existing tasks"""
+    result = await db.execute(
+        select(HomeMaintenance.area_or_appliance)
+        .where(HomeMaintenance.area_or_appliance.isnot(None))
+        .where(HomeMaintenance.area_or_appliance != "")
+        .distinct()
+    )
+    areas = [row[0] for row in result.fetchall()]
+    return sorted(areas)
+
+
 # Pydantic Schemas
 class MaintenanceCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    category: HomeMaintenanceCategory = HomeMaintenanceCategory.GENERAL
+    category: str = Field("general", max_length=50)  # Supports custom categories
+    area_or_appliance: Optional[str] = Field(None, max_length=100)  # e.g., "Pool", "A/C Unit", "Dishwasher"
+    area_icon: Optional[str] = Field(None, max_length=50)  # Icon name: "Waves", "Wind", etc.
     description: Optional[str] = Field(None, max_length=1000)
     frequency_days: Optional[int] = Field(None, ge=1, le=3650)  # Now optional - can use manual_due_date instead
     frequency_label: Optional[str] = Field(None, max_length=50)
@@ -32,7 +76,9 @@ class MaintenanceCreate(BaseModel):
 
 class MaintenanceUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    category: Optional[HomeMaintenanceCategory] = None
+    category: Optional[str] = Field(None, max_length=50)  # Supports custom categories
+    area_or_appliance: Optional[str] = Field(None, max_length=100)
+    area_icon: Optional[str] = Field(None, max_length=50)
     description: Optional[str] = Field(None, max_length=1000)
     frequency_days: Optional[int] = Field(None, ge=1, le=3650)
     frequency_label: Optional[str] = Field(None, max_length=50)
@@ -56,7 +102,9 @@ class LogCreate(BaseModel):
 class MaintenanceResponse(BaseModel):
     id: int
     name: str
-    category: HomeMaintenanceCategory
+    category: str
+    area_or_appliance: Optional[str]
+    area_icon: Optional[str]
     description: Optional[str]
     frequency_days: Optional[int]
     frequency_label: Optional[str]
@@ -89,11 +137,16 @@ class LogResponse(BaseModel):
 # Routes
 @router.get("/", response_model=List[MaintenanceResponse])
 async def get_all_maintenance(
-    category: Optional[HomeMaintenanceCategory] = None,
+    category: Optional[str] = None,
     active_only: bool = True,
+    limit: int = 500,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db)
 ):
     """Get all home maintenance tasks"""
+    # Cap limit for DoS prevention
+    limit = min(limit, 1000)
+
     query = select(HomeMaintenance)
 
     if category:
@@ -101,7 +154,7 @@ async def get_all_maintenance(
     if active_only:
         query = query.where(HomeMaintenance.is_active == True)
 
-    query = query.order_by(HomeMaintenance.next_due.asc().nullsfirst())
+    query = query.order_by(HomeMaintenance.next_due.asc().nullsfirst()).offset(offset).limit(limit)
 
     result = await db.execute(query)
     tasks = result.scalars().all()
@@ -110,6 +163,8 @@ async def get_all_maintenance(
         id=t.id,
         name=t.name,
         category=t.category,
+        area_or_appliance=t.area_or_appliance,
+        area_icon=t.area_icon,
         description=t.description,
         frequency_days=t.frequency_days,
         frequency_label=t.frequency_label,
@@ -140,6 +195,8 @@ async def get_maintenance(task_id: int, db: AsyncSession = Depends(get_db)):
         id=task.id,
         name=task.name,
         category=task.category,
+        area_or_appliance=task.area_or_appliance,
+        area_icon=task.area_icon,
         description=task.description,
         frequency_days=task.frequency_days,
         frequency_label=task.frequency_label,
@@ -156,11 +213,17 @@ async def get_maintenance(task_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/", response_model=MaintenanceResponse)
-async def create_maintenance(data: MaintenanceCreate, db: AsyncSession = Depends(get_db)):
+async def create_maintenance(
+    data: MaintenanceCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("home"))
+):
     """Create a new maintenance task"""
     task = HomeMaintenance(
         name=data.name,
         category=data.category,
+        area_or_appliance=data.area_or_appliance,
+        area_icon=data.area_icon,
         description=data.description,
         frequency_days=data.frequency_days,
         frequency_label=data.frequency_label,
@@ -184,6 +247,8 @@ async def create_maintenance(data: MaintenanceCreate, db: AsyncSession = Depends
         id=task.id,
         name=task.name,
         category=task.category,
+        area_or_appliance=task.area_or_appliance,
+        area_icon=task.area_icon,
         description=task.description,
         frequency_days=task.frequency_days,
         frequency_label=task.frequency_label,
@@ -200,7 +265,12 @@ async def create_maintenance(data: MaintenanceCreate, db: AsyncSession = Depends
 
 
 @router.put("/{task_id}", response_model=MaintenanceResponse)
-async def update_maintenance(task_id: int, data: MaintenanceUpdate, db: AsyncSession = Depends(get_db)):
+async def update_maintenance(
+    task_id: int,
+    data: MaintenanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("home"))
+):
     """Update a maintenance task"""
     result = await db.execute(
         select(HomeMaintenance).where(HomeMaintenance.id == task_id)
@@ -231,6 +301,8 @@ async def update_maintenance(task_id: int, data: MaintenanceUpdate, db: AsyncSes
         id=task.id,
         name=task.name,
         category=task.category,
+        area_or_appliance=task.area_or_appliance,
+        area_icon=task.area_icon,
         description=task.description,
         frequency_days=task.frequency_days,
         frequency_label=task.frequency_label,
@@ -247,7 +319,11 @@ async def update_maintenance(task_id: int, data: MaintenanceUpdate, db: AsyncSes
 
 
 @router.delete("/{task_id}")
-async def delete_maintenance(task_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_maintenance(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("home"))
+):
     """Delete a maintenance task"""
     result = await db.execute(
         select(HomeMaintenance).where(HomeMaintenance.id == task_id)
@@ -264,7 +340,12 @@ async def delete_maintenance(task_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{task_id}/complete", response_model=MaintenanceResponse)
-async def complete_maintenance(task_id: int, data: LogCreate, db: AsyncSession = Depends(get_db)):
+async def complete_maintenance(
+    task_id: int,
+    data: LogCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("home"))
+):
     """Mark a maintenance task as complete and log it"""
     result = await db.execute(
         select(HomeMaintenance).where(HomeMaintenance.id == task_id)
@@ -275,7 +356,7 @@ async def complete_maintenance(task_id: int, data: LogCreate, db: AsyncSession =
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     # Create log entry
-    performed_at = data.performed_at or datetime.utcnow()
+    performed_at = data.performed_at or get_local_now()
     log = HomeMaintenanceLog(
         maintenance_id=task_id,
         performed_at=performed_at,
@@ -288,6 +369,16 @@ async def complete_maintenance(task_id: int, data: LogCreate, db: AsyncSession =
     task.last_completed = performed_at
     task.calculate_next_due()
 
+    # Also complete the linked Task (auto-reminder) if it exists
+    linked_task_key = f"auto:home_maint:{task_id}"
+    linked_result = await db.execute(
+        select(Task).where(Task.notes.contains(linked_task_key))
+    )
+    linked_task = linked_result.scalar_one_or_none()
+    if linked_task and not linked_task.is_completed:
+        linked_task.is_completed = True
+        linked_task.completed_at = performed_at
+
     await db.commit()
     await db.refresh(task)
 
@@ -295,6 +386,8 @@ async def complete_maintenance(task_id: int, data: LogCreate, db: AsyncSession =
         id=task.id,
         name=task.name,
         category=task.category,
+        area_or_appliance=task.area_or_appliance,
+        area_icon=task.area_icon,
         description=task.description,
         frequency_days=task.frequency_days,
         frequency_label=task.frequency_label,
@@ -330,6 +423,8 @@ async def set_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: As
         id=task.id,
         name=task.name,
         category=task.category,
+        area_or_appliance=task.area_or_appliance,
+        area_icon=task.area_icon,
         description=task.description,
         frequency_days=task.frequency_days,
         frequency_label=task.frequency_label,
@@ -363,9 +458,3 @@ async def get_maintenance_logs(task_id: int, db: AsyncSession = Depends(get_db))
         cost=log.cost,
         created_at=log.created_at
     ) for log in logs]
-
-
-@router.get("/categories/list")
-async def get_categories():
-    """Get all available categories"""
-    return [{"value": c.value, "label": c.value.replace("_", " ").title()} for c in HomeMaintenanceCategory]

@@ -18,6 +18,42 @@ from models.tasks import Task, TaskCategory, TaskType
 from models.settings import AppSetting
 
 
+def sanitize_ical_text(text: str) -> str:
+    """Sanitize text for safe iCalendar property values.
+
+    Prevents iCal property injection by:
+    1. Removing/escaping control characters
+    2. Escaping backslashes, semicolons, commas, newlines
+    3. Limiting length to prevent DoS
+    """
+    if not text:
+        return ""
+
+    # Limit length to prevent DoS
+    text = text[:4096]
+
+    # Remove null bytes and other control characters (except newline, tab)
+    text = ''.join(c for c in text if c >= ' ' or c in '\n\t')
+
+    # The icalendar library should handle RFC 5545 escaping, but we add extra safety:
+    # Remove any raw CRLF sequences that could inject new properties
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+
+    # Remove any lines that look like iCal property injection attempts
+    # (lines starting with valid iCal property names followed by : or ;)
+    import re
+    lines = text.split('\n')
+    safe_lines = []
+    ical_property_pattern = re.compile(r'^[A-Z][A-Z0-9-]*[;:]', re.IGNORECASE)
+    for line in lines:
+        # If line looks like an iCal property, prefix with space to neutralize
+        if ical_property_pattern.match(line.strip()):
+            line = ' ' + line
+        safe_lines.append(line)
+
+    return '\n'.join(safe_lines)
+
+
 # Default settings
 DEFAULT_CALENDAR_SETTINGS = {
     "calendar_enabled": "false",
@@ -30,12 +66,17 @@ DEFAULT_CALENDAR_SETTINGS = {
 
 
 async def get_calendar_setting(db: AsyncSession, key: str) -> str:
-    """Get a calendar setting from the database"""
+    """Get a calendar setting from the database. Decrypts sensitive values."""
+    from services.encryption import should_encrypt, decrypt_value
+
     result = await db.execute(
         select(AppSetting).where(AppSetting.key == key)
     )
     setting = result.scalar_one_or_none()
     if setting and setting.value is not None:
+        # Decrypt sensitive settings
+        if should_encrypt(key):
+            return decrypt_value(setting.value)
         return setting.value
     return DEFAULT_CALENDAR_SETTINGS.get(key, "")
 
@@ -64,6 +105,7 @@ class CalendarSyncService:
                 url=self.url,
                 username=self.username,
                 password=self.password,
+                timeout=10,  # 10 second timeout to prevent hanging
             )
             principal = self._client.principal()
             logger.info(f"Connected to CalDAV server: {self.url}")
@@ -121,12 +163,12 @@ class CalendarSyncService:
             # Create VEVENT for calendar events
             component = icalendar.Event()
             component.add('uid', uid)
-            component.add('summary', task.title)
+            component.add('summary', sanitize_ical_text(task.title))
 
             if task.description:
-                component.add('description', task.description)
+                component.add('description', sanitize_ical_text(task.description))
             if task.location:
-                component.add('location', task.location)
+                component.add('location', sanitize_ical_text(task.location))
 
             # Date and Time handling
             if task.due_date:
@@ -170,12 +212,12 @@ class CalendarSyncService:
             # Create VTODO for reminders/todos
             component = icalendar.Todo()
             component.add('uid', uid)
-            component.add('summary', task.title)
+            component.add('summary', sanitize_ical_text(task.title))
 
             if task.description:
-                component.add('description', task.description)
+                component.add('description', sanitize_ical_text(task.description))
             if task.location:
-                component.add('location', task.location)
+                component.add('location', sanitize_ical_text(task.location))
 
             # Due date/time for todos (optional)
             if task.due_date:
@@ -215,13 +257,12 @@ class CalendarSyncService:
         component.add('x-isaac-task-id', str(task.id))
 
         # Add VALARM for push notifications on iOS
-        # Use task.reminder_alerts if set, otherwise default to [0] (at time of event)
-        if task.due_date and not task.is_completed:
-            reminder_alerts = task.reminder_alerts if task.reminder_alerts else [0]
-            for alert_minutes in reminder_alerts:
+        # Only add alarms if task.reminder_alerts is explicitly set
+        if task.due_date and not task.is_completed and task.reminder_alerts:
+            for alert_minutes in task.reminder_alerts:
                 alarm = icalendar.Alarm()
                 alarm.add('action', 'DISPLAY')
-                alarm.add('description', f'Reminder: {task.title}')
+                alarm.add('description', f'Reminder: {sanitize_ical_text(task.title)}')
                 # Negative trigger means before the event
                 alarm.add('trigger', timedelta(minutes=-alert_minutes))
                 component.add_component(alarm)
@@ -324,13 +365,36 @@ class CalendarSyncService:
 
         return task_dict
 
-    async def sync_task_to_calendar(self, task: Task, db: AsyncSession = None) -> bool:
-        """Sync a single task to the calendar"""
+    async def sync_task_to_calendar(self, task: Task, db: AsyncSession = None, existing_events: Dict[str, str] = None) -> bool:
+        """Sync a single task to the calendar.
+
+        Args:
+            task: The task to sync
+            db: Database session for updating calendar_uid
+            existing_events: Optional dict of {title|date: uid} for duplicate detection
+        """
+        # Skip worker-assigned tasks - they don't go to calendar
+        if task.assigned_to_worker_id:
+            logger.debug(f"Skipping calendar sync for worker-assigned task {task.id}")
+            return True
+
         calendar = self.get_or_create_calendar()
         if not calendar:
             return False
 
         try:
+            # Check for existing event with same title+date BEFORE creating new one
+            # This prevents duplicating events that were created on phone
+            if not task.calendar_uid and existing_events is not None:
+                task_key = f"{task.title.strip().lower()}|{task.due_date}"
+                if task_key in existing_events:
+                    # Link to existing event instead of creating duplicate
+                    task.calendar_uid = existing_events[task_key]
+                    if db:
+                        await db.commit()
+                    logger.info(f"Linked task '{task.title}' to existing calendar event")
+                    return True
+
             ical_data = self.task_to_ical(task)
             # Use existing calendar_uid if set, otherwise create new isaac-task UID
             uid = task.calendar_uid if task.calendar_uid else f"isaac-task-{task.id}@example.com"
@@ -396,59 +460,137 @@ class CalendarSyncService:
             logger.error(f"Failed to sync task {task.id} to calendar: {e}")
             return False
 
-    async def sync_all_tasks_to_calendar(self, db: AsyncSession, calendar_uids: set = None) -> int:
-        """Sync all active tasks to the calendar.
+    async def sync_all_tasks_to_calendar(self, db: AsyncSession, calendar_uids: set = None, force_full: bool = False) -> dict:
+        """Sync tasks to the calendar (incremental by default).
 
         Args:
             db: Database session
             calendar_uids: Set of UIDs currently in the calendar (for deletion detection)
+            force_full: If True, sync all tasks regardless of sync status
+
+        Returns:
+            dict with counts: synced, deleted, skipped, deleted_by_phone, linked
         """
-        from sqlalchemy import or_
-        result = await db.execute(
+        from sqlalchemy import or_, and_
+
+        now = datetime.utcnow()
+        synced = 0
+        deleted = 0
+        skipped = 0
+        deleted_by_phone = 0
+        linked = 0
+
+        # Build dict of existing calendar events for duplicate detection
+        # Maps "title|date" -> uid (for events not created by Isaac)
+        existing_events: Dict[str, str] = {}
+        try:
+            calendar_events = await self.get_calendar_events()
+            for event in calendar_events:
+                uid = event.get('calendar_uid', '')
+                # Only track non-Isaac events (to prevent linking to our own events)
+                if uid and not uid.startswith('isaac-task-') and not uid.startswith('levi-task-'):
+                    title = event.get('title', '').strip().lower()
+                    due_date = event.get('due_date')
+                    if title and due_date:
+                        key = f"{title}|{due_date}"
+                        existing_events[key] = uid
+            logger.debug(f"Found {len(existing_events)} existing calendar events for duplicate detection")
+        except Exception as e:
+            logger.warning(f"Could not fetch existing events for duplicate detection: {e}")
+
+        # PART 1: Sync active, incomplete tasks that need syncing
+        base_query = (
             select(Task)
             .where(Task.is_active == True)
             .where(Task.is_completed == False)
             .where(
                 or_(
-                    Task.due_date >= date.today() - timedelta(days=7),  # Include recent dated tasks
-                    Task.due_date.is_(None),  # Include undated todos
+                    Task.due_date >= date.today() - timedelta(days=7),
+                    Task.due_date.is_(None),
                 )
             )
         )
-        tasks = result.scalars().all()
 
-        synced = 0
-        deleted_by_phone = 0
+        # For incremental sync, only get tasks that need syncing
+        if not force_full:
+            base_query = base_query.where(
+                or_(
+                    Task.calendar_synced_at.is_(None),  # Never synced
+                    Task.updated_at > Task.calendar_synced_at,  # Changed since last sync
+                )
+            )
+
+        result = await db.execute(base_query)
+        tasks = result.scalars().all()
 
         for task in tasks:
             # Skip tasks that were imported from phone (have a non-app UID)
-            # They already exist in the calendar, don't push duplicates
             is_app_uid = (
                 task.calendar_uid and
                 (task.calendar_uid.startswith('isaac-task-') or task.calendar_uid.startswith('levi-task-'))
             )
             if task.calendar_uid and not is_app_uid:
-                logger.debug(f"Skipping imported task '{task.title}' - already in calendar")
+                skipped += 1
                 continue
 
             # Check if this task was deleted on the phone
-            # If task has an app-originated UID and it's not in the calendar, it was deleted on phone
             if calendar_uids is not None and task.calendar_uid:
                 if is_app_uid and task.calendar_uid not in calendar_uids:
-                    # Task was deleted on phone - mark as inactive in webapp
                     task.is_active = False
                     deleted_by_phone += 1
                     logger.info(f"Task '{task.title}' was deleted on phone, marking inactive")
                     continue
 
-            if await self.sync_task_to_calendar(task, db):
-                synced += 1
+            result = await self.sync_task_to_calendar(task, db, existing_events)
+            if result:
+                task.calendar_synced_at = now
+                # Check if task was linked to existing event (has non-isaac UID now)
+                if task.calendar_uid and not task.calendar_uid.startswith('isaac-task-') and not task.calendar_uid.startswith('levi-task-'):
+                    linked += 1
+                else:
+                    synced += 1
 
-        if deleted_by_phone > 0:
-            await db.commit()
+        # PART 2: Delete completed/inactive tasks from calendar
+        # Find tasks that were synced to calendar but are now completed or inactive
+        delete_query = (
+            select(Task)
+            .where(Task.calendar_uid.isnot(None))  # Has been synced
+            .where(Task.calendar_synced_at.isnot(None))  # Was synced
+            .where(
+                or_(
+                    Task.is_completed == True,
+                    Task.is_active == False,
+                )
+            )
+            .where(
+                or_(
+                    Task.calendar_synced_at < Task.updated_at,  # Changed since sync
+                    force_full == True,
+                )
+            )
+        )
 
-        logger.info(f"Synced {synced}/{len(tasks)} tasks to calendar, {deleted_by_phone} deleted by phone")
-        return synced
+        result = await db.execute(delete_query)
+        tasks_to_delete = result.scalars().all()
+
+        for task in tasks_to_delete:
+            # Only delete app-originated tasks (isaac-task-X or levi-task-X)
+            is_app_uid = (
+                task.calendar_uid and
+                (task.calendar_uid.startswith('isaac-task-') or task.calendar_uid.startswith('levi-task-'))
+            )
+            if is_app_uid:
+                if await self.delete_task_from_calendar(task.id, task.calendar_uid):
+                    task.calendar_synced_at = now  # Mark as synced (deleted)
+                    deleted += 1
+                    logger.debug(f"Deleted completed/inactive task '{task.title}' from calendar")
+
+        # Commit all changes
+        await db.commit()
+
+        sync_type = "full" if force_full else "incremental"
+        logger.info(f"Calendar {sync_type} sync: {synced} synced, {linked} linked, {deleted} deleted, {skipped} skipped, {deleted_by_phone} deleted by phone")
+        return {"synced": synced, "linked": linked, "deleted": deleted, "skipped": skipped, "deleted_by_phone": deleted_by_phone}
 
     async def get_calendar_events(
         self,
@@ -564,12 +706,23 @@ class CalendarSyncService:
                     )
                     existing_task = result.scalar_one_or_none()
                     if existing_task and not existing_task.is_completed:
-                        existing_task.is_completed = True
-                        existing_task.completed_at = datetime.now(pytz.UTC)
-                        updated += 1
-                        logger.info(f"Task '{existing_task.title}' completed on phone")
-                        # Delete the completed task from calendar so it doesn't re-sync
-                        await self.delete_task_from_calendar(existing_task.id, calendar_uid)
+                        # Only mark as phone-completed if task was due today or earlier
+                        # This prevents future tasks from being accidentally marked complete
+                        # when calendar sync sees stale completion data
+                        import pytz
+                        eastern = pytz.timezone('America/New_York')
+                        today = datetime.now(eastern).date()
+                        task_due = existing_task.due_date
+
+                        if task_due and task_due > today:
+                            logger.warning(f"Ignoring phone completion for future task '{existing_task.title}' (due {task_due})")
+                        else:
+                            existing_task.is_completed = True
+                            existing_task.completed_at = datetime.now(pytz.UTC)
+                            updated += 1
+                            logger.info(f"Task '{existing_task.title}' completed on phone")
+                            # Delete the completed task from calendar so it doesn't re-sync
+                            await self.delete_task_from_calendar(existing_task.id, calendar_uid)
                 # Skip any other updates for isaac-originated tasks - webapp is source of truth
                 continue
 

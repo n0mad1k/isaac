@@ -1,0 +1,594 @@
+/* ============================================
+   ISAAC FARM MANAGEMENT - DESIGN TOKEN SYSTEM
+   "Sunlit Field" (Light) & "Moonlit Farm" (Dark)
+
+   A complete semantic token system for a professional
+   agricultural web application.
+
+   USAGE:
+   - All colors should reference these tokens via var(--token-name)
+   - Theme switches via html[data-theme="dark"] attribute
+   - Light mode is default (:root), dark mode uses data-theme="dark"
+   ============================================ */
+
+/* ============================================
+   LIGHT THEME (Default) - Warm Parchment Farm Feel
+   Cream/parchment backgrounds with proper contrast
+   ============================================ */
+:root {
+  /* ----------------------------------------
+     SURFACE COLORS - Rich forest backgrounds
+     ---------------------------------------- */
+  --color-bg-app: #f0e2d3;           /* Main app background - warm cream */
+  --color-bg-surface: #E4F0E0;       /* Cards, panels - light fern */
+  --color-bg-surface-soft: #C8DCC4;  /* Secondary surfaces - soft moss */
+  --color-bg-surface-muted: #B8D0B4; /* Tertiary surfaces - sage green */
+  --color-bg-surface-hover: #A8C4A4; /* Hover state backgrounds - deeper moss */
+  --color-bg-surface-active: #98B894; /* Active/pressed state backgrounds */
+  --color-bg-overlay: rgba(0, 0, 0, 0.5); /* Modal overlays */
+  --color-bg-tooltip: #1E3A28;       /* Tooltip backgrounds - deep forest */
+
+  /* ----------------------------------------
+     BORDER COLORS - Rich forest borders
+     ---------------------------------------- */
+  --color-border-subtle: #A8C8A4;    /* Subtle dividers - soft fern */
+  --color-border-default: #7CA878;   /* Standard borders - forest moss */
+  --color-border-strong: #5C8858;    /* Emphasized borders - deep fern */
+  --color-border-focus: #3E6646;     /* Focus ring color - forest green */
+
+  /* ----------------------------------------
+     TEXT COLORS
+     ---------------------------------------- */
+  --color-text-primary: #212529;     /* Primary text - near black */
+  --color-text-secondary: #495057;   /* Secondary text */
+  --color-text-muted: #6C757D;       /* Muted/helper text */
+  --color-text-disabled: #ADB5BD;    /* Disabled text */
+  --color-text-inverse: #FFFFFF;     /* Text on dark backgrounds */
+  --color-text-link: #3E6646;        /* Link text */
+  --color-text-link-hover: #2E4F36;  /* Link hover */
+
+  /* ----------------------------------------
+     PRIMARY GREEN RAMP - Main brand color
+     ---------------------------------------- */
+  --color-green-900: #1F3A28;
+  --color-green-800: #2E4F36;
+  --color-green-700: #3E6646;
+  --color-green-600: #4F7D57;
+  --color-green-500: #6B9A74;
+  --color-green-400: #8FB59A;
+  --color-green-300: #B4D0BC;
+  --color-green-200: #D4E6D8;
+  --color-green-100: #E9F2EB;
+
+  /* ----------------------------------------
+     GOLD ACCENT RAMP - Secondary accent
+     ---------------------------------------- */
+  --color-gold-800: #6B4F1A;
+  --color-gold-700: #8C6A2A;
+  --color-gold-600: #A88234;
+  --color-gold-500: #C2A14D;
+  --color-gold-400: #D8BF7A;
+  --color-gold-300: #EADCB0;
+  --color-gold-200: #F4ECD0;
+  --color-gold-100: #FAF6E8;
+
+  /* ----------------------------------------
+     TEAL ACCENT RAMP - Tertiary accent
+     ---------------------------------------- */
+  --color-teal-800: #1F4A46;
+  --color-teal-700: #2F5F5A;
+  --color-teal-600: #3E7A74;
+  --color-teal-500: #5C9C95;
+  --color-teal-400: #82B9B3;
+  --color-teal-300: #B2D6D1;
+  --color-teal-200: #D4EAE7;
+  --color-teal-100: #EAF5F4;
+
+  /* ----------------------------------------
+     SEMANTIC COLORS - Status & Feedback
+     ---------------------------------------- */
+  /* Success - natural green */
+  --color-success-700: #3D7048;
+  --color-success-600: #4F8A5B;
+  --color-success-500: #62A46E;
+  --color-success-400: #8FC09A;
+  --color-success-bg: #E3F1E6;
+  --color-success-border: #A8D4B0;
+
+  /* Warning - harvest gold/amber */
+  --color-warning-700: #9A7020;
+  --color-warning-600: #C48F2A;
+  --color-warning-500: #D9A33A;
+  --color-warning-400: #E0B96A;
+  --color-warning-bg: #F6EDD7;
+  --color-warning-border: #E8D4A0;
+
+  /* Error - clay/terracotta red */
+  --color-error-700: #8A3D2E;
+  --color-error-600: #A24E3D;
+  --color-error-500: #BA604D;
+  --color-error-400: #D08A7C;
+  --color-error-bg: #F3E2DE;
+  --color-error-border: #E4C4BC;
+
+  /* Info - river/sky blue-green */
+  --color-info-700: #3A6560;
+  --color-info-600: #4F7F7A;
+  --color-info-500: #649994;
+  --color-info-400: #8FB7B2;
+  --color-info-bg: #E4F1F0;
+  --color-info-border: #B8D8D4;
+
+  /* ----------------------------------------
+     INTERACTIVE COLORS - Buttons & Controls
+     ---------------------------------------- */
+  /* Primary button */
+  --color-btn-primary-bg: #4F7D57;
+  --color-btn-primary-bg-hover: #3E6646;
+  --color-btn-primary-bg-active: #2E4F36;
+  --color-btn-primary-text: #FFFFFF;
+  --color-btn-primary-border: #3E6646;
+
+  /* Secondary button */
+  --color-btn-secondary-bg: #EDF1E4;
+  --color-btn-secondary-bg-hover: #DDE4CF;
+  --color-btn-secondary-bg-active: #C8D2B5;
+  --color-btn-secondary-text: #4A5A4A;
+  --color-btn-secondary-border: #B7C1A9;
+
+  /* Ghost/text button */
+  --color-btn-ghost-bg: transparent;
+  --color-btn-ghost-bg-hover: #E6ECD9;
+  --color-btn-ghost-bg-active: #DDE4CF;
+  --color-btn-ghost-text: #4F7D57;
+
+  /* Danger button */
+  --color-btn-danger-bg: #A24E3D;
+  --color-btn-danger-bg-hover: #8A3D2E;
+  --color-btn-danger-bg-active: #722F22;
+  --color-btn-danger-text: #FFFFFF;
+  --color-btn-danger-border: #8A3D2E;
+
+  /* ----------------------------------------
+     FORM CONTROLS - Rich forest
+     ---------------------------------------- */
+  --color-input-bg: #E8F4E4;
+  --color-input-bg-hover: #D8E8D4;
+  --color-input-bg-focus: #E8F4E4;
+  --color-input-bg-disabled: #C8D8C4;
+  --color-input-border: #7CA878;
+  --color-input-border-hover: #5C8858;
+  --color-input-border-focus: #3E6646;
+  --color-input-text: #1E3420;
+  --color-input-placeholder: #5C7C5C;
+
+  /* Checkbox/Radio */
+  --color-checkbox-bg: #E8F4E4;
+  --color-checkbox-border: #7CA878;
+  --color-checkbox-checked-bg: #3E6646;
+  --color-checkbox-checked-border: #2E5036;
+  --color-checkbox-checkmark: #FFFFFF;
+
+  /* Toggle/Switch */
+  --color-toggle-bg: #7CA878;
+  --color-toggle-bg-checked: #3E6646;
+  --color-toggle-knob: #FFFFFF;
+
+  /* ----------------------------------------
+     NAVIGATION - Deep forest
+     ---------------------------------------- */
+  --color-nav-bg: #5e6d74;           /* Navigation bar background */
+  --color-nav-item-text: #1a1a1a;    /* Black icons matching weather widget */
+  --color-nav-item-text-hover: #000000;
+  --color-nav-item-text-active: #000000;
+  --color-nav-item-bg-hover: #A8C8A4; /* Moss hover */
+  --color-nav-item-bg-active: #88B084; /* Active forest */
+
+  /* ----------------------------------------
+     BADGES & CHIPS - Semantic colored labels
+     ---------------------------------------- */
+  /* Success badge */
+  --color-badge-success-bg: #4F8A5B;
+  --color-badge-success-text: #FFFFFF;
+
+  /* Warning badge */
+  --color-badge-warning-bg: #C48F2A;
+  --color-badge-warning-text: #FFFFFF;
+
+  /* Error badge */
+  --color-badge-error-bg: #A24E3D;
+  --color-badge-error-text: #FFFFFF;
+
+  /* Info badge */
+  --color-badge-info-bg: #4F7F7A;
+  --color-badge-info-text: #FFFFFF;
+
+  /* Neutral badge */
+  --color-badge-neutral-bg: #6F7F6F;
+  --color-badge-neutral-text: #FFFFFF;
+
+  /* Category badges - for plant tags, etc. */
+  --color-badge-green-bg: #3E6646;
+  --color-badge-green-text: #FFFFFF;
+
+  --color-badge-purple-bg: #5B4B6B;
+  --color-badge-purple-text: #FFFFFF;
+
+  --color-badge-cyan-bg: #3E7A74;
+  --color-badge-cyan-text: #FFFFFF;
+
+  --color-badge-amber-bg: #A88234;
+  --color-badge-amber-text: #FFFFFF;
+
+  --color-badge-red-bg: #A24E3D;
+  --color-badge-red-text: #FFFFFF;
+
+  --color-badge-pink-bg: #8B4B6B;
+  --color-badge-pink-text: #FFFFFF;
+
+  --color-badge-lime-bg: #4B6B3B;
+  --color-badge-lime-text: #FFFFFF;
+
+  --color-badge-blue-bg: #4B5B8B;
+  --color-badge-blue-text: #FFFFFF;
+
+  --color-badge-orange-bg: #A8623A;
+  --color-badge-orange-text: #FFFFFF;
+
+  --color-badge-teal-bg: #3E6A66;
+  --color-badge-teal-text: #FFFFFF;
+
+  /* ----------------------------------------
+     CHARTS & DATA VISUALIZATION
+     ---------------------------------------- */
+  --color-chart-1: #4F7D57;  /* Primary green */
+  --color-chart-2: #C2A14D;  /* Gold */
+  --color-chart-3: #5C9C95;  /* Teal */
+  --color-chart-4: #A24E3D;  /* Terracotta */
+  --color-chart-5: #6B5B7B;  /* Muted purple */
+  --color-chart-6: #8B6B4B;  /* Brown */
+  --color-chart-grid: #C6CEB8;
+  --color-chart-axis: #6F7F6F;
+
+  /* ----------------------------------------
+     SCROLLBAR - Forest green
+     ---------------------------------------- */
+  --color-scrollbar-track: #C8DCC4;
+  --color-scrollbar-thumb: #7CA878;
+  --color-scrollbar-thumb-hover: #5C8858;
+
+  /* ----------------------------------------
+     SHADOWS
+     ---------------------------------------- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+  --shadow-glow: 0 0 0 3px rgba(79, 125, 87, 0.2);
+  --shadow-glow-error: 0 0 0 3px rgba(162, 78, 61, 0.2);
+
+  /* ----------------------------------------
+     TRANSITIONS
+     ---------------------------------------- */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* ----------------------------------------
+     BORDER RADIUS
+     ---------------------------------------- */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+}
+
+/* ============================================
+   DARK THEME - "Moonlit Farm"
+   Deep forest/soil tones, warm and natural
+   ============================================ */
+html[data-theme="dark"] {
+  /* ----------------------------------------
+     SURFACE COLORS - Deep forest backgrounds
+     ---------------------------------------- */
+  --color-bg-app: #141A16;           /* Deep forest night */
+  --color-bg-surface: #1C241E;       /* Card backgrounds */
+  --color-bg-surface-soft: #242E26;  /* Secondary surfaces */
+  --color-bg-surface-muted: #2C382E; /* Tertiary/disabled */
+  --color-bg-surface-hover: #344036; /* Hover states */
+  --color-bg-surface-active: #3C4A3E; /* Active states */
+  --color-bg-overlay: rgba(0, 0, 0, 0.7);
+  --color-bg-tooltip: #E6ECD9;       /* Light tooltip for contrast */
+
+  /* ----------------------------------------
+     BORDER COLORS
+     ---------------------------------------- */
+  --color-border-subtle: #2C382E;
+  --color-border-default: #344036;
+  --color-border-strong: #4A5A4C;
+  --color-border-focus: #6B9A74;
+
+  /* ----------------------------------------
+     TEXT COLORS
+     ---------------------------------------- */
+  --color-text-primary: #E8EDE9;     /* Warm off-white */
+  --color-text-secondary: #B8C4BA;   /* Soft sage */
+  --color-text-muted: #8A968C;       /* Muted sage */
+  --color-text-disabled: #5C685E;    /* Disabled */
+  --color-text-inverse: #1C241E;     /* Text on light backgrounds */
+  --color-text-link: #8FB59A;
+  --color-text-link-hover: #B4D0BC;
+
+  /* ----------------------------------------
+     GREEN RAMP - Adjusted for dark backgrounds
+     ---------------------------------------- */
+  --color-green-900: #0D1A10;
+  --color-green-800: #1A2E1E;
+  --color-green-700: #2A4232;
+  --color-green-600: #3A5646;
+  --color-green-500: #4F7D57;
+  --color-green-400: #6B9A74;
+  --color-green-300: #8FB59A;
+  --color-green-200: #B4D0BC;
+  --color-green-100: #D4E6D8;
+
+  /* ----------------------------------------
+     GOLD RAMP
+     ---------------------------------------- */
+  --color-gold-800: #4A3510;
+  --color-gold-700: #6B4F1A;
+  --color-gold-600: #8C6A2A;
+  --color-gold-500: #A88234;
+  --color-gold-400: #C2A14D;
+  --color-gold-300: #D8BF7A;
+  --color-gold-200: #EADCB0;
+  --color-gold-100: #F4ECD0;
+
+  /* ----------------------------------------
+     TEAL RAMP
+     ---------------------------------------- */
+  --color-teal-800: #122C2A;
+  --color-teal-700: #1F4A46;
+  --color-teal-600: #2F5F5A;
+  --color-teal-500: #3E7A74;
+  --color-teal-400: #5C9C95;
+  --color-teal-300: #82B9B3;
+  --color-teal-200: #B2D6D1;
+  --color-teal-100: #D4EAE7;
+
+  /* ----------------------------------------
+     SEMANTIC COLORS - Brighter for dark mode
+     ---------------------------------------- */
+  /* Success */
+  --color-success-700: #3D7048;
+  --color-success-600: #4F8A5B;
+  --color-success-500: #62A46E;
+  --color-success-400: #7FBC8A;
+  --color-success-bg: #1A2E1E;
+  --color-success-border: #3A5646;
+
+  /* Warning */
+  --color-warning-700: #9A7020;
+  --color-warning-600: #C48F2A;
+  --color-warning-500: #D9A33A;
+  --color-warning-400: #E8BC5A;
+  --color-warning-bg: #2A2418;
+  --color-warning-border: #4A3A20;
+
+  /* Error */
+  --color-error-700: #8A3D2E;
+  --color-error-600: #A24E3D;
+  --color-error-500: #BA604D;
+  --color-error-400: #D27A68;
+  --color-error-bg: #2A1C18;
+  --color-error-border: #4A2E24;
+
+  /* Info */
+  --color-info-700: #3A6560;
+  --color-info-600: #4F7F7A;
+  --color-info-500: #649994;
+  --color-info-400: #7EB3AE;
+  --color-info-bg: #1A2624;
+  --color-info-border: #2F4A46;
+
+  /* ----------------------------------------
+     INTERACTIVE - Buttons & Controls
+     ---------------------------------------- */
+  /* Primary button */
+  --color-btn-primary-bg: #4F7D57;
+  --color-btn-primary-bg-hover: #5C8F65;
+  --color-btn-primary-bg-active: #6B9A74;
+  --color-btn-primary-text: #FFFFFF;
+  --color-btn-primary-border: #6B9A74;
+
+  /* Secondary button */
+  --color-btn-secondary-bg: #242E26;
+  --color-btn-secondary-bg-hover: #2C382E;
+  --color-btn-secondary-bg-active: #344036;
+  --color-btn-secondary-text: #B8C4BA;
+  --color-btn-secondary-border: #344036;
+
+  /* Ghost button */
+  --color-btn-ghost-bg: transparent;
+  --color-btn-ghost-bg-hover: #242E26;
+  --color-btn-ghost-bg-active: #2C382E;
+  --color-btn-ghost-text: #8FB59A;
+
+  /* Danger button */
+  --color-btn-danger-bg: #A24E3D;
+  --color-btn-danger-bg-hover: #BA604D;
+  --color-btn-danger-bg-active: #D27A68;
+  --color-btn-danger-text: #FFFFFF;
+  --color-btn-danger-border: #BA604D;
+
+  /* ----------------------------------------
+     FORM CONTROLS
+     ---------------------------------------- */
+  --color-input-bg: #1C241E;
+  --color-input-bg-hover: #242E26;
+  --color-input-bg-focus: #242E26;
+  --color-input-bg-disabled: #1C241E;
+  --color-input-border: #344036;
+  --color-input-border-hover: #4A5A4C;
+  --color-input-border-focus: #6B9A74;
+  --color-input-text: #E8EDE9;
+  --color-input-placeholder: #5C685E;
+
+  /* Checkbox/Radio */
+  --color-checkbox-bg: #1C241E;
+  --color-checkbox-border: #344036;
+  --color-checkbox-checked-bg: #4F7D57;
+  --color-checkbox-checked-border: #6B9A74;
+  --color-checkbox-checkmark: #FFFFFF;
+
+  /* Toggle/Switch */
+  --color-toggle-bg: #344036;
+  --color-toggle-bg-checked: #4F7D57;
+  --color-toggle-knob: #E8EDE9;
+
+  /* ----------------------------------------
+     NAVIGATION
+     ---------------------------------------- */
+  --color-nav-bg: #1C241E;
+  --color-nav-item-text: #8A968C;
+  --color-nav-item-text-hover: #B8C4BA;
+  --color-nav-item-text-active: #8FB59A;
+  --color-nav-item-bg-hover: #242E26;
+  --color-nav-item-bg-active: #2C382E;
+
+  /* ----------------------------------------
+     BADGES - Solid backgrounds for visibility
+     ---------------------------------------- */
+  --color-badge-success-bg: #4F8A5B;
+  --color-badge-success-text: #FFFFFF;
+
+  --color-badge-warning-bg: #C48F2A;
+  --color-badge-warning-text: #FFFFFF;
+
+  --color-badge-error-bg: #A24E3D;
+  --color-badge-error-text: #FFFFFF;
+
+  --color-badge-info-bg: #4F7F7A;
+  --color-badge-info-text: #FFFFFF;
+
+  --color-badge-neutral-bg: #4A5A4C;
+  --color-badge-neutral-text: #E8EDE9;
+
+  /* Category badges */
+  --color-badge-green-bg: #3E6646;
+  --color-badge-green-text: #FFFFFF;
+
+  --color-badge-purple-bg: #5B4B6B;
+  --color-badge-purple-text: #FFFFFF;
+
+  --color-badge-cyan-bg: #3E7A74;
+  --color-badge-cyan-text: #FFFFFF;
+
+  --color-badge-amber-bg: #A88234;
+  --color-badge-amber-text: #FFFFFF;
+
+  --color-badge-red-bg: #A24E3D;
+  --color-badge-red-text: #FFFFFF;
+
+  --color-badge-pink-bg: #8B4B6B;
+  --color-badge-pink-text: #FFFFFF;
+
+  --color-badge-lime-bg: #4B6B3B;
+  --color-badge-lime-text: #FFFFFF;
+
+  --color-badge-blue-bg: #4B5B8B;
+  --color-badge-blue-text: #FFFFFF;
+
+  --color-badge-orange-bg: #A8623A;
+  --color-badge-orange-text: #FFFFFF;
+
+  --color-badge-teal-bg: #3E6A66;
+  --color-badge-teal-text: #FFFFFF;
+
+  /* ----------------------------------------
+     CHARTS
+     ---------------------------------------- */
+  --color-chart-1: #6B9A74;
+  --color-chart-2: #D8BF7A;
+  --color-chart-3: #82B9B3;
+  --color-chart-4: #D08A7C;
+  --color-chart-5: #9B8BAB;
+  --color-chart-6: #C4A080;
+  --color-chart-grid: #2C382E;
+  --color-chart-axis: #5C685E;
+
+  /* ----------------------------------------
+     SCROLLBAR
+     ---------------------------------------- */
+  --color-scrollbar-track: #1C241E;
+  --color-scrollbar-thumb: #344036;
+  --color-scrollbar-thumb-hover: #4A5A4C;
+
+  /* ----------------------------------------
+     SHADOWS - Darker for depth perception
+     ---------------------------------------- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 0 3px rgba(107, 154, 116, 0.3);
+  --shadow-glow-error: 0 0 0 3px rgba(162, 78, 61, 0.3);
+}
+
+/* ============================================
+   SEMANTIC ALIAS TOKENS
+   Map common UI roles to the above tokens
+   ============================================ */
+:root,
+html[data-theme="dark"] {
+  /* Layout */
+  --color-bg: var(--color-bg-app);
+  --color-card: var(--color-bg-surface);
+  --color-card-hover: var(--color-bg-surface-hover);
+
+  /* Text shortcuts */
+  --color-text: var(--color-text-primary);
+  --color-text-sub: var(--color-text-secondary);
+  --color-text-dim: var(--color-text-muted);
+
+  /* Border shortcuts */
+  --color-border: var(--color-border-default);
+  --color-divider: var(--color-border-subtle);
+
+  /* Primary action color */
+  --color-primary: var(--color-green-600);
+  --color-primary-hover: var(--color-green-700);
+  --color-primary-light: var(--color-green-400);
+
+  /* Accent colors */
+  --color-accent: var(--color-gold-500);
+  --color-accent-secondary: var(--color-teal-500);
+
+  /* Status shortcuts */
+  --color-success: var(--color-success-500);
+  --color-warning: var(--color-warning-500);
+  --color-error: var(--color-error-500);
+  --color-info: var(--color-info-500);
+
+  /* Legacy shorthand aliases (used by various components) */
+  --bg-secondary: var(--color-bg-surface);
+  --bg-hover: var(--color-bg-surface-hover);
+  --border-color: var(--color-border-default);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --text-faint: var(--color-text-disabled);
+  --success: var(--color-success-500);
+  --error: var(--color-error-500);
+  --info: var(--color-info-500);
+}
+
+/* Today's Schedule widget - warm parchment background */
+:root {
+  --color-schedule-bg: #cab1a2;
+}
+
+html[data-theme="dark"] {
+  --color-schedule-bg: var(--color-bg-surface);
+}

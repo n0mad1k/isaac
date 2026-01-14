@@ -12,6 +12,8 @@ from pydantic import BaseModel, Field
 
 from models.database import get_db
 from models.plants import Plant, PlantCareLog, Tag, GrowthRate, SunRequirement, MoisturePreference
+from models.users import User
+from services.permissions import require_create, require_edit, require_delete, require_interact
 from services.auto_reminders import delete_reminder
 from services.plant_import import plant_import_service
 from loguru import logger
@@ -317,9 +319,14 @@ async def list_plants(
     active_only: bool = True,
     frost_sensitive: Optional[bool] = None,
     needs_water: Optional[bool] = None,
+    limit: int = 500,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
     """List all plants with optional filtering"""
+    # Cap limit for DoS prevention
+    limit = min(limit, 1000)
+
     query = select(Plant).options(selectinload(Plant.tags))
 
     if active_only:
@@ -327,7 +334,7 @@ async def list_plants(
     if frost_sensitive is not None:
         query = query.where(Plant.frost_sensitive == frost_sensitive)
 
-    query = query.order_by(Plant.name)
+    query = query.order_by(Plant.name).offset(offset).limit(limit)
     result = await db.execute(query)
     plants = result.scalars().all()
 
@@ -344,7 +351,11 @@ async def list_plants(
 
 
 @router.post("/")
-async def create_plant(plant: PlantCreate, db: AsyncSession = Depends(get_db)):
+async def create_plant(
+    plant: PlantCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("plants"))
+):
     """Add a new plant to the catalog"""
     data = plant.model_dump(exclude={'tag_ids'})
     db_plant = Plant(**data)
@@ -378,7 +389,12 @@ async def list_tags(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/tags/")
-async def create_tag(name: str, color: str = "gray", db: AsyncSession = Depends(get_db)):
+async def create_tag(
+    name: str,
+    color: str = "gray",
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("plants"))
+):
     """Create a new tag"""
     tag = Tag(name=name, color=color)
     db.add(tag)
@@ -419,6 +435,7 @@ async def preview_plant_import(request: PlantImportRequest):
 async def import_plant(
     request: PlantImportRequest,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("plants"))
 ):
     """
     Import plant data from a URL and create a new plant.
@@ -520,6 +537,7 @@ async def update_plant(
     plant_id: int,
     updates: PlantUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("plants"))
 ):
     """Update a plant's information"""
     result = await db.execute(
@@ -555,7 +573,11 @@ async def update_plant(
 
 
 @router.delete("/{plant_id}/")
-async def delete_plant(plant_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_plant(
+    plant_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("plants"))
+):
     """Deactivate a plant (soft delete)"""
     result = await db.execute(select(Plant).where(Plant.id == plant_id))
     plant = result.scalar_one_or_none()
@@ -598,6 +620,7 @@ async def add_care_log(
     plant_id: int,
     log: CareLogCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("plants"))
 ):
     """Log a care activity for a plant and update last_* fields"""
     result = await db.execute(select(Plant).where(Plant.id == plant_id))
@@ -712,6 +735,7 @@ async def skip_watering(
     plant_id: int,
     request: SkipWateringRequest,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("plants"))
 ):
     """
     Skip watering for a plant.
@@ -772,6 +796,7 @@ async def water_plant(
     plant_id: int,
     notes: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("plants"))
 ):
     """
     Mark a plant as watered.

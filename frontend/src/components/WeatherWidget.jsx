@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { getWeatherForecast } from '../services/api'
 
-function WeatherWidget({ weather }) {
+function WeatherWidget({ weather, className = '' }) {
   const [forecast, setForecast] = useState(null)
   const [forecastLoading, setForecastLoading] = useState(true)
 
@@ -29,6 +29,12 @@ function WeatherWidget({ weather }) {
       }
     }
     fetchForecast()
+
+    // Listen for dashboard refresh events to update forecast
+    const handleRefresh = () => fetchForecast()
+    window.addEventListener('dashboard-refresh', handleRefresh)
+
+    return () => window.removeEventListener('dashboard-refresh', handleRefresh)
   }, [])
 
   if (!weather) {
@@ -41,153 +47,232 @@ function WeatherWidget({ weather }) {
   }
 
   const getWeatherIcon = () => {
-    if (weather.rain_today > 0 || weather.rain_rate > 0) {
-      return <CloudRain className="w-16 h-16 text-blue-400" />
+    // All icons black for e-reader style
+    if (weather.rain_rate > 0 || weather.rain_today >= 0.1) {
+      return <CloudRain className="w-16 h-16" style={{ color: '#1a1a1a' }} />
     }
     if (weather.humidity > 80) {
-      return <Cloud className="w-16 h-16 text-gray-400" />
+      return <Cloud className="w-16 h-16" style={{ color: '#1a1a1a' }} />
     }
-    return <Sun className="w-16 h-16 text-yellow-400" />
+    return <Sun className="w-16 h-16" style={{ color: '#1a1a1a' }} />
   }
 
   const getConditionText = () => {
+    // "Raining" = actively raining right now
     if (weather.rain_rate > 0) return 'Raining'
-    if (weather.rain_today > 0) return 'Rainy'
+    // "Rainy" = significant rain today (> 0.1")
+    if (weather.rain_today >= 0.1) return 'Rainy'
     if (weather.humidity > 80) return 'Cloudy'
+    if (weather.temperature > 95) return 'Extreme Heat'
     if (weather.temperature > 90) return 'Hot'
-    if (weather.temperature < 50) return 'Cool'
+    if (weather.temperature > 80) return 'Warm'
+    if (weather.temperature < 32) return 'Freezing'
+    if (weather.temperature < 45) return 'Cold'
+    if (weather.temperature < 55) return 'Cool'
     return 'Clear'
   }
 
+  // Temperature-based color - black for light mode (e-reader style), colors for dark mode
+  const getTempColor = (temp) => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+    if (!isDark) return '#1a1a1a'  // Black text for light mode (e-reader style)
+    // Colors only for dark mode
+    if (temp >= 90) return '#dc2626'  // red-600 - very hot
+    if (temp >= 70) return '#ef4444'  // red-500 - warm/hot
+    if (temp >= 55) return '#f97316'  // orange-500 - mild
+    if (temp >= 45) return '#67e8f9'  // cyan-300 - cool
+    if (temp >= 35) return '#22d3ee'  // cyan-400 - cold
+    if (temp >= 32) return '#38bdf8'  // sky-400 - near freezing
+    return '#3b82f6'                   // blue-500 - freezing
+  }
+
+  // Get background gradient based on conditions - theme aware
+  const getWidgetBackground = () => {
+    const temp = weather.temperature
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
+
+    if (weather.rain_rate > 0) {
+      // Rainy - blue tones
+      return isDark
+        ? 'linear-gradient(to bottom right, #1e3a5f, #1e293b)'
+        : 'linear-gradient(to bottom right, #bfdbfe, #93c5fd)' // light blue
+    }
+    if (temp >= 95) {
+      // Extreme heat - red/orange
+      return isDark
+        ? 'linear-gradient(to bottom right, #7c2d12, #1e293b)'
+        : 'linear-gradient(to bottom right, #fecaca, #fca5a5)' // light red
+    }
+    if (temp >= 85) {
+      // Hot - amber/orange
+      return isDark
+        ? 'linear-gradient(to bottom right, #78350f, #1e293b)'
+        : 'linear-gradient(to bottom right, #fed7aa, #fdba74)' // light orange
+    }
+    if (temp >= 75) {
+      // Warm - light yellow/amber
+      return isDark
+        ? 'linear-gradient(to bottom right, #422006, #1e293b)'
+        : 'linear-gradient(to bottom right, #fef3c7, #fde68a)' // light yellow
+    }
+    if (temp <= 32) {
+      // Freezing - icy blue
+      return isDark
+        ? 'linear-gradient(to bottom right, #1e3a5f, #0f172a)'
+        : 'linear-gradient(to bottom right, #cffafe, #a5f3fc)' // light cyan/ice
+    }
+    if (temp <= 45) {
+      // Cold - cool blue
+      return isDark
+        ? 'linear-gradient(to bottom right, #164e63, #1e293b)'
+        : 'linear-gradient(to bottom right, #e0f2fe, #bae6fd)' // light sky blue
+    }
+    if (temp <= 55) {
+      // Cool - teal/cyan
+      return isDark
+        ? 'linear-gradient(to bottom right, #134e4a, #1e293b)'
+        : 'linear-gradient(to bottom right, #ccfbf1, #99f6e4)' // light teal
+    }
+    // Default (56-74) - pleasant neutral (gray)
+    return isDark
+      ? 'linear-gradient(to bottom right, #374151, #1f2937)' // gray-700 to gray-800
+      : 'linear-gradient(to bottom right, #c2c9cd, #a8afb3)' // cool gray
+  }
+
   const getForecastIcon = (forecast) => {
+    // All icons black for e-reader style
     const text = forecast.toLowerCase()
     if (text.includes('thunder') || text.includes('storm')) {
-      return <CloudLightning className="w-6 h-6 text-yellow-400" />
+      return <CloudLightning className="w-6 h-6" style={{ color: '#1a1a1a' }} />
     }
     if (text.includes('snow') || text.includes('sleet')) {
-      return <CloudSnow className="w-6 h-6 text-blue-200" />
+      return <CloudSnow className="w-6 h-6" style={{ color: '#1a1a1a' }} />
     }
     if (text.includes('rain') || text.includes('shower')) {
-      return <CloudRain className="w-6 h-6 text-blue-400" />
+      return <CloudRain className="w-6 h-6" style={{ color: '#1a1a1a' }} />
     }
     if (text.includes('cloud') || text.includes('overcast')) {
-      return <Cloud className="w-6 h-6 text-gray-400" />
+      return <Cloud className="w-6 h-6" style={{ color: '#1a1a1a' }} />
     }
     if (text.includes('wind')) {
-      return <Wind className="w-6 h-6 text-gray-300" />
+      return <Wind className="w-6 h-6" style={{ color: '#1a1a1a' }} />
     }
-    return <Sun className="w-6 h-6 text-yellow-400" />
+    return <Sun className="w-6 h-6" style={{ color: '#1a1a1a' }} />
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-900 to-gray-800 rounded-xl p-6 shadow-lg">
-      <h2 className="text-lg font-semibold text-gray-300 mb-4">Current Weather</h2>
-
+    <div className={`rounded-xl p-4 shadow-lg flex flex-col overflow-hidden ${className}`}
+         style={{
+           background: getWidgetBackground(),
+           border: '1px solid var(--border-color)'
+         }}>
       <div className="flex items-center justify-between">
         {/* Main temp and icon */}
-        <div className="flex items-center gap-4">
-          {getWeatherIcon()}
+        <div className="flex items-center gap-3">
+          <div className="scale-75 origin-left">{getWeatherIcon()}</div>
           <div>
-            <div className="text-5xl font-bold">
+            <div className="text-4xl font-bold" style={{ color: getTempColor(weather.temperature) }}>
               {Math.round(weather.temperature)}°
             </div>
-            <div className="text-gray-400">{getConditionText()}</div>
+            <div className="text-sm" style={{ color: '#1a1a1a' }}>{getConditionText()}</div>
           </div>
         </div>
 
-        {/* High/Low */}
+        {/* High/Low with temperature colors */}
         <div className="text-right">
-          <div className="flex items-center gap-2 text-red-400">
-            <TrendingUp className="w-4 h-4" />
-            <span className="text-lg font-semibold">
+          <div className="flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" style={{ color: weather.temp_high_today ? getTempColor(weather.temp_high_today) : 'var(--error)' }} />
+            <span className="font-semibold" style={{ color: weather.temp_high_today ? getTempColor(weather.temp_high_today) : 'var(--text-muted)' }}>
               {weather.temp_high_today ? Math.round(weather.temp_high_today) : '--'}°
             </span>
           </div>
-          <div className="flex items-center gap-2 text-blue-400">
-            <TrendingDown className="w-4 h-4" />
-            <span className="text-lg font-semibold">
+          <div className="flex items-center gap-1">
+            <TrendingDown className="w-3 h-3" style={{ color: weather.temp_low_today ? getTempColor(weather.temp_low_today) : 'var(--info)' }} />
+            <span className="font-semibold" style={{ color: weather.temp_low_today ? getTempColor(weather.temp_low_today) : 'var(--text-muted)' }}>
               {weather.temp_low_today ? Math.round(weather.temp_low_today) : '--'}°
             </span>
           </div>
         </div>
       </div>
 
-      {/* Weather details */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-4 border-t border-gray-700">
-        <div className="text-center">
-          <Thermometer className="w-5 h-5 mx-auto text-orange-400" />
-          <div className="text-xs sm:text-sm text-gray-400 mt-1">Feels Like</div>
-          <div className="font-semibold">{Math.round(weather.feels_like)}°</div>
+      {/* Weather details - grid for mobile responsiveness */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 text-sm"
+           style={{ borderTop: '1px solid var(--border-color)' }}>
+        <div className="flex items-center gap-1.5">
+          <Thermometer className="w-4 h-4 flex-shrink-0" style={{ color: '#1a1a1a' }} />
+          <span style={{ color: '#1a1a1a' }}>Feels</span>
+          <span className="font-semibold" style={{ color: '#1a1a1a' }}>{Math.round(weather.feels_like)}°</span>
         </div>
-        <div className="text-center">
-          <Droplets className="w-5 h-5 mx-auto text-blue-400" />
-          <div className="text-xs sm:text-sm text-gray-400 mt-1">Humidity</div>
-          <div className="font-semibold">{weather.humidity}%</div>
+        <div className="flex items-center gap-1.5">
+          <Droplets className="w-4 h-4 flex-shrink-0" style={{ color: '#1a1a1a' }} />
+          <span style={{ color: '#1a1a1a' }}>Humidity</span>
+          <span className="font-semibold" style={{ color: '#1a1a1a' }}>{weather.humidity}%</span>
         </div>
-        <div className="text-center">
-          <Wind className="w-5 h-5 mx-auto text-gray-400" />
-          <div className="text-xs sm:text-sm text-gray-400 mt-1">Wind</div>
-          <div className="font-semibold text-sm sm:text-base">
-            {Math.round(weather.wind_speed)} {weather.wind_direction}
-          </div>
+        <div className="flex items-center gap-1.5">
+          <Wind className="w-4 h-4 flex-shrink-0" style={{ color: '#1a1a1a' }} />
+          <span style={{ color: '#1a1a1a' }}>Wind</span>
+          <span className="font-semibold" style={{ color: '#1a1a1a' }}>{Math.round(weather.wind_speed)} {weather.wind_direction}</span>
         </div>
-        <div className="text-center">
-          <CloudRain className="w-5 h-5 mx-auto text-blue-400" />
-          <div className="text-xs sm:text-sm text-gray-400 mt-1">Rain Today</div>
-          <div className="font-semibold">{weather.rain_today?.toFixed(2) || '0'}"</div>
+        <div className="flex items-center gap-1.5">
+          <CloudRain className="w-4 h-4 flex-shrink-0" style={{ color: '#1a1a1a' }} />
+          <span style={{ color: '#1a1a1a' }}>Rain</span>
+          <span className="font-semibold" style={{ color: '#1a1a1a' }}>{weather.rain_today?.toFixed(2) || '0'}"</span>
         </div>
       </div>
 
       {/* UV Index if high */}
       {weather.uv_index >= 6 && (
-        <div className="mt-4 p-3 bg-orange-900/50 rounded-lg text-orange-300 text-sm">
-          High UV Index: {weather.uv_index} - Wear sunscreen!
+        <div className="mt-2 p-2 rounded-lg text-xs bg-amber-900/50 text-amber-300">
+          High UV: {weather.uv_index} - Wear sunscreen!
         </div>
       )}
 
       {/* 5-Day Forecast */}
-      <div className="mt-6 pt-4 border-t border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-400 mb-3">5-Day Forecast</h3>
+      <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+        <h3 className="text-xs font-semibold mb-2" style={{ color: '#1a1a1a' }}>5-Day Forecast</h3>
         {forecastLoading ? (
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-1">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex-shrink-0 w-24 bg-gray-700 rounded-lg h-28 animate-pulse"></div>
+              <div key={i} className="flex-1 h-24 rounded animate-pulse" style={{ backgroundColor: 'var(--bg-hover)' }}></div>
             ))}
           </div>
         ) : forecast ? (
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:grid sm:grid-cols-5 sm:overflow-visible sm:pb-0">
+          <div className="grid grid-cols-5 gap-1">
             {forecast.map((day, index) => (
               <div
                 key={index}
-                className="flex-shrink-0 w-20 sm:w-auto bg-gray-700/50 rounded-lg p-2 text-center min-w-0"
+                className="rounded p-2 text-center flex flex-col justify-between"
+                style={{ backgroundColor: 'var(--bg-hover)' }}
               >
-                <div className="text-xs text-gray-400 font-medium truncate">{day.name}</div>
-                <div className="my-1 flex justify-center">
+                <div className="text-xs font-medium truncate" style={{ color: '#1a1a1a' }}>{day.name}</div>
+                <div className="my-1 flex justify-center items-center">
                   {getForecastIcon(day.forecast)}
                 </div>
                 <div className="flex justify-center gap-1 text-sm">
                   {day.high && (
-                    <span className="text-red-400 font-semibold">{day.high}°</span>
+                    <span className="font-semibold" style={{ color: getTempColor(day.high) }}>{day.high}°</span>
                   )}
                   {day.low && (
-                    <span className="text-blue-400">{day.low}°</span>
+                    <span style={{ color: getTempColor(day.low) }}>{day.low}°</span>
                   )}
                 </div>
-                <div className="text-xs text-gray-500 mt-1 leading-tight line-clamp-2 hidden sm:block" title={day.forecast}>
+                <div className="text-[10px] leading-tight line-clamp-2 mt-1"
+                     style={{ color: '#1a1a1a' }}
+                     title={day.forecast}>
                   {day.forecast}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-sm text-gray-500 text-center py-4">
+          <div className="text-xs text-center py-2" style={{ color: '#1a1a1a' }}>
             Forecast unavailable
           </div>
         )}
       </div>
 
       {/* Last updated */}
-      <div className="text-xs text-gray-500 mt-4 text-right">
+      <div className="text-[10px] mt-1 text-right flex-shrink-0" style={{ color: '#1a1a1a' }}>
         Updated:{' '}
         {weather.reading_time
           ? new Date(weather.reading_time).toLocaleTimeString()

@@ -63,6 +63,14 @@ class WeatherReading(Base):
     # Raw data storage
     raw_data = Column(Text)  # JSON of full API response
 
+    # Soil moisture sensors (from AWN soil sensors) - added via ALTER TABLE
+    soil_moisture_1 = Column(Integer)  # % moisture
+    soil_moisture_2 = Column(Integer)
+    soil_moisture_3 = Column(Integer)
+    soil_moisture_4 = Column(Integer)
+    soil_temp_1 = Column(Float)  # °F
+    soil_temp_2 = Column(Float)
+
     def __repr__(self):
         return f"<WeatherReading {self.reading_time} - {self.temp_outdoor}°F>"
 

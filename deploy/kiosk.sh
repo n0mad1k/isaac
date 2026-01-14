@@ -16,19 +16,20 @@ unclutter -idle 0.5 -root &
 # Remove old session data
 rm -rf ~/.config/chromium/Singleton*
 
-# Start Chromium in kiosk mode
+# Start Chromium maximized (not kiosk) so on-screen keyboard can appear above
 chromium \
-    --kiosk \
+    --app=http://localhost \
+    --start-maximized \
     --noerrdialogs \
     --disable-infobars \
     --disable-session-crashed-bubble \
     --disable-restore-session-state \
     --no-first-run \
-    --start-fullscreen \
     --disable-translate \
     --disable-features=TranslateUI \
     --disable-component-update \
     --check-for-update-interval=31536000 \
     --disable-pinch \
     --overscroll-history-navigation=0 \
+    --force-renderer-accessibility \
     http://localhost

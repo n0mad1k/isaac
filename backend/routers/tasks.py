@@ -4,18 +4,132 @@ Task and Reminder API Routes
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, or_
 from typing import List, Optional
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel, Field, field_validator
 
 from models.database import get_db
 from models.tasks import Task, TaskCategory, TaskRecurrence, TaskType, FLORIDA_MAINTENANCE_TASKS
+from models.users import User
+from services.permissions import require_permission, require_view, require_create, require_interact, require_edit, require_delete
+from models.farm_areas import FarmArea
+from models.vehicles import Vehicle
+from models.equipment import Equipment
+from models.home_maintenance import HomeMaintenance
+from models.livestock import Animal, AnimalCareSchedule
+from models.plants import Plant
 from services.calendar_sync import get_calendar_service
 from loguru import logger
+import re
 
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
+
+
+async def enrich_tasks_with_linked_fields(tasks: list, db: AsyncSession) -> list:
+    """Add linked_location and linked_entity computed fields to tasks."""
+    if not tasks:
+        return tasks
+
+    # Pre-fetch lookup tables
+    result = await db.execute(select(FarmArea))
+    farm_areas = {fa.id: fa.name for fa in result.scalars().all()}
+    result = await db.execute(select(Vehicle))
+    vehicles = {v.id: v.model for v in result.scalars().all()}
+    result = await db.execute(select(Equipment))
+    equipment = {e.id: e.name for e in result.scalars().all()}
+    result = await db.execute(select(HomeMaintenance))
+    home_maint = {hm.id: hm for hm in result.scalars().all()}
+    result = await db.execute(select(Animal))
+    animals_list = result.scalars().all()
+    result = await db.execute(select(Plant))
+    plants_list = result.scalars().all()
+    result = await db.execute(select(AnimalCareSchedule).where(AnimalCareSchedule.is_active == True))
+    care_schedules = result.scalars().all()
+
+    def get_linked_location(task):
+        if task.farm_area_id and task.farm_area_id in farm_areas:
+            return farm_areas[task.farm_area_id]
+        if task.notes:
+            if "auto:home_maint:" in task.notes:
+                match = re.search(r'auto:home_maint:(\d+)', task.notes)
+                if match:
+                    hm_id = int(match.group(1))
+                    if hm_id in home_maint:
+                        hm = home_maint[hm_id]
+                        return hm.area_or_appliance or (hm.category.title() if hm.category else None)
+            if "auto:care_group:" in task.notes:
+                match = re.search(r'auto:care_group:(\d{4}-\d{2}-\d{2})_(.+)', task.notes)
+                if match:
+                    care_name = match.group(2).lower().strip()
+                    matching = [s for s in care_schedules if s.name.lower().strip() == care_name]
+                    if matching:
+                        names = []
+                        seen = set()
+                        for s in matching:
+                            a = next((x for x in animals_list if x.id == s.animal_id), None)
+                            if a and a.farm_area_id and a.farm_area_id not in seen:
+                                seen.add(a.farm_area_id)
+                                if a.farm_area_id in farm_areas:
+                                    names.append(farm_areas[a.farm_area_id])
+                        if names:
+                            return ", ".join(names)
+        if task.animal_id:
+            a = next((x for x in animals_list if x.id == task.animal_id), None)
+            if a and a.farm_area_id and a.farm_area_id in farm_areas:
+                return farm_areas[a.farm_area_id]
+        if task.plant_id:
+            p = next((x for x in plants_list if x.id == task.plant_id), None)
+            if p and p.farm_area_id and p.farm_area_id in farm_areas:
+                return farm_areas[p.farm_area_id]
+        return None
+
+    def get_linked_entity(task):
+        if task.vehicle_id and task.vehicle_id in vehicles:
+            return f"Vehicle: {vehicles[task.vehicle_id]}"
+        if task.equipment_id and task.equipment_id in equipment:
+            return f"Equipment: {equipment[task.equipment_id]}"
+        return None
+
+    # Enrich each task
+    enriched = []
+    for task in tasks:
+        task_dict = {
+            "id": task.id,
+            "title": task.title,
+            "description": task.description,
+            "task_type": task.task_type,
+            "category": task.category,
+            "due_date": task.due_date,
+            "end_date": task.end_date,
+            "due_time": task.due_time,
+            "end_time": task.end_time,
+            "location": task.location,
+            "recurrence": task.recurrence,
+            "priority": task.priority,
+            "is_completed": task.is_completed,
+            "completed_at": task.completed_at,
+            "plant_id": task.plant_id,
+            "animal_id": task.animal_id,
+            "vehicle_id": task.vehicle_id,
+            "equipment_id": task.equipment_id,
+            "farm_area_id": task.farm_area_id,
+            "weather_dependent": task.weather_dependent,
+            "is_active": task.is_active,
+            "is_backlog": task.is_backlog,
+            "notes": task.notes,
+            "created_at": task.created_at,
+            "linked_location": get_linked_location(task),
+            "linked_entity": get_linked_entity(task),
+            "assigned_to_worker_id": task.assigned_to_worker_id,
+            "assigned_to_user_id": task.assigned_to_user_id,
+            "is_blocked": task.is_blocked,
+            "blocked_reason": task.blocked_reason,
+            "completion_note": task.completion_note,
+        }
+        enriched.append(task_dict)
+    return enriched
 
 
 async def update_source_entity_on_complete(db: AsyncSession, notes: str):
@@ -137,7 +251,8 @@ async def update_source_entity_on_complete(db: AsyncSession, notes: str):
             schedule = result.scalar_one_or_none()
             if schedule:
                 schedule.last_performed = today
-                # due_date is a property that recalculates based on last_performed + frequency_days
+                # Clear manual_due_date so next due is calculated from last_performed
+                schedule.manual_due_date = None
                 logger.info(f"Updated AnimalCareSchedule {schedule.name} last_performed to {today}")
 
         # Grouped care (care_group:date_carename)
@@ -160,6 +275,8 @@ async def update_source_entity_on_complete(db: AsyncSession, notes: str):
                     for schedule in schedules:
                         if schedule.name.lower().strip() == care_name and schedule.due_date == group_due_date:
                             schedule.last_performed = today
+                            # BUGFIX: Clear manual_due_date so next due is calculated from last_performed
+                            schedule.manual_due_date = None
                             updated_count += 1
                     logger.info(f"Updated {updated_count} AnimalCareSchedules for care_group {care_name} on {due_date_str}")
                 except ValueError:
@@ -239,6 +356,7 @@ class TaskCreate(BaseModel):
     task_type: TaskType = TaskType.TODO
     category: TaskCategory = TaskCategory.CUSTOM
     due_date: Optional[date] = None
+    end_date: Optional[date] = None  # End date for multi-day events
     due_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')  # HH:MM format
     end_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
     location: Optional[str] = Field(None, max_length=200)
@@ -258,6 +376,9 @@ class TaskCreate(BaseModel):
     notify_days_before: int = Field(1, ge=0, le=30)
     notes: Optional[str] = Field(None, max_length=5000)
     is_backlog: bool = False  # True = in backlog, not due today
+    assigned_to_worker_id: Optional[int] = Field(None, ge=1)
+    assigned_to_user_id: Optional[int] = Field(None, ge=1)  # Assign to system user (not worker)
+    visible_to_farmhands: bool = False
 
 
 class TaskUpdate(BaseModel):
@@ -266,6 +387,7 @@ class TaskUpdate(BaseModel):
     task_type: Optional[TaskType] = None
     category: Optional[TaskCategory] = None
     due_date: Optional[date] = None
+    end_date: Optional[date] = None  # End date for multi-day events
     due_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
     end_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
     location: Optional[str] = Field(None, max_length=200)
@@ -274,6 +396,9 @@ class TaskUpdate(BaseModel):
     notify_email: Optional[bool] = None
     notes: Optional[str] = Field(None, max_length=5000)
     is_backlog: Optional[bool] = None
+    assigned_to_worker_id: Optional[int] = Field(None, ge=1)
+    assigned_to_user_id: Optional[int] = Field(None, ge=1)
+    visible_to_farmhands: Optional[bool] = None
 
 
 class TaskResponse(BaseModel):
@@ -283,6 +408,7 @@ class TaskResponse(BaseModel):
     task_type: TaskType
     category: TaskCategory
     due_date: Optional[date]
+    end_date: Optional[date]
     due_time: Optional[str]
     end_time: Optional[str]
     location: Optional[str]
@@ -300,6 +426,13 @@ class TaskResponse(BaseModel):
     is_backlog: bool
     notes: Optional[str]
     created_at: datetime
+    linked_location: Optional[str] = None
+    linked_entity: Optional[str] = None
+    assigned_to_worker_id: Optional[int] = None
+    assigned_to_user_id: Optional[int] = None
+    is_blocked: bool = False
+    blocked_reason: Optional[str] = None
+    completion_note: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -312,13 +445,16 @@ async def list_tasks(
     completed: Optional[bool] = None,
     priority: Optional[int] = None,
     include_completed_today: bool = Query(default=True),
-    limit: int = Query(default=100, le=500),
+    include_worker_tasks: bool = Query(default=False),
+    limit: int = Query(default=500, le=1000),
+    offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
     """List all tasks with optional filtering.
 
     By default includes today's completed tasks even if they were deactivated
     (e.g., auto-reminders that get regenerated after completion).
+    Worker-assigned tasks are excluded by default (they only appear in Worker Tasks page).
     """
     from sqlalchemy import or_
     import pytz
@@ -349,6 +485,10 @@ async def list_tasks(
     else:
         query = select(Task).where(Task.is_active == True)
 
+    # Exclude worker-assigned tasks by default (they only show in Worker Tasks page)
+    if not include_worker_tasks:
+        query = query.where(Task.assigned_to_worker_id == None)
+
     if category:
         query = query.where(Task.category == category)
     if completed is not None:
@@ -356,13 +496,18 @@ async def list_tasks(
     if priority:
         query = query.where(Task.priority == priority)
 
-    query = query.order_by(Task.due_date, Task.priority).limit(limit)
+    query = query.order_by(Task.due_date, Task.priority).offset(offset).limit(limit)
     result = await db.execute(query)
-    return result.scalars().all()
+    tasks = result.scalars().all()
+    return await enrich_tasks_with_linked_fields(tasks, db)
 
 
 @router.post("/", response_model=TaskResponse)
-async def create_task(task: TaskCreate, db: AsyncSession = Depends(get_db)):
+async def create_task(
+    task: TaskCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("tasks"))
+):
     """Create a new task"""
     db_task = Task(**task.model_dump())
     db.add(db_task)
@@ -379,12 +524,13 @@ async def create_task(task: TaskCreate, db: AsyncSession = Depends(get_db)):
 
 @router.get("/today/", response_model=List[TaskResponse])
 async def get_todays_tasks(db: AsyncSession = Depends(get_db)):
-    """Get all tasks due today"""
+    """Get all tasks due today (excludes worker-assigned tasks)"""
     today = date.today()
     result = await db.execute(
         select(Task)
         .where(Task.due_date == today)
         .where(Task.is_active == True)
+        .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.priority, Task.due_time)
     )
     return result.scalars().all()
@@ -395,7 +541,7 @@ async def get_upcoming_tasks(
     days: int = Query(default=7, le=90),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get tasks due in the next X days"""
+    """Get tasks due in the next X days (excludes worker-assigned tasks)"""
     today = date.today()
     end_date = today + timedelta(days=days)
     result = await db.execute(
@@ -404,6 +550,7 @@ async def get_upcoming_tasks(
         .where(Task.due_date <= end_date)
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
+        .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.due_date, Task.priority)
     )
     return result.scalars().all()
@@ -411,13 +558,26 @@ async def get_upcoming_tasks(
 
 @router.get("/overdue/", response_model=List[TaskResponse])
 async def get_overdue_tasks(db: AsyncSession = Depends(get_db)):
-    """Get all overdue tasks"""
+    """Get all overdue tasks (includes tasks with past due_time today, excludes worker-assigned tasks)"""
     today = date.today()
+    now_time = datetime.now().strftime("%H:%M")
+
+    # Overdue if: due_date < today OR (due_date == today AND due_time is set AND due_time < now)
     result = await db.execute(
         select(Task)
-        .where(Task.due_date < today)
+        .where(
+            or_(
+                Task.due_date < today,
+                and_(
+                    Task.due_date == today,
+                    Task.due_time.isnot(None),
+                    Task.due_time < now_time
+                )
+            )
+        )
         .where(Task.is_completed == False)
         .where(Task.is_active == True)
+        .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.due_date, Task.priority)
     )
     return result.scalars().all()
@@ -457,12 +617,13 @@ async def get_calendar_tasks(
     end_date: date,
     db: AsyncSession = Depends(get_db),
 ):
-    """Get tasks for a date range (for calendar view)"""
+    """Get tasks for a date range (for calendar view, excludes worker-assigned tasks)"""
     result = await db.execute(
         select(Task)
         .where(Task.due_date >= start_date)
         .where(Task.due_date <= end_date)
         .where(Task.is_active == True)
+        .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.due_date, Task.priority)
     )
     return result.scalars().all()
@@ -483,6 +644,7 @@ async def update_task(
     task_id: int,
     updates: TaskUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("tasks"))
 ):
     """Update a task"""
     result = await db.execute(select(Task).where(Task.id == task_id))
@@ -512,7 +674,11 @@ async def update_task(
 
 
 @router.post("/{task_id}/complete/", response_model=TaskResponse)
-async def complete_task(task_id: int, db: AsyncSession = Depends(get_db)):
+async def complete_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("tasks"))
+):
     """Mark a task as completed and update source entity if auto-generated"""
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalar_one_or_none()
@@ -532,6 +698,22 @@ async def complete_task(task_id: int, db: AsyncSession = Depends(get_db)):
         # Mark this completed task as inactive so next sync creates a new one
         task.is_active = False
         logger.info(f"Marked auto-reminder task {task_id} as inactive after completion")
+
+        # BUGFIX: Also mark any DUPLICATE tasks with the same notes as inactive
+        # This handles cases where race conditions created multiple tasks for same group
+        duplicate_result = await db.execute(
+            select(Task).where(
+                Task.notes == task.notes,
+                Task.id != task_id,
+                Task.is_active == True
+            )
+        )
+        duplicates = duplicate_result.scalars().all()
+        for dup in duplicates:
+            dup.is_active = False
+            dup.is_completed = True
+            dup.completed_at = task.completed_at
+            logger.warning(f"Cleaned up duplicate auto-reminder task {dup.id} with same notes as {task_id}")
 
     await db.commit()
     await db.refresh(task)
@@ -563,7 +745,11 @@ async def complete_task(task_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{task_id}/uncomplete/", response_model=TaskResponse)
-async def uncomplete_task(task_id: int, db: AsyncSession = Depends(get_db)):
+async def uncomplete_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("tasks"))
+):
     """Mark a task as not completed"""
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalar_one_or_none()
@@ -586,7 +772,11 @@ async def uncomplete_task(task_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{task_id}/backlog/", response_model=TaskResponse)
-async def toggle_backlog(task_id: int, db: AsyncSession = Depends(get_db)):
+async def toggle_backlog(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("tasks"))
+):
     """Toggle a task's backlog status. Backlog tasks don't appear as due today."""
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalar_one_or_none()
@@ -603,7 +793,11 @@ async def toggle_backlog(task_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.delete("/{task_id}/")
-async def delete_task(task_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("tasks"))
+):
     """Delete a task. Soft-deletes active tasks, hard-deletes already-deactivated tasks."""
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalar_one_or_none()

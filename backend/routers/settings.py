@@ -14,7 +14,8 @@ import re
 from models.database import get_db
 from models.settings import AppSetting
 from models.users import User
-from routers.auth import require_admin
+from routers.auth import require_admin, require_auth
+from services.encryption import encrypt_value, decrypt_value, should_encrypt, ENCRYPTED_SETTINGS
 
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
@@ -85,6 +86,10 @@ DEFAULT_SETTINGS = {
         "value": "12h",
         "description": "Time display format (12h or 24h)"
     },
+    "theme": {
+        "value": "dark",
+        "description": "App theme (dark or light)"
+    },
 
     # Calendar sync settings
     "calendar_enabled": {
@@ -112,69 +117,95 @@ DEFAULT_SETTINGS = {
         "description": "How often to sync calendar (minutes)"
     },
 
-    # === Notification Category Settings ===
-    # Animal Care Notifications
-    "notify_animal_hoof_trim": {
-        "value": "dashboard,email,calendar",
-        "description": "Notifications for animal hoof trimming due dates (comma-separated: dashboard,email,calendar)"
+    # Cloudflare Access settings
+    "cloudflare_api_token": {
+        "value": "",
+        "description": "Cloudflare API token with Access:Edit permission"
     },
-    "notify_animal_worming": {
-        "value": "dashboard,email,calendar",
-        "description": "Notifications for animal worming due dates"
+    "cloudflare_account_id": {
+        "value": "",
+        "description": "Cloudflare account ID"
     },
-    "notify_animal_vaccination": {
-        "value": "dashboard,email,calendar",
-        "description": "Notifications for animal vaccination due dates"
-    },
-    "notify_animal_dental": {
-        "value": "dashboard,email,calendar",
-        "description": "Notifications for animal dental due dates"
-    },
-    "notify_animal_vet": {
-        "value": "dashboard,email,calendar",
-        "description": "Notifications for vet appointments"
-    },
-    "notify_animal_slaughter": {
-        "value": "dashboard,email,calendar",
-        "description": "Notifications for livestock slaughter dates"
-    },
-    "notify_animal_labor": {
-        "value": "dashboard,email,calendar",
-        "description": "Notifications for expected birth/labor dates"
+    "cloudflare_app_id": {
+        "value": "",
+        "description": "Cloudflare Access application ID"
     },
 
-    # Plant Care Notifications
-    "notify_plant_watering": {
-        "value": "dashboard,calendar",
-        "description": "Notifications for plant watering schedules"
-    },
-    "notify_plant_fertilizing": {
+    # === Notification Category Settings (Simplified) ===
+    # These control notifications for each category of tasks
+    "notify_animal_care": {
         "value": "dashboard,email,calendar",
-        "description": "Notifications for plant fertilizing schedules"
+        "description": "Notifications for animal care tasks (vet, vaccinations, worming, etc.)"
     },
-    "notify_plant_harvest": {
+    "notify_plant_care": {
         "value": "dashboard,email,calendar",
-        "description": "Notifications for plant harvest dates"
+        "description": "Notifications for plant care tasks (watering, fertilizing, harvesting, etc.)"
     },
-    "notify_plant_pruning": {
-        "value": "dashboard,email,calendar",
-        "description": "Notifications for plant pruning schedules"
-    },
-    "notify_plant_sow": {
-        "value": "dashboard,email,calendar",
-        "description": "Notifications for seed sowing dates"
-    },
-
-    # Maintenance Notifications
     "notify_maintenance": {
         "value": "dashboard,email,calendar",
         "description": "Notifications for preventive maintenance reminders"
     },
 
-    # Reminder Alert Settings
+    # Reminder Alert Settings (per-category)
+    # Each category can have its own alert intervals, or use "" to inherit from default
     "default_reminder_alerts": {
         "value": "0,60,1440",
-        "description": "Default reminder alert intervals in minutes before due (0=at time, 60=1hr, 1440=1day). Comma-separated."
+        "description": "Default reminder alert intervals in minutes before due (0=at time, 60=1hr, 1440=1day). Comma-separated. Used when category-specific alerts are not set."
+    },
+    # Animal care alerts
+    "alerts_animal_hoof_trim": {
+        "value": "",
+        "description": "Alert intervals for hoof trimming reminders (empty = use default)"
+    },
+    "alerts_animal_worming": {
+        "value": "",
+        "description": "Alert intervals for worming reminders (empty = use default)"
+    },
+    "alerts_animal_vaccination": {
+        "value": "",
+        "description": "Alert intervals for vaccination reminders (empty = use default)"
+    },
+    "alerts_animal_dental": {
+        "value": "",
+        "description": "Alert intervals for dental reminders (empty = use default)"
+    },
+    "alerts_animal_vet": {
+        "value": "",
+        "description": "Alert intervals for vet appointment reminders (empty = use default)"
+    },
+    "alerts_animal_slaughter": {
+        "value": "",
+        "description": "Alert intervals for slaughter date reminders (empty = use default)"
+    },
+    "alerts_animal_labor": {
+        "value": "",
+        "description": "Alert intervals for labor/birth reminders (empty = use default)"
+    },
+    # Plant care alerts
+    "alerts_plant_watering": {
+        "value": "",
+        "description": "Alert intervals for plant watering reminders (empty = use default)"
+    },
+    "alerts_plant_fertilizing": {
+        "value": "",
+        "description": "Alert intervals for plant fertilizing reminders (empty = use default)"
+    },
+    "alerts_plant_harvest": {
+        "value": "",
+        "description": "Alert intervals for harvest reminders (empty = use default)"
+    },
+    "alerts_plant_pruning": {
+        "value": "",
+        "description": "Alert intervals for pruning reminders (empty = use default)"
+    },
+    "alerts_plant_sow": {
+        "value": "",
+        "description": "Alert intervals for seed sowing reminders (empty = use default)"
+    },
+    # Maintenance alerts
+    "alerts_maintenance": {
+        "value": "",
+        "description": "Alert intervals for maintenance reminders (empty = use default)"
     },
 
     # Bible Verse Settings
@@ -210,6 +241,14 @@ DEFAULT_SETTINGS = {
         "value": "",
         "description": "Ambient Weather Network Application Key"
     },
+    "awn_soil_moisture_enabled": {
+        "value": "false",
+        "description": "Use AWN soil moisture sensor to determine watering needs for rain-dependent plants"
+    },
+    "awn_soil_moisture_threshold": {
+        "value": "50",
+        "description": "Soil moisture percentage above which to skip watering (0-100)"
+    },
 
     # === Email Server Settings ===
     "smtp_host": {
@@ -242,6 +281,28 @@ DEFAULT_SETTINGS = {
         "value": "95",
         "description": "Disk usage percentage to trigger critical alert"
     },
+
+    # === Worker Tasks Settings ===
+    "worker_tasks_enabled": {
+        "value": "false",
+        "description": "Enable the Worker Tasks page in navigation"
+    },
+
+    # === Kiosk/Touch Display Settings ===
+    "show_keyboard_button": {
+        "value": "false",
+        "description": "Show on-screen keyboard toggle button in navigation (for touch displays)"
+    },
+    "show_hard_refresh_button": {
+        "value": "true",
+        "description": "Show hard refresh button in floating action menu"
+    },
+
+    # === Customer Feedback Settings ===
+    "customer_feedback_enabled": {
+        "value": "false",
+        "description": "Enable feedback submission button for users (typically enabled during user testing)"
+    },
 }
 
 
@@ -261,13 +322,16 @@ class AllSettingsResponse(BaseModel):
 
 
 async def get_setting(db: AsyncSession, key: str) -> Optional[str]:
-    """Get a setting value, returns default if not in DB"""
+    """Get a setting value, returns default if not in DB. Decrypts sensitive values."""
     result = await db.execute(
         select(AppSetting).where(AppSetting.key == key)
     )
     setting = result.scalar_one_or_none()
 
     if setting:
+        # Decrypt sensitive settings
+        if should_encrypt(key):
+            return decrypt_value(setting.value)
         return setting.value
     elif key in DEFAULT_SETTINGS:
         return DEFAULT_SETTINGS[key]["value"]
@@ -275,17 +339,20 @@ async def get_setting(db: AsyncSession, key: str) -> Optional[str]:
 
 
 async def set_setting(db: AsyncSession, key: str, value: str) -> AppSetting:
-    """Set a setting value"""
+    """Set a setting value. Encrypts sensitive values before storing."""
+    # Encrypt sensitive settings
+    stored_value = encrypt_value(value) if should_encrypt(key) else value
+
     result = await db.execute(
         select(AppSetting).where(AppSetting.key == key)
     )
     setting = result.scalar_one_or_none()
 
     if setting:
-        setting.value = value
+        setting.value = stored_value
     else:
         description = DEFAULT_SETTINGS.get(key, {}).get("description")
-        setting = AppSetting(key=key, value=value, description=description)
+        setting = AppSetting(key=key, value=stored_value, description=description)
         db.add(setting)
 
     await db.commit()
@@ -293,8 +360,8 @@ async def set_setting(db: AsyncSession, key: str, value: str) -> AppSetting:
     return setting
 
 
-# Sensitive settings that should be masked in responses
-SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key']
+# Sensitive settings that should be masked in responses (includes cloudflare_api_token)
+SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token']
 
 def mask_sensitive_value(key: str, value: str) -> str:
     """Mask sensitive settings for display"""
@@ -304,8 +371,11 @@ def mask_sensitive_value(key: str, value: str) -> str:
 
 
 @router.get("/")
-async def get_all_settings(db: AsyncSession = Depends(get_db)):
-    """Get all settings with their current values"""
+async def get_all_settings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get all settings with their current values (requires authentication)"""
     # Start with defaults
     settings = {}
     for key, info in DEFAULT_SETTINGS.items():
@@ -333,6 +403,55 @@ async def get_all_settings(db: AsyncSession = Depends(get_db)):
             }
 
     return {"settings": settings}
+
+
+# ============================================
+# Kiosk/Display Control Endpoints
+# ============================================
+
+@router.post("/keyboard/toggle/")
+async def toggle_keyboard():
+    """Toggle the on-screen keyboard (onboard) via D-Bus"""
+    import subprocess
+    import os
+
+    try:
+        # Set DISPLAY for the X11 session
+        env = os.environ.copy()
+        env['DISPLAY'] = ':0'
+        # Also need DBUS_SESSION_BUS_ADDRESS for user session
+        env['DBUS_SESSION_BUS_ADDRESS'] = 'unix:path=/run/user/1000/bus'
+
+        # Use full path to dbus-send
+        dbus_send = '/usr/bin/dbus-send'
+
+        # Send D-Bus message to toggle onboard visibility
+        result = subprocess.run(
+            [dbus_send, '--type=method_call', '--dest=org.onboard.Onboard',
+             '/org/onboard/Onboard/Keyboard', 'org.onboard.Onboard.Keyboard.ToggleVisible'],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        if result.returncode == 0:
+            return {"status": "success", "message": "Keyboard toggled"}
+        else:
+            # Try Show command as fallback
+            subprocess.run(
+                [dbus_send, '--type=method_call', '--dest=org.onboard.Onboard',
+                 '/org/onboard/Onboard/Keyboard', 'org.onboard.Onboard.Keyboard.Show'],
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            return {"status": "success", "message": "Keyboard shown"}
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="Keyboard toggle timed out")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to toggle keyboard: {str(e)}")
 
 
 # ============================================
@@ -527,7 +646,7 @@ if [ -f /opt/levi/data/levi.db ]; then
 fi
 
 echo "STEP:sync_backend"
-# Sync backend (exclude venv, data, logs, __pycache__)
+# Sync backend (exclude venv, data, logs, __pycache__, and dev-only files)
 cd /opt/isaac/backend
 for item in *; do
     if [[ "$item" != "venv" && "$item" != "data" && "$item" != "logs" && "$item" != "__pycache__" && "$item" != ".env" ]]; then
@@ -536,6 +655,17 @@ for item in *; do
     fi
 done
 echo "Backend synced"
+
+echo "STEP:cleanup_dev_only"
+# Remove dev-only files from production
+rm -f /opt/levi/backend/routers/dev_tracker.py
+rm -f /opt/levi/backend/models/dev_tracker.py
+# Remove dev_tracker imports
+sed -i '/dev_tracker/d' /opt/levi/backend/routers/__init__.py 2>/dev/null || true
+sed -i '/dev_tracker/d' /opt/levi/backend/models/__init__.py 2>/dev/null || true
+sed -i '/dev_tracker/d' /opt/levi/backend/main.py 2>/dev/null || true
+# Note: pull-from-prod endpoint stays but returns 403 on prod (checks is_dev_instance)
+echo "Dev-only code cleaned"
 
 echo "STEP:sync_frontend"
 # Sync frontend source
@@ -594,6 +724,224 @@ echo "STEP:done"
         results["message"] = "Operation timed out (5 min limit)"
     except Exception as e:
         results["message"] = f"Push to production failed: {str(e)}"
+
+    return results
+
+
+@router.post("/pull-from-prod/")
+async def pull_from_production(admin: User = Depends(require_admin)):
+    """Pull database from production to dev for testing (dev instance only)"""
+    import subprocess
+    import shutil
+    import sqlite3
+    import os
+    from datetime import datetime as dt
+    from config import settings as app_settings
+
+    # Only allow on dev instance
+    if not app_settings.is_dev_instance:
+        raise HTTPException(status_code=403, detail="This action is only available on the dev instance")
+
+    results = {
+        "success": False,
+        "steps": [],
+        "message": "",
+    }
+
+    dev_db = "/opt/isaac/backend/data/levi.db"
+    prod_db = "/opt/levi/backend/data/levi.db"
+    backup_dir = "/opt/isaac/backend/data/backups"
+
+    # Initialize variables for dev-only data preservation
+    dev_tracker_data = []
+    dev_tracker_cols = []
+
+    try:
+        # Step 1: Backup dev database
+        results["steps"].append({"step": "backup", "status": "running", "message": ""})
+        os.makedirs(backup_dir, exist_ok=True)
+        timestamp = dt.now().strftime("%Y%m%d_%H%M%S")
+
+        if os.path.exists(dev_db):
+            backup_path = f"{backup_dir}/levi_backup_{timestamp}.db"
+            shutil.copy2(dev_db, backup_path)
+            results["steps"][-1]["status"] = "ok"
+            results["steps"][-1]["message"] = f"Backed up to {backup_path}"
+        else:
+            results["steps"][-1]["status"] = "skipped"
+            results["steps"][-1]["message"] = "No existing dev database"
+
+        # Step 2: Extract dev-only tables before copying
+        results["steps"].append({"step": "preserve_dev_tables", "status": "running", "message": ""})
+        if os.path.exists(dev_db):
+            try:
+                conn = sqlite3.connect(dev_db)
+                cursor = conn.cursor()
+                # Check if dev_tracker_items exists
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='dev_tracker_items'")
+                if cursor.fetchone():
+                    # Get column names first
+                    cursor.execute("PRAGMA table_info(dev_tracker_items)")
+                    raw_cols = [col[1] for col in cursor.fetchall()]
+                    # Validate column names to prevent SQL injection (only alphanumeric and underscore)
+                    valid_col_pattern = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+                    dev_tracker_cols = []
+                    for col in raw_cols:
+                        if valid_col_pattern.match(col):
+                            dev_tracker_cols.append(col)
+                        else:
+                            # Skip invalid column names (should never happen in normal operation)
+                            pass
+                    # Then get all data
+                    cursor.execute("SELECT * FROM dev_tracker_items")
+                    dev_tracker_data = cursor.fetchall()
+                    results["steps"][-1]["status"] = "ok"
+                    results["steps"][-1]["message"] = f"Preserved {len(dev_tracker_data)} dev tracker items with {len(dev_tracker_cols)} columns"
+                else:
+                    results["steps"][-1]["status"] = "skipped"
+                    results["steps"][-1]["message"] = "No dev_tracker_items table found"
+                conn.close()
+            except Exception as e:
+                results["steps"][-1]["status"] = "warning"
+                results["steps"][-1]["message"] = f"Could not preserve dev tables: {str(e)}"
+        else:
+            results["steps"][-1]["status"] = "skipped"
+            results["steps"][-1]["message"] = "No dev database to preserve"
+
+        # Step 3: Copy prod database to dev
+        results["steps"].append({"step": "copy_database", "status": "running", "message": ""})
+        if os.path.exists(prod_db):
+            shutil.copy2(prod_db, dev_db)
+            # Ensure file is fully written
+            os.sync()
+            results["steps"][-1]["status"] = "ok"
+            results["steps"][-1]["message"] = "Copied prod database to dev"
+        else:
+            results["steps"][-1]["status"] = "error"
+            results["steps"][-1]["message"] = "Production database not found"
+            results["message"] = "Production database not found at /opt/levi/backend/data/levi.db"
+            return results
+
+        # Step 4: Restore dev-only tables and add missing columns
+        results["steps"].append({"step": "restore_dev_tables", "status": "running", "message": ""})
+        restore_messages = []
+
+        conn = sqlite3.connect(dev_db)
+        cursor = conn.cursor()
+
+        # Always create dev_tracker_items table (prod doesn't have it)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS dev_tracker_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_type VARCHAR(20) DEFAULT 'TEST',
+                priority VARCHAR(20) DEFAULT 'MEDIUM',
+                status VARCHAR(20) DEFAULT 'PENDING',
+                title TEXT NOT NULL,
+                description TEXT,
+                version VARCHAR(20),
+                test_notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                completed_at DATETIME
+            )
+        ''')
+
+        # Restore preserved data if we have any
+        if dev_tracker_data and dev_tracker_cols:
+            inserted = 0
+            failed = 0
+            placeholders = ','.join(['?' for _ in dev_tracker_cols])
+            col_names = ','.join(dev_tracker_cols)
+            for row in dev_tracker_data:
+                try:
+                    cursor.execute(f"INSERT OR REPLACE INTO dev_tracker_items ({col_names}) VALUES ({placeholders})", row)
+                    inserted += 1
+                except Exception as e:
+                    failed += 1
+            restore_messages.append(f"Restored {inserted} dev tracker items" + (f" ({failed} failed)" if failed else ""))
+        else:
+            restore_messages.append("Created empty dev_tracker_items table")
+
+        # Add missing columns to tasks table
+        cursor.execute("PRAGMA table_info(tasks)")
+        existing_cols = [col[1] for col in cursor.fetchall()]
+
+        if 'calendar_synced_at' not in existing_cols:
+            cursor.execute("ALTER TABLE tasks ADD COLUMN calendar_synced_at DATETIME")
+            restore_messages.append("Added calendar_synced_at column")
+
+        if 'is_backlog' not in existing_cols:
+            cursor.execute("ALTER TABLE tasks ADD COLUMN is_backlog BOOLEAN DEFAULT 0")
+            restore_messages.append("Added is_backlog column")
+
+        # Add missing columns to home_maintenance table
+        cursor.execute("PRAGMA table_info(home_maintenance)")
+        hm_cols = [col[1] for col in cursor.fetchall()]
+
+        if 'area_or_appliance' not in hm_cols:
+            cursor.execute("ALTER TABLE home_maintenance ADD COLUMN area_or_appliance VARCHAR(100)")
+            restore_messages.append("Added area_or_appliance column")
+
+        if 'area_icon' not in hm_cols:
+            cursor.execute("ALTER TABLE home_maintenance ADD COLUMN area_icon VARCHAR(50)")
+            restore_messages.append("Added area_icon column")
+
+        conn.commit()
+        conn.close()
+
+        results["steps"][-1]["status"] = "ok"
+        results["steps"][-1]["message"] = "; ".join(restore_messages)
+
+        # Step 5: Clear alerts_sent and sync_uid to prevent duplicates
+        results["steps"].append({"step": "clear_sync_data", "status": "running", "message": ""})
+        conn = sqlite3.connect(dev_db)
+        cursor = conn.cursor()
+
+        clear_messages = []
+
+        # Clear alerts_sent on all tasks
+        try:
+            cursor.execute("UPDATE tasks SET alerts_sent = NULL")
+            alerts_cleared = cursor.rowcount
+            clear_messages.append(f"alerts_sent on {alerts_cleared} tasks")
+        except sqlite3.OperationalError:
+            pass  # Column doesn't exist
+
+        # Clear calendar_uid on all tasks (prevents calendar duplication)
+        try:
+            cursor.execute("UPDATE tasks SET calendar_uid = NULL")
+            sync_cleared = cursor.rowcount
+            clear_messages.append(f"calendar_uid on {sync_cleared} tasks")
+        except sqlite3.OperationalError:
+            pass  # Column doesn't exist
+
+        conn.commit()
+        conn.close()
+
+        results["steps"][-1]["status"] = "ok"
+        results["steps"][-1]["message"] = f"Cleared {', '.join(clear_messages)}" if clear_messages else "No sync columns found"
+
+        # Step 6: Restart backend
+        results["steps"].append({"step": "restart_backend", "status": "running", "message": ""})
+        result = subprocess.run(
+            ["/usr/bin/sudo", "/usr/bin/systemctl", "restart", "isaac-backend"],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            results["steps"][-1]["status"] = "ok"
+            results["steps"][-1]["message"] = "Backend restarted"
+        else:
+            results["steps"][-1]["status"] = "warning"
+            results["steps"][-1]["message"] = f"Restart may have failed: {result.stderr}"
+
+        results["success"] = True
+        results["message"] = "Successfully pulled data from production! Page will refresh."
+
+    except Exception as e:
+        import traceback
+        if results["steps"]:
+            results["steps"][-1]["status"] = "error"
+        results["message"] = f"Pull from production failed: {str(e)}\n{traceback.format_exc()}"
 
     return results
 
@@ -704,6 +1052,17 @@ async def update_setting(key: str, data: SettingUpdate, db: AsyncSession = Depen
             raise HTTPException(status_code=400, detail="Time must be in HH:MM format")
 
     setting = await set_setting(db, key, data.value)
+
+    # Reschedule daily digest if time was changed
+    if key == "email_digest_time":
+        try:
+            from main import scheduler_service
+            if scheduler_service:
+                import asyncio
+                asyncio.create_task(scheduler_service.schedule_daily_digest())
+        except Exception as e:
+            logger.warning(f"Could not reschedule daily digest: {e}")
+
     return {
         "key": setting.key,
         "value": mask_sensitive_value(setting.key, setting.value),  # Mask sensitive values
@@ -868,8 +1227,8 @@ async def test_calendar_sync(db: AsyncSession = Depends(get_db)):
             detail="Failed to access or create calendar."
         )
 
-    # Sync tasks to calendar
-    tasks_synced = await service.sync_all_tasks_to_calendar(db)
+    # Sync tasks to calendar (incremental - only changed items)
+    push_result = await service.sync_all_tasks_to_calendar(db)
 
     # Sync calendar to tasks
     sync_result = await service.sync_calendar_to_tasks(db)
@@ -877,7 +1236,8 @@ async def test_calendar_sync(db: AsyncSession = Depends(get_db)):
     return {
         "message": "Calendar sync successful",
         "calendar_name": service.calendar_name,
-        "tasks_pushed_to_calendar": tasks_synced,
+        "tasks_pushed": push_result.get("synced", 0),
+        "tasks_deleted": push_result.get("deleted", 0),
         "events_created": sync_result.get("created", 0),
         "events_updated": sync_result.get("updated", 0),
         "events_deleted": sync_result.get("deleted", 0),
@@ -904,14 +1264,15 @@ async def sync_calendar(db: AsyncSession = Depends(get_db)):
         if uid:
             calendar_uids.add(uid)
 
-    # Push local tasks to calendar (with deletion detection for items deleted on phone)
-    tasks_synced = await service.sync_all_tasks_to_calendar(db, calendar_uids)
+    # Push local tasks to calendar (incremental - only changed items)
+    push_result = await service.sync_all_tasks_to_calendar(db, calendar_uids)
 
     # Pull calendar events to local (including deletion detection)
     sync_result = await service.sync_calendar_to_tasks(db)
 
     return {
-        "tasks_pushed_to_calendar": tasks_synced,
+        "tasks_pushed": push_result.get("synced", 0),
+        "tasks_deleted": push_result.get("deleted", 0),
         "events_created": sync_result.get("created", 0),
         "events_updated": sync_result.get("updated", 0),
         "events_deleted": sync_result.get("deleted", 0),

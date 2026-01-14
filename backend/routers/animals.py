@@ -4,16 +4,22 @@ Supports Pets and Livestock categories with expense tracking and recurring care 
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel, Field
+import uuid
+import csv
+import io
 
 from models.database import get_db
 from models.livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, AnimalExpense, AnimalCareSchedule, AnimalFeed
 from models.settings import AppSetting
+from models.users import User
+from services.permissions import require_create, require_edit, require_delete, require_interact
 from services.auto_reminders import (
     sync_all_animal_reminders,
     delete_reminder,
@@ -124,9 +130,28 @@ class ExpenseResponse(BaseModel):
     vendor: Optional[str]
     notes: Optional[str]
     created_at: datetime
+    expense_group_id: Optional[str] = None
+    total_amount: Optional[float] = None
 
     class Config:
         from_attributes = True
+
+
+class AnimalSplit(BaseModel):
+    """Individual animal allocation in a split expense"""
+    animal_id: int
+    amount: float = Field(..., ge=0)
+
+
+class SplitExpenseCreate(BaseModel):
+    """Create an expense split across multiple animals"""
+    expense_type: str = Field(..., min_length=1, max_length=50)
+    description: Optional[str] = Field(None, max_length=500)
+    total_amount: float = Field(..., ge=0, le=1000000)
+    expense_date: Optional[date] = None
+    vendor: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = Field(None, max_length=2000)
+    splits: List[AnimalSplit] = Field(..., min_length=1)
 
 
 class CareLogCreate(BaseModel):
@@ -267,6 +292,7 @@ def animal_to_response(animal: Animal) -> dict:
         "notes": animal.notes,
         "special_instructions": animal.special_instructions,
         "created_at": animal.created_at,
+        "updated_at": animal.updated_at,
         # Farm area
         "farm_area_id": animal.farm_area_id,
         "farm_area": {
@@ -293,9 +319,14 @@ async def list_animals(
     category: Optional[AnimalCategory] = None,
     animal_type: Optional[AnimalType] = None,
     active_only: bool = True,
+    limit: int = 500,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
     """List all animals with optional filtering"""
+    # Cap limit for DoS prevention
+    limit = min(limit, 1000)
+
     query = select(Animal).options(
         selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds), selectinload(Animal.farm_area)
     )
@@ -307,14 +338,18 @@ async def list_animals(
     if animal_type:
         query = query.where(Animal.animal_type == animal_type)
 
-    query = query.order_by(Animal.category, Animal.name)
+    query = query.order_by(Animal.category, Animal.name).offset(offset).limit(limit)
     result = await db.execute(query)
     animals = result.scalars().all()
     return [animal_to_response(a) for a in animals]
 
 
 @router.post("/")
-async def create_animal(animal: AnimalCreate, db: AsyncSession = Depends(get_db)):
+async def create_animal(
+    animal: AnimalCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("animals"))
+):
     """Add a new animal"""
     db_animal = Animal(**animal.model_dump())
     db.add(db_animal)
@@ -350,6 +385,7 @@ async def update_animal(
     animal_id: int,
     updates: AnimalUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("animals"))
 ):
     """Update an animal's information"""
     result = await db.execute(
@@ -379,7 +415,11 @@ async def update_animal(
 
 
 @router.delete("/{animal_id}/")
-async def delete_animal(animal_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_animal(
+    animal_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("animals"))
+):
     """Deactivate an animal (soft delete)"""
     result = await db.execute(
         select(Animal).options(selectinload(Animal.care_schedules)).where(Animal.id == animal_id)
@@ -422,6 +462,7 @@ async def add_expense(
     animal_id: int,
     expense: ExpenseCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("animals"))
 ):
     """Add an expense for an animal"""
     # Verify animal exists
@@ -445,6 +486,142 @@ async def add_expense(
     return db_expense
 
 
+@router.put("/expenses/{expense_id}/", response_model=ExpenseResponse)
+async def update_expense(
+    expense_id: int,
+    expense: ExpenseCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_edit("animals")),
+):
+    """Update an expense"""
+    result = await db.execute(select(AnimalExpense).where(AnimalExpense.id == expense_id))
+    db_expense = result.scalar_one_or_none()
+    if not db_expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    db_expense.expense_type = expense.expense_type
+    db_expense.description = expense.description
+    db_expense.amount = expense.amount
+    db_expense.expense_date = expense.expense_date or db_expense.expense_date
+    db_expense.vendor = expense.vendor
+    db_expense.notes = expense.notes
+
+    await db.commit()
+    await db.refresh(db_expense)
+    return db_expense
+
+
+@router.delete("/expenses/{expense_id}/")
+async def delete_expense(
+    expense_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_delete("animals")),
+):
+    """Delete an expense"""
+    result = await db.execute(select(AnimalExpense).where(AnimalExpense.id == expense_id))
+    db_expense = result.scalar_one_or_none()
+    if not db_expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    await db.delete(db_expense)
+    await db.commit()
+    return {"message": "Expense deleted"}
+
+
+@router.get("/{animal_id}/expenses/export/")
+async def export_expenses_csv(
+    animal_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Export expenses for a single animal to CSV"""
+    result = await db.execute(
+        select(Animal).options(selectinload(Animal.expenses)).where(Animal.id == animal_id)
+    )
+    animal = result.scalar_one_or_none()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Date", "Type", "Description", "Amount", "Vendor", "Notes"])
+
+    for expense in sorted(animal.expenses, key=lambda e: e.expense_date, reverse=True):
+        writer.writerow([
+            expense.expense_date.strftime("%Y-%m-%d"),
+            expense.expense_type,
+            expense.description or "",
+            f"{expense.amount:.2f}",
+            expense.vendor or "",
+            expense.notes or "",
+        ])
+
+    # Add total row
+    writer.writerow([])
+    writer.writerow(["", "", "TOTAL", f"{animal.total_expenses:.2f}", "", ""])
+
+    output.seek(0)
+    filename = f"{animal.name.replace(' ', '_')}_expenses.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/expenses/export/all/")
+async def export_all_expenses_csv(
+    db: AsyncSession = Depends(get_db),
+):
+    """Export all animal expenses to CSV"""
+    result = await db.execute(
+        select(Animal).options(selectinload(Animal.expenses)).where(Animal.is_active == True)
+    )
+    animals = result.scalars().all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Animal", "Category", "Date", "Type", "Description", "Amount", "Vendor", "Notes"])
+
+    all_expenses = []
+    for animal in animals:
+        for expense in animal.expenses:
+            all_expenses.append({
+                "animal": animal.name,
+                "category": animal.category,
+                "expense": expense,
+            })
+
+    # Sort by date descending
+    all_expenses.sort(key=lambda e: e["expense"].expense_date, reverse=True)
+
+    total = 0
+    for item in all_expenses:
+        expense = item["expense"]
+        total += expense.amount
+        writer.writerow([
+            item["animal"],
+            item["category"],
+            expense.expense_date.strftime("%Y-%m-%d"),
+            expense.expense_type,
+            expense.description or "",
+            f"{expense.amount:.2f}",
+            expense.vendor or "",
+            expense.notes or "",
+        ])
+
+    # Add total row
+    writer.writerow([])
+    writer.writerow(["", "", "", "", "TOTAL", f"{total:.2f}", "", ""])
+
+    output.seek(0)
+    filename = f"all_animal_expenses_{date.today().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @router.get("/{animal_id}/expenses/total/")
 async def get_total_expenses(animal_id: int, db: AsyncSession = Depends(get_db)):
     """Get total expenses for an animal"""
@@ -461,6 +638,64 @@ async def get_total_expenses(animal_id: int, db: AsyncSession = Depends(get_db))
         "total_expenses": animal.total_expenses,
         "expense_count": len(animal.expenses),
     }
+
+
+@router.post("/expenses/split/", response_model=List[ExpenseResponse])
+async def create_split_expense(
+    expense: SplitExpenseCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_create("animals")),
+):
+    """Create an expense split across multiple animals.
+
+    Each animal gets an AnimalExpense record with their portion of the total.
+    All records share the same expense_group_id to link them together.
+    """
+    # Validate that all animals exist
+    animal_ids = [s.animal_id for s in expense.splits]
+    result = await db.execute(select(Animal).where(Animal.id.in_(animal_ids)))
+    found_animals = {a.id for a in result.scalars().all()}
+
+    missing = set(animal_ids) - found_animals
+    if missing:
+        raise HTTPException(status_code=404, detail=f"Animals not found: {list(missing)}")
+
+    # Validate that split amounts sum to total (with small tolerance for floating point)
+    split_sum = sum(s.amount for s in expense.splits)
+    if abs(split_sum - expense.total_amount) > 0.01:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Split amounts ({split_sum:.2f}) must equal total amount ({expense.total_amount:.2f})"
+        )
+
+    # Generate group ID for linking
+    group_id = str(uuid.uuid4())
+    expense_date = expense.expense_date or date.today()
+
+    # Create expense records for each animal
+    created_expenses = []
+    for split in expense.splits:
+        db_expense = AnimalExpense(
+            animal_id=split.animal_id,
+            expense_type=expense.expense_type,
+            description=expense.description,
+            amount=split.amount,
+            expense_date=expense_date,
+            vendor=expense.vendor,
+            notes=expense.notes,
+            expense_group_id=group_id,
+            total_amount=expense.total_amount,
+        )
+        db.add(db_expense)
+        created_expenses.append(db_expense)
+
+    await db.commit()
+
+    # Refresh all to get IDs
+    for exp in created_expenses:
+        await db.refresh(exp)
+
+    return created_expenses
 
 
 # === Care Log Endpoints ===
@@ -487,6 +722,7 @@ async def add_care_log(
     animal_id: int,
     log: CareLogCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("animals"))
 ):
     """Log a care activity for an animal and update last_* fields"""
     result = await db.execute(select(Animal).where(Animal.id == animal_id))
@@ -757,6 +993,7 @@ async def create_care_schedule(
     animal_id: int,
     schedule: CareScheduleCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("animals"))
 ):
     """Create a new care schedule item for an animal"""
     # Verify animal exists
@@ -791,6 +1028,7 @@ async def update_care_schedule(
     schedule_id: int,
     updates: CareScheduleUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("animals"))
 ):
     """Update a care schedule item"""
     result = await db.execute(
@@ -821,6 +1059,7 @@ async def complete_care_schedule(
     schedule_id: int,
     performed_date: Optional[date] = None,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("animals"))
 ):
     """Mark a care schedule item as completed (updates last_performed to today or specified date)"""
     result = await db.execute(
@@ -850,6 +1089,7 @@ async def delete_care_schedule(
     animal_id: int,
     schedule_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("animals"))
 ):
     """Delete a care schedule item (soft delete - sets is_active=False)"""
     result = await db.execute(
@@ -876,6 +1116,7 @@ class BulkCareScheduleCreate(BaseModel):
     animal_ids: List[int]
     name: str
     frequency_days: Optional[int] = None
+    due_time: Optional[str] = None  # "HH:MM" format
     last_performed: Optional[date] = None
     manual_due_date: Optional[date] = None
     notes: Optional[str] = None
@@ -885,6 +1126,7 @@ class BulkCareScheduleCreate(BaseModel):
 async def create_bulk_care_schedules(
     data: BulkCareScheduleCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("animals"))
 ):
     """Create the same care schedule item for multiple animals at once"""
     # Verify all animals exist
@@ -910,6 +1152,7 @@ async def create_bulk_care_schedules(
             animal_id=animal_id,
             name=data.name,
             frequency_days=data.frequency_days,
+            due_time=data.due_time,
             last_performed=data.last_performed,
             manual_due_date=data.manual_due_date,
             notes=data.notes,
@@ -971,6 +1214,7 @@ async def create_animal_feed(
     animal_id: int,
     data: FeedCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("animals"))
 ):
     """Create a new feed entry for an animal"""
     result = await db.execute(select(Animal).where(Animal.id == animal_id))
@@ -998,6 +1242,7 @@ async def update_animal_feed(
     feed_id: int,
     data: FeedUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("animals"))
 ):
     """Update a feed entry"""
     result = await db.execute(
@@ -1023,6 +1268,7 @@ async def delete_animal_feed(
     animal_id: int,
     feed_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("animals"))
 ):
     """Delete a feed entry (soft delete)"""
     result = await db.execute(

@@ -11,7 +11,10 @@ from datetime import datetime, date, timedelta
 from pydantic import BaseModel, Field
 
 from models.database import get_db
-from models.vehicles import Vehicle, VehicleMaintenance, VehicleMaintenanceLog, VehicleType
+from models.vehicles import Vehicle, VehicleMaintenance, VehicleMaintenanceLog, VehicleType, get_local_now
+from models.tasks import Task
+from models.users import User
+from services.permissions import require_create, require_edit, require_delete, require_interact
 
 
 router = APIRouter(prefix="/vehicles", tags=["Vehicles"])
@@ -167,9 +170,14 @@ class LogResponse(BaseModel):
 async def get_all_vehicles(
     type: Optional[VehicleType] = None,
     active_only: bool = True,
+    limit: int = 500,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db)
 ):
     """Get all vehicles"""
+    # Cap limit for DoS prevention
+    limit = min(limit, 1000)
+
     query = select(Vehicle).options(selectinload(Vehicle.maintenance_tasks))
 
     if type:
@@ -177,7 +185,7 @@ async def get_all_vehicles(
     if active_only:
         query = query.where(Vehicle.is_active == True)
 
-    query = query.order_by(Vehicle.name)
+    query = query.order_by(Vehicle.name).offset(offset).limit(limit)
 
     result = await db.execute(query)
     vehicles = result.scalars().all()
@@ -244,7 +252,11 @@ async def get_vehicle(vehicle_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/", response_model=VehicleResponse)
-async def create_vehicle(data: VehicleCreate, db: AsyncSession = Depends(get_db)):
+async def create_vehicle(
+    data: VehicleCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("vehicles"))
+):
     """Create a new vehicle"""
     vehicle = Vehicle(**data.model_dump())
 
@@ -277,7 +289,12 @@ async def create_vehicle(data: VehicleCreate, db: AsyncSession = Depends(get_db)
 
 
 @router.put("/{vehicle_id}", response_model=VehicleResponse)
-async def update_vehicle(vehicle_id: int, data: VehicleUpdate, db: AsyncSession = Depends(get_db)):
+async def update_vehicle(
+    vehicle_id: int,
+    data: VehicleUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("vehicles"))
+):
     """Update a vehicle"""
     result = await db.execute(
         select(Vehicle)
@@ -321,7 +338,11 @@ async def update_vehicle(vehicle_id: int, data: VehicleUpdate, db: AsyncSession 
 
 
 @router.delete("/{vehicle_id}")
-async def delete_vehicle(vehicle_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_vehicle(
+    vehicle_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("vehicles"))
+):
     """Delete a vehicle"""
     result = await db.execute(
         select(Vehicle).where(Vehicle.id == vehicle_id)
@@ -395,7 +416,12 @@ async def get_vehicle_maintenance(vehicle_id: int, active_only: bool = True, db:
 
 
 @router.post("/{vehicle_id}/maintenance", response_model=MaintenanceResponse)
-async def create_vehicle_maintenance(vehicle_id: int, data: MaintenanceCreate, db: AsyncSession = Depends(get_db)):
+async def create_vehicle_maintenance(
+    vehicle_id: int,
+    data: MaintenanceCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("vehicles"))
+):
     """Create a maintenance task for a vehicle"""
     # Verify vehicle exists
     result = await db.execute(select(Vehicle).where(Vehicle.id == vehicle_id))
@@ -452,7 +478,12 @@ async def create_vehicle_maintenance(vehicle_id: int, data: MaintenanceCreate, d
 
 
 @router.put("/maintenance/{task_id}", response_model=MaintenanceResponse)
-async def update_vehicle_maintenance(task_id: int, data: MaintenanceUpdate, db: AsyncSession = Depends(get_db)):
+async def update_vehicle_maintenance(
+    task_id: int,
+    data: MaintenanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("vehicles"))
+):
     """Update a maintenance task"""
     result = await db.execute(
         select(VehicleMaintenance).where(VehicleMaintenance.id == task_id)
@@ -511,7 +542,11 @@ async def update_vehicle_maintenance(task_id: int, data: MaintenanceUpdate, db: 
 
 
 @router.delete("/maintenance/{task_id}")
-async def delete_vehicle_maintenance(task_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_vehicle_maintenance(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("vehicles"))
+):
     """Delete a maintenance task"""
     result = await db.execute(
         select(VehicleMaintenance).where(VehicleMaintenance.id == task_id)
@@ -528,7 +563,12 @@ async def delete_vehicle_maintenance(task_id: int, db: AsyncSession = Depends(ge
 
 
 @router.post("/maintenance/{task_id}/complete", response_model=MaintenanceResponse)
-async def complete_vehicle_maintenance(task_id: int, data: LogCreate, db: AsyncSession = Depends(get_db)):
+async def complete_vehicle_maintenance(
+    task_id: int,
+    data: LogCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("vehicles"))
+):
     """Mark a maintenance task as complete"""
     result = await db.execute(
         select(VehicleMaintenance).where(VehicleMaintenance.id == task_id)
@@ -538,7 +578,7 @@ async def complete_vehicle_maintenance(task_id: int, data: LogCreate, db: AsyncS
     if not task:
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
-    performed_at = data.performed_at or datetime.utcnow()
+    performed_at = data.performed_at or get_local_now()
 
     # Create log entry
     log = VehicleMaintenanceLog(
@@ -564,10 +604,20 @@ async def complete_vehicle_maintenance(task_id: int, data: LogCreate, db: AsyncS
         result = await db.execute(select(Vehicle).where(Vehicle.id == task.vehicle_id))
         vehicle = result.scalar_one_or_none()
         if vehicle:
-            if data.mileage_at and data.mileage_at > vehicle.current_mileage:
+            if data.mileage_at and data.mileage_at > (vehicle.current_mileage or 0):
                 vehicle.current_mileage = data.mileage_at
-            if data.hours_at and data.hours_at > vehicle.current_hours:
+            if data.hours_at and data.hours_at > (vehicle.current_hours or 0):
                 vehicle.current_hours = data.hours_at
+
+    # Also complete the linked Task (auto-reminder) if it exists
+    linked_task_key = f"auto:vehicle_maint:{task_id}"
+    linked_result = await db.execute(
+        select(Task).where(Task.notes.contains(linked_task_key))
+    )
+    linked_task = linked_result.scalars().first()
+    if linked_task and not linked_task.is_completed:
+        linked_task.is_completed = True
+        linked_task.completed_at = performed_at
 
     await db.commit()
     await db.refresh(task)

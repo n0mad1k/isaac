@@ -4,10 +4,13 @@ Database connection and session management
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import text, inspect
 from pathlib import Path
+import logging
 
 from config import settings
 
+logger = logging.getLogger(__name__)
 
 # Ensure data directory exists
 Path(settings.data_dir).mkdir(parents=True, exist_ok=True)
@@ -32,10 +35,162 @@ class Base(DeclarativeBase):
     pass
 
 
+def _get_column_type_sql(column):
+    """Convert SQLAlchemy column type to SQLite type string"""
+    type_name = type(column.type).__name__.upper()
+    type_map = {
+        'INTEGER': 'INTEGER',
+        'STRING': 'VARCHAR',
+        'TEXT': 'TEXT',
+        'BOOLEAN': 'BOOLEAN',
+        'DATETIME': 'DATETIME',
+        'FLOAT': 'FLOAT',
+        'JSON': 'JSON',
+        'ENUM': 'VARCHAR',
+    }
+    return type_map.get(type_name, 'TEXT')
+
+
+def _migrate_tables(connection):
+    """Add missing columns to existing tables (SQLite only)"""
+    inspector = inspect(connection)
+
+    for table in Base.metadata.tables.values():
+        table_name = table.name
+
+        # Check if table exists
+        if not inspector.has_table(table_name):
+            continue
+
+        # Get existing columns
+        existing_columns = {col['name'] for col in inspector.get_columns(table_name)}
+
+        # Check each model column
+        for column in table.columns:
+            if column.name not in existing_columns:
+                # Build ALTER TABLE statement
+                col_type = _get_column_type_sql(column)
+
+                # Handle default values
+                default_clause = ""
+                if column.default is not None:
+                    if column.default.arg is not None:
+                        if isinstance(column.default.arg, bool):
+                            default_clause = f" DEFAULT {1 if column.default.arg else 0}"
+                        elif isinstance(column.default.arg, (int, float)):
+                            default_clause = f" DEFAULT {column.default.arg}"
+                        elif isinstance(column.default.arg, str):
+                            default_clause = f" DEFAULT '{column.default.arg}'"
+
+                sql = f"ALTER TABLE {table_name} ADD COLUMN {column.name} {col_type}{default_clause}"
+
+                try:
+                    connection.execute(text(sql))
+                    logger.info(f"Added column {table_name}.{column.name}")
+                except Exception as e:
+                    logger.warning(f"Could not add column {table_name}.{column.name}: {e}")
+
+
+async def _migrate_sensitive_settings():
+    """Encrypt any existing plaintext sensitive settings"""
+    from services.encryption import ENCRYPTED_SETTINGS, encrypt_value, is_encrypted
+
+    async with async_session() as session:
+        try:
+            # Check if app_settings table exists
+            result = await session.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name='app_settings'")
+            )
+            if not result.fetchone():
+                return  # Table doesn't exist yet
+
+            # Get all sensitive settings that need encryption
+            for key in ENCRYPTED_SETTINGS:
+                result = await session.execute(
+                    text("SELECT id, value FROM app_settings WHERE key = :key"),
+                    {"key": key}
+                )
+                row = result.fetchone()
+                if row and row[1] and not is_encrypted(row[1]):
+                    # Encrypt the plaintext value
+                    encrypted = encrypt_value(row[1])
+                    await session.execute(
+                        text("UPDATE app_settings SET value = :value WHERE id = :id"),
+                        {"value": encrypted, "id": row[0]}
+                    )
+                    logger.info(f"Encrypted setting: {key}")
+
+            await session.commit()
+        except Exception as e:
+            logger.warning(f"Could not migrate sensitive settings: {e}")
+            await session.rollback()
+
+
+async def _migrate_session_tokens():
+    """Hash any existing plaintext session tokens for security"""
+    import hashlib
+
+    async with async_session() as session:
+        try:
+            # Check if sessions table exists and has both columns
+            result = await session.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'")
+            )
+            if not result.fetchone():
+                return  # Table doesn't exist yet
+
+            # Check if token_hash column exists
+            result = await session.execute(
+                text("PRAGMA table_info(sessions)")
+            )
+            columns = {row[1] for row in result.fetchall()}
+            if 'token_hash' not in columns:
+                return  # Column doesn't exist yet (will be added by migration)
+
+            # Find sessions with plaintext token but no hash
+            result = await session.execute(
+                text("SELECT id, token FROM sessions WHERE token IS NOT NULL AND token != '' AND (token_hash IS NULL OR token_hash = '')")
+            )
+            rows = result.fetchall()
+
+            if not rows:
+                return  # No migration needed
+
+            migrated = 0
+            for row in rows:
+                session_id, token = row
+                # Hash the token using SHA-256
+                token_hash = hashlib.sha256(token.encode()).hexdigest()
+                # Update: set hash, set token to placeholder (can't null due to old NOT NULL constraint)
+                # The placeholder is not a valid token (starts with 'MIGRATED:')
+                await session.execute(
+                    text("UPDATE sessions SET token_hash = :hash, token = :placeholder WHERE id = :id"),
+                    {"hash": token_hash, "placeholder": f"MIGRATED:{session_id}", "id": session_id}
+                )
+                migrated += 1
+
+            await session.commit()
+            if migrated > 0:
+                logger.info(f"Migrated {migrated} session tokens to hashed format")
+
+        except Exception as e:
+            logger.warning(f"Could not migrate session tokens: {e}")
+            await session.rollback()
+
+
 async def init_db():
-    """Initialize database tables"""
+    """Initialize database tables and migrate schema"""
     async with engine.begin() as conn:
+        # Create new tables
         await conn.run_sync(Base.metadata.create_all)
+        # Add missing columns to existing tables
+        await conn.run_sync(_migrate_tables)
+
+    # Encrypt any existing plaintext sensitive settings
+    await _migrate_sensitive_settings()
+
+    # Hash any existing plaintext session tokens
+    await _migrate_session_tokens()
 
 
 async def get_db() -> AsyncSession:

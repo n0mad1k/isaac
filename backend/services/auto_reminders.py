@@ -14,6 +14,53 @@ from models.settings import AppSetting
 from services.calendar_sync import get_calendar_service
 
 
+# Mapping from notification setting keys to alert setting keys
+NOTIFICATION_TO_ALERT_KEY = {
+    "notify_animal_hoof_trim": "alerts_animal_hoof_trim",
+    "notify_animal_worming": "alerts_animal_worming",
+    "notify_animal_vaccination": "alerts_animal_vaccination",
+    "notify_animal_dental": "alerts_animal_dental",
+    "notify_animal_vet": "alerts_animal_vet",
+    "notify_animal_slaughter": "alerts_animal_slaughter",
+    "notify_animal_labor": "alerts_animal_labor",
+    "notify_plant_watering": "alerts_plant_watering",
+    "notify_plant_fertilizing": "alerts_plant_fertilizing",
+    "notify_plant_harvest": "alerts_plant_harvest",
+    "notify_plant_pruning": "alerts_plant_pruning",
+    "notify_plant_sow": "alerts_plant_sow",
+    "notify_maintenance": "alerts_maintenance",
+}
+
+
+async def get_reminder_alerts_for_category(db: AsyncSession, notification_setting_key: str) -> Optional[list]:
+    """Get the reminder alert intervals for a notification category.
+
+    Returns a list of minutes (e.g., [0, 60, 1440]) or None if using default.
+    If the category-specific setting is empty, returns None to use the global default.
+    """
+    alert_key = NOTIFICATION_TO_ALERT_KEY.get(notification_setting_key)
+    if not alert_key:
+        return None
+
+    # Check for category-specific alert setting
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == alert_key)
+    )
+    setting = result.scalar_one_or_none()
+
+    if setting and setting.value and setting.value.strip():
+        # Parse comma-separated minutes into list
+        try:
+            alerts = [int(x.strip()) for x in setting.value.split(",") if x.strip()]
+            if alerts:
+                return alerts
+        except ValueError:
+            pass
+
+    # No category-specific setting, return None to use default
+    return None
+
+
 # Notification setting keys and their defaults
 NOTIFICATION_SETTINGS = {
     # Animal care
@@ -81,15 +128,35 @@ async def create_or_update_reminder(
         logger.debug(f"Calendar notifications disabled for {notification_setting_key}")
         return None
 
+    # Get category-specific alert intervals (None = use global default)
+    category_alerts = await get_reminder_alerts_for_category(db, notification_setting_key)
+
     # Look for existing auto-generated task for this source
+    # Check for ANY task with this source key (active AND completed) to avoid duplicates
     source_key = f"auto:{source_type}:{source_id}"
     result = await db.execute(
         select(Task).where(
-            Task.notes.contains(source_key),
-            Task.is_active == True
+            Task.notes == source_key,  # Use exact match, not contains
         )
     )
-    existing_task = result.scalar_one_or_none()
+    all_matching_tasks = result.scalars().all()
+
+    # Separate into active incomplete, completed, and inactive
+    active_incomplete = [t for t in all_matching_tasks if t.is_active and not t.is_completed]
+    completed_tasks = [t for t in all_matching_tasks if t.is_completed]
+
+    # If there's a completed task, don't create a new one - the maintenance was done
+    if completed_tasks:
+        logger.debug(f"Skipping reminder for {source_key} - already completed (task {completed_tasks[0].id})")
+        return None
+
+    # Handle duplicates: if multiple active exist, keep the first and deactivate others
+    existing_task = None
+    if active_incomplete:
+        existing_task = active_incomplete[0]
+        for dup in active_incomplete[1:]:
+            dup.is_active = False
+            logger.warning(f"Deactivated duplicate reminder: {dup.id} ({dup.title})")
 
     if existing_task:
         # Update existing task - but DON'T update the due_date
@@ -101,6 +168,8 @@ async def create_or_update_reminder(
         existing_task.category = category
         if due_time:
             existing_task.due_time = due_time
+        # Update reminder_alerts if category has specific settings
+        existing_task.reminder_alerts = category_alerts
         existing_task.updated_at = datetime.utcnow()
         await db.commit()
 
@@ -123,6 +192,7 @@ async def create_or_update_reminder(
             task_type=TaskType.TODO,  # Use TODO for reminders
             priority=2,  # Medium-high priority
             notes=f"{source_key}",  # Store source reference
+            reminder_alerts=category_alerts,  # Per-category alert intervals
             is_active=True,
             is_completed=False,
         )
@@ -148,25 +218,27 @@ async def delete_reminder(
     source_key = f"auto:{source_type}:{source_id}"
     result = await db.execute(
         select(Task).where(
-            Task.notes.contains(source_key),
+            Task.notes == source_key,  # Use exact match
             Task.is_active == True
         )
     )
-    task = result.scalar_one_or_none()
+    tasks = result.scalars().all()
 
-    if task:
-        # Delete from calendar first
+    # Handle any task (including duplicates) - delete ALL matching tasks
+    if tasks:
         calendar_service = await get_calendar_service(db)
-        if calendar_service and calendar_service.connect():
-            await calendar_service.delete_task_from_calendar(
-                task.id,
-                calendar_uid=task.calendar_uid
-            )
+        for task in tasks:
+            # Delete from calendar first
+            if calendar_service and calendar_service.connect():
+                await calendar_service.delete_task_from_calendar(
+                    task.id,
+                    calendar_uid=task.calendar_uid
+                )
+            # Soft delete the task
+            task.is_active = False
 
-        # Soft delete the task
-        task.is_active = False
         await db.commit()
-        logger.debug(f"Deleted auto-reminder for {source_key}")
+        logger.debug(f"Deleted {len(tasks)} auto-reminder(s) for {source_key}")
         return True
 
     return False
@@ -347,15 +419,35 @@ async def create_or_update_grouped_reminder(
         logger.debug(f"Calendar notifications disabled for {notification_setting_key}")
         return None
 
+    # Get category-specific alert intervals (None = use global default)
+    category_alerts = await get_reminder_alerts_for_category(db, notification_setting_key)
+
     # Look for existing grouped task
+    # Check for ANY task with this source key (active AND completed) to avoid duplicates
     source_key = f"auto:{source_type}:{group_key}"
     result = await db.execute(
         select(Task).where(
-            Task.notes.contains(source_key),
-            Task.is_active == True
+            Task.notes == source_key,  # Use exact match, not contains
         )
     )
-    existing_task = result.scalar_one_or_none()
+    all_matching_tasks = result.scalars().all()
+
+    # Separate into active incomplete, completed, and inactive
+    active_incomplete = [t for t in all_matching_tasks if t.is_active and not t.is_completed]
+    completed_tasks = [t for t in all_matching_tasks if t.is_completed]
+
+    # If there's a completed task, don't create a new one - the task was done
+    if completed_tasks:
+        logger.debug(f"Skipping grouped reminder for {source_key} - already completed (task {completed_tasks[0].id})")
+        return None
+
+    # Handle duplicates: if multiple active exist, keep the first and deactivate others
+    existing_task = None
+    if active_incomplete:
+        existing_task = active_incomplete[0]
+        for dup in active_incomplete[1:]:
+            dup.is_active = False
+            logger.warning(f"Deactivated duplicate grouped reminder: {dup.id} ({dup.title})")
 
     if existing_task:
         # Update existing task - but DON'T update the due_date
@@ -367,6 +459,8 @@ async def create_or_update_grouped_reminder(
         existing_task.category = category
         if due_time:
             existing_task.due_time = due_time
+        # Update reminder_alerts if category has specific settings
+        existing_task.reminder_alerts = category_alerts
         existing_task.updated_at = datetime.utcnow()
         await db.commit()
 
@@ -389,6 +483,7 @@ async def create_or_update_grouped_reminder(
             task_type=TaskType.TODO,
             priority=2,
             notes=f"{source_key}",
+            reminder_alerts=category_alerts,  # Per-category alert intervals
             is_active=True,
             is_completed=False,
         )
@@ -966,7 +1061,7 @@ async def sync_all_maintenance_reminders(db: AsyncSession) -> Dict[str, int]:
     farm_maint_tasks = result.scalars().all()
 
     for maint in farm_maint_tasks:
-        due_date = maint.manual_due_date or maint.next_due_date
+        due_date = maint.manual_due_date or maint.next_due
         if not due_date:
             continue
 

@@ -179,8 +179,9 @@ class FarmAreaMaintenance(Base):
             if self.frequency_days and self.frequency_days > 0:
                 self.next_due = self.last_completed + timedelta(days=self.frequency_days)
                 self.manual_due_date = None  # Clear manual date after recurring calc
-            elif self.manual_due_date:
-                # No recurring schedule - clear manual date after completion
+            else:
+                # No day-based frequency - clear date tracking
+                # Task needs manual due date to be set again
                 self.next_due = None
                 self.manual_due_date = None
         return self.next_due

@@ -9,16 +9,18 @@ export function AuthProvider({ children }) {
   const [needsSetup, setNeedsSetup] = useState(false)
 
   // Check auth status on mount
+  // Auth tokens are stored in HttpOnly cookies (not accessible to JavaScript)
+  // We only cache user data in localStorage for UI display
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Try to restore from localStorage first
+        // Try to restore user data from localStorage for faster UI display
         const savedUser = localStorage.getItem('auth_user')
         if (savedUser) {
           setUser(JSON.parse(savedUser))
         }
 
-        // Then verify with server
+        // Verify with server - cookies are sent automatically
         const response = await checkAuth()
         const { authenticated, needs_setup, user: serverUser } = response.data
 
@@ -31,13 +33,11 @@ export function AuthProvider({ children }) {
         } else {
           setUser(null)
           localStorage.removeItem('auth_user')
-          localStorage.removeItem('auth_token')
         }
       } catch (error) {
         console.error('Auth check failed:', error)
         setUser(null)
         localStorage.removeItem('auth_user')
-        localStorage.removeItem('auth_token')
       } finally {
         setLoading(false)
       }
@@ -48,12 +48,11 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (username, password) => {
     const response = await apiLogin(username, password)
-    const { token, user: userData, expires_at } = response.data
+    const { user: userData } = response.data
+    // Note: auth token is set as HttpOnly cookie by backend, not accessible here
 
-    // Store auth data
-    localStorage.setItem('auth_token', token)
+    // Store user data for UI display only (not security-sensitive)
     localStorage.setItem('auth_user', JSON.stringify(userData))
-    localStorage.setItem('auth_expires', expires_at)
 
     setUser(userData)
     setNeedsSetup(false)
@@ -63,13 +62,12 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
+      // Backend will clear the HttpOnly cookie
       await apiLogout()
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
-      localStorage.removeItem('auth_token')
       localStorage.removeItem('auth_user')
-      localStorage.removeItem('auth_expires')
       setUser(null)
     }
   }, [])
@@ -86,6 +84,21 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // Granular permission checker
+  const hasPermission = useCallback((category, action) => {
+    if (!user?.permissions) return false
+    const categoryPerms = user.permissions[category]
+    if (!categoryPerms) return false
+    return categoryPerms[action] === true
+  }, [user?.permissions])
+
+  // Check if user can perform action (view/create/interact/edit/delete) on category
+  const canView = useCallback((category) => hasPermission(category, 'view'), [hasPermission])
+  const canCreate = useCallback((category) => hasPermission(category, 'create'), [hasPermission])
+  const canInteract = useCallback((category) => hasPermission(category, 'interact'), [hasPermission])
+  const canEditCategory = useCallback((category) => hasPermission(category, 'edit'), [hasPermission])
+  const canDelete = useCallback((category) => hasPermission(category, 'delete'), [hasPermission])
+
   const value = {
     user,
     loading,
@@ -95,6 +108,14 @@ export function AuthProvider({ children }) {
     isEditor: user?.role === 'admin' || user?.role === 'editor',
     isViewer: user?.role === 'viewer',
     canEdit: user?.role === 'admin' || user?.role === 'editor',
+    // Granular permission helpers
+    permissions: user?.permissions || {},
+    hasPermission,
+    canView,
+    canCreate,
+    canInteract,
+    canEditCategory,
+    canDelete,
     login,
     logout,
     refreshUser,

@@ -12,7 +12,7 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
       return (
         <div className="flex items-center gap-2 bg-gray-900/30 rounded-lg p-3">
           <span className="text-sm text-gray-300">{label}:</span>
-          <span className={value ? "text-green-400" : "text-gray-500"}>{value ? "Yes" : "No"}</span>
+          <span className={value ? "text-green-400" : "text-red-400"}>{value ? "Yes" : "No"}</span>
         </div>
       )
     }
@@ -756,7 +756,7 @@ function Seeds() {
         </h1>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
         >
           <Plus className="w-5 h-5" />
           Add Seed
@@ -988,7 +988,7 @@ function Seeds() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+                  className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
                 >
                   Add Seed
                 </button>

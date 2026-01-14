@@ -42,10 +42,14 @@ class TrailingSlashMiddleware(BaseHTTPMiddleware):
 
 
 class LocalNetworkOnlyMiddleware(BaseHTTPMiddleware):
-    """Restrict API access to localhost, local network, and Tailscale"""
-    ALLOWED_PREFIXES = (
-        "127.",      # localhost IPv4
-        "::1",       # localhost IPv6
+    """Restrict API access to localhost, local network, and Tailscale
+
+    Security model:
+    - Localhost connections (nginx/cloudflared) are always trusted
+    - Direct connections must be from local network or Tailscale
+    - X-Forwarded-For is ignored to prevent IP spoofing
+    """
+    LOCAL_NETWORK_PREFIXES = (
         "192.168.",  # Private network
         "10.",       # Private network
         "172.16.", "172.17.", "172.18.", "172.19.",  # Private network
@@ -56,13 +60,21 @@ class LocalNetworkOnlyMiddleware(BaseHTTPMiddleware):
     )
 
     async def dispatch(self, request: Request, call_next):
-        client_ip = request.client.host if request.client else None
+        # Get the raw TCP socket IP from ASGI scope (not affected by X-Forwarded-For)
+        # This is the actual peer address of the connection
+        client_info = request.scope.get("client")
+        socket_ip = client_info[0] if client_info else None
 
-        # Allow if from local network or localhost
-        if client_ip:
-            if not any(client_ip.startswith(prefix) for prefix in self.ALLOWED_PREFIXES):
+        if socket_ip:
+            # Always trust localhost - this is nginx proxying from cloudflared tunnel
+            # or direct local connections. Cloudflare tunnel auth happens at edge.
+            if socket_ip.startswith("127.") or socket_ip == "::1":
+                return await call_next(request)
+
+            # For non-localhost, check if from allowed local network
+            if not any(socket_ip.startswith(prefix) for prefix in self.LOCAL_NETWORK_PREFIXES):
                 from fastapi.responses import JSONResponse
-                logger.warning(f"Blocked request from non-local IP: {client_ip}")
+                logger.warning(f"Blocked request from non-local IP: {socket_ip}")
                 return JSONResponse(
                     status_code=403,
                     content={"detail": "Access denied. This API is only accessible from the local network."}
@@ -87,6 +99,10 @@ from routers import (
     farm_areas_router,
     production_router,
     auth_router,
+    dev_tracker_router,
+    workers_router,
+    supply_requests_router,
+    customer_feedback_router,
 )
 from routers.settings import get_setting
 
@@ -175,6 +191,10 @@ app.include_router(vehicles_router)
 app.include_router(equipment_router)
 app.include_router(farm_areas_router)
 app.include_router(production_router)
+app.include_router(dev_tracker_router)
+app.include_router(workers_router)
+app.include_router(supply_requests_router)
+app.include_router(customer_feedback_router)
 
 
 @app.get("/")

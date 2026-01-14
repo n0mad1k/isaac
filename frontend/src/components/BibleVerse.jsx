@@ -29,28 +29,36 @@ function BibleVerse() {
 
   if (loading || !verse) {
     return (
-      <div className="w-full bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+      <div className="w-full rounded-lg p-2 md:p-3 lg:p-4"
+           style={{
+             backgroundColor: 'var(--bg-secondary)',
+             border: '1px solid var(--border-color)'
+           }}>
         <div className="flex items-center justify-center gap-2">
-          <Book className="w-5 h-5 text-amber-400" />
-          <span className="text-gray-500 text-sm">Loading verse...</span>
+          <Book className="w-4 h-4 md:w-5 md:h-5" style={{ color: 'var(--accent-gold)' }} />
+          <span className="text-xs md:text-sm" style={{ color: 'var(--text-muted)' }}>Loading verse...</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="w-full bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
-      <div className="flex items-start gap-3">
-        <Book className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+    <div className="w-full rounded-lg p-2 md:p-3 lg:p-4"
+         style={{
+           backgroundColor: 'var(--bg-secondary)',
+           border: '1px solid var(--border-color)'
+         }}>
+      <div className="flex items-start gap-2 md:gap-3">
+        <Book className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--accent-gold)' }} />
         <div className="min-w-0 flex-1">
-          <p className="text-gray-300 text-sm italic leading-relaxed text-center">
+          <p className="text-xs md:text-sm italic leading-relaxed text-center" style={{ color: 'var(--text-secondary)' }}>
             "{verse.text}"
           </p>
-          <p className="text-amber-400 text-xs mt-2 font-medium text-center">
+          <p className="text-xs mt-1 md:mt-2 font-medium text-center" style={{ color: 'var(--accent-gold)' }}>
             — {verse.reference} ({verse.version})
           </p>
         </div>
-        <Book className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5 opacity-0" />
+        <Book className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0 mt-0.5 opacity-0" />
       </div>
     </div>
   )

@@ -11,7 +11,10 @@ from datetime import datetime, date, timedelta
 from pydantic import BaseModel, Field
 
 from models.database import get_db
-from models.equipment import Equipment, EquipmentMaintenance, EquipmentMaintenanceLog, EquipmentType
+from models.equipment import Equipment, EquipmentMaintenance, EquipmentMaintenanceLog, EquipmentType, get_local_now
+from models.tasks import Task
+from models.users import User
+from services.permissions import require_create, require_edit, require_delete, require_interact
 
 
 router = APIRouter(prefix="/equipment", tags=["Equipment"])
@@ -159,9 +162,14 @@ class LogResponse(BaseModel):
 async def get_all_equipment(
     type: Optional[EquipmentType] = None,
     active_only: bool = True,
+    limit: int = 500,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db)
 ):
     """Get all equipment"""
+    # Cap limit for DoS prevention
+    limit = min(limit, 1000)
+
     query = select(Equipment).options(selectinload(Equipment.maintenance_tasks))
 
     if type:
@@ -169,7 +177,7 @@ async def get_all_equipment(
     if active_only:
         query = query.where(Equipment.is_active == True)
 
-    query = query.order_by(Equipment.name)
+    query = query.order_by(Equipment.name).offset(offset).limit(limit)
 
     result = await db.execute(query)
     items = result.scalars().all()
@@ -238,7 +246,11 @@ async def get_equipment(equipment_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/", response_model=EquipmentResponse)
-async def create_equipment(data: EquipmentCreate, db: AsyncSession = Depends(get_db)):
+async def create_equipment(
+    data: EquipmentCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("equipment"))
+):
     """Create new equipment"""
     equipment = Equipment(**data.model_dump())
 
@@ -272,7 +284,12 @@ async def create_equipment(data: EquipmentCreate, db: AsyncSession = Depends(get
 
 
 @router.put("/{equipment_id}", response_model=EquipmentResponse)
-async def update_equipment(equipment_id: int, data: EquipmentUpdate, db: AsyncSession = Depends(get_db)):
+async def update_equipment(
+    equipment_id: int,
+    data: EquipmentUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("equipment"))
+):
     """Update equipment"""
     result = await db.execute(
         select(Equipment)
@@ -317,7 +334,11 @@ async def update_equipment(equipment_id: int, data: EquipmentUpdate, db: AsyncSe
 
 
 @router.delete("/{equipment_id}")
-async def delete_equipment(equipment_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_equipment(
+    equipment_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("equipment"))
+):
     """Delete equipment"""
     result = await db.execute(
         select(Equipment).where(Equipment.id == equipment_id)
@@ -386,7 +407,12 @@ async def get_equipment_maintenance(equipment_id: int, active_only: bool = True,
 
 
 @router.post("/{equipment_id}/maintenance", response_model=MaintenanceResponse)
-async def create_equipment_maintenance(equipment_id: int, data: MaintenanceCreate, db: AsyncSession = Depends(get_db)):
+async def create_equipment_maintenance(
+    equipment_id: int,
+    data: MaintenanceCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("equipment"))
+):
     """Create maintenance task for equipment"""
     result = await db.execute(select(Equipment).where(Equipment.id == equipment_id))
     if not result.scalar_one_or_none():
@@ -436,7 +462,12 @@ async def create_equipment_maintenance(equipment_id: int, data: MaintenanceCreat
 
 
 @router.put("/maintenance/{task_id}", response_model=MaintenanceResponse)
-async def update_equipment_maintenance(task_id: int, data: MaintenanceUpdate, db: AsyncSession = Depends(get_db)):
+async def update_equipment_maintenance(
+    task_id: int,
+    data: MaintenanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("equipment"))
+):
     """Update maintenance task"""
     result = await db.execute(
         select(EquipmentMaintenance).where(EquipmentMaintenance.id == task_id)
@@ -488,7 +519,11 @@ async def update_equipment_maintenance(task_id: int, data: MaintenanceUpdate, db
 
 
 @router.delete("/maintenance/{task_id}")
-async def delete_equipment_maintenance(task_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_equipment_maintenance(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("equipment"))
+):
     """Delete maintenance task"""
     result = await db.execute(
         select(EquipmentMaintenance).where(EquipmentMaintenance.id == task_id)
@@ -505,7 +540,12 @@ async def delete_equipment_maintenance(task_id: int, db: AsyncSession = Depends(
 
 
 @router.post("/maintenance/{task_id}/complete", response_model=MaintenanceResponse)
-async def complete_equipment_maintenance(task_id: int, data: LogCreate, db: AsyncSession = Depends(get_db)):
+async def complete_equipment_maintenance(
+    task_id: int,
+    data: LogCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("equipment"))
+):
     """Mark maintenance as complete"""
     result = await db.execute(
         select(EquipmentMaintenance).where(EquipmentMaintenance.id == task_id)
@@ -515,7 +555,7 @@ async def complete_equipment_maintenance(task_id: int, data: LogCreate, db: Asyn
     if not task:
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
-    performed_at = data.performed_at or datetime.utcnow()
+    performed_at = data.performed_at or get_local_now()
 
     # Create log entry
     log = EquipmentMaintenanceLog(
@@ -540,6 +580,16 @@ async def complete_equipment_maintenance(task_id: int, data: LogCreate, db: Asyn
         equipment = result.scalar_one_or_none()
         if equipment and data.hours_at > equipment.current_hours:
             equipment.current_hours = data.hours_at
+
+    # Also complete the linked Task (auto-reminder) if it exists
+    linked_task_key = f"auto:equipment_maint:{task_id}"
+    linked_result = await db.execute(
+        select(Task).where(Task.notes.contains(linked_task_key))
+    )
+    linked_task = linked_result.scalar_one_or_none()
+    if linked_task and not linked_task.is_completed:
+        linked_task.is_completed = True
+        linked_task.completed_at = performed_at
 
     await db.commit()
     await db.refresh(task)

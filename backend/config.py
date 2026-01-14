@@ -9,10 +9,18 @@ from typing import Optional
 from pathlib import Path
 
 
+def get_version() -> str:
+    """Read version from VERSION file"""
+    version_file = Path(__file__).parent.parent / "VERSION"
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return "1.0.0"
+
+
 class Settings(BaseSettings):
     # Application
     app_name: str = "Isaac"
-    app_version: str = "1.2.1"
+    app_version: str = Field(default_factory=get_version)
     debug: bool = False
     is_dev_instance: bool = False  # Set to True for dev environment
 

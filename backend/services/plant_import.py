@@ -142,6 +142,19 @@ class PlantImportService:
         """
         return domain == allowed or domain.endswith("." + allowed)
 
+    def _validate_response_url(self, response, allowed_domain: str) -> None:
+        """
+        Validate that the response URL (after redirects) is still on an allowed domain.
+
+        SECURITY: Prevents SSRF redirect bypass where attacker sets up:
+        pfaf.org/redirect -> attacker.com/malicious
+        The initial URL passes validation, but httpx follows the redirect.
+        """
+        final_url = str(response.url)
+        final_domain = urlparse(final_url).netloc.lower()
+        if not self._is_allowed_domain(final_domain, allowed_domain):
+            raise ValueError(f"Redirect to disallowed domain: {final_domain}")
+
     async def import_from_url(self, url: str) -> Dict[str, Any]:
         """
         Import plant data from a URL.
@@ -307,6 +320,7 @@ class PlantImportService:
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             response = await client.get(url, headers=self.headers)
             response.raise_for_status()
+            self._validate_response_url(response, "pfaf.org")
 
             # Fetch references in parallel
             pfaf_refs = await self._fetch_pfaf_references(client)
@@ -551,6 +565,7 @@ class PlantImportService:
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             response = await client.get(url, headers=self.headers)
             response.raise_for_status()
+            self._validate_response_url(response, "gardenia.net")
 
         soup = BeautifulSoup(response.text, "lxml")
         data = {}
@@ -714,6 +729,7 @@ class PlantImportService:
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             response = await client.get(url, headers=self.headers)
             response.raise_for_status()
+            self._validate_response_url(response, "growables.org")
 
         soup = BeautifulSoup(response.text, "lxml")
         data = {}

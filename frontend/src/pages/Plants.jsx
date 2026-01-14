@@ -22,7 +22,7 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
       return (
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-300">{label}:</span>
-          <span className={value ? "text-green-400" : "text-gray-500"}>{value ? "Yes" : "No"}</span>
+          <span className={value ? "text-green-400" : "text-red-400"}>{value ? "Yes" : "No"}</span>
         </div>
       )
     }
@@ -473,7 +473,7 @@ function Plants() {
           </button>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
           >
             <Plus className="w-5 h-5" />
             Add Plant
@@ -1375,6 +1375,10 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
       onSave()
     } catch (error) {
       console.error('Failed to save plant:', error)
+      // Don't show alert for 401 - the interceptor handles redirect
+      if (error.response?.status !== 401) {
+        alert(error.userMessage || 'Failed to save plant. Please try again.')
+      }
     } finally {
       setSaving(false)
     }
@@ -1409,7 +1413,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6" id="plant-form">
           {/* Basic Info */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Basic Information</h3>
@@ -1894,7 +1898,16 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
             <button
               type="submit"
               disabled={saving || !formData.name.trim()}
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
+              onClick={(e) => {
+                // Ensure form submits on touch devices
+                const form = document.getElementById('plant-form')
+                if (form && !form.checkValidity()) {
+                  form.reportValidity()
+                  e.preventDefault()
+                }
+              }}
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors disabled:opacity-50 touch-manipulation"
+              style={{ minHeight: '48px' }}
             >
               {saving ? 'Adding...' : 'Add Plant'}
             </button>
@@ -1991,7 +2004,7 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
@@ -2398,7 +2411,10 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 {existingPlant ? `Import Data to ${existingPlant.name}` : 'Import Plant Data'}
               </h2>
               <p className="text-sm text-gray-400 mt-1">
-                Import from PFAF (pfaf.org) or Permapeople (permapeople.org)
+                Import from{' '}
+                <a href="https://pfaf.org" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">pfaf.org</a>,{' '}
+                <a href="https://gardenia.net" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">gardenia.net</a>, or{' '}
+                <a href="https://growables.org" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">growables.org</a>
               </p>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -2422,7 +2438,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 <button
                   onClick={handleSearch}
                   disabled={!searchQuery.trim()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   <ExternalLink className="w-4 h-4" />
                   Search
@@ -2440,7 +2456,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://pfaf.org/user/Plant.aspx?LatinName=..."
+                placeholder="https://pfaf.org/... or https://gardenia.net/... or https://growables.org/..."
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
@@ -2470,7 +2486,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
             <button
               onClick={handleFetch}
               disabled={fetching || !url.trim()}
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {fetching ? (
                 <>
@@ -3034,7 +3050,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           <button
             onClick={handleSave}
             disabled={saving || !formData.name.trim()}
-            className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {saving ? (
               <>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Pencil, RefreshCw, Clock, CheckSquare } from 'lucide-react'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Pencil, RefreshCw, Clock, CheckSquare, MapPin, Wrench } from 'lucide-react'
 import { getCalendarMonth, getCalendarWeek, createTask, updateTask, deleteTask, completeTask, uncompleteTask, syncCalendar, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas } from '../services/api'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, addDays, subDays, startOfWeek, addWeeks, subWeeks, isSameDay } from 'date-fns'
+import { useSettings } from '../contexts/SettingsContext'
 
 // Task categories
 const TASK_CATEGORIES = [
@@ -17,6 +18,7 @@ const TASK_CATEGORIES = [
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
 function CalendarPage() {
+  const { formatTime } = useSettings()
   const [view, setView] = useState('week') // 'month', 'week', 'day'
   const [currentDate, setCurrentDate] = useState(new Date())
   const [events, setEvents] = useState({})
@@ -73,17 +75,8 @@ function CalendarPage() {
     }
   }
 
-  // Sync calendar on initial load
-  useEffect(() => {
-    const initialSync = async () => {
-      try {
-        await syncCalendar()
-      } catch (error) {
-        console.log('Calendar sync skipped:', error.message)
-      }
-    }
-    initialSync()
-  }, [])
+  // Note: Removed auto-sync on page load - bidirectional CalDAV sync is slow (~75s)
+  // Users can click Sync button when needed. Tasks sync individually when created/updated.
 
   useEffect(() => {
     fetchCalendarData()
@@ -237,7 +230,7 @@ function CalendarPage() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 text-white rounded-lg transition-colors disabled:opacity-50"
             title="Sync with phone calendar"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
@@ -245,7 +238,7 @@ function CalendarPage() {
           </button>
           <button
             onClick={() => handleAddEvent(new Date())}
-            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
           >
             <Plus className="w-5 h-5" />
             Add Event
@@ -290,6 +283,7 @@ function CalendarPage() {
               selectedDate={selectedDate}
               onDayClick={handleDayClick}
               onAddEvent={handleAddEvent}
+              formatTime={formatTime}
             />
           )}
           {view === 'week' && (
@@ -301,6 +295,7 @@ function CalendarPage() {
               onEventClick={handleEditEvent}
               onAddEvent={handleAddEvent}
               onToggleComplete={handleToggleComplete}
+              formatTime={formatTime}
             />
           )}
           {view === 'day' && (
@@ -312,6 +307,7 @@ function CalendarPage() {
               onEventClick={handleEditEvent}
               onAddEvent={handleAddEvent}
               onToggleComplete={handleToggleComplete}
+              formatTime={formatTime}
             />
           )}
         </>
@@ -326,6 +322,7 @@ function CalendarPage() {
           onEditEvent={handleEditEvent}
           onDeleteEvent={handleDeleteEvent}
           onToggleComplete={handleToggleComplete}
+          formatTime={formatTime}
         />
       )}
 
@@ -344,7 +341,7 @@ function CalendarPage() {
 
 
 // Month View Component
-function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent }) {
+function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent, formatTime }) {
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
@@ -394,17 +391,30 @@ function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent }
               <div className="space-y-0.5 overflow-hidden">
                 {dayEvents.slice(0, 2).map((event, i) => (
                   <div
-                    key={i}
-                    className={`text-xs truncate px-1 rounded ${
+                    key={`${event.id}-${i}`}
+                    className={`text-xs truncate px-1 ${
                       event.is_completed
-                        ? 'bg-gray-700 text-gray-500 line-through'
+                        ? 'bg-gray-700 text-gray-500 line-through rounded'
                         : event.task_type === 'todo'
-                        ? 'bg-blue-900/30 text-blue-300 border border-dashed border-blue-600'
-                        : 'bg-farm-green/20 text-farm-green'
+                        ? 'bg-blue-900/30 text-blue-300 border border-dashed border-blue-600 rounded'
+                        : event.is_multi_day
+                        ? `bg-purple-900/40 text-purple-300 ${
+                            event.is_span_start && event.is_span_end ? 'rounded' :
+                            event.is_span_start ? 'rounded-l' :
+                            event.is_span_end ? 'rounded-r' : ''
+                          }`
+                        : 'bg-farm-green/20 text-farm-green rounded'
                     }`}
                   >
-                    {event.due_time && <span className="opacity-75">{event.due_time} </span>}
+                    {event.is_multi_day && !event.is_span_start ? (
+                      <span className="opacity-50">↳</span>
+                    ) : event.due_time ? (
+                      <span className="opacity-75">{formatTime(event.due_time)} </span>
+                    ) : null}
                     {event.title}
+                    {event.is_multi_day && event.is_span_start && !event.is_span_end && (
+                      <span className="opacity-50"> →</span>
+                    )}
                   </div>
                 ))}
                 {dayEvents.length > 2 && (
@@ -443,7 +453,7 @@ function CurrentTimeIndicator({ currentTime }) {
 
 
 // Week View Component
-function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, onAddEvent, onToggleComplete }) {
+function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, onAddEvent, onToggleComplete, formatTime }) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
@@ -488,10 +498,14 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
             >
               {allDay.map((event) => (
                 <EventChip
-                  key={event.id}
+                  key={`${event.id}-${format(day, 'yyyy-MM-dd')}`}
                   event={event}
                   onClick={() => onEventClick(event)}
                   onToggle={() => onToggleComplete(event)}
+                  formatTime={formatTime}
+                  isMultiDay={event.is_multi_day}
+                  isSpanStart={event.is_span_start}
+                  isSpanEnd={event.is_span_end}
                 />
               ))}
             </div>
@@ -513,7 +527,7 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
                 key={hour}
                 className="h-[60px] border-b border-gray-700 text-xs text-gray-500 text-right pr-2 pt-1"
               >
-                {format(new Date().setHours(hour, 0), 'h a')}
+                {formatTime(`${hour.toString().padStart(2, '0')}:00`)}
               </div>
             ))}
           </div>
@@ -573,7 +587,7 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
                         </span>
                       </div>
                       <div className="text-[10px] opacity-75 mt-0.5">
-                        {event.due_time}{event.end_time ? ` - ${event.end_time}` : ''}
+                        {formatTime(event.due_time)}{event.end_time ? ` - ${formatTime(event.end_time)}` : ''}
                       </div>
                     </div>
                   )
@@ -589,7 +603,7 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
 
 
 // Day View Component
-function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, onAddEvent, onToggleComplete }) {
+function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, onAddEvent, onToggleComplete, formatTime }) {
   const dateKey = format(currentDate, 'yyyy-MM-dd')
   const dayEvents = events[dateKey] || []
   const allDayEvents = dayEvents.filter(e => !e.due_time)
@@ -610,6 +624,7 @@ function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, on
                 onClick={() => onEventClick(event)}
                 onToggle={() => onToggleComplete(event)}
                 expanded
+                formatTime={formatTime}
               />
             ))}
           </div>
@@ -630,7 +645,7 @@ function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, on
               onClick={() => onAddEvent(currentDate)}
             >
               <div className="w-16 text-xs text-gray-500 text-right pr-3 pt-1 flex-shrink-0">
-                {format(new Date().setHours(hour, 0), 'h a')}
+                {formatTime(`${hour.toString().padStart(2, '0')}:00`)}
               </div>
               <div className="flex-1 border-l border-gray-700" />
             </div>
@@ -683,7 +698,7 @@ function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, on
                     {event.title}
                   </span>
                   <span className="text-xs opacity-75">
-                    {event.due_time}{event.end_time ? ` - ${event.end_time}` : ''}
+                    {formatTime(event.due_time)}{event.end_time ? ` - ${formatTime(event.end_time)}` : ''}
                   </span>
                 </div>
                 {event.location && (
@@ -700,21 +715,32 @@ function DayView({ currentDate, currentTime, events, scrollRef, onEventClick, on
 
 
 // Event Chip Component
-function EventChip({ event, onClick, onToggle, expanded = false }) {
+function EventChip({ event, onClick, onToggle, expanded = false, formatTime, isMultiDay = false, isSpanStart = true, isSpanEnd = true }) {
+  // Determine rounding based on multi-day span position
+  const getRounding = () => {
+    if (!isMultiDay) return 'rounded'
+    if (isSpanStart && isSpanEnd) return 'rounded'
+    if (isSpanStart) return 'rounded-l'
+    if (isSpanEnd) return 'rounded-r'
+    return ''
+  }
+
   return (
     <div
-      className={`rounded px-2 py-1 cursor-pointer ${
+      className={`${getRounding()} px-2 py-1 cursor-pointer ${
         expanded ? 'flex items-center justify-between' : 'text-xs truncate'
       } ${
         event.is_completed
           ? 'bg-gray-700 text-gray-500'
           : event.task_type === 'todo'
           ? 'bg-blue-900/50 text-blue-200 border border-dashed border-blue-500'
+          : isMultiDay
+          ? 'bg-purple-900/50 text-purple-200'
           : 'bg-farm-green/70 text-white'
       }`}
       onClick={onClick}
     >
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0 flex-wrap">
         {event.task_type === 'todo' ? (
           <CheckSquare className="w-3 h-3 flex-shrink-0" />
         ) : (
@@ -726,10 +752,23 @@ function EventChip({ event, onClick, onToggle, expanded = false }) {
           </span>
           {expanded && event.due_time && (
             <div className="text-xs opacity-75">
-              {event.due_time}{event.end_time ? ` - ${event.end_time}` : ''}
+              {formatTime(event.due_time)}{event.end_time ? ` - ${formatTime(event.end_time)}` : ''}
             </div>
           )}
         </div>
+        {/* Show badges in expanded mode only */}
+        {expanded && event.linked_location && (
+          <span className="text-[10px] text-purple-300 flex items-center gap-0.5 bg-purple-900/30 px-1 py-0.5 rounded flex-shrink-0">
+            <MapPin className="w-2.5 h-2.5" />
+            {event.linked_location}
+          </span>
+        )}
+        {expanded && event.linked_entity && (
+          <span className="text-[10px] text-orange-300 flex items-center gap-0.5 bg-orange-900/30 px-1 py-0.5 rounded flex-shrink-0">
+            <Wrench className="w-2.5 h-2.5" />
+            {event.linked_entity}
+          </span>
+        )}
       </div>
       {expanded && (
         <button
@@ -745,7 +784,7 @@ function EventChip({ event, onClick, onToggle, expanded = false }) {
 
 
 // Day Detail Panel Component
-function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDeleteEvent, onToggleComplete }) {
+function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDeleteEvent, onToggleComplete, formatTime }) {
   return (
     <div className="bg-gray-800 rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
@@ -754,7 +793,7 @@ function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDelet
         </h3>
         <button
           onClick={onAddEvent}
-          className="p-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+          className="p-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -775,7 +814,7 @@ function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDelet
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {event.task_type === 'todo' ? (
                       <CheckSquare className="w-4 h-4 text-blue-400 flex-shrink-0" />
                     ) : (
@@ -786,10 +825,24 @@ function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDelet
                     }`}>
                       {event.title}
                     </p>
+                    {/* Location badge (purple) */}
+                    {event.linked_location && (
+                      <span className="text-xs text-purple-400 flex items-center gap-0.5 bg-purple-900/30 px-1.5 py-0.5 rounded flex-shrink-0">
+                        <MapPin className="w-3 h-3" />
+                        {event.linked_location}
+                      </span>
+                    )}
+                    {/* Vehicle/Equipment badge (orange) */}
+                    {event.linked_entity && (
+                      <span className="text-xs text-orange-400 flex items-center gap-0.5 bg-orange-900/30 px-1.5 py-0.5 rounded flex-shrink-0">
+                        <Wrench className="w-3 h-3" />
+                        {event.linked_entity}
+                      </span>
+                    )}
                   </div>
                   {event.due_time && (
                     <span className="text-xs text-gray-400 ml-6">
-                      {event.due_time}{event.end_time ? ` - ${event.end_time}` : ''}
+                      {formatTime(event.due_time)}{event.end_time ? ` - ${formatTime(event.end_time)}` : ''}
                     </span>
                   )}
                   {event.category && (
@@ -857,6 +910,9 @@ function EventModal({ event, defaultDate, onClose, onSave }) {
     vehicle_id: event?.vehicle_id || null,
     equipment_id: event?.equipment_id || null,
     farm_area_id: event?.farm_area_id || null,
+    reminder_alerts: event?.reminder_alerts || null,
+    visible_to_farmhands: event?.visible_to_farmhands || false,
+    is_backlog: event?.is_backlog || false,
   })
   const [saving, setSaving] = useState(false)
   const [isAllDay, setIsAllDay] = useState(!event?.due_time)
@@ -910,6 +966,8 @@ function EventModal({ event, defaultDate, onClose, onSave }) {
         vehicle_id: linkType === 'vehicle' ? formData.vehicle_id : null,
         equipment_id: linkType === 'equipment' ? formData.equipment_id : null,
         farm_area_id: linkType === 'farm_area' ? formData.farm_area_id : null,
+        visible_to_farmhands: formData.visible_to_farmhands,
+        is_backlog: formData.task_type === 'todo' ? formData.is_backlog : false,
       }
       await onSave(dataToSave)
     } finally {
@@ -966,18 +1024,40 @@ function EventModal({ event, defaultDate, onClose, onSave }) {
             />
           </div>
 
-          {/* Has Date Toggle - only show for reminders */}
+          {/* Options for reminders */}
           {formData.task_type === 'todo' && (
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hasDate}
-                onChange={(e) => setHasDate(e.target.checked)}
-                className="w-4 h-4 rounded bg-gray-700 border-gray-600"
-              />
-              <span className="text-sm text-gray-300">Has a due date</span>
-            </label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasDate}
+                  onChange={(e) => setHasDate(e.target.checked)}
+                  className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                />
+                <span className="text-sm text-gray-300">Has a due date</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_backlog}
+                  onChange={(e) => setFormData({ ...formData, is_backlog: e.target.checked })}
+                  className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                />
+                <span className="text-sm text-gray-300">Add to backlog (not due today)</span>
+              </label>
+            </div>
           )}
+
+          {/* Visible to farm hands checkbox */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.visible_to_farmhands}
+              onChange={(e) => setFormData({ ...formData, visible_to_farmhands: e.target.checked })}
+              className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+            />
+            <span className="text-sm text-gray-300">Visible to farm hand accounts</span>
+          </label>
 
           {/* Date field - required for events, optional for reminders */}
           {(formData.task_type === 'event' || hasDate) && (
@@ -1080,6 +1160,47 @@ function EventModal({ event, defaultDate, onClose, onSave }) {
               placeholder="Optional notes or description"
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
+          </div>
+
+          {/* Alerts Section */}
+          <div className="space-y-2 pt-3 border-t border-gray-700">
+            <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 0, label: 'At time' },
+                { value: 5, label: '5 min' },
+                { value: 10, label: '10 min' },
+                { value: 15, label: '15 min' },
+                { value: 30, label: '30 min' },
+                { value: 60, label: '1 hr' },
+                { value: 120, label: '2 hrs' },
+                { value: 1440, label: '1 day' },
+                { value: 2880, label: '2 days' },
+                { value: 10080, label: '1 week' },
+              ].map(opt => {
+                const isSelected = (formData.reminder_alerts || []).includes(opt.value)
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      const current = formData.reminder_alerts || []
+                      const newAlerts = isSelected
+                        ? current.filter(v => v !== opt.value)
+                        : [...current, opt.value].sort((a, b) => b - a)
+                      setFormData({ ...formData, reminder_alerts: newAlerts.length > 0 ? newAlerts : null })
+                    }}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                      isSelected
+                        ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
+                        : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {/* Entity Linking Section */}
@@ -1186,7 +1307,7 @@ function EventModal({ event, defaultDate, onClose, onSave }) {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : (event ? 'Update' : 'Add')}
             </button>

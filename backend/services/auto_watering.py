@@ -88,10 +88,60 @@ async def cleanup_old_weather_readings(db: AsyncSession) -> int:
     return deleted
 
 
+async def get_soil_moisture_for_watering(db: AsyncSession) -> tuple:
+    """
+    Get soil moisture data for watering decisions.
+    Returns (enabled, current_moisture, threshold, should_skip)
+    """
+    # Check if soil moisture feature is enabled
+    enabled = await get_setting(db, "awn_soil_moisture_enabled", "false")
+    if enabled != "true":
+        return False, None, None, False
+
+    # Get threshold
+    threshold_str = await get_setting(db, "awn_soil_moisture_threshold", "50")
+    try:
+        threshold = int(threshold_str)
+    except ValueError:
+        threshold = 50
+
+    # Get latest weather reading with soil moisture
+    result = await db.execute(
+        select(WeatherReading)
+        .where(WeatherReading.reading_time >= datetime.now() - timedelta(hours=6))  # Recent readings only
+        .order_by(WeatherReading.reading_time.desc())
+        .limit(1)
+    )
+    reading = result.scalar_one_or_none()
+
+    if not reading:
+        return True, None, threshold, False
+
+    # Check if any soil moisture sensor has data
+    moisture = None
+    if reading.soil_moisture_1 is not None:
+        moisture = reading.soil_moisture_1
+    elif reading.soil_moisture_2 is not None:
+        moisture = reading.soil_moisture_2
+    elif reading.soil_moisture_3 is not None:
+        moisture = reading.soil_moisture_3
+    elif reading.soil_moisture_4 is not None:
+        moisture = reading.soil_moisture_4
+
+    if moisture is None:
+        return True, None, threshold, False
+
+    should_skip = moisture >= threshold
+    return True, moisture, threshold, should_skip
+
+
 async def check_rain_watering(db: AsyncSession) -> Dict[str, any]:
     """
     Check plants that are DUE for watering today and decide WATER or SKIP
     based on accumulated rainfall since last watering decision.
+
+    Also checks soil moisture sensor if enabled - if soil is wet enough,
+    skip watering regardless of rain accumulation.
 
     Uses last_watering_decision (not last_watered) to calculate next due date,
     so skips don't mess up the schedule while preserving actual watering history.
@@ -100,14 +150,28 @@ async def check_rain_watering(db: AsyncSession) -> Dict[str, any]:
     """
     stats = {
         "rain_skipped": 0,      # Plants that got enough rain, marked as watered
+        "soil_skipped": 0,      # Plants skipped due to soil moisture
         "needs_water": 0,       # Plants that need manual watering
         "not_due": 0,           # Plants not due for watering yet
         "skipped_today": 0,     # Already processed today
-        "decisions": []         # List of decisions made
+        "decisions": [],        # List of decisions made
+        "soil_moisture": None,  # Current soil moisture if available
     }
 
     today = date.today()
     now = datetime.now()
+
+    # Check soil moisture sensor first
+    soil_enabled, soil_moisture, soil_threshold, soil_skip = await get_soil_moisture_for_watering(db)
+    if soil_enabled:
+        stats["soil_moisture"] = {
+            "enabled": True,
+            "moisture": soil_moisture,
+            "threshold": soil_threshold,
+            "skip_all": soil_skip
+        }
+        if soil_skip:
+            logger.info(f"Soil moisture {soil_moisture}% >= threshold {soil_threshold}% - will skip all rain-dependent plants")
 
     # Get USDA zone for interval calculations
     usda_zone = await get_setting(db, "usda_zone", "7a")
@@ -176,9 +240,19 @@ async def check_rain_watering(db: AsyncSession) -> Dict[str, any]:
             "water_days": water_days,
             "accumulated_rain": round(accumulated_rain, 2),
             "threshold": threshold,
+            "soil_moisture": soil_moisture,
         }
 
-        if accumulated_rain >= threshold:
+        # Check soil moisture first (if enabled and data available)
+        if soil_skip:
+            # Soil is wet enough - skip watering
+            plant.last_watered = now
+            plant.last_watering_decision = now
+            stats["soil_skipped"] += 1
+            decision["action"] = "SKIP"
+            decision["reason"] = f"Soil moisture ({soil_moisture}%) >= threshold ({soil_threshold}%)"
+            logger.info(f"SKIP watering {plant.name}: soil moisture {soil_moisture}% >= {soil_threshold}% threshold")
+        elif accumulated_rain >= threshold:
             # Enough rain - skip manual watering
             # Update both last_watered (rain counts as watering) and last_watering_decision
             plant.last_watered = now
@@ -193,13 +267,15 @@ async def check_rain_watering(db: AsyncSession) -> Dict[str, any]:
             stats["needs_water"] += 1
             decision["action"] = "WATER"
             decision["reason"] = f"Rain ({accumulated_rain:.2f}in) < threshold ({threshold}in)"
+            if soil_enabled and soil_moisture is not None:
+                decision["reason"] += f", soil moisture {soil_moisture}% < {soil_threshold}%"
             logger.info(f"WATER needed for {plant.name}: only {accumulated_rain:.2f}in rain < {threshold}in threshold")
 
         stats["decisions"].append(decision)
 
-    if stats["rain_skipped"] > 0:
+    if stats["rain_skipped"] > 0 or stats["soil_skipped"] > 0:
         await db.commit()
-        logger.info(f"Rain watering check: {stats['rain_skipped']} plants skipped (enough rain), {stats['needs_water']} need water")
+        logger.info(f"Watering check: {stats['rain_skipped']} plants skipped (rain), {stats['soil_skipped']} skipped (soil moisture), {stats['needs_water']} need water")
 
     return stats
 
@@ -300,19 +376,23 @@ async def run_auto_watering_check(db: AsyncSession) -> Dict[str, any]:
     """
     stats = {
         "rain_skipped": 0,
+        "soil_skipped": 0,
         "needs_water": 0,
         "sprinkler_watered": 0,
         "not_due": 0,
         "skipped": 0,
         "decisions": [],
+        "soil_moisture": None,
     }
 
     try:
         rain_stats = await check_rain_watering(db)
         stats["rain_skipped"] = rain_stats.get("rain_skipped", 0)
+        stats["soil_skipped"] = rain_stats.get("soil_skipped", 0)
         stats["needs_water"] = rain_stats.get("needs_water", 0)
         stats["not_due"] = rain_stats.get("not_due", 0)
         stats["decisions"] = rain_stats.get("decisions", [])
+        stats["soil_moisture"] = rain_stats.get("soil_moisture")
     except Exception as e:
         logger.error(f"Error in rain watering check: {e}")
 

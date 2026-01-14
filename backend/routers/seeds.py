@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 
 from models.database import get_db
 from models.seeds import Seed, SeedCategory, SunRequirement, WaterRequirement
+from models.users import User
+from services.permissions import require_view, require_create, require_edit, require_delete
 
 
 router = APIRouter(prefix="/seeds", tags=["Seeds"])
@@ -197,7 +199,11 @@ async def list_seeds(
 
 
 @router.post("/", response_model=SeedResponse)
-async def create_seed(seed: SeedCreate, db: AsyncSession = Depends(get_db)):
+async def create_seed(
+    seed: SeedCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("seeds"))
+):
     """Add a new seed to the catalog"""
     # Check if seed already exists
     result = await db.execute(select(Seed).where(Seed.name == seed.name))
@@ -267,6 +273,7 @@ async def update_seed(
     seed_id: int,
     updates: SeedUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("seeds"))
 ):
     """Update a seed's information"""
     result = await db.execute(select(Seed).where(Seed.id == seed_id))
@@ -284,7 +291,11 @@ async def update_seed(
 
 
 @router.delete("/{seed_id}/")
-async def delete_seed(seed_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_seed(
+    seed_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("seeds"))
+):
     """Remove a seed from the catalog (soft delete)"""
     result = await db.execute(select(Seed).where(Seed.id == seed_id))
     seed = result.scalar_one_or_none()

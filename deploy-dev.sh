@@ -8,6 +8,22 @@ REMOTE_PATH="/opt/isaac"
 
 echo "=== Deploying to Dev (Isaac) ==="
 
+# Security: Run dependency audits (warnings only, don't block deploy)
+echo "Running security audit on Python dependencies..."
+if command -v pip-audit &> /dev/null; then
+    pip-audit -r /home/n0mad1k/Tools/levi/backend/requirements.txt --ignore-vuln PYSEC-2024-* 2>/dev/null || echo "  Note: pip-audit found issues (see above)"
+else
+    echo "  Skipped: pip-audit not installed (pip install pip-audit)"
+fi
+
+echo "Running security audit on Node dependencies..."
+cd /home/n0mad1k/Tools/levi/frontend && npm audit --audit-level=high 2>/dev/null || echo "  Note: npm audit found issues (see above)"
+cd - > /dev/null
+
+# Create pre-deploy backup
+echo "Creating pre-deploy backup..."
+ssh -i $SSH_KEY $REMOTE "/opt/isaac/backup.sh"
+
 # Sync backend (excluding venv, data, logs, __pycache__)
 echo "Syncing backend..."
 rsync -avz \

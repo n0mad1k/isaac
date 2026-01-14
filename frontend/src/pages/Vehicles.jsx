@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Car, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Gauge, Clock, Edit, Calendar, CalendarPlus } from 'lucide-react'
 import { getVehicles, createVehicle, updateVehicle, deleteVehicle, getVehicleMaintenance, createVehicleMaintenance, updateVehicleMaintenance, completeVehicleMaintenance, deleteVehicleMaintenance, getVehicleTypes, getTasksByEntity, completeTask, deleteTask } from '../services/api'
-import { format, formatDistanceToNow } from 'date-fns'
+import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import EventModal from '../components/EventModal'
+import { useSettings } from '../contexts/SettingsContext'
 
 const TYPE_ICONS = {
   car: '🚗',
@@ -19,6 +20,7 @@ const HOURS_BASED_TYPES = ['tractor', 'atv', 'utv']
 const usesHours = (type) => HOURS_BASED_TYPES.includes(type)
 
 function Vehicles() {
+  const { formatTime } = useSettings()
   const [vehicles, setVehicles] = useState([])
   const [vehicleTypes, setVehicleTypes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -56,6 +58,7 @@ function Vehicles() {
     last_hours: '',
     manual_due_date: '',
     notes: '',
+    reminder_alerts: null,
   })
 
   const [completeData, setCompleteData] = useState({
@@ -175,6 +178,7 @@ function Vehicles() {
         last_hours: maintFormData.last_hours ? parseInt(maintFormData.last_hours) : null,
         manual_due_date: maintFormData.manual_due_date ? new Date(maintFormData.manual_due_date).toISOString() : null,
         notes: maintFormData.notes || null,
+        reminder_alerts: maintFormData.reminder_alerts || null,
       }
 
       if (editingMaintenance) {
@@ -185,7 +189,7 @@ function Vehicles() {
 
       setShowAddMaintenance(null)
       setEditingMaintenance(null)
-      setMaintFormData({ name: '', frequency_miles: '', frequency_hours: '', frequency_days: '', last_completed: '', last_mileage: '', last_hours: '', manual_due_date: '', notes: '' })
+      setMaintFormData({ name: '', frequency_miles: '', frequency_hours: '', frequency_days: '', last_completed: '', last_mileage: '', last_hours: '', manual_due_date: '', notes: '', reminder_alerts: null })
       fetchMaintenance(vehicleId)
       fetchData()
     } catch (err) {
@@ -205,6 +209,7 @@ function Vehicles() {
       last_hours: task.last_hours?.toString() || '',
       manual_due_date: task.manual_due_date ? format(new Date(task.manual_due_date), 'yyyy-MM-dd') : '',
       notes: task.notes || '',
+      reminder_alerts: task.reminder_alerts || null,
     })
     setShowAddMaintenance({ vehicleId, vehicleType })
   }
@@ -288,7 +293,7 @@ function Vehicles() {
         </div>
         <button
           onClick={() => { setShowAddForm(true); setEditingVehicle(null); resetForm(); }}
-          className="flex items-center gap-2 px-4 py-2 bg-farm-green rounded-lg hover:bg-farm-green-light"
+          className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
         >
           <Plus className="w-5 h-5" />
           Add Vehicle
@@ -473,7 +478,7 @@ function Vehicles() {
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
                               {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'No due date'}
-                              {task.due_time && ` at ${task.due_time}`}
+                              {task.due_time && ` at ${formatTime(task.due_time)}`}
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
@@ -629,7 +634,7 @@ function Vehicles() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-farm-green rounded-lg hover:bg-farm-green-light"
+                  className="flex-1 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
                 >
                   {editingVehicle ? 'Update' : 'Add Vehicle'}
                 </button>
@@ -751,13 +756,53 @@ function Vehicles() {
                   rows={2}
                 />
               </div>
+              {/* Alerts Section */}
+              <div className="space-y-2 pt-3 border-t border-gray-700">
+                <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 0, label: 'At time' },
+                    { value: 5, label: '5 min' },
+                    { value: 10, label: '10 min' },
+                    { value: 15, label: '15 min' },
+                    { value: 30, label: '30 min' },
+                    { value: 60, label: '1 hr' },
+                    { value: 120, label: '2 hrs' },
+                    { value: 1440, label: '1 day' },
+                    { value: 2880, label: '2 days' },
+                    { value: 10080, label: '1 week' },
+                  ].map(opt => {
+                    const isSelected = (maintFormData.reminder_alerts || []).includes(opt.value)
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          const current = maintFormData.reminder_alerts || []
+                          const newAlerts = isSelected
+                            ? current.filter(v => v !== opt.value)
+                            : [...current, opt.value].sort((a, b) => b - a)
+                          setMaintFormData({ ...maintFormData, reminder_alerts: newAlerts.length > 0 ? newAlerts : null })
+                        }}
+                        className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                          isSelected
+                            ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
+                            : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddMaintenance(null)
                     setEditingMaintenance(null)
-                    setMaintFormData({ name: '', frequency_miles: '', frequency_hours: '', frequency_days: '', last_completed: '', last_mileage: '', last_hours: '', manual_due_date: '', notes: '' })
+                    setMaintFormData({ name: '', frequency_miles: '', frequency_hours: '', frequency_days: '', last_completed: '', last_mileage: '', last_hours: '', manual_due_date: '', notes: '', reminder_alerts: null })
                   }}
                   className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
                 >
@@ -765,7 +810,7 @@ function Vehicles() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-farm-green rounded-lg hover:bg-farm-green-light"
+                  className="flex-1 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
                 >
                   {editingMaintenance ? 'Update Task' : 'Add Task'}
                 </button>
@@ -837,7 +882,7 @@ function Vehicles() {
                 </button>
                 <button
                   onClick={handleComplete}
-                  className="flex-1 px-4 py-2 bg-green-600 rounded-lg hover:bg-green-500"
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500"
                 >
                   Complete
                 </button>

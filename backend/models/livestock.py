@@ -258,13 +258,17 @@ class AnimalExpense(Base):
     # Types: purchase, feed, medicine, vet, equipment, farrier, other
 
     description = Column(String(500))
-    amount = Column(Float, nullable=False)  # Cost in dollars
+    amount = Column(Float, nullable=False)  # Cost in dollars (this animal's portion)
 
     expense_date = Column(Date, default=date.today)
     vendor = Column(String(200))  # Where purchased
 
     notes = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Split expense fields
+    expense_group_id = Column(String(36), nullable=True, index=True)  # UUID linking split expenses
+    total_amount = Column(Float, nullable=True)  # Original total before split (for reference)
 
     # Relationships
     animal = relationship("Animal", back_populates="expenses")

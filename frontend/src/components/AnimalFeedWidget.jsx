@@ -21,7 +21,7 @@ const formatAnimalType = (type) => {
   return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
-function AnimalFeedWidget({ animals }) {
+function AnimalFeedWidget({ animals, className = '' }) {
   // Filter to animals with feeding info
   const animalsWithFeeding = animals.filter(animal => {
     if (animal.feeds && animal.feeds.length > 0) return true
@@ -80,7 +80,7 @@ function AnimalFeedWidget({ animals }) {
   })
 
   // Render a single feed row
-  // Order: Name → Tags → Food info → Location → "Color Type" → Special Instructions (inline, wraps if needed)
+  // Order: Name → Color+Type → Location → Food info → Tags → Special Instructions
   const renderFeedRow = (key, name, feeds, color, animalType, tags = [], location = null, specialInstructions = null) => {
     const importantTags = tags.filter(tag =>
       ['sick', 'injured', 'special_diet', 'pregnant'].includes(tag)
@@ -92,34 +92,40 @@ function AnimalFeedWidget({ animals }) {
     return (
       <div
         key={key}
-        className="text-sm bg-gray-700/30 rounded px-2 py-1"
+        className="rounded px-3 py-2"
+        style={{ backgroundColor: 'var(--bg-hover)' }}
       >
         {/* Single row that can wrap */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          {/* Name */}
-          <span className="font-medium text-white">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {/* 1. Name */}
+          <span className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>
             {name}
           </span>
 
-          {/* Tags - after name */}
-          {importantTags.slice(0, 1).map(tag => {
-            const tagInfo = ANIMAL_TAGS[tag]
-            if (!tagInfo) return null
-            return (
-              <span
-                key={tag}
-                className={`text-xs px-1 rounded flex-shrink-0 ${tagInfo.color}`}
-              >
-                {tagInfo.label}
+          {/* 2. Color + Type (e.g., "Black Dog") */}
+          {colorType && (
+            <>
+              <span style={{ color: 'var(--text-faint)' }}>·</span>
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                {colorType}
               </span>
-            )
-          })}
+            </>
+          )}
 
-          {/* Separator */}
-          <span className="text-gray-600">·</span>
+          {/* 3. Location if present */}
+          {location && (
+            <>
+              <span style={{ color: 'var(--text-faint)' }}>·</span>
+              <span className="text-sm flex items-center gap-1 flex-shrink-0" style={{ color: 'var(--success)' }}>
+                <MapPin className="w-4 h-4" />
+                {location}
+              </span>
+            </>
+          )}
 
-          {/* Feeds: amount, type, frequency */}
-          <span className="text-cyan-400">
+          {/* 4. Feeds: amount, type, frequency */}
+          <span style={{ color: 'var(--text-faint)' }}>·</span>
+          <span className="text-base" style={{ color: 'var(--info)' }}>
             {feeds.map((feed, idx) => (
               <span key={idx}>
                 {[feed.amount, feed.feed_type, feed.frequency].filter(Boolean).join(' ')}
@@ -128,30 +134,25 @@ function AnimalFeedWidget({ animals }) {
             ))}
           </span>
 
-          {/* Location if present */}
-          {location && (
-            <>
-              <span className="text-gray-600">·</span>
-              <span className="text-xs text-green-400 flex items-center gap-1 flex-shrink-0">
-                <MapPin className="w-3 h-3" />
-                {location}
+          {/* 5. Tags */}
+          {importantTags.slice(0, 1).map(tag => {
+            const tagInfo = ANIMAL_TAGS[tag]
+            if (!tagInfo) return null
+            return (
+              <span
+                key={tag}
+                className={`text-sm px-1.5 py-0.5 rounded flex-shrink-0 ${tagInfo.color}`}
+              >
+                {tagInfo.label}
               </span>
-            </>
-          )}
+            )
+          })}
 
-          {/* Separator */}
-          <span className="text-gray-600">·</span>
-
-          {/* Color + Type together (grey) like "Black Dog" */}
-          <span className="text-xs text-gray-500">
-            {colorType}
-          </span>
-
-          {/* Special instructions inline */}
+          {/* 6. Special instructions inline */}
           {specialInstructions && (
             <>
-              <span className="text-gray-600">·</span>
-              <span className="text-xs text-yellow-400">
+              <span style={{ color: 'var(--text-faint)' }}>·</span>
+              <span className="text-sm" style={{ color: 'var(--warning)' }}>
                 {specialInstructions}
               </span>
             </>
@@ -162,13 +163,17 @@ function AnimalFeedWidget({ animals }) {
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl p-3">
-      <div className="flex items-center gap-2 mb-2">
-        <PawPrint className="w-4 h-4 text-cyan-400" />
-        <h2 className="text-sm font-semibold text-gray-300">Feeding Guide</h2>
+    <div className={`rounded-xl p-4 flex flex-col min-h-0 ${className}`}
+         style={{
+           backgroundColor: 'var(--bg-secondary)',
+           border: '1px solid var(--border-color)'
+         }}>
+      <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+        <PawPrint className="w-5 h-5" style={{ color: 'var(--info)' }} />
+        <h2 className="text-base font-semibold" style={{ color: 'var(--text-secondary)' }}>Feeding Guide</h2>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-2 flex-1 min-h-0 overflow-y-auto">
         {/* Pets - one line per animal, never grouped */}
         {pets.map(animal => {
           const feeds = animal.feeds && animal.feeds.length > 0

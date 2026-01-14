@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { LogIn, User, Lock, AlertCircle, Loader2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { getVersionInfo } from '../services/api'
 
 function Login() {
   const navigate = useNavigate()
@@ -12,8 +13,23 @@ function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isDevInstance, setIsDevInstance] = useState(false)
 
   const from = location.state?.from?.pathname || '/'
+
+  useEffect(() => {
+    const checkDevInstance = async () => {
+      try {
+        const response = await getVersionInfo()
+        const isDev = response.data.is_dev_instance || false
+        setIsDevInstance(isDev)
+        document.title = isDev ? '[DEV] Isaac - Login' : 'Isaac - Login'
+      } catch (error) {
+        console.error('Failed to fetch version info:', error)
+      }
+    }
+    checkDevInstance()
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -44,14 +60,24 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-900 flex flex-col">
+      {/* Dev Instance Banner */}
+      {isDevInstance && (
+        <div className="bg-orange-600 text-white text-center py-1 text-sm font-medium">
+          Development Instance
+        </div>
+      )}
+
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-farm-green/20 mb-4">
             <span className="text-4xl">🌿</span>
           </div>
-          <h1 className="text-3xl font-bold text-white">Isaac</h1>
+          <h1 className="text-3xl font-bold text-white">
+            Isaac {isDevInstance && <span className="text-orange-400">(Dev)</span>}
+          </h1>
           <p className="text-gray-400 mt-2">Farm & Homestead Assistant</p>
         </div>
 
@@ -130,6 +156,7 @@ function Login() {
         <p className="text-center text-gray-500 text-sm mt-6">
           Farm & Homestead Management
         </p>
+      </div>
       </div>
     </div>
   )

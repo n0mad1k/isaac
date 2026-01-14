@@ -4,12 +4,32 @@ Sends email notifications using SMTP settings from database or config
 """
 
 import aiosmtplib
+import html
+import re
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from typing import Optional, List
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
+
+
+def _escape_html(text: str) -> str:
+    """Escape HTML special characters to prevent XSS/injection in email bodies"""
+    if text is None:
+        return ""
+    return html.escape(str(text))
+
+
+def _sanitize_header(value: str) -> str:
+    """
+    Sanitize email header values to prevent header injection attacks.
+    Removes newlines and carriage returns which could inject additional headers.
+    """
+    if value is None:
+        return ""
+    # Remove newlines, carriage returns, and tabs that could inject headers
+    return re.sub(r'[\r\n\t]', '', str(value))
 
 
 class ConfigurationError(Exception):
@@ -95,11 +115,13 @@ class EmailService:
             logger.error("No recipient specified")
             return False
 
-        recipient = to
+        # Sanitize recipient to prevent header injection
+        recipient = _sanitize_header(to)
 
         try:
             message = MIMEMultipart("alternative")
-            message["Subject"] = f"[Isaac] {subject}"
+            # Sanitize subject to prevent header injection
+            message["Subject"] = f"[Isaac] {_sanitize_header(subject)}"
             message["From"] = self.from_addr
             message["To"] = recipient
 
@@ -147,8 +169,8 @@ class EmailService:
         if verse and verse.get("text"):
             verse_section = f"""
             <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 25px;">
-                <p style="font-size: 18px; font-style: italic; margin: 0 0 15px 0;">"{verse.get('text', '')}"</p>
-                <p style="font-size: 14px; margin: 0; opacity: 0.9;">— {verse.get('reference', '')} ({verse.get('version', 'NIV')})</p>
+                <p style="font-size: 18px; font-style: italic; margin: 0 0 15px 0;">"{_escape_html(verse.get('text', ''))}"</p>
+                <p style="font-size: 14px; margin: 0; opacity: 0.9;">— {_escape_html(verse.get('reference', ''))} ({_escape_html(verse.get('version', 'NIV'))})</p>
             </div>
             """
 
@@ -213,11 +235,11 @@ class EmailService:
                 <h2>⚠️ Active Alerts</h2>
             """
             for alert in alerts:
-                severity = alert.get("severity", "info")
+                severity = _escape_html(alert.get("severity", "info"))
                 html += f"""
                 <div class="alert {severity}">
-                    <strong>{alert.get('title', 'Alert')}</strong><br>
-                    {alert.get('message', '')}
+                    <strong>{_escape_html(alert.get('title', 'Alert'))}</strong><br>
+                    {_escape_html(alert.get('message', ''))}
                 </div>
                 """
             html += "</div>"
@@ -233,8 +255,8 @@ class EmailService:
                 priority_class = priority_map.get(task.get("priority", 2), "medium")
                 html += f"""
                 <div class="task {priority_class}">
-                    <strong>{task.get('title', 'Task')}</strong>
-                    {f"<br><small>{task.get('description', '')}</small>" if task.get('description') else ""}
+                    <strong>{_escape_html(task.get('title', 'Task'))}</strong>
+                    {f"<br><small>{_escape_html(task.get('description', ''))}</small>" if task.get('description') else ""}
                 </div>
                 """
             html += "</div>"
@@ -258,8 +280,8 @@ class EmailService:
 
     async def send_weather_alert(self, alert: dict) -> bool:
         """Send an immediate weather alert"""
-        severity = alert.get("severity", "warning").upper()
-        subject = f"{severity}: {alert.get('title', 'Weather Alert')}"
+        severity = _escape_html(alert.get("severity", "warning")).upper()
+        subject = f"{severity}: {_escape_html(alert.get('title', 'Weather Alert'))}"
 
         html = f"""
         <html>
@@ -269,11 +291,11 @@ class EmailService:
                 <h1>⚠️ Weather Alert</h1>
             </div>
             <div style="padding: 20px;">
-                <h2>{alert.get('title', 'Alert')}</h2>
-                <p>{alert.get('message', '')}</p>
+                <h2>{_escape_html(alert.get('title', 'Alert'))}</h2>
+                <p>{_escape_html(alert.get('message', ''))}</p>
 
                 <h3>Recommended Actions:</h3>
-                <p>{alert.get('recommended_actions', 'Monitor conditions.')}</p>
+                <p>{_escape_html(alert.get('recommended_actions', 'Monitor conditions.'))}</p>
 
                 <p style="color: #666; font-size: 12px; margin-top: 30px;">
                     Alert generated at {datetime.now().strftime('%I:%M %p on %B %d, %Y')}
@@ -287,7 +309,7 @@ class EmailService:
 
     async def send_task_reminder(self, task: dict) -> bool:
         """Send a task reminder email"""
-        subject = f"Reminder: {task.get('title', 'Task Due')}"
+        subject = f"Reminder: {_escape_html(task.get('title', 'Task Due'))}"
 
         due_date = task.get("due_date", "Soon")
         if hasattr(due_date, "strftime"):
@@ -300,13 +322,13 @@ class EmailService:
                 <h1>📋 Task Reminder</h1>
             </div>
             <div style="padding: 20px;">
-                <h2>{task.get('title', 'Task')}</h2>
-                <p><strong>Due:</strong> {due_date}</p>
-                <p><strong>Category:</strong> {task.get('category', 'General')}</p>
+                <h2>{_escape_html(task.get('title', 'Task'))}</h2>
+                <p><strong>Due:</strong> {_escape_html(str(due_date))}</p>
+                <p><strong>Category:</strong> {_escape_html(task.get('category', 'General'))}</p>
 
-                {f"<p>{task.get('description', '')}</p>" if task.get('description') else ""}
+                {f"<p>{_escape_html(task.get('description', ''))}</p>" if task.get('description') else ""}
 
-                {f"<p><strong>Notes:</strong> {task.get('notes', '')}</p>" if task.get('notes') else ""}
+                {f"<p><strong>Notes:</strong> {_escape_html(task.get('notes', ''))}</p>" if task.get('notes') else ""}
             </div>
         </body>
         </html>
@@ -333,9 +355,9 @@ class EmailService:
             for plant in plants:
                 plant_list_html += f"""
                 <tr>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{plant.get('name', 'Unknown')}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">{plant.get('min_temp', '--')}°F</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{plant.get('location', '--')}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{_escape_html(plant.get('name', 'Unknown'))}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">{_escape_html(str(plant.get('min_temp', '--')))}°F</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{_escape_html(plant.get('location', '--'))}</td>
                 </tr>
                 """
 
@@ -368,12 +390,12 @@ class EmailService:
         if animals:
             animal_list_html = ""
             for animal in animals:
-                color_info = f" ({animal.get('color')})" if animal.get('color') else ""
+                color_info = f" ({_escape_html(animal.get('color'))})" if animal.get('color') else ""
                 animal_list_html += f"""
                 <tr>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{animal.get('name', 'Unknown')}{color_info}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{animal.get('animal_type', '--')}</td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">Below {animal.get('needs_blanket_below', '--')}°F</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{_escape_html(animal.get('name', 'Unknown'))}{color_info}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee;">{_escape_html(animal.get('animal_type', '--'))}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">Below {_escape_html(str(animal.get('needs_blanket_below', '--')))}°F</td>
                 </tr>
                 """
 
@@ -398,13 +420,13 @@ class EmailService:
         if freeze_warning:
             recommendations_html = ""
             for rec in freeze_warning.get("recommendations", []):
-                recommendations_html += f"<li>{rec}</li>"
+                recommendations_html += f"<li>{_escape_html(rec)}</li>"
 
             freeze_section_html = f"""
                 <h2 style="color: #dc2626; margin-top: 25px;">🚰 Freeze Warning - Protect Pipes & Irrigation</h2>
                 <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 15px 0;">
                     <p style="margin: 0 0 10px 0; font-weight: bold; color: #dc2626;">
-                        {freeze_warning.get('message', 'Freeze forecasted!')}
+                        {_escape_html(freeze_warning.get('message', 'Freeze forecasted!'))}
                     </p>
                     <strong>Recommended Actions:</strong>
                     <ul style="margin: 10px 0; padding-left: 20px;">

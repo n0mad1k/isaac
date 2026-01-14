@@ -2,7 +2,7 @@
 Task and Reminder Models
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum, Date, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum, Date, JSON, ForeignKey
 from datetime import datetime
 import enum
 
@@ -48,7 +48,8 @@ class Task(Base):
     category = Column(Enum(TaskCategory), default=TaskCategory.CUSTOM)
 
     # Scheduling
-    due_date = Column(Date)
+    due_date = Column(Date)  # Start date (or single-day date)
+    end_date = Column(Date)  # End date for multi-day events (optional)
     due_time = Column(String(10))  # "09:00" format - also used as start_time
     end_time = Column(String(10))  # "10:00" format
     location = Column(String(200))  # Event location
@@ -95,10 +96,21 @@ class Task(Base):
 
     is_active = Column(Boolean, default=True)
     is_backlog = Column(Boolean, default=False)  # True = in backlog, not due today
+    visible_to_farmhands = Column(Boolean, default=False)  # True = farm hand accounts can see this task
     notes = Column(Text)
+
+    # Worker assignment
+    assigned_to_worker_id = Column(Integer, ForeignKey('workers.id'), nullable=True)
+    assigned_to_user_id = Column(Integer, ForeignKey('users.id'), nullable=True)  # Assign to system user (not worker)
+    is_in_progress = Column(Boolean, default=False)  # Worker started working on task
+    is_blocked = Column(Boolean, default=False)  # Worker marked task as cannot complete
+    blocked_reason = Column(Text, nullable=True)  # Required when is_blocked=True
+    completion_note = Column(Text, nullable=True)  # Optional note when completing
+    worker_note = Column(Text, nullable=True)  # Worker's progress notes (editable anytime)
 
     # Calendar sync
     calendar_uid = Column(String(255), unique=True, nullable=True, index=True)
+    calendar_synced_at = Column(DateTime, nullable=True)  # Last time this task was synced to calendar
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

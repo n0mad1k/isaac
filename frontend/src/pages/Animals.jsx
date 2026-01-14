@@ -2,15 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react'
 import {
   Plus, Search, PawPrint, Calendar, AlertCircle, ChevronDown, ChevronUp,
   MapPin, DollarSign, Scale, Clock, Check, X, Syringe, Scissors,
-  Heart, Beef, Dog, Cat, Pencil, Save, Package, Copy, CalendarPlus
+  Heart, Beef, Dog, Cat, Pencil, Save, Package, Copy, CalendarPlus,
+  Trash2, Download, FileText
 } from 'lucide-react'
 import EventModal from '../components/EventModal'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   getAnimals, createAnimal, updateAnimal, deleteAnimal, addAnimalCareLog,
   addAnimalExpense, getAnimalExpenses, createCareSchedule, completeCareSchedule,
   deleteCareSchedule, updateCareSchedule, createBulkCareSchedule,
   createAnimalFeed, updateAnimalFeed, deleteAnimalFeed, getFarmAreas,
-  archiveLivestock
+  archiveLivestock, createSplitExpense, updateAnimalExpense, deleteAnimalExpense,
+  exportAnimalExpenses, exportAllExpenses
 } from '../services/api'
 import { format, differenceInDays, parseISO, startOfDay } from 'date-fns'
 
@@ -52,7 +55,7 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
       return (
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-300">{label}:</span>
-          <span className={value ? "text-green-400" : "text-gray-500"}>{value ? "Yes" : "No"}</span>
+          <span className={value ? "text-green-400" : "text-red-400"}>{value ? "Yes" : "No"}</span>
         </div>
       )
     }
@@ -259,6 +262,8 @@ function Animals() {
   const [groupByLocation, setGroupByLocation] = useState(true)
   const [collapsedLocations, setCollapsedLocations] = useState({})
   const [showExpenseForm, setShowExpenseForm] = useState(null) // animal_id or null
+  const [showSplitExpenseForm, setShowSplitExpenseForm] = useState(false)
+  const [showExpenseList, setShowExpenseList] = useState(null) // animal object or null
   const [editDateModal, setEditDateModal] = useState(null) // { animalId, field, label, currentDate }
   const [showCareScheduleForm, setShowCareScheduleForm] = useState(null) // animal_id or null
   const [editingCareSchedule, setEditingCareSchedule] = useState(null) // schedule object
@@ -268,6 +273,7 @@ function Animals() {
   const [farmAreas, setFarmAreas] = useState([])
   const [showArchiveForm, setShowArchiveForm] = useState(null) // animal object or null
   const [showReminderFor, setShowReminderFor] = useState(null) // animal object for reminder modal
+  const { formatTime } = useSettings()
 
   const fetchAnimals = async () => {
     try {
@@ -577,8 +583,22 @@ function Animals() {
             Bulk Care
           </button>
           <button
+            onClick={() => setShowSplitExpenseForm(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-green-700 hover:bg-green-600 rounded-lg transition-colors text-sm"
+          >
+            <DollarSign className="w-4 h-4" />
+            Split Expense
+          </button>
+          <a
+            href={exportAllExpenses()}
+            className="flex items-center gap-2 px-3 py-2 bg-purple-700 hover:bg-purple-600 rounded-lg transition-colors text-sm"
+          >
+            <Download className="w-4 h-4" />
+            Export All
+          </a>
+          <button
             onClick={() => { setEditingAnimal(null); setShowForm(true) }}
-            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
           >
             <Plus className="w-5 h-5" />
             Add Animal
@@ -712,6 +732,7 @@ function Animals() {
                       onDelete={() => handleDelete(animal.id, animal.name)}
                       onDuplicate={(animal) => setDuplicateAnimal(animal)}
                       onAddExpense={() => setShowExpenseForm(animal.id)}
+                      onViewExpenses={() => setShowExpenseList(animal)}
                       onEditDate={setEditDateModal}
                       onToggleTag={(tag) => toggleTag(animal.id, animal.tags, tag)}
                       onAddCareSchedule={() => setShowCareScheduleForm(animal.id)}
@@ -748,6 +769,7 @@ function Animals() {
               onDelete={() => handleDelete(animal.id, animal.name)}
               onDuplicate={(animal) => setDuplicateAnimal(animal)}
               onAddExpense={() => setShowExpenseForm(animal.id)}
+              onViewExpenses={() => setShowExpenseList(animal)}
               onEditDate={setEditDateModal}
               onToggleTag={(tag) => toggleTag(animal.id, animal.tags, tag)}
               onAddCareSchedule={() => setShowCareScheduleForm(animal.id)}
@@ -794,8 +816,46 @@ function Animals() {
         <ExpenseFormModal
           animalId={showExpenseForm}
           animalName={animals.find(a => a.id === showExpenseForm)?.name}
+          animals={animals}
           onClose={() => setShowExpenseForm(null)}
           onSave={(data) => addExpense(showExpenseForm, data)}
+          onSplitSave={async (data) => {
+            try {
+              await createSplitExpense(data)
+              setShowExpenseForm(null)
+              fetchAnimals()
+            } catch (error) {
+              console.error('Failed to create split expense:', error)
+              alert('Failed to create split expense: ' + (error.response?.data?.detail || error.message))
+            }
+          }}
+        />
+      )}
+
+      {/* Split Expense Modal */}
+      {showSplitExpenseForm && (
+        <SplitExpenseFormModal
+          animals={animals}
+          onClose={() => setShowSplitExpenseForm(false)}
+          onSave={async (data) => {
+            try {
+              await createSplitExpense(data)
+              setShowSplitExpenseForm(false)
+              fetchAnimals()
+            } catch (error) {
+              console.error('Failed to create split expense:', error)
+              alert('Failed to create split expense: ' + (error.response?.data?.detail || error.message))
+            }
+          }}
+        />
+      )}
+
+      {/* Expense List Modal */}
+      {showExpenseList && (
+        <ExpenseListModal
+          animal={showExpenseList}
+          onClose={() => setShowExpenseList(null)}
+          onUpdate={fetchAnimals}
         />
       )}
 
@@ -1027,7 +1087,7 @@ const getSexOptions = (animalType) => {
 
 // Animal Card Component with inline editing
 function AnimalCard({
-  animal, farmAreas = [], expanded, onToggle, onLogCare, onDelete, onDuplicate, onAddExpense, onEditDate, onToggleTag,
+  animal, farmAreas = [], expanded, onToggle, onLogCare, onDelete, onDuplicate, onAddExpense, onViewExpenses, onEditDate, onToggleTag,
   onAddCareSchedule, onCompleteCareSchedule, onDeleteCareSchedule, onEditCareSchedule,
   onAddFeed, onEditFeed, onDeleteFeed, onSave, onArchive, onAddReminder, getAnimalIcon, getDaysUntil, getUrgencyClass
 }) {
@@ -1179,39 +1239,20 @@ function AnimalCard({
         {/* Icon */}
         <span className="text-xl flex-shrink-0">{getAnimalIcon(animal.animal_type)}</span>
 
-        {/* Name */}
+        {/* 1. Name */}
         <span className="font-semibold text-white truncate">{animal.name}</span>
 
-        {/* Tags - after name */}
-        {animalTags.slice(0, 2).map(tag => {
-          const tagInfo = ANIMAL_TAGS[tag] || { label: tag, color: 'bg-gray-600 text-white' }
-          return (
-            <span key={tag} className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${tagInfo.color}`}>
-              {tagInfo.label}
+        {/* 2. Color + Type together (grey) like "Black Horse" */}
+        {(animal.color || animal.animal_type) && (
+          <>
+            <span className="text-gray-600">·</span>
+            <span className="text-xs text-gray-500 truncate capitalize">
+              {[animal.color, animal.animal_type?.replace('_', ' ')].filter(Boolean).join(' ')}
             </span>
-          )
-        })}
+          </>
+        )}
 
-        {/* Separator */}
-        <span className="text-gray-600">·</span>
-
-        {/* Feeding Info: amount, type, frequency */}
-        <span className="text-sm text-cyan-400 truncate">
-          {animal.feeds && animal.feeds.length > 0
-            ? animal.feeds.map(f => [f.amount, f.feed_type, f.frequency].filter(Boolean).join(' ')).join(' | ')
-            : [animal.feed_amount, animal.feed_type, animal.feed_frequency].filter(Boolean).join(' ')
-          }
-        </span>
-
-        {/* Separator */}
-        <span className="text-gray-600">·</span>
-
-        {/* Color + Type together (grey) like "Black Horse" */}
-        <span className="text-xs text-gray-500 truncate capitalize">
-          {[animal.color, animal.animal_type?.replace('_', ' ')].filter(Boolean).join(' ')}
-        </span>
-
-        {/* Location: Farm Area or Pasture */}
+        {/* 3. Location: Farm Area or Pasture */}
         {(animal.farm_area || animal.pasture) && (
           <>
             <span className="text-gray-600">·</span>
@@ -1222,7 +1263,30 @@ function AnimalCard({
           </>
         )}
 
-        {/* Special Instructions if present */}
+        {/* 4. Feeding Info: amount, type, frequency */}
+        {(animal.feeds?.length > 0 || animal.feed_type) && (
+          <>
+            <span className="text-gray-600">·</span>
+            <span className="text-sm text-cyan-400 truncate">
+              {animal.feeds && animal.feeds.length > 0
+                ? animal.feeds.map(f => [f.amount, f.feed_type, f.frequency].filter(Boolean).join(' ')).join(' | ')
+                : [animal.feed_amount, animal.feed_type, animal.feed_frequency].filter(Boolean).join(' ')
+              }
+            </span>
+          </>
+        )}
+
+        {/* 5. Tags */}
+        {animalTags.slice(0, 2).map(tag => {
+          const tagInfo = ANIMAL_TAGS[tag] || { label: tag, color: 'bg-gray-600 text-white' }
+          return (
+            <span key={tag} className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${tagInfo.color}`}>
+              {tagInfo.label}
+            </span>
+          )
+        })}
+
+        {/* 6. Special Instructions if present */}
         {animal.special_instructions && (
           <>
             <span className="text-gray-600">·</span>
@@ -1248,9 +1312,13 @@ function AnimalCard({
             </span>
           )}
           {animal.total_expenses > 0 && (
-            <span className="text-xs px-2 py-1 rounded bg-green-900/30 text-green-300">
+            <button
+              onClick={(e) => { e.stopPropagation(); onViewExpenses() }}
+              className="text-xs px-2 py-1 rounded bg-green-900/30 text-green-300 hover:bg-green-900/50 transition-colors"
+              title="View expenses"
+            >
               ${animal.total_expenses.toFixed(0)}
-            </span>
+            </button>
           )}
           {overdueItems.length > 0 && (
             <span className="text-xs px-2 py-1 rounded bg-red-900/50 text-red-300 border border-red-700">
@@ -1302,6 +1370,12 @@ function AnimalCard({
               className="px-3 py-1.5 bg-green-600/50 hover:bg-green-600 rounded text-sm text-white transition-colors flex items-center gap-1"
             >
               <DollarSign className="w-3 h-3" /> Add Expense
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onViewExpenses() }}
+              className="px-3 py-1.5 bg-purple-600/50 hover:bg-purple-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <FileText className="w-3 h-3" /> View Expenses
             </button>
             <button
               onClick={(e) => {
@@ -1818,6 +1892,7 @@ function CareCard({ title, icon, lastDate, nextDate, isOverdue, frequencyDays, o
 
 // Dynamic Care Card for flexible care schedules
 function DynamicCareCard({ schedule, onComplete, onEdit, onDelete }) {
+  const { formatTime } = useSettings()
   const daysUntil = schedule.days_until_due
   const isOverdue = schedule.is_overdue
 
@@ -1844,7 +1919,7 @@ function DynamicCareCard({ schedule, onComplete, onEdit, onDelete }) {
         <div className={`text-xs ${isOverdue ? 'text-red-300' : 'text-gray-400'}`}>
           {isOverdue ? 'Was due: ' : 'Due: '}
           {format(safeParseDate(schedule.due_date), 'MMM d')}
-          {schedule.due_time && ` @ ${schedule.due_time}`}
+          {schedule.due_time && ` @ ${formatTime(schedule.due_time)}`}
           {daysUntil !== null && !isOverdue && ` (${daysUntil}d)`}
         </div>
       )}
@@ -1894,6 +1969,7 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
     manual_due_date: schedule?.manual_due_date || '',
     due_time: schedule?.due_time || '',
     notes: schedule?.notes || '',
+    reminder_alerts: schedule?.reminder_alerts || null,
   })
   const [saving, setSaving] = useState(false)
 
@@ -1908,6 +1984,7 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
         manual_due_date: formData.manual_due_date || null,
         due_time: formData.due_time || null,
         notes: formData.notes || null,
+        reminder_alerts: formData.reminder_alerts || null,
       }
       await onSave(data)
     } catch (error) {
@@ -1997,6 +2074,47 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
             />
           </div>
 
+          {/* Alerts Section */}
+          <div className="space-y-2 pt-3 border-t border-gray-700">
+            <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 0, label: 'At time' },
+                { value: 5, label: '5 min' },
+                { value: 10, label: '10 min' },
+                { value: 15, label: '15 min' },
+                { value: 30, label: '30 min' },
+                { value: 60, label: '1 hr' },
+                { value: 120, label: '2 hrs' },
+                { value: 1440, label: '1 day' },
+                { value: 2880, label: '2 days' },
+                { value: 10080, label: '1 week' },
+              ].map(opt => {
+                const isSelected = (formData.reminder_alerts || []).includes(opt.value)
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      const current = formData.reminder_alerts || []
+                      const newAlerts = isSelected
+                        ? current.filter(v => v !== opt.value)
+                        : [...current, opt.value].sort((a, b) => b - a)
+                      setFormData({ ...formData, reminder_alerts: newAlerts.length > 0 ? newAlerts : null })
+                    }}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                      isSelected
+                        ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
+                        : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-4 border-t border-gray-700">
             <button
               type="button"
@@ -2008,7 +2126,7 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : (schedule ? 'Update' : 'Add Care Item')}
             </button>
@@ -2026,9 +2144,12 @@ function BulkCareScheduleModal({ animals, onClose, onSave }) {
   const [formData, setFormData] = useState({
     name: '',
     frequency_days: '',
+    due_time: '',
+    is_one_time: false,
     last_performed: '',
     manual_due_date: '',
     notes: '',
+    reminder_alerts: null,
   })
   const [saving, setSaving] = useState(false)
   const [filterType, setFilterType] = useState('all') // all, pet, livestock, or animal_type
@@ -2076,10 +2197,12 @@ function BulkCareScheduleModal({ animals, onClose, onSave }) {
       const data = {
         animal_ids: selectedAnimals,
         name: formData.name,
-        frequency_days: formData.frequency_days ? parseInt(formData.frequency_days) : null,
+        frequency_days: formData.is_one_time ? null : (formData.frequency_days ? parseInt(formData.frequency_days) : null),
+        due_time: formData.due_time || null,
         last_performed: formData.last_performed || null,
         manual_due_date: formData.manual_due_date || null,
         notes: formData.notes || null,
+        reminder_alerts: formData.reminder_alerts || null,
       }
       await onSave(data)
     } finally {
@@ -2119,8 +2242,74 @@ function BulkCareScheduleModal({ animals, onClose, onSave }) {
                   value={formData.frequency_days}
                   onChange={(e) => setFormData({ ...formData, frequency_days: e.target.value })}
                   placeholder="e.g., 60"
+                  disabled={formData.is_one_time}
+                  className={`w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green ${formData.is_one_time ? 'opacity-50 cursor-not-allowed' : ''}`}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Due Time (optional)</label>
+                <input
+                  type="time"
+                  value={formData.due_time}
+                  onChange={(e) => setFormData({ ...formData, due_time: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
+              </div>
+              <div className="flex items-center">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400 mt-5">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_one_time}
+                    onChange={(e) => setFormData({ ...formData, is_one_time: e.target.checked })}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
+                  />
+                  One-time only
+                  <span className="text-xs text-gray-500">(no recurring schedule)</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Alerts Section */}
+            <div className="space-y-2 pt-3 border-t border-gray-700">
+              <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 0, label: 'At time' },
+                  { value: 5, label: '5 min' },
+                  { value: 10, label: '10 min' },
+                  { value: 15, label: '15 min' },
+                  { value: 30, label: '30 min' },
+                  { value: 60, label: '1 hr' },
+                  { value: 120, label: '2 hrs' },
+                  { value: 1440, label: '1 day' },
+                  { value: 2880, label: '2 days' },
+                  { value: 10080, label: '1 week' },
+                ].map(opt => {
+                  const isSelected = (formData.reminder_alerts || []).includes(opt.value)
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        const current = formData.reminder_alerts || []
+                        const newAlerts = isSelected
+                          ? current.filter(v => v !== opt.value)
+                          : [...current, opt.value].sort((a, b) => b - a)
+                        setFormData({ ...formData, reminder_alerts: newAlerts.length > 0 ? newAlerts : null })
+                      }}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                        isSelected
+                          ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
+                          : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
@@ -2195,7 +2384,7 @@ function BulkCareScheduleModal({ animals, onClose, onSave }) {
             <button
               type="submit"
               disabled={saving || selectedAnimals.length === 0}
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Creating...' : `Add to ${selectedAnimals.length} Animals`}
             </button>
@@ -2823,7 +3012,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : (isDuplicate ? 'Create Copy' : (animal ? 'Update Animal' : 'Add Animal'))}
             </button>
@@ -2835,8 +3024,8 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
 }
 
 
-// Expense Form Modal
-function ExpenseFormModal({ animalId, animalName, onClose, onSave }) {
+// Expense Form Modal - supports single animal or split across multiple
+function ExpenseFormModal({ animalId, animalName, animals, onClose, onSave, onSplitSave }) {
   const [formData, setFormData] = useState(() => {
     const now = new Date()
     const year = now.getFullYear()
@@ -2852,15 +3041,94 @@ function ExpenseFormModal({ animalId, animalName, onClose, onSave }) {
     }
   })
   const [saving, setSaving] = useState(false)
+  // Split allocations: [{animalId, mode: 'percent'|'dollar', value: ''}]
+  // Note: The initial animal (animalId) is NOT in this array - they get the remainder
+  const [splitAllocations, setSplitAllocations] = useState([])
+
+  // Calculate allocated amounts for other animals
+  const totalAmount = parseFloat(formData.amount) || 0
+  const allocatedAmounts = splitAllocations.map(alloc => {
+    if (alloc.mode === 'percent') {
+      return (totalAmount * (parseFloat(alloc.value) || 0)) / 100
+    }
+    return parseFloat(alloc.value) || 0
+  })
+  const totalAllocated = allocatedAmounts.reduce((sum, amt) => sum + amt, 0)
+  // Initial animal gets the remainder (can be 100% if no splits, or whatever is left)
+  const initialAnimalAmount = Math.max(0, totalAmount - totalAllocated)
+  const initialAnimalPercent = totalAmount > 0 ? (initialAnimalAmount / totalAmount * 100) : 100
+
+  // Splits are valid if initial animal gets a non-negative amount (can't allocate more than 100%)
+  const splitsValid = initialAnimalAmount >= -0.01 // Small tolerance for floating point
+
+  const addAnimalSplit = () => {
+    // Find an animal not already selected
+    const usedIds = [animalId, ...splitAllocations.map(a => a.animalId)]
+    const availableAnimals = animals?.filter(a => !usedIds.includes(a.id)) || []
+    if (availableAnimals.length === 0) return
+
+    setSplitAllocations([...splitAllocations, {
+      animalId: availableAnimals[0].id,
+      mode: 'percent',
+      value: ''
+    }])
+  }
+
+  const updateSplitAllocation = (index, field, value) => {
+    setSplitAllocations(splitAllocations.map((alloc, i) =>
+      i === index ? { ...alloc, [field]: value } : alloc
+    ))
+  }
+
+  const removeSplitAllocation = (index) => {
+    setSplitAllocations(splitAllocations.filter((_, i) => i !== index))
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!splitsValid || !totalAmount) return
+
     setSaving(true)
     try {
-      await onSave({
-        ...formData,
-        amount: parseFloat(formData.amount),
-      })
+      if (splitAllocations.length === 0) {
+        // Single animal expense - use original save
+        await onSave({
+          ...formData,
+          amount: parseFloat(formData.amount),
+        })
+      } else {
+        // Multi-animal split expense
+        // Build splits array: initial animal gets remaining, others get their allocated amounts
+        const splits = []
+
+        // Add each split allocation (other animals)
+        splitAllocations.forEach((alloc, idx) => {
+          if (allocatedAmounts[idx] > 0) {
+            splits.push({
+              animal_id: alloc.animalId,
+              amount: allocatedAmounts[idx]
+            })
+          }
+        })
+
+        // Add initial animal with remaining amount
+        if (initialAnimalAmount > 0) {
+          splits.push({
+            animal_id: animalId,
+            amount: initialAnimalAmount
+          })
+        }
+
+        await onSplitSave({
+          expense_type: formData.expense_type,
+          description: formData.description,
+          total_amount: totalAmount,
+          expense_date: formData.expense_date,
+          vendor: formData.vendor,
+          notes: formData.notes,
+          splits: splits,
+        })
+      }
     } catch (error) {
       console.error('Failed to save expense:', error)
     } finally {
@@ -2868,9 +3136,17 @@ function ExpenseFormModal({ animalId, animalName, onClose, onSave }) {
     }
   }
 
+  // Get animals available for selection (not already used)
+  const getAvailableAnimals = (currentAllocationId) => {
+    const usedIds = [animalId, ...splitAllocations.filter(a => a.animalId !== currentAllocationId).map(a => a.animalId)]
+    return animals?.filter(a => !usedIds.includes(a.id)) || []
+  }
+
+  const canAddAnimal = animals && animals.length > splitAllocations.length + 1
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-md">
+      <div className="bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Add Expense for {animalName}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -2878,7 +3154,7 @@ function ExpenseFormModal({ animalId, animalName, onClose, onSave }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Type *</label>
             <select
@@ -2898,7 +3174,7 @@ function ExpenseFormModal({ animalId, animalName, onClose, onSave }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Amount ($) *</label>
+              <label className="block text-sm text-gray-400 mb-1">Total Amount ($) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -2941,7 +3217,100 @@ function ExpenseFormModal({ animalId, animalName, onClose, onSave }) {
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
+          {/* Split Across Animals Section */}
+          {animals && animals.length > 1 && (
+            <div className="border-t border-gray-700 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm text-gray-400">Split Across Animals</label>
+                {canAddAnimal && (
+                  <button
+                    type="button"
+                    onClick={addAnimalSplit}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-cyan-700 hover:bg-cyan-600 rounded transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Animal
+                  </button>
+                )}
+              </div>
+
+              {/* Initial animal - always shown, gets remainder */}
+              <div className="bg-cyan-900/30 border border-cyan-700/50 rounded-lg p-3 mb-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-cyan-300">{animalName}</span>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-cyan-300">
+                      {totalAmount > 0 ? `$${initialAnimalAmount.toFixed(2)}` : '--'}
+                    </div>
+                    <div className="text-xs text-cyan-400">
+                      {splitAllocations.length > 0
+                        ? `${initialAnimalPercent.toFixed(0)}% (remainder)`
+                        : '100%'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Other animals to split with */}
+              {splitAllocations.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  {splitAllocations.map((alloc, index) => {
+                    const animal = animals.find(a => a.id === alloc.animalId)
+                    const allocPercent = totalAmount > 0 ? (allocatedAmounts[index] / totalAmount * 100) : 0
+                    return (
+                      <div key={index} className="flex items-center gap-2 bg-gray-700/50 rounded-lg p-2">
+                        <select
+                          value={alloc.animalId}
+                          onChange={(e) => updateSplitAllocation(index, 'animalId', parseInt(e.target.value))}
+                          className="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                        >
+                          {getAvailableAnimals(alloc.animalId).map(a => (
+                            <option key={a.id} value={a.id}>{a.name}</option>
+                          ))}
+                          {animal && <option value={animal.id}>{animal.name}</option>}
+                        </select>
+                        <select
+                          value={alloc.mode}
+                          onChange={(e) => updateSplitAllocation(index, 'mode', e.target.value)}
+                          className="w-14 px-1 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                        >
+                          <option value="percent">%</option>
+                          <option value="dollar">$</option>
+                        </select>
+                        <input
+                          type="number"
+                          step={alloc.mode === 'percent' ? '1' : '0.01'}
+                          value={alloc.value}
+                          onChange={(e) => updateSplitAllocation(index, 'value', e.target.value)}
+                          placeholder={alloc.mode === 'percent' ? '50' : '25.00'}
+                          className="w-20 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm text-right focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                        />
+                        <div className="w-16 text-right text-xs text-gray-400">
+                          {totalAmount > 0 && `$${allocatedAmounts[index].toFixed(2)}`}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeSplitAllocation(index)}
+                          className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Warning if over-allocated */}
+              {!splitsValid && totalAmount > 0 && (
+                <div className="bg-red-900/30 border border-red-700/50 rounded-lg p-2 text-sm text-red-300">
+                  Total allocations exceed expense amount
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t border-gray-700">
             <button
               type="button"
               onClick={onClose}
@@ -2951,10 +3320,356 @@ function ExpenseFormModal({ animalId, animalName, onClose, onSave }) {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !totalAmount || !splitsValid}
               className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Add Expense'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+
+// Split Expense Form Modal - for splitting expenses across multiple animals
+function SplitExpenseFormModal({ animals, onClose, onSave }) {
+  const [formData, setFormData] = useState(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return {
+      expense_type: 'feed',
+      description: '',
+      total_amount: '',
+      expense_date: `${year}-${month}-${day}`,
+      vendor: '',
+      notes: '',
+    }
+  })
+  const [selectedAnimals, setSelectedAnimals] = useState([]) // [{id, name, amount, inputMode}]
+  const [splitMode, setSplitMode] = useState('equal') // 'equal' or 'custom'
+  const [inputMode, setInputMode] = useState('dollars') // 'dollars' or 'percent' for custom mode
+  const [saving, setSaving] = useState(false)
+
+  // Update split amounts when total or animals change
+  const updateSplits = (newTotal, newAnimals, mode) => {
+    if (mode === 'equal' && newAnimals.length > 0 && newTotal) {
+      const equalAmount = parseFloat(newTotal) / newAnimals.length
+      setSelectedAnimals(newAnimals.map(a => ({ ...a, amount: equalAmount.toFixed(2) })))
+    }
+  }
+
+  const toggleAnimal = (animal) => {
+    const exists = selectedAnimals.find(a => a.id === animal.id)
+    let newAnimals
+    if (exists) {
+      newAnimals = selectedAnimals.filter(a => a.id !== animal.id)
+    } else {
+      newAnimals = [...selectedAnimals, { id: animal.id, name: animal.name, amount: '' }]
+    }
+    setSelectedAnimals(newAnimals)
+    if (splitMode === 'equal' && formData.total_amount) {
+      updateSplits(formData.total_amount, newAnimals, 'equal')
+    }
+  }
+
+  const updateAnimalAmount = (animalId, amount) => {
+    setSelectedAnimals(selectedAnimals.map(a =>
+      a.id === animalId ? { ...a, amount } : a
+    ))
+  }
+
+  const handleTotalChange = (newTotal) => {
+    setFormData({ ...formData, total_amount: newTotal })
+    if (splitMode === 'equal') {
+      updateSplits(newTotal, selectedAnimals, 'equal')
+    }
+  }
+
+  const handleSplitModeChange = (mode) => {
+    setSplitMode(mode)
+    if (mode === 'equal' && formData.total_amount) {
+      updateSplits(formData.total_amount, selectedAnimals, 'equal')
+    }
+    // Reset to dollars when switching to custom
+    if (mode === 'custom') {
+      setInputMode('dollars')
+      // Clear amounts when switching modes
+      setSelectedAnimals(selectedAnimals.map(a => ({ ...a, amount: '' })))
+    }
+  }
+
+  const handleInputModeChange = (mode) => {
+    setInputMode(mode)
+    // Clear all amounts when switching input modes
+    setSelectedAnimals(selectedAnimals.map(a => ({ ...a, amount: '' })))
+  }
+
+  // Calculate actual dollar amounts based on input mode
+  const getActualAmount = (animal) => {
+    const val = parseFloat(animal.amount) || 0
+    if (inputMode === 'percent') {
+      return (val / 100) * (parseFloat(formData.total_amount) || 0)
+    }
+    return val
+  }
+
+  const splitTotal = selectedAnimals.reduce((sum, a) => sum + getActualAmount(a), 0)
+  const remaining = (parseFloat(formData.total_amount) || 0) - splitTotal
+  const percentTotal = inputMode === 'percent'
+    ? selectedAnimals.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0)
+    : null
+  const isValid = selectedAnimals.length >= 1 &&
+    formData.total_amount &&
+    Math.abs(remaining) < 0.01 &&
+    selectedAnimals.every(a => parseFloat(a.amount) > 0) &&
+    // For percent mode, also ensure percentages add to ~100%
+    (inputMode !== 'percent' || (percentTotal !== null && Math.abs(percentTotal - 100) < 0.1))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!isValid) return
+
+    setSaving(true)
+    try {
+      await onSave({
+        expense_type: formData.expense_type,
+        description: formData.description,
+        total_amount: parseFloat(formData.total_amount),
+        expense_date: formData.expense_date,
+        vendor: formData.vendor,
+        notes: formData.notes,
+        splits: selectedAnimals.map(a => ({
+          animal_id: a.id,
+          amount: getActualAmount(a),
+        })),
+      })
+    } catch (error) {
+      console.error('Failed to save split expense:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Split Expense Across Animals</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Expense Details */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Type *</label>
+              <select
+                value={formData.expense_type}
+                onChange={(e) => setFormData({ ...formData, expense_type: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="feed">Feed</option>
+                <option value="medicine">Medicine</option>
+                <option value="vet">Vet Visit</option>
+                <option value="equipment">Equipment</option>
+                <option value="farrier">Farrier</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Total Amount ($) *</label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                value={formData.total_amount}
+                onChange={(e) => handleTotalChange(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="40.00"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Description</label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="e.g., 4 bags of feed"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Date</label>
+              <input
+                type="date"
+                value={formData.expense_date}
+                onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Vendor</label>
+            <input
+              type="text"
+              value={formData.vendor}
+              onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+              placeholder="e.g., Tractor Supply"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          {/* Split Mode Toggle */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleSplitModeChange('equal')}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                splitMode === 'equal'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Split Equally
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSplitModeChange('custom')}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                splitMode === 'custom'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              Custom Amounts
+            </button>
+          </div>
+
+          {/* Animal Selection */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Select Animals *</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-900 rounded-lg">
+              {animals.map(animal => {
+                const isSelected = selectedAnimals.find(a => a.id === animal.id)
+                return (
+                  <button
+                    key={animal.id}
+                    type="button"
+                    onClick={() => toggleAnimal(animal)}
+                    className={`px-3 py-2 rounded-lg text-sm text-left transition-colors ${
+                      isSelected
+                        ? 'bg-green-600/30 border-2 border-green-500'
+                        : 'bg-gray-700 hover:bg-gray-600 border-2 border-transparent'
+                    }`}
+                  >
+                    <div className="font-medium truncate">{animal.name}</div>
+                    <div className="text-xs text-gray-400">{animal.animal_type}</div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Split Amounts */}
+          {selectedAnimals.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm text-gray-400">
+                  Split Amounts
+                  {remaining !== 0 && formData.total_amount && (
+                    <span className={`ml-2 ${Math.abs(remaining) < 0.01 ? 'text-green-400' : 'text-yellow-400'}`}>
+                      (Remaining: ${remaining.toFixed(2)})
+                    </span>
+                  )}
+                  {inputMode === 'percent' && percentTotal !== null && (
+                    <span className={`ml-2 ${Math.abs(percentTotal - 100) < 0.01 ? 'text-green-400' : 'text-yellow-400'}`}>
+                      ({percentTotal.toFixed(1)}%)
+                    </span>
+                  )}
+                </label>
+                {/* Input mode toggle - only show in custom mode */}
+                {splitMode === 'custom' && (
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleInputModeChange('dollars')}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        inputMode === 'dollars'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                      }`}
+                    >
+                      $
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleInputModeChange('percent')}
+                      className={`px-2 py-1 rounded text-xs transition-colors ${
+                        inputMode === 'percent'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                      }`}
+                    >
+                      %
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                {selectedAnimals.map(animal => (
+                  <div key={animal.id} className="flex items-center gap-3 bg-gray-700 rounded-lg p-2">
+                    <span className="flex-1 text-sm">{animal.name}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-gray-400">{inputMode === 'percent' && splitMode === 'custom' ? '' : '$'}</span>
+                      <input
+                        type="number"
+                        step={inputMode === 'percent' ? '1' : '0.01'}
+                        value={animal.amount}
+                        onChange={(e) => updateAnimalAmount(animal.id, e.target.value)}
+                        disabled={splitMode === 'equal'}
+                        className={`w-24 px-2 py-1 bg-gray-600 border border-gray-500 rounded text-right ${
+                          splitMode === 'equal' ? 'opacity-60' : ''
+                        }`}
+                        placeholder={inputMode === 'percent' && splitMode === 'custom' ? '0' : '0.00'}
+                      />
+                      <span className="text-gray-400 w-4">{inputMode === 'percent' && splitMode === 'custom' ? '%' : ''}</span>
+                    </div>
+                    {/* Show calculated dollar amount when in percent mode */}
+                    {inputMode === 'percent' && splitMode === 'custom' && animal.amount && (
+                      <span className="text-xs text-green-400 w-20 text-right">
+                        = ${getActualAmount(animal).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t border-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !isValid}
+              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Create Split Expense'}
             </button>
           </div>
         </form>
@@ -3062,7 +3777,7 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
@@ -3368,5 +4083,223 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
     </div>
   )
 }
+
+
+// Expense List Modal - View, edit, delete expenses for an animal
+function ExpenseListModal({ animal, onClose, onUpdate }) {
+  const [expenses, setExpenses] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editingExpense, setEditingExpense] = useState(null)
+  const [editFormData, setEditFormData] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetchExpenses()
+  }, [animal.id])
+
+  const fetchExpenses = async () => {
+    try {
+      const response = await getAnimalExpenses(animal.id, { limit: 100 })
+      setExpenses(response.data)
+    } catch (error) {
+      console.error('Failed to fetch expenses:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEdit = (expense) => {
+    setEditingExpense(expense.id)
+    setEditFormData({
+      expense_type: expense.expense_type,
+      description: expense.description || '',
+      amount: expense.amount.toString(),
+      expense_date: expense.expense_date,
+      vendor: expense.vendor || '',
+      notes: expense.notes || '',
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editFormData) return
+    setSaving(true)
+    try {
+      await updateAnimalExpense(editingExpense, {
+        ...editFormData,
+        amount: parseFloat(editFormData.amount),
+      })
+      setEditingExpense(null)
+      setEditFormData(null)
+      fetchExpenses()
+      onUpdate()
+    } catch (error) {
+      console.error('Failed to update expense:', error)
+      alert('Failed to update expense: ' + (error.response?.data?.detail || error.message))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (expenseId) => {
+    if (!confirm('Delete this expense?')) return
+    try {
+      await deleteAnimalExpense(expenseId)
+      fetchExpenses()
+      onUpdate()
+    } catch (error) {
+      console.error('Failed to delete expense:', error)
+      alert('Failed to delete expense: ' + (error.response?.data?.detail || error.message))
+    }
+  }
+
+  const total = expenses.reduce((sum, e) => sum + e.amount, 0)
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Expenses for {animal.name}</h2>
+            <div className="text-sm text-gray-400">Total: ${total.toFixed(2)}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={exportAnimalExpenses(animal.id)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 rounded text-sm transition-colors"
+            >
+              <Download className="w-4 h-4" /> Export CSV
+            </a>
+            <button onClick={onClose} className="text-gray-400 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading ? (
+            <div className="text-center text-gray-400 py-8">Loading...</div>
+          ) : expenses.length === 0 ? (
+            <div className="text-center text-gray-400 py-8">No expenses recorded</div>
+          ) : (
+            <div className="space-y-2">
+              {expenses.map(expense => (
+                <div key={expense.id} className="bg-gray-700/50 rounded-lg p-3">
+                  {editingExpense === expense.id ? (
+                    // Edit form
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-2">
+                        <select
+                          value={editFormData.expense_type}
+                          onChange={(e) => setEditFormData({ ...editFormData, expense_type: e.target.value })}
+                          className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                        >
+                          <option value="purchase">Purchase Price</option>
+                          <option value="feed">Feed</option>
+                          <option value="medicine">Medicine</option>
+                          <option value="vet">Vet Visit</option>
+                          <option value="equipment">Equipment</option>
+                          <option value="farrier">Farrier</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editFormData.amount}
+                          onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
+                          className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                          placeholder="Amount"
+                        />
+                        <input
+                          type="date"
+                          value={editFormData.expense_date}
+                          onChange={(e) => setEditFormData({ ...editFormData, expense_date: e.target.value })}
+                          className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        value={editFormData.description}
+                        onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                        className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                        placeholder="Description"
+                      />
+                      <input
+                        type="text"
+                        value={editFormData.vendor}
+                        onChange={(e) => setEditFormData({ ...editFormData, vendor: e.target.value })}
+                        className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                        placeholder="Vendor"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSaveEdit}
+                          disabled={saving}
+                          className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-sm disabled:opacity-50"
+                        >
+                          {saving ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => { setEditingExpense(null); setEditFormData(null) }}
+                          className="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Display mode
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs px-2 py-0.5 rounded bg-gray-600 capitalize">
+                            {expense.expense_type}
+                          </span>
+                          <span className="font-medium text-green-400">${expense.amount.toFixed(2)}</span>
+                          <span className="text-xs text-gray-400">{expense.expense_date}</span>
+                        </div>
+                        {expense.description && (
+                          <div className="text-sm text-gray-300 mt-1 truncate">{expense.description}</div>
+                        )}
+                        {expense.vendor && (
+                          <div className="text-xs text-gray-500 mt-0.5">@ {expense.vendor}</div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 ml-2">
+                        <button
+                          onClick={() => handleEdit(expense)}
+                          className="p-1.5 text-gray-400 hover:text-blue-400 transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(expense.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-400 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 border-t border-gray-700">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 
 export default Animals

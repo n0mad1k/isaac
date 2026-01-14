@@ -114,9 +114,9 @@ class VehicleMaintenance(Base):
             if self.frequency_days:
                 self.next_due_date = self.last_completed + timedelta(days=self.frequency_days)
                 self.manual_due_date = None  # Clear manual date after recurring calc
-            elif self.manual_due_date:
-                # No recurring schedule - clear manual date after completion
-                # User will need to set a new manual date
+            else:
+                # No day-based frequency - clear date tracking
+                # Task is now purely mileage/hours based or needs manual due date
                 self.next_due_date = None
                 self.manual_due_date = None
 

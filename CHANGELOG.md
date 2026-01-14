@@ -2,6 +2,764 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.18.1] - 2026-01-14
+
+### Fixed
+- **Security: User feedback cross-account vulnerability**
+  - Users can now only view, edit, and delete their own feedback
+  - Feedback endpoints now require authentication
+  - Ownership verified by matching username/display_name
+
+### Changed
+- **Today's Schedule widget now has warm parchment background (#cab1a2)**
+  - Provides visual distinction from other dashboard widgets
+  - Dark mode falls back to standard surface color
+- **ToDo page now defaults to "Today" tab**
+  - Previously defaulted to "Upcoming" (today + tomorrow)
+
+## [1.18.0] - 2026-01-14
+
+### Added
+- **Enhanced feedback management system**
+  - Auto-refresh production feedback every 5 minutes in Dev Tracker
+  - Approve, decline, or kickback feedback directly from Dev Tracker
+  - Add notes when reviewing feedback to explain decisions
+  - Users see feedback status and admin responses in Settings > My Feedback
+  - Submit new feedback directly from Settings page (no floating button needed)
+  - Priority assignment when approving feedback
+
+### Fixed
+- **Daily digest email sent multiple times**
+  - Fixed race condition when service restarts during catchup window
+  - Digest now marked as sent before actual sending to prevent duplicates
+  - Catchup window dynamically follows configured digest time
+
+## [1.17.0] - 2026-01-13
+
+### Added
+- **Multi-day events support**
+  - Events can now span multiple days (e.g., vacations, trips, conferences)
+  - Toggle "Multi-day event" checkbox when creating an event
+  - Set start date and end date separately
+  - Multi-day events display in purple on calendar views
+  - Events show on each day they span with visual indicators
+  - Month view shows arrows (→ and ↳) to indicate continuing events
+  - Week view shows rounded corners on start/end days only
+
+## [1.16.0] - 2026-01-13
+
+### Added
+- **Customer feedback system for user testing**
+  - Toggle feedback collection on/off from Dev Tracker page
+  - Floating feedback button appears on production when enabled
+  - Users can submit feature requests, bug reports, and improvements
+  - Pull feedback from production into dev tracker with one click
+  - Submitted feedback marked as "[User Feedback]" in dev tracker
+
+### Changed
+- **Light mode now has a "foresty" green theme**
+  - Background colors shifted from warm cream to soft sage/moss tones
+  - Borders, inputs, and navigation elements now have green tints
+  - Scrollbars and form controls match the forest aesthetic
+  - Creates a more nature-inspired, agricultural feel
+
+### Fixed
+- **Weather widget colors now theme-aware**
+  - Hot weather shows warm/red backgrounds in light mode
+  - Cold weather shows blue/cyan backgrounds in light mode
+  - Sun icon is yellow, rain is blue, clouds are gray
+
+## [1.15.5] - 2026-01-13
+
+### Changed
+- **Light mode now has a "foresty" green theme**
+  - Background colors shifted from warm cream to soft sage/moss tones
+  - Borders, inputs, and navigation elements now have green tints
+  - Scrollbars and form controls match the forest aesthetic
+  - Creates a more nature-inspired, agricultural feel
+
+## [1.15.4] - 2026-01-13
+
+### Changed
+- **Weather widget now has color-coded temperatures**
+  - Main temperature display colored by temperature range (blue=cold to red=hot)
+  - High/low temps, feels-like, and forecast all use temperature colors
+  - Widget background changes based on conditions (hot, cold, rainy)
+  - Humidity colored by level (amber=dry, blue=humid)
+  - Wind speed colored when high (amber >15mph, red >25mph)
+  - Rain amount colored by inches received
+  - More descriptive condition text (Extreme Heat, Freezing, etc.)
+
+## [1.15.3] - 2026-01-13
+
+### Added
+- **Automated dependency security scanning**
+  - Deploy scripts now run `pip-audit` for Python dependencies
+  - Deploy scripts now run `npm audit` for Node dependencies
+  - Warnings shown but don't block deployment
+
+## [1.15.2] - 2026-01-13
+
+### Security
+- **Session tokens now hashed in database**
+  - Session tokens are stored as SHA-256 hashes, not plaintext
+  - If database is compromised, attacker cannot steal active sessions
+  - Existing sessions are automatically migrated on startup
+  - No user action required - sessions remain valid
+
+## [1.15.1] - 2026-01-13
+
+### Fixed
+- **Worker tasks no longer appear on Dashboard, Calendar, or ToDo pages**
+  - Tasks assigned to workers now only appear on the Worker Tasks page
+  - Prevents worker-specific tasks from cluttering main views
+  - Affects task lists, calendar views, stats counts, and backlog
+
+## [1.15.0] - 2026-01-13
+
+### Security
+- **Encrypted storage for sensitive settings**
+  - API keys, passwords, and tokens are now encrypted at rest in the database
+  - Encrypted settings: SMTP password, CalDAV password, AWN API keys, Cloudflare token
+  - Uses Fernet symmetric encryption with environment-based key
+  - Existing plaintext values are automatically encrypted on first startup
+
+### Added
+- **Percentage input mode for split expenses**
+  - When using "Custom Amounts" in split expense modal, can now toggle between $ and %
+  - Enter percentages and see calculated dollar amounts in real-time
+  - Validates that percentages add up to 100%
+
+## [1.14.5] - 2026-01-13
+
+### Fixed
+- **Farm area location badge now shows for all linked tasks**
+  - Tasks created from Farm Area page now show location badge on Dashboard, ToDo, Calendar
+  - Previously hidden when task category was "Home Maintenance"
+
+## [1.14.4] - 2026-01-13
+
+### Changed
+- **Feeding widget display order**
+  - Reordered to: Name · Color+Type · Location · Feed info
+  - Example: "Duke · Black Dog · House · 1/4th Scoop Dog Food Once daily"
+  - More natural reading flow matching spoken language
+
+## [1.14.3] - 2026-01-13
+
+### Fixed
+- **Touchscreen time picker defaulting to midnight**
+  - Added "All day (no specific time)" checkbox to ToDo form
+  - Time field now hidden by default, only shown when checkbox unchecked
+  - Prevents touchscreen time pickers from accidentally setting 00:00
+  - Matches EventModal behavior for consistency
+
+### Security
+- **Seeds router authentication**
+  - Added authentication to create/update/delete seed endpoints (was missing)
+  - Changed permission denied error message to not disclose internal categories
+
+### Changed
+- **Improved error handling for kiosk users**
+  - Kiosk users now have full editor-like permissions (create, edit, delete)
+  - Error messages no longer disclose internal permission categories
+
+## [1.14.2] - 2026-01-13
+
+### Fixed
+- **Comprehensive button text visibility audit**
+  - Added explicit text-white to ALL colored buttons across all pages
+  - Fixed Calendar event borders and text readability
+  - Fixed Worker Tasks buttons (Assign, Block, Save Note, Approve, Deny)
+  - Fixed buttons in Settings (Invite, Add Role, Test Email, Test Sync)
+  - Fixed buttons in Plants, Seeds, Animals, Equipment, Vehicles, Farm Areas, etc.
+
+### Changed
+- Theme switching now triggers hard page reload to ensure all CSS changes apply
+- Floating keyboard button for touchscreen devices
+
+## [1.14.1] - 2026-01-13
+
+### Fixed
+- **Light mode readability improvements**
+  - Fixed unreadable labels in Seeds, Plants, and Animals pages (Name, Category, etc.)
+  - "No" values now display in red instead of invisible gray for semantic meaning (Yes=green, No=red)
+  - Field containers (bg-gray-900/30) now properly visible in light mode
+  - Sun/Moon widget colors updated to use theme tokens
+  - Worker Tasks empty state backgrounds now consistent with rest of page
+  - User Management badges (Pending Invite, Kiosk, Farm Hand) now readable with white text
+  - All priority indicators in task list use proper theme tokens
+  - Location and equipment badges use proper badge styling
+  - UV index warning badge properly themed
+  - Removed all remaining hardcoded rgba() and hex colors from components
+
+## [1.14.0] - 2026-01-13
+
+### Added
+- **Professional Design Token System**
+  - Complete semantic token system for colors, borders, shadows, and spacing
+  - Separate tokens.css file as single source of truth for all colors
+  - 100+ design tokens covering all UI elements
+  - Natural, earthy color palette: "Sunlit Field" (Light) & "Moonlit Farm" (Dark)
+
+### Changed
+- **Complete Theme Refactor**
+  - Light Mode: Warm sage/cream backgrounds (#F4F6EE) with dark green text (#243024)
+  - Dark Mode: Deep forest backgrounds (#141A16) with warm white text (#E8EDE9)
+  - All status colors use semantic tokens (success, warning, error, info)
+  - Badges and chips now use solid backgrounds with white text for maximum readability
+  - Primary green ramp: #1F3A28 to #D4E6D8
+  - Gold accent ramp for highlights
+  - Teal accent ramp for secondary elements
+  - Improved WCAG AA contrast compliance
+
+### Fixed
+- Flash of unstyled content prevented with inline theme init script
+- Theme now respects system preference (prefers-color-scheme) when no localStorage setting
+- All hardcoded hex colors replaced with CSS variables
+- Form inputs, buttons, badges consistent across all pages
+
+## [1.13.1] - 2026-01-13
+
+### Fixed
+- **Improved badge/tag readability in light mode**
+  - All colored badges (plant tags, status labels, etc.) now have solid backgrounds
+  - White text on darker badge backgrounds for maximum contrast
+  - Consistent styling across Plants, Seeds, Animals, ToDo, Calendar, Settings pages
+  - Dark mode badges also improved with more solid backgrounds
+
+## [1.13.0] - 2026-01-13
+
+### Changed
+- **Complete theme overhaul: "Sunlit Field" (Light) & "Moonlit Farm" (Dark)**
+  - Dark mode: Night Soil background (#1E211C) with Bone White text
+  - Light mode: Warm Off-White background (#F6F5F1) with Rich Soil text
+  - Sage Green (#8FB996) / Deep Olive (#4E6F52) primary accents
+  - Harvest Gold / Dried Corn accent colors for highlights
+  - Status colors: Fresh Sprout (success), Amber Grain (warning), Rust Clay (error), Cool River (info)
+  - Button glow effects in dark mode for better visual feedback
+  - All widgets, cards, and components use CSS variables for consistent theming
+  - Improved contrast and readability across all pages
+  - Custom scrollbar styling matches each theme
+
+## [1.12.5] - 2026-01-13
+
+### Changed
+- Dashboard now uses smart data refresh instead of full page reload
+  - Auto-refresh updates widget data without reloading the entire page
+  - Smoother experience on kiosk displays
+  - Weather forecast also refreshes on the interval
+
+## [1.12.4] - 2026-01-13
+
+### Added
+- Dark/Light mode theme toggle in Settings > Display Settings
+  - Switch between dark (default) and light color scheme
+  - Theme persists across sessions via localStorage
+  - Instant preview when toggling
+
+## [1.12.3] - 2026-01-13
+
+### Fixed
+- Daily digest email now catches up if service restarts after scheduled time
+  - If service starts after digest time (before noon), sends digest within 30 seconds
+- Cold protection email logic corrected
+  - Now properly alerts when forecast low is within buffer of plant's minimum temperature
+  - Added clearer logging with threshold temperature
+
+## [1.12.2] - 2026-01-13
+
+### Added
+- On-screen keyboard button for kiosk/touch displays
+  - Toggle in Settings > Display Settings > On-Screen Keyboard Button
+  - Shows keyboard icon in nav bar that toggles onboard keyboard
+
+## [1.12.1] - 2026-01-13
+
+### Fixed
+- Expense split UX improved
+  - Initial animal now shown prominently with their allocation (remainder)
+  - Percentage auto-calculates as you add other animals
+  - Add Expense button no longer incorrectly disabled
+
+## [1.12.0] - 2026-01-13
+
+### Added
+- Enhanced expense management for animals
+  - Inline expense splitting when adding expense from animal card
+  - "Add Animal" button to split expense across multiple animals with percent or dollar amounts
+  - View all expenses for an animal with edit and delete capabilities
+  - CSV export for individual animal expenses or all animal expenses
+  - "Export All" button exports combined expense report for all animals
+- Expense list modal shows total, type, date, description, and vendor for each expense
+- Backend API endpoints for expense update, delete, and CSV export
+
+## [1.11.2] - 2026-01-13
+
+### Fixed
+- CalDAV sync incorrectly marking future tasks as completed
+  - Phone completion now only applies to tasks due today or earlier
+  - Prevents accidental completion of tomorrow's tasks from stale calendar data
+- Calendar sync now runs every 10 minutes instead of once at 2am
+  - Much faster sync between phone and webapp
+
+## [1.11.1] - 2026-01-13
+
+### Fixed
+- Auto-reminder system creating duplicate tasks for completed maintenance items
+  - Completed tasks now properly tracked to prevent re-creation
+  - Cleaned up existing duplicate tasks in database
+
+## [1.11.0] - 2026-01-12
+
+### Added
+- Split expense feature for animals
+  - New "Split Expense" button on Animals page
+  - Create expenses shared across multiple animals (e.g., feed for 4 cows)
+  - Two split modes: Equal split or custom amounts per animal
+  - Visual validation shows remaining amount to allocate
+  - Each animal's expense records are linked by expense_group_id for tracking
+
+## [1.10.14] - 2026-01-12
+
+### Fixed
+- Invite form now shows all available roles
+  - Role dropdown dynamically populated from database roles instead of hardcoded options
+  - Removed legacy farmhand checkbox (farmhand is now a proper role)
+
+## [1.10.13] - 2026-01-12
+
+### Fixed
+- Fix accept-invite Internal Server Error
+  - Incorrect log_audit call signature in accept_invitation endpoint
+
+## [1.10.12] - 2026-01-12
+
+### Fixed
+- Fix Cloudflare tunnel API access denied error
+  - Middleware was incorrectly using forwarded IP headers instead of socket IP
+  - Now properly trusts localhost connections from nginx/cloudflared
+  - Follows least privilege: only localhost and local network allowed
+
+## [1.10.11] - 2026-01-12
+
+### Fixed
+- Fix resend invite button not showing for pending invitations
+  - User list API wasn't returning `invitation_token` status
+- Fix Cloudflare tunnel redirect loop causing accept-invite page to fail
+  - Updated nginx to serve directly on port 80 for cloudflared tunnel traffic
+
+## [1.10.10] - 2026-01-12
+
+### Fixed
+- Fix Cloudflare Access OTP emails not being sent for invited users
+  - Cloudflare requires each email as a separate policy rule, not comma-separated
+  - Updated add/remove email functions to use correct API format
+
+## [1.10.9] - 2026-01-12
+
+### Fixed
+- Fix home/farm maintenance tasks not appearing on dashboard/calendar
+  - Fixed FarmAreaMaintenance attribute name bug (`next_due_date` → `next_due`)
+  - Auto-reminder sync was silently failing due to this error
+
+## [1.10.8] - 2026-01-12
+
+### Fixed
+- Fix permission denied errors for animal operations (feeds, expenses, care schedules)
+  - Changed permission category from "livestock" to "animals" to match role definitions
+  - Affects create, edit, delete, and interact actions on animal-related endpoints
+
+## [1.10.7] - 2026-01-12
+
+### Fixed
+- Fix animal edits not saving (e.g., special instructions for feeding)
+  - API was missing `updated_at` field in response
+  - Frontend couldn't detect changes to refresh edit data
+
+## [1.10.6] - 2026-01-12
+
+### Fixed
+- Fix duplicate tasks when completing grouped care reminders (e.g., hoof trimming)
+  - Completing a care task now cleans up any duplicate tasks with same notes
+  - Auto-reminder sync now handles and removes existing duplicates
+  - Changed notes matching from `contains` to exact match to prevent false matches
+  - Clear `manual_due_date` on completion so next due date calculates correctly
+
+## [1.10.5] - 2026-01-12
+
+### Fixed
+- Fix page freeze when selecting "Link to" in worker task creation modal
+  - Entity linking section is now hidden for worker tasks (not needed)
+  - No longer fetches all entities (plants, animals, etc.) for worker task modal
+- Fix supply requests disappearing when marked as "Purchased"
+  - Purchased items now remain visible in active list
+  - Only Delivered and Denied requests are hidden by default
+- Fix Dev Tracker COLLAB option not saving when creating new items
+- Fix completed tasks not showing in today's schedule
+  - Tasks completed today now show regardless of original due date
+
+### Changed
+- Sunrise/sunset times now show civil twilight (when you can see outside)
+  - Previously showed astronomical sunrise/sunset which was ~25 min earlier/later
+
+## [1.10.4] - 2026-01-12
+
+### Added
+- Task reminders now email assigned workers and system users
+  - Workers with email addresses receive reminder alerts for their assigned tasks
+  - System users can now be assigned to tasks (not just workers)
+  - Assignment dropdown groups Workers and System Users with email addresses
+  - Emails sent based on task reminder_alerts settings
+- Supply request workflow improvements
+  - Can now move items back to previous status (e.g., Delivered → Purchased)
+  - Reopen button for denied requests
+  - Edit and Delete buttons now available for all statuses including Delivered/Denied
+
+## [1.10.3] - 2026-01-12
+
+### Fixed
+- Fix page freeze when selecting "Link to" dropdown in task creation modal
+  - Added loading state while entity data (animals, plants, etc.) is being fetched
+  - Added Array.isArray checks to prevent errors if API returns unexpected data
+  - Entity dropdowns now disabled during loading to prevent race conditions
+
+### Added
+- COLLAB option in Dev Tracker for items requiring interactive collaboration
+  - Users icon button in add form to mark new items as requiring collab
+  - Toggle button on each item to quickly enable/disable collab
+  - Collab toggle in edit mode when modifying item title
+- Supply request workflow management in Worker Tasks
+  - Pending requests: Approve or Deny buttons
+  - Approved requests: Mark Purchased button
+  - Purchased requests: Mark Delivered button
+  - Edit button for modifying request details (non-terminal statuses)
+
+## [1.10.2] - 2026-01-12
+
+### Fixed
+- Fix "Assign Existing" button in Worker Tasks page not showing available tasks
+  - Route ordering issue was causing `/assignable-tasks/` to be matched as `/{worker_id}/`
+- Supply requests now hide when marked as "Purchased" (in addition to Delivered/Denied)
+  - Changed filter label to "Show completed" for clarity
+
+### Added
+- Worker notes on tasks
+  - Workers can add progress notes to tasks without completing them
+  - Purple "Add Note" / "Edit Note" button in task actions
+  - Notes display with purple styling in task details
+- Task in-progress tracking for workers
+  - Start button to mark task as in-progress
+  - Revert button to reset task back to not-started
+  - IN PROGRESS and BLOCKED status tags show in collapsed task cards
+  - Worker notes preview shown in collapsed view
+- Quick-complete checkbox for worker tasks
+  - Click the circle next to a task to instantly complete it
+  - Similar behavior to ToDo page checkboxes
+- Edit and uncomplete actions for completed worker tasks
+  - Expand a completed task to see "Mark Incomplete" and "Edit" buttons
+  - Allows reverting accidental completions
+
+### Changed
+- Moved "Workers" nav item to appear after Calendar in the navigation bar
+
+## [1.10.1] - 2026-01-12
+
+### Fixed
+- Calendar push notifications now use default reminder alerts
+  - Tasks without explicit reminder_alerts now fall back to `default_reminder_alerts` setting
+  - Fixes missing iOS/phone push notifications for calendar events
+
+## [1.10.0] - 2026-01-11
+
+### Added
+- Worker supply request feature
+  - Workers can request supplies/items they need (cleaning supplies, tools, etc.)
+  - Toggle between Tasks and Supply Requests views on Worker Tasks page
+  - Status tracking: Pending, Approved, Purchased, Delivered, Denied
+  - Workers can add notes to explain what they need
+  - Homeowner can respond with admin notes
+
+## [1.9.1] - 2026-01-11
+
+### Added
+- Worker assignment available across all task creation
+  - Assign tasks to workers from EventModal (Calendar, Dashboard)
+  - Assign tasks to workers from ToDo page
+  - Worker Tasks page now uses standard EventModal for consistent task creation
+  - All task creation forms include "Assign to Worker" dropdown when workers exist
+
+### Changed
+- Worker Tasks page improvements
+  - Edit button added to worker tasks
+  - Simplified form hides irrelevant options (alerts, farmhand visibility) for worker tasks
+  - Uses standard EventModal for full feature consistency (notes, categories, etc.)
+
+## [1.9.0] - 2026-01-11
+
+### Added
+- Worker Tasks page for managing external workers (maids, contractors, farm hands)
+  - Tab-based UI to switch between workers
+  - Assign tasks to workers without requiring user accounts
+  - Workers can mark tasks as "Complete" with optional notes
+  - Workers can mark tasks as "Cannot Complete" with required reason
+  - Task blocking system with clear block status display
+  - Enable via Settings > Display > Worker Tasks Page toggle
+
+## [1.8.2] - 2026-01-11
+
+### Fixed
+- New user accounts unable to login
+  - Expiration date was being set when left blank (should be null)
+  - Affected farmhand and regular user creation
+- Auth timestamps now use configured timezone instead of UTC
+  - Session expiry, login times, invitation expiry all use settings timezone
+
+## [1.8.1] - 2026-01-11
+
+### Added
+- Resend invitation button for pending user invites
+  - "Pending Invite" badge shown for users who haven't accepted yet
+  - Resend button generates new token and extends expiration
+  - Available in Settings > User Management
+
+## [1.8.0] - 2026-01-11
+
+### Added
+- Cloudflare Access integration for user invitations
+  - When inviting users via email, automatically add them to Cloudflare Access policy
+  - Settings for API token, account ID, and app ID in Settings > Cloudflare Access
+  - Users can access the accept-invite link without manual Cloudflare configuration
+
+### Security
+- Settings endpoint now requires authentication
+  - Previously exposed all settings (with masked passwords) to unauthenticated users
+  - Settings are only fetched when user is logged in
+
+## [1.7.1] - 2026-01-11
+
+### Fixed
+- Email invitations sending duplicate emails
+  - Added guard to prevent double form submission
+
+## [1.7.0] - 2026-01-11
+
+### Added
+- User email invitations
+  - Invite users via email instead of creating accounts directly
+  - Invited users choose their own username and password
+  - Invitation emails include accept link with 48-hour expiry
+  - Available in Settings > User Management > "Invite via Email"
+
+## [1.6.1] - 2026-01-11
+
+### Fixed
+- Tasks with past due_time now show as overdue
+  - Previously only checked due_date, ignored due_time
+  - "Feed animals at 9am" now shows overdue if it's past 9am
+  - Affects Dashboard, ToDo page, and TaskList component
+
+## [1.6.0] - 2026-01-11
+
+### Added
+- Farm hand user accounts
+  - Create user accounts with limited dashboard access
+  - Farm hands only see tasks marked "visible to farm hands"
+  - No access to backlog section
+  - Account expiration: set date/time when account auto-disables
+- "Visible to farm hands" checkbox on all events and reminders
+  - Toggle per task to control farm hand visibility
+
+## [1.5.1] - 2026-01-11
+
+### Fixed
+- Daily digest now shows correct rain chance percentage
+  - Was always showing 0% even when rain was forecast
+  - Now extracts precipitation probability from NWS API
+
+## [1.5.0] - 2026-01-10
+
+### Added
+- Per-reminder alert intervals
+  - Set alert times when creating/editing events and reminders
+  - Intervals match iOS calendar: 5/10/15/30 min, 1/2 hrs, 1/2 days, 1 week
+  - Select multiple intervals per reminder
+  - Alerts sync to CalDAV as VALARM for native phone notifications
+  - Also triggers email alerts at selected times
+
+## [1.4.11] - 2026-01-10
+
+### Fixed
+- Sunrise/sunset times now accurate (was off by 3-12 minutes)
+  - Replaced manual formula with astral library
+  - Includes proper Equation of Time and atmospheric refraction corrections
+  - Times now match timeanddate.com and NOAA calculations
+
+## [1.4.10] - 2026-01-10
+
+### Fixed
+- Dev Tracker delete now works on mobile
+  - Replaced browser `confirm()` dialog with proper modal
+  - `confirm()` can fail silently on mobile browsers
+- Dev Tracker action buttons now visible on mobile
+  - Edit, delete, move buttons previously hidden (required hover)
+  - Buttons visible by default on mobile, hover-reveal on desktop
+
+## [1.4.9] - 2026-01-10
+
+### Fixed
+- 24hr time format now respects user setting on all pages
+  - Fixed Animals, FarmAreas, Equipment, and Vehicles pages
+  - Due times now use formatTime helper consistently
+
+## [1.4.8] - 2026-01-09
+
+### Added
+- Linked location badges now shown in ToDo and Calendar pages
+  - Purple badge with MapPin icon shows farm area/home maintenance area
+  - Orange badge with Wrench icon shows linked vehicle/equipment
+  - Consistent display across Dashboard, ToDo, and Calendar
+
+## [1.4.7] - 2026-01-09
+
+### Fixed
+- Dashboard no longer shows completed tasks from past days
+  - Only shows today's active tasks and today's completed tasks
+- Mobile nav bar no longer cut off on phones with notches
+  - Added safe-area support for modern devices
+  - Fixed dropdown menu positioning when dev banner is shown
+
+## [1.4.6] - 2026-01-08
+
+### Changed
+- User icon in sidebar now prompts for confirmation before logging out
+  - Prevents accidental logout from mis-clicks
+
+## [1.4.5] - 2026-01-08
+
+### Added
+- Timezone setting now available in Settings > Location Settings
+  - Database-configurable timezone for all date/time calculations
+  - Default: America/New_York
+- Audit logging for critical security operations
+  - Logs: login, logout, failed login, password change, user create/delete
+  - Records IP address, user agent, timestamp, and details
+  - Admin-only endpoint: GET /api/auth/audit-logs
+- Pagination added to all major list endpoints
+  - Default limit: 500, max: 1000 (prevents DoS from large responses)
+  - Endpoints: plants, animals, tasks, equipment, vehicles, home maintenance
+- Rate limiting now persisted to database
+  - Survives backend restarts (prevents lockout bypass via restart)
+  - LoginAttempt table tracks failed attempts with IP and timestamp
+
+### Security
+- Auth tokens moved from localStorage to HttpOnly cookies only
+  - Prevents XSS attacks from stealing authentication tokens
+  - Frontend no longer stores or sends tokens via JavaScript
+  - Cookies sent automatically with `withCredentials: true`
+- Fixed file permissions on Pi
+  - Database files: 600 (owner read/write only)
+  - Log files: 640 (owner read/write, group read)
+  - Backup files: 600/640
+  - Removed duplicate sudoers config
+- Removed legacy SHA-256 password hash support
+  - Only bcrypt hashes are now accepted (more secure)
+- Added security headers via nginx
+  - HSTS (Strict-Transport-Security)
+  - Content-Security-Policy (CSP)
+  - X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
+  - Referrer-Policy
+- Fixed CalDAV/iCal property injection vulnerability
+  - User input in event titles/descriptions/locations now sanitized
+  - Prevents injection of malicious iCalendar properties via crafted text
+
+## [1.4.4] - 2026-01-08
+
+### Fixed
+- Daily digest no longer shows past EVENTs as "overdue"
+  - Only TODOs/reminders can be overdue, not calendar events
+  - Past events are excluded from digest (they just happened, not "overdue")
+
+## [1.4.3] - 2026-01-08
+
+### Fixed
+- Settings page time fields now use native time picker
+  - Prevents validation errors from incorrect time formats (e.g., "6:30 AM")
+  - Daily digest time setting now has proper HH:MM input
+
+## [1.4.2] - 2026-01-08
+
+### Fixed
+- Daily digest no longer shows backlog items as "due today"
+  - Added missing `is_backlog` column to database
+- Sun/moon widget now shows accurate "first light" (civil dawn) time
+  - First light = when sky starts to lighten (~30 min before sunrise)
+  - Addresses user confusion about seeing light before listed sunrise time
+
+### Security
+- Password change now invalidates all other sessions (keeps current session active)
+  - Prevents compromised sessions from remaining active after password change
+- Reduced session expiry from 30 days to 7 days for improved security
+
+## [1.4.1] - 2026-01-08
+
+### Added
+- Dev Tracker: Verified items grouped by day with collapsible sections
+  - Today's items expanded by default, older days collapsed
+  - Items auto-archived after 30 days (kept in metrics)
+- Dev Tracker: Productivity metrics section
+  - Completed today/week/month counts
+  - Average items per day
+  - Breakdown by priority level
+
+### Changed
+- User icon in sidebar now triggers logout on click (streamlined navigation)
+- Dashboard widgets now use natural sizing (no forced expansion to fill space)
+- Weather widget forecast section proportionally sized with other weather data
+
+### Fixed
+- "Last: in about X hours" showing future time for past completions (UTC vs local time bug)
+  - Maintenance completion timestamps now use local timezone
+- Dashboard backlog auto-collapses only when page would need scrolling (not always collapsed)
+- Dashboard layout no longer creates excessive empty space between widgets
+
+## [1.3.0] - 2026-01-07
+
+### Added
+- Sunrise/sunset/moon phase widget on Dashboard
+  - Shows sunrise and sunset times
+  - Countdown to sunrise/sunset with civil twilight offset (+30 min)
+  - Moon phase with emoji and illumination percentage label
+  - Daytime/nighttime indicator
+- Home Maintenance page revamp
+  - Tasks now grouped by Area/Appliance (Pool, A/C Unit, Water Heater, etc.) instead of category
+  - Category shown as secondary tag on each task
+  - Area icons and colors for visual distinction
+  - Auto-complete suggestions for common areas
+  - Collapsible sections with overdue/due soon badges
+- Custom frequency for Home Maintenance tasks (every X days)
+- "Add to Backlog" checkbox in ToDo inline creation form
+- Bulk Animal Care: due time and one-time option
+- "Pull from Production" button in Settings (dev instance only)
+  - Copies production database to dev for testing with real data
+  - Automatically clears alerts_sent and sync_uid to prevent duplicates
+- Desktop sidebar navigation redesign
+  - Compact left sidebar with collapsible section for Dev Tracker, Settings, and User
+  - User icon displays username and triggers logout on click
+  - Reduced nav bar footprint while keeping all functionality accessible
+- Weather widget forecast now scales to fill available space
+
+### Fixed
+- 24hr time format not working on Dashboard (Settings button called wrong function)
+- Alert time bugs:
+  - Tasks with specific due_time now alert at that exact time
+  - Tasks without due_time no longer send hourly alerts
+- Daily digest bugs:
+  - Backlog items excluded from "due today" section
+  - Yesterday's events excluded from digest
+- Plant import popup now shows correct sources with hyperlinks (pfaf.org, gardenia.net, growables.org)
+- Edit button added for linked reminders on Farm Areas page
+
 ## [1.2.1] - 2026-01-06
 
 ### Security

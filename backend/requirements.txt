@@ -27,6 +27,7 @@ caldav==1.4.0
 # Date/Time handling
 python-dateutil==2.9.0
 pytz==2024.2
+astral==3.2  # Accurate sunrise/sunset/twilight calculations
 
 # Environment/Config
 python-dotenv==1.0.1
@@ -39,6 +40,7 @@ lxml==5.3.0
 
 # Security
 passlib[bcrypt]==1.7.4
+cryptography==44.0.0
 
 # Utilities
 loguru==0.7.3

@@ -3,6 +3,7 @@ import { Fence, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Leaf, PawPrint, 
 import { getFarmAreas, getFarmArea, createFarmArea, updateFarmArea, deleteFarmArea, getFarmAreaMaintenance, createFarmAreaMaintenance, updateFarmAreaMaintenance, completeFarmAreaMaintenance, deleteFarmAreaMaintenance, getFarmAreaTypes, getTasksByEntity, completeTask, deleteTask } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 import EventModal from '../components/EventModal'
+import { useSettings } from '../contexts/SettingsContext'
 
 const TYPE_ICONS = {
   // Buildings
@@ -54,6 +55,7 @@ const TYPE_ICONS = {
 }
 
 function FarmAreas() {
+  const { formatTime } = useSettings()
   const [areas, setAreas] = useState([])
   const [areaTypes, setAreaTypes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -68,6 +70,7 @@ function FarmAreas() {
   const [completeModal, setCompleteModal] = useState(null)
   const [showReminderFor, setShowReminderFor] = useState(null)
   const [linkedTasks, setLinkedTasks] = useState({})
+  const [editingLinkedTask, setEditingLinkedTask] = useState(null) // { task, areaId }
 
   const [formData, setFormData] = useState({
     name: '',
@@ -92,6 +95,7 @@ function FarmAreas() {
     seasonal: false,
     active_months: '',
     notes: '',
+    reminder_alerts: null,
   })
 
   const [completeData, setCompleteData] = useState({
@@ -204,7 +208,7 @@ function FarmAreas() {
       }
       setShowAddMaintenance(null)
       setEditingMaintenance(null)
-      setMaintFormData({ name: '', frequency_days: 30, frequency_label: 'Monthly', last_completed: '', manual_due_date: '', seasonal: false, active_months: '', notes: '' })
+      setMaintFormData({ name: '', frequency_days: 30, frequency_label: 'Monthly', last_completed: '', manual_due_date: '', seasonal: false, active_months: '', notes: '', reminder_alerts: null })
       fetchAreaDetails(areaId)
       fetchData()
     } catch (err) {
@@ -223,6 +227,7 @@ function FarmAreas() {
       seasonal: task.seasonal || false,
       active_months: task.active_months || '',
       notes: task.notes || '',
+      reminder_alerts: task.reminder_alerts || null,
     })
     setShowAddMaintenance(areaId)
   }
@@ -323,7 +328,7 @@ function FarmAreas() {
         </div>
         <button
           onClick={() => { setShowAddForm(true); setEditingArea(null); resetForm(); }}
-          className="flex items-center gap-2 px-4 py-2 bg-farm-green rounded-lg hover:bg-farm-green-light"
+          className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
         >
           <Plus className="w-5 h-5" />
           Add Area
@@ -539,18 +544,27 @@ function FarmAreas() {
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
                               {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'No due date'}
-                              {task.due_time && ` at ${task.due_time}`}
+                              {task.due_time && ` at ${formatTime(task.due_time)}`}
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
                             {!task.is_completed && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleCompleteLinkedTask(task.id, area.id); }}
-                                className="p-1 text-green-400 hover:bg-green-400/20 rounded"
-                                title="Complete"
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
+                              <>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setEditingLinkedTask({ task, areaId: area.id }); }}
+                                  className="p-1 text-blue-400 hover:bg-blue-400/20 rounded"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleCompleteLinkedTask(task.id, area.id); }}
+                                  className="p-1 text-green-400 hover:bg-green-400/20 rounded"
+                                  title="Complete"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                              </>
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); handleDeleteLinkedTask(task.id, area.id); }}
@@ -708,7 +722,7 @@ function FarmAreas() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-farm-green rounded-lg hover:bg-farm-green-light"
+                  className="flex-1 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
                 >
                   {editingArea ? 'Update' : 'Add'}
                 </button>
@@ -801,17 +815,57 @@ function FarmAreas() {
                   />
                 </div>
               )}
+              {/* Alerts Section */}
+              <div className="space-y-2 pt-3 border-t border-gray-700">
+                <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 0, label: 'At time' },
+                    { value: 5, label: '5 min' },
+                    { value: 10, label: '10 min' },
+                    { value: 15, label: '15 min' },
+                    { value: 30, label: '30 min' },
+                    { value: 60, label: '1 hr' },
+                    { value: 120, label: '2 hrs' },
+                    { value: 1440, label: '1 day' },
+                    { value: 2880, label: '2 days' },
+                    { value: 10080, label: '1 week' },
+                  ].map(opt => {
+                    const isSelected = (maintFormData.reminder_alerts || []).includes(opt.value)
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          const current = maintFormData.reminder_alerts || []
+                          const newAlerts = isSelected
+                            ? current.filter(v => v !== opt.value)
+                            : [...current, opt.value].sort((a, b) => b - a)
+                          setMaintFormData({ ...maintFormData, reminder_alerts: newAlerts.length > 0 ? newAlerts : null })
+                        }}
+                        className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                          isSelected
+                            ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
+                            : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => { setShowAddMaintenance(null); setEditingMaintenance(null); }}
+                  onClick={() => { setShowAddMaintenance(null); setEditingMaintenance(null); setMaintFormData({ name: '', frequency_days: 30, frequency_label: 'Monthly', last_completed: '', manual_due_date: '', seasonal: false, active_months: '', notes: '', reminder_alerts: null }); }}
                   className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-farm-green rounded-lg hover:bg-farm-green-light"
+                  className="flex-1 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
                 >
                   {editingMaintenance ? 'Update' : 'Add'}
                 </button>
@@ -855,7 +909,7 @@ function FarmAreas() {
                 </button>
                 <button
                   onClick={handleComplete}
-                  className="flex-1 px-4 py-2 bg-green-600 rounded-lg hover:bg-green-500"
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500"
                 >
                   Complete
                 </button>
@@ -873,6 +927,18 @@ function FarmAreas() {
           onSaved={() => {
             fetchAreaDetails(showReminderFor.id)
             setShowReminderFor(null)
+          }}
+        />
+      )}
+
+      {/* Edit Linked Task Modal */}
+      {editingLinkedTask && (
+        <EventModal
+          editingTask={editingLinkedTask.task}
+          onClose={() => setEditingLinkedTask(null)}
+          onSaved={() => {
+            fetchAreaDetails(editingLinkedTask.areaId)
+            setEditingLinkedTask(null)
           }}
         />
       )}

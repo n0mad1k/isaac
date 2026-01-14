@@ -5,30 +5,49 @@ const API_BASE = '/api'
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 10000,
-  withCredentials: true,  // Include cookies for session auth
+  withCredentials: true,  // Include HttpOnly cookies for session auth
 })
 
-// Add auth token to requests if available
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+// No Authorization header interceptor - auth is handled by HttpOnly cookies
+// This is more secure as cookies can't be accessed by JavaScript/XSS attacks
 
-// Handle 401 responses by redirecting to login
+// Handle auth errors with better messages
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token')
+    const status = error.response?.status
+    const detail = error.response?.data?.detail
+
+    if (status === 401) {
       localStorage.removeItem('auth_user')
       // Only redirect if we're not already on the login page
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
+    } else if (status === 403) {
+      // Permission denied - create a more user-friendly error
+      const message = detail || 'You do not have permission to perform this action'
+      error.userMessage = message
+      console.warn('Permission denied:', message)
     }
+
+    // Enhance error with user-friendly message for display
+    if (!error.userMessage) {
+      if (status === 400) {
+        error.userMessage = detail || 'Invalid request. Please check your input.'
+      } else if (status === 404) {
+        error.userMessage = detail || 'The requested item was not found.'
+      } else if (status >= 500) {
+        error.userMessage = 'Server error. Please try again later.'
+      } else if (error.code === 'ECONNABORTED') {
+        error.userMessage = 'Request timed out. Please try again.'
+      } else if (!error.response) {
+        error.userMessage = 'Network error. Please check your connection.'
+      } else {
+        error.userMessage = detail || 'An error occurred. Please try again.'
+      }
+    }
+
     return Promise.reject(error)
   }
 )
@@ -91,8 +110,18 @@ export const getAnimalExpenses = (animalId, params) =>
   api.get(`/animals/${animalId}/expenses/`, { params })
 export const addAnimalExpense = (animalId, data) =>
   api.post(`/animals/${animalId}/expenses/`, data)
+export const updateAnimalExpense = (expenseId, data) =>
+  api.put(`/animals/expenses/${expenseId}/`, data)
+export const deleteAnimalExpense = (expenseId) =>
+  api.delete(`/animals/expenses/${expenseId}/`)
 export const getAnimalTotalExpenses = (animalId) =>
   api.get(`/animals/${animalId}/expenses/total/`)
+export const createSplitExpense = (data) =>
+  api.post('/animals/expenses/split/', data)
+export const exportAnimalExpenses = (animalId) =>
+  `${api.defaults.baseURL}/animals/${animalId}/expenses/export/`
+export const exportAllExpenses = () =>
+  `${api.defaults.baseURL}/animals/expenses/export/all/`
 // Category lists
 export const getPets = () => api.get('/animals/pets/list/')
 export const getLivestock = () => api.get('/animals/livestock/list/')
@@ -167,11 +196,13 @@ export const updateSetting = (key, value) => api.put(`/settings/${key}/`, { valu
 export const resetSetting = (key) => api.post(`/settings/${key}/reset/`)
 export const resetAllSettings = () => api.post('/settings/reset-all/')
 export const testColdProtectionEmail = () => api.post('/settings/test-cold-protection-email/')
-export const testCalendarSync = () => api.post('/settings/test-calendar-sync/')
-export const syncCalendar = () => api.post('/settings/sync-calendar/')
+export const testCalendarSync = () => api.post('/settings/test-calendar-sync/', {}, { timeout: 15000 })
+export const syncCalendar = () => api.post('/settings/sync-calendar/', {}, { timeout: 15000 }) // 15sec timeout for CalDAV connection
 export const getVersionInfo = () => api.get('/settings/version/')
+export const toggleKeyboard = () => api.post('/settings/keyboard/toggle/')
 export const updateApplication = () => api.post('/settings/update/')
 export const pushToProduction = () => api.post('/settings/push-to-prod/', {}, { timeout: 300000 }) // 5 min for build
+export const pullFromProduction = () => api.post('/settings/pull-from-prod/', {}, { timeout: 60000 }) // 1 min for db copy
 export const getRecentCommits = () => api.get('/settings/recent-commits/')
 
 // Storage
@@ -189,6 +220,7 @@ export const setHomeMaintenanceDueDate = (id, dueDate) =>
   api.put(`/home-maintenance/${id}/due-date/`, { due_date: dueDate })
 export const getHomeMaintenanceLogs = (id) => api.get(`/home-maintenance/${id}/logs/`)
 export const getHomeMaintenanceCategories = () => api.get('/home-maintenance/categories/list/')
+export const getHomeMaintenanceAreas = () => api.get('/home-maintenance/areas/list/')
 
 // Vehicles
 export const getVehicles = (params) => api.get('/vehicles/', { params })
@@ -203,13 +235,13 @@ export const getVehicleMaintenance = (vehicleId, params) =>
 export const createVehicleMaintenance = (vehicleId, data) =>
   api.post(`/vehicles/${vehicleId}/maintenance/`, data)
 export const updateVehicleMaintenance = (taskId, data) =>
-  api.put(`/vehicles/maintenance/${taskId}/`, data)
+  api.put(`/vehicles/maintenance/${taskId}`, data)
 export const deleteVehicleMaintenance = (taskId) =>
-  api.delete(`/vehicles/maintenance/${taskId}/`)
+  api.delete(`/vehicles/maintenance/${taskId}`)
 export const completeVehicleMaintenance = (taskId, data) =>
-  api.post(`/vehicles/maintenance/${taskId}/complete/`, data)
+  api.post(`/vehicles/maintenance/${taskId}/complete`, data)
 export const setVehicleMaintenanceDueDate = (taskId, dueDate) =>
-  api.put(`/vehicles/maintenance/${taskId}/due-date/`, { due_date: dueDate })
+  api.put(`/vehicles/maintenance/${taskId}/due-date`, { due_date: dueDate })
 export const getVehicleLogs = (vehicleId) => api.get(`/vehicles/${vehicleId}/logs/`)
 export const getVehicleTypes = () => api.get('/vehicles/types/list/')
 
@@ -300,6 +332,12 @@ export const deleteUser = (userId) => api.delete(`/auth/users/${userId}`)
 export const resetUserPassword = (userId, newPassword) =>
   api.post(`/auth/users/${userId}/reset-password`, { new_password: newPassword })
 
+// User Invitations (Admin only)
+export const inviteUser = (data) => api.post('/auth/invite', data)
+export const resendInvite = (userId) => api.post(`/auth/invite/${userId}/resend`)
+export const getInvitationInfo = (token) => api.get(`/auth/invitation/${token}`)
+export const acceptInvitation = (token, data) => api.post(`/auth/invitation/${token}/accept`, data)
+
 // Role Management (Admin only)
 export const getRoles = () => api.get('/auth/roles')
 export const getRole = (roleId) => api.get(`/auth/roles/${roleId}`)
@@ -307,5 +345,69 @@ export const createRole = (data) => api.post('/auth/roles', data)
 export const updateRole = (roleId, data) => api.put(`/auth/roles/${roleId}`, data)
 export const deleteRole = (roleId) => api.delete(`/auth/roles/${roleId}`)
 export const getPermissionCategories = () => api.get('/auth/permissions')
+
+// Workers
+export const getWorkers = (params) => api.get('/workers/', { params })
+export const getWorker = (id) => api.get(`/workers/${id}/`)
+export const createWorker = (data) => api.post('/workers/', data)
+export const updateWorker = (id, data) => api.patch(`/workers/${id}/`, data)
+export const deleteWorker = (id) => api.delete(`/workers/${id}/`)
+export const getWorkerTasks = (workerId, params) => api.get(`/workers/${workerId}/tasks/`, { params })
+export const completeWorkerTask = (workerId, taskId, note) =>
+  api.post(`/workers/${workerId}/tasks/${taskId}/complete/`, null, { params: { note } })
+export const uncompleteWorkerTask = (workerId, taskId) =>
+  api.post(`/workers/${workerId}/tasks/${taskId}/uncomplete/`)
+export const blockWorkerTask = (workerId, taskId, reason) =>
+  api.post(`/workers/${workerId}/tasks/${taskId}/block/`, null, { params: { reason } })
+export const unblockWorkerTask = (workerId, taskId) =>
+  api.post(`/workers/${workerId}/tasks/${taskId}/unblock/`)
+export const updateWorkerNote = (workerId, taskId, note) =>
+  api.post(`/workers/${workerId}/tasks/${taskId}/note/`, null, { params: { note } })
+export const startWorkerTask = (workerId, taskId) =>
+  api.post(`/workers/${workerId}/tasks/${taskId}/start/`)
+export const stopWorkerTask = (workerId, taskId) =>
+  api.post(`/workers/${workerId}/tasks/${taskId}/stop/`)
+export const getAssignableTasks = () => api.get('/workers/assignable-tasks/')
+export const assignTaskToWorker = (workerId, taskId) =>
+  api.post(`/workers/${workerId}/assign/${taskId}/`)
+export const unassignTaskFromWorker = (workerId, taskId) =>
+  api.post(`/workers/${workerId}/unassign/${taskId}/`)
+
+// Supply Requests
+export const getSupplyRequests = (params) => api.get('/supply-requests/', { params })
+export const getWorkerSupplyRequests = (workerId, params) =>
+  api.get(`/supply-requests/worker/${workerId}/`, { params })
+export const getPendingSupplyRequests = () => api.get('/supply-requests/pending/')
+export const createSupplyRequest = (data) => api.post('/supply-requests/', data)
+export const updateSupplyRequest = (id, data) => api.patch(`/supply-requests/${id}/`, data)
+export const deleteSupplyRequest = (id) => api.delete(`/supply-requests/${id}/`)
+
+// Dev Tracker (Dev instance only)
+export const getDevTrackerItems = (params) => api.get('/dev-tracker/', { params })
+export const getDevTrackerItem = (id) => api.get(`/dev-tracker/${id}/`)
+export const createDevTrackerItem = (data) => api.post('/dev-tracker/', data)
+export const updateDevTrackerItem = (id, data) => api.put(`/dev-tracker/${id}/`, data)
+export const deleteDevTrackerItem = (id) => api.delete(`/dev-tracker/${id}/`)
+export const seedFromChangelog = (version) => api.post('/dev-tracker/seed-from-changelog/', null, { params: { version } })
+export const getDevTrackerStats = () => api.get('/dev-tracker/stats/summary/')
+export const getDevTrackerMetrics = () => api.get('/dev-tracker/metrics/')
+
+// Customer Feedback
+export const checkFeedbackEnabled = () => api.get('/feedback/enabled/')
+export const submitFeedback = (data) => api.post('/feedback/submit/', data)
+export const getFeedbackList = (params) => api.get('/feedback/', { params })
+export const pullFeedbackToTracker = () => api.post('/feedback/pull-to-tracker/')
+export const pullFeedbackFromProd = () => api.post('/feedback/pull-from-prod/')
+export const dismissFeedback = (id) => api.delete(`/feedback/${id}/`)
+export const toggleFeedbackOnProd = (enable) =>
+  api.post('/feedback/toggle-on-prod/', null, { params: { enable } })
+export const getProdFeedbackStatus = () => api.get('/feedback/prod-status/')
+export const listProdFeedback = () => api.get('/feedback/prod-list/')
+export const reviewFeedback = (id, data) => api.post(`/feedback/review/${id}/`, data)
+
+// User feedback management (for viewing/editing own feedback)
+export const getMyFeedback = () => api.get('/feedback/my/')
+export const updateMyFeedback = (id, data) => api.put(`/feedback/my/${id}/`, data)
+export const deleteMyFeedback = (id) => api.delete(`/feedback/my/${id}/`)
 
 export default api

@@ -11,9 +11,12 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 
 from models.database import get_db
-from models.farm_areas import FarmArea, FarmAreaMaintenance, FarmAreaMaintenanceLog, FarmAreaType
+from models.farm_areas import FarmArea, FarmAreaMaintenance, FarmAreaMaintenanceLog, FarmAreaType, get_local_now
 from models.plants import Plant
 from models.livestock import Animal
+from models.tasks import Task
+from models.users import User
+from services.permissions import require_create, require_edit, require_delete, require_interact
 
 
 router = APIRouter(prefix="/farm-areas", tags=["Farm Areas"])
@@ -283,7 +286,11 @@ async def get_area(area_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/", response_model=AreaResponse)
-async def create_area(data: AreaCreate, db: AsyncSession = Depends(get_db)):
+async def create_area(
+    data: AreaCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("farm"))
+):
     """Create a new farm area"""
     area = FarmArea(**data.model_dump())
 
@@ -315,7 +322,12 @@ async def create_area(data: AreaCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/{area_id}", response_model=AreaResponse)
-async def update_area(area_id: int, data: AreaUpdate, db: AsyncSession = Depends(get_db)):
+async def update_area(
+    area_id: int,
+    data: AreaUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("farm"))
+):
     """Update a farm area"""
     result = await db.execute(
         select(FarmArea)
@@ -362,7 +374,11 @@ async def update_area(area_id: int, data: AreaUpdate, db: AsyncSession = Depends
 
 
 @router.delete("/{area_id}")
-async def delete_area(area_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_area(
+    area_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("farm"))
+):
     """Delete a farm area"""
     result = await db.execute(
         select(FarmArea).where(FarmArea.id == area_id)
@@ -426,7 +442,12 @@ async def get_area_maintenance(area_id: int, active_only: bool = True, db: Async
 
 
 @router.post("/{area_id}/maintenance", response_model=MaintenanceResponse)
-async def create_area_maintenance(area_id: int, data: MaintenanceCreate, db: AsyncSession = Depends(get_db)):
+async def create_area_maintenance(
+    area_id: int,
+    data: MaintenanceCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("farm"))
+):
     """Create maintenance task for a farm area"""
     result = await db.execute(select(FarmArea).where(FarmArea.id == area_id))
     if not result.scalar_one_or_none():
@@ -474,7 +495,12 @@ async def create_area_maintenance(area_id: int, data: MaintenanceCreate, db: Asy
 
 
 @router.put("/maintenance/{task_id}", response_model=MaintenanceResponse)
-async def update_area_maintenance(task_id: int, data: MaintenanceUpdate, db: AsyncSession = Depends(get_db)):
+async def update_area_maintenance(
+    task_id: int,
+    data: MaintenanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("farm"))
+):
     """Update a maintenance task"""
     result = await db.execute(
         select(FarmAreaMaintenance).where(FarmAreaMaintenance.id == task_id)
@@ -523,7 +549,11 @@ async def update_area_maintenance(task_id: int, data: MaintenanceUpdate, db: Asy
 
 
 @router.delete("/maintenance/{task_id}")
-async def delete_area_maintenance(task_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_area_maintenance(
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("farm"))
+):
     """Delete a maintenance task"""
     result = await db.execute(
         select(FarmAreaMaintenance).where(FarmAreaMaintenance.id == task_id)
@@ -540,7 +570,12 @@ async def delete_area_maintenance(task_id: int, db: AsyncSession = Depends(get_d
 
 
 @router.post("/maintenance/{task_id}/complete", response_model=MaintenanceResponse)
-async def complete_area_maintenance(task_id: int, data: LogCreate, db: AsyncSession = Depends(get_db)):
+async def complete_area_maintenance(
+    task_id: int,
+    data: LogCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("farm"))
+):
     """Mark maintenance as complete"""
     result = await db.execute(
         select(FarmAreaMaintenance).where(FarmAreaMaintenance.id == task_id)
@@ -550,7 +585,7 @@ async def complete_area_maintenance(task_id: int, data: LogCreate, db: AsyncSess
     if not task:
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
-    performed_at = data.performed_at or datetime.utcnow()
+    performed_at = data.performed_at or get_local_now()
 
     # Create log entry
     log = FarmAreaMaintenanceLog(
@@ -566,6 +601,16 @@ async def complete_area_maintenance(task_id: int, data: LogCreate, db: AsyncSess
     # Update task
     task.last_completed = performed_at
     task.calculate_next_due()
+
+    # Also complete the linked Task (auto-reminder) if it exists
+    linked_task_key = f"auto:farm_maint:{task_id}"
+    linked_result = await db.execute(
+        select(Task).where(Task.notes.contains(linked_task_key))
+    )
+    linked_task = linked_result.scalar_one_or_none()
+    if linked_task and not linked_task.is_completed:
+        linked_task.is_completed = True
+        linked_task.completed_at = performed_at
 
     await db.commit()
     await db.refresh(task)

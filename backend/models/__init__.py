@@ -9,12 +9,16 @@ from .livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, Animal
 from .tasks import Task, TaskCategory, TaskRecurrence
 from .weather import WeatherReading, WeatherAlert
 from .settings import AppSetting
-from .home_maintenance import HomeMaintenance, HomeMaintenanceLog, HomeMaintenanceCategory
+from .home_maintenance import HomeMaintenance, HomeMaintenanceLog, DEFAULT_CATEGORIES
 from .vehicles import Vehicle, VehicleMaintenance, VehicleMaintenanceLog, VehicleType
 from .equipment import Equipment, EquipmentMaintenance, EquipmentMaintenanceLog, EquipmentType
 from .farm_areas import FarmArea, FarmAreaMaintenance, FarmAreaMaintenanceLog, FarmAreaType
 from .production import LivestockProduction, PlantHarvest, HarvestQuality, Sale, SaleCategory
-from .users import User, Session, UserRole
+from .users import User, Session, UserRole, LoginAttempt, AuditLog, AuditAction
+from .dev_tracker import DevTrackerItem, ItemType, ItemPriority, ItemStatus
+from .workers import Worker
+from .supply_requests import SupplyRequest, RequestStatus
+from .customer_feedback import CustomerFeedback, FeedbackType, FeedbackStatus
 
 __all__ = [
     "Base",
@@ -43,7 +47,7 @@ __all__ = [
     "AppSetting",
     "HomeMaintenance",
     "HomeMaintenanceLog",
-    "HomeMaintenanceCategory",
+    "DEFAULT_CATEGORIES",
     "Vehicle",
     "VehicleMaintenance",
     "VehicleMaintenanceLog",
@@ -64,4 +68,17 @@ __all__ = [
     "User",
     "Session",
     "UserRole",
+    "LoginAttempt",
+    "AuditLog",
+    "AuditAction",
+    "DevTrackerItem",
+    "ItemType",
+    "ItemPriority",
+    "ItemStatus",
+    "Worker",
+    "SupplyRequest",
+    "RequestStatus",
+    "CustomerFeedback",
+    "FeedbackType",
+    "FeedbackStatus",
 ]

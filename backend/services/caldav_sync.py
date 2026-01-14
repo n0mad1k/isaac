@@ -128,6 +128,25 @@ class CalDAVService:
         cat_name = category_names.get(task.category.value if hasattr(task.category, 'value') else task.category, "Tasks")
         lines.append(f"CATEGORIES:{cat_name}")
 
+        # Add VALARMs for reminder_alerts
+        if task.reminder_alerts and task.due_date:
+            for minutes in task.reminder_alerts:
+                lines.append("BEGIN:VALARM")
+                lines.append("ACTION:DISPLAY")
+                lines.append(f"DESCRIPTION:Reminder: {task.title}")
+                # Convert minutes to ISO 8601 duration
+                if minutes == 0:
+                    lines.append("TRIGGER:PT0S")
+                elif minutes >= 1440 and minutes % 1440 == 0:
+                    days = minutes // 1440
+                    lines.append(f"TRIGGER:-P{days}D")
+                elif minutes >= 60 and minutes % 60 == 0:
+                    hours = minutes // 60
+                    lines.append(f"TRIGGER:-PT{hours}H")
+                else:
+                    lines.append(f"TRIGGER:-PT{minutes}M")
+                lines.append("END:VALARM")
+
         lines.extend([
             "END:VTODO",
             "END:VCALENDAR",

@@ -89,25 +89,12 @@ async def get_awn_keys_from_db(db: AsyncSession) -> Tuple[Optional[str], Optiona
     Get Ambient Weather API keys from database settings.
     Returns (api_key, app_key) tuple.
     Falls back to config file values for backwards compatibility.
+    Uses get_setting which handles decryption of encrypted values.
     """
-    api_result = await db.execute(
-        select(AppSetting).where(AppSetting.key == "awn_api_key")
-    )
-    app_result = await db.execute(
-        select(AppSetting).where(AppSetting.key == "awn_app_key")
-    )
+    from routers.settings import get_setting
 
-    api_setting = api_result.scalar_one_or_none()
-    app_setting = app_result.scalar_one_or_none()
-
-    api_key = None
-    app_key = None
-
-    # Try DB settings first
-    if api_setting and api_setting.value:
-        api_key = api_setting.value
-    if app_setting and app_setting.value:
-        app_key = app_setting.value
+    api_key = await get_setting(db, "awn_api_key")
+    app_key = await get_setting(db, "awn_app_key")
 
     # Fall back to config for backwards compatibility
     if not api_key and config_settings.awn_api_key:
@@ -184,6 +171,12 @@ class NWSForecastService:
 
             # NWS returns day/night periods, we'll pair them
             for i, period in enumerate(periods[:10]):  # 5 days (day + night)
+                # Extract precipitation probability (NWS returns as {"unitCode": "...", "value": X} or null)
+                precip_prob = period.get("probabilityOfPrecipitation")
+                rain_chance = 0
+                if precip_prob and isinstance(precip_prob, dict):
+                    rain_chance = precip_prob.get("value") or 0
+
                 forecasts.append({
                     "name": period["name"],
                     "temperature": period["temperature"],
@@ -196,6 +189,7 @@ class NWSForecastService:
                     "icon": period["icon"],
                     "start_time": period["startTime"],
                     "end_time": period["endTime"],
+                    "rain_chance": rain_chance,
                 })
 
             return forecasts
@@ -222,6 +216,7 @@ class NWSForecastService:
                 "forecast": period["short_forecast"],
                 "wind": period["wind_speed"],
                 "icon": period["icon"],
+                "rain_chance": period.get("rain_chance", 0),
             }
 
             if period["is_daytime"]:
@@ -229,6 +224,9 @@ class NWSForecastService:
                 # Check if next period is night
                 if i + 1 < len(forecasts) and not forecasts[i + 1]["is_daytime"]:
                     day_entry["low"] = forecasts[i + 1]["temperature"]
+                    # Take max rain chance from day and night periods
+                    night_rain = forecasts[i + 1].get("rain_chance", 0)
+                    day_entry["rain_chance"] = max(day_entry["rain_chance"], night_rain)
                     i += 1
             else:
                 day_entry["low"] = period["temperature"]
@@ -334,6 +332,13 @@ class WeatherService:
             "solar_radiation": data.get("solarradiation"),
             "uv_index": data.get("uv"),
             "battery_outdoor": data.get("battout"),
+            # Soil moisture sensors (soilhum1-10 are percentage values)
+            "soil_moisture_1": data.get("soilhum1"),
+            "soil_moisture_2": data.get("soilhum2"),
+            "soil_moisture_3": data.get("soilhum3"),
+            "soil_moisture_4": data.get("soilhum4"),
+            "soil_temp_1": data.get("soiltemp1f"),
+            "soil_temp_2": data.get("soiltemp2f"),
             "raw_data": json.dumps(data),
         }
 
@@ -490,6 +495,17 @@ class WeatherService:
             idx = round(reading.wind_direction / 22.5) % 16
             wind_dir_str = wind_directions[idx]
 
+        # Get soil moisture (use first available sensor)
+        soil_moisture = None
+        if reading.soil_moisture_1 is not None:
+            soil_moisture = reading.soil_moisture_1
+        elif reading.soil_moisture_2 is not None:
+            soil_moisture = reading.soil_moisture_2
+        elif reading.soil_moisture_3 is not None:
+            soil_moisture = reading.soil_moisture_3
+        elif reading.soil_moisture_4 is not None:
+            soil_moisture = reading.soil_moisture_4
+
         return {
             "temperature": reading.temp_outdoor,
             "feels_like": reading.feels_like,
@@ -501,5 +517,78 @@ class WeatherService:
             "rain_rate": reading.rain_rate,
             "uv_index": reading.uv_index,
             "pressure": reading.pressure_relative,
+            "soil_moisture": soil_moisture,
             "reading_time": reading.reading_time.isoformat() if reading.reading_time else None,
         }
+
+
+async def get_soil_moisture_status(db: AsyncSession) -> Dict[str, Any]:
+    """
+    Get current soil moisture status and whether plants should skip watering.
+    Returns dict with moisture level and skip_watering boolean.
+    """
+    # Check if soil moisture feature is enabled
+    enabled_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "awn_soil_moisture_enabled")
+    )
+    enabled_setting = enabled_result.scalar_one_or_none()
+    is_enabled = enabled_setting and enabled_setting.value == "true"
+
+    if not is_enabled:
+        return {
+            "enabled": False,
+            "moisture": None,
+            "threshold": None,
+            "skip_watering": False,
+            "message": "Soil moisture sensor not enabled"
+        }
+
+    # Get threshold
+    threshold_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "awn_soil_moisture_threshold")
+    )
+    threshold_setting = threshold_result.scalar_one_or_none()
+    threshold = 50  # default
+    if threshold_setting and threshold_setting.value:
+        try:
+            threshold = int(threshold_setting.value)
+        except ValueError:
+            pass
+
+    # Get latest weather reading with soil moisture
+    from models.weather import WeatherReading
+    result = await db.execute(
+        select(WeatherReading)
+        .where(WeatherReading.soil_moisture_1.isnot(None))
+        .order_by(desc(WeatherReading.reading_time))
+        .limit(1)
+    )
+    reading = result.scalar_one_or_none()
+
+    if not reading:
+        return {
+            "enabled": True,
+            "moisture": None,
+            "threshold": threshold,
+            "skip_watering": False,
+            "message": "No soil moisture data available"
+        }
+
+    # Use first available sensor
+    moisture = (
+        reading.soil_moisture_1 or
+        reading.soil_moisture_2 or
+        reading.soil_moisture_3 or
+        reading.soil_moisture_4
+    )
+
+    skip_watering = moisture is not None and moisture >= threshold
+
+    return {
+        "enabled": True,
+        "moisture": moisture,
+        "threshold": threshold,
+        "skip_watering": skip_watering,
+        "reading_time": reading.reading_time.isoformat() if reading.reading_time else None,
+        "message": f"Soil is {'wet enough' if skip_watering else 'dry'} ({moisture}%)"
+    }

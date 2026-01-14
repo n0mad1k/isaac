@@ -18,15 +18,17 @@ def get_local_now():
     return datetime.now(tz).replace(tzinfo=None)
 
 
-class HomeMaintenanceCategory(enum.Enum):
-    HVAC = "hvac"
-    PLUMBING = "plumbing"
-    ELECTRICAL = "electrical"
-    EXTERIOR = "exterior"
-    APPLIANCES = "appliances"
-    POOL = "pool"
-    SAFETY = "safety"
-    GENERAL = "general"
+# Default categories (kept for backwards compatibility and as suggestions)
+DEFAULT_CATEGORIES = [
+    "hvac",
+    "plumbing",
+    "electrical",
+    "exterior",
+    "appliances",
+    "pool",
+    "safety",
+    "general",
+]
 
 
 class HomeMaintenance(Base):
@@ -35,7 +37,9 @@ class HomeMaintenance(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), nullable=False)
-    category = Column(Enum(HomeMaintenanceCategory), default=HomeMaintenanceCategory.GENERAL)
+    category = Column(String(50), default="general")  # Now supports custom categories
+    area_or_appliance = Column(String(100))  # e.g., "Pool", "A/C Unit", "Dishwasher", "Garage"
+    area_icon = Column(String(50))  # Icon name: "Waves", "Wind", "Flame", etc.
     description = Column(Text)
 
     # Frequency
@@ -67,8 +71,9 @@ class HomeMaintenance(Base):
             if self.frequency_days and self.frequency_days > 0:
                 self.next_due = self.last_completed + timedelta(days=self.frequency_days)
                 self.manual_due_date = None  # Clear manual date after recurring calc
-            elif self.manual_due_date:
-                # No recurring schedule - clear manual date after completion
+            else:
+                # No day-based frequency - clear date tracking
+                # Task needs manual due date to be set again
                 self.next_due = None
                 self.manual_due_date = None
         return self.next_due

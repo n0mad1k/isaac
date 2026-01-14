@@ -14,10 +14,17 @@ import re
 
 from models.database import get_db
 from models.plants import Plant
-from models.livestock import Animal, AnimalType
+from models.livestock import Animal, AnimalType, AnimalCareSchedule
 from models.tasks import Task, TaskCategory, TaskType
 from models.weather import WeatherReading, WeatherAlert
+from models.farm_areas import FarmArea
+from models.vehicles import Vehicle
+from models.equipment import Equipment
+from models.home_maintenance import HomeMaintenance
+from models.users import User
 from services.weather import WeatherService, NWSForecastService
+from services.scheduler import get_sun_moon_data
+from routers.auth import get_current_user
 
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -50,6 +57,8 @@ class DashboardTask(BaseModel):
     due_time: Optional[str]
     end_time: Optional[str]
     location: Optional[str]
+    linked_location: Optional[str] = None  # Farm area name(s) if linked
+    linked_entity: Optional[str] = None  # Vehicle/equipment name (shown differently than location)
     is_completed: bool
     is_backlog: bool = False
 
@@ -79,8 +88,21 @@ class CalendarEvent(BaseModel):
     is_completed: bool
 
 
+class SunMoonData(BaseModel):
+    sunrise: str
+    sunset: str
+    first_light: Optional[str] = None  # Civil dawn - when sky starts to lighten
+    last_light: Optional[str] = None   # Civil dusk - when sky goes dark
+    day_length: str
+    moon_phase: str
+    moon_emoji: str
+    moon_illumination: int
+    is_daytime: bool
+
+
 class DashboardResponse(BaseModel):
     weather: Optional[DashboardWeather]
+    sun_moon: Optional[SunMoonData]
     tasks_today: List[DashboardTask]
     undated_todos: List[DashboardTask]  # Todos without a specific date
     backlog_tasks: List[DashboardTask]  # Tasks marked as backlog
@@ -90,8 +112,16 @@ class DashboardResponse(BaseModel):
 
 
 @router.get("/", response_model=DashboardResponse)
-async def get_dashboard(db: AsyncSession = Depends(get_db)):
-    """Get all dashboard data in a single request"""
+async def get_dashboard(
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
+    """Get all dashboard data in a single request.
+    For farm hand users: filters tasks to only show those marked visible_to_farmhands,
+    and excludes the backlog section.
+    """
+    # Check if current user is a farm hand
+    is_farmhand = current_user and current_user.is_farmhand
 
     # Get current weather
     weather_data = None
@@ -126,6 +156,116 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             temp_low_today=temp_low,
         )
 
+    # Pre-fetch all entities for linked location lookup
+    result = await db.execute(select(FarmArea))
+    farm_areas = {fa.id: fa.name for fa in result.scalars().all()}
+
+    result = await db.execute(select(Vehicle))
+    vehicles_list = result.scalars().all()
+    vehicles = {v.id: v.model for v in vehicles_list}  # Use just model name for display (e.g., "Gator")
+
+    result = await db.execute(select(Equipment))
+    equipment_list = result.scalars().all()
+    equipment = {e.id: e.name for e in equipment_list}
+    equipment_with_location = equipment_list  # Keep full objects for farm_area lookup
+
+    result = await db.execute(select(Animal))
+    animals_list = result.scalars().all()
+    animals = {a.id: a.name for a in animals_list}
+    animals_with_location = animals_list  # Keep full objects for farm_area lookup
+
+    result = await db.execute(select(Plant))
+    plants_list = result.scalars().all()
+    plants = {p.id: p.name for p in plants_list}
+    plants_with_location = plants_list  # Keep full objects for farm_area lookup
+
+    # Pre-fetch home maintenance for area lookup
+    result = await db.execute(select(HomeMaintenance))
+    home_maint_list = result.scalars().all()
+    home_maint = {hm.id: hm for hm in home_maint_list}
+
+    # Pre-fetch animal care schedules for care_group lookups
+    result = await db.execute(select(AnimalCareSchedule).where(AnimalCareSchedule.is_active == True))
+    care_schedules = result.scalars().all()
+
+    def get_linked_location(task):
+        """Get location(s) for task - farm areas and home maintenance areas."""
+        try:
+            # Direct farm area link - this IS a location
+            if task.farm_area_id and task.farm_area_id in farm_areas:
+                return farm_areas[task.farm_area_id]
+
+            # Check notes for special linkages
+            if task.notes:
+                # Home maintenance - parse "auto:home_maint:ID" and get area_or_appliance
+                if "auto:home_maint:" in task.notes:
+                    match = re.search(r'auto:home_maint:(\d+)', task.notes)
+                    if match:
+                        hm_id = int(match.group(1))
+                        if hm_id in home_maint:
+                            hm = home_maint[hm_id]
+                            # Return area_or_appliance if set, otherwise category
+                            if hm.area_or_appliance:
+                                return hm.area_or_appliance
+                            elif hm.category:
+                                return hm.category.title()
+
+                # Care group - parse "auto:care_group:DATE_CARENAME" and get ALL farm_areas
+                if "auto:care_group:" in task.notes:
+                    match = re.search(r'auto:care_group:(\d{4}-\d{2}-\d{2})_(.+)', task.notes)
+                    if match:
+                        care_name = match.group(2).lower().strip()
+                        # Find all animal care schedules with matching name
+                        matching_schedules = [s for s in care_schedules if s.name.lower().strip() == care_name]
+                        if matching_schedules:
+                            # Get unique farm_areas from animals in this care group
+                            farm_area_names = []
+                            seen_ids = set()
+                            for schedule in matching_schedules:
+                                animal = next((a for a in animals_with_location if a.id == schedule.animal_id), None)
+                                if animal and animal.farm_area_id and animal.farm_area_id not in seen_ids:
+                                    seen_ids.add(animal.farm_area_id)
+                                    if animal.farm_area_id in farm_areas:
+                                        farm_area_names.append(farm_areas[animal.farm_area_id])
+                            # Return all unique locations (comma-separated if multiple)
+                            if farm_area_names:
+                                return ", ".join(farm_area_names)
+
+            # Animal's location (if animal has a farm_area)
+            if task.animal_id and task.animal_id in animals:
+                animal = next((a for a in animals_with_location if a.id == task.animal_id), None)
+                if animal and animal.farm_area_id and animal.farm_area_id in farm_areas:
+                    return farm_areas[animal.farm_area_id]
+
+            # Plant's location (if plant has a farm_area)
+            if task.plant_id and task.plant_id in plants:
+                plant = next((p for p in plants_with_location if p.id == task.plant_id), None)
+                if plant and plant.farm_area_id and plant.farm_area_id in farm_areas:
+                    return farm_areas[plant.farm_area_id]
+
+            return None
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Error getting linked_location for task {task.id}: {e}")
+            return None
+
+    def get_linked_entity(task):
+        """Get linked vehicle/equipment name (shown differently from location badge)."""
+        try:
+            # Vehicle link
+            if task.vehicle_id and task.vehicle_id in vehicles:
+                return f"Vehicle: {vehicles[task.vehicle_id]}"
+
+            # Equipment link
+            if task.equipment_id and task.equipment_id in equipment:
+                return f"Equipment: {equipment[task.equipment_id]}"
+
+            return None
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Error getting linked_entity for task {task.id}: {e}")
+            return None
+
     # Get today's tasks (items due today OR overdue todos - not overdue events)
     # Also include today's completed tasks even if deactivated (auto-reminders)
     import pytz
@@ -144,10 +284,11 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
         select(Task)
         .where(
             or_(
-                # Today's active tasks (both events and todos) - exclude backlog
+                # Today's active incomplete tasks (both events and todos) - exclude backlog
                 and_(
                     Task.due_date == today,
                     Task.is_active == True,
+                    Task.is_completed == False,
                     or_(Task.is_backlog == False, Task.is_backlog.is_(None))
                 ),
                 # Dateless incomplete todos treated as due today - exclude backlog
@@ -158,14 +299,6 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
                     Task.is_completed == False,
                     or_(Task.is_backlog == False, Task.is_backlog.is_(None))
                 ),
-                # Dateless todos completed today (show even if was backlog)
-                and_(
-                    Task.due_date.is_(None),
-                    or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)),
-                    Task.is_completed == True,
-                    Task.completed_at >= today_start_utc,
-                    Task.completed_at <= today_end_utc
-                ),
                 # Overdue active todos only (events don't carry over) - exclude backlog
                 and_(
                     Task.due_date < today,
@@ -174,7 +307,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
                     Task.is_active == True,
                     or_(Task.is_backlog == False, Task.is_backlog.is_(None))
                 ),
-                # Today's completed tasks (even if deactivated - for auto-reminders)
+                # All tasks completed today (regardless of due date)
                 and_(
                     Task.is_completed == True,
                     Task.completed_at >= today_start_utc,
@@ -182,16 +315,21 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
                 )
             )
         )
+        # Exclude worker-assigned tasks - they only show on Worker Tasks page
+        .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.is_completed, Task.due_date.nulls_first(), Task.priority, Task.due_time)
     )
     tasks = result.scalars().all()
+
+    # Filter for farm hand users - only show tasks marked visible_to_farmhands
+    if is_farmhand:
+        tasks = [t for t in tasks if t.visible_to_farmhands]
 
     tasks_today = []
     for t in tasks:
         # For events, check if they're past their end time - auto-mark as completed
         is_completed = t.is_completed
         if t.task_type == TaskType.EVENT and t.due_date == today and not t.is_completed:
-            # Check if event end time has passed
             end_time = t.end_time or t.due_time
             if end_time and end_time < current_time_str:
                 is_completed = True
@@ -207,21 +345,29 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             due_time=t.due_time,
             end_time=t.end_time,
             location=t.location,
+            linked_location=get_linked_location(t),
+            linked_entity=get_linked_entity(t),
             is_completed=is_completed,
             is_backlog=t.is_backlog or False,
         ))
 
-    # Get undated todos (todos without a due date) - exclude backlog
+    # Get undated todos (todos without a due date) - exclude backlog and worker tasks
     result = await db.execute(
         select(Task)
         .where(Task.due_date.is_(None))
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
         .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
+        .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.priority, Task.created_at)
         .limit(10)
     )
     undated = result.scalars().all()
+
+    # Filter for farm hand users
+    if is_farmhand:
+        undated = [t for t in undated if t.visible_to_farmhands]
+
     undated_todos = [
         DashboardTask(
             id=t.id,
@@ -234,39 +380,46 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
             due_time=t.due_time,
             end_time=t.end_time,
             location=t.location,
+            linked_location=get_linked_location(t),
+            linked_entity=get_linked_entity(t),
             is_completed=t.is_completed,
             is_backlog=False,
         )
         for t in undated
     ]
 
-    # Get backlog tasks
-    result = await db.execute(
-        select(Task)
-        .where(Task.is_backlog == True)
-        .where(Task.is_active == True)
-        .where(Task.is_completed == False)
-        .order_by(Task.priority, Task.created_at)
-        .limit(15)
-    )
-    backlog = result.scalars().all()
-    backlog_tasks = [
-        DashboardTask(
-            id=t.id,
-            title=t.title,
-            description=t.description,
-            task_type=t.task_type.value if t.task_type else "todo",
-            category=t.category.value if t.category else "custom",
-            priority=t.priority,
-            due_date=t.due_date,
-            due_time=t.due_time,
-            end_time=t.end_time,
-            location=t.location,
-            is_completed=t.is_completed,
-            is_backlog=True,
+    # Get backlog tasks - farm hands don't see backlog at all, exclude worker tasks
+    backlog_tasks = []
+    if not is_farmhand:
+        result = await db.execute(
+            select(Task)
+            .where(Task.is_backlog == True)
+            .where(Task.is_active == True)
+            .where(Task.is_completed == False)
+            .where(Task.assigned_to_worker_id.is_(None))
+            .order_by(Task.priority, Task.created_at)
+            .limit(15)
         )
-        for t in backlog
-    ]
+        backlog = result.scalars().all()
+        backlog_tasks = [
+            DashboardTask(
+                id=t.id,
+                title=t.title,
+                description=t.description,
+                task_type=t.task_type.value if t.task_type else "todo",
+                category=t.category.value if t.category else "custom",
+                priority=t.priority,
+                due_date=t.due_date,
+                due_time=t.due_time,
+                end_time=t.end_time,
+                location=t.location,
+                linked_location=get_linked_location(t),
+                linked_entity=get_linked_entity(t),
+                is_completed=t.is_completed,
+                is_backlog=True,
+            )
+            for t in backlog
+        ]
 
     # Get active alerts
     result = await db.execute(
@@ -307,16 +460,29 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
         .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
+        .where(Task.assigned_to_worker_id.is_(None))
     )
     # Only count TODOs as overdue, not EVENTs (events are time-based, not action-based)
+    # Overdue if: due_date < today OR (due_date == today AND due_time is set AND due_time < now)
+    now_time = datetime.now().strftime("%H:%M")
     overdue_count = await db.execute(
         select(func.count())
         .select_from(Task)
-        .where(Task.due_date < today)
+        .where(
+            or_(
+                Task.due_date < today,
+                and_(
+                    Task.due_date == today,
+                    Task.due_time.isnot(None),
+                    Task.due_time < now_time
+                )
+            )
+        )
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
         .where(or_(Task.task_type == TaskType.TODO, Task.task_type.is_(None)))
         .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
+        .where(Task.assigned_to_worker_id.is_(None))
     )
     alert_count = await db.execute(
         select(func.count())
@@ -332,17 +498,23 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
         active_alerts=alert_count.scalar() or 0,
     )
 
-    # Get upcoming events (next 7 days)
+    # Get upcoming events (next 7 days) - exclude worker tasks
     week_ahead = today + timedelta(days=7)
     result = await db.execute(
         select(Task)
         .where(Task.due_date >= today)
         .where(Task.due_date <= week_ahead)
         .where(Task.is_active == True)
+        .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.due_date, Task.priority)
         .limit(20)
     )
     upcoming = result.scalars().all()
+
+    # Filter for farm hand users
+    if is_farmhand:
+        upcoming = [t for t in upcoming if t.visible_to_farmhands]
+
     upcoming_events = [
         CalendarEvent(
             id=t.id,
@@ -355,8 +527,18 @@ async def get_dashboard(db: AsyncSession = Depends(get_db)):
         for t in upcoming
     ]
 
+    # Get sun/moon data
+    sun_moon_data = None
+    try:
+        sun_moon_raw = get_sun_moon_data()
+        sun_moon_data = SunMoonData(**sun_moon_raw)
+    except Exception as e:
+        import logging
+        logging.warning(f"Failed to get sun/moon data: {e}")
+
     return DashboardResponse(
         weather=weather_data,
+        sun_moon=sun_moon_data,
         tasks_today=tasks_today,
         undated_todos=undated_todos,
         backlog_tasks=backlog_tasks,
@@ -371,7 +553,7 @@ async def get_quick_stats(db: AsyncSession = Depends(get_db)):
     """Get quick statistics for status bar"""
     today = date.today()
 
-    # Count pending items (including dateless tasks as due today) - exclude backlog
+    # Count pending items (including dateless tasks as due today) - exclude backlog and worker tasks
     tasks_pending = await db.execute(
         select(func.count())
         .select_from(Task)
@@ -379,6 +561,7 @@ async def get_quick_stats(db: AsyncSession = Depends(get_db)):
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
         .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
+        .where(Task.assigned_to_worker_id.is_(None))
     )
 
     # Animals needing care soon
@@ -422,34 +605,119 @@ async def get_calendar_month(
     else:
         end_date = date(year, month + 1, 1) - timedelta(days=1)
 
+    # Pre-fetch lookup tables for linked_location/entity
+    result = await db.execute(select(FarmArea))
+    farm_areas = {fa.id: fa.name for fa in result.scalars().all()}
+    result = await db.execute(select(Vehicle))
+    vehicles = {v.id: v.model for v in result.scalars().all()}
+    result = await db.execute(select(Equipment))
+    equipment = {e.id: e.name for e in result.scalars().all()}
+    result = await db.execute(select(HomeMaintenance))
+    home_maint = {hm.id: hm for hm in result.scalars().all()}
+    result = await db.execute(select(Animal))
+    animals_list = result.scalars().all()
+    result = await db.execute(select(Plant))
+    plants_list = result.scalars().all()
+    result = await db.execute(select(AnimalCareSchedule).where(AnimalCareSchedule.is_active == True))
+    care_schedules = result.scalars().all()
+
+    def get_task_linked_location(task):
+        if task.farm_area_id and task.farm_area_id in farm_areas:
+            return farm_areas[task.farm_area_id]
+        if task.notes:
+            if "auto:home_maint:" in task.notes:
+                match = re.search(r'auto:home_maint:(\d+)', task.notes)
+                if match:
+                    hm_id = int(match.group(1))
+                    if hm_id in home_maint:
+                        hm = home_maint[hm_id]
+                        return hm.area_or_appliance or (hm.category.title() if hm.category else None)
+            if "auto:care_group:" in task.notes:
+                match = re.search(r'auto:care_group:(\d{4}-\d{2}-\d{2})_(.+)', task.notes)
+                if match:
+                    care_name = match.group(2).lower().strip()
+                    matching = [s for s in care_schedules if s.name.lower().strip() == care_name]
+                    if matching:
+                        names = []
+                        seen = set()
+                        for s in matching:
+                            a = next((x for x in animals_list if x.id == s.animal_id), None)
+                            if a and a.farm_area_id and a.farm_area_id not in seen:
+                                seen.add(a.farm_area_id)
+                                if a.farm_area_id in farm_areas:
+                                    names.append(farm_areas[a.farm_area_id])
+                        if names:
+                            return ", ".join(names)
+        if task.animal_id:
+            a = next((x for x in animals_list if x.id == task.animal_id), None)
+            if a and a.farm_area_id and a.farm_area_id in farm_areas:
+                return farm_areas[a.farm_area_id]
+        if task.plant_id:
+            p = next((x for x in plants_list if x.id == task.plant_id), None)
+            if p and p.farm_area_id and p.farm_area_id in farm_areas:
+                return farm_areas[p.farm_area_id]
+        return None
+
+    def get_task_linked_entity(task):
+        if task.vehicle_id and task.vehicle_id in vehicles:
+            return f"Vehicle: {vehicles[task.vehicle_id]}"
+        if task.equipment_id and task.equipment_id in equipment:
+            return f"Equipment: {equipment[task.equipment_id]}"
+        return None
+
+    # Exclude worker-assigned tasks from calendar
+    # Include tasks that START in range OR SPAN into range (multi-day events)
     result = await db.execute(
         select(Task)
-        .where(Task.due_date >= start_date)
-        .where(Task.due_date <= end_date)
+        .where(
+            or_(
+                # Single-day or start of multi-day in range
+                and_(Task.due_date >= start_date, Task.due_date <= end_date),
+                # Multi-day events that started before but span into range
+                and_(Task.due_date < start_date, Task.end_date >= start_date)
+            )
+        )
         .where(Task.is_active == True)
+        .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.due_date, Task.priority)
     )
     tasks = result.scalars().all()
 
-    # Group by date
+    # Group by date - add multi-day events to each day they span
     calendar = {}
     for task in tasks:
-        date_str = task.due_date.isoformat()
-        if date_str not in calendar:
-            calendar[date_str] = []
-        calendar[date_str].append({
-            "id": task.id,
-            "title": task.title,
-            "task_type": task.task_type.value if task.task_type else "event",
-            "category": task.category.value if task.category else "custom",
-            "priority": task.priority,
-            "is_completed": task.is_completed,
-            "due_date": date_str,  # Include due_date for editing
-            "due_time": task.due_time,
-            "end_time": task.end_time,
-            "location": task.location,
-            "description": task.description,
-        })
+        task_start = task.due_date
+        task_end = task.end_date or task.due_date  # Default to single day
+        is_multi_day = task.end_date is not None and task.end_date > task.due_date
+
+        # Add to each day the task spans within the view range
+        current = max(task_start, start_date)
+        last_day = min(task_end, end_date)
+
+        while current <= last_day:
+            date_str = current.isoformat()
+            if date_str not in calendar:
+                calendar[date_str] = []
+            calendar[date_str].append({
+                "id": task.id,
+                "title": task.title,
+                "task_type": task.task_type.value if task.task_type else "event",
+                "category": task.category.value if task.category else "custom",
+                "priority": task.priority,
+                "is_completed": task.is_completed,
+                "due_date": task.due_date.isoformat(),
+                "end_date": task.end_date.isoformat() if task.end_date else None,
+                "due_time": task.due_time,
+                "end_time": task.end_time,
+                "location": task.location,
+                "description": task.description,
+                "linked_location": get_task_linked_location(task),
+                "linked_entity": get_task_linked_entity(task),
+                "is_multi_day": is_multi_day,
+                "is_span_start": current == task_start,
+                "is_span_end": current == task_end,
+            })
+            current += timedelta(days=1)
 
     return {
         "year": year,
@@ -469,34 +737,119 @@ async def get_calendar_week(
     start_date = date(year, month, day)
     end_date = start_date + timedelta(days=6)
 
+    # Pre-fetch lookup tables for linked_location/entity
+    result = await db.execute(select(FarmArea))
+    farm_areas = {fa.id: fa.name for fa in result.scalars().all()}
+    result = await db.execute(select(Vehicle))
+    vehicles = {v.id: v.model for v in result.scalars().all()}
+    result = await db.execute(select(Equipment))
+    equipment = {e.id: e.name for e in result.scalars().all()}
+    result = await db.execute(select(HomeMaintenance))
+    home_maint = {hm.id: hm for hm in result.scalars().all()}
+    result = await db.execute(select(Animal))
+    animals_list = result.scalars().all()
+    result = await db.execute(select(Plant))
+    plants_list = result.scalars().all()
+    result = await db.execute(select(AnimalCareSchedule).where(AnimalCareSchedule.is_active == True))
+    care_schedules = result.scalars().all()
+
+    def get_task_linked_location(task):
+        if task.farm_area_id and task.farm_area_id in farm_areas:
+            return farm_areas[task.farm_area_id]
+        if task.notes:
+            if "auto:home_maint:" in task.notes:
+                match = re.search(r'auto:home_maint:(\d+)', task.notes)
+                if match:
+                    hm_id = int(match.group(1))
+                    if hm_id in home_maint:
+                        hm = home_maint[hm_id]
+                        return hm.area_or_appliance or (hm.category.title() if hm.category else None)
+            if "auto:care_group:" in task.notes:
+                match = re.search(r'auto:care_group:(\d{4}-\d{2}-\d{2})_(.+)', task.notes)
+                if match:
+                    care_name = match.group(2).lower().strip()
+                    matching = [s for s in care_schedules if s.name.lower().strip() == care_name]
+                    if matching:
+                        names = []
+                        seen = set()
+                        for s in matching:
+                            a = next((x for x in animals_list if x.id == s.animal_id), None)
+                            if a and a.farm_area_id and a.farm_area_id not in seen:
+                                seen.add(a.farm_area_id)
+                                if a.farm_area_id in farm_areas:
+                                    names.append(farm_areas[a.farm_area_id])
+                        if names:
+                            return ", ".join(names)
+        if task.animal_id:
+            a = next((x for x in animals_list if x.id == task.animal_id), None)
+            if a and a.farm_area_id and a.farm_area_id in farm_areas:
+                return farm_areas[a.farm_area_id]
+        if task.plant_id:
+            p = next((x for x in plants_list if x.id == task.plant_id), None)
+            if p and p.farm_area_id and p.farm_area_id in farm_areas:
+                return farm_areas[p.farm_area_id]
+        return None
+
+    def get_task_linked_entity(task):
+        if task.vehicle_id and task.vehicle_id in vehicles:
+            return f"Vehicle: {vehicles[task.vehicle_id]}"
+        if task.equipment_id and task.equipment_id in equipment:
+            return f"Equipment: {equipment[task.equipment_id]}"
+        return None
+
+    # Exclude worker-assigned tasks from calendar
+    # Include tasks that START in range OR SPAN into range (multi-day events)
     result = await db.execute(
         select(Task)
-        .where(Task.due_date >= start_date)
-        .where(Task.due_date <= end_date)
+        .where(
+            or_(
+                # Single-day or start of multi-day in range
+                and_(Task.due_date >= start_date, Task.due_date <= end_date),
+                # Multi-day events that started before but span into range
+                and_(Task.due_date < start_date, Task.end_date >= start_date)
+            )
+        )
         .where(Task.is_active == True)
+        .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.due_date, Task.due_time, Task.priority)
     )
     tasks = result.scalars().all()
 
-    # Group by date
+    # Group by date - add multi-day events to each day they span
     calendar = {}
     for task in tasks:
-        date_str = task.due_date.isoformat()
-        if date_str not in calendar:
-            calendar[date_str] = []
-        calendar[date_str].append({
-            "id": task.id,
-            "title": task.title,
-            "task_type": task.task_type.value if task.task_type else "event",
-            "category": task.category.value if task.category else "custom",
-            "priority": task.priority,
-            "is_completed": task.is_completed,
-            "due_date": date_str,  # Include due_date for editing
-            "due_time": task.due_time,
-            "end_time": task.end_time,
-            "location": task.location,
-            "description": task.description,
-        })
+        task_start = task.due_date
+        task_end = task.end_date or task.due_date  # Default to single day
+        is_multi_day = task.end_date is not None and task.end_date > task.due_date
+
+        # Add to each day the task spans within the view range
+        current = max(task_start, start_date)
+        last_day = min(task_end, end_date)
+
+        while current <= last_day:
+            date_str = current.isoformat()
+            if date_str not in calendar:
+                calendar[date_str] = []
+            calendar[date_str].append({
+                "id": task.id,
+                "title": task.title,
+                "task_type": task.task_type.value if task.task_type else "event",
+                "category": task.category.value if task.category else "custom",
+                "priority": task.priority,
+                "is_completed": task.is_completed,
+                "due_date": task.due_date.isoformat(),
+                "end_date": task.end_date.isoformat() if task.end_date else None,
+                "due_time": task.due_time,
+                "end_time": task.end_time,
+                "location": task.location,
+                "description": task.description,
+                "linked_location": get_task_linked_location(task),
+                "linked_entity": get_task_linked_entity(task),
+                "is_multi_day": is_multi_day,
+                "is_span_start": current == task_start,
+                "is_span_end": current == task_end,
+            })
+            current += timedelta(days=1)
 
     return {
         "start_date": start_date.isoformat(),

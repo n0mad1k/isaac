@@ -13,6 +13,9 @@ import {
   Clock,
   Archive,
   ArrowUp,
+  MapPin,
+  Wrench,
+  User,
 } from 'lucide-react'
 import {
   getTasks,
@@ -26,6 +29,7 @@ import {
   toggleBacklog,
   syncCalendar,
   getSettings,
+  getWorkers,
 } from '../services/api'
 import { format, isAfter, startOfDay, parseISO, addDays, endOfWeek, endOfMonth, isWithinInterval, isSameDay, isToday, isTomorrow } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
@@ -36,17 +40,36 @@ function ToDo() {
   // Check if a todo is overdue
   const isOverdue = (todo) => {
     if (!todo.due_date || todo.is_completed) return false
-    const today = startOfDay(new Date())
+    const now = new Date()
+    const today = startOfDay(now)
     const dueDate = startOfDay(parseISO(todo.due_date))
-    return isAfter(today, dueDate)
+    // If due date is in the past, it's overdue
+    if (isAfter(today, dueDate)) return true
+    // If due date is today and has a due_time, check if time has passed
+    if (isSameDay(today, dueDate) && todo.due_time) {
+      const [hours, minutes] = todo.due_time.split(':').map(Number)
+      const dueDateTime = new Date(dueDate)
+      dueDateTime.setHours(hours, minutes, 0, 0)
+      return isAfter(now, dueDateTime)
+    }
+    return false
   }
   const [todos, setTodos] = useState([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingTodo, setEditingTodo] = useState(null)
-  const [view, setView] = useState('upcoming')  // Default to 'upcoming' (today + tomorrow)
+  const [view, setView] = useState('today')  // Default to 'today' tab
   const [hideCompleted, setHideCompleted] = useState(false)
+  const [selectedRecurrence, setSelectedRecurrence] = useState('once')
+  const [customInterval, setCustomInterval] = useState('')
+  const [selectedAlerts, setSelectedAlerts] = useState([])
+  const [displayLimit, setDisplayLimit] = useState(20)  // For "All" tab pagination
+  const [workers, setWorkers] = useState([])
+  const [selectedWorkerId, setSelectedWorkerId] = useState(null)
+  const [isAllDay, setIsAllDay] = useState(true)  // Default to all-day (no time)
+  const INITIAL_DISPLAY_LIMIT = 20
+  const LOAD_MORE_COUNT = 20
 
   // Filter todos based on view
   const filterTodosByView = (allTodos) => {
@@ -102,11 +125,15 @@ function ToDo() {
   const fetchTodos = async () => {
     setLoading(true)
     try {
-      // Fetch settings and tasks
-      const [settingsRes, response] = await Promise.all([
+      // Fetch settings, tasks, and workers
+      const [settingsRes, response, workersRes] = await Promise.all([
         getSettings(),
-        getTasks()  // Get all tasks (both completed and incomplete)
+        getTasks(),  // Get all tasks (both completed and incomplete)
+        getWorkers().catch(() => ({ data: [] }))
       ])
+
+      // Set workers for dropdown
+      setWorkers(workersRes.data || [])
 
       // Check hide_completed_today setting
       const hideCompletedSetting = settingsRes.data?.settings?.hide_completed_today?.value
@@ -170,6 +197,11 @@ function ToDo() {
 
   const handleEdit = (todo) => {
     setEditingTodo(todo)
+    setSelectedRecurrence(todo.recurrence || 'once')
+    setCustomInterval(todo.recurrence_interval?.toString() || '')
+    setSelectedAlerts(todo.reminder_alerts || [])
+    setSelectedWorkerId(todo.assigned_to_worker_id || null)
+    setIsAllDay(!todo.due_time)  // Set based on whether existing todo has a time
     setShowForm(true)
   }
 
@@ -185,15 +217,28 @@ function ToDo() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const formData = new FormData(e.target)
+    const dueDate = formData.get('due_date') || null
+
+    // Validate: alerts require a date
+    if (selectedAlerts.length > 0 && !dueDate) {
+      alert('Email alerts require a due date. Please set a date or remove the alerts.')
+      return
+    }
+
     const todoData = {
       title: formData.get('title'),
       description: formData.get('description'),
       category: formData.get('category'),
-      due_date: formData.get('due_date') || null,
-      due_time: formData.get('due_time') || null,
+      due_date: dueDate,
+      due_time: isAllDay ? null : (formData.get('due_time') || null),  // Only include time if not all-day
       priority: parseInt(formData.get('priority')) || 2,
-      recurrence: formData.get('recurrence'),
+      recurrence: selectedRecurrence,
+      recurrence_interval: selectedRecurrence === 'custom' && customInterval ? parseInt(customInterval) : null,
       task_type: 'todo',  // Always create as todo from this page
+      is_backlog: formData.get('is_backlog') === 'on',
+      visible_to_farmhands: formData.get('visible_to_farmhands') === 'on',
+      reminder_alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
+      assigned_to_worker_id: selectedWorkerId || null,
     }
 
     try {
@@ -204,15 +249,26 @@ function ToDo() {
       }
       setShowForm(false)
       setEditingTodo(null)
+      setSelectedAlerts([])
+      setSelectedWorkerId(null)
       fetchTodos()
     } catch (error) {
       console.error('Failed to save to do:', error)
+      // Don't show alert for 401 - the interceptor handles redirect
+      if (error.response?.status !== 401) {
+        alert(error.userMessage || 'Failed to save. Please try again.')
+      }
     }
   }
 
   const closeForm = () => {
     setShowForm(false)
     setEditingTodo(null)
+    setSelectedRecurrence('once')
+    setCustomInterval('')
+    setSelectedAlerts([])
+    setSelectedWorkerId(null)
+    setIsAllDay(true)  // Reset to default
   }
 
   const getPriorityColor = (priority) => {
@@ -248,7 +304,7 @@ function ToDo() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 text-white rounded-lg transition-colors disabled:opacity-50"
             title="Sync with phone"
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
@@ -256,7 +312,7 @@ function ToDo() {
           </button>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
           >
             <Plus className="w-5 h-5" />
             Add To Do
@@ -277,7 +333,7 @@ function ToDo() {
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setView(tab.key)}
+            onClick={() => { setView(tab.key); setDisplayLimit(INITIAL_DISPLAY_LIMIT); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               view === tab.key
                 ? 'bg-farm-green text-white'
@@ -305,7 +361,7 @@ function ToDo() {
         </div>
       ) : (
         <div className="space-y-3">
-          {todos.map((todo) => (
+          {(view === 'all' ? todos.slice(0, displayLimit) : todos).map((todo) => (
             <div
               key={todo.id}
               className={`bg-gray-800 rounded-lg p-4 border-l-4 transition-all hover:bg-gray-750 ${getPriorityColor(
@@ -333,7 +389,7 @@ function ToDo() {
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3
                       className={`font-medium ${
                         todo.is_completed ? 'line-through text-gray-500' : ''
@@ -341,6 +397,20 @@ function ToDo() {
                     >
                       {todo.title}
                     </h3>
+                    {/* Location badge (purple) */}
+                    {todo.linked_location && (
+                      <span className="text-xs text-purple-400 flex items-center gap-0.5 bg-purple-900/30 px-1.5 py-0.5 rounded flex-shrink-0">
+                        <MapPin className="w-3 h-3" />
+                        {todo.linked_location}
+                      </span>
+                    )}
+                    {/* Vehicle/Equipment badge (orange) */}
+                    {todo.linked_entity && (
+                      <span className="text-xs text-orange-400 flex items-center gap-0.5 bg-orange-900/30 px-1.5 py-0.5 rounded flex-shrink-0">
+                        <Wrench className="w-3 h-3" />
+                        {todo.linked_entity}
+                      </span>
+                    )}
                     {/* Overdue badge */}
                     {isOverdue(todo) && (
                       <span className="px-1.5 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded uppercase flex-shrink-0">
@@ -419,6 +489,15 @@ function ToDo() {
               </div>
             </div>
           ))}
+          {/* Load More button for All tab */}
+          {view === 'all' && todos.length > displayLimit && (
+            <button
+              onClick={() => setDisplayLimit(prev => prev + LOAD_MORE_COUNT)}
+              className="w-full py-3 mt-4 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
+            >
+              Load More ({todos.length - displayLimit} remaining)
+            </button>
+          )}
         </div>
       )}
 
@@ -437,7 +516,7 @@ function ToDo() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" id="todo-form">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Title *</label>
                 <input
@@ -489,16 +568,27 @@ function ToDo() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Due Date (optional)</label>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Due Date (optional)</label>
+                <input
+                  type="date"
+                  name="due_date"
+                  defaultValue={editingTodo?.due_date || ''}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
                   <input
-                    type="date"
-                    name="due_date"
-                    defaultValue={editingTodo?.due_date || ''}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    type="checkbox"
+                    checked={isAllDay}
+                    onChange={(e) => setIsAllDay(e.target.checked)}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
                   />
-                </div>
+                  All day (no specific time)
+                </label>
+              </div>
+              {!isAllDay && (
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Time</label>
                   <input
@@ -508,12 +598,12 @@ function ToDo() {
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
-              </div>
+              )}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Recurrence</label>
                 <select
-                  name="recurrence"
-                  defaultValue={editingTodo?.recurrence || 'once'}
+                  value={selectedRecurrence}
+                  onChange={(e) => setSelectedRecurrence(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   <option value="once">One-time</option>
@@ -523,8 +613,107 @@ function ToDo() {
                   <option value="monthly">Monthly</option>
                   <option value="quarterly">Quarterly</option>
                   <option value="annually">Annually</option>
+                  <option value="custom">Custom (every X days)</option>
                 </select>
               </div>
+              {selectedRecurrence === 'custom' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Repeat every (days)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={customInterval}
+                    onChange={(e) => setCustomInterval(e.target.value)}
+                    placeholder="e.g., 14"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
+                  <input
+                    type="checkbox"
+                    name="is_backlog"
+                    defaultChecked={editingTodo?.is_backlog || false}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
+                  />
+                  Add to Backlog
+                  <span className="text-xs text-gray-500">(won't appear in Today's Schedule)</span>
+                </label>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
+                  <input
+                    type="checkbox"
+                    name="visible_to_farmhands"
+                    defaultChecked={editingTodo?.visible_to_farmhands || false}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-500"
+                  />
+                  Visible to Farm Hands
+                  <span className="text-xs text-gray-500">(show this task to farm hand accounts)</span>
+                </label>
+              </div>
+              {/* Alerts */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 0, label: 'At time' },
+                    { value: 5, label: '5 min' },
+                    { value: 10, label: '10 min' },
+                    { value: 15, label: '15 min' },
+                    { value: 30, label: '30 min' },
+                    { value: 60, label: '1 hr' },
+                    { value: 120, label: '2 hrs' },
+                    { value: 1440, label: '1 day' },
+                    { value: 2880, label: '2 days' },
+                    { value: 10080, label: '1 week' },
+                  ].map(opt => {
+                    const isSelected = selectedAlerts.includes(opt.value)
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAlerts(prev =>
+                            isSelected
+                              ? prev.filter(v => v !== opt.value)
+                              : [...prev, opt.value].sort((a, b) => b - a)
+                          )
+                        }}
+                        className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                          isSelected
+                            ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
+                            : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              {/* Assign to Worker */}
+              {workers.length > 0 && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Assign to Worker (optional)
+                  </label>
+                  <select
+                    value={selectedWorkerId || ''}
+                    onChange={(e) => setSelectedWorkerId(e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  >
+                    <option value="">Not assigned</option>
+                    {workers.map(w => (
+                      <option key={w.id} value={w.id}>
+                        {w.name}{w.role ? ` (${w.role})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -535,7 +724,16 @@ function ToDo() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light rounded-lg transition-colors"
+                  onClick={(e) => {
+                    // Ensure form submits on touch devices
+                    const form = document.getElementById('todo-form')
+                    if (form && !form.checkValidity()) {
+                      form.reportValidity()
+                      e.preventDefault()
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors touch-manipulation"
+                  style={{ minHeight: '48px' }}
                 >
                   {editingTodo ? 'Save Changes' : 'Add To Do'}
                 </button>

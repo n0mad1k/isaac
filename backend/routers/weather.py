@@ -29,6 +29,7 @@ class WeatherSummary(BaseModel):
     rain_rate: Optional[float]
     uv_index: Optional[int]
     pressure: Optional[float]
+    soil_moisture: Optional[int]
     reading_time: Optional[str]
 
 
@@ -110,6 +111,13 @@ async def refresh_weather(db: AsyncSession = Depends(get_db)):
         "temperature": reading.temp_outdoor,
         "humidity": reading.humidity_outdoor,
     }
+
+
+@router.get("/soil-moisture/")
+async def get_soil_moisture(db: AsyncSession = Depends(get_db)):
+    """Get current soil moisture status and watering recommendation"""
+    from services.weather import get_soil_moisture_status
+    return await get_soil_moisture_status(db)
 
 
 @router.get("/history/", response_model=List[WeatherReadingResponse])

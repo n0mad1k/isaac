@@ -15,8 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import math
 
 from config import settings
+from astral import LocationInfo
+from astral.sun import sun
 from models.database import async_session
-from models.tasks import Task, TaskRecurrence
+from models.tasks import Task, TaskRecurrence, TaskType
 from models.plants import Plant
 from models.livestock import Animal, AnimalType
 from models.weather import WeatherAlert
@@ -39,6 +41,7 @@ DEFAULT_SETTINGS = {
     "default_reminder_alerts": "0,60,1440",  # at time, 1 hour, 1 day before
     "storage_warning_percent": "80",
     "storage_critical_percent": "95",
+    "timezone": "America/New_York",
 }
 
 
@@ -54,47 +57,184 @@ async def get_setting_value(key: str) -> str:
         return DEFAULT_SETTINGS.get(key, "")
 
 
+async def set_setting_value(key: str, value: str) -> None:
+    """Set a setting value in the database"""
+    async with async_session() as db:
+        result = await db.execute(
+            select(AppSetting).where(AppSetting.key == key)
+        )
+        setting = result.scalar_one_or_none()
+        if setting:
+            setting.value = value
+        else:
+            setting = AppSetting(key=key, value=value)
+            db.add(setting)
+        await db.commit()
+
+
+async def get_timezone() -> str:
+    """Get the configured timezone from database settings.
+    Falls back to config.py setting if not set in database.
+    """
+    tz = await get_setting_value("timezone")
+    if tz:
+        return tz
+    # Fallback to config.py setting
+    return settings.timezone
+
+
+def get_timezone_sync() -> str:
+    """Synchronous version for contexts where async isn't available.
+    Uses config.py setting as the source (which should match database).
+    """
+    return settings.timezone
+
+
+def _get_location(lat: float, lon: float) -> LocationInfo:
+    """Create an astral LocationInfo object for sun calculations"""
+    import pytz
+    return LocationInfo(
+        name="Farm",
+        region="USA",
+        timezone=settings.timezone,
+        latitude=lat,
+        longitude=lon
+    )
+
+
 def calculate_sunset(lat: float, lon: float, date_obj: date = None) -> datetime:
-    """Calculate sunset time for given coordinates using astronomical formulas"""
+    """Calculate sunset time for given coordinates using astral library (accurate)"""
     if date_obj is None:
         date_obj = date.today()
 
-    # Day of year
-    day_of_year = date_obj.timetuple().tm_yday
+    import pytz
+    tz = pytz.timezone(settings.timezone)
+    location = _get_location(lat, lon)
+    s = sun(location.observer, date=date_obj, tzinfo=tz)
+    return s['sunset']
 
-    # Convert latitude to radians
-    lat_rad = math.radians(lat)
 
-    # Calculate declination angle
-    declination = 23.45 * math.sin(math.radians((360/365) * (day_of_year - 81)))
-    decl_rad = math.radians(declination)
-
-    # Calculate hour angle for sunset
-    cos_hour_angle = -math.tan(lat_rad) * math.tan(decl_rad)
-
-    # Clamp to valid range (handles midnight sun / polar night)
-    cos_hour_angle = max(-1, min(1, cos_hour_angle))
-
-    hour_angle = math.degrees(math.acos(cos_hour_angle))
-
-    # Solar noon in hours (approximate, adjusted for longitude)
-    # Standard time meridian for Eastern Time is -75 degrees
-    lstm = -75  # Local Standard Time Meridian for ET
-    time_correction = 4 * (lon - lstm)  # minutes
-    solar_noon = 12 - (time_correction / 60)
-
-    # Sunset time in hours from midnight
-    sunset_hours = solar_noon + (hour_angle / 15)
-
-    # Create datetime
-    sunset_hour = int(sunset_hours)
-    sunset_minute = int((sunset_hours - sunset_hour) * 60)
+def calculate_sunrise(lat: float, lon: float, date_obj: date = None) -> datetime:
+    """Calculate sunrise time for given coordinates using astral library (accurate)"""
+    if date_obj is None:
+        date_obj = date.today()
 
     import pytz
     tz = pytz.timezone(settings.timezone)
-    sunset_dt = tz.localize(datetime(date_obj.year, date_obj.month, date_obj.day, sunset_hour, sunset_minute))
+    location = _get_location(lat, lon)
+    s = sun(location.observer, date=date_obj, tzinfo=tz)
+    return s['sunrise']
 
-    return sunset_dt
+
+def calculate_civil_twilight(lat: float, lon: float, date_obj: date = None, morning: bool = True) -> datetime:
+    """
+    Calculate civil twilight time (when sky starts to lighten / darken) using astral library.
+    Civil twilight: sun is 6° below horizon - enough light to see outside without artificial light.
+    """
+    if date_obj is None:
+        date_obj = date.today()
+
+    import pytz
+    tz = pytz.timezone(settings.timezone)
+    location = _get_location(lat, lon)
+    s = sun(location.observer, date=date_obj, tzinfo=tz)
+
+    # dawn = civil twilight start (morning), dusk = civil twilight end (evening)
+    if morning:
+        return s['dawn']
+    else:
+        return s['dusk']
+
+
+def calculate_moon_phase(date_obj: date = None) -> dict:
+    """Calculate moon phase for a given date using simple algorithm"""
+    if date_obj is None:
+        date_obj = date.today()
+
+    # Known new moon: January 6, 2000
+    known_new_moon = date(2000, 1, 6)
+    lunar_cycle = 29.53  # days
+
+    # Days since known new moon
+    days_since = (date_obj - known_new_moon).days
+    days_into_cycle = days_since % lunar_cycle
+
+    # Calculate illumination percentage (approximate)
+    # 0 = new moon, 14.76 = full moon
+    if days_into_cycle <= lunar_cycle / 2:
+        illumination = (days_into_cycle / (lunar_cycle / 2)) * 100
+    else:
+        illumination = ((lunar_cycle - days_into_cycle) / (lunar_cycle / 2)) * 100
+
+    # Determine phase name
+    if days_into_cycle < 1.85:
+        phase = "New Moon"
+        emoji = "🌑"
+    elif days_into_cycle < 7.38:
+        phase = "Waxing Crescent"
+        emoji = "🌒"
+    elif days_into_cycle < 9.23:
+        phase = "First Quarter"
+        emoji = "🌓"
+    elif days_into_cycle < 14.76:
+        phase = "Waxing Gibbous"
+        emoji = "🌔"
+    elif days_into_cycle < 16.61:
+        phase = "Full Moon"
+        emoji = "🌕"
+    elif days_into_cycle < 22.14:
+        phase = "Waning Gibbous"
+        emoji = "🌖"
+    elif days_into_cycle < 23.99:
+        phase = "Last Quarter"
+        emoji = "🌗"
+    else:
+        phase = "Waning Crescent"
+        emoji = "🌘"
+
+    return {
+        "phase": phase,
+        "emoji": emoji,
+        "illumination": round(illumination),
+        "days_into_cycle": round(days_into_cycle, 1),
+    }
+
+
+def get_sun_moon_data(lat: float = None, lon: float = None) -> dict:
+    """Get all sun/moon data for dashboard display"""
+    lat = lat or settings.latitude
+    lon = lon or settings.longitude
+
+    today = date.today()
+
+    sunrise = calculate_sunrise(lat, lon, today)
+    sunset = calculate_sunset(lat, lon, today)
+    moon = calculate_moon_phase(today)
+
+    # Civil twilight - when it's light enough to see outside without artificial light
+    dawn = calculate_civil_twilight(lat, lon, today, morning=True)
+    dusk = calculate_civil_twilight(lat, lon, today, morning=False)
+
+    # Calculate day length
+    day_length_minutes = (sunset - sunrise).seconds // 60
+    hours = day_length_minutes // 60
+    minutes = day_length_minutes % 60
+
+    import pytz
+    tz = pytz.timezone(settings.timezone)
+    now = datetime.now(tz)
+
+    return {
+        "sunrise": dawn.strftime("%I:%M %p").lstrip("0"),   # Civil dawn - when you can see outside
+        "sunset": dusk.strftime("%I:%M %p").lstrip("0"),    # Civil dusk - when it goes dark
+        "first_light": dawn.strftime("%I:%M %p").lstrip("0"),  # Same as sunrise now
+        "last_light": dusk.strftime("%I:%M %p").lstrip("0"),   # Same as sunset now
+        "day_length": f"{hours}h {minutes}m",
+        "moon_phase": moon["phase"],
+        "moon_emoji": moon["emoji"],
+        "moon_illumination": moon["illumination"],
+        "is_daytime": dawn <= now <= dusk,  # Daytime = when you can see
+    }
 
 
 class SchedulerService:
@@ -210,26 +350,21 @@ class SchedulerService:
         await self.schedule_sunset_reminder()
 
     async def schedule_calendar_sync(self):
-        """Schedule calendar sync if enabled"""
+        """Schedule calendar sync if enabled - runs every 10 minutes"""
         calendar_enabled = await get_setting_value("calendar_enabled")
         if calendar_enabled != "true":
             logger.debug("Calendar sync is disabled")
             return
 
-        sync_interval = await get_setting_value("calendar_sync_interval")
-        try:
-            interval_minutes = int(sync_interval)
-        except (ValueError, TypeError):
-            interval_minutes = 30  # Default
-
+        # Frequent sync every 10 minutes for near real-time phone sync
         self.scheduler.add_job(
             self.sync_calendar,
-            IntervalTrigger(minutes=interval_minutes),
-            id="calendar_sync",
-            name=f"Calendar Sync (every {interval_minutes}min)",
+            IntervalTrigger(minutes=10),
+            id="calendar_sync_interval",
+            name="Calendar Sync (every 10 min)",
             replace_existing=True,
         )
-        logger.info(f"Calendar sync scheduled every {interval_minutes} minutes")
+        logger.info("Calendar sync scheduled every 10 minutes")
 
     async def sync_calendar(self):
         """Perform bi-directional calendar sync"""
@@ -264,6 +399,8 @@ class SchedulerService:
 
     async def schedule_daily_digest(self):
         """Schedule the daily digest email based on settings"""
+        import pytz
+
         digest_time = await get_setting_value("email_digest_time")
         try:
             hour, minute = map(int, digest_time.split(":"))
@@ -278,6 +415,29 @@ class SchedulerService:
             replace_existing=True,
         )
         logger.info(f"Daily digest scheduled for {hour:02d}:{minute:02d}")
+
+        # Check if we missed today's digest (service started after scheduled time)
+        tz = pytz.timezone(settings.timezone)
+        now = datetime.now(tz)
+        scheduled_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+        # Calculate cutoff: 6 hours after scheduled time (e.g., if digest at 6am, cutoff at noon)
+        # This gives a reasonable window to catch up without sending digest in the evening
+        catchup_cutoff = scheduled_time + timedelta(hours=6)
+
+        # If current time is past today's scheduled time but before cutoff
+        # and we haven't sent it yet today, send it now
+        if scheduled_time < now < catchup_cutoff:
+            # Check if digest was already sent today using persisted setting
+            today_str = now.strftime("%Y-%m-%d")
+            last_digest_date = await get_setting_value("_last_digest_date")
+
+            if last_digest_date != today_str:
+                # Mark as sent FIRST to prevent duplicate sends on rapid restarts
+                await set_setting_value("_last_digest_date", today_str)
+                logger.info(f"Missed daily digest time ({hour:02d}:{minute:02d}), sending now...")
+                # Send directly instead of scheduling (avoids race condition on rapid restarts)
+                await self.send_daily_digest()
 
     async def stop(self):
         """Stop the scheduler"""
@@ -370,20 +530,38 @@ class SchedulerService:
                     }
 
                 # Get today's tasks: due today, overdue, or dateless (all "due today")
+                # Exclude backlog items - they shouldn't appear in digest
                 today = date.today()
                 result = await db.execute(
                     select(Task)
                     .where(
                         or_(
-                            Task.due_date <= today,  # Today or overdue
+                            Task.due_date == today,  # Due today only
                             Task.due_date.is_(None)  # Dateless reminders
                         )
                     )
                     .where(Task.is_completed == False)
                     .where(Task.is_active == True)
+                    .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
                     .order_by(Task.priority)
                 )
                 tasks = result.scalars().all()
+
+                # Also get overdue TODOs (due before today, not backlog)
+                # EVENTs cannot be overdue - once the date passes, they're just past events
+                overdue_result = await db.execute(
+                    select(Task)
+                    .where(Task.due_date < today)
+                    .where(Task.task_type != TaskType.EVENT)  # Only TODOs can be overdue
+                    .where(Task.is_completed == False)
+                    .where(Task.is_active == True)
+                    .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
+                    .order_by(Task.due_date, Task.priority)
+                )
+                overdue_tasks = overdue_result.scalars().all()
+
+                # Combine: overdue TODOs first, then today's tasks/events
+                tasks = list(overdue_tasks) + list(tasks)
 
                 # Get today's forecast from NWS
                 weather = {}
@@ -396,7 +574,7 @@ class SchedulerService:
                             "high": f.get("high"),
                             "low": f.get("low"),
                             "conditions": f.get("forecast", ""),
-                            "rain_chance": f.get("precipitation_chance", 0),
+                            "rain_chance": f.get("rain_chance", 0),
                         }
                 except Exception as e:
                     logger.warning(f"Failed to fetch forecast: {e}")
@@ -687,21 +865,27 @@ class SchedulerService:
                     except ValueError:
                         pass
 
-            # Check temp with buffer
-            check_temp = forecast_low + buffer_degrees
+            # Check temp with buffer - alert if forecast low is within buffer of plant's min temp
+            # We want to alert when: forecast_low <= min_temp + buffer
+            # Rearranged: min_temp >= forecast_low - buffer
+            # Example: forecast_low=38, buffer=7, plant min_temp=35
+            # Check: 35 >= 38 - 7 = 31? Yes, protect Turmeric.
+            # Example: forecast_low=46, buffer=7, plant min_temp=35
+            # Check: 35 >= 46 - 7 = 39? No, don't alert (46°F is too warm).
+            check_threshold = forecast_low - buffer_degrees
 
-            # Query plants that need protection
+            # Query plants that need protection (their min_temp is at or above the threshold)
             async with get_session() as db:
                 result = await db.execute(
                     select(Plant)
                     .where(Plant.is_active == True)
                     .where(Plant.min_temp.isnot(None))
-                    .where(Plant.min_temp >= check_temp)
+                    .where(Plant.min_temp >= check_threshold)
                 )
                 plants = result.scalars().all()
 
             if not plants:
-                logger.info(f"No plants need cold protection tonight (low: {forecast_low}°F)")
+                logger.info(f"No plants need cold protection tonight (low: {forecast_low}°F, threshold: {check_threshold}°F)")
                 return
 
             # Schedule the reminder
@@ -846,13 +1030,17 @@ class SchedulerService:
 
                 alerts_sent = 0
                 for task in tasks:
+                    # Skip tasks without a specific due_time - they shouldn't get alerts
+                    # (They appear in daily digest and dashboard instead)
+                    if not task.due_time:
+                        continue
+
                     # Calculate task due datetime
                     due_date = task.due_date
-                    due_time = task.due_time or "09:00"  # Default 9 AM if no time set
                     try:
-                        hour, minute = map(int, due_time.split(":"))
+                        hour, minute = map(int, task.due_time.split(":"))
                     except:
-                        hour, minute = 9, 0
+                        continue  # Invalid time format, skip
 
                     due_datetime = tz.localize(datetime.combine(due_date, datetime.min.time().replace(hour=hour, minute=minute)))
 
@@ -891,10 +1079,39 @@ class SchedulerService:
         """Send a reminder email for a task at a specific interval"""
         try:
             from models.database import async_session
+            from models.workers import Worker
+            from models.users import User
+
+            # Start with global recipients
             recipients = await get_setting_value("email_recipients")
-            if not recipients:
+            recipient_list = [r.strip() for r in (recipients or "").split(",") if r.strip()]
+
+            # Add assigned worker's email if available
+            async with async_session() as db:
+                if task.assigned_to_worker_id:
+                    result = await db.execute(
+                        select(Worker).where(Worker.id == task.assigned_to_worker_id)
+                    )
+                    worker = result.scalar_one_or_none()
+                    if worker and worker.email and worker.email not in recipient_list:
+                        recipient_list.append(worker.email)
+                        logger.debug(f"Added worker email {worker.email} to reminder recipients")
+
+                # Add assigned user's email if available
+                if task.assigned_to_user_id:
+                    result = await db.execute(
+                        select(User).where(User.id == task.assigned_to_user_id)
+                    )
+                    user = result.scalar_one_or_none()
+                    if user and user.email and user.email not in recipient_list:
+                        recipient_list.append(user.email)
+                        logger.debug(f"Added user email {user.email} to reminder recipients")
+
+            if not recipient_list:
                 logger.warning("No email recipients configured for task reminder")
                 return
+
+            recipients = ",".join(recipient_list)
 
             # Format the timing description
             if minutes_before == 0:
