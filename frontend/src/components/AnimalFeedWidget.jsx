@@ -93,7 +93,7 @@ function AnimalFeedWidget({ animals, className = '' }) {
       <div
         key={key}
         className="rounded px-3 py-2"
-        style={{ backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#2a352c' : '#d4e5d0' }}
+        style={{ backgroundColor: 'var(--bg-secondary)' }}
       >
         {/* Single row that can wrap */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

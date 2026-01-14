@@ -246,7 +246,7 @@ function Dashboard() {
                       key={task.id}
                       className="p-2 rounded-lg"
                       style={{
-                        backgroundColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#2a352c' : '#d4e5d0',
+                        backgroundColor: 'var(--bg-secondary)',
                         borderLeft: '3px solid var(--text-muted)'
                       }}
                     >

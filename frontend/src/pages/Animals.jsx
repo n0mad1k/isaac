@@ -4085,13 +4085,15 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
 }
 
 
-// Expense List Modal - View, edit, delete expenses for an animal
+// Expense List Modal - View, edit, delete, duplicate expenses for an animal
 function ExpenseListModal({ animal, onClose, onUpdate }) {
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingExpense, setEditingExpense] = useState(null)
   const [editFormData, setEditFormData] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [duplicatingExpense, setDuplicatingExpense] = useState(null)
+  const [duplicateFormData, setDuplicateFormData] = useState(null)
 
   useEffect(() => {
     fetchExpenses()
@@ -4149,6 +4151,44 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
     } catch (error) {
       console.error('Failed to delete expense:', error)
       alert('Failed to delete expense: ' + (error.response?.data?.detail || error.message))
+    }
+  }
+
+  const handleDuplicate = (expense) => {
+    // Prefill with expense data but set date to today
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+
+    setDuplicatingExpense(expense.id)
+    setDuplicateFormData({
+      expense_type: expense.expense_type,
+      description: expense.description || '',
+      amount: expense.amount.toString(),
+      expense_date: `${year}-${month}-${day}`,
+      vendor: expense.vendor || '',
+      notes: expense.notes || '',
+    })
+  }
+
+  const handleSaveDuplicate = async () => {
+    if (!duplicateFormData) return
+    setSaving(true)
+    try {
+      await addAnimalExpense(animal.id, {
+        ...duplicateFormData,
+        amount: parseFloat(duplicateFormData.amount),
+      })
+      setDuplicatingExpense(null)
+      setDuplicateFormData(null)
+      fetchExpenses()
+      onUpdate()
+    } catch (error) {
+      console.error('Failed to duplicate expense:', error)
+      alert('Failed to duplicate expense: ' + (error.response?.data?.detail || error.message))
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -4246,6 +4286,69 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
                         </button>
                       </div>
                     </div>
+                  ) : duplicatingExpense === expense.id ? (
+                    // Duplicate form - prefilled with expense data, today's date
+                    <div className="space-y-3">
+                      <div className="text-xs text-purple-400 font-medium mb-1">Duplicate Expense (edit before saving)</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <select
+                          value={duplicateFormData.expense_type}
+                          onChange={(e) => setDuplicateFormData({ ...duplicateFormData, expense_type: e.target.value })}
+                          className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                        >
+                          <option value="purchase">Purchase Price</option>
+                          <option value="feed">Feed</option>
+                          <option value="medicine">Medicine</option>
+                          <option value="vet">Vet Visit</option>
+                          <option value="equipment">Equipment</option>
+                          <option value="farrier">Farrier</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={duplicateFormData.amount}
+                          onChange={(e) => setDuplicateFormData({ ...duplicateFormData, amount: e.target.value })}
+                          className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                          placeholder="Amount"
+                        />
+                        <input
+                          type="date"
+                          value={duplicateFormData.expense_date}
+                          onChange={(e) => setDuplicateFormData({ ...duplicateFormData, expense_date: e.target.value })}
+                          className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        value={duplicateFormData.description}
+                        onChange={(e) => setDuplicateFormData({ ...duplicateFormData, description: e.target.value })}
+                        className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                        placeholder="Description"
+                      />
+                      <input
+                        type="text"
+                        value={duplicateFormData.vendor}
+                        onChange={(e) => setDuplicateFormData({ ...duplicateFormData, vendor: e.target.value })}
+                        className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm"
+                        placeholder="Vendor"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSaveDuplicate}
+                          disabled={saving}
+                          className="px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded text-sm disabled:opacity-50"
+                        >
+                          {saving ? 'Saving...' : 'Add Duplicate'}
+                        </button>
+                        <button
+                          onClick={() => { setDuplicatingExpense(null); setDuplicateFormData(null) }}
+                          className="px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     // Display mode
                     <div className="flex items-center justify-between">
@@ -4265,6 +4368,13 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
                         )}
                       </div>
                       <div className="flex items-center gap-1 ml-2">
+                        <button
+                          onClick={() => handleDuplicate(expense)}
+                          className="p-1.5 text-gray-400 hover:text-purple-400 transition-colors"
+                          title="Duplicate"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleEdit(expense)}
                           className="p-1.5 text-gray-400 hover:text-blue-400 transition-colors"

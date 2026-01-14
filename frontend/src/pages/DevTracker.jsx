@@ -511,14 +511,16 @@ function DevTracker() {
                 <MessageSquarePlus className="w-4 h-4 text-purple-400" />
                 Pending Feedback from Production ({prodFeedback.length})
               </button>
-              <button
-                onClick={loadProdFeedback}
-                disabled={loadingProdFeedback}
-                className="text-xs text-gray-400 hover:text-white flex items-center gap-1"
-              >
-                <RefreshCw className={`w-3 h-3 ${loadingProdFeedback ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={loadProdFeedback}
+                  disabled={loadingProdFeedback}
+                  className="px-2 py-1 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded flex items-center gap-1 disabled:opacity-50"
+                >
+                  <Download className={`w-3 h-3 ${loadingProdFeedback ? 'animate-spin' : ''}`} />
+                  Pull from Prod
+                </button>
+              </div>
             </div>
             {!feedbackCollapsed && (
             <div className="space-y-3 max-h-96 overflow-y-auto">
