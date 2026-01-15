@@ -530,7 +530,7 @@ class SchedulerService:
                     }
 
                 # Get today's tasks: due today, overdue, or dateless (all "due today")
-                # Exclude backlog items - they shouldn't appear in digest
+                # Exclude backlog items and worker-assigned tasks - they shouldn't appear in digest
                 today = date.today()
                 result = await db.execute(
                     select(Task)
@@ -543,11 +543,12 @@ class SchedulerService:
                     .where(Task.is_completed == False)
                     .where(Task.is_active == True)
                     .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
+                    .where(Task.assigned_to_worker_id.is_(None))  # Exclude worker tasks
                     .order_by(Task.priority)
                 )
                 tasks = result.scalars().all()
 
-                # Also get overdue TODOs (due before today, not backlog)
+                # Also get overdue TODOs (due before today, not backlog, not worker-assigned)
                 # EVENTs cannot be overdue - once the date passes, they're just past events
                 overdue_result = await db.execute(
                     select(Task)
@@ -556,6 +557,7 @@ class SchedulerService:
                     .where(Task.is_completed == False)
                     .where(Task.is_active == True)
                     .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
+                    .where(Task.assigned_to_worker_id.is_(None))  # Exclude worker tasks
                     .order_by(Task.due_date, Task.priority)
                 )
                 overdue_tasks = overdue_result.scalars().all()

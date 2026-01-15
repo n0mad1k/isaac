@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.18.5] - 2026-01-15
+
+### Fixed
+- **Daily digest email no longer shows worker-assigned tasks**
+  - Tasks assigned to workers are now excluded from the daily digest email
+  - Owner digest focuses on their own tasks, not worker tasks
+
 ## [1.18.4] - 2026-01-14
 
 ### Fixed
