@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar as CalendarIcon, CheckSquare, X, User } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckSquare, X, User, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
-import { createTask, updateTask, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas, getWorkers, getUsers } from '../services/api'
+import { createTask, updateTask, deleteTask, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas, getWorkers, getUsers } from '../services/api'
 
 const TASK_CATEGORIES = [
   { value: 'plant_care', label: 'Plant Care' },
@@ -25,8 +25,9 @@ const TASK_CATEGORIES = [
  * - forWorkerTask: if true, hide alerts and farmhand visibility options (worker tasks mode)
  * - onClose: callback when modal closes
  * - onSaved: callback when event is saved (receives saved data)
+ * - onDeleted: callback when event is deleted (optional)
  */
-function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, forWorkerTask, onClose, onSaved }) {
+function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, forWorkerTask, onClose, onSaved, onDeleted }) {
   const [formData, setFormData] = useState({
     title: event?.title || '',
     description: event?.description || '',
@@ -51,6 +52,7 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
   })
   const [isMultiDay, setIsMultiDay] = useState(!!event?.end_date && event.end_date !== event.due_date)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [isAllDay, setIsAllDay] = useState(!event?.due_time)
   const [hasDate, setHasDate] = useState(!!event?.due_date || !!defaultDate)
   const [entities, setEntities] = useState({ animals: [], plants: [], vehicles: [], equipment: [], farmAreas: [], workers: [], users: [] })
@@ -119,6 +121,25 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
     }
     fetchEntities()
   }, [preselectedEntity, forWorkerTask])
+
+  const handleDelete = async () => {
+    if (!event?.id) return
+    if (!window.confirm('Delete this event?')) return
+
+    setDeleting(true)
+    try {
+      await deleteTask(event.id)
+      if (onDeleted) onDeleted(event.id)
+      onClose()
+    } catch (error) {
+      console.error('Failed to delete:', error)
+      if (error.response?.status !== 401) {
+        alert('Failed to delete event: ' + (error.response?.data?.detail || error.message))
+      }
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -605,16 +626,30 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
           )}
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">
+            {/* Delete button - only show when editing an existing event */}
+            {event && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || saving}
+                className="px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg transition-colors disabled:opacity-50 touch-manipulation flex items-center justify-center gap-2"
+                style={{ minHeight: '48px' }}
+                title="Delete this event"
+              >
+                <Trash2 className="w-4 h-4" />
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              className={`${event ? '' : 'flex-1'} px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors`}
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || deleting}
               onClick={(e) => {
                 // Ensure form submits on touch devices
                 const form = document.getElementById('event-form')

@@ -331,6 +331,12 @@ function CalendarPage() {
               setSelectedDayEvents(events[dateKey] || [])
             }
           }}
+          onDeleted={(deletedId) => {
+            fetchCalendarData()
+            if (selectedDate) {
+              setSelectedDayEvents(prev => prev.filter(e => e.id !== deletedId))
+            }
+          }}
         />
       )}
     </div>

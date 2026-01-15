@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.19.2] - 2026-01-15
+
+### Added
+- **Delete button in EventModal** for calendar events
+  - Delete button now appears when editing existing events in Day/Week/Month views
+  - Previously delete was only available in Month view's day detail panel
+
 ## [1.19.1] - 2026-01-15
 
 ### Added
