@@ -47,23 +47,23 @@ function ColdProtectionWidget() {
     return null
   }
 
-  // Earth-toned colors
-  // Cold protection: Steel blue / slate (cold feeling but earthy)
+  // Custom colors
+  // Cold protection: Lighter teal/blue
   const coldColors = {
-    bg: plantsAcknowledged ? 'bg-[#4A5568]/60' : 'bg-[#4A5568]/80',
-    border: 'border-[#718096]',
-    icon: '#A0AEC0',
-    text: '#E2E8F0',
-    chip: 'bg-[#2D3748]/70'
+    bg: plantsAcknowledged ? 'bg-[#3F8993]/60' : 'bg-[#3F8993]/80',
+    border: 'border-[#5AABB6]',
+    icon: '#A8E0E8',
+    text: '#E0F7FA',
+    chip: 'bg-[#2D6A73]/70'
   }
 
-  // Blankets: Warm brown / sienna (cozy feeling)
+  // Blankets: Purple
   const blanketColors = {
-    bg: animalsAcknowledged ? 'bg-[#744210]/60' : 'bg-[#744210]/80',
-    border: 'border-[#9C6220]',
-    icon: '#D69E2E',
-    text: '#FEFCBF',
-    chip: 'bg-[#5C3310]/70'
+    bg: animalsAcknowledged ? 'bg-[#7C4F9B]/60' : 'bg-[#7C4F9B]/80',
+    border: 'border-[#9B6BC0]',
+    icon: '#D4B8E8',
+    text: '#F3E8FA',
+    chip: 'bg-[#5C3A75]/70'
   }
 
   return (

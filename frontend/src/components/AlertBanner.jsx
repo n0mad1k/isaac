@@ -15,34 +15,34 @@ function AlertBanner({ alerts, onDismiss }) {
   const getSeverityStyles = (severity) => {
     switch (severity) {
       case 'critical':
-        // Wine red / burgundy
+        // Deep red
         return {
-          bg: 'bg-[#722F37]/90',
-          border: 'border-[#8B3A42]',
-          headerBg: 'bg-[#722F37]/70',
-          icon: <AlertTriangle className="w-5 h-5" style={{ color: '#D4A5A5' }} />,
-          iconColor: '#D4A5A5',
-          textColor: '#E8CACA'
+          bg: 'bg-[#7D1421]/90',
+          border: 'border-[#A01C2B]',
+          headerBg: 'bg-[#7D1421]/70',
+          icon: <AlertTriangle className="w-5 h-5" style={{ color: '#E8A0A8' }} />,
+          iconColor: '#E8A0A8',
+          textColor: '#F5D0D4'
         }
       case 'warning':
-        // Burnt orange / terracotta
+        // Burnt orange
         return {
-          bg: 'bg-[#8B4513]/90',
-          border: 'border-[#CD853F]',
-          headerBg: 'bg-[#8B4513]/70',
-          icon: <AlertCircle className="w-5 h-5" style={{ color: '#DEB887' }} />,
-          iconColor: '#DEB887',
-          textColor: '#F5DEB3'
+          bg: 'bg-[#B84F03]/90',
+          border: 'border-[#D97706]',
+          headerBg: 'bg-[#B84F03]/70',
+          icon: <AlertCircle className="w-5 h-5" style={{ color: '#FCD9B6' }} />,
+          iconColor: '#FCD9B6',
+          textColor: '#FEF3E2'
         }
       default:
-        // Sage / forest green for info
+        // Forest green for info
         return {
-          bg: 'bg-[#4A5D4A]/90',
-          border: 'border-[#6B8E6B]',
-          headerBg: 'bg-[#4A5D4A]/70',
-          icon: <Info className="w-5 h-5" style={{ color: '#A8C9A8' }} />,
-          iconColor: '#A8C9A8',
-          textColor: '#C8E0C8'
+          bg: 'bg-[#2C532C]/90',
+          border: 'border-[#3D7A3D]',
+          headerBg: 'bg-[#2C532C]/70',
+          icon: <Info className="w-5 h-5" style={{ color: '#A8D4A8' }} />,
+          iconColor: '#A8D4A8',
+          textColor: '#D4F0D4'
         }
     }
   }
