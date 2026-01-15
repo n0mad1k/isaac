@@ -73,11 +73,11 @@ function DevTracker() {
   useEffect(() => {
     loadData()
     loadFeedbackStatus()
-    loadProdFeedback()
+    loadProdFeedback(false) // Silent load on initial page load
 
     // Auto-refresh prod feedback every 5 minutes
     feedbackRefreshRef.current = setInterval(() => {
-      loadProdFeedback()
+      loadProdFeedback(false) // Silent auto-refresh
     }, 5 * 60 * 1000)
 
     return () => {
@@ -131,13 +131,24 @@ function DevTracker() {
   }
 
   // Load pending feedback from production
-  const loadProdFeedback = async () => {
+  const loadProdFeedback = async (showMessage = true) => {
     setLoadingProdFeedback(true)
     try {
       const response = await api.listProdFeedback()
-      setProdFeedback(response.data || [])
+      const feedback = response.data || []
+      setProdFeedback(feedback)
+      if (showMessage) {
+        if (feedback.length > 0) {
+          setFeedbackMessage({ type: 'info', text: `Found ${feedback.length} pending feedback item${feedback.length > 1 ? 's' : ''}` })
+        } else {
+          setFeedbackMessage({ type: 'success', text: 'No new feedback from production' })
+        }
+        // Auto-clear message after 3 seconds
+        setTimeout(() => setFeedbackMessage(null), 3000)
+      }
     } catch (err) {
       console.error('Failed to load prod feedback:', err)
+      setFeedbackMessage({ type: 'error', text: 'Failed to check for feedback' })
     } finally {
       setLoadingProdFeedback(false)
     }
@@ -160,7 +171,7 @@ function DevTracker() {
       setFeedbackMessage({ type: 'success', text: response.data.message })
       setReviewNote('')
       setReviewPriority('medium')
-      loadProdFeedback()
+      loadProdFeedback(false)
       if (action === 'approve') {
         loadData() // Refresh dev tracker items
       }
@@ -177,7 +188,7 @@ function DevTracker() {
     try {
       await api.deleteProdFeedback(feedbackId)
       setFeedbackMessage({ type: 'success', text: 'Feedback deleted' })
-      loadProdFeedback()
+      loadProdFeedback(false)
     } catch (err) {
       setFeedbackMessage({ type: 'error', text: err.response?.data?.detail || 'Failed to delete feedback' })
     } finally {
@@ -209,7 +220,7 @@ function DevTracker() {
       if (response.data.pulled > 0) {
         setFeedbackMessage({ type: 'success', text: `Pulled ${response.data.pulled} feedback items into dev tracker` })
         loadData() // Refresh to show new items
-        loadProdFeedback() // Refresh prod feedback list
+        loadProdFeedback(false) // Refresh prod feedback list
       } else {
         setFeedbackMessage({ type: 'info', text: response.data.message || 'No new feedback to pull' })
       }
@@ -458,6 +469,20 @@ function DevTracker() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Check for feedback button - always visible */}
+            <button
+              onClick={loadProdFeedback}
+              disabled={loadingProdFeedback}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors border bg-purple-600 hover:bg-purple-700 text-white border-purple-500"
+              title="Check for new feedback from production"
+            >
+              {loadingProdFeedback ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              Check Feedback
+            </button>
             {/* Toggle feedback on prod */}
             <button
               onClick={handleToggleFeedback}

@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.19.1] - 2026-01-15
+
+### Added
+- **Manual feedback check button** on DevTracker page
+  - "Check Feedback" button always visible to manually pull feedback from production
+  - Shows success/info message with count of pending items
+
+### Fixed
+- Calendar event deletion now shows proper error messages
+
 ## [1.19.0] - 2026-01-15
 
 ### Changed

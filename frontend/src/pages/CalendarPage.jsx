@@ -126,7 +126,7 @@ function CalendarPage() {
   }
 
   const handleDeleteEvent = async (eventId) => {
-    if (!confirm('Delete this event?')) return
+    if (!window.confirm('Delete this event?')) return
     try {
       await deleteTask(eventId)
       await fetchCalendarData()
@@ -136,7 +136,7 @@ function CalendarPage() {
       }
     } catch (error) {
       console.error('Failed to delete event:', error)
-      alert('Failed to delete event')
+      window.alert('Failed to delete event: ' + (error.response?.data?.detail || error.message))
     }
   }
 
