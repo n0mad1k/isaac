@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.19.0] - 2026-01-15
+
+### Changed
+- **Alerts are now collapsible with acknowledge/dismiss workflow**
+  - New alerts show prominently at the top of the dashboard
+  - Click checkmark to acknowledge - moves alert to collapsible "Alerts" section
+  - Click X to dismiss - removes alert completely
+  - Acknowledged alerts are stored in collapsible section for later reference
+  - Reduces dashboard clutter while keeping alerts accessible
+
 ## [1.18.9] - 2026-01-15
 
 ### Added
