@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.18.6] - 2026-01-15
+
+### Fixed
+- **Fix duplicate daily digest emails**
+  - Dev instance now skips sending digest (only prod sends)
+  - Added deduplication check in send function to prevent any duplicate sends
+  - Digest is now guaranteed to send only once per day regardless of restarts
+
 ## [1.18.5] - 2026-01-15
 
 ### Fixed

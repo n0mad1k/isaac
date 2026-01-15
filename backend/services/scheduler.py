@@ -425,19 +425,11 @@ class SchedulerService:
         # This gives a reasonable window to catch up without sending digest in the evening
         catchup_cutoff = scheduled_time + timedelta(hours=6)
 
-        # If current time is past today's scheduled time but before cutoff
-        # and we haven't sent it yet today, send it now
+        # If current time is past today's scheduled time but before cutoff, try to send
+        # (send_daily_digest will handle deduplication internally)
         if scheduled_time < now < catchup_cutoff:
-            # Check if digest was already sent today using persisted setting
-            today_str = now.strftime("%Y-%m-%d")
-            last_digest_date = await get_setting_value("_last_digest_date")
-
-            if last_digest_date != today_str:
-                # Mark as sent FIRST to prevent duplicate sends on rapid restarts
-                await set_setting_value("_last_digest_date", today_str)
-                logger.info(f"Missed daily digest time ({hour:02d}:{minute:02d}), sending now...")
-                # Send directly instead of scheduling (avoids race condition on rapid restarts)
-                await self.send_daily_digest()
+            logger.info(f"Missed daily digest time ({hour:02d}:{minute:02d}), attempting catchup...")
+            await self.send_daily_digest()
 
     async def stop(self):
         """Stop the scheduler"""
@@ -466,6 +458,11 @@ class SchedulerService:
 
     async def send_daily_digest(self):
         """Send daily digest email with verse of the day, tasks and weather"""
+        # Skip digest on dev instances to avoid duplicate emails
+        if settings.is_dev_instance:
+            logger.debug("Skipping daily digest on dev instance")
+            return
+
         # Check if daily digest is enabled
         digest_enabled = await get_setting_value("email_daily_digest")
         if digest_enabled != "true":
@@ -482,6 +479,18 @@ class SchedulerService:
         if not recipient:
             logger.warning("Daily digest recipient not configured, skipping")
             return
+
+        # Check if we already sent today's digest (prevents duplicates)
+        import pytz
+        tz = pytz.timezone(settings.timezone)
+        today_str = datetime.now(tz).strftime("%Y-%m-%d")
+        last_digest_date = await get_setting_value("_last_digest_date")
+        if last_digest_date == today_str:
+            logger.debug(f"Daily digest already sent today ({today_str}), skipping duplicate")
+            return
+
+        # Mark as sent BEFORE sending to prevent race conditions
+        await set_setting_value("_last_digest_date", today_str)
 
         logger.info(f"Sending daily digest to {recipient}...")
         try:
