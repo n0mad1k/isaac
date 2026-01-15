@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.18.8] - 2026-01-15
+
+### Changed
+- **Dashboard backlog widget is now scrollable**
+  - Long backlog lists no longer make the whole page scroll
+  - Backlog content scrolls independently with max height of 256px
+
 ## [1.18.7] - 2026-01-15
 
 ### Fixed

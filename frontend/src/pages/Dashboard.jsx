@@ -240,7 +240,7 @@ function Dashboard() {
                 )}
               </button>
               {!backlogCollapsed && (
-                <div className="px-3 pb-3 space-y-1.5">
+                <div className="px-3 pb-3 space-y-1.5 max-h-64 overflow-y-auto">
                   {data.backlog_tasks.map(task => (
                     <div
                       key={task.id}
