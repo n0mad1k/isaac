@@ -204,3 +204,4 @@ When tasks are completed, the source entity is updated based on `task.notes`:
 - Backend parses CHANGELOG.md and extracts `- ` lines under current version
 - These appear as "What's New in vX.X.X" in the Settings UI
 - Keep a running log of what I have asked and what you changed so you can remember what is going on. you can clear the log at midnight everyday
+- Any item in dev trackers to implement with a failed status is not already completed it has been kicked back

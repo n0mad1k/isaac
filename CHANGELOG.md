@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.18.9] - 2026-01-15
+
+### Added
+- **Multi-day events now available in Calendar**
+  - Calendar page now uses shared EventModal component with full multi-day support
+  - Toggle "Multi-day event" checkbox when creating/editing events
+  - Set end date for events that span multiple days
+
 ## [1.18.8] - 2026-01-15
 
 ### Changed
