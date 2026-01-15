@@ -69,6 +69,7 @@ class DashboardAlert(BaseModel):
     message: Optional[str]
     severity: str
     alert_type: str
+    is_acknowledged: bool = False
 
 
 class DashboardStats(BaseModel):
@@ -442,6 +443,7 @@ async def get_dashboard(
             message=a.message,
             severity=a.severity.value,
             alert_type=a.alert_type,
+            is_acknowledged=a.is_acknowledged or False,
         )
         for a in alerts
     ]
