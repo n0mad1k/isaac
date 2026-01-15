@@ -7,9 +7,11 @@ All notable changes to Isaac will be documented in this file.
 ### Changed
 - **Alerts are now collapsible with acknowledge/dismiss workflow**
   - New alerts show prominently at the top of the dashboard
-  - Click checkmark to acknowledge - moves alert to collapsible "Alerts" section
+  - Click checkmark to acknowledge - moves alert to collapsible "Acknowledged Alerts" section
   - Click X to dismiss - removes alert completely
-  - Acknowledged alerts are stored in collapsible section for later reference
+  - Cold protection and blanket advisories also move to alerts section when acknowledged
+  - Acknowledged alerts section uses consistent deep red header color
+  - Earth-toned colors: critical (deep red), warning (burnt orange), info (forest green), cold (teal), blankets (purple)
   - Reduces dashboard clutter while keeping alerts accessible
 
 ## [1.18.9] - 2026-01-15

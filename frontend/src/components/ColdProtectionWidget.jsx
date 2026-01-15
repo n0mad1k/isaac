@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Snowflake, PawPrint, Check, X } from 'lucide-react'
 import { getColdProtection, getAnimalsNeedingBlanket } from '../services/api'
 
-function ColdProtectionWidget() {
+function ColdProtectionWidget({ onAcknowledge }) {
   const [plantData, setPlantData] = useState(null)
   const [animals, setAnimals] = useState([])
   const [loading, setLoading] = useState(true)
@@ -40,26 +40,52 @@ function ColdProtectionWidget() {
     return () => clearInterval(interval)
   }, [])
 
-  const hasPlants = plantData?.needs_protection && plantData?.plants?.length > 0 && !plantsDismissed
-  const hasAnimals = animals.length > 0 && !animalsDismissed
+  // Notify parent when acknowledged items exist
+  useEffect(() => {
+    if (onAcknowledge) {
+      const acknowledgedItems = []
+      if (plantsAcknowledged && plantData?.plants?.length > 0 && !plantsDismissed) {
+        acknowledgedItems.push({
+          id: 'cold-protection',
+          type: 'cold',
+          title: `Cold Protection: ${plantData.plants.length} plants`,
+          message: `Low: ${plantData.forecast_low}°F`,
+          plants: plantData.plants
+        })
+      }
+      if (animalsAcknowledged && animals.length > 0 && !animalsDismissed) {
+        acknowledgedItems.push({
+          id: 'blanket-needed',
+          type: 'blanket',
+          title: `Blanket Needed: ${animals.length} animal${animals.length > 1 ? 's' : ''}`,
+          message: plantData?.forecast_low ? `Low: ${plantData.forecast_low}°F` : '',
+          animals: animals
+        })
+      }
+      onAcknowledge(acknowledgedItems)
+    }
+  }, [plantsAcknowledged, animalsAcknowledged, plantsDismissed, animalsDismissed, plantData, animals, onAcknowledge])
 
-  if (loading || (!hasPlants && !hasAnimals)) {
+  // Only show unacknowledged items here
+  const showPlants = plantData?.needs_protection && plantData?.plants?.length > 0 && !plantsDismissed && !plantsAcknowledged
+  const showAnimals = animals.length > 0 && !animalsDismissed && !animalsAcknowledged
+
+  if (loading || (!showPlants && !showAnimals)) {
     return null
   }
 
-  // Custom colors
-  // Cold protection: Lighter teal/blue
+  // Custom colors - Lighter teal/blue for cold
   const coldColors = {
-    bg: plantsAcknowledged ? 'bg-[#3F8993]/60' : 'bg-[#3F8993]/80',
+    bg: 'bg-[#3F8993]/90',
     border: 'border-[#5AABB6]',
     icon: '#A8E0E8',
     text: '#E0F7FA',
     chip: 'bg-[#2D6A73]/70'
   }
 
-  // Blankets: Purple
+  // Purple for blankets
   const blanketColors = {
-    bg: animalsAcknowledged ? 'bg-[#7C4F9B]/60' : 'bg-[#7C4F9B]/80',
+    bg: 'bg-[#7C4F9B]/90',
     border: 'border-[#9B6BC0]',
     icon: '#D4B8E8',
     text: '#F3E8FA',
@@ -69,7 +95,7 @@ function ColdProtectionWidget() {
   return (
     <div className="space-y-2">
       {/* Plants needing cold protection */}
-      {hasPlants && (
+      {showPlants && (
         <div className={`${coldColors.bg} ${coldColors.border} border-l-4 rounded-lg px-3 py-2`}>
           <div className="flex items-center gap-2">
             <Snowflake className="w-4 h-4" style={{ color: coldColors.icon }} />
@@ -80,15 +106,13 @@ function ColdProtectionWidget() {
               (Low: {plantData.forecast_low}°F)
             </span>
             <div className="flex-1" />
-            {!plantsAcknowledged && (
-              <button
-                onClick={() => setPlantsAcknowledged(true)}
-                className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
-                title="Got it"
-              >
-                <Check className="w-3.5 h-3.5" style={{ color: coldColors.text }} />
-              </button>
-            )}
+            <button
+              onClick={() => setPlantsAcknowledged(true)}
+              className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
+              title="Got it"
+            >
+              <Check className="w-3.5 h-3.5" style={{ color: coldColors.text }} />
+            </button>
             <button
               onClick={() => setPlantsDismissed(true)}
               className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
@@ -97,24 +121,22 @@ function ColdProtectionWidget() {
               <X className="w-3.5 h-3.5" style={{ color: coldColors.text }} />
             </button>
           </div>
-          {!plantsAcknowledged && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {plantData.plants.map((plant) => (
-                <span
-                  key={plant.id}
-                  className={`text-xs ${coldColors.chip} px-2 py-0.5 rounded`}
-                  style={{ color: coldColors.text }}
-                >
-                  {plant.name} ({plant.min_temp}°)
-                </span>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-1 mt-2">
+            {plantData.plants.map((plant) => (
+              <span
+                key={plant.id}
+                className={`text-xs ${coldColors.chip} px-2 py-0.5 rounded`}
+                style={{ color: coldColors.text }}
+              >
+                {plant.name} ({plant.min_temp}°)
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Animals needing blankets */}
-      {hasAnimals && (
+      {showAnimals && (
         <div className={`${blanketColors.bg} ${blanketColors.border} border-l-4 rounded-lg px-3 py-2`}>
           <div className="flex items-center gap-2">
             <PawPrint className="w-4 h-4" style={{ color: blanketColors.icon }} />
@@ -127,15 +149,13 @@ function ColdProtectionWidget() {
               </span>
             )}
             <div className="flex-1" />
-            {!animalsAcknowledged && (
-              <button
-                onClick={() => setAnimalsAcknowledged(true)}
-                className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
-                title="Got it"
-              >
-                <Check className="w-3.5 h-3.5" style={{ color: blanketColors.text }} />
-              </button>
-            )}
+            <button
+              onClick={() => setAnimalsAcknowledged(true)}
+              className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
+              title="Got it"
+            >
+              <Check className="w-3.5 h-3.5" style={{ color: blanketColors.text }} />
+            </button>
             <button
               onClick={() => setAnimalsDismissed(true)}
               className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
@@ -144,19 +164,17 @@ function ColdProtectionWidget() {
               <X className="w-3.5 h-3.5" style={{ color: blanketColors.text }} />
             </button>
           </div>
-          {!animalsAcknowledged && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {animals.map((animal) => (
-                <span
-                  key={animal.id}
-                  className={`text-xs ${blanketColors.chip} px-2 py-0.5 rounded`}
-                  style={{ color: blanketColors.text }}
-                >
-                  {animal.name} {animal.color ? `(${animal.color})` : ''} - blanket below {animal.needs_blanket_below}°
-                </span>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-wrap gap-1 mt-2">
+            {animals.map((animal) => (
+              <span
+                key={animal.id}
+                className={`text-xs ${blanketColors.chip} px-2 py-0.5 rounded`}
+                style={{ color: blanketColors.text }}
+              >
+                {animal.name} {animal.color ? `(${animal.color})` : ''} - blanket below {animal.needs_blanket_below}°
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </div>

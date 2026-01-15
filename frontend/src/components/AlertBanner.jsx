@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { AlertTriangle, AlertCircle, Info, X, Check, ChevronDown, ChevronUp, Bell } from 'lucide-react'
+import { AlertTriangle, AlertCircle, Info, X, Check, ChevronDown, ChevronUp, Bell, Snowflake, PawPrint } from 'lucide-react'
 import { dismissAlert, acknowledgeAlert } from '../services/api'
 
-function AlertBanner({ alerts, onDismiss }) {
+function AlertBanner({ alerts, onDismiss, acknowledgedAdvisories = [] }) {
   const [collapsed, setCollapsed] = useState(true)
 
   if (!alerts || alerts.length === 0) return null
@@ -19,7 +19,7 @@ function AlertBanner({ alerts, onDismiss }) {
         return {
           bg: 'bg-[#7D1421]/90',
           border: 'border-[#A01C2B]',
-          headerBg: 'bg-[#7D1421]/70',
+          headerBg: 'bg-[#7D1421]/90',
           icon: <AlertTriangle className="w-5 h-5" style={{ color: '#E8A0A8' }} />,
           iconColor: '#E8A0A8',
           textColor: '#F5D0D4'
@@ -29,17 +29,37 @@ function AlertBanner({ alerts, onDismiss }) {
         return {
           bg: 'bg-[#B84F03]/90',
           border: 'border-[#D97706]',
-          headerBg: 'bg-[#B84F03]/70',
+          headerBg: 'bg-[#B84F03]/90',
           icon: <AlertCircle className="w-5 h-5" style={{ color: '#FCD9B6' }} />,
           iconColor: '#FCD9B6',
           textColor: '#FEF3E2'
+        }
+      case 'cold':
+        // Lighter teal for cold protection
+        return {
+          bg: 'bg-[#3F8993]/90',
+          border: 'border-[#5AABB6]',
+          headerBg: 'bg-[#3F8993]/90',
+          icon: <Snowflake className="w-5 h-5" style={{ color: '#A8E0E8' }} />,
+          iconColor: '#A8E0E8',
+          textColor: '#E0F7FA'
+        }
+      case 'blanket':
+        // Purple for blankets
+        return {
+          bg: 'bg-[#7C4F9B]/90',
+          border: 'border-[#9B6BC0]',
+          headerBg: 'bg-[#7C4F9B]/90',
+          icon: <PawPrint className="w-5 h-5" style={{ color: '#D4B8E8' }} />,
+          iconColor: '#D4B8E8',
+          textColor: '#F3E8FA'
         }
       default:
         // Forest green for info
         return {
           bg: 'bg-[#2C532C]/90',
           border: 'border-[#3D7A3D]',
-          headerBg: 'bg-[#2C532C]/70',
+          headerBg: 'bg-[#2C532C]/90',
           icon: <Info className="w-5 h-5" style={{ color: '#A8D4A8' }} />,
           iconColor: '#A8D4A8',
           textColor: '#D4F0D4'
@@ -67,12 +87,42 @@ function AlertBanner({ alerts, onDismiss }) {
     }
   }
 
-  // Determine the most severe alert for the acknowledged section color
-  const getMostSevere = (alerts) => {
-    if (alerts.some(a => a.severity === 'critical')) return 'critical'
-    if (alerts.some(a => a.severity === 'warning')) return 'warning'
-    return 'info'
+  // Always use deep red for the acknowledged alerts section header
+  const getHeaderStyles = () => {
+    return {
+      bg: 'bg-[#7D1421]/90',
+      border: 'border-[#A01C2B]',
+      headerBg: 'bg-[#7D1421]/90',
+      iconColor: '#E8A0A8',
+      textColor: '#F5D0D4'
+    }
   }
+
+  // Get styles for advisory items (cold/blanket)
+  const getAdvisoryStyles = (type) => {
+    if (type === 'cold') {
+      return {
+        bg: 'bg-[#3F8993]/90',
+        border: 'border-[#5AABB6]',
+        icon: <Snowflake className="w-4 h-4" style={{ color: '#A8E0E8' }} />,
+        textColor: '#E0F7FA'
+      }
+    } else if (type === 'blanket') {
+      return {
+        bg: 'bg-[#7C4F9B]/90',
+        border: 'border-[#9B6BC0]',
+        icon: <PawPrint className="w-4 h-4" style={{ color: '#D4B8E8' }} />,
+        textColor: '#F3E8FA'
+      }
+    }
+    return getSeverityStyles('info')
+  }
+
+  // Combine acknowledged alerts with acknowledged advisories for the collapsible section
+  const allAcknowledgedItems = [
+    ...acknowledgedAlerts.map(a => ({ ...a, itemType: 'alert' })),
+    ...acknowledgedAdvisories.map(a => ({ ...a, itemType: 'advisory' }))
+  ]
 
   return (
     <div className="space-y-2">
@@ -111,10 +161,9 @@ function AlertBanner({ alerts, onDismiss }) {
         )
       })}
 
-      {/* Acknowledged Alerts - Collapsible section with alert-colored header */}
-      {acknowledgedAlerts.length > 0 && (() => {
-        const headerSeverity = getMostSevere(acknowledgedAlerts)
-        const headerStyles = getSeverityStyles(headerSeverity)
+      {/* Acknowledged Alerts - Collapsible section with deep red header */}
+      {allAcknowledgedItems.length > 0 && (() => {
+        const headerStyles = getHeaderStyles()
         return (
           <div className={`rounded-lg overflow-hidden border-l-4 ${headerStyles.border}`}>
             <button
@@ -127,7 +176,7 @@ function AlertBanner({ alerts, onDismiss }) {
                   Acknowledged Alerts
                 </span>
                 <span className="text-xs" style={{ color: headerStyles.textColor, opacity: 0.7 }}>
-                  ({acknowledgedAlerts.length})
+                  ({allAcknowledgedItems.length})
                 </span>
               </div>
               {collapsed ? (
@@ -139,11 +188,34 @@ function AlertBanner({ alerts, onDismiss }) {
 
             {!collapsed && (
               <div className="px-3 py-2 space-y-2 bg-black/20 max-h-48 overflow-y-auto">
-                {acknowledgedAlerts.map((alert) => {
-                  const styles = getSeverityStyles(alert.severity)
+                {allAcknowledgedItems.map((item) => {
+                  // Handle advisory items (cold/blanket)
+                  if (item.itemType === 'advisory') {
+                    const styles = getAdvisoryStyles(item.type)
+                    return (
+                      <div
+                        key={item.id}
+                        className={`${styles.bg} rounded-lg p-2.5 flex items-start gap-2 border-l-2 ${styles.border}`}
+                      >
+                        <div className="flex-shrink-0 mt-0.5">
+                          {styles.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium block" style={{ color: styles.textColor }}>
+                            {item.title}
+                          </span>
+                          {item.message && (
+                            <p className="text-xs mt-0.5" style={{ color: styles.textColor, opacity: 0.8 }}>{item.message}</p>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  }
+                  // Handle regular alerts
+                  const styles = getSeverityStyles(item.severity)
                   return (
                     <div
-                      key={alert.id}
+                      key={item.id}
                       className={`${styles.bg} rounded-lg p-2.5 flex items-start gap-2 border-l-2 ${styles.border}`}
                     >
                       <div className="flex-shrink-0 mt-0.5">
@@ -151,14 +223,14 @@ function AlertBanner({ alerts, onDismiss }) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium block" style={{ color: styles.textColor }}>
-                          {alert.title}
+                          {item.title}
                         </span>
-                        {alert.message && (
-                          <p className="text-xs mt-0.5" style={{ color: styles.textColor, opacity: 0.8 }}>{alert.message}</p>
+                        {item.message && (
+                          <p className="text-xs mt-0.5" style={{ color: styles.textColor, opacity: 0.8 }}>{item.message}</p>
                         )}
                       </div>
                       <button
-                        onClick={(e) => handleDismiss(alert.id, e)}
+                        onClick={(e) => handleDismiss(item.id, e)}
                         className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors flex-shrink-0"
                         title="Dismiss"
                       >
