@@ -192,22 +192,52 @@ function AlertBanner({ alerts, onDismiss, acknowledgedAdvisories = [] }) {
                   // Handle advisory items (cold/blanket)
                   if (item.itemType === 'advisory') {
                     const styles = getAdvisoryStyles(item.type)
+                    const chipBg = item.type === 'cold' ? 'bg-[#2D6A73]/70' : 'bg-[#5C3A75]/70'
                     return (
                       <div
                         key={item.id}
-                        className={`${styles.bg} rounded-lg p-2.5 flex items-start gap-2 border-l-2 ${styles.border}`}
+                        className={`${styles.bg} rounded-lg p-2.5 border-l-2 ${styles.border}`}
                       >
-                        <div className="flex-shrink-0 mt-0.5">
-                          {styles.icon}
+                        <div className="flex items-start gap-2">
+                          <div className="flex-shrink-0 mt-0.5">
+                            {styles.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium block" style={{ color: styles.textColor }}>
+                              {item.title}
+                            </span>
+                            {item.message && (
+                              <p className="text-xs mt-0.5" style={{ color: styles.textColor, opacity: 0.8 }}>{item.message}</p>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium block" style={{ color: styles.textColor }}>
-                            {item.title}
-                          </span>
-                          {item.message && (
-                            <p className="text-xs mt-0.5" style={{ color: styles.textColor, opacity: 0.8 }}>{item.message}</p>
-                          )}
-                        </div>
+                        {/* Show plant/animal details */}
+                        {item.plants && item.plants.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2 ml-6">
+                            {item.plants.map((plant) => (
+                              <span
+                                key={plant.id}
+                                className={`text-xs ${chipBg} px-2 py-0.5 rounded`}
+                                style={{ color: styles.textColor }}
+                              >
+                                {plant.name} ({plant.min_temp}°)
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {item.animals && item.animals.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2 ml-6">
+                            {item.animals.map((animal) => (
+                              <span
+                                key={animal.id}
+                                className={`text-xs ${chipBg} px-2 py-0.5 rounded`}
+                                style={{ color: styles.textColor }}
+                              >
+                                {animal.name} {animal.color ? `(${animal.color})` : ''} - blanket below {animal.needs_blanket_below}°
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )
                   }
