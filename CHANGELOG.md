@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.18.7] - 2026-01-15
+
+### Fixed
+- **User feedback status display improvements**
+  - "Failed" tracker items now properly show as "In Development" (was showing raw status)
+  - Approved items with pending tracker status now show "Pending Implementation" instead of "In Development"
+  - Last 5 completed items sorted by completion date (most recent first)
+
 ## [1.18.6] - 2026-01-15
 
 ### Fixed

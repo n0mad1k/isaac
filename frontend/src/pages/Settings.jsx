@@ -2251,6 +2251,7 @@ function Settings() {
                               </span>
                               <span className={`px-2 py-0.5 text-xs rounded-full ${
                                 fb.display_status === 'new' ? 'bg-yellow-600' :
+                                fb.display_status === 'pending_implementation' ? 'bg-cyan-600' :
                                 fb.display_status === 'in_development' ? 'bg-blue-600' :
                                 fb.display_status === 'in_testing' ? 'bg-purple-600' :
                                 fb.display_status === 'completed' ? 'bg-green-600' :
@@ -2258,6 +2259,7 @@ function Settings() {
                                 fb.display_status === 'kickback' ? 'bg-orange-600' : 'bg-gray-600'
                               } text-white`}>
                                 {fb.display_status === 'new' ? 'Pending Review' :
+                                 fb.display_status === 'pending_implementation' ? 'Pending Implementation' :
                                  fb.display_status === 'in_development' ? 'In Development' :
                                  fb.display_status === 'in_testing' ? 'In Testing' :
                                  fb.display_status === 'completed' ? 'Completed' :

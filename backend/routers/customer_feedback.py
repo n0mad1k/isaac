@@ -556,8 +556,10 @@ async def get_my_feedback(
                     pass
 
     # Build response with progress info
-    response = []
-    completed_count = 0
+    # Separate completed and non-completed items to handle the "last 5 completed" requirement
+    completed_items = []
+    non_completed_items = []
+
     for f in feedbacks:
         # Determine display status based on feedback status and dev tracker progress
         display_status = f.status.value
@@ -574,19 +576,17 @@ async def get_my_feedback(
                 is_completed = True
             elif tracker_status == "testing":
                 display_status = "in_testing"
-            elif tracker_status in ["pending", "in_progress"]:
+            elif tracker_status in ["in_progress", "failed"]:
+                # Active development or fixing failed tests
                 display_status = "in_development"
+            elif tracker_status == "pending":
+                # Approved and added to tracker, but not yet started
+                display_status = "pending_implementation"
         elif f.status == FeedbackStatus.APPROVED:
-            # Approved but no tracker info yet - show as in_development
-            display_status = "in_development"
+            # Approved but no tracker info available - show as pending implementation
+            display_status = "pending_implementation"
 
-        # Limit completed items to last 5
-        if is_completed:
-            completed_count += 1
-            if completed_count > 5:
-                continue
-
-        response.append({
+        item = {
             "id": f.id,
             "title": f.title,
             "description": f.description,
@@ -599,9 +599,19 @@ async def get_my_feedback(
             "reviewed_at": f.reviewed_at.isoformat() if f.reviewed_at else None,
             "completed_at": tracker_info["completed_at"] if tracker_info and tracker_info.get("completed_at") else None,
             "dev_tracker_item_id": f.dev_tracker_item_id,
-        })
+        }
 
-    return response
+        if is_completed:
+            completed_items.append(item)
+        else:
+            non_completed_items.append(item)
+
+    # Sort completed items by completion date (most recent first), take last 5
+    completed_items.sort(key=lambda x: x["completed_at"] or "", reverse=True)
+    completed_items = completed_items[:5]
+
+    # Combine: non-completed items first (already sorted by created_at), then completed items
+    return non_completed_items + completed_items
 
 
 class FeedbackUpdate(BaseModel):
