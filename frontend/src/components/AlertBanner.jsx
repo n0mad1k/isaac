@@ -11,28 +11,38 @@ function AlertBanner({ alerts, onDismiss }) {
   const newAlerts = alerts.filter(a => !a.is_acknowledged)
   const acknowledgedAlerts = alerts.filter(a => a.is_acknowledged)
 
+  // Earth-toned alert colors
   const getSeverityStyles = (severity) => {
     switch (severity) {
       case 'critical':
+        // Wine red / burgundy
         return {
-          bg: 'bg-red-900/80',
-          border: 'border-red-500',
-          icon: <AlertTriangle className="w-5 h-5 text-red-400" />,
-          iconClass: 'text-red-400'
+          bg: 'bg-[#722F37]/90',
+          border: 'border-[#8B3A42]',
+          headerBg: 'bg-[#722F37]/70',
+          icon: <AlertTriangle className="w-5 h-5" style={{ color: '#D4A5A5' }} />,
+          iconColor: '#D4A5A5',
+          textColor: '#E8CACA'
         }
       case 'warning':
+        // Burnt orange / terracotta
         return {
-          bg: 'bg-yellow-900/80',
-          border: 'border-yellow-500',
-          icon: <AlertCircle className="w-5 h-5 text-yellow-400" />,
-          iconClass: 'text-yellow-400'
+          bg: 'bg-[#8B4513]/90',
+          border: 'border-[#CD853F]',
+          headerBg: 'bg-[#8B4513]/70',
+          icon: <AlertCircle className="w-5 h-5" style={{ color: '#DEB887' }} />,
+          iconColor: '#DEB887',
+          textColor: '#F5DEB3'
         }
       default:
+        // Sage / forest green for info
         return {
-          bg: 'bg-blue-900/80',
-          border: 'border-blue-500',
-          icon: <Info className="w-5 h-5 text-blue-400" />,
-          iconClass: 'text-blue-400'
+          bg: 'bg-[#4A5D4A]/90',
+          border: 'border-[#6B8E6B]',
+          headerBg: 'bg-[#4A5D4A]/70',
+          icon: <Info className="w-5 h-5" style={{ color: '#A8C9A8' }} />,
+          iconColor: '#A8C9A8',
+          textColor: '#C8E0C8'
         }
     }
   }
@@ -57,6 +67,13 @@ function AlertBanner({ alerts, onDismiss }) {
     }
   }
 
+  // Determine the most severe alert for the acknowledged section color
+  const getMostSevere = (alerts) => {
+    if (alerts.some(a => a.severity === 'critical')) return 'critical'
+    if (alerts.some(a => a.severity === 'warning')) return 'warning'
+    return 'info'
+  }
+
   return (
     <div className="space-y-2">
       {/* New/Unacknowledged Alerts - Show prominently */}
@@ -69,9 +86,9 @@ function AlertBanner({ alerts, onDismiss }) {
           >
             <div className="flex-shrink-0 mt-0.5">{styles.icon}</div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm text-white">{alert.title}</h3>
+              <h3 className="font-semibold text-sm" style={{ color: styles.textColor }}>{alert.title}</h3>
               {alert.message && (
-                <p className="text-xs mt-0.5 text-gray-300">{alert.message}</p>
+                <p className="text-xs mt-0.5" style={{ color: styles.textColor, opacity: 0.8 }}>{alert.message}</p>
               )}
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -80,81 +97,81 @@ function AlertBanner({ alerts, onDismiss }) {
                 className="p-1.5 rounded bg-white/10 hover:bg-white/20 transition-colors"
                 title="Got it - move to alerts section"
               >
-                <Check className="w-4 h-4 text-white" />
+                <Check className="w-4 h-4" style={{ color: styles.textColor }} />
               </button>
               <button
                 onClick={(e) => handleDismiss(alert.id, e)}
                 className="p-1.5 rounded bg-white/10 hover:bg-white/20 transition-colors"
                 title="Dismiss alert"
               >
-                <X className="w-4 h-4 text-white" />
+                <X className="w-4 h-4" style={{ color: styles.textColor }} />
               </button>
             </div>
           </div>
         )
       })}
 
-      {/* Acknowledged Alerts - Collapsible section */}
-      {acknowledgedAlerts.length > 0 && (
-        <div
-          className="rounded-lg overflow-hidden"
-          style={{
-            backgroundColor: 'var(--color-bg-surface)',
-            border: '1px solid var(--color-border-default)'
-          }}
-        >
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="w-full px-3 py-2 flex items-center justify-between hover:bg-black/10 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-gray-400" />
-              <span className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                Alerts
-              </span>
-              <span className="text-xs text-gray-500">
-                ({acknowledgedAlerts.length})
-              </span>
-            </div>
-            {collapsed ? (
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            ) : (
-              <ChevronUp className="w-4 h-4 text-gray-400" />
-            )}
-          </button>
+      {/* Acknowledged Alerts - Collapsible section with alert-colored header */}
+      {acknowledgedAlerts.length > 0 && (() => {
+        const headerSeverity = getMostSevere(acknowledgedAlerts)
+        const headerStyles = getSeverityStyles(headerSeverity)
+        return (
+          <div className={`rounded-lg overflow-hidden border-l-4 ${headerStyles.border}`}>
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className={`w-full px-3 py-2 flex items-center justify-between ${headerStyles.headerBg} hover:opacity-90 transition-opacity`}
+            >
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4" style={{ color: headerStyles.iconColor }} />
+                <span className="text-sm font-medium" style={{ color: headerStyles.textColor }}>
+                  Acknowledged Alerts
+                </span>
+                <span className="text-xs" style={{ color: headerStyles.textColor, opacity: 0.7 }}>
+                  ({acknowledgedAlerts.length})
+                </span>
+              </div>
+              {collapsed ? (
+                <ChevronDown className="w-4 h-4" style={{ color: headerStyles.iconColor }} />
+              ) : (
+                <ChevronUp className="w-4 h-4" style={{ color: headerStyles.iconColor }} />
+              )}
+            </button>
 
-          {!collapsed && (
-            <div className="px-3 pb-2 space-y-1.5 max-h-48 overflow-y-auto">
-              {acknowledgedAlerts.map((alert) => {
-                const styles = getSeverityStyles(alert.severity)
-                return (
-                  <div
-                    key={alert.id}
-                    className={`rounded p-2 flex items-center gap-2 border-l-3 ${styles.border}`}
-                    style={{ backgroundColor: 'var(--color-bg-surface-soft)' }}
-                  >
-                    <div className={`flex-shrink-0 ${styles.iconClass}`}>
-                      {React.cloneElement(styles.icon, { className: 'w-4 h-4' })}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm truncate block" style={{ color: 'var(--color-text-primary)' }}>
-                        {alert.title}
-                      </span>
-                    </div>
-                    <button
-                      onClick={(e) => handleDismiss(alert.id, e)}
-                      className="p-1 rounded hover:bg-black/10 transition-colors flex-shrink-0"
-                      title="Dismiss"
+            {!collapsed && (
+              <div className="px-3 py-2 space-y-2 bg-black/20 max-h-48 overflow-y-auto">
+                {acknowledgedAlerts.map((alert) => {
+                  const styles = getSeverityStyles(alert.severity)
+                  return (
+                    <div
+                      key={alert.id}
+                      className={`${styles.bg} rounded-lg p-2.5 flex items-start gap-2 border-l-2 ${styles.border}`}
                     >
-                      <X className="w-3.5 h-3.5 text-gray-400" />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
+                      <div className="flex-shrink-0 mt-0.5">
+                        {React.cloneElement(styles.icon, { className: 'w-4 h-4' })}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium block" style={{ color: styles.textColor }}>
+                          {alert.title}
+                        </span>
+                        {alert.message && (
+                          <p className="text-xs mt-0.5" style={{ color: styles.textColor, opacity: 0.8 }}>{alert.message}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => handleDismiss(alert.id, e)}
+                        className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors flex-shrink-0"
+                        title="Dismiss"
+                      >
+                        <X className="w-3.5 h-3.5" style={{ color: styles.textColor }} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }
