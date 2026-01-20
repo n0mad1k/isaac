@@ -930,6 +930,7 @@ async def sync_all_maintenance_reminders(db: AsyncSession) -> Dict[str, int]:
 
     stats = {"created": 0, "updated": 0, "skipped": 0, "cleaned": 0}
     calendar_service = await get_calendar_service(db)
+    today = date.today()
 
     # Get all valid maintenance keys for cleanup later
     valid_maint_keys = set()
