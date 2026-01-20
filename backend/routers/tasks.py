@@ -741,6 +741,15 @@ async def complete_task(
             except Exception as e:
                 logger.error(f"Failed to re-sync plant reminders: {e}")
 
+        # Re-sync maintenance reminders (home, vehicle, equipment, farm)
+        if any(x in task.notes for x in ["home_maint:", "vehicle_maint:", "equipment_maint:", "farm_maint:"]):
+            from services.auto_reminders import sync_all_maintenance_reminders
+            try:
+                stats = await sync_all_maintenance_reminders(db)
+                logger.info(f"Re-synced maintenance reminders after completion: {stats}")
+            except Exception as e:
+                logger.error(f"Failed to re-sync maintenance reminders: {e}")
+
     return task
 
 

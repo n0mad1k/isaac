@@ -8,6 +8,10 @@ All notable changes to Isaac will be documented in this file.
 - **"Pull to Tracker" button now works** in DevTracker feedback section
   - Button was incorrectly calling the list function instead of the pull function
   - Now properly pulls pending feedback from production into the dev tracker
+- **Auto-generated maintenance tasks now properly recreate after completion**
+  - Fixed logic that prevented new task creation when previous task was completed
+  - Added automatic re-sync of maintenance reminders after task completion
+  - Stale next_due dates (older than frequency) are now reset to today
 
 ### Security
 - **Updated Python dependencies for CVE fixes**

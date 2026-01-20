@@ -145,10 +145,19 @@ async def create_or_update_reminder(
     active_incomplete = [t for t in all_matching_tasks if t.is_active and not t.is_completed]
     completed_tasks = [t for t in all_matching_tasks if t.is_completed]
 
-    # If there's a completed task, don't create a new one - the maintenance was done
+    # Check if there's a completed task for THIS due date
+    # For recurring tasks, we should create a new task when the next_due changes
     if completed_tasks:
-        logger.debug(f"Skipping reminder for {source_key} - already completed (task {completed_tasks[0].id})")
-        return None
+        # Only skip if a completed task exists with the same due_date as requested
+        completed_for_this_date = [
+            t for t in completed_tasks
+            if t.due_date and t.due_date == due_date
+        ]
+        if completed_for_this_date:
+            logger.debug(f"Skipping reminder for {source_key} - already completed for {due_date}")
+            return None
+        # If completed task exists but for a different due date, we should create a new one
+        logger.debug(f"Completed task exists but for different date, creating new task for {due_date}")
 
     # Handle duplicates: if multiple active exist, keep the first and deactivate others
     existing_task = None
@@ -1030,6 +1039,18 @@ async def sync_all_maintenance_reminders(db: AsyncSession) -> Dict[str, int]:
             continue
 
         due_date_obj = due_date.date() if isinstance(due_date, datetime) else due_date
+
+        # If next_due is more than frequency_days in the past, recalculate to avoid
+        # creating very old overdue tasks that were likely missed
+        if maint.frequency_days and not maint.manual_due_date:
+            days_overdue = (today - due_date_obj).days
+            if days_overdue > maint.frequency_days:
+                # Calculate next due date from today
+                # This prevents creating tasks for e.g., 2 weeks ago
+                maint.next_due = datetime.combine(today, datetime.min.time())
+                due_date_obj = today
+                logger.info(f"Reset stale next_due for {maint.name} from {days_overdue} days ago to today")
+
         source_key = f"home_maint:{maint.id}"
         valid_maint_keys.add(f"auto:{source_key}")
 
