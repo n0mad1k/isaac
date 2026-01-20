@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Fence, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Leaf, PawPrint, Edit, Calendar, Clock, CalendarPlus, Home, Warehouse, TreeDeciduous, Droplets, Bird, Dog, Rabbit, Beef, Car, Box, Bed, Bath, CookingPot, Sofa, Briefcase, DoorOpen, Settings } from 'lucide-react'
+import { Fence, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Leaf, PawPrint, Edit, Calendar, Clock, CalendarPlus, Home, Warehouse, TreeDeciduous, Droplets, Bird, Dog, Rabbit, Car, Box, Bed, Bath, CookingPot, Sofa, Briefcase, DoorOpen, Settings } from 'lucide-react'
 import { getFarmAreas, getFarmArea, createFarmArea, updateFarmArea, deleteFarmArea, getFarmAreaMaintenance, createFarmAreaMaintenance, updateFarmAreaMaintenance, completeFarmAreaMaintenance, deleteFarmAreaMaintenance, getFarmAreaTypes, getTasksByEntity, completeTask, deleteTask } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 import EventModal from '../components/EventModal'
@@ -49,8 +49,8 @@ const TYPE_ICON_COMPONENTS = {
   chicken_coop: Bird,
   rabbit_hutch: Rabbit,
   dog_kennel: Dog,
-  stall: Beef,
-  pen: Beef,
+  stall: Fence,
+  pen: Fence,
   apiary: Leaf,
   // Other
   driveway: Home,
