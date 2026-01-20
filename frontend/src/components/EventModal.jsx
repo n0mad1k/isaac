@@ -27,6 +27,17 @@ const TASK_CATEGORIES = [
  * - onSaved: callback when event is saved (receives saved data)
  * - onDeleted: callback when event is deleted (optional)
  */
+const RECURRENCE_OPTIONS = [
+  { value: 'once', label: 'One-time' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Bi-weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'annually', label: 'Annually' },
+  { value: 'custom', label: 'Custom (every X days)' },
+]
+
 function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, forWorkerTask, onClose, onSaved, onDeleted }) {
   const [formData, setFormData] = useState({
     title: event?.title || '',
@@ -42,6 +53,8 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
     is_backlog: event?.is_backlog || false,
     visible_to_farmhands: event?.visible_to_farmhands || false,
     reminder_alerts: event?.reminder_alerts || null, // null = use default from settings
+    recurrence: event?.recurrence || 'once',
+    recurrence_interval: event?.recurrence_interval || null,
     animal_id: event?.animal_id || (preselectedEntity?.type === 'animal' ? preselectedEntity.id : null),
     plant_id: event?.plant_id || (preselectedEntity?.type === 'plant' ? preselectedEntity.id : null),
     vehicle_id: event?.vehicle_id || (preselectedEntity?.type === 'vehicle' ? preselectedEntity.id : null),
@@ -163,6 +176,9 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
         is_backlog: formData.task_type === 'todo' ? formData.is_backlog : false,
         visible_to_farmhands: formData.visible_to_farmhands,
         reminder_alerts: formData.reminder_alerts || null,
+        // Recurrence
+        recurrence: formData.recurrence || 'once',
+        recurrence_interval: formData.recurrence === 'custom' && formData.recurrence_interval ? parseInt(formData.recurrence_interval) : null,
         // Clear all entity links except the selected type
         animal_id: linkType === 'animal' ? formData.animal_id : null,
         plant_id: linkType === 'plant' ? formData.plant_id : null,
@@ -408,6 +424,37 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
               </select>
             </div>
           </div>
+
+          {/* Recurrence - only show if has date */}
+          {(formData.task_type === 'event' || hasDate) && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Repeat</label>
+                <select
+                  value={formData.recurrence}
+                  onChange={(e) => setFormData({ ...formData, recurrence: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  {RECURRENCE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              {formData.recurrence === 'custom' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Repeat every (days)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.recurrence_interval || ''}
+                    onChange={(e) => setFormData({ ...formData, recurrence_interval: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder="e.g., 14"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>

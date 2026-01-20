@@ -15,6 +15,9 @@ All notable changes to Isaac will be documented in this file.
 - **Cold protection and blanket advisories now persist after page refresh**
   - Acknowledgement state saved in localStorage (resets daily)
   - Acknowledged advisories properly stay in "Acknowledged Alerts" section
+- **Events can now be set to repeat** in EventModal
+  - Added recurrence dropdown (daily, weekly, biweekly, monthly, quarterly, annually, custom)
+  - Custom recurrence supports "every X days" interval
 
 ### Security
 - **Updated Python dependencies for CVE fixes**
