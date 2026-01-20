@@ -19,6 +19,7 @@ from .dev_tracker import DevTrackerItem, ItemType, ItemPriority, ItemStatus
 from .workers import Worker
 from .supply_requests import SupplyRequest, RequestStatus
 from .customer_feedback import CustomerFeedback, FeedbackType, FeedbackStatus
+from .translation import TranslationCache
 
 __all__ = [
     "Base",
@@ -81,4 +82,5 @@ __all__ = [
     "CustomerFeedback",
     "FeedbackType",
     "FeedbackStatus",
+    "TranslationCache",
 ]

@@ -378,15 +378,9 @@ function WorkerTasks() {
     }
   }
 
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'pending': return 'Pending'
-      case 'approved': return 'Approved'
-      case 'purchased': return 'Purchased'
-      case 'delivered': return 'Delivered'
-      case 'denied': return 'Denied'
-      default: return status
-    }
+  // Status label now uses translation - pass t function
+  const getStatusLabel = (status, t) => {
+    return t(`supply.status.${status}`) || status
   }
 
   const startEditWorker = (worker) => {
@@ -843,7 +837,7 @@ function WorkerTasks() {
           <>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h3 className="text-lg font-semibold">Supply Requests from {selectedWorker.name}</h3>
+              <h3 className="text-lg font-semibold">{t('supply.requestsFrom')} {selectedWorker.name}</h3>
               <label className="flex items-center gap-2 text-sm text-gray-400">
                 <input
                   type="checkbox"
@@ -851,7 +845,7 @@ function WorkerTasks() {
                   onChange={(e) => setIncludeCompleted(e.target.checked)}
                   className="w-4 h-4 rounded"
                 />
-                Show completed
+                {t('showCompleted')}
               </label>
             </div>
             <button
@@ -859,7 +853,7 @@ function WorkerTasks() {
               className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
             >
               <Plus className="w-4 h-4" />
-              Request Supply
+              {t('supply.requestSupply')}
             </button>
           </div>
 
@@ -884,7 +878,7 @@ function WorkerTasks() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`px-2 py-1 text-xs rounded border ${getStatusColor(request.status)}`}>
-                        {getStatusLabel(request.status)}
+                        {getStatusLabel(request.status, t)}
                       </span>
                     </div>
                   </div>
@@ -898,7 +892,7 @@ function WorkerTasks() {
                     </div>
                   )}
                   <div className="mt-2 pl-8 text-xs text-gray-500">
-                    Requested {format(new Date(request.created_at), 'MMM d, yyyy')}
+                    {t('supply.requested')} {format(new Date(request.created_at), 'MMM d, yyyy')}
                   </div>
                   {/* Action buttons based on status */}
                   <div className="mt-3 flex flex-wrap gap-2 pl-8">
@@ -909,14 +903,14 @@ function WorkerTasks() {
                           className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-500"
                         >
                           <Check className="w-3 h-3" />
-                          Approve
+                          {t('supply.approve')}
                         </button>
                         <button
                           onClick={() => handleUpdateSupplyStatus(request.id, 'denied')}
                           className="flex items-center gap-1 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-500"
                         >
                           <X className="w-3 h-3" />
-                          Deny
+                          {t('supply.deny')}
                         </button>
                       </>
                     )}
@@ -927,14 +921,14 @@ function WorkerTasks() {
                           className="flex items-center gap-1 px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-500"
                         >
                           <ShoppingCart className="w-3 h-3" />
-                          Mark Purchased
+                          {t('supply.markPurchased')}
                         </button>
                         <button
                           onClick={() => handleUpdateSupplyStatus(request.id, 'pending')}
                           className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded-lg hover:bg-gray-500"
                         >
                           <RotateCcw className="w-3 h-3" />
-                          Back to Pending
+                          {t('supply.backToPending')}
                         </button>
                       </>
                     )}
@@ -945,14 +939,14 @@ function WorkerTasks() {
                           className="flex items-center gap-1 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-500"
                         >
                           <Check className="w-3 h-3" />
-                          Mark Delivered
+                          {t('supply.markDelivered')}
                         </button>
                         <button
                           onClick={() => handleUpdateSupplyStatus(request.id, 'approved')}
                           className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded-lg hover:bg-gray-500"
                         >
                           <RotateCcw className="w-3 h-3" />
-                          Back to Approved
+                          {t('supply.backToApproved')}
                         </button>
                       </>
                     )}
@@ -962,7 +956,7 @@ function WorkerTasks() {
                         className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded-lg hover:bg-gray-500"
                       >
                         <RotateCcw className="w-3 h-3" />
-                        Back to Purchased
+                        {t('supply.backToPurchased')}
                       </button>
                     )}
                     {request.status === 'denied' && (
@@ -971,7 +965,7 @@ function WorkerTasks() {
                         className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded-lg hover:bg-gray-500"
                       >
                         <RotateCcw className="w-3 h-3" />
-                        Reopen
+                        {t('supply.reopen')}
                       </button>
                     )}
                     {/* Edit and delete - available for all statuses */}
@@ -996,12 +990,12 @@ function WorkerTasks() {
           ) : (
             <div className="text-center py-12 text-gray-400 bg-gray-800 rounded-lg">
               <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No supply requests from {selectedWorker.name}</p>
+              <p>{t('supply.noRequests')} {selectedWorker.name}</p>
               <button
                 onClick={() => setShowSupplyModal(true)}
                 className="mt-4 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
               >
-                Request First Supply
+                {t('supply.requestFirst')}
               </button>
             </div>
           )}
@@ -1279,27 +1273,22 @@ function WorkerTasks() {
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <ShoppingCart className="w-6 h-6 text-farm-green" />
-              {editingSupplyRequest ? 'Edit Supply Request' : 'Request Supply'}
+              {editingSupplyRequest ? t('supply.editRequest') : t('supply.requestSupply')}
             </h2>
-            {!editingSupplyRequest && (
-              <p className="text-sm text-gray-400 mb-4">
-                Request items you need for your work. The homeowner will review and respond.
-              </p>
-            )}
             <form onSubmit={editingSupplyRequest ? handleEditSupplyRequest : handleAddSupplyRequest} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Item Needed</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('supply.itemNeeded')}</label>
                 <input
                   type="text"
                   value={supplyFormData.item_name}
                   onChange={(e) => setSupplyFormData({ ...supplyFormData, item_name: e.target.value })}
                   className="w-full bg-gray-700 rounded-lg px-4 py-2"
-                  placeholder="e.g., Trash bags, Window cleaner, Work gloves..."
+                  placeholder={t('supply.itemPlaceholder')}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Quantity</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('supply.quantity')}</label>
                 <input
                   type="number"
                   min="1"
@@ -1309,13 +1298,13 @@ function WorkerTasks() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes (optional)</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('supply.notesOptional')}</label>
                 <textarea
                   value={supplyFormData.notes}
                   onChange={(e) => setSupplyFormData({ ...supplyFormData, notes: e.target.value })}
                   className="w-full bg-gray-700 rounded-lg px-4 py-2"
                   rows={2}
-                  placeholder="e.g., Running low, prefer name brand, specific size..."
+                  placeholder={t('supply.notesPlaceholder')}
                 />
               </div>
               <div className="flex gap-3">
@@ -1324,13 +1313,13 @@ function WorkerTasks() {
                   onClick={() => { setShowSupplyModal(false); setEditingSupplyRequest(null); setSupplyFormData({ item_name: '', quantity: 1, notes: '' }); }}
                   className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
                 >
-                  Cancel
+                  {t('modal.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
                 >
-                  {editingSupplyRequest ? 'Save Changes' : 'Submit Request'}
+                  {editingSupplyRequest ? t('supply.saveChanges') : t('supply.submitRequest')}
                 </button>
               </div>
             </form>

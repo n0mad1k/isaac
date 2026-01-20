@@ -59,6 +59,7 @@
       "requestSupply": "Solicitar Suministro",
       "noRequests": "No hay solicitudes de suministros de",
       "requestFirst": "Solicitar Primer Suministro",
+      "requested": "Solicitado",
       "itemNeeded": "Artículo Necesario",
       "itemPlaceholder": "Ej., Bolsas de basura, Limpiavidrios, Guantes de trabajo...",
       "quantity": "Cantidad",
@@ -76,7 +77,6 @@
       "backToPurchased": "Volver a Comprado",
       "reopen": "Reabrir",
       "delete": "Eliminar",
-      "requested": "Solicitado",
       "status": {
         "pending": "Pendiente",
         "approved": "Aprobado",

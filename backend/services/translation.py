@@ -1,15 +1,20 @@
 """
 Translation Service using DeepL API
 Provides English to Spanish translation for worker task content
+With persistent database caching to reduce API usage
 """
 
 import httpx
 from loguru import logger
 from typing import Optional
-import asyncio
+from sqlalchemy import select
+from datetime import datetime
 
-# In-memory cache for translations
+from models.translation import TranslationCache
+
+# In-memory cache for fast lookups (populated from DB on first access)
 _translation_cache: dict[str, str] = {}
+_cache_loaded: bool = False
 
 # DeepL API endpoint (free tier uses different URL)
 DEEPL_FREE_URL = "https://api-free.deepl.com/v2/translate"
@@ -26,9 +31,61 @@ async def get_deepl_key():
         return None
 
 
+async def _get_cached_translation(source_text: str, target_lang: str) -> Optional[str]:
+    """Get translation from database cache"""
+    try:
+        from models.database import async_session
+
+        async with async_session() as db:
+            result = await db.execute(
+                select(TranslationCache).where(
+                    TranslationCache.source_text == source_text,
+                    TranslationCache.target_lang == target_lang.upper()
+                )
+            )
+            cached = result.scalar_one_or_none()
+            if cached:
+                return cached.translated_text
+    except Exception as e:
+        logger.debug(f"Cache lookup failed: {e}")
+    return None
+
+
+async def _save_translation_to_cache(source_text: str, target_lang: str, translated_text: str):
+    """Save translation to database cache"""
+    try:
+        from models.database import async_session
+
+        async with async_session() as db:
+            # Check if already exists
+            result = await db.execute(
+                select(TranslationCache).where(
+                    TranslationCache.source_text == source_text,
+                    TranslationCache.target_lang == target_lang.upper()
+                )
+            )
+            existing = result.scalar_one_or_none()
+
+            if existing:
+                existing.translated_text = translated_text
+                existing.updated_at = datetime.utcnow()
+            else:
+                cache_entry = TranslationCache(
+                    source_text=source_text,
+                    target_lang=target_lang.upper(),
+                    translated_text=translated_text
+                )
+                db.add(cache_entry)
+
+            await db.commit()
+    except Exception as e:
+        logger.debug(f"Failed to save translation to cache: {e}")
+
+
 async def translate(text: str, target_lang: str = "ES") -> str:
     """
     Translate text from English to target language using DeepL API
+    Uses persistent database cache to reduce API calls
 
     Args:
         text: Text to translate (English)
@@ -45,10 +102,18 @@ async def translate(text: str, target_lang: str = "ES") -> str:
     if target_lang == "EN":
         return text
 
-    # Check cache first
+    # Check in-memory cache first (fast)
     cache_key = f"en:{target_lang}:{text}"
     if cache_key in _translation_cache:
         return _translation_cache[cache_key]
+
+    # Check database cache (persistent across restarts)
+    cached = await _get_cached_translation(text, target_lang)
+    if cached:
+        # Store in memory cache for faster subsequent lookups
+        _translation_cache[cache_key] = cached
+        logger.debug(f"Cache hit for '{text}' -> '{cached}'")
+        return cached
 
     # Get API key
     api_key = await get_deepl_key()
@@ -78,9 +143,13 @@ async def translate(text: str, target_lang: str = "ES") -> str:
                 result = response.json()
                 translated = result["translations"][0]["text"]
 
-                # Cache the result
+                # Cache in memory
                 _translation_cache[cache_key] = translated
-                logger.debug(f"Translated '{text}' -> '{translated}'")
+
+                # Cache in database for persistence
+                await _save_translation_to_cache(text, target_lang, translated)
+
+                logger.debug(f"Translated '{text}' -> '{translated}' (API call)")
                 return translated
             else:
                 logger.error(f"DeepL API error: {response.status_code} - {response.text}")
@@ -123,14 +192,47 @@ async def translate_task(task_dict: dict, target_lang: str = "es") -> dict:
 
 
 def clear_cache():
-    """Clear the translation cache"""
+    """Clear both in-memory and database translation cache"""
     global _translation_cache
     _translation_cache = {}
-    logger.info("Translation cache cleared")
+    logger.info("In-memory translation cache cleared")
+
+
+async def clear_database_cache():
+    """Clear the database translation cache"""
+    try:
+        from models.database import async_session
+
+        async with async_session() as db:
+            await db.execute("DELETE FROM translation_cache")
+            await db.commit()
+        logger.info("Database translation cache cleared")
+    except Exception as e:
+        logger.error(f"Failed to clear database cache: {e}")
 
 
 def get_cache_stats() -> dict:
     """Get translation cache statistics"""
     return {
-        "cached_translations": len(_translation_cache),
+        "memory_cache_entries": len(_translation_cache),
     }
+
+
+async def get_full_cache_stats() -> dict:
+    """Get full cache statistics including database"""
+    try:
+        from models.database import async_session
+
+        async with async_session() as db:
+            result = await db.execute("SELECT COUNT(*) FROM translation_cache")
+            db_count = result.scalar() or 0
+
+            return {
+                "memory_cache_entries": len(_translation_cache),
+                "database_cache_entries": db_count,
+            }
+    except Exception as e:
+        return {
+            "memory_cache_entries": len(_translation_cache),
+            "database_cache_entries": "error",
+        }
