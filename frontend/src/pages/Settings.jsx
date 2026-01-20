@@ -1947,6 +1947,32 @@ function Settings() {
                   </button>
                 </div>
               </div>
+
+              {/* Customer Feedback Toggle (Admin Only) */}
+              {isAdmin && (
+              <div className="bg-gray-750 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Customer Feedback</h3>
+                    <p className="text-sm text-gray-400">Allow users to submit feedback, bug reports, and feature requests</p>
+                  </div>
+                  <button
+                    onClick={() => handleChange('customer_feedback_enabled', settings.customer_feedback_enabled?.value === 'true' ? 'false' : 'true')}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.customer_feedback_enabled?.value === 'true'
+                        ? 'bg-farm-green'
+                        : 'bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.customer_feedback_enabled?.value === 'true' ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+              )}
             </div>
           </div>
         )}
