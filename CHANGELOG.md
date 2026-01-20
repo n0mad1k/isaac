@@ -18,6 +18,8 @@ All notable changes to Isaac will be documented in this file.
 - **Events can now be set to repeat** in EventModal
   - Added recurrence dropdown (daily, weekly, biweekly, monthly, quarterly, annually, custom)
   - Custom recurrence supports "every X days" interval
+- **Date format hint added** to EventModal date fields
+  - Shows (MM/DD/YYYY) hint next to date labels for clarity
 
 ### Security
 - **Updated Python dependencies for CVE fixes**

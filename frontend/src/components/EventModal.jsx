@@ -305,13 +305,14 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
             <div>
               <label className="block text-sm text-gray-400 mb-1">
                 {isMultiDay ? 'Start Date' : 'Date'} {formData.task_type === 'event' ? '*' : ''}
+                <span className="text-xs text-gray-500 ml-2">(MM/DD/YYYY)</span>
               </label>
               <input
                 type="date"
                 required={formData.task_type === 'event'}
                 value={formData.due_date}
                 onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green [&::-webkit-calendar-picker-indicator]:invert"
               />
             </div>
           )}
@@ -337,14 +338,17 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
           {/* End date for multi-day events */}
           {isMultiDay && (formData.task_type === 'event' || hasDate) && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">End Date *</label>
+              <label className="block text-sm text-gray-400 mb-1">
+                End Date *
+                <span className="text-xs text-gray-500 ml-2">(MM/DD/YYYY)</span>
+              </label>
               <input
                 type="date"
                 required
                 value={formData.end_date}
                 min={formData.due_date}
                 onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green [&::-webkit-calendar-picker-indicator]:invert"
               />
             </div>
           )}
