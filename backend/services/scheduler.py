@@ -657,6 +657,11 @@ class SchedulerService:
 
     async def check_upcoming_tasks(self):
         """Check for tasks due soon and send reminders"""
+        # Skip on dev instances to avoid duplicate emails
+        if settings.is_dev_instance:
+            logger.debug("Skipping upcoming task reminders on dev instance")
+            return
+
         logger.debug("Checking upcoming tasks...")
         try:
             async with async_session() as db:
@@ -696,6 +701,11 @@ class SchedulerService:
 
     async def check_animal_schedules(self):
         """Check for animals needing care and sync care schedules to tasks"""
+        # Skip email reminders on dev instances to avoid duplicates
+        if settings.is_dev_instance:
+            logger.debug("Skipping animal care email reminders on dev instance")
+            return
+
         logger.debug("Checking animal care schedules...")
         try:
             from services.auto_reminders import sync_all_animal_reminders
@@ -1040,6 +1050,10 @@ class SchedulerService:
 
     async def check_reminder_alerts(self):
         """Check for tasks that need alert emails sent based on their reminder_alerts intervals"""
+        # Skip on dev instances to avoid duplicate emails
+        if settings.is_dev_instance:
+            return
+
         try:
             import pytz
             import json
@@ -1119,6 +1133,11 @@ class SchedulerService:
 
     async def send_task_reminder_email(self, task: Task, minutes_before: int):
         """Send a reminder email for a task at a specific interval"""
+        # Skip on dev instances to avoid duplicate emails
+        if settings.is_dev_instance:
+            logger.debug(f"Skipping task reminder email on dev instance: {task.title}")
+            return
+
         try:
             from models.database import async_session
             from models.workers import Worker
