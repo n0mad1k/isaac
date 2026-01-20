@@ -12,6 +12,9 @@ All notable changes to Isaac will be documented in this file.
   - Fixed logic that prevented new task creation when previous task was completed
   - Added automatic re-sync of maintenance reminders after task completion
   - Stale next_due dates (older than frequency) are now reset to today
+- **Cold protection and blanket advisories now persist after page refresh**
+  - Acknowledgement state saved in localStorage (resets daily)
+  - Acknowledged advisories properly stay in "Acknowledged Alerts" section
 
 ### Security
 - **Updated Python dependencies for CVE fixes**

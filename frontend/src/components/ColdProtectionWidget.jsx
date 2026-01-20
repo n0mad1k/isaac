@@ -2,15 +2,41 @@ import React, { useState, useEffect } from 'react'
 import { Snowflake, PawPrint, Check, X } from 'lucide-react'
 import { getColdProtection, getAnimalsNeedingBlanket } from '../services/api'
 
+// Helper to get today's date string for localStorage keys
+const getTodayKey = () => new Date().toISOString().split('T')[0]
+
 function ColdProtectionWidget({ onAcknowledge }) {
   const [plantData, setPlantData] = useState(null)
   const [animals, setAnimals] = useState([])
   const [loading, setLoading] = useState(true)
-  // Local dismiss state (resets on page refresh/new day)
-  const [plantsDismissed, setPlantsDismissed] = useState(false)
-  const [animalsDismissed, setAnimalsDismissed] = useState(false)
-  const [plantsAcknowledged, setPlantsAcknowledged] = useState(false)
-  const [animalsAcknowledged, setAnimalsAcknowledged] = useState(false)
+
+  // Persist acknowledgement state in localStorage (keyed by date so it resets daily)
+  const todayKey = getTodayKey()
+  const getStoredState = (key) => localStorage.getItem(`${key}_${todayKey}`) === 'true'
+  const setStoredState = (key, value) => localStorage.setItem(`${key}_${todayKey}`, value.toString())
+
+  const [plantsDismissed, setPlantsDismissed] = useState(() => getStoredState('plants_dismissed'))
+  const [animalsDismissed, setAnimalsDismissed] = useState(() => getStoredState('animals_dismissed'))
+  const [plantsAcknowledged, setPlantsAcknowledged] = useState(() => getStoredState('plants_acknowledged'))
+  const [animalsAcknowledged, setAnimalsAcknowledged] = useState(() => getStoredState('animals_acknowledged'))
+
+  // Persist state changes to localStorage
+  const handlePlantsDismissed = (value) => {
+    setPlantsDismissed(value)
+    setStoredState('plants_dismissed', value)
+  }
+  const handleAnimalsDismissed = (value) => {
+    setAnimalsDismissed(value)
+    setStoredState('animals_dismissed', value)
+  }
+  const handlePlantsAcknowledged = (value) => {
+    setPlantsAcknowledged(value)
+    setStoredState('plants_acknowledged', value)
+  }
+  const handleAnimalsAcknowledged = (value) => {
+    setAnimalsAcknowledged(value)
+    setStoredState('animals_acknowledged', value)
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,14 +133,14 @@ function ColdProtectionWidget({ onAcknowledge }) {
             </span>
             <div className="flex-1" />
             <button
-              onClick={() => setPlantsAcknowledged(true)}
+              onClick={() => handlePlantsAcknowledged(true)}
               className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
               title="Got it"
             >
               <Check className="w-3.5 h-3.5" style={{ color: coldColors.text }} />
             </button>
             <button
-              onClick={() => setPlantsDismissed(true)}
+              onClick={() => handlePlantsDismissed(true)}
               className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
               title="Dismiss"
             >
@@ -150,14 +176,14 @@ function ColdProtectionWidget({ onAcknowledge }) {
             )}
             <div className="flex-1" />
             <button
-              onClick={() => setAnimalsAcknowledged(true)}
+              onClick={() => handleAnimalsAcknowledged(true)}
               className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
               title="Got it"
             >
               <Check className="w-3.5 h-3.5" style={{ color: blanketColors.text }} />
             </button>
             <button
-              onClick={() => setAnimalsDismissed(true)}
+              onClick={() => handleAnimalsDismissed(true)}
               className="p-1 rounded bg-white/10 hover:bg-white/20 transition-colors"
               title="Dismiss"
             >
