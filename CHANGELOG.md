@@ -8,9 +8,9 @@ All notable changes to Isaac will be documented in this file.
 - **Acknowledged cold/blanket advisories now display when no weather alerts exist**
   - AlertBanner was returning early if no regular alerts existed, hiding acknowledged advisories
   - Fixed to show acknowledged advisories section even when alerts array is empty
-- **Cold/blanket alert acknowledgement now resets at local midnight**
-  - Previously used UTC date which caused reset at 5 AM Eastern
-  - Now uses local browser date for proper midnight reset
+- **Cold/blanket alert acknowledgement now resets at midnight in app timezone**
+  - Previously used UTC date which caused reset at wrong time
+  - Now uses the timezone configured in Settings for consistent behavior
 
 ## [1.19.3] - 2026-01-19
 

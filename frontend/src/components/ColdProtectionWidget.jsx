@@ -1,20 +1,36 @@
 import React, { useState, useEffect } from 'react'
 import { Snowflake, PawPrint, Check, X } from 'lucide-react'
 import { getColdProtection, getAnimalsNeedingBlanket } from '../services/api'
+import { useSettings } from '../contexts/SettingsContext'
 
-// Helper to get today's date string for localStorage keys (uses local date, not UTC)
-const getTodayKey = () => {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+// Helper to get today's date string for localStorage keys in app timezone
+const getTodayKey = (timezone) => {
+  try {
+    // Format date in the configured timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone || 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+    return formatter.format(new Date()) // Returns YYYY-MM-DD format
+  } catch (e) {
+    // Fallback to local date if timezone is invalid
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  }
 }
 
 function ColdProtectionWidget({ onAcknowledge }) {
+  const { getSetting } = useSettings()
+  const timezone = getSetting('timezone', 'America/New_York')
+
   const [plantData, setPlantData] = useState(null)
   const [animals, setAnimals] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Persist acknowledgement state in localStorage (keyed by date so it resets daily)
-  const todayKey = getTodayKey()
+  // Persist acknowledgement state in localStorage (keyed by date so it resets at midnight in app timezone)
+  const todayKey = getTodayKey(timezone)
   const getStoredState = (key) => localStorage.getItem(`${key}_${todayKey}`) === 'true'
   const setStoredState = (key, value) => localStorage.setItem(`${key}_${todayKey}`, value.toString())
 
