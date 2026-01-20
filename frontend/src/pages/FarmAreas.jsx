@@ -369,7 +369,12 @@ function FarmAreas() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="text-right text-sm">
+                  <div className="text-right text-sm space-y-0.5">
+                    {area.maintenance_count > 0 && (
+                      <div className={`flex items-center gap-1 ${area.overdue_count > 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                        <Wrench className="w-3 h-3" /> {area.maintenance_count} {area.overdue_count > 0 && <span className="text-red-400">({area.overdue_count} overdue)</span>}
+                      </div>
+                    )}
                     {area.plant_count > 0 && (
                       <div className="flex items-center gap-1 text-green-400">
                         <Leaf className="w-3 h-3" /> {area.plant_count}
@@ -384,9 +389,6 @@ function FarmAreas() {
                   {expandedArea === area.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                 </div>
               </div>
-              {area.overdue_count > 0 && (
-                <div className="text-red-400 text-sm mt-2">{area.overdue_count} overdue tasks</div>
-              )}
               {area.size_acres && (
                 <div className="text-gray-400 text-sm mt-1">{area.size_acres} acres</div>
               )}
