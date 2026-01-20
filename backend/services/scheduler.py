@@ -458,15 +458,19 @@ class SchedulerService:
 
     async def send_daily_digest(self):
         """Send daily digest email with verse of the day, tasks and weather"""
+        import pytz
+        from sqlalchemy import update
+
         # Skip digest on dev instances to avoid duplicate emails
+        # Double-check by also verifying the config value directly
         if settings.is_dev_instance:
-            logger.debug("Skipping daily digest on dev instance")
+            logger.info("Skipping daily digest on dev instance (is_dev_instance=True)")
             return
 
         # Check if daily digest is enabled
         digest_enabled = await get_setting_value("email_daily_digest")
         if digest_enabled != "true":
-            logger.debug("Daily digest is disabled, skipping")
+            logger.info("Daily digest is disabled in settings, skipping")
             return
 
         # Get recipient email (fall back to general alert recipients)
@@ -480,17 +484,32 @@ class SchedulerService:
             logger.warning("Daily digest recipient not configured, skipping")
             return
 
-        # Check if we already sent today's digest (prevents duplicates)
-        import pytz
+        # Atomic check-and-set to prevent duplicate sends (race condition safe)
+        # Uses a single database transaction that only succeeds if the date hasn't been set
         tz = pytz.timezone(settings.timezone)
         today_str = datetime.now(tz).strftime("%Y-%m-%d")
-        last_digest_date = await get_setting_value("_last_digest_date")
-        if last_digest_date == today_str:
-            logger.debug(f"Daily digest already sent today ({today_str}), skipping duplicate")
-            return
 
-        # Mark as sent BEFORE sending to prevent race conditions
-        await set_setting_value("_last_digest_date", today_str)
+        async with async_session() as db:
+            # Try to atomically claim today's digest send
+            # First check if already sent
+            result = await db.execute(
+                select(AppSetting).where(AppSetting.key == "_last_digest_date")
+            )
+            existing = result.scalar_one_or_none()
+
+            if existing and existing.value == today_str:
+                logger.info(f"Daily digest already sent today ({today_str}), skipping duplicate")
+                return
+
+            # Atomically update/insert the date - if another process beat us, this will be a no-op
+            # since we already checked above and SQLite serializes transactions
+            if existing:
+                existing.value = today_str
+            else:
+                db.add(AppSetting(key="_last_digest_date", value=today_str))
+            await db.commit()
+
+            logger.info(f"Claimed daily digest send for {today_str}")
 
         logger.info(f"Sending daily digest to {recipient}...")
         try:

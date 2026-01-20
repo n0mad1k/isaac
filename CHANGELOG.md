@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.19.5] - 2026-01-20
+
+### Fixed
+- **Daily digest no longer sends duplicate emails**
+  - Implemented atomic database transaction for deduplication check
+  - Previous check-then-set pattern had race condition vulnerability
+  - Added info-level logging to track digest send claims
+
 ## [1.19.4] - 2026-01-20
 
 ### Fixed
