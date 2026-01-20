@@ -1036,13 +1036,6 @@ async def sync_all_maintenance_reminders(db: AsyncSession) -> Dict[str, int]:
 
     for maint in home_maint_tasks:
         due_date = maint.manual_due_date or maint.next_due
-
-        # If no due date but has frequency, initialize next_due to today
-        if not due_date and maint.frequency_days:
-            maint.next_due = datetime.combine(today, datetime.min.time())
-            due_date = maint.next_due
-            logger.info(f"Initialized next_due for {maint.name} to today (no previous due date)")
-
         if not due_date:
             continue
 

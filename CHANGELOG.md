@@ -15,9 +15,6 @@ All notable changes to Isaac will be documented in this file.
   - In the morning, was showing the overnight low that was about to end
   - Now finds the next nighttime period that ends more than 2 hours from now
   - Ensures alerts are relevant for planning tonight's protection needs
-- **Home maintenance items without next_due now auto-initialize**
-  - Items with frequency but no due date were being skipped
-  - Now initializes next_due to today so tasks get created
 
 ## [1.19.3] - 2026-01-19
 
