@@ -232,6 +232,12 @@ DEFAULT_SETTINGS = {
         "description": "USDA Hardiness Zone (e.g., 9b, 7a)"
     },
 
+    # === Translation Settings ===
+    "deepl_api_key": {
+        "value": "",
+        "description": "DeepL API Key for task translation (get free key at deepl.com/pro-api)"
+    },
+
     # === Weather API Settings ===
     "awn_api_key": {
         "value": "",
@@ -361,7 +367,7 @@ async def set_setting(db: AsyncSession, key: str, value: str) -> AppSetting:
 
 
 # Sensitive settings that should be masked in responses (includes cloudflare_api_token)
-SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token']
+SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token', 'deepl_api_key']
 
 def mask_sensitive_value(key: str, value: str) -> str:
     """Mask sensitive settings for display"""

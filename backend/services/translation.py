@@ -1,82 +1,38 @@
 """
-Translation Service using argos-translate
+Translation Service using DeepL API
 Provides English to Spanish translation for worker task content
-Falls back gracefully if argos-translate is not installed
 """
 
+import httpx
 from loguru import logger
 from typing import Optional
 import asyncio
 
-# Try to import argostranslate, but don't fail if it's not available
-try:
-    import argostranslate.package
-    import argostranslate.translate
-    ARGOS_AVAILABLE = True
-except ImportError:
-    ARGOS_AVAILABLE = False
-    logger.warning("argostranslate not installed - translations will return original text")
-
 # In-memory cache for translations
 _translation_cache: dict[str, str] = {}
-_installed = False
+
+# DeepL API endpoint (free tier uses different URL)
+DEEPL_FREE_URL = "https://api-free.deepl.com/v2/translate"
+DEEPL_PRO_URL = "https://api.deepl.com/v2/translate"
 
 
-def _ensure_language_installed():
-    """Download and install English→Spanish language package if needed"""
-    global _installed
-    if _installed:
-        return True
-
-    if not ARGOS_AVAILABLE:
-        return False
-
+async def get_deepl_key():
+    """Get DeepL API key from settings"""
     try:
-        # Check if already installed
-        installed_languages = argostranslate.translate.get_installed_languages()
-        en_lang = next((l for l in installed_languages if l.code == "en"), None)
-
-        if en_lang:
-            es_translation = next((t for t in en_lang.get_translations() if t.to_lang.code == "es"), None)
-            if es_translation:
-                logger.info("English→Spanish translation package already installed")
-                _installed = True
-                return True
-
-        # Need to download and install
-        logger.info("Downloading English→Spanish translation package...")
-        argostranslate.package.update_package_index()
-        available_packages = argostranslate.package.get_available_packages()
-
-        # Find en→es package
-        package = next(
-            (p for p in available_packages if p.from_code == "en" and p.to_code == "es"),
-            None
-        )
-
-        if not package:
-            logger.error("English→Spanish package not found in available packages")
-            return False
-
-        # Download and install
-        download_path = package.download()
-        argostranslate.package.install_from_path(download_path)
-        logger.info("English→Spanish translation package installed successfully")
-        _installed = True
-        return True
-
+        from services.settings import get_setting_value
+        return await get_setting_value("deepl_api_key")
     except Exception as e:
-        logger.error(f"Failed to install translation package: {e}")
-        return False
+        logger.debug(f"Could not get DeepL key from settings: {e}")
+        return None
 
 
-def translate_sync(text: str, target_lang: str = "es") -> str:
+async def translate(text: str, target_lang: str = "ES") -> str:
     """
-    Translate text from English to target language (synchronous)
+    Translate text from English to target language using DeepL API
 
     Args:
         text: Text to translate (English)
-        target_lang: Target language code (only "es" supported currently)
+        target_lang: Target language code (ES for Spanish)
 
     Returns:
         Translated text, or original text if translation fails
@@ -84,8 +40,9 @@ def translate_sync(text: str, target_lang: str = "es") -> str:
     if not text or not text.strip():
         return text
 
-    # Only Spanish supported for now
-    if target_lang != "es":
+    # Normalize language code for DeepL (uses uppercase)
+    target_lang = target_lang.upper()
+    if target_lang == "EN":
         return text
 
     # Check cache first
@@ -93,57 +50,42 @@ def translate_sync(text: str, target_lang: str = "es") -> str:
     if cache_key in _translation_cache:
         return _translation_cache[cache_key]
 
-    # Check if argostranslate is available
-    if not ARGOS_AVAILABLE:
-        return text
-
-    # Ensure language package is installed
-    if not _ensure_language_installed():
-        logger.warning("Translation package not available, returning original text")
+    # Get API key
+    api_key = await get_deepl_key()
+    if not api_key:
+        logger.warning("DeepL API key not configured - returning original text")
         return text
 
     try:
-        # Get installed languages
-        installed_languages = argostranslate.translate.get_installed_languages()
-        en_lang = next((l for l in installed_languages if l.code == "en"), None)
-        es_lang = next((l for l in installed_languages if l.code == "es"), None)
+        # Determine which endpoint to use (free keys end with ":fx")
+        url = DEEPL_FREE_URL if api_key.endswith(":fx") else DEEPL_PRO_URL
 
-        if not en_lang or not es_lang:
-            logger.warning("Required languages not found")
-            return text
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                url,
+                data={
+                    "auth_key": api_key,
+                    "text": text,
+                    "source_lang": "EN",
+                    "target_lang": target_lang,
+                },
+            )
 
-        # Get translation
-        translation = en_lang.get_translation(es_lang)
-        if not translation:
-            logger.warning("Translation not available")
-            return text
+            if response.status_code == 200:
+                result = response.json()
+                translated = result["translations"][0]["text"]
 
-        translated = translation.translate(text)
-
-        # Cache the result
-        _translation_cache[cache_key] = translated
-
-        return translated
+                # Cache the result
+                _translation_cache[cache_key] = translated
+                logger.debug(f"Translated '{text}' -> '{translated}'")
+                return translated
+            else:
+                logger.error(f"DeepL API error: {response.status_code} - {response.text}")
+                return text
 
     except Exception as e:
         logger.error(f"Translation failed: {e}")
         return text
-
-
-async def translate(text: str, target_lang: str = "es") -> str:
-    """
-    Translate text from English to target language (async wrapper)
-
-    Args:
-        text: Text to translate (English)
-        target_lang: Target language code (only "es" supported currently)
-
-    Returns:
-        Translated text, or original text if translation fails
-    """
-    # Run in thread pool to not block async loop
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, translate_sync, text, target_lang)
 
 
 async def translate_task(task_dict: dict, target_lang: str = "es") -> dict:
@@ -157,7 +99,7 @@ async def translate_task(task_dict: dict, target_lang: str = "es") -> dict:
     Returns:
         Task dictionary with translated fields
     """
-    if target_lang == "en":
+    if target_lang.lower() == "en":
         return task_dict
 
     translated = task_dict.copy()
@@ -188,5 +130,4 @@ def get_cache_stats() -> dict:
     """Get translation cache statistics"""
     return {
         "cached_translations": len(_translation_cache),
-        "package_installed": _installed
     }
