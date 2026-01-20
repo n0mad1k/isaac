@@ -19,7 +19,7 @@ DEEPL_PRO_URL = "https://api.deepl.com/v2/translate"
 async def get_deepl_key():
     """Get DeepL API key from settings"""
     try:
-        from services.settings import get_setting_value
+        from services.scheduler import get_setting_value
         return await get_setting_value("deepl_api_key")
     except Exception as e:
         logger.debug(f"Could not get DeepL key from settings: {e}")
