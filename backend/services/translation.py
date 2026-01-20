@@ -1,14 +1,21 @@
 """
 Translation Service using argos-translate
 Provides English to Spanish translation for worker task content
+Falls back gracefully if argos-translate is not installed
 """
 
-import argostranslate.package
-import argostranslate.translate
 from loguru import logger
 from typing import Optional
 import asyncio
-from functools import lru_cache
+
+# Try to import argostranslate, but don't fail if it's not available
+try:
+    import argostranslate.package
+    import argostranslate.translate
+    ARGOS_AVAILABLE = True
+except ImportError:
+    ARGOS_AVAILABLE = False
+    logger.warning("argostranslate not installed - translations will return original text")
 
 # In-memory cache for translations
 _translation_cache: dict[str, str] = {}
@@ -20,6 +27,9 @@ def _ensure_language_installed():
     global _installed
     if _installed:
         return True
+
+    if not ARGOS_AVAILABLE:
+        return False
 
     try:
         # Check if already installed
@@ -82,6 +92,10 @@ def translate_sync(text: str, target_lang: str = "es") -> str:
     cache_key = f"en:{target_lang}:{text}"
     if cache_key in _translation_cache:
         return _translation_cache[cache_key]
+
+    # Check if argostranslate is available
+    if not ARGOS_AVAILABLE:
+        return text
 
     # Ensure language package is installed
     if not _ensure_language_installed():
