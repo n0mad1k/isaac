@@ -484,7 +484,7 @@ function WorkerTasks() {
           className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-dashed border-gray-600 rounded-lg text-gray-400 hover:border-farm-green hover:text-farm-green"
         >
           <Plus className="w-4 h-4" />
-          Add Worker
+          {t('addWorker')}
         </button>
       </div>
 
@@ -1021,7 +1021,7 @@ function WorkerTasks() {
         </div>
       ) : (
         <div className="text-center py-12 text-gray-400 bg-gray-800 rounded-lg">
-          <p>Select a worker to view their tasks</p>
+          <p>{t('selectWorker')}</p>
         </div>
       )}
 
@@ -1030,33 +1030,33 @@ function WorkerTasks() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
-              {editingWorker ? 'Edit Worker' : 'Add Worker'}
+              {editingWorker ? t('worker.editWorker') : t('worker.addWorker')}
             </h2>
             <form onSubmit={handleAddWorker} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Name</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('worker.name')}</label>
                 <input
                   type="text"
                   value={workerFormData.name}
                   onChange={(e) => setWorkerFormData({ ...workerFormData, name: e.target.value })}
                   className="w-full bg-gray-700 rounded-lg px-4 py-2"
-                  placeholder="e.g., Kim"
+                  placeholder={t('worker.namePlaceholder')}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Role</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('worker.role')}</label>
                 <input
                   type="text"
                   value={workerFormData.role}
                   onChange={(e) => setWorkerFormData({ ...workerFormData, role: e.target.value })}
                   className="w-full bg-gray-700 rounded-lg px-4 py-2"
-                  placeholder="e.g., Maid, Farm Hand, Contractor"
+                  placeholder={t('worker.rolePlaceholder')}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Phone</label>
+                  <label className="block text-sm text-gray-400 mb-1">{t('worker.phone')}</label>
                   <input
                     type="tel"
                     value={workerFormData.phone}
@@ -1065,7 +1065,7 @@ function WorkerTasks() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Email</label>
+                  <label className="block text-sm text-gray-400 mb-1">{t('worker.email')}</label>
                   <input
                     type="email"
                     value={workerFormData.email}
@@ -1075,17 +1075,17 @@ function WorkerTasks() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('worker.notes')}</label>
                 <textarea
                   value={workerFormData.notes}
                   onChange={(e) => setWorkerFormData({ ...workerFormData, notes: e.target.value })}
                   className="w-full bg-gray-700 rounded-lg px-4 py-2"
                   rows={2}
-                  placeholder="Any additional notes about this worker..."
+                  placeholder={t('worker.notesPlaceholder')}
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Language</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('worker.language')}</label>
                 <select
                   value={workerFormData.language}
                   onChange={(e) => setWorkerFormData({ ...workerFormData, language: e.target.value })}
@@ -1094,7 +1094,7 @@ function WorkerTasks() {
                   <option value="en">English</option>
                   <option value="es">Español (Spanish)</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">Tasks will be translated to this language</p>
+                <p className="text-xs text-gray-500 mt-1">{t('worker.languageHint')}</p>
               </div>
               <div className="flex gap-3">
                 <button
@@ -1102,13 +1102,13 @@ function WorkerTasks() {
                   onClick={() => { setShowAddWorker(false); setEditingWorker(null); }}
                   className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
                 >
-                  Cancel
+                  {t('modal.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
                 >
-                  {editingWorker ? 'Update' : 'Add'}
+                  {editingWorker ? t('worker.update') : t('worker.add')}
                 </button>
               </div>
             </form>
