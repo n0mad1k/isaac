@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { Snowflake, PawPrint, Check, X } from 'lucide-react'
 import { getColdProtection, getAnimalsNeedingBlanket } from '../services/api'
 
-// Helper to get today's date string for localStorage keys
-const getTodayKey = () => new Date().toISOString().split('T')[0]
+// Helper to get today's date string for localStorage keys (uses local date, not UTC)
+const getTodayKey = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
 
 function ColdProtectionWidget({ onAcknowledge }) {
   const [plantData, setPlantData] = useState(null)
