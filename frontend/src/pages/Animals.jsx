@@ -3,7 +3,7 @@ import {
   Plus, Search, PawPrint, Calendar, AlertCircle, ChevronDown, ChevronUp,
   MapPin, DollarSign, Scale, Clock, Check, X, Syringe, Scissors,
   Heart, Beef, Dog, Cat, Pencil, Save, Package, Copy, CalendarPlus,
-  Trash2, Download, FileText, Bird, Rabbit, Egg
+  Trash2, Download, FileText, Bird, Rabbit, Egg, Horse
 } from 'lucide-react'
 import EventModal from '../components/EventModal'
 import { useSettings } from '../contexts/SettingsContext'
@@ -364,8 +364,8 @@ function Animals() {
     const iconStyle = { color: 'var(--color-text-muted)' }
     const iconClass = 'w-5 h-5'
     const icons = {
-      horse: <Beef className={iconClass} style={iconStyle} />,
-      mini_horse: <Beef className={iconClass} style={iconStyle} />,
+      horse: <Horse className={iconClass} style={iconStyle} />,
+      mini_horse: <Horse className={iconClass} style={iconStyle} />,
       cattle: <Beef className={iconClass} style={iconStyle} />,
       goat: <Beef className={iconClass} style={iconStyle} />,
       sheep: <Beef className={iconClass} style={iconStyle} />,
@@ -376,7 +376,7 @@ function Animals() {
       rabbit: <Rabbit className={iconClass} style={iconStyle} />,
       dog: <Dog className={iconClass} style={iconStyle} />,
       cat: <Cat className={iconClass} style={iconStyle} />,
-      donkey: <Beef className={iconClass} style={iconStyle} />,
+      donkey: <Horse className={iconClass} style={iconStyle} />,
       llama: <Beef className={iconClass} style={iconStyle} />,
       alpaca: <Beef className={iconClass} style={iconStyle} />,
     }
