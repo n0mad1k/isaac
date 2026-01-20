@@ -721,12 +721,7 @@ async def delete_my_feedback(
             detail="You can only delete your own feedback"
         )
 
-    # Only allow deleting if still NEW
-    if feedback.status != FeedbackStatus.NEW:
-        raise HTTPException(
-            status_code=403,
-            detail="Cannot delete feedback that has already been reviewed"
-        )
+    # Allow users to delete their own feedback at any stage
 
     await db.delete(feedback)
     await db.commit()

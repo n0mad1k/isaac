@@ -20,6 +20,11 @@ All notable changes to Isaac will be documented in this file.
   - Custom recurrence supports "every X days" interval
 - **Date format hint added** to EventModal date fields
   - Shows (MM/DD/YYYY) hint next to date labels for clarity
+- **Weather alert dismiss investigated** - backend correctly dismisses individual alerts by ID
+  - If issue persists, may be related to cold protection widgets which now use localStorage persistence
+- **Users can now delete their own feedback at any stage**
+  - Previously could only delete feedback with NEW status
+  - Now allows deleting feedback that has been reviewed/processed
 
 ### Security
 - **Updated Python dependencies for CVE fixes**
