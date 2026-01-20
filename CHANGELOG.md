@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.19.6] - 2026-01-20
+
+### Fixed
+- **Freeze/frost weather alerts can now be properly dismissed**
+  - Dismissed alerts were being deleted and recreated on each weather poll (every 5 min)
+  - Now respects user's dismissal until the alert naturally expires
+  - Only active (non-dismissed) alerts are replaced when weather conditions change
+
 ## [1.19.5] - 2026-01-20
 
 ### Fixed

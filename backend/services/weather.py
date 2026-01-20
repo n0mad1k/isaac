@@ -462,20 +462,32 @@ class WeatherService:
         cold_alerts = {"frost_warning", "freeze_warning"}
 
         for alert in alerts:
-            # Delete any existing alerts of the same type OR related types
+            # Check for existing alerts of the same type OR related types
             if alert.alert_type in cold_alerts:
-                # Delete all cold-related alerts (frost replaces freeze, freeze replaces frost)
-                existing_alerts = await db.execute(
+                # Check all cold-related alerts
+                existing_result = await db.execute(
                     select(WeatherAlert)
                     .where(WeatherAlert.alert_type.in_(cold_alerts))
                 )
             else:
-                existing_alerts = await db.execute(
+                existing_result = await db.execute(
                     select(WeatherAlert)
                     .where(WeatherAlert.alert_type == alert.alert_type)
                 )
-            for old_alert in existing_alerts.scalars().all():
-                await db.delete(old_alert)
+
+            existing_alerts = existing_result.scalars().all()
+
+            # Check if any dismissed alerts exist - if so, respect the user's dismissal
+            # and don't create a new alert (they've already seen and handled it)
+            dismissed_exists = any(not a.is_active for a in existing_alerts)
+            if dismissed_exists:
+                logger.debug(f"Skipping {alert.alert_type} - dismissed alert exists")
+                continue
+
+            # Delete only active alerts (not dismissed ones) when replacing
+            for old_alert in existing_alerts:
+                if old_alert.is_active:
+                    await db.delete(old_alert)
 
             # Add the new alert
             db.add(alert)
