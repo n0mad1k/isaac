@@ -63,9 +63,12 @@ async def translate(text: str, target_lang: str = "ES") -> str:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(
                 url,
-                data={
-                    "auth_key": api_key,
-                    "text": text,
+                headers={
+                    "Authorization": f"DeepL-Auth-Key {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "text": [text],
                     "source_lang": "EN",
                     "target_lang": target_lang,
                 },
