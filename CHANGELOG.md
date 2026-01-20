@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.19.4] - 2026-01-19
+
+### Fixed
+- **Acknowledged cold/blanket advisories now display when no weather alerts exist**
+  - AlertBanner was returning early if no regular alerts existed, hiding acknowledged advisories
+  - Fixed to show acknowledged advisories section even when alerts array is empty
+
 ## [1.19.3] - 2026-01-19
 
 ### Fixed

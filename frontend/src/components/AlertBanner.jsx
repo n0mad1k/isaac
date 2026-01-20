@@ -5,11 +5,12 @@ import { dismissAlert, acknowledgeAlert } from '../services/api'
 function AlertBanner({ alerts, onDismiss, acknowledgedAdvisories = [] }) {
   const [collapsed, setCollapsed] = useState(true)
 
-  if (!alerts || alerts.length === 0) return null
+  // Only return null if there are no alerts AND no acknowledged advisories
+  if ((!alerts || alerts.length === 0) && acknowledgedAdvisories.length === 0) return null
 
-  // Split alerts into new (unacknowledged) and acknowledged
-  const newAlerts = alerts.filter(a => !a.is_acknowledged)
-  const acknowledgedAlerts = alerts.filter(a => a.is_acknowledged)
+  // Split alerts into new (unacknowledged) and acknowledged (handle null/undefined alerts)
+  const newAlerts = (alerts || []).filter(a => !a.is_acknowledged)
+  const acknowledgedAlerts = (alerts || []).filter(a => a.is_acknowledged)
 
   // Earth-toned alert colors
   const getSeverityStyles = (severity) => {
