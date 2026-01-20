@@ -369,10 +369,10 @@ function FarmAreas() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="text-right text-sm space-y-0.5">
+                  <div className="flex items-center gap-3 text-sm">
                     {area.maintenance_count > 0 && (
                       <div className={`flex items-center gap-1 ${area.overdue_count > 0 ? 'text-red-400' : 'text-gray-400'}`}>
-                        <Wrench className="w-3 h-3" /> {area.maintenance_count} {area.overdue_count > 0 && <span className="text-red-400">({area.overdue_count} overdue)</span>}
+                        <Wrench className="w-3 h-3" /> {area.maintenance_count}{area.overdue_count > 0 && <span className="text-red-400 ml-1">({area.overdue_count} overdue)</span>}
                       </div>
                     )}
                     {area.plant_count > 0 && (
