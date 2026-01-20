@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.19.3] - 2026-01-19
+
+### Fixed
+- **"Pull to Tracker" button now works** in DevTracker feedback section
+  - Button was incorrectly calling the list function instead of the pull function
+  - Now properly pulls pending feedback from production into the dev tracker
+
+### Security
+- **Updated Python dependencies for CVE fixes**
+  - cryptography 44.0.0 → 44.0.1 (CVE-2024-12797)
+  - FastAPI 0.115.6 → 0.119.0 (pulls starlette 0.48.0 for CVE-2025-54121, CVE-2025-62727)
+  - python-multipart 0.0.18 → 0.0.20
+
 ## [1.19.2] - 2026-01-15
 
 ### Added

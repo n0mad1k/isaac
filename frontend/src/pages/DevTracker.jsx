@@ -538,12 +538,12 @@ function DevTracker() {
               </button>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={loadProdFeedback}
-                  disabled={loadingProdFeedback}
+                  onClick={handlePullFeedback}
+                  disabled={pullingFeedback}
                   className="px-2 py-1 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded flex items-center gap-1 disabled:opacity-50"
                 >
-                  <Download className={`w-3 h-3 ${loadingProdFeedback ? 'animate-spin' : ''}`} />
-                  Pull from Prod
+                  <Download className={`w-3 h-3 ${pullingFeedback ? 'animate-spin' : ''}`} />
+                  Pull to Tracker
                 </button>
               </div>
             </div>

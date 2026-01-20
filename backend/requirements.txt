@@ -2,9 +2,9 @@
 # Backend Dependencies
 
 # Web Framework
-fastapi==0.115.6
+fastapi==0.119.0
 uvicorn[standard]==0.34.0
-python-multipart==0.0.18
+python-multipart==0.0.20
 
 # Database
 sqlalchemy==2.0.36
@@ -40,7 +40,7 @@ lxml==5.3.0
 
 # Security
 passlib[bcrypt]==1.7.4
-cryptography==44.0.0
+cryptography==44.0.1
 
 # Utilities
 loguru==0.7.3
