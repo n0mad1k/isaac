@@ -22,6 +22,7 @@ from models.vehicles import Vehicle
 from models.equipment import Equipment
 from models.home_maintenance import HomeMaintenance
 from models.users import User
+from models.settings import AppSetting
 from services.weather import WeatherService, NWSForecastService
 from services.scheduler import get_sun_moon_data
 from routers.auth import get_current_user
@@ -870,12 +871,56 @@ async def get_cold_protection_needed(db: AsyncSession = Depends(get_db)):
     reading = await weather_service.get_latest_reading(db)
     current_temp = reading.temp_outdoor if reading else None
 
-    # Get today's forecast low
-    forecast = await forecast_service.get_forecast_simple()
+    # Get the upcoming night's forecast low
+    # We need to find the next nighttime low that's actually upcoming (not one that's ending)
+    forecast = await forecast_service.get_forecast(lat=None, lon=None)
     forecast_low = None
-    if forecast and len(forecast) > 0:
-        # First entry is usually today/tonight
-        forecast_low = forecast[0].get("low")
+    if forecast:
+        from datetime import datetime, timezone
+        import pytz
+
+        # Get app timezone
+        tz_name = "America/New_York"  # Default
+        tz_result = await db.execute(
+            select(AppSetting).where(AppSetting.key == "timezone")
+        )
+        tz_setting = tz_result.scalar_one_or_none()
+        if tz_setting and tz_setting.value:
+            tz_name = tz_setting.value
+
+        try:
+            app_tz = pytz.timezone(tz_name)
+        except:
+            app_tz = pytz.timezone("America/New_York")
+
+        now = datetime.now(app_tz)
+
+        # Find the next nighttime period that hasn't ended yet
+        for period in forecast:
+            if not period.get("is_daytime", True):
+                # This is a night period - check if it's still upcoming or current
+                end_time_str = period.get("end_time")
+                if end_time_str:
+                    try:
+                        # Parse ISO format with timezone
+                        end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+                        # Only use this period if it ends more than 2 hours from now
+                        # (so we don't show an overnight that's about to end)
+                        if end_time > now + timedelta(hours=2):
+                            forecast_low = period.get("temperature")
+                            break
+                    except:
+                        pass
+
+        # Fallback: if no suitable night period found, use first available low
+        if forecast_low is None:
+            simple_forecast = await forecast_service.get_forecast_simple()
+            if simple_forecast and len(simple_forecast) > 0:
+                # Skip first entry if it has no high (meaning it's an ending overnight)
+                for entry in simple_forecast:
+                    if entry.get("low") is not None:
+                        forecast_low = entry.get("low")
+                        break
 
     # Use the forecast low for checking
     check_temp = forecast_low

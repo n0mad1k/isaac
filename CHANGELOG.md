@@ -11,6 +11,10 @@ All notable changes to Isaac will be documented in this file.
 - **Cold/blanket alert acknowledgement now resets at midnight in app timezone**
   - Previously used UTC date which caused reset at wrong time
   - Now uses the timezone configured in Settings for consistent behavior
+- **Cold protection now shows upcoming night's low, not ending overnight**
+  - In the morning, was showing the overnight low that was about to end
+  - Now finds the next nighttime period that ends more than 2 hours from now
+  - Ensures alerts are relevant for planning tonight's protection needs
 
 ## [1.19.3] - 2026-01-19
 
