@@ -949,6 +949,11 @@ class SchedulerService:
         sunset_time: str,
     ):
         """Send cold protection email reminder"""
+        # Skip on dev instances to avoid duplicate emails
+        if settings.is_dev_instance:
+            logger.info("Skipping cold protection email on dev instance")
+            return
+
         try:
             # Get recipients from settings
             recipients = await get_setting_value("email_recipients")
@@ -1240,22 +1245,23 @@ class SchedulerService:
                         await db.commit()
                         logger.warning(f"Created storage critical alert: {usage_percent:.1f}% used")
 
-                        # Send email alert
-                        recipients = await get_setting_value("email_recipients")
-                        if recipients:
-                            email_service = await self.get_email_service(db)
-                            await email_service.send_email(
-                                to=recipients,
-                                subject="CRITICAL: Isaac Storage Full",
-                                body=f"""
-                                <h2>Storage Critical Alert</h2>
-                                <p>Disk usage has reached <strong>{usage_percent:.1f}%</strong>.</p>
-                                <p>Only {free / (1024**3):.1f} GB remaining on the disk.</p>
-                                <p>Please free up space immediately to prevent service disruption.</p>
-                                <p>Go to Settings > Storage Monitoring to clear logs or manage storage.</p>
-                                """,
-                                html=True,
-                            )
+                        # Send email alert (skip on dev to avoid duplicates)
+                        if not settings.is_dev_instance:
+                            recipients = await get_setting_value("email_recipients")
+                            if recipients:
+                                email_service = await self.get_email_service(db)
+                                await email_service.send_email(
+                                    to=recipients,
+                                    subject="CRITICAL: Isaac Storage Full",
+                                    body=f"""
+                                    <h2>Storage Critical Alert</h2>
+                                    <p>Disk usage has reached <strong>{usage_percent:.1f}%</strong>.</p>
+                                    <p>Only {free / (1024**3):.1f} GB remaining on the disk.</p>
+                                    <p>Please free up space immediately to prevent service disruption.</p>
+                                    <p>Go to Settings > Storage Monitoring to clear logs or manage storage.</p>
+                                    """,
+                                    html=True,
+                                )
 
                 elif usage_percent >= warning_threshold:
                     # Check for existing warning alert
