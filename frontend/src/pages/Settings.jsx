@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon } from 'lucide-react'
+import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages } from 'lucide-react'
 import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -78,13 +78,14 @@ function Settings() {
     calendar: false,
     cloudflare: false,
     display: false,
+    translation: false,
     bible: false,
     storage: false,
     myFeedback: true
   })
 
   // Fields that should be treated as passwords
-  const passwordFields = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token']
+  const passwordFields = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token', 'deepl_api_key']
 
   const fetchSettings = async () => {
     try {
@@ -1950,6 +1951,35 @@ function Settings() {
           </div>
         )}
       </div>
+
+      {/* Translation Settings (Admin Only) */}
+      {isAdmin && (
+        <div className="bg-gray-800 rounded-xl p-6">
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('translation')}
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              {expandedSections.translation ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              <Languages className="w-5 h-5 text-blue-400" />
+              Translation
+            </h2>
+          </div>
+          {expandedSections.translation && (
+            <div className="mt-4">
+              <p className="text-sm text-gray-400 mb-4">
+                Configure translation for worker task content. Tasks assigned to workers with a non-English language preference will be automatically translated using DeepL.
+              </p>
+              <div className="space-y-4">
+                {renderSettingCard('deepl_api_key')}
+                <p className="text-xs text-gray-500">
+                  Get a free API key at <a href="https://www.deepl.com/pro-api" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">deepl.com/pro-api</a>. Free tier includes 500,000 characters/month.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Storage Monitoring (Admin Only) */}
       {isAdmin && (
