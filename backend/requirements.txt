@@ -42,5 +42,8 @@ lxml==5.3.0
 passlib[bcrypt]==1.7.4
 cryptography==44.0.1
 
+# Translation
+argostranslate==1.9.6
+
 # Utilities
 loguru==0.7.3

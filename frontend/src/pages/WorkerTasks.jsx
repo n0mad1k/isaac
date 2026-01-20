@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { ClipboardList, Plus, Check, X, AlertCircle, ChevronDown, ChevronUp, Edit, User, Phone, Mail, Trash2, Ban, Link, Unlink, ShoppingCart, Package, StickyNote, Play, RotateCcw, CheckCircle, Circle, Brush, Wheat, Wrench, TreeDeciduous, Hammer } from 'lucide-react'
 import { getWorkers, getWorker, createWorker, updateWorker, deleteWorker, getWorkerTasks, completeWorkerTask, uncompleteWorkerTask, blockWorkerTask, unblockWorkerTask, updateWorkerNote, startWorkerTask, stopWorkerTask, getAssignableTasks, assignTaskToWorker, unassignTaskFromWorker, getWorkerSupplyRequests, createSupplyRequest, updateSupplyRequest, deleteSupplyRequest } from '../services/api'
 import { format } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
 import EventModal from '../components/EventModal'
+import enTranslations from '../locales/en.json'
+import esTranslations from '../locales/es.json'
+
+const translations = { en: enTranslations, es: esTranslations }
 
 // Role icons mapped to Lucide components
 const ROLE_ICON_COMPONENTS = {
@@ -39,6 +43,7 @@ function WorkerTasks() {
     phone: '',
     email: '',
     notes: '',
+    language: 'en',
   })
 
   const [showEventModal, setShowEventModal] = useState(false)
@@ -55,6 +60,20 @@ function WorkerTasks() {
   const [supplyFormData, setSupplyFormData] = useState({ item_name: '', quantity: 1, notes: '' })
   const [viewMode, setViewMode] = useState('tasks') // 'tasks' or 'supplies'
   const [editingSupplyRequest, setEditingSupplyRequest] = useState(null)
+
+  // Translation helper - uses selected worker's language
+  const lang = selectedWorker?.language || 'en'
+  const t = useMemo(() => {
+    const strings = translations[lang]?.workerTasks || translations.en.workerTasks
+    return (key) => {
+      const keys = key.split('.')
+      let value = strings
+      for (const k of keys) {
+        value = value?.[k]
+      }
+      return value || key
+    }
+  }, [lang])
 
   const fetchWorkers = useCallback(async () => {
     try {
@@ -378,6 +397,7 @@ function WorkerTasks() {
       phone: worker.phone || '',
       email: worker.email || '',
       notes: worker.notes || '',
+      language: worker.language || 'en',
     })
     setShowAddWorker(true)
   }
@@ -389,6 +409,7 @@ function WorkerTasks() {
       phone: '',
       email: '',
       notes: '',
+      language: 'en',
     })
   }
 
@@ -425,7 +446,7 @@ function WorkerTasks() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <ClipboardList className="w-8 h-8 text-farm-green" />
-          <h1 className="text-2xl font-bold">Worker Tasks</h1>
+          <h1 className="text-2xl font-bold">{t('pageTitle')}</h1>
         </div>
       </div>
 
@@ -519,12 +540,12 @@ function WorkerTasks() {
               }`}
             >
               <ClipboardList className="w-4 h-4" />
-              Tasks
+              {t('tasks')}
               {workerTasks.length > 0 && (
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                   viewMode === 'tasks' ? 'bg-white/20' : 'bg-gray-600'
                 }`}>
-                  {workerTasks.filter(t => !t.is_completed).length}
+                  {workerTasks.filter(task => !task.is_completed).length}
                 </span>
               )}
             </button>
@@ -535,7 +556,7 @@ function WorkerTasks() {
               }`}
             >
               <ShoppingCart className="w-4 h-4" />
-              Supply Requests
+              {t('supplyRequests')}
               {supplyRequests.length > 0 && (
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                   viewMode === 'supplies' ? 'bg-white/20' : 'bg-gray-600'
@@ -550,7 +571,7 @@ function WorkerTasks() {
           {viewMode === 'tasks' && (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h3 className="text-lg font-semibold">Tasks for {selectedWorker.name}</h3>
+              <h3 className="text-lg font-semibold">{t('tasksFor')} {selectedWorker.name}</h3>
               <label className="flex items-center gap-2 text-sm text-gray-400">
                 <input
                   type="checkbox"
@@ -558,7 +579,7 @@ function WorkerTasks() {
                   onChange={(e) => setIncludeCompleted(e.target.checked)}
                   className="w-4 h-4 rounded"
                 />
-                Show completed
+                {t('showCompleted')}
               </label>
             </div>
             <div className="flex gap-2">
@@ -567,14 +588,14 @@ function WorkerTasks() {
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
               >
                 <Link className="w-4 h-4" />
-                Assign Existing
+                {t('assignExisting')}
               </button>
               <button
                 onClick={() => setShowEventModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
               >
                 <Plus className="w-4 h-4" />
-                New Task
+                {t('newTask')}
               </button>
             </div>
           </div>
@@ -629,10 +650,10 @@ function WorkerTasks() {
                               {task.title}
                             </span>
                             {task.is_in_progress && (
-                              <span className="px-1.5 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded">IN PROGRESS</span>
+                              <span className="px-1.5 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded">{t('task.inProgress')}</span>
                             )}
                             {task.is_blocked && (
-                              <span className="px-1.5 py-0.5 text-xs bg-orange-500/20 text-orange-400 rounded">BLOCKED</span>
+                              <span className="px-1.5 py-0.5 text-xs bg-orange-500/20 text-orange-400 rounded">{t('task.blocked')}</span>
                             )}
                           </div>
                           {task.worker_note && expandedTask !== task.id && (
@@ -713,7 +734,7 @@ function WorkerTasks() {
                               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
                             >
                               <X className="w-4 h-4" />
-                              Clear Block
+                              {t('task.clearBlock')}
                             </button>
                           ) : (
                             <>
@@ -723,7 +744,7 @@ function WorkerTasks() {
                                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
                                 >
                                   <Play className="w-4 h-4" />
-                                  Start
+                                  {t('task.start')}
                                 </button>
                               ) : (
                                 <button
@@ -731,7 +752,7 @@ function WorkerTasks() {
                                   className="flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
                                 >
                                   <RotateCcw className="w-4 h-4" />
-                                  Revert
+                                  {t('task.revert')}
                                 </button>
                               )}
                               <button
@@ -739,40 +760,40 @@ function WorkerTasks() {
                                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500"
                               >
                                 <Check className="w-4 h-4" />
-                                Complete
+                                {t('task.complete')}
                               </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); setBlockModal(task); }}
                                 className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-500"
                               >
                                 <Ban className="w-4 h-4" />
-                                Cannot Complete
+                                {t('task.cannotComplete')}
                               </button>
                             </>
                           )}
                           <button
                             onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
                             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
-                            title="Edit task"
+                            title={t('task.edit')}
                           >
                             <Edit className="w-4 h-4" />
-                            Edit
+                            {t('task.edit')}
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleUnassignTask(task.id); }}
                             className="flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
-                            title="Remove from worker"
+                            title={t('task.unassign')}
                           >
                             <Unlink className="w-4 h-4" />
-                            Unassign
+                            {t('task.unassign')}
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); openNoteModal(task); }}
                             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500"
-                            title={task.worker_note ? "Edit note" : "Add note"}
+                            title={task.worker_note ? t('task.editNote') : t('task.addNote')}
                           >
                             <StickyNote className="w-4 h-4" />
-                            {task.worker_note ? 'Edit Note' : 'Add Note'}
+                            {task.worker_note ? t('task.editNote') : t('task.addNote')}
                           </button>
                         </div>
                       )}
@@ -785,15 +806,15 @@ function WorkerTasks() {
                             className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-500"
                           >
                             <RotateCcw className="w-4 h-4" />
-                            Mark Incomplete
+                            {t('task.markIncomplete')}
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
                             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
-                            title="Edit task"
+                            title={t('task.edit')}
                           >
                             <Edit className="w-4 h-4" />
-                            Edit
+                            {t('task.edit')}
                           </button>
                         </div>
                       )}
@@ -805,12 +826,12 @@ function WorkerTasks() {
           ) : (
             <div className="text-center py-12 text-gray-400 bg-gray-800 rounded-lg">
               <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No tasks assigned to {selectedWorker.name}</p>
+              <p>{t('noTasks')} {selectedWorker.name}</p>
               <button
                 onClick={() => setShowEventModal(true)}
                 className="mt-4 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
               >
-                Add First Task
+                {t('addFirstTask')}
               </button>
             </div>
           )}
@@ -1063,6 +1084,18 @@ function WorkerTasks() {
                   placeholder="Any additional notes about this worker..."
                 />
               </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Language</label>
+                <select
+                  value={workerFormData.language}
+                  onChange={(e) => setWorkerFormData({ ...workerFormData, language: e.target.value })}
+                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                >
+                  <option value="en">English</option>
+                  <option value="es">Español (Spanish)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Tasks will be translated to this language</p>
+              </div>
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -1099,17 +1132,17 @@ function WorkerTasks() {
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Complete Task</h2>
+            <h2 className="text-xl font-bold mb-4">{t('modal.completeTask')}</h2>
             <p className="text-gray-300 mb-4">{completeModal.title}</p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Completion Note (optional)</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('modal.completionNoteOptional')}</label>
                 <textarea
                   value={completeNote}
                   onChange={(e) => setCompleteNote(e.target.value)}
                   className="w-full bg-gray-700 rounded-lg px-4 py-2"
                   rows={2}
-                  placeholder="e.g., Finished early, used extra supplies..."
+                  placeholder={t('modal.completionNotePlaceholder')}
                 />
               </div>
               <div className="flex gap-3">
@@ -1117,13 +1150,13 @@ function WorkerTasks() {
                   onClick={() => { setCompleteModal(null); setCompleteNote(''); }}
                   className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
                 >
-                  Cancel
+                  {t('modal.cancel')}
                 </button>
                 <button
                   onClick={handleCompleteTask}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500"
                 >
-                  Complete
+                  {t('task.complete')}
                 </button>
               </div>
             </div>
@@ -1137,18 +1170,18 @@ function WorkerTasks() {
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <AlertCircle className="w-6 h-6 text-orange-400" />
-              Cannot Complete Task
+              {t('modal.cannotCompleteTask')}
             </h2>
             <p className="text-gray-300 mb-4">{blockModal.title}</p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Reason (required)</label>
+                <label className="block text-sm text-gray-400 mb-1">{t('modal.reasonRequired')}</label>
                 <textarea
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
                   className="w-full bg-gray-700 rounded-lg px-4 py-2"
                   rows={3}
-                  placeholder="e.g., Out of cleaning supplies, door was locked, equipment broken..."
+                  placeholder={t('modal.reasonPlaceholder')}
                   required
                 />
               </div>
@@ -1157,14 +1190,14 @@ function WorkerTasks() {
                   onClick={() => { setBlockModal(null); setBlockReason(''); }}
                   className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
                 >
-                  Cancel
+                  {t('modal.cancel')}
                 </button>
                 <button
                   onClick={handleBlockTask}
                   disabled={!blockReason.trim()}
                   className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Mark Blocked
+                  {t('modal.markBlocked')}
                 </button>
               </div>
             </div>

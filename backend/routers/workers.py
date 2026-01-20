@@ -13,6 +13,7 @@ from datetime import datetime
 from models.database import get_db
 from models.workers import Worker
 from models.tasks import Task
+from services.translation import translate_task
 
 router = APIRouter(prefix="/workers", tags=["Workers"])
 
@@ -24,6 +25,7 @@ class WorkerCreate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     notes: Optional[str] = None
+    language: Optional[str] = "en"  # "en", "es", etc.
 
 
 class WorkerUpdate(BaseModel):
@@ -32,6 +34,7 @@ class WorkerUpdate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     notes: Optional[str] = None
+    language: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -42,6 +45,7 @@ class WorkerResponse(BaseModel):
     phone: Optional[str]
     email: Optional[str]
     notes: Optional[str]
+    language: str = "en"
     is_active: bool
     created_at: datetime
     task_count: Optional[int] = 0
@@ -103,6 +107,7 @@ async def get_workers(
             "phone": worker.phone,
             "email": worker.email,
             "notes": worker.notes,
+            "language": worker.language or "en",
             "is_active": worker.is_active,
             "created_at": worker.created_at,
             "task_count": task_count
@@ -123,7 +128,8 @@ async def create_worker(
         role=data.role,
         phone=data.phone,
         email=data.email,
-        notes=data.notes
+        notes=data.notes,
+        language=data.language or "en"
     )
     db.add(worker)
     await db.commit()
@@ -136,6 +142,7 @@ async def create_worker(
         "phone": worker.phone,
         "email": worker.email,
         "notes": worker.notes,
+        "language": worker.language or "en",
         "is_active": worker.is_active,
         "created_at": worker.created_at,
         "task_count": 0
@@ -203,6 +210,7 @@ async def get_worker(
         "phone": worker.phone,
         "email": worker.email,
         "notes": worker.notes,
+        "language": worker.language or "en",
         "is_active": worker.is_active,
         "created_at": worker.created_at,
         "task_count": task_count
@@ -237,6 +245,7 @@ async def update_worker(
         "phone": worker.phone,
         "email": worker.email,
         "notes": worker.notes,
+        "language": worker.language or "en",
         "is_active": worker.is_active,
         "created_at": worker.created_at
     }
@@ -267,7 +276,7 @@ async def get_worker_tasks(
     include_completed: bool = False,
     db: AsyncSession = Depends(get_db)
 ):
-    """Get all tasks assigned to a worker"""
+    """Get all tasks assigned to a worker (translated if worker language is not English)"""
     # Verify worker exists
     result = await db.execute(select(Worker).where(Worker.id == worker_id))
     worker = result.scalar_one_or_none()
@@ -290,8 +299,12 @@ async def get_worker_tasks(
     result = await db.execute(query)
     tasks = result.scalars().all()
 
-    return [
-        {
+    # Build task list
+    task_list = []
+    worker_lang = worker.language or "en"
+
+    for task in tasks:
+        task_dict = {
             "id": task.id,
             "title": task.title,
             "description": task.description,
@@ -307,8 +320,14 @@ async def get_worker_tasks(
             "category": task.category.value if task.category else None,
             "completed_at": task.completed_at.isoformat() if task.completed_at else None
         }
-        for task in tasks
-    ]
+
+        # Translate if worker language is not English
+        if worker_lang != "en":
+            task_dict = await translate_task(task_dict, worker_lang)
+
+        task_list.append(task_dict)
+
+    return task_list
 
 
 @router.post("/{worker_id}/tasks/{task_id}/note/")

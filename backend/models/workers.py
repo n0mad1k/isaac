@@ -17,6 +17,7 @@ class Worker(Base):
     phone = Column(String(20), nullable=True)
     email = Column(String(100), nullable=True)
     notes = Column(Text, nullable=True)
+    language = Column(String(10), default="en")  # "en", "es", etc.
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

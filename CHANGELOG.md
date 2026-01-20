@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.20.0] - 2026-01-20
+
+### Added
+- **Multi-language support for workers (Spanish)**
+  - Workers can have a language preference (English or Spanish)
+  - Task titles and descriptions auto-translate using argos-translate
+  - Worker Tasks UI switches to Spanish when a Spanish-speaking worker's tab is selected
+  - Translation happens on the backend, cached for performance
+
 ## [1.19.6] - 2026-01-20
 
 ### Fixed
