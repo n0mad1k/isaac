@@ -1161,11 +1161,15 @@ function AnimalCard({
         special_instructions: animal.special_instructions || '',
         target_weight: animal.target_weight || '',
         slaughter_date: animal.slaughter_date || '',
-        slaughter_time: animal.slaughter_time || '',
+        slaughter_start_time: animal.slaughter_start_time || '',
+        slaughter_end_time: animal.slaughter_end_time || '',
+        slaughter_notes: animal.slaughter_notes || '',
         processor: animal.processor || '',
         processor_address: animal.processor_address || '',
         pickup_date: animal.pickup_date || '',
-        pickup_time: animal.pickup_time || '',
+        pickup_start_time: animal.pickup_start_time || '',
+        pickup_end_time: animal.pickup_end_time || '',
+        pickup_notes: animal.pickup_notes || '',
         worming_frequency_days: animal.worming_frequency_days || '',
         vaccination_frequency_days: animal.vaccination_frequency_days || '',
         hoof_trim_frequency_days: animal.hoof_trim_frequency_days || '',
@@ -1197,10 +1201,14 @@ function AnimalCard({
         birth_date: editData.birth_date || null,
         acquisition_date: editData.acquisition_date || null,
         slaughter_date: editData.slaughter_date || null,
-        slaughter_time: editData.slaughter_time || null,
+        slaughter_start_time: editData.slaughter_start_time || null,
+        slaughter_end_time: editData.slaughter_end_time || null,
+        slaughter_notes: editData.slaughter_notes || null,
         processor_address: editData.processor_address || null,
         pickup_date: editData.pickup_date || null,
-        pickup_time: editData.pickup_time || null,
+        pickup_start_time: editData.pickup_start_time || null,
+        pickup_end_time: editData.pickup_end_time || null,
+        pickup_notes: editData.pickup_notes || null,
         farm_area_id: editData.farm_area_id ? parseInt(editData.farm_area_id) : null,
       }
       await updateAnimal(animal.id, data)
@@ -1234,11 +1242,15 @@ function AnimalCard({
       special_instructions: animal.special_instructions || '',
       target_weight: animal.target_weight || '',
       slaughter_date: animal.slaughter_date || '',
-      slaughter_time: animal.slaughter_time || '',
+      slaughter_start_time: animal.slaughter_start_time || '',
+      slaughter_end_time: animal.slaughter_end_time || '',
+      slaughter_notes: animal.slaughter_notes || '',
       processor: animal.processor || '',
       processor_address: animal.processor_address || '',
       pickup_date: animal.pickup_date || '',
-      pickup_time: animal.pickup_time || '',
+      pickup_start_time: animal.pickup_start_time || '',
+      pickup_end_time: animal.pickup_end_time || '',
+      pickup_notes: animal.pickup_notes || '',
       worming_frequency_days: animal.worming_frequency_days || '',
       vaccination_frequency_days: animal.vaccination_frequency_days || '',
       hoof_trim_frequency_days: animal.hoof_trim_frequency_days || '',
@@ -1624,6 +1636,29 @@ function AnimalCard({
                   editing={isEditing}
                 />
                 <EditableField
+                  label="Processor"
+                  value={editData.processor}
+                  field="processor"
+                  onChange={handleFieldChange}
+                  placeholder="Processor name"
+                  editing={isEditing}
+                />
+                <div className="col-span-2">
+                  <EditableField
+                    label="Processor Address"
+                    value={editData.processor_address}
+                    field="processor_address"
+                    onChange={handleFieldChange}
+                    placeholder="123 Main St, City, State"
+                    editing={isEditing}
+                  />
+                </div>
+              </div>
+
+              {/* Slaughter Event */}
+              <h5 className="text-xs font-medium text-gray-500 mt-4 mb-2">Slaughter Event</h5>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <EditableField
                   label="Slaughter Date"
                   value={editData.slaughter_date}
                   field="slaughter_date"
@@ -1632,29 +1667,37 @@ function AnimalCard({
                   editing={isEditing}
                 />
                 <EditableField
-                  label="Slaughter Time"
-                  value={editData.slaughter_time}
-                  field="slaughter_time"
+                  label="Start Time"
+                  value={editData.slaughter_start_time}
+                  field="slaughter_start_time"
                   type="time"
                   onChange={handleFieldChange}
                   editing={isEditing}
                 />
                 <EditableField
-                  label="Processor"
-                  value={editData.processor}
-                  field="processor"
+                  label="End Time"
+                  value={editData.slaughter_end_time}
+                  field="slaughter_end_time"
+                  type="time"
                   onChange={handleFieldChange}
-                  placeholder="Processor name"
                   editing={isEditing}
                 />
-                <EditableField
-                  label="Processor Address"
-                  value={editData.processor_address}
-                  field="processor_address"
-                  onChange={handleFieldChange}
-                  placeholder="123 Main St, City, State"
-                  editing={isEditing}
+              </div>
+              {isEditing ? (
+                <textarea
+                  className="w-full mt-2 p-2 text-sm rounded bg-gray-800 border border-gray-600 text-white placeholder-gray-500"
+                  placeholder="Slaughter notes (phone number, instructions...)"
+                  value={editData.slaughter_notes}
+                  onChange={(e) => handleFieldChange('slaughter_notes', e.target.value)}
+                  rows={2}
                 />
+              ) : editData.slaughter_notes && (
+                <p className="text-xs text-gray-400 mt-2">{editData.slaughter_notes}</p>
+              )}
+
+              {/* Pickup Event */}
+              <h5 className="text-xs font-medium text-gray-500 mt-4 mb-2">Pickup Event</h5>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <EditableField
                   label="Pickup Date"
                   value={editData.pickup_date}
@@ -1664,14 +1707,33 @@ function AnimalCard({
                   editing={isEditing}
                 />
                 <EditableField
-                  label="Pickup Time"
-                  value={editData.pickup_time}
-                  field="pickup_time"
+                  label="Start Time"
+                  value={editData.pickup_start_time}
+                  field="pickup_start_time"
+                  type="time"
+                  onChange={handleFieldChange}
+                  editing={isEditing}
+                />
+                <EditableField
+                  label="End Time"
+                  value={editData.pickup_end_time}
+                  field="pickup_end_time"
                   type="time"
                   onChange={handleFieldChange}
                   editing={isEditing}
                 />
               </div>
+              {isEditing ? (
+                <textarea
+                  className="w-full mt-2 p-2 text-sm rounded bg-gray-800 border border-gray-600 text-white placeholder-gray-500"
+                  placeholder="Pickup notes (phone number, instructions...)"
+                  value={editData.pickup_notes}
+                  onChange={(e) => handleFieldChange('pickup_notes', e.target.value)}
+                  rows={2}
+                />
+              ) : editData.pickup_notes && (
+                <p className="text-xs text-gray-400 mt-2">{editData.pickup_notes}</p>
+              )}
             </div>
           )}
 
@@ -2716,11 +2778,15 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
     // Livestock
     target_weight: animal?.target_weight || '',
     slaughter_date: animal?.slaughter_date || '',
-    slaughter_time: animal?.slaughter_time || '',
+    slaughter_start_time: animal?.slaughter_start_time || '',
+    slaughter_end_time: animal?.slaughter_end_time || '',
+    slaughter_notes: animal?.slaughter_notes || '',
     processor: animal?.processor || '',
     processor_address: animal?.processor_address || '',
     pickup_date: animal?.pickup_date || '',
-    pickup_time: animal?.pickup_time || '',
+    pickup_start_time: animal?.pickup_start_time || '',
+    pickup_end_time: animal?.pickup_end_time || '',
+    pickup_notes: animal?.pickup_notes || '',
     // Pet care frequencies (in days)
     worming_frequency_days: animal?.worming_frequency_days || '',
     vaccination_frequency_days: animal?.vaccination_frequency_days || '',
@@ -2750,10 +2816,14 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
         birth_date: formData.birth_date || null,
         acquisition_date: formData.acquisition_date || null,
         slaughter_date: formData.slaughter_date || null,
-        slaughter_time: formData.slaughter_time || null,
+        slaughter_start_time: formData.slaughter_start_time || null,
+        slaughter_end_time: formData.slaughter_end_time || null,
+        slaughter_notes: formData.slaughter_notes || null,
         processor_address: formData.processor_address || null,
         pickup_date: formData.pickup_date || null,
-        pickup_time: formData.pickup_time || null,
+        pickup_start_time: formData.pickup_start_time || null,
+        pickup_end_time: formData.pickup_end_time || null,
+        pickup_notes: formData.pickup_notes || null,
         farm_area_id: formData.farm_area_id ? parseInt(formData.farm_area_id) : null,
       }
 
@@ -2944,25 +3014,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
           {isLivestock && (
             <div className="border-t border-gray-700 pt-4">
               <h3 className="text-sm font-medium text-amber-400 mb-3">Livestock Details</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Slaughter Date</label>
-                  <input
-                    type="date"
-                    value={formData.slaughter_date}
-                    onChange={(e) => setFormData({ ...formData, slaughter_date: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Slaughter Time</label>
-                  <input
-                    type="time"
-                    value={formData.slaughter_time}
-                    onChange={(e) => setFormData({ ...formData, slaughter_time: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-                  />
-                </div>
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Target Weight (lbs)</label>
                   <input
@@ -2993,6 +3045,53 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
+              </div>
+
+              {/* Slaughter Event */}
+              <h4 className="text-xs font-medium text-gray-500 mb-2">Slaughter Event</h4>
+              <div className="grid grid-cols-3 gap-4 mb-2">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Slaughter Date</label>
+                  <input
+                    type="date"
+                    value={formData.slaughter_date}
+                    onChange={(e) => setFormData({ ...formData, slaughter_date: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Start Time</label>
+                  <input
+                    type="time"
+                    value={formData.slaughter_start_time}
+                    onChange={(e) => setFormData({ ...formData, slaughter_start_time: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">End Time</label>
+                  <input
+                    type="time"
+                    value={formData.slaughter_end_time}
+                    onChange={(e) => setFormData({ ...formData, slaughter_end_time: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-1">Slaughter Notes</label>
+                <textarea
+                  value={formData.slaughter_notes}
+                  onChange={(e) => setFormData({ ...formData, slaughter_notes: e.target.value })}
+                  placeholder="Phone number, instructions, etc."
+                  rows={2}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+
+              {/* Pickup Event */}
+              <h4 className="text-xs font-medium text-gray-500 mb-2">Pickup Event</h4>
+              <div className="grid grid-cols-3 gap-4 mb-2">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Pickup Date</label>
                   <input
@@ -3003,14 +3102,33 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Pickup Time</label>
+                  <label className="block text-sm text-gray-400 mb-1">Start Time</label>
                   <input
                     type="time"
-                    value={formData.pickup_time}
-                    onChange={(e) => setFormData({ ...formData, pickup_time: e.target.value })}
+                    value={formData.pickup_start_time}
+                    onChange={(e) => setFormData({ ...formData, pickup_start_time: e.target.value })}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">End Time</label>
+                  <input
+                    type="time"
+                    value={formData.pickup_end_time}
+                    onChange={(e) => setFormData({ ...formData, pickup_end_time: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Pickup Notes</label>
+                <textarea
+                  value={formData.pickup_notes}
+                  onChange={(e) => setFormData({ ...formData, pickup_notes: e.target.value })}
+                  placeholder="Phone number, instructions, etc."
+                  rows={2}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
               </div>
             </div>
           )}
@@ -4037,11 +4155,15 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
   const [formData, setFormData] = useState({
     animal_id: animal.id,
     slaughter_date: animal.slaughter_date || new Date().toISOString().split('T')[0],
-    slaughter_time: animal.slaughter_time || '',
+    slaughter_start_time: animal.slaughter_start_time || '',
+    slaughter_end_time: animal.slaughter_end_time || '',
+    slaughter_notes: animal.slaughter_notes || '',
     processor: animal.processor || '',
     processor_address: animal.processor_address || '',
     pickup_date: animal.pickup_date || '',
-    pickup_time: animal.pickup_time || '',
+    pickup_start_time: animal.pickup_start_time || '',
+    pickup_end_time: animal.pickup_end_time || '',
+    pickup_notes: animal.pickup_notes || '',
     live_weight: animal.current_weight || '',
     hanging_weight: '',
     final_weight: '',
@@ -4095,7 +4217,8 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Slaughter Event */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Slaughter Date</label>
               <input
@@ -4106,14 +4229,37 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Slaughter Time</label>
+              <label className="block text-sm text-gray-400 mb-1">Start Time</label>
               <input
                 type="time"
-                value={formData.slaughter_time}
-                onChange={(e) => setFormData({ ...formData, slaughter_time: e.target.value })}
+                value={formData.slaughter_start_time}
+                onChange={(e) => setFormData({ ...formData, slaughter_start_time: e.target.value })}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">End Time</label>
+              <input
+                type="time"
+                value={formData.slaughter_end_time}
+                onChange={(e) => setFormData({ ...formData, slaughter_end_time: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Slaughter Notes</label>
+            <textarea
+              value={formData.slaughter_notes}
+              onChange={(e) => setFormData({ ...formData, slaughter_notes: e.target.value })}
+              placeholder="Phone number, instructions, etc."
+              rows={2}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          {/* Pickup Event */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Pickup Date</label>
               <input
@@ -4124,14 +4270,33 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Pickup Time</label>
+              <label className="block text-sm text-gray-400 mb-1">Start Time</label>
               <input
                 type="time"
-                value={formData.pickup_time}
-                onChange={(e) => setFormData({ ...formData, pickup_time: e.target.value })}
+                value={formData.pickup_start_time}
+                onChange={(e) => setFormData({ ...formData, pickup_start_time: e.target.value })}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">End Time</label>
+              <input
+                type="time"
+                value={formData.pickup_end_time}
+                onChange={(e) => setFormData({ ...formData, pickup_end_time: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Pickup Notes</label>
+            <textarea
+              value={formData.pickup_notes}
+              onChange={(e) => setFormData({ ...formData, pickup_notes: e.target.value })}
+              placeholder="Phone number, instructions, etc."
+              rows={2}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
           </div>
 
           <div>

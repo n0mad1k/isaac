@@ -75,11 +75,15 @@ class Animal(Base):
     # Slaughter planning (for livestock category)
     target_weight = Column(Float)  # Target slaughter weight in lbs
     slaughter_date = Column(Date)  # Planned slaughter date
-    slaughter_time = Column(String(10))  # Planned slaughter time "HH:MM"
+    slaughter_start_time = Column(String(10))  # Start time "HH:MM" (e.g., leave house)
+    slaughter_end_time = Column(String(10))  # End time "HH:MM" (e.g., back home)
+    slaughter_notes = Column(Text)  # Phone number, instructions, etc.
     processor = Column(String(200))  # Slaughter/processor name
     processor_address = Column(String(500))  # Processor address/location
     pickup_date = Column(Date)  # Date to pickup from butcher
-    pickup_time = Column(String(10))  # Pickup time "HH:MM"
+    pickup_start_time = Column(String(10))  # Pickup start time
+    pickup_end_time = Column(String(10))  # Pickup end time
+    pickup_notes = Column(Text)  # Phone number, instructions for pickup
 
     # === PET SPECIFIC - Recurring Care Schedules ===
     # Each care type has: last_date, frequency_days, and computed next_date

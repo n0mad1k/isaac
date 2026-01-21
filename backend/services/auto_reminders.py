@@ -411,7 +411,8 @@ async def create_or_update_grouped_reminder(
     location: str = None,
     category: TaskCategory = TaskCategory.OTHER,
     notification_setting_key: str = None,
-    due_time: str = None,  # "HH:MM" format
+    due_time: str = None,  # "HH:MM" format - start time for events
+    end_time: str = None,  # "HH:MM" format - end time for events
     task_type: TaskType = TaskType.TODO,  # TODO for reminders, EVENT for calendar events
 ) -> Optional[Task]:
     """Create or update a grouped calendar reminder.
@@ -468,6 +469,8 @@ async def create_or_update_grouped_reminder(
         existing_task.task_type = task_type
         if due_time:
             existing_task.due_time = due_time
+        if end_time:
+            existing_task.end_time = end_time
         # Update reminder_alerts if category has specific settings
         existing_task.reminder_alerts = category_alerts
         existing_task.updated_at = datetime.utcnow()
@@ -487,6 +490,7 @@ async def create_or_update_grouped_reminder(
             description=description,
             due_date=due_date,
             due_time=due_time,
+            end_time=end_time,
             location=location,
             category=category,
             task_type=task_type,
@@ -579,7 +583,9 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             animal = group_animals[0]
             title = f"Slaughter: {animal.name}"
             description = f"Slaughter scheduled for {animal.name}"
-            slaughter_time = animal.slaughter_time
+            start_time = animal.slaughter_start_time
+            end_time = animal.slaughter_end_time
+            slaughter_notes = animal.slaughter_notes
             processor_address = animal.processor_address
         else:
             # Multiple animals - group them
@@ -587,11 +593,17 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             title = f"Slaughter: {len(group_animals)} animals"
             description = f"Slaughter scheduled for: {names}"
             # Use first animal's time and address (should be same for grouped animals)
-            slaughter_time = group_animals[0].slaughter_time
+            start_time = group_animals[0].slaughter_start_time
+            end_time = group_animals[0].slaughter_end_time
+            slaughter_notes = group_animals[0].slaughter_notes
             processor_address = group_animals[0].processor_address
 
         if processor:
             description += f"\nProcessor: {processor}"
+
+        # Add notes (phone number, instructions) to description
+        if slaughter_notes:
+            description += f"\n\n{slaughter_notes}"
 
         # Use processor_address as location if available, otherwise fall back to processor name
         location = processor_address or processor
@@ -604,7 +616,8 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             group_key=group_key,
             title=title,
             due_date=slaughter_date,
-            due_time=slaughter_time,
+            due_time=start_time,
+            end_time=end_time,
             description=description,
             location=location,
             category=TaskCategory.ANIMAL_CARE,
@@ -622,17 +635,25 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             animal = group_animals[0]
             title = f"Pickup: {animal.name}"
             description = f"Pickup from processor for {animal.name}"
-            pickup_time = animal.pickup_time
+            start_time = animal.pickup_start_time
+            end_time = animal.pickup_end_time
+            pickup_notes = animal.pickup_notes
             processor_address = animal.processor_address
         else:
             names = ", ".join(a.name for a in group_animals)
             title = f"Pickup: {len(group_animals)} animals"
             description = f"Pickup from processor for: {names}"
-            pickup_time = group_animals[0].pickup_time
+            start_time = group_animals[0].pickup_start_time
+            end_time = group_animals[0].pickup_end_time
+            pickup_notes = group_animals[0].pickup_notes
             processor_address = group_animals[0].processor_address
 
         if processor:
             description += f"\nProcessor: {processor}"
+
+        # Add notes (phone number, instructions) to description
+        if pickup_notes:
+            description += f"\n\n{pickup_notes}"
 
         # Use processor_address as location if available, otherwise fall back to processor name
         location = processor_address or processor
@@ -644,7 +665,8 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             group_key=group_key,
             title=title,
             due_date=pickup_date,
-            due_time=pickup_time,
+            due_time=start_time,
+            end_time=end_time,
             description=description,
             location=location,
             category=TaskCategory.ANIMAL_CARE,

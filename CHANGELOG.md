@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.20.5] - 2026-01-21
+
+### Added
+- **Full event-style slaughter and pickup scheduling**
+  - Slaughter and pickup now have time ranges (start and end times)
+  - Added notes fields for phone numbers and instructions
+  - Calendar events now show duration based on start/end times
+  - Event descriptions include notes with contact info
+
 ## [1.20.4] - 2026-01-21
 
 ### Added
