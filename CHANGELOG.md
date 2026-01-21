@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.20.1] - 2026-01-21
+
+### Fixed
+- **Animal slaughter dates now update task due dates when changed**
+  - Previously, changing an animal's slaughter date would not update the associated task's due date
+  - Task due dates now sync correctly when slaughter dates are modified
+
 ## [1.20.0] - 2026-01-20
 
 ### Added

@@ -168,10 +168,9 @@ async def create_or_update_reminder(
             logger.warning(f"Deactivated duplicate reminder: {dup.id} ({dup.title})")
 
     if existing_task:
-        # Update existing task - but DON'T update the due_date
-        # This allows tasks to go overdue instead of resetting to today
+        # Update existing task including due_date when source date changes
         existing_task.title = title
-        # existing_task.due_date = due_date  # REMOVED - preserve original due date
+        existing_task.due_date = due_date
         existing_task.description = description
         existing_task.location = location
         existing_task.category = category
@@ -459,10 +458,9 @@ async def create_or_update_grouped_reminder(
             logger.warning(f"Deactivated duplicate grouped reminder: {dup.id} ({dup.title})")
 
     if existing_task:
-        # Update existing task - but DON'T update the due_date
-        # This allows tasks to go overdue instead of resetting to today
+        # Update existing task including due_date when source date changes
         existing_task.title = title
-        # existing_task.due_date = due_date  # REMOVED - preserve original due date
+        existing_task.due_date = due_date
         existing_task.description = description
         existing_task.location = location
         existing_task.category = category
