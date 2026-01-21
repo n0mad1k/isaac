@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.20.3] - 2026-01-21
+
+### Added
+- **Slaughter and pickup times for livestock**
+  - Added slaughter_time and pickup_time fields to animals
+  - Slaughter and pickup events now appear as calendar events (not reminders) with times
+  - Times can be set when creating/editing livestock animals
+
 ## [1.20.2] - 2026-01-21
 
 ### Fixed

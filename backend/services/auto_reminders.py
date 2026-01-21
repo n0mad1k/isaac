@@ -412,6 +412,7 @@ async def create_or_update_grouped_reminder(
     category: TaskCategory = TaskCategory.OTHER,
     notification_setting_key: str = None,
     due_time: str = None,  # "HH:MM" format
+    task_type: TaskType = TaskType.TODO,  # TODO for reminders, EVENT for calendar events
 ) -> Optional[Task]:
     """Create or update a grouped calendar reminder.
 
@@ -464,6 +465,7 @@ async def create_or_update_grouped_reminder(
         existing_task.description = description
         existing_task.location = location
         existing_task.category = category
+        existing_task.task_type = task_type
         if due_time:
             existing_task.due_time = due_time
         # Update reminder_alerts if category has specific settings
@@ -487,7 +489,7 @@ async def create_or_update_grouped_reminder(
             due_time=due_time,
             location=location,
             category=category,
-            task_type=TaskType.TODO,
+            task_type=task_type,
             priority=2,
             notes=f"{source_key}",
             reminder_alerts=category_alerts,  # Per-category alert intervals
@@ -560,23 +562,31 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
 
     # Group slaughter dates by date and processor
     slaughter_groups = defaultdict(list)
+    pickup_groups = defaultdict(list)
     for animal in animals:
-        if animal.category == AnimalCategory.LIVESTOCK and animal.slaughter_date:
-            key = (animal.slaughter_date, animal.processor or "")
-            slaughter_groups[key].append(animal)
+        if animal.category == AnimalCategory.LIVESTOCK:
+            if animal.slaughter_date:
+                key = (animal.slaughter_date, animal.processor or "")
+                slaughter_groups[key].append(animal)
+            if animal.pickup_date:
+                key = (animal.pickup_date, animal.processor or "")
+                pickup_groups[key].append(animal)
 
-    # Create one reminder per slaughter date/processor combo
+    # Create one EVENT per slaughter date/processor combo
     for (slaughter_date, processor), group_animals in slaughter_groups.items():
         if len(group_animals) == 1:
             # Single animal - use specific name
             animal = group_animals[0]
             title = f"Slaughter: {animal.name}"
             description = f"Slaughter scheduled for {animal.name}"
+            slaughter_time = animal.slaughter_time
         else:
             # Multiple animals - group them
             names = ", ".join(a.name for a in group_animals)
             title = f"Slaughter: {len(group_animals)} animals"
             description = f"Slaughter scheduled for: {names}"
+            # Use first animal's time (should be same for grouped animals)
+            slaughter_time = group_animals[0].slaughter_time
 
         if processor:
             description += f"\nProcessor: {processor}"
@@ -589,10 +599,47 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             group_key=group_key,
             title=title,
             due_date=slaughter_date,
+            due_time=slaughter_time,
             description=description,
             location=processor,
             category=TaskCategory.ANIMAL_CARE,
             notification_setting_key="notify_animal_slaughter",
+            task_type=TaskType.EVENT,
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # Create one EVENT per pickup date/processor combo
+    for (pickup_date, processor), group_animals in pickup_groups.items():
+        if len(group_animals) == 1:
+            animal = group_animals[0]
+            title = f"Pickup: {animal.name}"
+            description = f"Pickup from processor for {animal.name}"
+            pickup_time = animal.pickup_time
+        else:
+            names = ", ".join(a.name for a in group_animals)
+            title = f"Pickup: {len(group_animals)} animals"
+            description = f"Pickup from processor for: {names}"
+            pickup_time = group_animals[0].pickup_time
+
+        if processor:
+            description += f"\nProcessor: {processor}"
+
+        group_key = f"{pickup_date.isoformat()}_{processor}"
+        task = await create_or_update_grouped_reminder(
+            db=db,
+            source_type="pickup_group",
+            group_key=group_key,
+            title=title,
+            due_date=pickup_date,
+            due_time=pickup_time,
+            description=description,
+            location=processor,
+            category=TaskCategory.ANIMAL_CARE,
+            notification_setting_key="notify_animal_slaughter",  # Use same notification setting
+            task_type=TaskType.EVENT,
         )
         if task:
             stats["created" if task.created_at == task.updated_at else "updated"] += 1
@@ -690,6 +737,10 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
     for (slaughter_date, processor), _ in slaughter_groups.items():
         valid_slaughter_keys.add(f"auto:slaughter_group:{slaughter_date.isoformat()}_{processor}")
 
+    valid_pickup_keys = set()
+    for (pickup_date, processor), _ in pickup_groups.items():
+        valid_pickup_keys.add(f"auto:pickup_group:{pickup_date.isoformat()}_{processor}")
+
     valid_care_keys = set()
     for (due_date, care_name), _ in care_groups.items():
         valid_care_keys.add(f"auto:care_group:{due_date.isoformat()}_{care_name}")
@@ -709,6 +760,17 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
                 task.is_active = False
                 stats["cleaned"] += 1
                 logger.debug(f"Cleaned up stale slaughter group reminder: {task.title}")
+
+        elif "auto:pickup_group:" in task.notes:
+            if task.notes not in valid_pickup_keys:
+                if calendar_service and calendar_service.connect():
+                    await calendar_service.delete_task_from_calendar(
+                        task.id,
+                        calendar_uid=task.calendar_uid
+                    )
+                task.is_active = False
+                stats["cleaned"] += 1
+                logger.debug(f"Cleaned up stale pickup group reminder: {task.title}")
 
         elif "auto:care_group:" in task.notes:
             if task.notes not in valid_care_keys:

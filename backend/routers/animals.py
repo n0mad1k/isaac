@@ -50,8 +50,10 @@ class AnimalCreate(BaseModel):
     # Livestock specific
     target_weight: Optional[float] = Field(None, ge=0, le=10000)
     slaughter_date: Optional[date] = None
+    slaughter_time: Optional[str] = Field(None, max_length=10)
     processor: Optional[str] = Field(None, max_length=200)
     pickup_date: Optional[date] = None
+    pickup_time: Optional[str] = Field(None, max_length=10)
     # Pet care schedules (frequency in days)
     worming_frequency_days: Optional[int] = Field(None, ge=1, le=730)
     vaccination_frequency_days: Optional[int] = Field(None, ge=1, le=730)
@@ -91,8 +93,10 @@ class AnimalUpdate(BaseModel):
     # Livestock
     target_weight: Optional[float] = Field(None, ge=0, le=10000)
     slaughter_date: Optional[date] = None
+    slaughter_time: Optional[str] = Field(None, max_length=10)
     processor: Optional[str] = Field(None, max_length=200)
     pickup_date: Optional[date] = None
+    pickup_time: Optional[str] = Field(None, max_length=10)
     # Pet care schedules
     worming_frequency_days: Optional[int] = Field(None, ge=1, le=730)
     vaccination_frequency_days: Optional[int] = Field(None, ge=1, le=730)
@@ -259,9 +263,11 @@ def animal_to_response(animal: Animal) -> dict:
         # Livestock fields
         "target_weight": animal.target_weight,
         "slaughter_date": animal.slaughter_date,
+        "slaughter_time": animal.slaughter_time,
         "days_until_slaughter": animal.days_until_slaughter,
         "processor": animal.processor,
         "pickup_date": animal.pickup_date,
+        "pickup_time": animal.pickup_time,
         "total_expenses": animal.total_expenses,
         # Pet care schedules
         "last_wormed": animal.last_wormed,

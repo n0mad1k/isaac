@@ -1161,8 +1161,10 @@ function AnimalCard({
         special_instructions: animal.special_instructions || '',
         target_weight: animal.target_weight || '',
         slaughter_date: animal.slaughter_date || '',
+        slaughter_time: animal.slaughter_time || '',
         processor: animal.processor || '',
         pickup_date: animal.pickup_date || '',
+        pickup_time: animal.pickup_time || '',
         worming_frequency_days: animal.worming_frequency_days || '',
         vaccination_frequency_days: animal.vaccination_frequency_days || '',
         hoof_trim_frequency_days: animal.hoof_trim_frequency_days || '',
@@ -1194,7 +1196,9 @@ function AnimalCard({
         birth_date: editData.birth_date || null,
         acquisition_date: editData.acquisition_date || null,
         slaughter_date: editData.slaughter_date || null,
+        slaughter_time: editData.slaughter_time || null,
         pickup_date: editData.pickup_date || null,
+        pickup_time: editData.pickup_time || null,
         farm_area_id: editData.farm_area_id ? parseInt(editData.farm_area_id) : null,
       }
       await updateAnimal(animal.id, data)
@@ -1228,8 +1232,10 @@ function AnimalCard({
       special_instructions: animal.special_instructions || '',
       target_weight: animal.target_weight || '',
       slaughter_date: animal.slaughter_date || '',
+      slaughter_time: animal.slaughter_time || '',
       processor: animal.processor || '',
       pickup_date: animal.pickup_date || '',
+      pickup_time: animal.pickup_time || '',
       worming_frequency_days: animal.worming_frequency_days || '',
       vaccination_frequency_days: animal.vaccination_frequency_days || '',
       hoof_trim_frequency_days: animal.hoof_trim_frequency_days || '',
@@ -1623,6 +1629,14 @@ function AnimalCard({
                   editing={isEditing}
                 />
                 <EditableField
+                  label="Slaughter Time"
+                  value={editData.slaughter_time}
+                  field="slaughter_time"
+                  type="time"
+                  onChange={handleFieldChange}
+                  editing={isEditing}
+                />
+                <EditableField
                   label="Processor"
                   value={editData.processor}
                   field="processor"
@@ -1635,6 +1649,14 @@ function AnimalCard({
                   value={editData.pickup_date}
                   field="pickup_date"
                   type="date"
+                  onChange={handleFieldChange}
+                  editing={isEditing}
+                />
+                <EditableField
+                  label="Pickup Time"
+                  value={editData.pickup_time}
+                  field="pickup_time"
+                  type="time"
                   onChange={handleFieldChange}
                   editing={isEditing}
                 />
@@ -2683,8 +2705,10 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
     // Livestock
     target_weight: animal?.target_weight || '',
     slaughter_date: animal?.slaughter_date || '',
+    slaughter_time: animal?.slaughter_time || '',
     processor: animal?.processor || '',
     pickup_date: animal?.pickup_date || '',
+    pickup_time: animal?.pickup_time || '',
     // Pet care frequencies (in days)
     worming_frequency_days: animal?.worming_frequency_days || '',
     vaccination_frequency_days: animal?.vaccination_frequency_days || '',
@@ -2714,7 +2738,9 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
         birth_date: formData.birth_date || null,
         acquisition_date: formData.acquisition_date || null,
         slaughter_date: formData.slaughter_date || null,
+        slaughter_time: formData.slaughter_time || null,
         pickup_date: formData.pickup_date || null,
+        pickup_time: formData.pickup_time || null,
         farm_area_id: formData.farm_area_id ? parseInt(formData.farm_area_id) : null,
       }
 
@@ -2916,6 +2942,15 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
                   />
                 </div>
                 <div>
+                  <label className="block text-sm text-gray-400 mb-1">Slaughter Time</label>
+                  <input
+                    type="time"
+                    value={formData.slaughter_time}
+                    onChange={(e) => setFormData({ ...formData, slaughter_time: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm text-gray-400 mb-1">Target Weight (lbs)</label>
                   <input
                     type="number"
@@ -2941,6 +2976,15 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
                     type="date"
                     value={formData.pickup_date}
                     onChange={(e) => setFormData({ ...formData, pickup_date: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Pickup Time</label>
+                  <input
+                    type="time"
+                    value={formData.pickup_time}
+                    onChange={(e) => setFormData({ ...formData, pickup_time: e.target.value })}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
@@ -3970,8 +4014,10 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
   const [formData, setFormData] = useState({
     animal_id: animal.id,
     slaughter_date: animal.slaughter_date || new Date().toISOString().split('T')[0],
+    slaughter_time: animal.slaughter_time || '',
     processor: animal.processor || '',
     pickup_date: animal.pickup_date || '',
+    pickup_time: animal.pickup_time || '',
     live_weight: animal.current_weight || '',
     hanging_weight: '',
     final_weight: '',
@@ -4036,11 +4082,29 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
               />
             </div>
             <div>
+              <label className="block text-sm text-gray-400 mb-1">Slaughter Time</label>
+              <input
+                type="time"
+                value={formData.slaughter_time}
+                onChange={(e) => setFormData({ ...formData, slaughter_time: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
               <label className="block text-sm text-gray-400 mb-1">Pickup Date</label>
               <input
                 type="date"
                 value={formData.pickup_date}
                 onChange={(e) => setFormData({ ...formData, pickup_date: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Pickup Time</label>
+              <input
+                type="time"
+                value={formData.pickup_time}
+                onChange={(e) => setFormData({ ...formData, pickup_time: e.target.value })}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
