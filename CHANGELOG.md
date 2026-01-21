@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.20.2] - 2026-01-21
+
+### Fixed
+- **Calendar sync now uses configured timezone from Settings**
+  - Previously hardcoded to America/New_York, causing events to appear at wrong times
+  - Now respects the timezone setting for all calendar operations
+
 ## [1.20.1] - 2026-01-21
 
 ### Fixed

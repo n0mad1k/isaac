@@ -90,11 +90,13 @@ class CalendarSyncService:
         username: str,
         password: str,
         calendar_name: str = "My Farm",
+        timezone: str = "America/New_York",
     ):
         self.url = url
         self.username = username
         self.password = password
         self.calendar_name = calendar_name
+        self.timezone = timezone
         self._client: Optional[caldav.DAVClient] = None
         self._calendar: Optional[caldav.Calendar] = None
 
@@ -157,7 +159,7 @@ class CalendarSyncService:
         # Use existing calendar_uid if set, otherwise create new isaac-task UID
         uid = task.calendar_uid if task.calendar_uid else f"isaac-task-{task.id}@example.com"
         now_utc = datetime.now(pytz.UTC)
-        eastern = pytz.timezone('America/New_York')
+        local_tz = pytz.timezone(self.timezone)
 
         if is_event:
             # Create VEVENT for calendar events
@@ -175,7 +177,7 @@ class CalendarSyncService:
                 if task.due_time:
                     try:
                         hour, minute = map(int, task.due_time.split(':')[:2])
-                        start_dt = eastern.localize(datetime(
+                        start_dt = local_tz.localize(datetime(
                             task.due_date.year, task.due_date.month, task.due_date.day,
                             hour, minute
                         ))
@@ -183,7 +185,7 @@ class CalendarSyncService:
 
                         if task.end_time:
                             end_hour, end_minute = map(int, task.end_time.split(':')[:2])
-                            end_dt = eastern.localize(datetime(
+                            end_dt = local_tz.localize(datetime(
                                 task.due_date.year, task.due_date.month, task.due_date.day,
                                 end_hour, end_minute
                             ))
@@ -224,7 +226,7 @@ class CalendarSyncService:
                 if task.due_time:
                     try:
                         hour, minute = map(int, task.due_time.split(':')[:2])
-                        due_dt = eastern.localize(datetime(
+                        due_dt = local_tz.localize(datetime(
                             task.due_date.year, task.due_date.month, task.due_date.day,
                             hour, minute
                         ))
@@ -304,14 +306,14 @@ class CalendarSyncService:
         if due:
             dt = due.dt
             if isinstance(dt, datetime):
-                # Convert to Eastern timezone before extracting date/time
+                # Convert to configured timezone before extracting date/time
                 # This prevents off-by-one day errors when UTC time is next day
-                eastern = pytz.timezone('America/New_York')
+                local_tz = pytz.timezone(self.timezone)
                 if dt.tzinfo is not None:
-                    dt = dt.astimezone(eastern)
+                    dt = dt.astimezone(local_tz)
                 else:
                     # Assume UTC if no timezone
-                    dt = pytz.UTC.localize(dt).astimezone(eastern)
+                    dt = pytz.UTC.localize(dt).astimezone(local_tz)
                 task_dict['due_date'] = dt.date()
                 # Extract start time from datetime
                 task_dict['due_time'] = dt.strftime('%H:%M')
@@ -323,12 +325,12 @@ class CalendarSyncService:
         if dtend:
             dt = dtend.dt
             if isinstance(dt, datetime):
-                # Convert to Eastern timezone before extracting time
-                eastern = pytz.timezone('America/New_York')
+                # Convert to configured timezone before extracting time
+                local_tz = pytz.timezone(self.timezone)
                 if dt.tzinfo is not None:
-                    dt = dt.astimezone(eastern)
+                    dt = dt.astimezone(local_tz)
                 else:
-                    dt = pytz.UTC.localize(dt).astimezone(eastern)
+                    dt = pytz.UTC.localize(dt).astimezone(local_tz)
                 task_dict['end_time'] = dt.strftime('%H:%M')
 
         # Category
@@ -709,9 +711,8 @@ class CalendarSyncService:
                         # Only mark as phone-completed if task was due today or earlier
                         # This prevents future tasks from being accidentally marked complete
                         # when calendar sync sees stale completion data
-                        import pytz
-                        eastern = pytz.timezone('America/New_York')
-                        today = datetime.now(eastern).date()
+                        local_tz = pytz.timezone(self.timezone)
+                        today = datetime.now(local_tz).date()
                         task_due = existing_task.due_date
 
                         if task_due and task_due > today:
@@ -874,9 +875,17 @@ async def get_calendar_service(db: AsyncSession) -> Optional[CalendarSyncService
         logger.warning("Calendar sync enabled but not fully configured")
         return None
 
+    # Get timezone from app settings
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "timezone")
+    )
+    tz_setting = result.scalar_one_or_none()
+    timezone = tz_setting.value if tz_setting and tz_setting.value else "America/New_York"
+
     return CalendarSyncService(
         url=url,
         username=username,
         password=password,
         calendar_name=calendar_name or "My Farm",
+        timezone=timezone,
     )
