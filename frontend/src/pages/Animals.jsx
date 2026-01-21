@@ -1163,6 +1163,7 @@ function AnimalCard({
         slaughter_date: animal.slaughter_date || '',
         slaughter_time: animal.slaughter_time || '',
         processor: animal.processor || '',
+        processor_address: animal.processor_address || '',
         pickup_date: animal.pickup_date || '',
         pickup_time: animal.pickup_time || '',
         worming_frequency_days: animal.worming_frequency_days || '',
@@ -1197,6 +1198,7 @@ function AnimalCard({
         acquisition_date: editData.acquisition_date || null,
         slaughter_date: editData.slaughter_date || null,
         slaughter_time: editData.slaughter_time || null,
+        processor_address: editData.processor_address || null,
         pickup_date: editData.pickup_date || null,
         pickup_time: editData.pickup_time || null,
         farm_area_id: editData.farm_area_id ? parseInt(editData.farm_area_id) : null,
@@ -1234,6 +1236,7 @@ function AnimalCard({
       slaughter_date: animal.slaughter_date || '',
       slaughter_time: animal.slaughter_time || '',
       processor: animal.processor || '',
+      processor_address: animal.processor_address || '',
       pickup_date: animal.pickup_date || '',
       pickup_time: animal.pickup_time || '',
       worming_frequency_days: animal.worming_frequency_days || '',
@@ -1642,6 +1645,14 @@ function AnimalCard({
                   field="processor"
                   onChange={handleFieldChange}
                   placeholder="Processor name"
+                  editing={isEditing}
+                />
+                <EditableField
+                  label="Processor Address"
+                  value={editData.processor_address}
+                  field="processor_address"
+                  onChange={handleFieldChange}
+                  placeholder="123 Main St, City, State"
                   editing={isEditing}
                 />
                 <EditableField
@@ -2707,6 +2718,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
     slaughter_date: animal?.slaughter_date || '',
     slaughter_time: animal?.slaughter_time || '',
     processor: animal?.processor || '',
+    processor_address: animal?.processor_address || '',
     pickup_date: animal?.pickup_date || '',
     pickup_time: animal?.pickup_time || '',
     // Pet care frequencies (in days)
@@ -2739,6 +2751,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
         acquisition_date: formData.acquisition_date || null,
         slaughter_date: formData.slaughter_date || null,
         slaughter_time: formData.slaughter_time || null,
+        processor_address: formData.processor_address || null,
         pickup_date: formData.pickup_date || null,
         pickup_time: formData.pickup_time || null,
         farm_area_id: formData.farm_area_id ? parseInt(formData.farm_area_id) : null,
@@ -2967,6 +2980,16 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
                     value={formData.processor}
                     onChange={(e) => setFormData({ ...formData, processor: e.target.value })}
                     placeholder="Slaughterhouse or processor name"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm text-gray-400 mb-1">Processor Address</label>
+                  <input
+                    type="text"
+                    value={formData.processor_address}
+                    onChange={(e) => setFormData({ ...formData, processor_address: e.target.value })}
+                    placeholder="123 Main St, City, State ZIP"
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
@@ -4016,6 +4039,7 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
     slaughter_date: animal.slaughter_date || new Date().toISOString().split('T')[0],
     slaughter_time: animal.slaughter_time || '',
     processor: animal.processor || '',
+    processor_address: animal.processor_address || '',
     pickup_date: animal.pickup_date || '',
     pickup_time: animal.pickup_time || '',
     live_weight: animal.current_weight || '',
@@ -4117,6 +4141,17 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
               value={formData.processor}
               onChange={(e) => setFormData({ ...formData, processor: e.target.value })}
               placeholder="Butcher/Processor name"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Processor Address</label>
+            <input
+              type="text"
+              value={formData.processor_address}
+              onChange={(e) => setFormData({ ...formData, processor_address: e.target.value })}
+              placeholder="123 Main St, City, State ZIP"
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>

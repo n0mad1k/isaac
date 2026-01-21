@@ -77,6 +77,7 @@ class Animal(Base):
     slaughter_date = Column(Date)  # Planned slaughter date
     slaughter_time = Column(String(10))  # Planned slaughter time "HH:MM"
     processor = Column(String(200))  # Slaughter/processor name
+    processor_address = Column(String(500))  # Processor address/location
     pickup_date = Column(Date)  # Date to pickup from butcher
     pickup_time = Column(String(10))  # Pickup time "HH:MM"
 

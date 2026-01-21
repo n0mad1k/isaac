@@ -580,16 +580,21 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             title = f"Slaughter: {animal.name}"
             description = f"Slaughter scheduled for {animal.name}"
             slaughter_time = animal.slaughter_time
+            processor_address = animal.processor_address
         else:
             # Multiple animals - group them
             names = ", ".join(a.name for a in group_animals)
             title = f"Slaughter: {len(group_animals)} animals"
             description = f"Slaughter scheduled for: {names}"
-            # Use first animal's time (should be same for grouped animals)
+            # Use first animal's time and address (should be same for grouped animals)
             slaughter_time = group_animals[0].slaughter_time
+            processor_address = group_animals[0].processor_address
 
         if processor:
             description += f"\nProcessor: {processor}"
+
+        # Use processor_address as location if available, otherwise fall back to processor name
+        location = processor_address or processor
 
         # Use date + processor as group key
         group_key = f"{slaughter_date.isoformat()}_{processor}"
@@ -601,7 +606,7 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             due_date=slaughter_date,
             due_time=slaughter_time,
             description=description,
-            location=processor,
+            location=location,
             category=TaskCategory.ANIMAL_CARE,
             notification_setting_key="notify_animal_slaughter",
             task_type=TaskType.EVENT,
@@ -618,14 +623,19 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             title = f"Pickup: {animal.name}"
             description = f"Pickup from processor for {animal.name}"
             pickup_time = animal.pickup_time
+            processor_address = animal.processor_address
         else:
             names = ", ".join(a.name for a in group_animals)
             title = f"Pickup: {len(group_animals)} animals"
             description = f"Pickup from processor for: {names}"
             pickup_time = group_animals[0].pickup_time
+            processor_address = group_animals[0].processor_address
 
         if processor:
             description += f"\nProcessor: {processor}"
+
+        # Use processor_address as location if available, otherwise fall back to processor name
+        location = processor_address or processor
 
         group_key = f"{pickup_date.isoformat()}_{processor}"
         task = await create_or_update_grouped_reminder(
@@ -636,7 +646,7 @@ async def sync_all_animal_reminders(db: AsyncSession) -> Dict[str, int]:
             due_date=pickup_date,
             due_time=pickup_time,
             description=description,
-            location=processor,
+            location=location,
             category=TaskCategory.ANIMAL_CARE,
             notification_setting_key="notify_animal_slaughter",  # Use same notification setting
             task_type=TaskType.EVENT,

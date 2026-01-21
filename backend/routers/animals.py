@@ -52,6 +52,7 @@ class AnimalCreate(BaseModel):
     slaughter_date: Optional[date] = None
     slaughter_time: Optional[str] = Field(None, max_length=10)
     processor: Optional[str] = Field(None, max_length=200)
+    processor_address: Optional[str] = Field(None, max_length=500)
     pickup_date: Optional[date] = None
     pickup_time: Optional[str] = Field(None, max_length=10)
     # Pet care schedules (frequency in days)
@@ -95,6 +96,7 @@ class AnimalUpdate(BaseModel):
     slaughter_date: Optional[date] = None
     slaughter_time: Optional[str] = Field(None, max_length=10)
     processor: Optional[str] = Field(None, max_length=200)
+    processor_address: Optional[str] = Field(None, max_length=500)
     pickup_date: Optional[date] = None
     pickup_time: Optional[str] = Field(None, max_length=10)
     # Pet care schedules
@@ -266,6 +268,7 @@ def animal_to_response(animal: Animal) -> dict:
         "slaughter_time": animal.slaughter_time,
         "days_until_slaughter": animal.days_until_slaughter,
         "processor": animal.processor,
+        "processor_address": animal.processor_address,
         "pickup_date": animal.pickup_date,
         "pickup_time": animal.pickup_time,
         "total_expenses": animal.total_expenses,

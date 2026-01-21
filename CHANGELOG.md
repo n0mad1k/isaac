@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.20.4] - 2026-01-21
+
+### Added
+- **Processor address field for livestock**
+  - Added processor_address field for the processor's location
+  - Address is used as the calendar event location (falls back to processor name if not set)
+
 ## [1.20.3] - 2026-01-21
 
 ### Added
