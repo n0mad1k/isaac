@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Menu, X, LogOut, User, Bug, ChevronDown, ChevronUp, Users, ClipboardList, Keyboard, Wheat } from 'lucide-react'
+import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Menu, X, LogOut, User, Bug, ChevronDown, ChevronUp, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard } from 'lucide-react'
 import { getSettings, getVersionInfo, toggleKeyboard as toggleKeyboardApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import FloatingActionMenu from './FloatingActionMenu'
@@ -160,7 +160,7 @@ function Layout() {
   }, [refreshInterval, location.pathname])
 
   const navItems = [
-    { to: '/', icon: Home, label: 'Dash' },
+    { to: '/', icon: LayoutDashboard, label: 'Dash' },
     { to: '/todo', icon: ListTodo, label: 'To Do' },
     { to: '/calendar', icon: Calendar, label: 'Calendar' },
     // Worker Tasks only shows when enabled in settings

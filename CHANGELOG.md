@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.21.2] - 2026-01-22
+
+### Changed
+- **Dashboard now uses a distinct icon**
+  - Dashboard navigation uses LayoutDashboard icon instead of Home
+  - Home Maintenance keeps the Home icon to avoid confusion
+
 ## [1.21.1] - 2026-01-22
 
 ### Added
