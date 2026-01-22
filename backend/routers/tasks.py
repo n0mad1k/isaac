@@ -936,3 +936,139 @@ async def sync_single_task(task_id: int, db: AsyncSession = Depends(get_db)):
     if success:
         return {"message": "Task synced to CalDAV"}
     raise HTTPException(status_code=500, detail="Failed to sync task")
+
+
+@router.get("/metrics/")
+async def get_task_metrics(db: AsyncSession = Depends(get_db)):
+    """Get productivity metrics for tasks"""
+    from sqlalchemy import func
+    from pytz import timezone
+    from config import settings
+
+    # Get configured timezone
+    tz = timezone(settings.timezone if hasattr(settings, 'timezone') else 'America/New_York')
+    now = datetime.now(tz)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=now.weekday())  # Monday
+    month_start = today_start.replace(day=1)
+
+    # Convert to UTC for database queries (stored as naive UTC)
+    today_start_utc = today_start.astimezone(timezone('UTC')).replace(tzinfo=None)
+    week_start_utc = week_start.astimezone(timezone('UTC')).replace(tzinfo=None)
+    month_start_utc = month_start.astimezone(timezone('UTC')).replace(tzinfo=None)
+
+    # Completed today
+    result = await db.execute(
+        select(func.count(Task.id)).where(
+            and_(
+                Task.is_completed == True,
+                Task.completed_at >= today_start_utc,
+                Task.task_type != TaskType.EVENT
+            )
+        )
+    )
+    completed_today = result.scalar() or 0
+
+    # Completed this week
+    result = await db.execute(
+        select(func.count(Task.id)).where(
+            and_(
+                Task.is_completed == True,
+                Task.completed_at >= week_start_utc,
+                Task.task_type != TaskType.EVENT
+            )
+        )
+    )
+    completed_this_week = result.scalar() or 0
+
+    # Completed this month
+    result = await db.execute(
+        select(func.count(Task.id)).where(
+            and_(
+                Task.is_completed == True,
+                Task.completed_at >= month_start_utc,
+                Task.task_type != TaskType.EVENT
+            )
+        )
+    )
+    completed_this_month = result.scalar() or 0
+
+    # Total pending (non-completed, non-backlog)
+    result = await db.execute(
+        select(func.count(Task.id)).where(
+            and_(
+                Task.is_completed == False,
+                Task.is_active == True,
+                Task.is_backlog == False,
+                Task.task_type != TaskType.EVENT
+            )
+        )
+    )
+    total_pending = result.scalar() or 0
+
+    # Overdue count
+    today_date = now.date()
+    result = await db.execute(
+        select(func.count(Task.id)).where(
+            and_(
+                Task.is_completed == False,
+                Task.is_active == True,
+                Task.due_date < today_date,
+                Task.task_type != TaskType.EVENT
+            )
+        )
+    )
+    overdue_count = result.scalar() or 0
+
+    # Backlog count
+    result = await db.execute(
+        select(func.count(Task.id)).where(
+            and_(
+                Task.is_backlog == True,
+                Task.is_active == True,
+                Task.is_completed == False
+            )
+        )
+    )
+    backlog_count = result.scalar() or 0
+
+    # Average tasks completed per day this week (only count days that have passed)
+    days_in_week_so_far = now.weekday() + 1  # 1 for Monday, 7 for Sunday
+    avg_per_day = round(completed_this_week / days_in_week_so_far, 1) if days_in_week_so_far > 0 else 0
+
+    # Completion streak - consecutive days with at least 1 task completed
+    streak = 0
+    check_date = today_start
+    while True:
+        check_date_utc = check_date.astimezone(timezone('UTC')).replace(tzinfo=None)
+        next_day_utc = (check_date + timedelta(days=1)).astimezone(timezone('UTC')).replace(tzinfo=None)
+        result = await db.execute(
+            select(func.count(Task.id)).where(
+                and_(
+                    Task.is_completed == True,
+                    Task.completed_at >= check_date_utc,
+                    Task.completed_at < next_day_utc,
+                    Task.task_type != TaskType.EVENT
+                )
+            )
+        )
+        count = result.scalar() or 0
+        if count > 0:
+            streak += 1
+            check_date -= timedelta(days=1)
+        else:
+            break
+        # Safety limit
+        if streak > 365:
+            break
+
+    return {
+        "completed_today": completed_today,
+        "completed_this_week": completed_this_week,
+        "completed_this_month": completed_this_month,
+        "total_pending": total_pending,
+        "overdue_count": overdue_count,
+        "backlog_count": backlog_count,
+        "avg_per_day": avg_per_day,
+        "completion_streak": streak
+    }

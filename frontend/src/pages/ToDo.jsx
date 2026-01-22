@@ -16,6 +16,10 @@ import {
   MapPin,
   Wrench,
   User,
+  BarChart3,
+  TrendingUp,
+  Flame,
+  Target,
 } from 'lucide-react'
 import {
   getTasks,
@@ -30,6 +34,7 @@ import {
   syncCalendar,
   getSettings,
   getWorkers,
+  getTaskMetrics,
 } from '../services/api'
 import { format, isAfter, startOfDay, parseISO, addDays, endOfWeek, endOfMonth, isWithinInterval, isSameDay, isToday, isTomorrow } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
@@ -68,6 +73,8 @@ function ToDo() {
   const [workers, setWorkers] = useState([])
   const [selectedWorkerId, setSelectedWorkerId] = useState(null)
   const [isAllDay, setIsAllDay] = useState(true)  // Default to all-day (no time)
+  const [metrics, setMetrics] = useState(null)
+  const [metricsLoading, setMetricsLoading] = useState(false)
   const INITIAL_DISPLAY_LIMIT = 20
   const LOAD_MORE_COUNT = 20
 
@@ -156,8 +163,24 @@ function ToDo() {
   }
 
   useEffect(() => {
-    fetchTodos()
+    if (view === 'metrics') {
+      fetchMetrics()
+    } else {
+      fetchTodos()
+    }
   }, [view])
+
+  const fetchMetrics = async () => {
+    setMetricsLoading(true)
+    try {
+      const response = await getTaskMetrics()
+      setMetrics(response.data)
+    } catch (error) {
+      console.error('Failed to fetch metrics:', error)
+    } finally {
+      setMetricsLoading(false)
+    }
+  }
 
   const handleSync = async () => {
     setSyncing(true)
@@ -330,6 +353,7 @@ function ToDo() {
           { key: 'all', label: 'All', icon: ListTodo },
           { key: 'backlog', label: 'Backlog', icon: Archive, description: 'Parked items' },
           { key: 'overdue', label: 'Overdue', icon: AlertCircle },
+          { key: 'metrics', label: 'Metrics', icon: BarChart3, description: 'Productivity stats' },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -347,8 +371,93 @@ function ToDo() {
         ))}
       </div>
 
-      {/* To Do List */}
-      {todos.length === 0 ? (
+      {/* Metrics View */}
+      {view === 'metrics' ? (
+        metricsLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-farm-green"></div>
+          </div>
+        ) : metrics ? (
+          <div className="space-y-4">
+            {/* Key Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-gray-800 rounded-lg p-4 text-center">
+                <Target className="w-8 h-8 mx-auto mb-2 text-green-400" />
+                <div className="text-3xl font-bold text-green-400">{metrics.completed_today}</div>
+                <div className="text-sm text-gray-400">Completed Today</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-4 text-center">
+                <Flame className="w-8 h-8 mx-auto mb-2 text-orange-400" />
+                <div className="text-3xl font-bold text-orange-400">{metrics.completion_streak}</div>
+                <div className="text-sm text-gray-400">Day Streak</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-4 text-center">
+                <TrendingUp className="w-8 h-8 mx-auto mb-2 text-blue-400" />
+                <div className="text-3xl font-bold text-blue-400">{metrics.avg_per_day}</div>
+                <div className="text-sm text-gray-400">Avg/Day This Week</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-4 text-center">
+                <Clock className="w-8 h-8 mx-auto mb-2 text-yellow-400" />
+                <div className="text-3xl font-bold text-yellow-400">{metrics.total_pending}</div>
+                <div className="text-sm text-gray-400">Pending Tasks</div>
+              </div>
+            </div>
+
+            {/* Period Stats */}
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-cyan-400" />
+                Completion Summary
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="text-2xl font-bold">{metrics.completed_today}</div>
+                  <div className="text-sm text-gray-400">Today</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{metrics.completed_this_week}</div>
+                  <div className="text-sm text-gray-400">This Week</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{metrics.completed_this_month}</div>
+                  <div className="text-sm text-gray-400">This Month</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Health Indicators */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className={`rounded-lg p-4 ${metrics.overdue_count > 0 ? 'bg-red-900/30 border border-red-500/50' : 'bg-green-900/30 border border-green-500/50'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className={`w-5 h-5 ${metrics.overdue_count > 0 ? 'text-red-400' : 'text-green-400'}`} />
+                  <span className="font-semibold">Overdue</span>
+                </div>
+                <div className={`text-2xl font-bold ${metrics.overdue_count > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                  {metrics.overdue_count}
+                </div>
+                <div className="text-sm text-gray-400">
+                  {metrics.overdue_count === 0 ? 'All caught up!' : 'tasks need attention'}
+                </div>
+              </div>
+              <div className="bg-amber-900/30 border border-amber-500/50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Archive className="w-5 h-5 text-amber-400" />
+                  <span className="font-semibold">Backlog</span>
+                </div>
+                <div className="text-2xl font-bold text-amber-400">{metrics.backlog_count}</div>
+                <div className="text-sm text-gray-400">parked for later</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-500 bg-gray-800 rounded-xl">
+            <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
+            <p>Unable to load metrics</p>
+          </div>
+        )
+      ) : (
+      /* To Do List */
+      todos.length === 0 ? (
         <div className="text-center py-12 text-gray-500 bg-gray-800 rounded-xl">
           <CheckCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
           <p>
@@ -499,6 +608,7 @@ function ToDo() {
             </button>
           )}
         </div>
+      )
       )}
 
       {/* Add/Edit To Do Modal */}

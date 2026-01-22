@@ -179,6 +179,7 @@ export const deleteTask = (id) => api.delete(`/tasks/${id}/`)
 export const setupMaintenanceTasks = () => api.post('/tasks/setup-maintenance/')
 export const getCalDAVStatus = () => api.get('/tasks/caldav/status/')
 export const syncTasksToCalDAV = () => api.post('/tasks/caldav/sync/')
+export const getTaskMetrics = () => api.get('/tasks/metrics/')
 
 // Seeds
 export const getSeeds = (params) => api.get('/seeds/', { params })

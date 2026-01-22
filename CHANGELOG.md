@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.22.0] - 2026-01-22
+
+### Added
+- **Metrics tab in ToDo page**
+  - Track productivity with completion stats
+  - Shows tasks completed today, this week, this month
+  - Displays completion streak (consecutive days)
+  - Average tasks per day calculation
+  - Overdue and backlog health indicators
+
 ## [1.21.2] - 2026-01-22
 
 ### Changed
