@@ -425,9 +425,13 @@ class SchedulerService:
         # This gives a reasonable window to catch up without sending digest in the evening
         catchup_cutoff = scheduled_time + timedelta(hours=6)
 
-        # If current time is past today's scheduled time but before cutoff, try to send
+        # Skip catchup if within 2 minutes of scheduled time (cron job will handle it)
+        # This prevents race condition where both cron and catchup fire simultaneously
+        grace_period = scheduled_time + timedelta(minutes=2)
+
+        # If current time is past grace period but before cutoff, try to send
         # (send_daily_digest will handle deduplication internally)
-        if scheduled_time < now < catchup_cutoff:
+        if grace_period < now < catchup_cutoff:
             logger.info(f"Missed daily digest time ({hour:02d}:{minute:02d}), attempting catchup...")
             await self.send_daily_digest()
 
@@ -1118,6 +1122,8 @@ class SchedulerService:
                             # Mark as sent FIRST to prevent duplicates on rapid restarts
                             task_alerts_sent[alert_key] = now.isoformat()
                             task.alerts_sent = task_alerts_sent
+                            # Also update last_notified to prevent check_upcoming_tasks from sending duplicate
+                            task.last_notified = datetime.utcnow()
                             await db.commit()
 
                             # Now send the alert email
