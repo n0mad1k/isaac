@@ -337,16 +337,15 @@ async def check_sprinkler_watering(db: AsyncSession) -> Dict[str, int]:
         if current_weekday not in schedule_days:
             continue
 
-        # Check if schedule time has passed (within the last hour)
+        # Check if schedule time has passed today
         if schedule_time:
             try:
                 sched_hour, sched_min = map(int, schedule_time.split(":"))
                 sched_datetime = now.replace(hour=sched_hour, minute=sched_min, second=0, microsecond=0)
 
-                # Only mark as watered if we're within 1 hour after schedule time
-                time_diff = now - sched_datetime
-                if time_diff.total_seconds() < 0 or time_diff.total_seconds() > 3600:
-                    continue  # Not in the watering window
+                # Only mark as watered if the scheduled time has passed today
+                if now < sched_datetime:
+                    continue  # Sprinkler hasn't run yet today
             except (ValueError, AttributeError):
                 pass  # Invalid time format, skip time check
 
@@ -355,8 +354,9 @@ async def check_sprinkler_watering(db: AsyncSession) -> Dict[str, int]:
             stats["skipped"] += 1
             continue
 
-        # Mark as watered
+        # Mark as watered (update both last_watered and last_watering_decision for consistency)
         plant.last_watered = now
+        plant.last_watering_decision = now
         stats["sprinkler_watered"] += 1
         logger.info(f"Sprinkler watered: {plant.name} (schedule: {plant.sprinkler_schedule})")
 
