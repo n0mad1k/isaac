@@ -2,6 +2,21 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.20.9] - 2026-01-22
+
+### Fixed
+- **Basic users can now access important settings**
+  - Location Settings (timezone, coordinates, USDA zone) now available to all users
+  - Email Notification Settings (enable/disable, recipients, digest time) now available to all users
+  - Alert Thresholds and Notification Categories were already accessible
+
+## [1.20.8] - 2026-01-22
+
+### Fixed
+- **Duplicate email alerts and daily digests**
+  - Added grace period to daily digest catchup to prevent race with cron job
+  - Reminder alerts now update last_notified to prevent check_upcoming_tasks duplicates
+
 ## [1.20.7] - 2026-01-22
 
 ### Fixed

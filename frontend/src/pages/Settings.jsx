@@ -1560,32 +1560,30 @@ function Settings() {
         </div>
       )}
 
-      {/* Location Settings (Admin Only) */}
-      {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
-          <div
-            className="flex items-center justify-between cursor-pointer"
-            onClick={() => toggleSection('location')}
-          >
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.location ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-              <MapPin className="w-5 h-5 text-red-400" />
-              Location Settings
-            </h2>
-          </div>
-          {expandedSections.location && (
-            <div className="mt-4">
-              <p className="text-sm text-gray-400 mb-4">
-                Configure your farm location for weather forecasts, sunrise/sunset calculations, and frost warnings.
-                Find your coordinates at <a href="https://www.latlong.net/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">latlong.net</a>
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {locationSettings.map(key => renderSettingCard(key))}
-              </div>
-            </div>
-          )}
+      {/* Location Settings */}
+      <div className="bg-gray-800 rounded-xl p-6">
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => toggleSection('location')}
+        >
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            {expandedSections.location ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            <MapPin className="w-5 h-5 text-red-400" />
+            Location Settings
+          </h2>
         </div>
-      )}
+        {expandedSections.location && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-400 mb-4">
+              Configure your farm location for weather forecasts, sunrise/sunset calculations, and frost warnings.
+              Find your coordinates at <a href="https://www.latlong.net/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">latlong.net</a>
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {locationSettings.map(key => renderSettingCard(key))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Weather API Settings (Admin Only) */}
       {isAdmin && (
@@ -1643,36 +1641,34 @@ function Settings() {
         </div>
       )}
 
-      {/* Email Notification Settings (Admin Only) */}
-      {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
-          <div
-            className="flex items-center justify-between cursor-pointer"
-            onClick={() => toggleSection('email')}
-          >
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.email ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-              <Mail className="w-5 h-5 text-blue-400" />
-              Email Notifications
-            </h2>
-            {expandedSections.email && (
-              <button
-                onClick={(e) => { e.stopPropagation(); handleTestEmail(); }}
-                disabled={sendingTest}
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white disabled:bg-blue-800 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
-              >
-                <Send className="w-4 h-4" />
-                {sendingTest ? 'Sending...' : 'Test Email'}
-              </button>
-            )}
-          </div>
+      {/* Email Notification Settings */}
+      <div className="bg-gray-800 rounded-xl p-6">
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => toggleSection('email')}
+        >
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            {expandedSections.email ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            <Mail className="w-5 h-5 text-blue-400" />
+            Email Notifications
+          </h2>
           {expandedSections.email && (
-            <div className="mt-4 space-y-4">
-              {emailSettings.map(key => renderSettingCard(key))}
-            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleTestEmail(); }}
+              disabled={sendingTest}
+              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white disabled:bg-blue-800 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
+            >
+              <Send className="w-4 h-4" />
+              {sendingTest ? 'Sending...' : 'Test Email'}
+            </button>
           )}
         </div>
-      )}
+        {expandedSections.email && (
+          <div className="mt-4 space-y-4">
+            {emailSettings.map(key => renderSettingCard(key))}
+          </div>
+        )}
+      </div>
 
       {/* Alert Thresholds */}
       <div className="bg-gray-800 rounded-xl p-6">
