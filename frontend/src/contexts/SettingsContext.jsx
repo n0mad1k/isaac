@@ -104,7 +104,10 @@ export function SettingsProvider({ children }) {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark')
   }
 
-  // Time formatting helper
+  // Get the configured timezone (defaults to America/New_York)
+  const getTimezone = () => getSetting('timezone', 'America/New_York')
+
+  // Time formatting helper (for HH:MM strings)
   const formatTime = (timeStr) => {
     if (!timeStr) return ''
     const format = getSetting('time_format', '12h')
@@ -126,6 +129,114 @@ export function SettingsProvider({ children }) {
     }
   }
 
+  // Format a Date object in the configured timezone
+  const formatDate = (date, options = {}) => {
+    if (!date) return ''
+    const tz = getTimezone()
+    const dateObj = date instanceof Date ? date : new Date(date)
+    if (isNaN(dateObj.getTime())) return ''
+
+    const defaultOptions = {
+      timeZone: tz,
+      ...options
+    }
+
+    try {
+      return new Intl.DateTimeFormat('en-US', defaultOptions).format(dateObj)
+    } catch (e) {
+      // Fallback if timezone is invalid
+      return new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'America/New_York' }).format(dateObj)
+    }
+  }
+
+  // Format date as YYYY-MM-DD in configured timezone
+  const formatDateISO = (date) => {
+    if (!date) return ''
+    const tz = getTimezone()
+    const dateObj = date instanceof Date ? date : new Date(date)
+    if (isNaN(dateObj.getTime())) return ''
+
+    try {
+      const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' })
+      return formatter.format(dateObj)
+    } catch (e) {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(dateObj)
+    }
+  }
+
+  // Format datetime with both date and time in configured timezone
+  const formatDateTime = (date, options = {}) => {
+    if (!date) return ''
+    const tz = getTimezone()
+    const dateObj = date instanceof Date ? date : new Date(date)
+    if (isNaN(dateObj.getTime())) return ''
+    const timeFormat = getSetting('time_format', '12h')
+
+    const defaultOptions = {
+      timeZone: tz,
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: timeFormat === '12h',
+      ...options
+    }
+
+    try {
+      return new Intl.DateTimeFormat('en-US', defaultOptions).format(dateObj)
+    } catch (e) {
+      return new Intl.DateTimeFormat('en-US', { ...defaultOptions, timeZone: 'America/New_York' }).format(dateObj)
+    }
+  }
+
+  // Get current date/time in configured timezone as a Date-like object
+  // Returns { year, month, day, hours, minutes, seconds, dayOfWeek }
+  const getNow = () => {
+    const tz = getTimezone()
+    const now = new Date()
+
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        weekday: 'short'
+      }).formatToParts(now)
+
+      const getValue = (type) => parts.find(p => p.type === type)?.value
+      return {
+        year: parseInt(getValue('year'), 10),
+        month: parseInt(getValue('month'), 10),
+        day: parseInt(getValue('day'), 10),
+        hours: parseInt(getValue('hour'), 10),
+        minutes: parseInt(getValue('minute'), 10),
+        seconds: parseInt(getValue('second'), 10),
+        dayOfWeek: getValue('weekday'),
+        date: now // original Date object for calculations
+      }
+    } catch (e) {
+      return {
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        day: now.getDate(),
+        hours: now.getHours(),
+        minutes: now.getMinutes(),
+        seconds: now.getSeconds(),
+        dayOfWeek: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()],
+        date: now
+      }
+    }
+  }
+
+  // Get today's date string (YYYY-MM-DD) in configured timezone
+  const getTodayISO = () => formatDateISO(new Date())
+
   return (
     <SettingsContext.Provider value={{
       settings,
@@ -133,6 +244,12 @@ export function SettingsProvider({ children }) {
       refreshSettings,
       getSetting,
       formatTime,
+      formatDate,
+      formatDateISO,
+      formatDateTime,
+      getNow,
+      getTodayISO,
+      getTimezone,
       theme,
       setTheme,
       toggleTheme,

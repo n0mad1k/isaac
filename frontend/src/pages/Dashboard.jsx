@@ -10,9 +10,10 @@ import StatsCard from '../components/StatsCard'
 import ColdProtectionWidget from '../components/ColdProtectionWidget'
 import AnimalFeedWidget from '../components/AnimalFeedWidget'
 import BibleVerse from '../components/BibleVerse'
-import { format } from 'date-fns'
+import { useSettings } from '../contexts/SettingsContext'
 
 function Dashboard() {
+  const { getTimezone, getSetting } = useSettings()
   const [data, setData] = useState(null)
   const [animals, setAnimals] = useState([])
   const [hideCompleted, setHideCompleted] = useState(false)
@@ -27,6 +28,17 @@ function Dashboard() {
   const containerRef = useRef(null)
   const rightColumnRef = useRef(null)
   const mainGridRef = useRef(null)
+
+  // Format time in configured timezone
+  const formatTimeInTz = (date, options) => {
+    const tz = getTimezone()
+    const timeFormat = getSetting('time_format', '12h')
+    try {
+      return new Intl.DateTimeFormat('en-US', { timeZone: tz, ...options }).format(date)
+    } catch (e) {
+      return new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', ...options }).format(date)
+    }
+  }
 
   const fetchData = useCallback(async () => {
     try {
@@ -135,14 +147,14 @@ function Dashboard() {
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2 lg:gap-4 flex-shrink-0">
         {/* Top row on mobile: Date/Time and Stats */}
         <div className="flex items-start justify-between gap-2 lg:contents">
-          {/* Left - Date/Time */}
+          {/* Left - Date/Time (using configured timezone) */}
           <div className="flex-shrink-0 min-w-0">
             <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
-              {format(currentTime, 'EEE, MMM d')}
+              {formatTimeInTz(currentTime, { weekday: 'short', month: 'short', day: 'numeric' })}
             </h1>
             <div className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-mono" style={{ color: 'var(--color-text-primary)' }}>
-              {format(currentTime, 'h:mm')}
-              <span className="text-sm sm:text-lg md:text-base lg:text-xl">{format(currentTime, ':ss a')}</span>
+              {formatTimeInTz(currentTime, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s*(AM|PM)$/i, '')}
+              <span className="text-sm sm:text-lg md:text-base lg:text-xl">:{formatTimeInTz(currentTime, { second: '2-digit' })} {formatTimeInTz(currentTime, { hour: 'numeric', hour12: true }).match(/(AM|PM)/i)?.[0] || ''}</span>
             </div>
           </div>
 

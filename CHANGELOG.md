@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.20.6] - 2026-01-22
+
+### Fixed
+- **Sprinkler watering now reliably marks plants as watered**
+  - Changed timing window from "within 1 hour of schedule" to "anytime after schedule"
+  - Sprinkler watering now updates both last_watered and last_watering_decision for consistency
+
 ## [1.20.5] - 2026-01-21
 
 ### Added
