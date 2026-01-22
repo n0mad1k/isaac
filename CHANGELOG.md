@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.21.1] - 2026-01-22
+
+### Added
+- **Auto-capitalization for text inputs**
+  - Mobile keyboards now auto-capitalize the first letter of sentences
+  - Applied to all text inputs and textareas throughout the app
+
 ## [1.21.0] - 2026-01-22
 
 ### Fixed

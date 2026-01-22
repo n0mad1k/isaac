@@ -20,6 +20,28 @@ function Layout() {
   const desktopUserMenuRef = useRef(null)
   const { user, logout, isAdmin } = useAuth()
 
+  // Auto-capitalize first letter of text inputs for mobile keyboards
+  useEffect(() => {
+    // Set autocapitalize attribute on all text inputs for mobile keyboard support
+    const setAutocapitalize = () => {
+      document.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(input => {
+        // Skip email, password, and URL inputs
+        const type = input.getAttribute('type')
+        if (type === 'email' || type === 'password' || type === 'url' || type === 'number') return
+        if (!input.hasAttribute('autocapitalize') && !input.dataset.noCapitalize) {
+          input.setAttribute('autocapitalize', 'sentences')
+        }
+      })
+    }
+    // Initial setup
+    setAutocapitalize()
+    // Watch for dynamically added inputs (modals, forms that appear later)
+    const observer = new MutationObserver(setAutocapitalize)
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    return () => observer.disconnect()
+  }, [])
+
   // Update document title based on dev/prod status
   useEffect(() => {
     document.title = isDevInstance ? '[DEV] Isaac - Farm Assistant' : 'Isaac - Farm Assistant'
