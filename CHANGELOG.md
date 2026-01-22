@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.21.0] - 2026-01-22
+
+### Fixed
+- **Mobile view text sizing**
+  - Added text-size-adjust CSS to prevent mobile browsers from auto-inflating text
+  - Prevents "zoomed in" appearance on mobile devices
+
 ## [1.20.9] - 2026-01-22
 
 ### Fixed
