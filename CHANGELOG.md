@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.20.7] - 2026-01-22
+
+### Fixed
+- **Dashboard clock now uses configured timezone from Settings**
+  - Previously used system/browser timezone, causing wrong times on devices with different system timezones
+  - Added timezone-aware date formatting functions to SettingsContext
+  - Components can now use formatDate, formatDateTime, getNow, getTodayISO for timezone-aware display
+
 ## [1.20.6] - 2026-01-22
 
 ### Fixed
