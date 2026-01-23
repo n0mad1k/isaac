@@ -2,11 +2,12 @@
 # Dev Tracker Management Script
 # Usage:
 #   ./dev-tracker.sh list [pending|testing|verified]
-#   ./dev-tracker.sh update <id> <status>
-#   ./dev-tracker.sh testing <id>
-#   ./dev-tracker.sh verified <id>
-#   ./dev-tracker.sh pending <id> [fail_note]
-#   ./dev-tracker.sh collab <id> [on|off]  - Mark item as requiring interactive collaboration
+#   ./dev-tracker.sh show <id>                      - Show full details of an item
+#   ./dev-tracker.sh add <priority> <title>         - Add new item (priority: low|medium|high|critical)
+#   ./dev-tracker.sh testing <id>                   - Move to testing
+#   ./dev-tracker.sh verified <id>                  - Move to verified
+#   ./dev-tracker.sh pending <id> [fail_note]       - Move back to pending
+#   ./dev-tracker.sh collab <id> [on|off]           - Mark as needing interactive collaboration
 
 DEV_URL="https://192.168.5.56:8443/api/dev-tracker"
 
@@ -40,6 +41,63 @@ for item in testing[:5]:
 if len(testing) > 5:
     print(f'  ... and {len(testing)-5} more')
 print(f'\n=== VERIFIED ({len(verified)}) ===')"
+        fi
+        ;;
+
+    show)
+        ID="$2"
+        if [ -z "$ID" ]; then
+            echo "Usage: $0 show <id>"
+            exit 1
+        fi
+        curl -sk "$DEV_URL/$ID" | python3 -c "
+import json,sys
+try:
+    item = json.load(sys.stdin)
+    if 'detail' in item:
+        print(f\"Error: {item['detail']}\")
+        sys.exit(1)
+    collab = ' [COLLAB]' if item.get('requires_collab') else ''
+    print(f\"ID: {item['id']}{collab}\")
+    print(f\"Priority: {item['priority'].upper()}\")
+    print(f\"Status: {item['status'].upper()}\")
+    print(f\"Fail Count: {item.get('fail_count', 0)}\")
+    if item.get('fail_note'):
+        print(f\"Fail Note: {item['fail_note']}\")
+    print(f\"---\")
+    print(f\"Title: {item['title']}\")
+except Exception as e:
+    print(f'Error parsing response: {e}')
+"
+        ;;
+
+    add)
+        PRIORITY="$2"
+        shift 2
+        TITLE="$*"
+        if [ -z "$PRIORITY" ] || [ -z "$TITLE" ]; then
+            echo "Usage: $0 add <priority> <title>"
+            echo "Priority: low | medium | high | critical"
+            exit 1
+        fi
+        # Validate priority
+        case "$PRIORITY" in
+            low|medium|high|critical) ;;
+            *)
+                echo "Invalid priority: $PRIORITY"
+                echo "Must be: low | medium | high | critical"
+                exit 1
+                ;;
+        esac
+        RESULT=$(curl -sk -X POST "$DEV_URL/" \
+            -H "Content-Type: application/json" \
+            -d "{\"title\": \"$TITLE\", \"priority\": \"$PRIORITY\"}" 2>/dev/null)
+        if echo "$RESULT" | grep -q '"id"'; then
+            NEW_ID=$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+            echo "Created #$NEW_ID ($PRIORITY): $TITLE"
+        else
+            echo "Failed to create item"
+            echo "$RESULT"
         fi
         ;;
 
@@ -115,6 +173,8 @@ print(f'\n=== VERIFIED ({len(verified)}) ===')"
         echo "Dev Tracker CLI"
         echo "Usage:"
         echo "  $0 list [pending|testing|verified]  - List items"
+        echo "  $0 show <id>                        - Show full details of an item"
+        echo "  $0 add <priority> <title>           - Add new item (low|medium|high|critical)"
         echo "  $0 testing <id>                     - Move to testing"
         echo "  $0 verified <id>                    - Move to verified"
         echo "  $0 pending <id> [fail_note]         - Move back to pending"

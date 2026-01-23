@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus, Calendar, Bell, CheckSquare } from 'lucide-react'
-import { checkFeedbackEnabled, submitFeedback, toggleKeyboard as toggleKeyboardApi, createTask } from '../services/api'
+import { MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus } from 'lucide-react'
+import { checkFeedbackEnabled, submitFeedback, toggleKeyboard as toggleKeyboardApi } from '../services/api'
+import EventModal from './EventModal'
 
 /**
  * Floating Action Menu - Expandable button with keyboard, feedback, and hard refresh options
@@ -22,12 +23,6 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
   const [feedbackType, setFeedbackType] = useState('feature')
   const [submittedBy, setSubmittedBy] = useState('')
 
-  // Form state for quick add
-  const [quickTitle, setQuickTitle] = useState('')
-  const [quickType, setQuickType] = useState('todo')
-  const [quickDueDate, setQuickDueDate] = useState('')
-  const [quickDueTime, setQuickDueTime] = useState('')
-  const [quickIsBacklog, setQuickIsBacklog] = useState(false)
 
   // Check if feedback is enabled
   useEffect(() => {
@@ -82,42 +77,16 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
   const handleOpenQuickAdd = () => {
     setExpanded(false)
     setQuickAddModalOpen(true)
-    // Set default due date to today
-    const today = new Date().toISOString().split('T')[0]
-    setQuickDueDate(today)
   }
 
-  const handleSubmitQuickAdd = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+  const handleQuickAddClose = () => {
+    setQuickAddModalOpen(false)
+  }
 
-    try {
-      const taskData = {
-        title: quickTitle,
-        task_type: quickType,
-        due_date: quickDueDate || null,
-        due_time: quickDueTime || null,
-        is_backlog: quickIsBacklog,
-        notify_email: quickType === 'reminder',
-        reminder_alerts: quickType === 'reminder' ? [0, 60] : null,  // Alert at time and 1 hour before
-      }
-      await createTask(taskData)
-      setSubmitted(true)
-      setQuickTitle('')
-      setQuickType('todo')
-      setQuickDueDate('')
-      setQuickDueTime('')
-      setQuickIsBacklog(false)
-      setTimeout(() => {
-        setQuickAddModalOpen(false)
-        setSubmitted(false)
-      }, 1500)
-    } catch (e) {
-      setError(e.response?.data?.detail || 'Failed to create task')
-    } finally {
-      setLoading(false)
-    }
+  const handleQuickAddSaved = () => {
+    setQuickAddModalOpen(false)
+    // Could dispatch an event here to refresh any open task lists
+    window.dispatchEvent(new CustomEvent('task-created'))
   }
 
   const handleSubmitFeedback = async (e) => {
@@ -157,7 +126,7 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
         {/* Expanded action buttons */}
         {expanded && (
           <div className="absolute bottom-16 right-0 flex flex-col gap-3 items-end">
-            {/* Quick Add - always shown */}
+            {/* Add Event/Reminder - always shown */}
             <button
               onClick={handleOpenQuickAdd}
               className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
@@ -166,10 +135,10 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 border: '2px solid var(--color-green-700)',
                 color: 'white'
               }}
-              title="Quick Add Task/Reminder"
+              title="Add Event or Reminder"
             >
               <Plus className="w-5 h-5" />
-              <span className="text-sm font-medium">Quick Add</span>
+              <span className="text-sm font-medium">Add</span>
             </button>
             {showHardRefresh && (
               <button
@@ -241,177 +210,14 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
         </button>
       </div>
 
-      {/* Quick Add Modal */}
+      {/* Quick Add Modal - uses full EventModal */}
       {quickAddModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
-          <div
-            className="relative w-full max-w-md rounded-xl shadow-2xl p-6"
-            style={{ backgroundColor: 'var(--color-bg-surface)' }}
-          >
-            {/* Close button */}
-            <button
-              onClick={() => setQuickAddModalOpen(false)}
-              className="absolute top-4 right-4 p-1 rounded hover:bg-gray-700"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {submitted ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
-                     style={{ backgroundColor: 'var(--color-success-bg)' }}>
-                  <CheckSquare className="w-8 h-8" style={{ color: 'var(--color-success-600)' }} />
-                </div>
-                <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
-                  Created!
-                </h3>
-                <p style={{ color: 'var(--color-text-secondary)' }}>
-                  Your {quickType} has been added.
-                </p>
-              </div>
-            ) : (
-              <>
-                <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
-                  Quick Add
-                </h2>
-
-                {error && (
-                  <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-error-bg)', color: 'var(--color-error-600)' }}>
-                    {error}
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitQuickAdd} className="space-y-4">
-                  {/* Type selector */}
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setQuickType('todo')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 transition-colors ${
-                        quickType === 'todo' ? 'border-green-500 bg-green-500/20' : 'border-gray-600'
-                      }`}
-                      style={{ color: 'var(--color-text-primary)' }}
-                    >
-                      <CheckSquare className="w-4 h-4" />
-                      <span className="text-sm">Task</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQuickType('reminder')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 transition-colors ${
-                        quickType === 'reminder' ? 'border-yellow-500 bg-yellow-500/20' : 'border-gray-600'
-                      }`}
-                      style={{ color: 'var(--color-text-primary)' }}
-                    >
-                      <Bell className="w-4 h-4" />
-                      <span className="text-sm">Reminder</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQuickType('event')}
-                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border-2 transition-colors ${
-                        quickType === 'event' ? 'border-blue-500 bg-blue-500/20' : 'border-gray-600'
-                      }`}
-                      style={{ color: 'var(--color-text-primary)' }}
-                    >
-                      <Calendar className="w-4 h-4" />
-                      <span className="text-sm">Event</span>
-                    </button>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                      Title *
-                    </label>
-                    <input
-                      type="text"
-                      value={quickTitle}
-                      onChange={(e) => setQuickTitle(e.target.value)}
-                      placeholder="What needs to be done?"
-                      required
-                      minLength={2}
-                      autoFocus
-                      className="w-full px-3 py-2 rounded-lg"
-                      style={{
-                        backgroundColor: 'var(--color-input-bg)',
-                        border: '1px solid var(--color-border-default)',
-                        color: 'var(--color-text-primary)'
-                      }}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                        Due Date
-                      </label>
-                      <input
-                        type="date"
-                        value={quickDueDate}
-                        onChange={(e) => setQuickDueDate(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg"
-                        style={{
-                          backgroundColor: 'var(--color-input-bg)',
-                          border: '1px solid var(--color-border-default)',
-                          color: 'var(--color-text-primary)'
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                        Time {quickType === 'reminder' && '*'}
-                      </label>
-                      <input
-                        type="time"
-                        value={quickDueTime}
-                        onChange={(e) => setQuickDueTime(e.target.value)}
-                        required={quickType === 'reminder'}
-                        className="w-full px-3 py-2 rounded-lg"
-                        style={{
-                          backgroundColor: 'var(--color-input-bg)',
-                          border: '1px solid var(--color-border-default)',
-                          color: 'var(--color-text-primary)'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {quickType === 'todo' && (
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={quickIsBacklog}
-                        onChange={(e) => setQuickIsBacklog(e.target.checked)}
-                        className="w-4 h-4 rounded"
-                      />
-                      <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-                        Add to backlog (no due date pressure)
-                      </span>
-                    </label>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading || quickTitle.length < 2}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
-                    style={{
-                      backgroundColor: 'var(--color-green-600)',
-                      color: 'white'
-                    }}
-                  >
-                    {loading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Plus className="w-5 h-5" />
-                    )}
-                    {loading ? 'Creating...' : `Add ${quickType.charAt(0).toUpperCase() + quickType.slice(1)}`}
-                  </button>
-                </form>
-              </>
-            )}
-          </div>
-        </div>
+        <EventModal
+          event={null}
+          defaultDate={new Date()}
+          onClose={handleQuickAddClose}
+          onSaved={handleQuickAddSaved}
+        />
       )}
 
       {/* Feedback Modal */}
