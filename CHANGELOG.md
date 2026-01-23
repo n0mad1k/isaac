@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.22.3] - 2026-01-23
+
+### Fixed
+- **Database lock errors when adding tasks**
+  - Added 30-second timeout to SQLite connections
+  - Prevents "database is locked" errors during calendar sync
+
 ## [1.22.2] - 2026-01-23
 
 ### Fixed

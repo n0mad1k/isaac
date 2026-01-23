@@ -15,11 +15,15 @@ logger = logging.getLogger(__name__)
 # Ensure data directory exists
 Path(settings.data_dir).mkdir(parents=True, exist_ok=True)
 
-# Create async engine
+# Create async engine with timeout to prevent "database is locked" errors
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
     future=True,
+    connect_args={
+        "timeout": 30,  # Wait up to 30 seconds for locks
+        "check_same_thread": False,
+    },
 )
 
 # Session factory
