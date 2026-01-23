@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.23.1] - 2026-01-23
+
+### Fixed
+- **Auto-capitalize now works on touch screens**
+  - Uses native value setter to properly trigger React state updates
+  - Capitalizes immediately as you type (not on blur)
+  - Works with both inputs and textareas
+
 ## [1.23.0] - 2026-01-23
 
 ### Added

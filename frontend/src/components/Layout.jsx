@@ -32,20 +32,32 @@ function Layout() {
       return true
     }
 
-    // Capitalize first letter while preserving cursor position
+    // Get the native value setter for React-controlled inputs
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+    const nativeTextareaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+
+    // Capitalize first letter - called on input event (as user types)
     const capitalizeFirstLetter = (e) => {
       const input = e.target
       if (!shouldCapitalize(input)) return
-
+      // Only act when typing the first character (length becomes 1)
+      // or when first char is lowercase
       const value = input.value
-      if (value.length > 0 && value[0] !== value[0].toUpperCase()) {
+      if (value.length > 0 && value[0] !== value[0].toUpperCase() && /[a-z]/.test(value[0])) {
+        const newValue = value.charAt(0).toUpperCase() + value.slice(1)
         const start = input.selectionStart
         const end = input.selectionEnd
-        input.value = value.charAt(0).toUpperCase() + value.slice(1)
+
+        // Use native setter to properly trigger React's change detection
+        const setter = input.tagName === 'TEXTAREA' ? nativeTextareaValueSetter : nativeInputValueSetter
+        setter.call(input, newValue)
+
+        // Dispatch input event for React
+        const event = new Event('input', { bubbles: true })
+        input.dispatchEvent(event)
+
         // Restore cursor position
         input.setSelectionRange(start, end)
-        // Trigger input event so React state updates
-        input.dispatchEvent(new Event('input', { bubbles: true }))
       }
     }
 
@@ -55,13 +67,14 @@ function Layout() {
 
       // Set mobile keyboard hint
       if (!input.hasAttribute('autocapitalize')) {
-        input.setAttribute('autocapitalize', 'sentences')
+        input.setAttribute('autocapitalize', 'words')
       }
 
-      // Add blur handler for capitalizing first letter (only once)
+      // Add input handler for capitalizing first letter (only once)
       if (!input.dataset.capitalizeSetup) {
         input.dataset.capitalizeSetup = 'true'
-        input.addEventListener('blur', capitalizeFirstLetter)
+        // Use input event for immediate feedback as user types
+        input.addEventListener('input', capitalizeFirstLetter, { capture: true })
       }
     }
 
