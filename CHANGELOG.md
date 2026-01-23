@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.22.1] - 2026-01-23
+
+### Fixed
+- **Auto-capitalize first letter now works on desktop and mobile**
+  - Text inputs capitalize first letter on blur (when leaving field)
+  - Works on all devices, not just mobile keyboards
+  - Preserves cursor position during transformation
+
 ## [1.22.0] - 2026-01-22
 
 ### Added

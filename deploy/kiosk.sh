@@ -17,8 +17,9 @@ unclutter -idle 0.5 -root &
 rm -rf ~/.config/chromium/Singleton*
 
 # Start Chromium maximized (not kiosk) so on-screen keyboard can appear above
+# Use https://levi.local to match the SSL certificate's SAN (not http://localhost)
 chromium \
-    --app=http://localhost \
+    --app=https://levi.local \
     --start-maximized \
     --noerrdialogs \
     --disable-infobars \
@@ -32,4 +33,4 @@ chromium \
     --disable-pinch \
     --overscroll-history-navigation=0 \
     --force-renderer-accessibility \
-    http://localhost
+    https://levi.local

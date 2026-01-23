@@ -20,23 +20,61 @@ function Layout() {
   const desktopUserMenuRef = useRef(null)
   const { user, logout, isAdmin } = useAuth()
 
-  // Auto-capitalize first letter of text inputs for mobile keyboards
+  // Auto-capitalize first letter of text inputs
   useEffect(() => {
-    // Set autocapitalize attribute on all text inputs for mobile keyboard support
-    const setAutocapitalize = () => {
-      document.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(input => {
-        // Skip email, password, and URL inputs
-        const type = input.getAttribute('type')
-        if (type === 'email' || type === 'password' || type === 'url' || type === 'number') return
-        if (!input.hasAttribute('autocapitalize') && !input.dataset.noCapitalize) {
-          input.setAttribute('autocapitalize', 'sentences')
-        }
-      })
+    // Check if input should be capitalized
+    const shouldCapitalize = (input) => {
+      const type = input.getAttribute('type')
+      // Skip email, password, URL, number, and search inputs
+      if (['email', 'password', 'url', 'number', 'search'].includes(type)) return false
+      // Skip inputs with data-no-capitalize attribute
+      if (input.dataset.noCapitalize) return false
+      return true
     }
+
+    // Capitalize first letter while preserving cursor position
+    const capitalizeFirstLetter = (e) => {
+      const input = e.target
+      if (!shouldCapitalize(input)) return
+
+      const value = input.value
+      if (value.length > 0 && value[0] !== value[0].toUpperCase()) {
+        const start = input.selectionStart
+        const end = input.selectionEnd
+        input.value = value.charAt(0).toUpperCase() + value.slice(1)
+        // Restore cursor position
+        input.setSelectionRange(start, end)
+        // Trigger input event so React state updates
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    }
+
+    // Set autocapitalize attribute and attach event listener
+    const setupInput = (input) => {
+      if (!shouldCapitalize(input)) return
+
+      // Set mobile keyboard hint
+      if (!input.hasAttribute('autocapitalize')) {
+        input.setAttribute('autocapitalize', 'sentences')
+      }
+
+      // Add blur handler for capitalizing first letter (only once)
+      if (!input.dataset.capitalizeSetup) {
+        input.dataset.capitalizeSetup = 'true'
+        input.addEventListener('blur', capitalizeFirstLetter)
+      }
+    }
+
+    // Setup all existing inputs
+    const setupAllInputs = () => {
+      document.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(setupInput)
+    }
+
     // Initial setup
-    setAutocapitalize()
+    setupAllInputs()
+
     // Watch for dynamically added inputs (modals, forms that appear later)
-    const observer = new MutationObserver(setAutocapitalize)
+    const observer = new MutationObserver(setupAllInputs)
     observer.observe(document.body, { childList: true, subtree: true })
 
     return () => observer.disconnect()
