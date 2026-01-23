@@ -860,10 +860,18 @@ class CalendarSyncService:
         return True  # Return True even if not found - task may have never been synced
 
 
+# Cache for calendar service singleton
+_calendar_service_cache: Optional[CalendarSyncService] = None
+_calendar_service_config_hash: Optional[str] = None
+
+
 async def get_calendar_service(db: AsyncSession) -> Optional[CalendarSyncService]:
-    """Get a configured calendar sync service from settings"""
+    """Get a configured calendar sync service from settings (cached singleton)"""
+    global _calendar_service_cache, _calendar_service_config_hash
+
     enabled = await get_calendar_setting(db, "calendar_enabled")
     if enabled != "true":
+        _calendar_service_cache = None
         return None
 
     url = await get_calendar_setting(db, "calendar_url")
@@ -873,6 +881,7 @@ async def get_calendar_service(db: AsyncSession) -> Optional[CalendarSyncService
 
     if not all([url, username, password]):
         logger.warning("Calendar sync enabled but not fully configured")
+        _calendar_service_cache = None
         return None
 
     # Get timezone from app settings
@@ -882,10 +891,18 @@ async def get_calendar_service(db: AsyncSession) -> Optional[CalendarSyncService
     tz_setting = result.scalar_one_or_none()
     timezone = tz_setting.value if tz_setting and tz_setting.value else "America/New_York"
 
-    return CalendarSyncService(
+    # Check if we can reuse cached service (same config)
+    config_hash = f"{url}|{username}|{password}|{calendar_name}|{timezone}"
+    if _calendar_service_cache and _calendar_service_config_hash == config_hash:
+        return _calendar_service_cache
+
+    # Create new service and cache it
+    _calendar_service_cache = CalendarSyncService(
         url=url,
         username=username,
         password=password,
         calendar_name=calendar_name or "My Farm",
         timezone=timezone,
     )
+    _calendar_service_config_hash = config_hash
+    return _calendar_service_cache

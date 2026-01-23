@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.22.4] - 2026-01-23
+
+### Fixed
+- **Calendar sync performance - reduced database contention**
+  - Calendar service is now cached instead of recreating per operation
+  - Eliminates excessive CalDAV reconnections (was 7+ per sync, now 1)
+  - Reduces database lock contention significantly
+
 ## [1.22.3] - 2026-01-23
 
 ### Fixed
