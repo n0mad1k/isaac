@@ -128,6 +128,11 @@ rsync -avz \
 echo "Building frontend..."
 ssh -i $SSH_KEY $REMOTE "cd $REMOTE_PATH/frontend && npm run build"
 
+# Kill any orphaned uvicorn processes before restart
+echo "Killing orphaned processes..."
+ssh -i $SSH_KEY $REMOTE "pkill -f 'uvicorn.*levi.*main:app' || true"
+sleep 1
+
 # Restart backend service
 echo "Restarting backend..."
 ssh -i $SSH_KEY $REMOTE "sudo systemctl restart levi-backend"

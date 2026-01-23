@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.22.2] - 2026-01-23
+
+### Fixed
+- **Duplicate email alerts finally fixed**
+  - Deploy scripts now kill orphaned processes before restart
+  - Daily digest uses atomic database update to prevent race conditions
+  - Task reminders claim task before sending to prevent duplicates
+  - Multiple processes can no longer send the same email
+
 ## [1.22.1] - 2026-01-23
 
 ### Fixed

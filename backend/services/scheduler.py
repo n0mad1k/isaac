@@ -488,30 +488,52 @@ class SchedulerService:
             logger.warning("Daily digest recipient not configured, skipping")
             return
 
-        # Atomic check-and-set to prevent duplicate sends (race condition safe)
-        # Uses a single database transaction that only succeeds if the date hasn't been set
+        # Atomic check-and-set to prevent duplicate sends
         tz = pytz.timezone(settings.timezone)
         today_str = datetime.now(tz).strftime("%Y-%m-%d")
 
         async with async_session() as db:
-            # Try to atomically claim today's digest send
-            # First check if already sent
+            # Use atomic UPDATE with WHERE clause - only succeeds if value != today
+            # This prevents race conditions between multiple processes
+            from sqlalchemy import update, insert
+            from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+            # First try to update existing row (only if not already today)
             result = await db.execute(
-                select(AppSetting).where(AppSetting.key == "_last_digest_date")
+                update(AppSetting)
+                .where(AppSetting.key == "_last_digest_date")
+                .where(AppSetting.value != today_str)
+                .values(value=today_str)
             )
-            existing = result.scalar_one_or_none()
 
-            if existing and existing.value == today_str:
-                logger.info(f"Daily digest already sent today ({today_str}), skipping duplicate")
-                return
+            if result.rowcount == 0:
+                # Either already sent today, or row doesn't exist
+                # Check which case
+                check = await db.execute(
+                    select(AppSetting).where(AppSetting.key == "_last_digest_date")
+                )
+                existing = check.scalar_one_or_none()
 
-            # Atomically update/insert the date - if another process beat us, this will be a no-op
-            # since we already checked above and SQLite serializes transactions
-            if existing:
-                existing.value = today_str
+                if existing:
+                    # Row exists with today's date - already sent
+                    logger.info(f"Daily digest already sent today ({today_str}), skipping duplicate")
+                    return
+                else:
+                    # Row doesn't exist - try to insert (with conflict handling)
+                    try:
+                        db.add(AppSetting(key="_last_digest_date", value=today_str))
+                        await db.commit()
+                    except Exception:
+                        # Another process inserted first - check if it's today
+                        await db.rollback()
+                        recheck = await db.execute(
+                            select(AppSetting).where(AppSetting.key == "_last_digest_date")
+                        )
+                        if recheck.scalar_one_or_none():
+                            logger.info(f"Daily digest already sent today ({today_str}), skipping duplicate")
+                            return
             else:
-                db.add(AppSetting(key="_last_digest_date", value=today_str))
-            await db.commit()
+                await db.commit()
 
             logger.info(f"Claimed daily digest send for {today_str}")
 
@@ -687,7 +709,28 @@ class SchedulerService:
                 tasks = result.scalars().all()
 
                 email_service = await self.get_email_service(db)
+                sent_count = 0
                 for task in tasks:
+                    # Atomic update: only proceed if last_notified hasn't changed
+                    from sqlalchemy import update
+                    result = await db.execute(
+                        update(Task)
+                        .where(Task.id == task.id)
+                        .where(
+                            or_(
+                                Task.last_notified.is_(None),
+                                Task.last_notified < datetime.utcnow() - timedelta(hours=23),
+                            )
+                        )
+                        .values(last_notified=datetime.utcnow())
+                    )
+                    if result.rowcount == 0:
+                        # Another process already claimed this task
+                        continue
+
+                    await db.commit()
+
+                    # Now safe to send - we've claimed this task
                     await email_service.send_task_reminder({
                         "title": task.title,
                         "description": task.description,
@@ -695,11 +738,10 @@ class SchedulerService:
                         "category": task.category.value if task.category else "General",
                         "notes": task.notes,
                     })
-                    task.last_notified = datetime.utcnow()
+                    sent_count += 1
 
-                await db.commit()
-                if tasks:
-                    logger.info(f"Sent {len(tasks)} task reminders")
+                if sent_count:
+                    logger.info(f"Sent {sent_count} task reminders")
         except Exception as e:
             logger.error(f"Error checking upcoming tasks: {e}")
 
