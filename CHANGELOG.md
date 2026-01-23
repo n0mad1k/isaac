@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.23.0] - 2026-01-23
+
+### Added
+- **Quick Add from any page**
+  - Floating action menu now has "Quick Add" button
+  - Create tasks, reminders, or events from anywhere
+  - Reminders auto-enable email notifications with alerts at time and 1 hour before
+  - Option to add tasks to backlog
+
 ## [1.22.4] - 2026-01-23
 
 ### Fixed
