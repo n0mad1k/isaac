@@ -122,14 +122,14 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
 
   return (
     <>
-      <div ref={menuRef} className="fixed bottom-6 right-6 z-50">
+      <div ref={menuRef} className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50">
         {/* Expanded action buttons */}
         {expanded && (
-          <div className="absolute bottom-16 right-0 flex flex-col gap-3 items-end">
+          <div className="absolute bottom-12 md:bottom-16 right-0 flex flex-col gap-2 md:gap-3 items-end">
             {/* Add Event/Reminder - always shown */}
             <button
               onClick={handleOpenQuickAdd}
-              className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
+              className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
               style={{
                 backgroundColor: 'var(--color-green-600)',
                 border: '2px solid var(--color-green-700)',
@@ -137,13 +137,13 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
               }}
               title="Add Event or Reminder"
             >
-              <Plus className="w-5 h-5" />
-              <span className="text-sm font-medium">Add</span>
+              <Plus className="w-4 h-4 md:w-5 md:h-5" />
+              <span className="text-xs md:text-sm font-medium">Add</span>
             </button>
             {showHardRefresh && (
               <button
                 onClick={handleHardRefresh}
-                className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
+                className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--color-bg-surface)',
                   border: '2px solid var(--color-border-default)',
@@ -151,14 +151,14 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 }}
                 title="Hard Refresh"
               >
-                <RotateCcw className="w-5 h-5" />
-                <span className="text-sm font-medium">Refresh</span>
+                <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-xs md:text-sm font-medium">Refresh</span>
               </button>
             )}
             {feedbackEnabled && (
               <button
                 onClick={handleOpenFeedback}
-                className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
+                className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--color-bg-surface)',
                   border: '2px solid var(--color-border-default)',
@@ -166,14 +166,14 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 }}
                 title="Submit Feedback"
               >
-                <MessageSquarePlus className="w-5 h-5" />
-                <span className="text-sm font-medium">Feedback</span>
+                <MessageSquarePlus className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-xs md:text-sm font-medium">Feedback</span>
               </button>
             )}
             {showKeyboard && (
               <button
                 onClick={handleToggleKeyboard}
-                className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
+                className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--color-bg-surface)',
                   border: '2px solid var(--color-border-default)',
@@ -181,31 +181,29 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 }}
                 title="Toggle Keyboard"
               >
-                <Keyboard className="w-5 h-5" />
-                <span className="text-sm font-medium">Keyboard</span>
+                <Keyboard className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="text-xs md:text-sm font-medium">Keyboard</span>
               </button>
             )}
           </div>
         )}
 
-        {/* Main toggle button */}
+        {/* Main toggle button - smaller on mobile */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="p-4 rounded-full shadow-lg transition-all duration-200 active:scale-95 touch-manipulation"
+          className="p-2 md:p-4 rounded-full shadow-lg transition-all duration-200 active:scale-95 touch-manipulation"
           style={{
             backgroundColor: expanded ? 'var(--color-green-700)' : 'var(--color-nav-bg)',
             border: '2px solid var(--color-border-strong)',
             color: 'var(--color-text-inverse)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            minWidth: '56px',
-            minHeight: '56px'
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
           }}
           title={expanded ? 'Close menu' : 'Open actions menu'}
         >
           {expanded ? (
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 md:w-6 md:h-6" />
           ) : (
-            <MoreVertical className="w-6 h-6" />
+            <MoreVertical className="w-5 h-5 md:w-6 md:h-6" />
           )}
         </button>
       </div>

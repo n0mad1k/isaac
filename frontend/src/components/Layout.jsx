@@ -238,13 +238,13 @@ function Layout() {
         </div>
       )}
 
-      {/* Mobile Floating Hamburger Button - bottom right corner */}
+      {/* Mobile Floating Hamburger Button - top left corner */}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="md:hidden fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full shadow-lg flex items-center justify-center"
+        className="md:hidden fixed top-3 left-3 z-50 w-10 h-10 rounded-full shadow-lg flex items-center justify-center"
         style={{ backgroundColor: 'var(--color-nav-bg, #1f2937)', border: '1px solid var(--color-border-strong)' }}
       >
-        {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
       {/* Mobile Fullscreen Menu Overlay */}
