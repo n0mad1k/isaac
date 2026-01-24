@@ -230,100 +230,83 @@ function Layout() {
   ]
 
   return (
-    <div className="h-dvh bg-gray-900 text-white flex flex-col overflow-hidden" style={{ height: '100dvh', minHeight: '-webkit-fill-available' }}>
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Dev Instance Banner */}
       {isDevInstance && (
-        <div className="bg-orange-600 text-white text-center py-1 text-sm font-medium z-[60] flex-shrink-0">
+        <div className="bg-orange-600 text-white text-center py-1 text-sm font-medium z-[60]">
           Development Instance - Changes here don't affect production
         </div>
       )}
 
-      {/* Mobile Header - positioned fixed to stay pinned at top during scroll */}
-      <header className={`md:hidden px-4 py-3 flex items-center justify-between fixed left-0 right-0 z-50 ${isDevInstance ? 'top-7' : 'top-0'}`} style={{ backgroundColor: 'var(--color-nav-bg, #1f2937)' }}>
-        <NavLink to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Wheat className="w-7 h-7" style={{ color: 'var(--accent-gold)' }} />
-          <span className="text-lg font-semibold" style={{ color: 'var(--accent-primary)' }}>Isaac</span>
-        </NavLink>
-        <div className="flex items-center gap-2">
-          {/* Keyboard toggle button */}
-          {showKeyboardButton && (
-            <button
-              onClick={toggleKeyboard}
-              className="p-2 rounded-lg bg-gray-700 text-gray-400 hover:text-white transition-colors"
-              title="Toggle keyboard"
-            >
-              <Keyboard className="w-5 h-5" />
-            </button>
-          )}
-          {user && (
-            <div className="relative" ref={userMenuRef}>
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="p-2 rounded-lg bg-gray-700 text-gray-400 hover:text-white transition-colors flex items-center gap-1"
-                title="User menu"
-              >
-                <User className="w-5 h-5" />
-                <span className="text-xs hidden sm:block">{user.display_name || user.username}</span>
-              </button>
-              {userMenuOpen && (
-                <div className="absolute top-full right-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-1 z-50">
-                  {isAdmin && (
-                    <button
-                      onClick={handleUserManagement}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
-                    >
-                      <Users className="w-4 h-4" />
-                      User Management
-                    </button>
-                  )}
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Log Out
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg bg-gray-700 text-white"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-      </header>
+      {/* Mobile Floating Hamburger Button - bottom right corner */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="md:hidden fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full shadow-lg flex items-center justify-center"
+        style={{ backgroundColor: 'var(--color-nav-bg, #1f2937)', border: '1px solid var(--color-border-strong)' }}
+      >
+        {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
 
-      {/* Mobile Dropdown Menu - fixed to work with fixed header */}
+      {/* Mobile Fullscreen Menu Overlay */}
       {mobileMenuOpen && (
-        <div className={`md:hidden fixed left-0 right-0 z-40 max-h-[70vh] overflow-y-auto ${isDevInstance ? 'top-[84px]' : 'top-14'}`} style={{ backgroundColor: 'var(--color-nav-bg)', borderBottom: '1px solid var(--color-border-strong)' }}>
-          <nav className="grid grid-cols-4 gap-1 p-2">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center p-3 rounded-lg transition-colors ${
-                    isActive ? '' : 'hover:opacity-80'
-                  }`
-                }
-                style={({ isActive }) => ({
-                  backgroundColor: isActive ? 'var(--color-nav-item-bg-active)' : 'transparent',
-                  color: isActive ? 'var(--color-nav-item-text-active)' : 'var(--color-nav-item-text)'
-                })}
-              >
-                <item.icon className="w-5 h-5 mb-1" />
-                <span className="text-xs">{item.label}</span>
-              </NavLink>
-            ))}
+        <div className="md:hidden fixed inset-0 z-40 flex flex-col" style={{ backgroundColor: 'var(--color-bg-app)' }}>
+          {/* Menu Header */}
+          <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: 'var(--color-nav-bg)', borderBottom: '1px solid var(--color-border-strong)' }}>
+            <NavLink to="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+              <Wheat className="w-7 h-7" style={{ color: 'var(--accent-gold)' }} />
+              <span className="text-lg font-semibold" style={{ color: 'var(--accent-primary)' }}>Isaac</span>
+            </NavLink>
+            {user && (
+              <div className="flex items-center gap-2" ref={userMenuRef}>
+                <span className="text-sm text-gray-400">{user.display_name || user.username}</span>
+                {isAdmin && (
+                  <button
+                    onClick={handleUserManagement}
+                    className="p-2 rounded-lg text-gray-400 hover:text-white transition-colors"
+                    title="User Management"
+                  >
+                    <Users className="w-5 h-5" />
+                  </button>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="p-2 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                  title="Log Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
+          {/* Navigation Grid */}
+          <nav className="flex-1 overflow-y-auto p-4">
+            <div className="grid grid-cols-3 gap-3">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex flex-col items-center justify-center p-4 rounded-xl transition-colors ${
+                      isActive ? '' : 'hover:opacity-80'
+                    }`
+                  }
+                  style={({ isActive }) => ({
+                    backgroundColor: isActive ? 'var(--color-nav-item-bg-active)' : 'var(--color-bg-surface)',
+                    color: isActive ? 'var(--color-nav-item-text-active)' : 'var(--color-nav-item-text)',
+                    border: '1px solid var(--color-border-default)'
+                  })}
+                >
+                  <item.icon className="w-8 h-8 mb-2" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
           </nav>
         </div>
       )}
 
       {/* Content wrapper - flex container for sidebar + main */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row">
       {/* Desktop Sidebar - Compact, expandable */}
       <aside className="hidden md:flex w-16 flex-col items-center py-2 flex-shrink-0" style={{ backgroundColor: 'var(--color-nav-bg, #1f2937)' }}>
         <NavLink to="/" className="mb-2 hover:opacity-80 transition-opacity">
@@ -439,8 +422,8 @@ function Layout() {
         </div>
       </aside>
 
-      {/* Main content - pt-20 on mobile for fixed header clearance, pt-27 if dev banner */}
-      <main className={`flex-1 overflow-auto p-3 md:p-4 md:pt-4 lg:p-6 ${isDevInstance ? 'pt-[88px] md:pt-4' : 'pt-20 md:pt-4'}`}>
+      {/* Main content - full width on mobile, no header clearance needed */}
+      <main className="flex-1 overflow-auto p-3 md:p-4 lg:p-6">
         <Outlet />
       </main>
       </div>
