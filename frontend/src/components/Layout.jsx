@@ -238,72 +238,6 @@ function Layout() {
         </div>
       )}
 
-      {/* Mobile Floating Hamburger Button - top left corner */}
-      <button
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="md:hidden fixed top-3 left-3 z-50 w-10 h-10 rounded-full shadow-lg flex items-center justify-center"
-        style={{ backgroundColor: 'var(--color-nav-bg, #1f2937)', border: '1px solid var(--color-border-strong)' }}
-      >
-        {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-      </button>
-
-      {/* Mobile Fullscreen Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40 flex flex-col" style={{ backgroundColor: 'var(--color-bg-app)' }}>
-          {/* Menu Header */}
-          <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: 'var(--color-nav-bg)', borderBottom: '1px solid var(--color-border-strong)' }}>
-            <NavLink to="/" className="flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-              <Wheat className="w-7 h-7" style={{ color: 'var(--accent-gold)' }} />
-              <span className="text-lg font-semibold" style={{ color: 'var(--accent-primary)' }}>Isaac</span>
-            </NavLink>
-            {user && (
-              <div className="flex items-center gap-2" ref={userMenuRef}>
-                <span className="text-sm text-gray-400">{user.display_name || user.username}</span>
-                {isAdmin && (
-                  <button
-                    onClick={handleUserManagement}
-                    className="p-2 rounded-lg text-gray-400 hover:text-white transition-colors"
-                    title="User Management"
-                  >
-                    <Users className="w-5 h-5" />
-                  </button>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="p-2 rounded-lg text-red-400 hover:text-red-300 transition-colors"
-                  title="Log Out"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
-            )}
-          </div>
-          {/* Navigation Grid */}
-          <nav className="flex-1 overflow-y-auto p-4">
-            <div className="grid grid-cols-3 gap-3">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `flex flex-col items-center justify-center p-4 rounded-xl transition-colors ${
-                      isActive ? '' : 'hover:opacity-80'
-                    }`
-                  }
-                  style={({ isActive }) => ({
-                    backgroundColor: isActive ? 'var(--color-nav-item-bg-active)' : 'var(--color-bg-surface)',
-                    color: isActive ? 'var(--color-nav-item-text-active)' : 'var(--color-nav-item-text)',
-                    border: '1px solid var(--color-border-default)'
-                  })}
-                >
-                  <item.icon className="w-8 h-8 mb-2" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                </NavLink>
-              ))}
-            </div>
-          </nav>
-        </div>
-      )}
 
       {/* Content wrapper - flex container for sidebar + main */}
       <div className="flex-1 flex flex-col md:flex-row">
@@ -429,7 +363,12 @@ function Layout() {
       </div>
 
       {/* Floating action menu with keyboard, feedback, and hard refresh options */}
-      <FloatingActionMenu showKeyboard={showKeyboardButton} showHardRefresh={showHardRefreshButton} />
+      <FloatingActionMenu
+        showKeyboard={showKeyboardButton}
+        showHardRefresh={showHardRefreshButton}
+        isDevInstance={isDevInstance}
+        workerTasksEnabled={workerTasksEnabled}
+      />
     </div>
   )
 }

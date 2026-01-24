@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { Menu, MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus, Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Bug, ClipboardList, LayoutDashboard, LogOut, Users } from 'lucide-react'
 import { checkFeedbackEnabled, submitFeedback, toggleKeyboard as toggleKeyboardApi } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import EventModal from './EventModal'
 
 /**
- * Floating Action Menu - Expandable button with keyboard, feedback, and hard refresh options
- * Shows as a single button that expands to reveal available actions
+ * Floating Action Menu - Combined navigation and actions menu
+ * On mobile: shows nav + actions in fullscreen overlay
+ * On desktop: shows just actions in expandable menu
  */
-function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
+function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navItems = [], isDevInstance = false, workerTasksEnabled = false }) {
   const [expanded, setExpanded] = useState(false)
   const [feedbackEnabled, setFeedbackEnabled] = useState(false)
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
@@ -16,6 +19,8 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
   const menuRef = useRef(null)
+  const location = useLocation()
+  const { user, logout, isAdmin } = useAuth()
 
   // Form state for feedback
   const [title, setTitle] = useState('')
@@ -23,6 +28,30 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
   const [feedbackType, setFeedbackType] = useState('feature')
   const [submittedBy, setSubmittedBy] = useState('')
 
+  // Default nav items if not provided
+  const defaultNavItems = [
+    { to: '/', icon: LayoutDashboard, label: 'Dash' },
+    { to: '/todo', icon: ListTodo, label: 'To Do' },
+    { to: '/calendar', icon: Calendar, label: 'Calendar' },
+    ...(workerTasksEnabled ? [{ to: '/worker-tasks', icon: ClipboardList, label: 'Workers' }] : []),
+    { to: '/plants', icon: Leaf, label: 'Plants' },
+    { to: '/seeds', icon: Sprout, label: 'Seeds' },
+    { to: '/animals', icon: PawPrint, label: 'Animals' },
+    { to: '/home-maintenance', icon: Home, label: 'Home' },
+    { to: '/vehicles', icon: Car, label: 'Vehicles' },
+    { to: '/equipment', icon: Wrench, label: 'Equip' },
+    { to: '/farm-areas', icon: Fence, label: 'Farm' },
+    { to: '/production', icon: Package, label: 'Prod' },
+    ...(isDevInstance ? [{ to: '/dev-tracker', icon: Bug, label: 'Dev' }] : []),
+    { to: '/settings', icon: Settings, label: 'Settings' },
+  ]
+
+  const navigation = navItems.length > 0 ? navItems : defaultNavItems
+
+  // Close menu on navigation
+  useEffect(() => {
+    setExpanded(false)
+  }, [location.pathname])
 
   // Check if feedback is enabled
   useEffect(() => {
@@ -37,10 +66,11 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
     checkEnabled()
   }, [])
 
-  // Close menu when clicking outside
+  // Close menu when clicking outside (desktop only)
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+      // Only close on outside click for desktop (non-fullscreen mode)
+      if (window.innerWidth >= 768 && menuRef.current && !menuRef.current.contains(event.target)) {
         setExpanded(false)
       }
     }
@@ -85,8 +115,12 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
 
   const handleQuickAddSaved = () => {
     setQuickAddModalOpen(false)
-    // Could dispatch an event here to refresh any open task lists
     window.dispatchEvent(new CustomEvent('task-created'))
+  }
+
+  const handleLogout = async () => {
+    setExpanded(false)
+    await logout()
   }
 
   const handleSubmitFeedback = async (e) => {
@@ -117,19 +151,131 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
     }
   }
 
-  // Count available actions (Quick Add is always available)
-  const actionCount = [true, showKeyboard, feedbackEnabled, showHardRefresh].filter(Boolean).length
-
   return (
     <>
+      {/* Mobile: Fullscreen menu overlay */}
+      {expanded && (
+        <div className="md:hidden fixed inset-0 z-40 flex flex-col" style={{ backgroundColor: 'var(--color-bg-app)' }}>
+          {/* Header with user info */}
+          <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: 'var(--color-nav-bg)', borderBottom: '1px solid var(--color-border-strong)' }}>
+            <span className="text-lg font-semibold" style={{ color: 'var(--accent-primary)' }}>Menu</span>
+            {user && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-400">{user.display_name || user.username}</span>
+                {isAdmin && (
+                  <NavLink
+                    to="/settings"
+                    state={{ tab: 'users' }}
+                    className="p-2 rounded-lg text-gray-400 hover:text-white transition-colors"
+                    title="User Management"
+                  >
+                    <Users className="w-5 h-5" />
+                  </NavLink>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="p-2 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                  title="Log Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Grid */}
+          <nav className="flex-1 overflow-y-auto p-3">
+            <div className="grid grid-cols-4 gap-2">
+              {navigation.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `flex flex-col items-center justify-center p-3 rounded-lg transition-colors ${
+                      isActive ? '' : 'hover:opacity-80'
+                    }`
+                  }
+                  style={({ isActive }) => ({
+                    backgroundColor: isActive ? 'var(--color-nav-item-bg-active)' : 'var(--color-bg-surface)',
+                    color: isActive ? 'var(--color-nav-item-text-active)' : 'var(--color-nav-item-text)',
+                    border: '1px solid var(--color-border-default)'
+                  })}
+                >
+                  <item.icon className="w-6 h-6 mb-1" />
+                  <span className="text-xs font-medium">{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
+
+            {/* Action buttons */}
+            <div className="mt-4 pt-4 border-t border-gray-700">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleOpenQuickAdd}
+                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors"
+                  style={{
+                    backgroundColor: 'var(--color-green-600)',
+                    color: 'white'
+                  }}
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="text-sm font-medium">Add Event</span>
+                </button>
+                {showHardRefresh && (
+                  <button
+                    onClick={handleHardRefresh}
+                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors"
+                    style={{
+                      backgroundColor: 'var(--color-bg-surface)',
+                      border: '1px solid var(--color-border-default)',
+                      color: 'var(--color-text-primary)'
+                    }}
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                    <span className="text-sm font-medium">Refresh</span>
+                  </button>
+                )}
+                {feedbackEnabled && (
+                  <button
+                    onClick={handleOpenFeedback}
+                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors"
+                    style={{
+                      backgroundColor: 'var(--color-bg-surface)',
+                      border: '1px solid var(--color-border-default)',
+                      color: 'var(--color-text-primary)'
+                    }}
+                  >
+                    <MessageSquarePlus className="w-5 h-5" />
+                    <span className="text-sm font-medium">Feedback</span>
+                  </button>
+                )}
+                {showKeyboard && (
+                  <button
+                    onClick={handleToggleKeyboard}
+                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors"
+                    style={{
+                      backgroundColor: 'var(--color-bg-surface)',
+                      border: '1px solid var(--color-border-default)',
+                      color: 'var(--color-text-primary)'
+                    }}
+                  >
+                    <Keyboard className="w-5 h-5" />
+                    <span className="text-sm font-medium">Keyboard</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </nav>
+        </div>
+      )}
+
+      {/* Desktop: Expandable action buttons */}
       <div ref={menuRef} className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50">
-        {/* Expanded action buttons */}
         {expanded && (
-          <div className="absolute bottom-12 md:bottom-16 right-0 flex flex-col gap-2 md:gap-3 items-end">
-            {/* Add Event/Reminder - always shown */}
+          <div className="hidden md:flex absolute bottom-16 right-0 flex-col gap-3 items-end">
             <button
               onClick={handleOpenQuickAdd}
-              className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
+              className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
               style={{
                 backgroundColor: 'var(--color-green-600)',
                 border: '2px solid var(--color-green-700)',
@@ -137,13 +283,13 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
               }}
               title="Add Event or Reminder"
             >
-              <Plus className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="text-xs md:text-sm font-medium">Add</span>
+              <Plus className="w-5 h-5" />
+              <span className="text-sm font-medium">Add</span>
             </button>
             {showHardRefresh && (
               <button
                 onClick={handleHardRefresh}
-                className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
+                className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--color-bg-surface)',
                   border: '2px solid var(--color-border-default)',
@@ -151,14 +297,14 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 }}
                 title="Hard Refresh"
               >
-                <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
-                <span className="text-xs md:text-sm font-medium">Refresh</span>
+                <RotateCcw className="w-5 h-5" />
+                <span className="text-sm font-medium">Refresh</span>
               </button>
             )}
             {feedbackEnabled && (
               <button
                 onClick={handleOpenFeedback}
-                className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
+                className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--color-bg-surface)',
                   border: '2px solid var(--color-border-default)',
@@ -166,14 +312,14 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 }}
                 title="Submit Feedback"
               >
-                <MessageSquarePlus className="w-4 h-4 md:w-5 md:h-5" />
-                <span className="text-xs md:text-sm font-medium">Feedback</span>
+                <MessageSquarePlus className="w-5 h-5" />
+                <span className="text-sm font-medium">Feedback</span>
               </button>
             )}
             {showKeyboard && (
               <button
                 onClick={handleToggleKeyboard}
-                className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
+                className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
                 style={{
                   backgroundColor: 'var(--color-bg-surface)',
                   border: '2px solid var(--color-border-default)',
@@ -181,34 +327,37 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
                 }}
                 title="Toggle Keyboard"
               >
-                <Keyboard className="w-4 h-4 md:w-5 md:h-5" />
-                <span className="text-xs md:text-sm font-medium">Keyboard</span>
+                <Keyboard className="w-5 h-5" />
+                <span className="text-sm font-medium">Keyboard</span>
               </button>
             )}
           </div>
         )}
 
-        {/* Main toggle button - smaller on mobile */}
+        {/* Main toggle button - 3 lines on mobile, 3 dots on desktop */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="p-2 md:p-4 rounded-full shadow-lg transition-all duration-200 active:scale-95 touch-manipulation"
+          className="p-3 rounded-full shadow-lg transition-all duration-200 active:scale-95 touch-manipulation"
           style={{
             backgroundColor: expanded ? 'var(--color-green-700)' : 'var(--color-nav-bg)',
             border: '2px solid var(--color-border-strong)',
             color: 'var(--color-text-inverse)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
           }}
-          title={expanded ? 'Close menu' : 'Open actions menu'}
+          title={expanded ? 'Close menu' : 'Open menu'}
         >
           {expanded ? (
-            <X className="w-5 h-5 md:w-6 md:h-6" />
+            <X className="w-5 h-5" />
           ) : (
-            <MoreVertical className="w-5 h-5 md:w-6 md:h-6" />
+            <>
+              <Menu className="w-5 h-5 md:hidden" />
+              <MoreVertical className="w-5 h-5 hidden md:block" />
+            </>
           )}
         </button>
       </div>
 
-      {/* Quick Add Modal - uses full EventModal */}
+      {/* Quick Add Modal */}
       {quickAddModalOpen && (
         <EventModal
           event={null}
@@ -225,7 +374,6 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true }) {
             className="relative w-full max-w-md rounded-xl shadow-2xl p-6"
             style={{ backgroundColor: 'var(--color-bg-surface)' }}
           >
-            {/* Close button */}
             <button
               onClick={() => setFeedbackModalOpen(false)}
               className="absolute top-4 right-4 p-1 rounded hover:bg-gray-700"
