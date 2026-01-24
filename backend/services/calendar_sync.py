@@ -365,6 +365,17 @@ class CalendarSyncService:
         if levi_task_id:
             task_dict['levi_task_id'] = int(str(levi_task_id))
 
+        # Extract last-modified for timestamp comparison
+        last_modified = component.get('last-modified')
+        if last_modified:
+            lm_dt = last_modified.dt
+            if isinstance(lm_dt, datetime):
+                if lm_dt.tzinfo is None:
+                    lm_dt = pytz.UTC.localize(lm_dt)
+                task_dict['last_modified'] = lm_dt
+            elif isinstance(lm_dt, date):
+                task_dict['last_modified'] = datetime.combine(lm_dt, datetime.min.time(), tzinfo=pytz.UTC)
+
         return task_dict
 
     async def sync_task_to_calendar(self, task: Task, db: AsyncSession = None, existing_events: Dict[str, str] = None) -> bool:
@@ -721,47 +732,69 @@ class CalendarSyncService:
                     changed = False
                     old_title = existing_task.title
 
-                    # Sync title from phone
-                    phone_title = event_dict.get('title')
-                    if phone_title and existing_task.title != phone_title:
-                        existing_task.title = phone_title
-                        changed = True
-                        logger.info(f"Task title updated from phone: '{old_title}' -> '{phone_title}'")
+                    # Compare timestamps to determine if phone has newer data
+                    calendar_modified = event_dict.get('last_modified')
+                    task_synced = existing_task.calendar_synced_at
+                    task_updated = existing_task.updated_at
 
-                    # Sync due_date from phone
-                    phone_date = event_dict.get('due_date')
-                    if phone_date and existing_task.due_date != phone_date:
-                        existing_task.due_date = phone_date
-                        changed = True
-                        logger.info(f"Task '{existing_task.title}' date updated from phone: {phone_date}")
+                    # Use the later of synced_at or updated_at as the task's "last known" time
+                    if task_synced and task_updated:
+                        task_last_known = max(task_synced, task_updated)
+                    else:
+                        task_last_known = task_synced or task_updated
 
-                    # Sync due_time from phone
-                    phone_time = event_dict.get('due_time')
-                    if phone_time and existing_task.due_time != phone_time:
-                        existing_task.due_time = phone_time
-                        changed = True
-                        logger.info(f"Task '{existing_task.title}' time updated from phone: {phone_time}")
+                    # Make task_last_known timezone-aware if needed
+                    if task_last_known and task_last_known.tzinfo is None:
+                        task_last_known = pytz.UTC.localize(task_last_known)
 
-                    # Sync end_time from phone
-                    phone_end = event_dict.get('end_time')
-                    if phone_end and existing_task.end_time != phone_end:
-                        existing_task.end_time = phone_end
-                        changed = True
+                    # Only sync from phone if calendar was modified after our last sync/update
+                    phone_is_newer = (
+                        calendar_modified is not None and
+                        (task_last_known is None or calendar_modified > task_last_known)
+                    )
 
-                    # Sync location from phone
-                    phone_location = event_dict.get('location')
-                    if phone_location and existing_task.location != phone_location:
-                        existing_task.location = phone_location
-                        changed = True
-                        logger.info(f"Task '{existing_task.title}' location updated from phone: {phone_location}")
+                    if phone_is_newer:
+                        # Sync title from phone
+                        phone_title = event_dict.get('title')
+                        if phone_title and existing_task.title != phone_title:
+                            existing_task.title = phone_title
+                            changed = True
+                            logger.info(f"Task title updated from phone: '{old_title}' -> '{phone_title}'")
 
-                    # Sync description from phone
-                    phone_description = event_dict.get('description')
-                    if phone_description and existing_task.description != phone_description:
-                        existing_task.description = phone_description
-                        changed = True
+                        # Sync due_date from phone
+                        phone_date = event_dict.get('due_date')
+                        if phone_date and existing_task.due_date != phone_date:
+                            existing_task.due_date = phone_date
+                            changed = True
+                            logger.info(f"Task '{existing_task.title}' date updated from phone: {phone_date}")
 
-                    # Check if this task was completed on the phone
+                        # Sync due_time from phone
+                        phone_time = event_dict.get('due_time')
+                        if phone_time and existing_task.due_time != phone_time:
+                            existing_task.due_time = phone_time
+                            changed = True
+                            logger.info(f"Task '{existing_task.title}' time updated from phone: {phone_time}")
+
+                        # Sync end_time from phone
+                        phone_end = event_dict.get('end_time')
+                        if phone_end and existing_task.end_time != phone_end:
+                            existing_task.end_time = phone_end
+                            changed = True
+
+                        # Sync location from phone
+                        phone_location = event_dict.get('location')
+                        if phone_location and existing_task.location != phone_location:
+                            existing_task.location = phone_location
+                            changed = True
+                            logger.info(f"Task '{existing_task.title}' location updated from phone: {phone_location}")
+
+                        # Sync description from phone
+                        phone_description = event_dict.get('description')
+                        if phone_description and existing_task.description != phone_description:
+                            existing_task.description = phone_description
+                            changed = True
+
+                    # Check if this task was completed on the phone (always check, regardless of timestamp)
                     if event_dict.get('is_completed') and not existing_task.is_completed:
                         # Only mark as phone-completed if task was due today or earlier
                         local_tz = pytz.timezone(self.timezone)

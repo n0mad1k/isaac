@@ -388,9 +388,10 @@ class SchedulerService:
                     if uid:
                         calendar_uids.add(uid)
 
-                # Sync both directions (with deletion detection for items deleted on phone)
-                tasks_synced = await service.sync_all_tasks_to_calendar(db, calendar_uids)
+                # Sync both directions - PULL from calendar first to get phone edits,
+                # then PUSH to calendar (which won't overwrite since data is now in sync)
                 events_synced = await service.sync_calendar_to_tasks(db)
+                tasks_synced = await service.sync_all_tasks_to_calendar(db, calendar_uids)
 
                 logger.info(f"Calendar sync complete: {tasks_synced} tasks synced, {events_synced} events imported")
 

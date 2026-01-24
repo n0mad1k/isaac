@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.23.4] - 2026-01-23
+
+### Fixed
+- **Smart bi-directional calendar sync with timestamp comparison**
+  - Compares last-modified timestamps to determine which version is newer
+  - Phone edits sync to app only if phone was edited more recently
+  - App edits sync to phone only if app was edited more recently
+  - No more overwriting phone changes during sync
+
 ## [1.23.3] - 2026-01-23
 
 ### Fixed
