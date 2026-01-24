@@ -1270,11 +1270,11 @@ async def sync_calendar(db: AsyncSession = Depends(get_db)):
         if uid:
             calendar_uids.add(uid)
 
-    # Push local tasks to calendar (incremental - only changed items)
-    push_result = await service.sync_all_tasks_to_calendar(db, calendar_uids)
-
-    # Pull calendar events to local (including deletion detection)
+    # PULL from calendar first to get phone edits before we push
     sync_result = await service.sync_calendar_to_tasks(db)
+
+    # Then PUSH local tasks to calendar (won't overwrite since we just synced)
+    push_result = await service.sync_all_tasks_to_calendar(db, calendar_uids)
 
     return {
         "tasks_pushed": push_result.get("synced", 0),
