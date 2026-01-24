@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.23.5] - 2026-01-24
+
+### Fixed
+- **Mobile viewport sizing and pinned navigation bar**
+  - Uses dynamic viewport height (dvh) for proper mobile browser support
+  - Nav bar now stays pinned at top during scroll on mobile
+  - Fixes iOS Safari address bar viewport issues
+
 ## [1.23.4] - 2026-01-23
 
 ### Fixed

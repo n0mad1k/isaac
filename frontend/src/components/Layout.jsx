@@ -230,16 +230,15 @@ function Layout() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+    <div className="h-dvh bg-gray-900 text-white flex flex-col overflow-hidden" style={{ height: '100dvh', minHeight: '-webkit-fill-available' }}>
       {/* Dev Instance Banner */}
       {isDevInstance && (
-        <div className="bg-orange-600 text-white text-center py-1 text-sm font-medium z-[60]">
+        <div className="bg-orange-600 text-white text-center py-1 text-sm font-medium z-[60] flex-shrink-0">
           Development Instance - Changes here don't affect production
         </div>
       )}
 
-      <div className="flex-1 flex flex-col md:flex-row">
-      {/* Mobile Header with Menu Button - fixed positioning for reliable scroll behavior */}
+      {/* Mobile Header - positioned fixed to stay pinned at top during scroll */}
       <header className={`md:hidden px-4 py-3 flex items-center justify-between fixed left-0 right-0 z-50 ${isDevInstance ? 'top-7' : 'top-0'}`} style={{ backgroundColor: 'var(--color-nav-bg, #1f2937)' }}>
         <NavLink to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Wheat className="w-7 h-7" style={{ color: 'var(--accent-gold)' }} />
@@ -323,6 +322,8 @@ function Layout() {
         </div>
       )}
 
+      {/* Content wrapper - flex container for sidebar + main */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
       {/* Desktop Sidebar - Compact, expandable */}
       <aside className="hidden md:flex w-16 flex-col items-center py-2 flex-shrink-0" style={{ backgroundColor: 'var(--color-nav-bg, #1f2937)' }}>
         <NavLink to="/" className="mb-2 hover:opacity-80 transition-opacity">
