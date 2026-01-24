@@ -692,8 +692,8 @@ class CalendarSyncService:
             if not calendar_uid:
                 continue
 
-            # For Isaac/Levi-originated tasks, sync completion status, location, and description
-            # back from calendar. Title and dates remain app-controlled (source of truth).
+            # For Isaac/Levi-originated tasks, sync all editable fields from calendar
+            # Full bi-directional sync - phone edits sync back to app
             # Check for both isaac-task- and levi-task- prefixes (legacy UIDs use levi-task-)
             is_app_originated = (
                 calendar_uid.startswith('isaac-task-') or
@@ -707,26 +707,51 @@ class CalendarSyncService:
                 existing_task = result.scalar_one_or_none()
                 if existing_task:
                     changed = False
+                    old_title = existing_task.title
 
-                    # Sync location from phone (user may add address on phone)
+                    # Sync title from phone
+                    phone_title = event_dict.get('title')
+                    if phone_title and existing_task.title != phone_title:
+                        existing_task.title = phone_title
+                        changed = True
+                        logger.info(f"Task title updated from phone: '{old_title}' -> '{phone_title}'")
+
+                    # Sync due_date from phone
+                    phone_date = event_dict.get('due_date')
+                    if phone_date and existing_task.due_date != phone_date:
+                        existing_task.due_date = phone_date
+                        changed = True
+                        logger.info(f"Task '{existing_task.title}' date updated from phone: {phone_date}")
+
+                    # Sync due_time from phone
+                    phone_time = event_dict.get('due_time')
+                    if phone_time and existing_task.due_time != phone_time:
+                        existing_task.due_time = phone_time
+                        changed = True
+                        logger.info(f"Task '{existing_task.title}' time updated from phone: {phone_time}")
+
+                    # Sync end_time from phone
+                    phone_end = event_dict.get('end_time')
+                    if phone_end and existing_task.end_time != phone_end:
+                        existing_task.end_time = phone_end
+                        changed = True
+
+                    # Sync location from phone
                     phone_location = event_dict.get('location')
                     if phone_location and existing_task.location != phone_location:
                         existing_task.location = phone_location
                         changed = True
                         logger.info(f"Task '{existing_task.title}' location updated from phone: {phone_location}")
 
-                    # Sync description from phone (user may add notes on phone)
+                    # Sync description from phone
                     phone_description = event_dict.get('description')
                     if phone_description and existing_task.description != phone_description:
                         existing_task.description = phone_description
                         changed = True
-                        logger.info(f"Task '{existing_task.title}' description updated from phone")
 
                     # Check if this task was completed on the phone
                     if event_dict.get('is_completed') and not existing_task.is_completed:
                         # Only mark as phone-completed if task was due today or earlier
-                        # This prevents future tasks from being accidentally marked complete
-                        # when calendar sync sees stale completion data
                         local_tz = pytz.timezone(self.timezone)
                         today = datetime.now(local_tz).date()
                         task_due = existing_task.due_date
@@ -738,7 +763,6 @@ class CalendarSyncService:
                             existing_task.completed_at = datetime.now(pytz.UTC)
                             changed = True
                             logger.info(f"Task '{existing_task.title}' completed on phone")
-                            # Delete the completed task from calendar so it doesn't re-sync
                             await self.delete_task_from_calendar(existing_task.id, calendar_uid)
 
                     if changed:

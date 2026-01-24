@@ -5,10 +5,10 @@ All notable changes to Isaac will be documented in this file.
 ## [1.23.2] - 2026-01-23
 
 ### Fixed
-- **Calendar sync now imports location and description from phone**
-  - When you edit location/address on your phone, it syncs back to Isaac
-  - When you add notes/description on your phone, it syncs back to Isaac
-  - Title and dates remain app-controlled (source of truth)
+- **Full bi-directional calendar sync**
+  - Edit any event/reminder from your phone and it syncs back to Isaac
+  - Supports: title, date, time, location, description, and completion status
+  - Changes sync in both directions between app and phone calendar
 
 ## [1.23.1] - 2026-01-23
 
