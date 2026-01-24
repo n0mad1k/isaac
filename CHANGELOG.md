@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.23.3] - 2026-01-23
+
+### Fixed
+- **Calendar sync now finds tasks by ID when UID doesn't match**
+  - Uses X-ISAAC-TASK-ID to link calendar events to tasks
+  - Fixes sync issues when calendar UIDs get out of sync
+
 ## [1.23.2] - 2026-01-23
 
 ### Fixed

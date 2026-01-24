@@ -701,10 +701,22 @@ class CalendarSyncService:
                 event_dict.get('levi_task_id')
             )
             if is_app_originated:
+                # Try to find task by calendar_uid first, then by task ID from X-ISAAC-TASK-ID
                 result = await db.execute(
                     select(Task).where(Task.calendar_uid == calendar_uid)
                 )
                 existing_task = result.scalar_one_or_none()
+
+                # If not found by UID but we have the task ID, look up by ID
+                if not existing_task and event_dict.get('levi_task_id'):
+                    result = await db.execute(
+                        select(Task).where(Task.id == event_dict['levi_task_id'])
+                    )
+                    existing_task = result.scalar_one_or_none()
+                    # Link the calendar_uid to this task for future syncs
+                    if existing_task and not existing_task.calendar_uid:
+                        existing_task.calendar_uid = calendar_uid
+                        logger.info(f"Linked calendar UID {calendar_uid} to task {existing_task.id}")
                 if existing_task:
                     changed = False
                     old_title = existing_task.title
