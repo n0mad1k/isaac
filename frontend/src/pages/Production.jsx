@@ -180,7 +180,7 @@ function Production() {
           <Package className="w-7 h-7 text-orange-500" />
           Production & Sales
         </h1>
-        <MottoDisplay className="hidden md:block" />
+        <MottoDisplay className="" />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSaleModal(true)}

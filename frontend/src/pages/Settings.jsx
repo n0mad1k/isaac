@@ -869,7 +869,7 @@ function Settings() {
           <SettingsIcon className="w-7 h-7 text-gray-400" />
           Settings
         </h1>
-        <MottoDisplay className="hidden md:block" />
+        <MottoDisplay className="" />
         <div className="flex items-center gap-2">
           <button
             onClick={handleResetAll}

@@ -292,7 +292,7 @@ function Vehicles() {
           <Car className="w-8 h-8 text-farm-green" />
           <h1 className="text-2xl font-bold">Vehicles</h1>
         </div>
-        <MottoDisplay className="hidden md:block" />
+        <MottoDisplay className="" />
         <button
           onClick={() => { setShowAddForm(true); setEditingVehicle(null); resetForm(); }}
           className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"

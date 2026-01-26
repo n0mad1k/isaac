@@ -586,7 +586,7 @@ function Animals() {
           <PawPrint className="w-7 h-7" style={{ color: 'var(--color-teal-600)' }} />
           Animals
         </h1>
-        <MottoDisplay className="hidden md:block" />
+        <MottoDisplay className="" />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowBulkCareForm(true)}

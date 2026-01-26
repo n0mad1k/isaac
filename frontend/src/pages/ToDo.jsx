@@ -324,7 +324,7 @@ function ToDo() {
           <ListTodo className="w-7 h-7 text-yellow-500" />
           To Do
         </h1>
-        <MottoDisplay className="hidden md:block" />
+        <MottoDisplay className="" />
         <div className="flex items-center gap-2">
           <button
             onClick={handleSync}

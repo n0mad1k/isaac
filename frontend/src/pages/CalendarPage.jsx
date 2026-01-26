@@ -181,7 +181,7 @@ function CalendarPage() {
           <CalendarIcon className="w-7 h-7" style={{ color: 'var(--color-teal-600)' }} />
           Calendar
         </h1>
-        <MottoDisplay className="hidden lg:block" />
+        <MottoDisplay className="" />
         <div className="flex items-center gap-2 flex-wrap">
           {/* View Switcher */}
           <div className="flex rounded-lg p-1" style={{ backgroundColor: 'var(--color-bg-surface-muted)' }}>

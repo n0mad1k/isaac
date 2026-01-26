@@ -755,7 +755,7 @@ function Seeds() {
           <Sprout className="w-7 h-7 text-green-500" />
           Seed Catalog
         </h1>
-        <MottoDisplay className="hidden md:block" />
+        <MottoDisplay className="" />
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"

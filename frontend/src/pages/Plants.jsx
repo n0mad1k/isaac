@@ -464,7 +464,7 @@ function Plants() {
           <Leaf className="w-7 h-7 text-green-500" />
           Plants & Trees
         </h1>
-        <MottoDisplay className="hidden md:block" />
+        <MottoDisplay className="" />
         <div className="flex gap-2">
           <button
             onClick={() => setShowImportModal(true)}

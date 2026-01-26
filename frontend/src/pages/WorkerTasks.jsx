@@ -443,7 +443,7 @@ function WorkerTasks() {
           <ClipboardList className="w-8 h-8 text-farm-green" />
           <h1 className="text-2xl font-bold">{t('pageTitle')}</h1>
         </div>
-        <MottoDisplay className="hidden md:block" />
+        <MottoDisplay className="" />
       </div>
 
       {error && (
