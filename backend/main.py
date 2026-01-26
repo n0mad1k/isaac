@@ -103,6 +103,7 @@ from routers import (
     workers_router,
     supply_requests_router,
     customer_feedback_router,
+    team_router,
 )
 from routers.settings import get_setting
 
@@ -195,6 +196,7 @@ app.include_router(dev_tracker_router)
 app.include_router(workers_router)
 app.include_router(supply_requests_router)
 app.include_router(customer_feedback_router)
+app.include_router(team_router)
 
 
 @app.get("/")

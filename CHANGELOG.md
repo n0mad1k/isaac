@@ -2,6 +2,57 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.25.0] - 2026-01-26
+
+### Added
+- **Team/Unit/Family Management Page**
+  - Inspired by USMC Marine Corps Mentoring Program (NAVMC DIR 1500.58)
+  - Enable via Settings > Display > Team Management Page
+- **Operator-Style Member Dossiers**
+  - Profile with photo, role, callsign, nickname
+  - Contact info and emergency contact
+  - Physical measurements (height, weight with history tracking)
+  - Gear sizing: blood type, shoe, shirt, pants, hat, glove sizes
+  - Skills, responsibilities, and completed trainings
+- **Medical Readiness Tracking (MEDPROS-inspired)**
+  - Overall readiness status (Green/Amber/Red)
+  - Dental status with last/next appointment dates
+  - Vision status with prescription tracking
+  - Physical exam tracking with limitations
+  - Allergies, medical conditions, and current medications
+  - Medical history log for all changes
+- **Mentoring System (MCMP-inspired)**
+  - Weekly mentoring sessions with previous goals review
+  - Three goal categories: Professional, Personal, Readiness
+  - Values alignment assessment with 1-5 ratings per value
+  - Positive observations and areas for improvement
+  - Action items tracking
+  - Auto-archive after 4 sessions (keeps most recent visible)
+- **Configurable Team Values**
+  - Define team values with names, descriptions, and assessment questions
+  - Configure in Settings > Team Configuration
+  - Values used in mentoring session assessments
+  - Historical tracking of values alignment per member
+- **Weekly Observations**
+  - "What went well" and "Needs improvement" entries
+  - Scope: Individual, Team, or Operations
+  - Optional linking to team values or goal categories
+- **Weekly After Action Review (AAR)**
+  - Aggregates all member observations by scope
+  - Summary notes and team action items
+  - Historical AAR archive
+- **Team Overview Dashboard**
+  - Mission statement and core values display
+  - Readiness summary bars (overall, medical, dental)
+  - Team roster with readiness indicators
+  - Upcoming appointments (next 30 days)
+- **Photo Upload**
+  - Upload member photos for dossier display
+  - Photos stored securely on server
+- **Unit Configuration**
+  - Imperial or metric units for measurements
+  - Configurable mentoring day and AAR day
+
 ## [1.24.0] - 2026-01-26
 
 ### Added

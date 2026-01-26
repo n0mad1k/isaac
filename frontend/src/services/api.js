@@ -412,4 +412,65 @@ export const getMyFeedback = () => api.get('/feedback/my/')
 export const updateMyFeedback = (id, data) => api.put(`/feedback/my/${id}/`, data)
 export const deleteMyFeedback = (id) => api.delete(`/feedback/my/${id}/`)
 
+// Team Management
+export const getTeamSettings = () => api.get('/team/settings/')
+export const updateTeamSettings = (data) => api.put('/team/settings/', data)
+export const getTeamOverview = () => api.get('/team/overview/')
+export const getSkillMatrix = () => api.get('/team/skill-matrix/')
+
+// Team Members
+export const getTeamMembers = (params) => api.get('/team/members/', { params })
+export const getTeamMember = (id) => api.get(`/team/members/${id}/`)
+export const createTeamMember = (data) => api.post('/team/members/', data)
+export const updateTeamMember = (id, data) => api.patch(`/team/members/${id}/`, data)
+export const deleteTeamMember = (id) => api.delete(`/team/members/${id}/`)
+export const uploadMemberPhoto = (id, formData) =>
+  api.post(`/team/members/${id}/photo/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+export const deleteMemberPhoto = (id) => api.delete(`/team/members/${id}/photo/`)
+
+// Weight Tracking
+export const getWeightHistory = (memberId) => api.get(`/team/members/${memberId}/weight-history/`)
+export const logWeight = (memberId, data) => api.post(`/team/members/${memberId}/weight/`, data)
+
+// Medical Tracking
+export const getMedicalHistory = (memberId) => api.get(`/team/members/${memberId}/medical-history/`)
+export const logMedicalChange = (memberId, data) => api.post(`/team/members/${memberId}/medical/`, data)
+export const updateMedicalStatus = (memberId, data) => api.put(`/team/members/${memberId}/medical-status/`, data)
+
+// Mentoring Sessions
+export const getMentoringSessions = (memberId, params) =>
+  api.get(`/team/members/${memberId}/sessions/`, { params })
+export const createMentoringSession = (memberId, data) =>
+  api.post(`/team/members/${memberId}/sessions/`, data)
+export const getMentoringSession = (memberId, sessionId) =>
+  api.get(`/team/members/${memberId}/sessions/${sessionId}/`)
+export const updateMentoringSession = (memberId, sessionId, data) =>
+  api.patch(`/team/members/${memberId}/sessions/${sessionId}/`, data)
+export const getCurrentWeekSession = (memberId) =>
+  api.get(`/team/members/${memberId}/sessions/current-week/`)
+
+// Values Assessment
+export const getValuesHistory = (memberId) => api.get(`/team/members/${memberId}/values-history/`)
+export const getValuesSummary = () => api.get('/team/values-summary/')
+
+// Weekly Observations
+export const getMemberObservations = (memberId, params) =>
+  api.get(`/team/members/${memberId}/observations/`, { params })
+export const createObservation = (memberId, data) =>
+  api.post(`/team/members/${memberId}/observations/`, data)
+export const getWeekObservations = (date) => api.get(`/team/observations/week/${date}/`)
+
+// Weekly AAR
+export const getAARs = (params) => api.get('/team/aar/', { params })
+export const getCurrentAAR = () => api.get('/team/aar/current/')
+export const createAAR = (data) => api.post('/team/aar/', data)
+export const updateAAR = (id, data) => api.patch(`/team/aar/${id}/`, data)
+
+// Readiness
+export const getTeamReadiness = () => api.get('/team/readiness/')
+export const updateMemberReadiness = (memberId, params) =>
+  api.put(`/team/members/${memberId}/readiness/`, null, { params })
+
 export default api

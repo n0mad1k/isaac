@@ -313,6 +313,36 @@ DEFAULT_SETTINGS = {
         "value": "false",
         "description": "Enable feedback submission button for users (typically enabled during user testing)"
     },
+
+    # === Team Management Settings ===
+    "team_enabled": {
+        "value": "false",
+        "description": "Enable the Team Management page in navigation"
+    },
+    "team_name": {
+        "value": "My Team",
+        "description": "Name of your team/unit/family"
+    },
+    "team_mission": {
+        "value": "",
+        "description": "Team mission statement"
+    },
+    "team_units": {
+        "value": "imperial",
+        "description": "Unit system for measurements (imperial or metric)"
+    },
+    "mentoring_day": {
+        "value": "Sunday",
+        "description": "Day of the week for mentoring sessions"
+    },
+    "aar_day": {
+        "value": "Saturday",
+        "description": "Day of the week for After Action Review"
+    },
+    "team_values": {
+        "value": "",
+        "description": "JSON array of team values with names, descriptions, and questions"
+    },
 }
 
 

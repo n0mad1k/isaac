@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Menu, X, LogOut, User, Bug, ChevronDown, ChevronUp, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard } from 'lucide-react'
+import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Menu, X, LogOut, User, Bug, ChevronDown, ChevronUp, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard, UsersRound } from 'lucide-react'
 import { getSettings, getVersionInfo, toggleKeyboard as toggleKeyboardApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import FloatingActionMenu from './FloatingActionMenu'
@@ -10,6 +10,7 @@ function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isDevInstance, setIsDevInstance] = useState(false)
   const [workerTasksEnabled, setWorkerTasksEnabled] = useState(false)
+  const [teamEnabled, setTeamEnabled] = useState(false)
   const [showKeyboardButton, setShowKeyboardButton] = useState(false)
   const [showHardRefreshButton, setShowHardRefreshButton] = useState(true)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -150,6 +151,9 @@ function Layout() {
         // Check worker tasks enabled
         const workerEnabled = settings?.worker_tasks_enabled?.value === 'true'
         setWorkerTasksEnabled(workerEnabled)
+        // Check team enabled
+        const teamIsEnabled = settings?.team_enabled?.value === 'true'
+        setTeamEnabled(teamIsEnabled)
         // Check keyboard button enabled
         const keyboardEnabled = settings?.show_keyboard_button?.value === 'true'
         setShowKeyboardButton(keyboardEnabled)
@@ -216,6 +220,8 @@ function Layout() {
     { to: '/calendar', icon: Calendar, label: 'Calendar' },
     // Worker Tasks only shows when enabled in settings
     ...(workerTasksEnabled ? [{ to: '/worker-tasks', icon: ClipboardList, label: 'Workers' }] : []),
+    // Team shows when enabled in settings
+    ...(teamEnabled ? [{ to: '/team', icon: UsersRound, label: 'Team' }] : []),
     { to: '/plants', icon: Leaf, label: 'Plants' },
     { to: '/seeds', icon: Sprout, label: 'Seeds' },
     { to: '/animals', icon: PawPrint, label: 'Animals' },

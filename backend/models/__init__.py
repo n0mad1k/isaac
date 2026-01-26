@@ -20,6 +20,12 @@ from .workers import Worker
 from .supply_requests import SupplyRequest, RequestStatus
 from .customer_feedback import CustomerFeedback, FeedbackType, FeedbackStatus
 from .translation import TranslationCache
+from .team import (
+    TeamMember, MemberWeightLog, MemberMedicalLog, MentoringSession,
+    ValuesAssessmentHistory, WeeklyObservation, WeeklyAAR,
+    MemberRole, ReadinessStatus, VisionStatus, GoalsMet,
+    ObservationType, ObservationScope
+)
 
 __all__ = [
     "Base",
@@ -83,4 +89,18 @@ __all__ = [
     "FeedbackType",
     "FeedbackStatus",
     "TranslationCache",
+    # Team models
+    "TeamMember",
+    "MemberWeightLog",
+    "MemberMedicalLog",
+    "MentoringSession",
+    "ValuesAssessmentHistory",
+    "WeeklyObservation",
+    "WeeklyAAR",
+    "MemberRole",
+    "ReadinessStatus",
+    "VisionStatus",
+    "GoalsMet",
+    "ObservationType",
+    "ObservationScope",
 ]

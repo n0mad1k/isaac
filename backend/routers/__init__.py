@@ -19,6 +19,7 @@ from .dev_tracker import router as dev_tracker_router
 from .workers import router as workers_router
 from .supply_requests import router as supply_requests_router
 from .customer_feedback import router as customer_feedback_router
+from .team import router as team_router
 
 __all__ = [
     "plants_router",
@@ -38,4 +39,5 @@ __all__ = [
     "workers_router",
     "supply_requests_router",
     "customer_feedback_router",
+    "team_router",
 ]

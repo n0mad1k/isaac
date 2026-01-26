@@ -14,6 +14,7 @@ import FarmAreas from './pages/FarmAreas'
 import Production from './pages/Production'
 import DevTracker from './pages/DevTracker'
 import WorkerTasks from './pages/WorkerTasks'
+import Team from './pages/Team'
 import Login from './pages/Login'
 import AcceptInvite from './pages/AcceptInvite'
 import Layout from './components/Layout'
@@ -68,6 +69,7 @@ function ProtectedRoutes() {
             <Route path="settings" element={<Settings />} />
             <Route path="dev-tracker" element={<DevTracker />} />
             <Route path="worker-tasks" element={<WorkerTasks />} />
+            <Route path="team" element={<Team />} />
           </Route>
           <Route path="/login" element={<Login />} />
         </Routes>
