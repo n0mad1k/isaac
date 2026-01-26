@@ -849,15 +849,13 @@ async def get_calendar_week(
                 if days_diff >= 0 and days_diff % 14 == 0:
                     return target_date
         elif task.recurrence == TaskRecurrence.MONTHLY:
-            # Monthly: same day of month (or closest if month is shorter)
-            if target_date.day == min(original_day, (target_date.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)).day:
+            # Monthly: same day of month
+            # Handle months with fewer days (e.g., Feb doesn't have 31st)
+            import calendar
+            last_day_of_month = calendar.monthrange(target_date.year, target_date.month)[1]
+            target_day = min(original_day, last_day_of_month)
+            if target_date.day == target_day:
                 return target_date
-            # Simpler check: same day of month
-            try:
-                if target_date.day == original_day:
-                    return target_date
-            except:
-                pass
         elif task.recurrence == TaskRecurrence.DAILY:
             return target_date
 
