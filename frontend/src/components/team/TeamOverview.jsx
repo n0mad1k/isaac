@@ -111,14 +111,14 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
           </div>
         )}
 
-        {/* Team Logo */}
-        <div className="flex justify-center py-4">
+        {/* Team Logo - Large and Commanding */}
+        <div className="flex justify-center py-8">
           {settings?.team_logo ? (
             <div className="relative group">
               <img
                 src={`/api/team/logo/${settings.team_logo.split('/').pop()}`}
                 alt="Team Logo"
-                className="max-h-48 max-w-md object-contain"
+                className="max-h-96 max-w-2xl object-contain drop-shadow-2xl"
               />
               <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded">
                 <span className="text-white text-sm flex items-center gap-2">
@@ -135,9 +135,9 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
             </div>
           ) : (
             <label className="cursor-pointer">
-              <div className="w-48 h-32 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-gray-500 hover:text-gray-400 transition-colors">
-                <Image className="w-10 h-10 mb-2" />
-                <span className="text-sm">Upload Team Logo</span>
+              <div className="w-64 h-48 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-gray-500 hover:text-gray-400 transition-colors">
+                <Image className="w-16 h-16 mb-3" />
+                <span className="text-lg">Upload Team Logo</span>
               </div>
               <input
                 type="file"
