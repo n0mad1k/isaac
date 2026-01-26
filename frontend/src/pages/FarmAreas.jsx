@@ -3,6 +3,7 @@ import { Fence, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Leaf, PawPrint, 
 import { getFarmAreas, getFarmArea, createFarmArea, updateFarmArea, deleteFarmArea, getFarmAreaMaintenance, createFarmAreaMaintenance, updateFarmAreaMaintenance, completeFarmAreaMaintenance, deleteFarmAreaMaintenance, getFarmAreaTypes, getTasksByEntity, completeTask, deleteTask } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 import EventModal from '../components/EventModal'
+import MottoDisplay from '../components/MottoDisplay'
 import { useSettings } from '../contexts/SettingsContext'
 
 // Helper to render area type icon
@@ -333,6 +334,7 @@ function FarmAreas() {
           <Fence className="w-8 h-8 text-farm-green" />
           <h1 className="text-2xl font-bold">Farm Areas</h1>
         </div>
+        <MottoDisplay className="hidden md:block" />
         <button
           onClick={() => { setShowAddForm(true); setEditingArea(null); resetForm(); }}
           className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"

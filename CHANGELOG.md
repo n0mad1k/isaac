@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.24.0] - 2026-01-26
+
+### Added
+- **Motto / Mission Statement setting**
+  - Set a motto or mission statement in Settings > Display
+  - Displayed on every page to keep you focused on your purpose
+  - Shows to the right of page titles (hidden on mobile for space)
+  - Centered display on Dashboard above the main content
+
 ## [1.23.5] - 2026-01-24
 
 ### Fixed

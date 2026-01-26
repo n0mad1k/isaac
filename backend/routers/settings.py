@@ -90,6 +90,10 @@ DEFAULT_SETTINGS = {
         "value": "dark",
         "description": "App theme (dark or light)"
     },
+    "motto": {
+        "value": "",
+        "description": "Mission statement or motto displayed on each page"
+    },
 
     # Calendar sync settings
     "calendar_enabled": {

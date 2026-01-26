@@ -10,6 +10,7 @@ import StatsCard from '../components/StatsCard'
 import ColdProtectionWidget from '../components/ColdProtectionWidget'
 import AnimalFeedWidget from '../components/AnimalFeedWidget'
 import BibleVerse from '../components/BibleVerse'
+import MottoDisplay from '../components/MottoDisplay'
 import { useSettings } from '../contexts/SettingsContext'
 
 function Dashboard() {
@@ -201,6 +202,9 @@ function Dashboard() {
 
       {/* Cold Protection Widget - Priority positioning right after alerts */}
       <ColdProtectionWidget onAcknowledge={setAcknowledgedAdvisories} />
+
+      {/* Motto Display */}
+      <MottoDisplay centered className="flex-shrink-0" />
 
       {/* Main Grid */}
       <div ref={mainGridRef} className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 flex-1 min-h-0 overflow-auto">

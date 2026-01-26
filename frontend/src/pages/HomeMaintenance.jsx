@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Home, Plus, Check, Clock, AlertTriangle, ChevronDown, ChevronUp, X, Wrench, Calendar, Droplets, Zap, Wind, Flame, Car, Waves, ShieldCheck, Settings, Snowflake, Fan, Thermometer, Trash2, Lightbulb, Gauge, Box, Shirt, Server } from 'lucide-react'
 import { getHomeMaintenance, createHomeMaintenance, updateHomeMaintenance, deleteHomeMaintenance, completeHomeMaintenance, getHomeMaintenanceCategories } from '../services/api'
+import MottoDisplay from '../components/MottoDisplay'
 import { format, formatDistanceToNow } from 'date-fns'
 
 // Available icons for category selection - using CSS variable compatible styles
@@ -284,6 +285,7 @@ function HomeMaintenance() {
           <Home className="w-8 h-8" style={{ color: 'var(--color-green-600)' }} />
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Home Maintenance</h1>
         </div>
+        <MottoDisplay className="hidden md:block" />
         <button
           onClick={() => { setShowAddForm(true); setEditingTask(null); resetForm(); }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"

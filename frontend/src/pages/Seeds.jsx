@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil, AlertTriangle } from 'lucide-react'
 import { getSeeds, createSeed, updateSeed, deleteSeed, getSeedStats, getSeedCategories } from '../services/api'
+import MottoDisplay from '../components/MottoDisplay'
 
 // Reusable inline editable field component
 function EditableField({ label, value, onChange, type = 'text', options = null, placeholder = '', rows = 1, editing = true }) {
@@ -754,6 +755,7 @@ function Seeds() {
           <Sprout className="w-7 h-7 text-green-500" />
           Seed Catalog
         </h1>
+        <MottoDisplay className="hidden md:block" />
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"

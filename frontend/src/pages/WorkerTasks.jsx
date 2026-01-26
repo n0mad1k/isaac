@@ -4,6 +4,7 @@ import { getWorkers, getWorker, createWorker, updateWorker, deleteWorker, getWor
 import { format } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
 import EventModal from '../components/EventModal'
+import MottoDisplay from '../components/MottoDisplay'
 import enTranslations from '../locales/en.json'
 import esTranslations from '../locales/es.json'
 
@@ -442,6 +443,7 @@ function WorkerTasks() {
           <ClipboardList className="w-8 h-8 text-farm-green" />
           <h1 className="text-2xl font-bold">{t('pageTitle')}</h1>
         </div>
+        <MottoDisplay className="hidden md:block" />
       </div>
 
       {error && (

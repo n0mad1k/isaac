@@ -12,6 +12,7 @@ import {
   X,
   ShoppingCart,
 } from 'lucide-react'
+import MottoDisplay from '../components/MottoDisplay'
 import {
   getProductionStats,
   getLivestockProductions,
@@ -179,6 +180,7 @@ function Production() {
           <Package className="w-7 h-7 text-orange-500" />
           Production & Sales
         </h1>
+        <MottoDisplay className="hidden md:block" />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSaleModal(true)}

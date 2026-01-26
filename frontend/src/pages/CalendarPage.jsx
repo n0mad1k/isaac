@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Pencil, RefreshCw, Clock, CheckSquare, MapPin, Wrench } from 'lucide-react'
 import { getCalendarMonth, getCalendarWeek, createTask, updateTask, deleteTask, completeTask, uncompleteTask, syncCalendar } from '../services/api'
 import EventModal from '../components/EventModal'
+import MottoDisplay from '../components/MottoDisplay'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, addDays, subDays, startOfWeek, addWeeks, subWeeks, isSameDay } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
 
@@ -180,6 +181,7 @@ function CalendarPage() {
           <CalendarIcon className="w-7 h-7" style={{ color: 'var(--color-teal-600)' }} />
           Calendar
         </h1>
+        <MottoDisplay className="hidden lg:block" />
         <div className="flex items-center gap-2 flex-wrap">
           {/* View Switcher */}
           <div className="flex rounded-lg p-1" style={{ backgroundColor: 'var(--color-bg-surface-muted)' }}>

@@ -10,6 +10,7 @@ import {
 } from '../services/api'
 import { Download, ExternalLink, Loader2 } from 'lucide-react'
 import EventModal from '../components/EventModal'
+import MottoDisplay from '../components/MottoDisplay'
 
 // Inline editable field component
 function EditableField({ label, value, field, type = 'text', options, onChange, placeholder, rows = 3, editing = true, displayValue }) {
@@ -463,6 +464,7 @@ function Plants() {
           <Leaf className="w-7 h-7 text-green-500" />
           Plants & Trees
         </h1>
+        <MottoDisplay className="hidden md:block" />
         <div className="flex gap-2">
           <button
             onClick={() => setShowImportModal(true)}

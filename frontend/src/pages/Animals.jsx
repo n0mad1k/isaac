@@ -6,6 +6,7 @@ import {
   Trash2, Download, FileText, Bird, Rabbit, Egg
 } from 'lucide-react'
 import EventModal from '../components/EventModal'
+import MottoDisplay from '../components/MottoDisplay'
 import { useSettings } from '../contexts/SettingsContext'
 import {
   getAnimals, createAnimal, updateAnimal, deleteAnimal, addAnimalCareLog,
@@ -585,6 +586,7 @@ function Animals() {
           <PawPrint className="w-7 h-7" style={{ color: 'var(--color-teal-600)' }} />
           Animals
         </h1>
+        <MottoDisplay className="hidden md:block" />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowBulkCareForm(true)}

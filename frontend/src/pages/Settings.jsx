@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages } from 'lucide-react'
 import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import MottoDisplay from '../components/MottoDisplay'
 
 function Settings() {
   const { isAdmin, user } = useAuth()
@@ -868,6 +869,7 @@ function Settings() {
           <SettingsIcon className="w-7 h-7 text-gray-400" />
           Settings
         </h1>
+        <MottoDisplay className="hidden md:block" />
         <div className="flex items-center gap-2">
           <button
             onClick={handleResetAll}
@@ -1805,6 +1807,22 @@ function Settings() {
             </p>
             <div className="space-y-4">
               {renderSettingCard('dashboard_refresh_interval')}
+
+              {/* Motto/Mission Statement */}
+              <div className="bg-gray-750 rounded-lg p-4">
+                <div>
+                  <h3 className="font-medium">Motto / Mission Statement</h3>
+                  <p className="text-sm text-gray-400 mb-2">A reminder displayed on every page to keep you focused on your purpose</p>
+                  <input
+                    type="text"
+                    value={settings.motto?.value || ''}
+                    onChange={(e) => handleChange('motto', e.target.value)}
+                    placeholder="Enter your farm's motto or mission statement..."
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:border-farm-green focus:ring-1 focus:ring-farm-green"
+                    maxLength={200}
+                  />
+                </div>
+              </div>
 
               {/* Time Format Toggle */}
               <div className="bg-gray-750 rounded-lg p-4">

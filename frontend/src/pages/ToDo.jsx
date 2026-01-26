@@ -38,6 +38,7 @@ import {
 } from '../services/api'
 import { format, isAfter, startOfDay, parseISO, addDays, endOfWeek, endOfMonth, isWithinInterval, isSameDay, isToday, isTomorrow } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
+import MottoDisplay from '../components/MottoDisplay'
 
 function ToDo() {
   const { formatTime } = useSettings()
@@ -323,6 +324,7 @@ function ToDo() {
           <ListTodo className="w-7 h-7 text-yellow-500" />
           To Do
         </h1>
+        <MottoDisplay className="hidden md:block" />
         <div className="flex items-center gap-2">
           <button
             onClick={handleSync}

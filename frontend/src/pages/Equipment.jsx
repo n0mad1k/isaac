@@ -3,6 +3,7 @@ import { Wrench, Plus, Check, X, ChevronDown, ChevronUp, Clock, Edit, Calendar, 
 import { getEquipment, createEquipment, updateEquipment, deleteEquipment, getEquipmentMaintenance, createEquipmentMaintenance, updateEquipmentMaintenance, completeEquipmentMaintenance, deleteEquipmentMaintenance, getEquipmentTypes, getFarmAreas, getTasksByEntity, completeTask, deleteTask } from '../services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 import EventModal from '../components/EventModal'
+import MottoDisplay from '../components/MottoDisplay'
 import { useSettings } from '../contexts/SettingsContext'
 
 // Helper to render equipment type icon
@@ -420,6 +421,7 @@ function Equipment() {
           <Wrench className="w-8 h-8 text-farm-green" />
           <h1 className="text-2xl font-bold">Equipment & Tools</h1>
         </div>
+        <MottoDisplay className="hidden md:block" />
         <button
           onClick={() => { setShowAddForm(true); setEditingEquipment(null); resetForm(); }}
           className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
