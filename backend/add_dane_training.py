@@ -2,11 +2,12 @@
 """
 Add Dane's weekly training schedule to the calendar.
 Run this script from the backend directory:
-    cd /opt/isaac/backend && source venv/bin/activate && python /opt/isaac/scripts/add_dane_training.py
+    cd /opt/isaac/backend && source venv/bin/activate && python add_dane_training.py
 """
 
 import sys
-sys.path.insert(0, '/opt/isaac/backend')
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from datetime import date
 from sqlalchemy.orm import Session
