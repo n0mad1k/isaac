@@ -657,7 +657,7 @@ function Settings() {
   const calendarSettings = ['calendar_enabled', 'calendar_url', 'calendar_username', 'calendar_password', 'calendar_name', 'calendar_sync_interval']
   const cloudflareSettings = ['cloudflare_api_token', 'cloudflare_account_id', 'cloudflare_app_id']
   const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
-  const displaySettings = ['dashboard_refresh_interval', 'hide_completed_today', 'time_format', 'worker_tasks_enabled']
+  const displaySettings = ['dashboard_refresh_interval', 'hide_completed_today', 'time_format', 'worker_tasks_enabled', 'team_enabled']
 
   // Simplified notification categories - one setting per category
   const notifyCategories = [
@@ -1932,6 +1932,30 @@ function Settings() {
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                         settings.worker_tasks_enabled?.value === 'true' ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Team Management Page Toggle */}
+              <div className="bg-gray-750 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Team Management Page</h3>
+                    <p className="text-sm text-gray-400">Enable the Team page for member dossiers, mentoring, and AAR</p>
+                  </div>
+                  <button
+                    onClick={() => handleChange('team_enabled', settings.team_enabled?.value === 'true' ? 'false' : 'true')}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.team_enabled?.value === 'true'
+                        ? 'bg-farm-green'
+                        : 'bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.team_enabled?.value === 'true' ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
                   </button>
