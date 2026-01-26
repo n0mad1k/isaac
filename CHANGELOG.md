@@ -19,6 +19,9 @@ All notable changes to Isaac will be documented in this file.
   - Visual gap between back-to-back events for clarity
 
 ### Fixed
+- **Recurring events now display in future calendar weeks**
+  - Weekly, biweekly, monthly, and daily events project correctly
+  - Navigate forward in calendar to see recurring schedule
 - Duplicate className warnings on Seeds, Vehicles, FarmAreas pages
 
 ## [1.23.5] - 2026-01-24
