@@ -52,7 +52,19 @@ function CalendarPage() {
           weekStart.getDate()
         )
         setEvents(response.data.tasks || {})
+      } else if (view === 'day') {
+        // Day view: fetch just that day using week endpoint (more efficient than month)
+        const response = await getCalendarWeek(
+          currentDate.getFullYear(),
+          currentDate.getMonth() + 1,
+          currentDate.getDate()
+        )
+        // Filter to just the current day
+        const dateKey = format(currentDate, 'yyyy-MM-dd')
+        const dayEvents = response.data.tasks?.[dateKey] || []
+        setEvents({ [dateKey]: dayEvents })
       } else {
+        // Month view
         const year = currentDate.getFullYear()
         const month = currentDate.getMonth() + 1
         const response = await getCalendarMonth(year, month)
