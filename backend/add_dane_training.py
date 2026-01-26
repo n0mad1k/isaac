@@ -5,17 +5,33 @@ Run this script from the backend directory:
     cd /opt/isaac/backend && source venv/bin/activate && python add_dane_training.py
 """
 
+import asyncio
+from datetime import date
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
+# Database setup (matching main app config)
+DATABASE_URL = "sqlite+aiosqlite:///./data/levi.db"
+
+engine = create_async_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+)
+
+async_session = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+# Import models after setting up path
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from datetime import date
-from sqlalchemy.orm import Session
-from models.database import SessionLocal, engine
 from models.tasks import Task, TaskType, TaskCategory, TaskRecurrence
 
 # Calculate dates for this week (starting from today 2026-01-26 Monday)
-# We need a date for each day of the week to set the recurrence anchor
 DATES = {
     'monday': date(2026, 1, 26),
     'tuesday': date(2026, 1, 27),
@@ -214,7 +230,7 @@ EVENTS = [
     {
         'title': 'Dane - Long Training Day',
         'description': 'Extended skill block (2-4 hrs) - range day, land nav course, medical scenario, drone mission, or comms field exercise. Rotate focus monthly.',
-        'due_date': DATES['saturday'],  # First Saturday
+        'due_date': DATES['saturday'],
         'due_time': '08:00',
         'end_time': '12:00',
         'recurrence': TaskRecurrence.MONTHLY,
@@ -232,21 +248,23 @@ EVENTS = [
 ]
 
 
-def add_events():
+async def add_events():
     """Add all training events to the database."""
-    db = SessionLocal()
-    try:
+    async with async_session() as db:
         added = 0
         skipped = 0
 
         for event_data in EVENTS:
-            # Check if event already exists (by title and due_time on same weekday)
-            existing = db.query(Task).filter(
-                Task.title == event_data['title'],
-                Task.due_time == event_data['due_time'],
-                Task.recurrence == event_data['recurrence'],
-                Task.is_active == True
-            ).first()
+            # Check if event already exists
+            result = await db.execute(
+                select(Task).where(
+                    Task.title == event_data['title'],
+                    Task.due_time == event_data['due_time'],
+                    Task.recurrence == event_data['recurrence'],
+                    Task.is_active == True
+                )
+            )
+            existing = result.scalar_one_or_none()
 
             if existing:
                 print(f"  SKIP: {event_data['title']} (already exists)")
@@ -266,24 +284,17 @@ def add_events():
                 priority=2,
                 is_active=True,
                 is_completed=False,
-                notify_email=False,  # Don't spam email for training blocks
+                notify_email=False,
             )
 
             db.add(task)
             print(f"  ADD: {event_data['title']} ({event_data['due_date'].strftime('%A')} {event_data['due_time']}-{event_data['end_time']})")
             added += 1
 
-        db.commit()
+        await db.commit()
         print(f"\nDone! Added {added} events, skipped {skipped} duplicates.")
-
-    except Exception as e:
-        db.rollback()
-        print(f"Error: {e}")
-        raise
-    finally:
-        db.close()
 
 
 if __name__ == '__main__':
     print("Adding Dane's training schedule to Isaac calendar...\n")
-    add_events()
+    asyncio.run(add_events())
