@@ -423,9 +423,8 @@ function Equipment() {
         </div>
         <MottoDisplay />
         <button
-          className="flex-shrink-0"
           onClick={() => { setShowAddForm(true); setEditingEquipment(null); resetForm(); }}
-          className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
+          className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
         >
           <Plus className="w-5 h-5" />
           Add Equipment

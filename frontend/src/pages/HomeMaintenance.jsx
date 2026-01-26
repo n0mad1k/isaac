@@ -287,9 +287,8 @@ function HomeMaintenance() {
         </div>
         <MottoDisplay />
         <button
-          className="flex-shrink-0"
           onClick={() => { setShowAddForm(true); setEditingTask(null); resetForm(); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+          className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
           style={{ backgroundColor: 'var(--color-green-600)', color: '#ffffff' }}
         >
           <Plus className="w-5 h-5" />
