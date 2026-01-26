@@ -7,8 +7,12 @@ import { useSettings } from '../contexts/SettingsContext'
  * - Dashboard: className="text-center" (overrides right alignment)
  */
 export default function MottoDisplay({ className = '', centered = false }) {
-  const { getSetting } = useSettings()
-  const motto = getSetting('motto', '')
+  const settings = useSettings()
+
+  // Safety check - don't crash if settings context isn't ready
+  if (!settings || !settings.getSetting) return null
+
+  const motto = settings.getSetting('motto', '')
 
   if (!motto) return null
 
