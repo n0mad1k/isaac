@@ -456,6 +456,61 @@ function CurrentTimeIndicator({ currentTime }) {
 }
 
 
+// Helper function to calculate positions for overlapping events
+function calculateEventPositions(events) {
+  if (!events || events.length === 0) return []
+
+  // Convert events to time ranges (in minutes from midnight)
+  const eventsWithTime = events.map(event => {
+    const [startH, startM] = (event.due_time || '00:00').split(':').map(Number)
+    const startMinutes = startH * 60 + startM
+    let endMinutes = startMinutes + 60 // Default 1 hour
+    if (event.end_time) {
+      const [endH, endM] = event.end_time.split(':').map(Number)
+      endMinutes = endH * 60 + endM
+    }
+    return { event, start: startMinutes, end: endMinutes }
+  })
+
+  // Sort by start time, then by duration (longer events first)
+  eventsWithTime.sort((a, b) => {
+    if (a.start !== b.start) return a.start - b.start
+    return (b.end - b.start) - (a.end - a.start)
+  })
+
+  // Assign columns to each event
+  const result = []
+  const columns = [] // Track end times for each column
+
+  for (const item of eventsWithTime) {
+    // Find the first column where this event fits (doesn't overlap)
+    let column = 0
+    while (column < columns.length && columns[column] > item.start) {
+      column++
+    }
+
+    // Assign this event to the column
+    columns[column] = item.end
+
+    result.push({
+      event: item.event,
+      column,
+      start: item.start,
+      end: item.end
+    })
+  }
+
+  // Calculate total columns for each event (max columns at that time)
+  const totalColumns = columns.length || 1
+
+  return result.map(item => ({
+    event: item.event,
+    column: item.column,
+    totalColumns
+  }))
+}
+
+
 // Week View Component
 function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, onAddEvent, onToggleComplete, formatTime }) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 })
@@ -544,6 +599,10 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
           {weekDays.map((day) => {
             const { timed } = getEventsForDay(day)
             const isTodayColumn = isToday(day)
+
+            // Calculate overlapping event positions
+            const eventsWithPosition = calculateEventPositions(timed)
+
             return (
               <div
                 key={`grid-${format(day, 'yyyy-MM-dd')}`}
@@ -564,7 +623,7 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
                 {/* Current time indicator - only show on today's column */}
                 {isTodayColumn && <CurrentTimeIndicator currentTime={currentTime} />}
                 {/* Render timed events */}
-                {timed.map((event) => {
+                {eventsWithPosition.map(({ event, column, totalColumns }) => {
                   const [hours, minutes] = (event.due_time || '00:00').split(':').map(Number)
                   const top = hours * 60 + minutes
                   const duration = event.end_time
@@ -575,13 +634,18 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
                     : 60
                   // Subtract 2px to create visual gap between back-to-back events
                   const displayHeight = Math.max(duration - 2, 18)
+                  // Calculate width and left position for overlapping events
+                  const widthPercent = (100 / totalColumns) - 2
+                  const leftPercent = (column * (100 / totalColumns)) + 1
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-1 right-1 rounded px-1 text-xs cursor-pointer overflow-hidden"
+                      className="absolute rounded px-1 text-xs cursor-pointer overflow-hidden"
                       style={{
                         top: `${top}px`,
                         height: `${displayHeight}px`,
+                        left: `${leftPercent}%`,
+                        width: `${widthPercent}%`,
                         backgroundColor: event.is_completed ? 'var(--color-bg-surface-muted)' :
                           event.task_type === 'todo' ? 'var(--color-info-bg)' : 'var(--color-green-600)',
                         color: event.is_completed ? 'var(--color-text-muted)' :
