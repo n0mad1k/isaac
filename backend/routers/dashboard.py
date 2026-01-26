@@ -15,7 +15,7 @@ import re
 from models.database import get_db
 from models.plants import Plant
 from models.livestock import Animal, AnimalType, AnimalCareSchedule
-from models.tasks import Task, TaskCategory, TaskType
+from models.tasks import Task, TaskCategory, TaskType, TaskRecurrence
 from models.weather import WeatherReading, WeatherAlert
 from models.farm_areas import FarmArea
 from models.vehicles import Vehicle
@@ -818,6 +818,61 @@ async def get_calendar_week(
     )
     tasks = result.scalars().all()
 
+    # Also fetch recurring tasks that might project into this date range
+    result = await db.execute(
+        select(Task)
+        .where(Task.recurrence != TaskRecurrence.ONCE)
+        .where(Task.is_active == True)
+        .where(Task.assigned_to_worker_id.is_(None))
+        .where(Task.due_date < start_date)  # Only past recurring events
+    )
+    recurring_tasks = result.scalars().all()
+
+    # Helper to check if a recurring task should appear on a given date
+    def get_recurring_date_in_range(task, target_date):
+        """Check if this recurring task should appear on target_date"""
+        if not task.due_date or not task.recurrence:
+            return None
+
+        original_weekday = task.due_date.weekday()
+        original_day = task.due_date.day
+        original_month = task.due_date.month
+
+        if task.recurrence == TaskRecurrence.WEEKLY:
+            # Weekly: same day of week
+            if target_date.weekday() == original_weekday:
+                return target_date
+        elif task.recurrence == TaskRecurrence.BIWEEKLY:
+            # Biweekly: same day of week, every 2 weeks from original
+            if target_date.weekday() == original_weekday:
+                days_diff = (target_date - task.due_date).days
+                if days_diff >= 0 and days_diff % 14 == 0:
+                    return target_date
+        elif task.recurrence == TaskRecurrence.MONTHLY:
+            # Monthly: same day of month (or closest if month is shorter)
+            if target_date.day == min(original_day, (target_date.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)).day:
+                return target_date
+            # Simpler check: same day of month
+            try:
+                if target_date.day == original_day:
+                    return target_date
+            except:
+                pass
+        elif task.recurrence == TaskRecurrence.DAILY:
+            return target_date
+
+        return None
+
+    # Project recurring tasks into the date range
+    projected_tasks = []
+    current_date = start_date
+    while current_date <= end_date:
+        for task in recurring_tasks:
+            if get_recurring_date_in_range(task, current_date):
+                # Create a "virtual" instance for this date
+                projected_tasks.append((task, current_date))
+        current_date += timedelta(days=1)
+
     # Group by date - add multi-day events to each day they span
     calendar = {}
     for task in tasks:
@@ -853,6 +908,40 @@ async def get_calendar_week(
                 "is_span_end": current == task_end,
             })
             current += timedelta(days=1)
+
+    # Add projected recurring tasks to the calendar
+    for task, projected_date in projected_tasks:
+        date_str = projected_date.isoformat()
+        if date_str not in calendar:
+            calendar[date_str] = []
+        # Avoid duplicates (in case the task was also fetched in the main query)
+        existing_ids = [t["id"] for t in calendar[date_str]]
+        if task.id not in existing_ids:
+            calendar[date_str].append({
+                "id": task.id,
+                "title": task.title,
+                "task_type": task.task_type.value if task.task_type else "event",
+                "category": task.category.value if task.category else "custom",
+                "priority": task.priority,
+                "is_completed": False,  # Projected instances are not completed
+                "due_date": projected_date.isoformat(),  # Use projected date
+                "end_date": None,
+                "due_time": task.due_time,
+                "end_time": task.end_time,
+                "location": task.location,
+                "description": task.description,
+                "linked_location": get_task_linked_location(task),
+                "linked_entity": get_task_linked_entity(task),
+                "is_multi_day": False,
+                "is_span_start": True,
+                "is_span_end": True,
+                "is_recurring": True,  # Mark as recurring projection
+                "recurrence": task.recurrence.value if task.recurrence else None,
+            })
+
+    # Sort each day's events by time
+    for date_str in calendar:
+        calendar[date_str].sort(key=lambda x: (x.get("due_time") or "99:99", x.get("priority", 2)))
 
     return {
         "start_date": start_date.isoformat(),
