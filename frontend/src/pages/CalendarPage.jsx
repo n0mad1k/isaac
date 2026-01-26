@@ -573,13 +573,15 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
                         return (endH * 60 + endM) - top
                       })()
                     : 60
+                  // Subtract 2px to create visual gap between back-to-back events
+                  const displayHeight = Math.max(duration - 2, 18)
                   return (
                     <div
                       key={event.id}
-                      className="absolute left-1 right-1 rounded px-1 py-0.5 text-xs cursor-pointer overflow-hidden"
+                      className="absolute left-1 right-1 rounded px-1 text-xs cursor-pointer overflow-hidden"
                       style={{
                         top: `${top}px`,
-                        minHeight: `${Math.max(duration, 20)}px`,
+                        height: `${displayHeight}px`,
                         backgroundColor: event.is_completed ? 'var(--color-bg-surface-muted)' :
                           event.task_type === 'todo' ? 'var(--color-info-bg)' : 'var(--color-green-600)',
                         color: event.is_completed ? 'var(--color-text-muted)' :
