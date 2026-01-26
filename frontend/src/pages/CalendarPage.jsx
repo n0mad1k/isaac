@@ -478,36 +478,35 @@ function calculateEventPositions(events) {
     return (b.end - b.start) - (a.end - a.start)
   })
 
-  // Assign columns to each event
+  // Find overlapping groups and assign columns
   const result = []
-  const columns = [] // Track end times for each column
 
-  for (const item of eventsWithTime) {
-    // Find the first column where this event fits (doesn't overlap)
-    let column = 0
-    while (column < columns.length && columns[column] > item.start) {
-      column++
-    }
+  for (let i = 0; i < eventsWithTime.length; i++) {
+    const item = eventsWithTime[i]
 
-    // Assign this event to the column
-    columns[column] = item.end
+    // Find all events that overlap with this one
+    const overlapping = eventsWithTime.filter(other =>
+      other.start < item.end && other.end > item.start
+    )
+
+    // Sort overlapping events by start time to assign consistent columns
+    overlapping.sort((a, b) => {
+      if (a.start !== b.start) return a.start - b.start
+      return (b.end - b.start) - (a.end - a.start)
+    })
+
+    // Find this event's position in the overlapping group
+    const column = overlapping.findIndex(e => e.event.id === item.event.id)
+    const totalColumns = overlapping.length
 
     result.push({
       event: item.event,
-      column,
-      start: item.start,
-      end: item.end
+      column: column >= 0 ? column : 0,
+      totalColumns
     })
   }
 
-  // Calculate total columns for each event (max columns at that time)
-  const totalColumns = columns.length || 1
-
-  return result.map(item => ({
-    event: item.event,
-    column: item.column,
-    totalColumns
-  }))
+  return result
 }
 
 
