@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import {
-  User, Heart, Brain, Target, MessageSquare, Activity,
+  User, Heart, Brain, MessageSquare, Activity,
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle,
   Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus
 } from 'lucide-react'
 import {
   getWeightHistory, logWeight, getMedicalHistory, updateMedicalStatus,
-  getMentoringSessions, createMentoringSession, getValuesHistory,
+  getMentoringSessions, createMentoringSession,
   getMemberObservations, createObservation, uploadMemberPhoto, deleteMemberPhoto
 } from '../../services/api'
 import MemberMentoringTab from './MemberMentoringTab'
@@ -21,7 +21,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [weightHistory, setWeightHistory] = useState([])
   const [medicalHistory, setMedicalHistory] = useState([])
   const [sessions, setSessions] = useState([])
-  const [valuesHistory, setValuesHistory] = useState([])
   const [observations, setObservations] = useState([])
 
   // Load tab-specific data
@@ -41,10 +40,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
           case 'mentoring':
             const sessRes = await getMentoringSessions(member.id)
             setSessions(sessRes.data)
-            break
-          case 'values':
-            const valRes = await getValuesHistory(member.id)
-            setValuesHistory(valRes.data)
             break
           case 'observations':
             const obsRes = await getMemberObservations(member.id)
@@ -135,7 +130,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'medical', label: 'Medical', icon: Heart },
     { id: 'mentoring', label: 'Mentoring', icon: Brain },
-    { id: 'values', label: 'Values', icon: Target },
     { id: 'observations', label: 'Observations', icon: MessageSquare },
     { id: 'weight', label: 'Weight', icon: Activity },
   ]
@@ -371,6 +365,40 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   </div>
                 )}
 
+                {/* Allergies & Medical Conditions */}
+                <div className="bg-gray-700 rounded-lg p-4">
+                  <h3 className="font-semibold mb-3 text-red-400 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    Allergies
+                  </h3>
+                  {member.allergies && member.allergies.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {member.allergies.map((allergy, idx) => (
+                        <span key={idx} className="px-2 py-1 bg-red-900/50 text-red-300 rounded text-sm">
+                          {allergy}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-sm">No known allergies</p>
+                  )}
+                </div>
+
+                <div className="bg-gray-700 rounded-lg p-4">
+                  <h3 className="font-semibold mb-3">Medical Conditions</h3>
+                  {member.medical_conditions && member.medical_conditions.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {member.medical_conditions.map((condition, idx) => (
+                        <span key={idx} className="px-2 py-1 bg-orange-900/50 text-orange-300 rounded text-sm">
+                          {condition}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-sm">None reported</p>
+                  )}
+                </div>
+
                 {/* Emergency Contact */}
                 {(member.emergency_contact_name || member.emergency_contact_phone) && (
                   <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 md:col-span-2">
@@ -465,38 +493,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   )}
                 </div>
 
-                {/* Allergies & Conditions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <h3 className="font-semibold mb-3 text-red-400">Allergies</h3>
-                    {member.allergies && member.allergies.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {member.allergies.map((allergy, idx) => (
-                          <span key={idx} className="px-2 py-1 bg-red-900/50 text-red-300 rounded text-sm">
-                            {allergy}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-gray-400 text-sm">No known allergies</p>
-                    )}
-                  </div>
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <h3 className="font-semibold mb-3">Medical Conditions</h3>
-                    {member.medical_conditions && member.medical_conditions.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {member.medical_conditions.map((condition, idx) => (
-                          <span key={idx} className="px-2 py-1 bg-orange-900/50 text-orange-300 rounded text-sm">
-                            {condition}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-gray-400 text-sm">None reported</p>
-                    )}
-                  </div>
-                </div>
-
                 {/* Current Medications */}
                 {member.current_medications && member.current_medications.length > 0 && (
                   <div className="bg-gray-700 rounded-lg p-4">
@@ -545,66 +541,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   setSessions(sessRes.data)
                 }}
               />
-            )}
-
-            {/* Values Tab */}
-            {activeTab === 'values' && (
-              <div className="space-y-4">
-                {settings?.team_values && settings.team_values.length > 0 ? (
-                  <>
-                    {/* Current Assessment Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {settings.team_values.map(value => {
-                        const recentRatings = valuesHistory
-                          .filter(h => h.value_name === value.name)
-                          .slice(0, 5)
-                        const avgRating = recentRatings.length > 0
-                          ? (recentRatings.reduce((sum, r) => sum + r.rating, 0) / recentRatings.length).toFixed(1)
-                          : 'N/A'
-
-                        return (
-                          <div key={value.name} className="bg-gray-700 rounded-lg p-4">
-                            <h4 className="font-semibold mb-1">{value.name}</h4>
-                            <p className="text-sm text-gray-400 mb-3">{value.description}</p>
-                            <div className="flex items-center gap-2">
-                              <span className="text-2xl font-bold">{avgRating}</span>
-                              <span className="text-gray-400 text-sm">/ 5 avg</span>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {recentRatings.length} recent assessments
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-
-                    {/* History */}
-                    {valuesHistory.length > 0 && (
-                      <div className="bg-gray-700 rounded-lg p-4">
-                        <h3 className="font-semibold mb-3">Assessment History</h3>
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                          {valuesHistory.map(entry => (
-                            <div key={entry.id} className="text-sm flex items-center gap-4 py-2 border-b border-gray-600 last:border-0">
-                              <span className="text-gray-400 w-24">{formatDate(entry.assessment_date)}</span>
-                              <span className="w-24 font-medium">{entry.value_name}</span>
-                              <span className="px-2 py-0.5 bg-farm-green/20 text-farm-green rounded">
-                                {entry.rating}/5
-                              </span>
-                              {entry.notes && <span className="text-gray-400 flex-1">{entry.notes}</span>}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center text-gray-400 py-8">
-                    <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No team values configured</p>
-                    <p className="text-sm">Configure values in Team Settings</p>
-                  </div>
-                )}
-              </div>
             )}
 
             {/* Observations Tab */}
