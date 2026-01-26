@@ -749,13 +749,15 @@ function Seeds() {
 
   return (
     <div className="space-y-6">
+      {/* Motto */}
+      <MottoDisplay />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Sprout className="w-7 h-7 text-green-500" />
           Seed Catalog
         </h1>
-        <MottoDisplay className="" />
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"

@@ -279,13 +279,15 @@ function HomeMaintenance() {
 
   return (
     <div className="space-y-4">
+      {/* Motto */}
+      <MottoDisplay />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Home className="w-8 h-8" style={{ color: 'var(--color-green-600)' }} />
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Home Maintenance</h1>
         </div>
-        <MottoDisplay className="" />
         <button
           onClick={() => { setShowAddForm(true); setEditingTask(null); resetForm(); }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"

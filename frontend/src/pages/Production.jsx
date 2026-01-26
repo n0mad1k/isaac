@@ -174,13 +174,15 @@ function Production() {
 
   return (
     <div className="space-y-6">
+      {/* Motto */}
+      <MottoDisplay />
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Package className="w-7 h-7 text-orange-500" />
           Production & Sales
         </h1>
-        <MottoDisplay className="" />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSaleModal(true)}

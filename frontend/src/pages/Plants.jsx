@@ -458,13 +458,15 @@ function Plants() {
 
   return (
     <div className="space-y-6">
+      {/* Motto */}
+      <MottoDisplay />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Leaf className="w-7 h-7 text-green-500" />
           Plants & Trees
         </h1>
-        <MottoDisplay className="" />
         <div className="flex gap-2">
           <button
             onClick={() => setShowImportModal(true)}

@@ -863,13 +863,15 @@ function Settings() {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {/* Motto */}
+      <MottoDisplay />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <SettingsIcon className="w-7 h-7 text-gray-400" />
           Settings
         </h1>
-        <MottoDisplay className="" />
         <div className="flex items-center gap-2">
           <button
             onClick={handleResetAll}

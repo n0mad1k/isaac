@@ -328,13 +328,15 @@ function FarmAreas() {
 
   return (
     <div className="space-y-4">
+      {/* Motto */}
+      <MottoDisplay />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Fence className="w-8 h-8 text-farm-green" />
           <h1 className="text-2xl font-bold">Farm Areas</h1>
         </div>
-        <MottoDisplay className="" />
         <button
           onClick={() => { setShowAddForm(true); setEditingArea(null); resetForm(); }}
           className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
