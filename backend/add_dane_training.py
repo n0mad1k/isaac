@@ -255,12 +255,13 @@ async def add_events():
         skipped = 0
 
         for event_data in EVENTS:
-            # Check if event already exists
+            # Check if event already exists (must match title, time, recurrence, AND weekday)
             result = await db.execute(
                 select(Task).where(
                     Task.title == event_data['title'],
                     Task.due_time == event_data['due_time'],
                     Task.recurrence == event_data['recurrence'],
+                    Task.due_date == event_data['due_date'],
                     Task.is_active == True
                 )
             )
