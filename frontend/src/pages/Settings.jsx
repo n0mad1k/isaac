@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages } from 'lucide-react'
+import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target } from 'lucide-react'
 import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
@@ -79,11 +79,13 @@ function Settings() {
     calendar: false,
     cloudflare: false,
     display: false,
+    team: false,
     translation: false,
     bible: false,
     storage: false,
     myFeedback: true
   })
+  const [teamValues, setTeamValues] = useState([])
 
   // Fields that should be treated as passwords
   const passwordFields = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token', 'deepl_api_key']
@@ -94,6 +96,15 @@ function Settings() {
       setSettings(response.data.settings)
       setOriginalSettings(JSON.parse(JSON.stringify(response.data.settings)))
       setHasChanges(false)
+      // Parse team_values JSON
+      const teamValuesStr = response.data.settings?.team_values?.value
+      if (teamValuesStr) {
+        try {
+          setTeamValues(JSON.parse(teamValuesStr))
+        } catch (e) {
+          setTeamValues([])
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch settings:', error)
       setMessage({ type: 'error', text: 'Failed to load settings' })
@@ -658,6 +669,7 @@ function Settings() {
   const cloudflareSettings = ['cloudflare_api_token', 'cloudflare_account_id', 'cloudflare_app_id']
   const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
   const displaySettings = ['dashboard_refresh_interval', 'hide_completed_today', 'time_format', 'worker_tasks_enabled', 'team_enabled']
+  const teamSettings = ['team_name', 'team_mission', 'team_units', 'mentoring_day', 'aar_day']
 
   // Simplified notification categories - one setting per category
   const notifyCategories = [
@@ -2015,6 +2027,202 @@ function Settings() {
           </div>
         )}
       </div>
+
+      {/* Team Configuration - Only show when team is enabled */}
+      {settings.team_enabled?.value === 'true' && (
+        <div className="bg-gray-800 rounded-xl p-6">
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('team')}
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              {expandedSections.team ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              <UsersRound className="w-5 h-5 text-green-400" />
+              Team Configuration
+            </h2>
+          </div>
+          {expandedSections.team && (
+            <div className="mt-4 space-y-6">
+              <p className="text-sm text-gray-400">
+                Configure your team name, mission, values, and meeting schedule.
+              </p>
+
+              {/* Basic Team Info */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Team Name</label>
+                  <input
+                    type="text"
+                    value={settings.team_name?.value || ''}
+                    onChange={(e) => handleChange('team_name', e.target.value)}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                    placeholder="Smith Family"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Team Mission</label>
+                  <textarea
+                    value={settings.team_mission?.value || ''}
+                    onChange={(e) => handleChange('team_mission', e.target.value)}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 h-24"
+                    placeholder="Build a resilient, self-sufficient homestead..."
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Units</label>
+                    <select
+                      value={settings.team_units?.value || 'imperial'}
+                      onChange={(e) => handleChange('team_units', e.target.value)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                    >
+                      <option value="imperial">Imperial (lbs, ft)</option>
+                      <option value="metric">Metric (kg, cm)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Mentoring Day</label>
+                    <select
+                      value={settings.mentoring_day?.value || 'Sunday'}
+                      onChange={(e) => handleChange('mentoring_day', e.target.value)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                    >
+                      {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">AAR Day</label>
+                    <select
+                      value={settings.aar_day?.value || 'Saturday'}
+                      onChange={(e) => handleChange('aar_day', e.target.value)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                    >
+                      {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team Values */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium flex items-center gap-2">
+                    <Target className="w-4 h-4 text-farm-green" />
+                    Team Values
+                  </label>
+                  <button
+                    onClick={() => {
+                      const newValues = [...teamValues, { name: '', description: '', questions: [''] }]
+                      setTeamValues(newValues)
+                      handleChange('team_values', JSON.stringify(newValues))
+                    }}
+                    className="flex items-center gap-1 text-sm text-farm-green hover:text-green-400"
+                  >
+                    <Plus className="w-4 h-4" /> Add Value
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mb-3">
+                  Define your team's core values. Each value can have assessment questions for mentoring sessions.
+                </p>
+                <div className="space-y-4">
+                  {teamValues.map((value, idx) => (
+                    <div key={idx} className="bg-gray-700 rounded-lg p-4">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <input
+                            type="text"
+                            value={value.name}
+                            onChange={(e) => {
+                              const newValues = [...teamValues]
+                              newValues[idx].name = e.target.value
+                              setTeamValues(newValues)
+                              handleChange('team_values', JSON.stringify(newValues))
+                            }}
+                            className="bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                            placeholder="Value name (e.g., Faith)"
+                          />
+                          <input
+                            type="text"
+                            value={value.description}
+                            onChange={(e) => {
+                              const newValues = [...teamValues]
+                              newValues[idx].description = e.target.value
+                              setTeamValues(newValues)
+                              handleChange('team_values', JSON.stringify(newValues))
+                            }}
+                            className="bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                            placeholder="Brief description"
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            const newValues = teamValues.filter((_, i) => i !== idx)
+                            setTeamValues(newValues)
+                            handleChange('team_values', JSON.stringify(newValues))
+                          }}
+                          className="text-red-400 hover:text-red-300 p-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs text-gray-400">Assessment Questions</label>
+                        {(value.questions || ['']).map((q, qIdx) => (
+                          <div key={qIdx} className="flex gap-2">
+                            <input
+                              type="text"
+                              value={q}
+                              onChange={(e) => {
+                                const newValues = [...teamValues]
+                                newValues[idx].questions[qIdx] = e.target.value
+                                setTeamValues(newValues)
+                                handleChange('team_values', JSON.stringify(newValues))
+                              }}
+                              className="flex-1 bg-gray-600 border border-gray-500 rounded px-3 py-1.5 text-sm"
+                              placeholder="Assessment question..."
+                            />
+                            {value.questions.length > 1 && (
+                              <button
+                                onClick={() => {
+                                  const newValues = [...teamValues]
+                                  newValues[idx].questions = newValues[idx].questions.filter((_, i) => i !== qIdx)
+                                  setTeamValues(newValues)
+                                  handleChange('team_values', JSON.stringify(newValues))
+                                }}
+                                className="text-red-400 hover:text-red-300 p-1"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => {
+                            const newValues = [...teamValues]
+                            newValues[idx].questions = [...(newValues[idx].questions || []), '']
+                            setTeamValues(newValues)
+                            handleChange('team_values', JSON.stringify(newValues))
+                          }}
+                          className="text-xs text-gray-400 hover:text-gray-300 flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> Add question
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {teamValues.length === 0 && (
+                    <p className="text-sm text-gray-500 italic">No values defined. Click "Add Value" to create your first team value.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Translation Settings (Admin Only) */}
       {isAdmin && (
