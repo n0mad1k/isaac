@@ -337,6 +337,7 @@ async def get_team_settings(
     mentoring_day = await get_setting(db, "mentoring_day")
     aar_day = await get_setting(db, "aar_day")
     team_values_str = await get_setting(db, "team_values")
+    team_logo = await get_setting(db, "team_logo")
 
     # Parse team values
     team_values = DEFAULT_TEAM_VALUES
@@ -354,6 +355,7 @@ async def get_team_settings(
         "mentoring_day": mentoring_day or "Sunday",
         "aar_day": aar_day or "Saturday",
         "team_values": team_values,
+        "team_logo": team_logo,
     }
 
 
@@ -695,6 +697,74 @@ async def delete_member_photo(
     await db.commit()
 
     return {"message": "Photo deleted"}
+
+
+# ============================================
+# Team Logo
+# ============================================
+
+LOGO_DIR = "data/team_logo"
+
+
+@router.get("/logo/{filename}")
+async def get_team_logo(filename: str):
+    """Serve the team logo file"""
+    filepath = os.path.join(LOGO_DIR, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Logo not found")
+
+    # Security: ensure the file is within the logo directory
+    abs_logo_dir = os.path.abspath(LOGO_DIR)
+    abs_filepath = os.path.abspath(filepath)
+    if not abs_filepath.startswith(abs_logo_dir):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return FileResponse(filepath)
+
+
+@router.post("/logo/")
+async def upload_team_logo(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Upload a team logo"""
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, GIF, WebP, SVG")
+
+    # Create upload directory if not exists
+    os.makedirs(LOGO_DIR, exist_ok=True)
+
+    # Delete any existing logo files
+    for existing_file in os.listdir(LOGO_DIR) if os.path.exists(LOGO_DIR) else []:
+        try:
+            os.remove(os.path.join(LOGO_DIR, existing_file))
+        except OSError:
+            pass
+
+    # Generate filename
+    ext = file.filename.split(".")[-1] if "." in file.filename else "png"
+    filename = f"team_logo_{uuid.uuid4().hex[:8]}.{ext}"
+    filepath = os.path.join(LOGO_DIR, filename)
+
+    # Save logo
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Update team_logo setting
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "team_logo")
+    )
+    setting = result.scalar_one_or_none()
+    if setting:
+        setting.value = filepath
+    else:
+        db.add(AppSetting(key="team_logo", value=filepath, description="Team logo image path"))
+    await db.commit()
+
+    return {"logo_path": filepath}
 
 
 # ============================================

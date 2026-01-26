@@ -148,15 +148,10 @@ function Team() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Users className="w-7 h-7 text-farm-green" />
-            {settings?.team_name || 'Team Management'}
-          </h1>
-          {settings?.team_mission && (
-            <p className="text-gray-400 text-sm mt-1 max-w-2xl">{settings.team_mission}</p>
-          )}
-        </div>
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Users className="w-7 h-7 text-farm-green" />
+          {settings?.team_name || 'Team Management'}
+        </h1>
         <div className="flex gap-2">
           <button
             onClick={loadData}
@@ -227,6 +222,7 @@ function Team() {
             overview={overview}
             members={members}
             onMemberClick={handleMemberClick}
+            onLogoUpdate={loadData}
           />
         )}
 

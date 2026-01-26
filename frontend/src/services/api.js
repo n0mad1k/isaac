@@ -429,6 +429,10 @@ export const uploadMemberPhoto = (id, formData) =>
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 export const deleteMemberPhoto = (id) => api.delete(`/team/members/${id}/photo/`)
+export const uploadTeamLogo = (formData) =>
+  api.post('/team/logo/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
 
 // Weight Tracking
 export const getWeightHistory = (memberId) => api.get(`/team/members/${memberId}/weight-history/`)
