@@ -245,44 +245,46 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     <User className="w-4 h-4 text-farm-green" />
                     Basic Information
                   </h3>
-                  <dl className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <dt className="text-gray-400">Role</dt>
-                      <dd>{member.role_title || member.role}</dd>
-                    </div>
-                    {member.birth_date && (
-                      <div className="flex justify-between">
-                        <dt className="text-gray-400">Age</dt>
-                        <dd>{calculateAge(member.birth_date)} years old</dd>
-                      </div>
-                    )}
-                    {member.join_date && (
-                      <div className="flex justify-between">
-                        <dt className="text-gray-400">Joined</dt>
-                        <dd>{formatDate(member.join_date)}</dd>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <dt className="text-gray-400">Height</dt>
-                      <dd>{formatHeight(member.height_inches)}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-400">Weight</dt>
-                      <dd>{formatWeight(member.current_weight)}</dd>
-                    </div>
-                    {member.target_weight && (
-                      <div className="flex justify-between">
-                        <dt className="text-gray-400">Target Weight</dt>
-                        <dd>{formatWeight(member.target_weight)}</dd>
-                      </div>
-                    )}
-                    {member.blood_type && (
-                      <div className="flex justify-between">
-                        <dt className="text-gray-400">Blood Type</dt>
-                        <dd className="font-bold text-red-400">{member.blood_type}</dd>
-                      </div>
-                    )}
-                  </dl>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      <tr>
+                        <td className="text-gray-400 py-1 pr-4">Role</td>
+                        <td className="py-1">{member.role_title || member.role}</td>
+                      </tr>
+                      {member.birth_date && (
+                        <tr>
+                          <td className="text-gray-400 py-1 pr-4">Age</td>
+                          <td className="py-1">{calculateAge(member.birth_date)} years old</td>
+                        </tr>
+                      )}
+                      {member.join_date && (
+                        <tr>
+                          <td className="text-gray-400 py-1 pr-4">Joined</td>
+                          <td className="py-1">{formatDate(member.join_date)}</td>
+                        </tr>
+                      )}
+                      <tr>
+                        <td className="text-gray-400 py-1 pr-4">Height</td>
+                        <td className="py-1">{formatHeight(member.height_inches)}</td>
+                      </tr>
+                      <tr>
+                        <td className="text-gray-400 py-1 pr-4">Weight</td>
+                        <td className="py-1">{formatWeight(member.current_weight)}</td>
+                      </tr>
+                      {member.target_weight && (
+                        <tr>
+                          <td className="text-gray-400 py-1 pr-4">Target</td>
+                          <td className="py-1">{formatWeight(member.target_weight)}</td>
+                        </tr>
+                      )}
+                      {member.blood_type && (
+                        <tr>
+                          <td className="text-gray-400 py-1 pr-4">Blood Type</td>
+                          <td className="py-1 font-bold text-red-400">{member.blood_type}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
 
                 {/* Sizing */}
@@ -291,38 +293,30 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     <Shield className="w-4 h-4 text-farm-green" />
                     Gear Sizing
                   </h3>
-                  <dl className="space-y-2 text-sm">
-                    {member.shoe_size && (
-                      <div className="flex justify-between">
-                        <dt className="text-gray-400">Shoe Size</dt>
-                        <dd>{member.shoe_size}</dd>
-                      </div>
-                    )}
-                    {member.shirt_size && (
-                      <div className="flex justify-between">
-                        <dt className="text-gray-400">Shirt Size</dt>
-                        <dd>{member.shirt_size}</dd>
-                      </div>
-                    )}
-                    {member.pants_size && (
-                      <div className="flex justify-between">
-                        <dt className="text-gray-400">Pants Size</dt>
-                        <dd>{member.pants_size}</dd>
-                      </div>
-                    )}
-                    {member.hat_size && (
-                      <div className="flex justify-between">
-                        <dt className="text-gray-400">Hat Size</dt>
-                        <dd>{member.hat_size}</dd>
-                      </div>
-                    )}
-                    {member.glove_size && (
-                      <div className="flex justify-between">
-                        <dt className="text-gray-400">Glove Size</dt>
-                        <dd>{member.glove_size}</dd>
-                      </div>
-                    )}
-                  </dl>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      <tr>
+                        <td className="text-gray-400 py-1 pr-4">Shoe</td>
+                        <td className="py-1">{member.shoe_size || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="text-gray-400 py-1 pr-4">Shirt</td>
+                        <td className="py-1">{member.shirt_size || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="text-gray-400 py-1 pr-4">Pants</td>
+                        <td className="py-1">{member.pants_size || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="text-gray-400 py-1 pr-4">Hat</td>
+                        <td className="py-1">{member.hat_size || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="text-gray-400 py-1 pr-4">Gloves</td>
+                        <td className="py-1">{member.glove_size || 'N/A'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
 
                 {/* Skills */}
