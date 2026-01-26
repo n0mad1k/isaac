@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Leaf, PawPrint, ListTodo, AlertTriangle, Clock, Archive, Check, Circle, ArrowUp, ChevronDown, ChevronUp, Wrench, MapPin } from 'lucide-react'
+import { AlertTriangle, Clock, Archive, Check, Circle, ArrowUp, ChevronDown, ChevronUp, Wrench, MapPin } from 'lucide-react'
 import { getDashboard, getAnimals, getSettings, completeTask, toggleBacklog } from '../services/api'
 import WeatherWidget from '../components/WeatherWidget'
 import SunMoonWidget from '../components/SunMoonWidget'
 import TaskList from '../components/TaskList'
 import AlertBanner from '../components/AlertBanner'
 import StorageAlertWidget from '../components/StorageAlertWidget'
-import StatsCard from '../components/StatsCard'
 import ColdProtectionWidget from '../components/ColdProtectionWidget'
 import AnimalFeedWidget from '../components/AnimalFeedWidget'
 import BibleVerse from '../components/BibleVerse'
@@ -144,12 +143,9 @@ function Dashboard() {
 
   return (
     <div ref={containerRef} className="flex flex-col gap-2 md:gap-3 h-full md:h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Motto - Very top */}
-      <MottoDisplay className="flex-shrink-0" />
-
-      {/* Header with Date/Time, Bible Verse, and Stats */}
+      {/* Header with Date/Time, Motto, and Bible Verse */}
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2 lg:gap-4 flex-shrink-0">
-        {/* Top row on mobile: Date/Time and Stats */}
+        {/* Top row on mobile: Date/Time and Bible Verse */}
         <div className="flex items-start justify-between gap-2 lg:contents">
           {/* Left - Date/Time (using configured timezone) */}
           <div className="flex-shrink-0 min-w-0">
@@ -162,38 +158,15 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Stats - 2x2 grid on mobile, row on desktop */}
-          <div className="grid grid-cols-2 gap-1 sm:flex sm:gap-2 flex-shrink-0 lg:order-3">
-            <StatsCard
-              title="Plants"
-              value={data?.stats?.total_plants || 0}
-              icon={Leaf}
-              color="green"
-            />
-            <StatsCard
-              title="Animals"
-              value={data?.stats?.total_animals || 0}
-              icon={PawPrint}
-              color="blue"
-            />
-            <StatsCard
-              title="Tasks"
-              value={data?.stats?.tasks_today || 0}
-              icon={ListTodo}
-              color="yellow"
-            />
-            <StatsCard
-              title="Overdue"
-              value={data?.stats?.tasks_overdue || 0}
-              icon={Clock}
-              color={data?.stats?.tasks_overdue > 0 ? 'red' : 'green'}
-            />
+          {/* Right - Bible Verse (replaces stats counters) */}
+          <div className="flex-shrink-0 lg:order-3 max-w-xs">
+            <BibleVerse />
           </div>
         </div>
 
-        {/* Bible Verse - Full width below on mobile, center on desktop */}
+        {/* Motto - Center on desktop, full width below on mobile */}
         <div className="w-full lg:flex-1 lg:order-2">
-          <BibleVerse />
+          <MottoDisplay />
         </div>
       </div>
 
