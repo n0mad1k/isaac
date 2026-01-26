@@ -175,16 +175,14 @@ function CalendarPage() {
 
   return (
     <div className="space-y-4">
-      {/* Motto */}
-      <MottoDisplay />
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+        <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>
           <CalendarIcon className="w-7 h-7" style={{ color: 'var(--color-teal-600)' }} />
           Calendar
         </h1>
-        <div className="flex items-center gap-2 flex-wrap">
+        <MottoDisplay />
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
           {/* View Switcher */}
           <div className="flex rounded-lg p-1" style={{ backgroundColor: 'var(--color-bg-surface-muted)' }}>
             <button

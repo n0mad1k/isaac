@@ -580,16 +580,14 @@ function Animals() {
 
   return (
     <div className="space-y-6">
-      {/* Motto */}
-      <MottoDisplay />
-
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>
           <PawPrint className="w-7 h-7" style={{ color: 'var(--color-teal-600)' }} />
           Animals
         </h1>
-        <div className="flex items-center gap-2">
+        <MottoDisplay />
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={() => setShowBulkCareForm(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm"

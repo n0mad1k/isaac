@@ -3,6 +3,7 @@ import { useSettings } from '../contexts/SettingsContext'
 /**
  * Displays the farm motto/mission statement
  * Styled as a proper motto - centered, italic, with decorative elements
+ * Uses flex-1 to fill available space in header rows
  */
 export default function MottoDisplay({ className = '' }) {
   const settings = useSettings()
@@ -15,20 +16,16 @@ export default function MottoDisplay({ className = '' }) {
   if (!motto) return null
 
   return (
-    <div className={`w-full text-center py-3 ${className}`}>
-      <div className="inline-flex items-center gap-3">
-        <span style={{ color: 'var(--color-text-muted)' }}>—</span>
-        <span
-          className="text-base sm:text-lg italic font-medium tracking-wide"
-          style={{
-            color: 'var(--color-text-secondary)',
-            fontFamily: 'Georgia, serif'
-          }}
-        >
-          "{motto}"
-        </span>
-        <span style={{ color: 'var(--color-text-muted)' }}>—</span>
-      </div>
+    <div className={`flex-1 text-center ${className}`}>
+      <span
+        className="text-sm sm:text-base italic font-medium tracking-wide"
+        style={{
+          color: 'var(--color-text-secondary)',
+          fontFamily: 'Georgia, serif'
+        }}
+      >
+        — "{motto}" —
+      </span>
     </div>
   )
 }
