@@ -153,19 +153,18 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
         {/* Core Values - Bold Display */}
         {settings?.team_values && settings.team_values.length > 0 && (
           <div className="pt-4">
-            <h2 className="text-xl font-semibold mb-6 flex items-center justify-center gap-2 text-farm-green">
-              <Target className="w-6 h-6" />
+            <h2 className="text-xl font-bold mb-6 flex items-center justify-center gap-2">
+              <Target className="w-6 h-6 text-farm-green" />
               Core Values
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
               {settings.team_values.map((value, idx) => (
                 <div
                   key={idx}
-                  className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl p-6 border border-gray-600 shadow-lg"
+                  className="bg-gray-700 rounded-lg p-4 border-l-4 border-farm-green"
                 >
-                  <h3 className="text-2xl font-bold text-white mb-2">{value.name}</h3>
-                  <div className="w-12 h-1 bg-farm-green mx-auto mb-3"></div>
-                  <p className="text-gray-300">{value.description}</p>
+                  <h3 className="text-lg font-bold text-white mb-1">{value.name}</h3>
+                  <p className="text-sm text-gray-300">{value.description}</p>
                 </div>
               ))}
             </div>

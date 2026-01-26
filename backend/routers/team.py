@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, desc
+from sqlalchemy.orm.attributes import flag_modified
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from datetime import datetime, date, timedelta
@@ -564,9 +565,15 @@ async def update_member(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
+    # JSON fields that need explicit flag_modified
+    json_fields = ['allergies', 'medical_conditions', 'current_medications', 'skills', 'responsibilities', 'trainings']
+
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(member, key, value)
+        # Flag JSON fields as modified so SQLAlchemy detects the change
+        if key in json_fields:
+            flag_modified(member, key)
 
     member.updated_at = datetime.utcnow()
     await db.commit()
