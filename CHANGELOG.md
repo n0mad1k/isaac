@@ -10,6 +10,16 @@ All notable changes to Isaac will be documented in this file.
   - Displayed on every page to keep you focused on your purpose
   - Shows to the right of page titles (hidden on mobile for space)
   - Centered display on Dashboard above the main content
+- **Bible Verse collapse feature**
+  - Click chevron to collapse verse of the day
+  - Remembers collapse state for the day, resets daily
+  - Click collapsed bar to expand again
+- **Calendar overlap display**
+  - Events at the same time now display side by side instead of stacking
+  - Visual gap between back-to-back events for clarity
+
+### Fixed
+- Duplicate className warnings on Seeds, Vehicles, FarmAreas pages
 
 ## [1.23.5] - 2026-01-24
 
