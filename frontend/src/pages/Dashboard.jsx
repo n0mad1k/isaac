@@ -143,32 +143,25 @@ function Dashboard() {
 
   return (
     <div ref={containerRef} className="flex flex-col gap-2 md:gap-3 h-full md:h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Header with Date/Time, Motto, and Bible Verse */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2 lg:gap-4 flex-shrink-0">
-        {/* Top row on mobile: Date/Time and Bible Verse */}
-        <div className="flex items-start justify-between gap-2 lg:contents">
-          {/* Left - Date/Time (using configured timezone) */}
-          <div className="flex-shrink-0 min-w-0">
-            <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
-              {formatTimeInTz(currentTime, { weekday: 'short', month: 'short', day: 'numeric' })}
-            </h1>
-            <div className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-mono" style={{ color: 'var(--color-text-primary)' }}>
-              {formatTimeInTz(currentTime, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s*(AM|PM)$/i, '')}
-              <span className="text-sm sm:text-lg md:text-base lg:text-xl">:{formatTimeInTz(currentTime, { second: '2-digit' })} {formatTimeInTz(currentTime, { hour: 'numeric', hour12: true }).match(/(AM|PM)/i)?.[0] || ''}</span>
-            </div>
-          </div>
-
-          {/* Right - Bible Verse (replaces stats counters) */}
-          <div className="flex-shrink-0 lg:order-3 max-w-xs">
-            <BibleVerse />
+      {/* Header Row: Date/Time and Motto */}
+      <div className="flex items-center gap-4 flex-shrink-0">
+        {/* Left - Date/Time */}
+        <div className="flex-shrink-0 min-w-0">
+          <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
+            {formatTimeInTz(currentTime, { weekday: 'short', month: 'short', day: 'numeric' })}
+          </h1>
+          <div className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-mono" style={{ color: 'var(--color-text-primary)' }}>
+            {formatTimeInTz(currentTime, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s*(AM|PM)$/i, '')}
+            <span className="text-sm sm:text-lg md:text-base lg:text-xl">:{formatTimeInTz(currentTime, { second: '2-digit' })} {formatTimeInTz(currentTime, { hour: 'numeric', hour12: true }).match(/(AM|PM)/i)?.[0] || ''}</span>
           </div>
         </div>
 
-        {/* Motto - Center on desktop, full width below on mobile */}
-        <div className="w-full lg:flex-1 lg:order-2">
-          <MottoDisplay />
-        </div>
+        {/* Motto - fills remaining space */}
+        <MottoDisplay />
       </div>
+
+      {/* Bible Verse - its own row */}
+      <BibleVerse />
 
       {/* Alerts - Priority positioning */}
       <AlertBanner alerts={data?.alerts} onDismiss={fetchData} acknowledgedAdvisories={acknowledgedAdvisories} />
