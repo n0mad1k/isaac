@@ -144,6 +144,9 @@ function Dashboard() {
 
   return (
     <div ref={containerRef} className="flex flex-col gap-2 md:gap-3 h-full md:h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] overflow-hidden">
+      {/* Motto - Very top */}
+      <MottoDisplay className="flex-shrink-0" />
+
       {/* Header with Date/Time, Bible Verse, and Stats */}
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2 lg:gap-4 flex-shrink-0">
         {/* Top row on mobile: Date/Time and Stats */}
@@ -202,9 +205,6 @@ function Dashboard() {
 
       {/* Cold Protection Widget - Priority positioning right after alerts */}
       <ColdProtectionWidget onAcknowledge={setAcknowledgedAdvisories} />
-
-      {/* Motto Display */}
-      <MottoDisplay centered className="flex-shrink-0" />
 
       {/* Main Grid */}
       <div ref={mainGridRef} className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 flex-1 min-h-0 overflow-auto">

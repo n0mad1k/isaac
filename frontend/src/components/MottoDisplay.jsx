@@ -2,11 +2,9 @@ import { useSettings } from '../contexts/SettingsContext'
 
 /**
  * Displays the farm motto/mission statement
- * Use className to control visibility and alignment:
- * - Header usage: className="hidden md:block" (right-aligned by default)
- * - Dashboard: className="text-center" (overrides right alignment)
+ * Bold, centered display to remind users of their purpose
  */
-export default function MottoDisplay({ className = '', centered = false }) {
+export default function MottoDisplay({ className = '' }) {
   const settings = useSettings()
 
   // Safety check - don't crash if settings context isn't ready
@@ -16,12 +14,10 @@ export default function MottoDisplay({ className = '', centered = false }) {
 
   if (!motto) return null
 
-  const alignClass = centered ? 'text-center' : 'text-right'
-
   return (
-    <div className={`flex-1 ${alignClass} ${className}`}>
-      <span className="text-sm italic truncate block" style={{ color: 'var(--color-text-muted)' }}>
-        "{motto}"
+    <div className={`w-full text-center py-2 ${className}`}>
+      <span className="text-lg font-bold tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
+        {motto}
       </span>
     </div>
   )
