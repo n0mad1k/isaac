@@ -16,16 +16,16 @@ export default function MottoDisplay({ className = '' }) {
   if (!motto) return null
 
   return (
-    <div className={`flex-1 text-center ${className}`}>
-      <span
-        className="text-sm sm:text-base italic font-medium tracking-wide"
+    <div className={`flex-1 text-center px-2 ${className}`}>
+      <p
+        className="text-sm sm:text-base italic font-medium tracking-wide leading-tight"
         style={{
           color: 'var(--color-text-secondary)',
           fontFamily: 'Georgia, serif'
         }}
       >
         — "{motto}" —
-      </span>
+      </p>
     </div>
   )
 }

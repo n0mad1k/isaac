@@ -1825,14 +1825,15 @@ function Settings() {
                 <div>
                   <h3 className="font-medium">Motto / Mission Statement</h3>
                   <p className="text-sm text-gray-400 mb-2">A reminder displayed on every page to keep you focused on your purpose</p>
-                  <input
-                    type="text"
+                  <textarea
                     value={settings.motto?.value || ''}
                     onChange={(e) => handleChange('motto', e.target.value)}
                     placeholder="Enter your farm's motto or mission statement..."
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:border-farm-green focus:ring-1 focus:ring-farm-green"
-                    maxLength={200}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:border-farm-green focus:ring-1 focus:ring-farm-green resize-none"
+                    rows={3}
+                    maxLength={500}
                   />
+                  <p className="text-xs text-gray-500 mt-1 text-right">{(settings.motto?.value || '').length}/500</p>
                 </div>
               </div>
 
