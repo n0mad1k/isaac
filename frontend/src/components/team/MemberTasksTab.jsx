@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import {
   CheckCircle, Circle, Clock, AlertTriangle, ChevronDown, ChevronUp,
-  Calendar, ListTodo
+  Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check
 } from 'lucide-react'
-import { getMemberTasks, getMemberBacklog } from '../../services/api'
+import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask } from '../../services/api'
 
 function MemberTasksTab({ member, onUpdate }) {
   const [loading, setLoading] = useState(true)
@@ -12,6 +12,8 @@ function MemberTasksTab({ member, onUpdate }) {
   const [backlogTasks, setBacklogTasks] = useState([])
   const [showCompleted, setShowCompleted] = useState(false)
   const [showBacklog, setShowBacklog] = useState(true)
+  const [editingTask, setEditingTask] = useState(null)
+  const [openMenuId, setOpenMenuId] = useState(null)
 
   useEffect(() => {
     loadTasks()
@@ -41,6 +43,74 @@ function MemberTasksTab({ member, onUpdate }) {
     }
   }, [showCompleted])
 
+  // Handle task actions
+  const handleComplete = async (task) => {
+    try {
+      await completeTask(task.id)
+      await loadTasks()
+      if (onUpdate) onUpdate()
+    } catch (err) {
+      console.error('Failed to complete task:', err)
+    }
+    setOpenMenuId(null)
+  }
+
+  const handleToggleBacklog = async (task) => {
+    try {
+      await updateTask(task.id, { is_backlog: !task.is_backlog })
+      await loadTasks()
+      if (onUpdate) onUpdate()
+    } catch (err) {
+      console.error('Failed to update task:', err)
+    }
+    setOpenMenuId(null)
+  }
+
+  const handleToggleInProgress = async (task) => {
+    try {
+      await updateTask(task.id, { is_in_progress: !task.is_in_progress })
+      await loadTasks()
+      if (onUpdate) onUpdate()
+    } catch (err) {
+      console.error('Failed to update task:', err)
+    }
+    setOpenMenuId(null)
+  }
+
+  const handleDelete = async (task) => {
+    if (!confirm(`Delete task "${task.title}"? This cannot be undone.`)) return
+    try {
+      await deleteTask(task.id)
+      await loadTasks()
+      if (onUpdate) onUpdate()
+    } catch (err) {
+      console.error('Failed to delete task:', err)
+    }
+    setOpenMenuId(null)
+  }
+
+  const handleEdit = (task) => {
+    setEditingTask(task)
+    setOpenMenuId(null)
+  }
+
+  const handleSaveEdit = async () => {
+    try {
+      await updateTask(editingTask.id, {
+        title: editingTask.title,
+        description: editingTask.description,
+        priority: editingTask.priority,
+        due_date: editingTask.due_date,
+        due_time: editingTask.due_time
+      })
+      setEditingTask(null)
+      await loadTasks()
+      if (onUpdate) onUpdate()
+    } catch (err) {
+      console.error('Failed to update task:', err)
+    }
+  }
+
   const getPriorityBadge = (priority) => {
     const colors = {
       1: 'bg-red-600 text-white',
@@ -61,26 +131,104 @@ function MemberTasksTab({ member, onUpdate }) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  const TaskCard = ({ task }) => {
+  const TaskCard = ({ task, isBacklog = false }) => {
     const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !task.is_completed
+    const menuOpen = openMenuId === task.id
 
     return (
       <div className={`bg-gray-700 rounded-lg p-3 ${task.is_completed ? 'opacity-60' : ''}`}>
         <div className="flex items-start gap-3">
-          {task.is_completed ? (
-            <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-          ) : task.is_in_progress ? (
-            <Clock className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
-          ) : (
-            <Circle className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-          )}
+          {/* Status icon - clickable to complete */}
+          <button
+            onClick={() => !task.is_completed && handleComplete(task)}
+            disabled={task.is_completed}
+            className="mt-0.5 flex-shrink-0"
+            title={task.is_completed ? 'Completed' : 'Mark complete'}
+          >
+            {task.is_completed ? (
+              <CheckCircle className="w-5 h-5 text-green-500" />
+            ) : task.is_in_progress ? (
+              <Clock className="w-5 h-5 text-yellow-500 hover:text-green-400" />
+            ) : (
+              <Circle className="w-5 h-5 text-gray-400 hover:text-green-400" />
+            )}
+          </button>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <span className={`font-medium ${task.is_completed ? 'line-through text-gray-400' : 'text-white'}`}>
                 {task.title}
               </span>
-              {getPriorityBadge(task.priority)}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {getPriorityBadge(task.priority)}
+                {/* Action menu */}
+                <div className="relative">
+                  <button
+                    onClick={() => setOpenMenuId(menuOpen ? null : task.id)}
+                    className="p-1 text-gray-400 hover:text-white rounded"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                  {menuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setOpenMenuId(null)}
+                      />
+                      <div className="absolute right-0 mt-1 w-40 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 py-1">
+                        {!task.is_completed && (
+                          <>
+                            <button
+                              onClick={() => handleComplete(task)}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                            >
+                              <Check className="w-4 h-4 text-green-400" />
+                              Complete
+                            </button>
+                            <button
+                              onClick={() => handleToggleInProgress(task)}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                            >
+                              <Clock className="w-4 h-4 text-yellow-400" />
+                              {task.is_in_progress ? 'Not Started' : 'In Progress'}
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => handleToggleBacklog(task)}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          {isBacklog ? (
+                            <>
+                              <Play className="w-4 h-4 text-blue-400" />
+                              Make Active
+                            </>
+                          ) : (
+                            <>
+                              <Archive className="w-4 h-4 text-purple-400" />
+                              Send to Backlog
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleEdit(task)}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <Edit className="w-4 h-4 text-gray-400" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(task)}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2 text-red-400"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
             {task.description && (
@@ -143,7 +291,7 @@ function MemberTasksTab({ member, onUpdate }) {
         ) : (
           <div className="space-y-2">
             {activeTasks.map(task => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} isBacklog={false} />
             ))}
           </div>
         )}
@@ -156,7 +304,7 @@ function MemberTasksTab({ member, onUpdate }) {
           className="flex items-center justify-between w-full mb-3 text-left"
         >
           <h3 className="text-lg font-medium text-white flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+            <Archive className="w-5 h-5" />
             Backlog ({backlogTasks.length})
           </h3>
           {showBacklog ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -170,7 +318,7 @@ function MemberTasksTab({ member, onUpdate }) {
           ) : (
             <div className="space-y-2">
               {backlogTasks.map(task => (
-                <TaskCard key={task.id} task={task} />
+                <TaskCard key={task.id} task={task} isBacklog={true} />
               ))}
             </div>
           )
@@ -190,11 +338,91 @@ function MemberTasksTab({ member, onUpdate }) {
         {showCompleted && completedTasks.length > 0 && (
           <div className="space-y-2 mt-3">
             {completedTasks.map(task => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} isBacklog={false} />
             ))}
           </div>
         )}
       </div>
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="font-semibold">Edit Task</h3>
+              <button onClick={() => setEditingTask(null)} className="text-gray-400 hover:text-white">
+                ×
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editingTask.title}
+                  onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <textarea
+                  value={editingTask.description || ''}
+                  onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                  rows={3}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={editingTask.due_date?.split('T')[0] || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Due Time</label>
+                  <input
+                    type="time"
+                    value={editingTask.due_time || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, due_time: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Priority</label>
+                <select
+                  value={editingTask.priority || 2}
+                  onChange={(e) => setEditingTask({ ...editingTask, priority: parseInt(e.target.value) })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                >
+                  <option value={1}>High</option>
+                  <option value={2}>Medium</option>
+                  <option value={3}>Low</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 p-4 border-t border-gray-700">
+              <button
+                onClick={() => setEditingTask(null)}
+                className="px-4 py-2 text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

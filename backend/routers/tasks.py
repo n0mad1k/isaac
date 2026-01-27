@@ -48,6 +48,10 @@ async def enrich_tasks_with_linked_fields(tasks: list, db: AsyncSession) -> list
     plants_list = result.scalars().all()
     result = await db.execute(select(AnimalCareSchedule).where(AnimalCareSchedule.is_active == True))
     care_schedules = result.scalars().all()
+    # Pre-fetch team members for assignment display
+    from models.team import TeamMember
+    result = await db.execute(select(TeamMember))
+    team_members = {tm.id: (tm.nickname or tm.name) for tm in result.scalars().all()}
 
     def get_linked_location(task):
         if task.farm_area_id and task.farm_area_id in farm_areas:
@@ -126,6 +130,7 @@ async def enrich_tasks_with_linked_fields(tasks: list, db: AsyncSession) -> list
             "assigned_to_worker_id": task.assigned_to_worker_id,
             "assigned_to_user_id": task.assigned_to_user_id,
             "assigned_to_member_id": task.assigned_to_member_id,
+            "assigned_to_member_name": team_members.get(task.assigned_to_member_id) if task.assigned_to_member_id else None,
             "assigned_member_ids": [m.id for m in task.assigned_members] if hasattr(task, 'assigned_members') and task.assigned_members else [],
             "assigned_member_names": [m.nickname or m.name for m in task.assigned_members] if hasattr(task, 'assigned_members') and task.assigned_members else [],
             "is_blocked": task.is_blocked,

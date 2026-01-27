@@ -2,6 +2,21 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.29.7] - 2026-01-27
+
+### Added
+- **Task management in team member tasks tab**
+  - Three-dot menu on each task with Complete, In Progress, Send to Backlog, Edit, Delete options
+  - Click status icon to quickly mark task complete
+  - Edit modal allows updating title, description, due date/time, priority
+  - Move tasks between Active and Backlog sections
+  - Delete tasks with confirmation
+
+### Fixed
+- **Task assignment display in ToDo page**
+  - Tasks assigned to team members now show the member's name in a cyan badge
+  - Both legacy single-member and multi-member assignments are displayed
+
 ## [1.29.6] - 2026-01-27
 
 ### Added
