@@ -416,7 +416,17 @@ function MemberGearTab({ member, onUpdate }) {
                                     </span>
                                     {content.min_quantity && <span>(min: {content.min_quantity})</span>}
                                   </div>
-                                  {content.expiration_date && (
+                                  {/* Show individual unit expirations or single expiration */}
+                                  {content.units && content.units.length > 0 ? (
+                                    <div className="text-xs space-y-0.5">
+                                      {content.units.map((unit, idx) => (
+                                        <div key={idx} className={unit.expiration_date ? getDueDateClass(unit.expiration_date) : 'text-gray-500'}>
+                                          #{idx + 1}: {unit.expiration_date ? formatDate(unit.expiration_date) : 'No exp'}
+                                          {unit.lot_number && ` (${unit.lot_number})`}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : content.expiration_date && (
                                     <div className={`text-xs ${getDueDateClass(content.expiration_date)}`}>
                                       Expires: {formatDate(content.expiration_date)}
                                     </div>
@@ -857,8 +867,48 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
     status: content.status || 'GOOD',
     notes: content.notes || '',
   })
+  const [units, setUnits] = useState(content.units || [])
+  const [trackIndividual, setTrackIndividual] = useState((content.units || []).length > 0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+
+  // Sync units array with quantity when tracking individually
+  const handleQuantityChange = (newQty) => {
+    const qty = parseInt(newQty) || 0
+    setFormData({ ...formData, quantity: newQty })
+    if (trackIndividual && qty > 0) {
+      const newUnits = [...units]
+      while (newUnits.length < qty) {
+        newUnits.push({ expiration_date: '', lot_number: '', notes: '' })
+      }
+      while (newUnits.length > qty) {
+        newUnits.pop()
+      }
+      setUnits(newUnits)
+    }
+  }
+
+  const handleToggleIndividual = (enabled) => {
+    setTrackIndividual(enabled)
+    if (enabled) {
+      const qty = parseInt(formData.quantity) || 1
+      const newUnits = []
+      for (let i = 0; i < qty; i++) {
+        newUnits.push({
+          expiration_date: units[i]?.expiration_date || formData.expiration_date || '',
+          lot_number: units[i]?.lot_number || '',
+          notes: units[i]?.notes || ''
+        })
+      }
+      setUnits(newUnits)
+    }
+  }
+
+  const handleUnitChange = (index, field, value) => {
+    const newUnits = [...units]
+    newUnits[index] = { ...newUnits[index], [field]: value }
+    setUnits(newUnits)
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -869,7 +919,11 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
         ...formData,
         quantity: parseInt(formData.quantity) || 1,
         min_quantity: formData.min_quantity ? parseInt(formData.min_quantity) : null,
-        expiration_date: formData.expiration_date ? new Date(formData.expiration_date).toISOString() : null,
+        expiration_date: !trackIndividual && formData.expiration_date ? new Date(formData.expiration_date).toISOString() : null,
+        units: trackIndividual ? units.map(u => ({
+          ...u,
+          expiration_date: u.expiration_date || null
+        })) : [],
         last_checked: new Date().toISOString(),
       }
       await updateGearContents(memberId, gearId, content.id, data)
@@ -957,7 +1011,7 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
               <input
                 type="number"
                 value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                onChange={(e) => handleQuantityChange(e.target.value)}
                 min="0"
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
               />
@@ -972,26 +1026,73 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Expiration Date</label>
+
+          {/* Individual Unit Tracking Toggle */}
+          {parseInt(formData.quantity) > 1 && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
-                type="date"
-                value={formData.expiration_date}
-                onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                type="checkbox"
+                checked={trackIndividual}
+                onChange={(e) => handleToggleIndividual(e.target.checked)}
+                className="rounded"
               />
+              Track individual expirations (e.g., different lot numbers)
+            </label>
+          )}
+
+          {/* Individual Units Section */}
+          {trackIndividual && units.length > 0 ? (
+            <div className="border border-gray-600 rounded-lg p-3 space-y-3">
+              <div className="text-sm font-medium text-gray-300">Individual Units</div>
+              {units.map((unit, idx) => (
+                <div key={idx} className="bg-gray-700/50 rounded p-2 space-y-2">
+                  <div className="text-xs text-gray-400">Unit {idx + 1}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Expiration</label>
+                      <input
+                        type="date"
+                        value={unit.expiration_date || ''}
+                        onChange={(e) => handleUnitChange(idx, 'expiration_date', e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Lot #</label>
+                      <input
+                        type="text"
+                        value={unit.lot_number || ''}
+                        onChange={(e) => handleUnitChange(idx, 'lot_number', e.target.value)}
+                        placeholder="Optional"
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Alert Days Before</label>
-              <input
-                type="number"
-                value={formData.expiration_alert_days}
-                onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
-              />
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Expiration Date</label>
+                <input
+                  type="date"
+                  value={formData.expiration_date}
+                  onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Alert Days Before</label>
+                <input
+                  type="number"
+                  value={formData.expiration_alert_days}
+                  onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                />
+              </div>
             </div>
-          </div>
+          )}
           <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>
             <textarea

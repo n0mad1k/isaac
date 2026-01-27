@@ -302,8 +302,9 @@ class GearContentsCreate(BaseModel):
     category: Optional[str] = None
     quantity: int = 1
     min_quantity: Optional[int] = None
-    expiration_date: Optional[datetime] = None
+    expiration_date: Optional[datetime] = None  # Simple: single expiration for all
     expiration_alert_days: int = 30
+    units: Optional[List[dict]] = []  # Advanced: [{expiration_date, lot_number, notes}]
     status: ContentStatus = ContentStatus.GOOD
     notes: Optional[str] = None
 
@@ -315,6 +316,7 @@ class GearContentsUpdate(BaseModel):
     min_quantity: Optional[int] = None
     expiration_date: Optional[datetime] = None
     expiration_alert_days: Optional[int] = None
+    units: Optional[List[dict]] = None  # [{expiration_date, lot_number, notes}]
     status: Optional[ContentStatus] = None
     last_checked: Optional[datetime] = None
     notes: Optional[str] = None
@@ -1824,6 +1826,7 @@ def serialize_gear_contents(content: MemberGearContents) -> dict:
         "min_quantity": content.min_quantity,
         "expiration_date": content.expiration_date.isoformat() if content.expiration_date else None,
         "expiration_alert_days": content.expiration_alert_days,
+        "units": content.units or [],  # [{expiration_date, lot_number, notes}]
         "status": content.status.value if content.status else None,
         "last_checked": content.last_checked.isoformat() if content.last_checked else None,
         "notes": content.notes,

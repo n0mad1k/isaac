@@ -425,8 +425,9 @@ class MemberGearContents(Base):
     quantity = Column(Integer, default=1)
     min_quantity = Column(Integer, nullable=True)  # Alert when below min
 
-    expiration_date = Column(DateTime, nullable=True)
+    expiration_date = Column(DateTime, nullable=True)  # Simple: single expiration for all units
     expiration_alert_days = Column(Integer, default=30)  # Days before expiration to alert
+    units = Column(JSON, default=list)  # Advanced: [{expiration_date, lot_number, notes}] for individual tracking
 
     status = Column(SQLEnum(ContentStatus), default=ContentStatus.GOOD)
     last_checked = Column(DateTime, nullable=True)

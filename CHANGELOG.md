@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.27.1] - 2026-01-27
+
+### Added
+- Individual unit expiration tracking for gear contents
+  - Track separate expiration dates for each unit (e.g., 2 Epi Pens with different expiration dates)
+  - Optional lot number tracking per unit
+  - Toggle "Track individual expirations" when quantity > 1
+
 ## [1.27.0] - 2026-01-27
 
 ### Added
