@@ -231,9 +231,9 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             {/* Anaphylaxis Allergies - Prominent Warning */}
             {member.allergies && member.allergies.some(a => typeof a === 'object' && a.anaphylaxis) && (
               <div className="mt-2 flex flex-wrap gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-500" />
+                <AlertTriangle className="w-4 h-4 text-red-400" />
                 {member.allergies.filter(a => typeof a === 'object' && a.anaphylaxis).map((allergy, idx) => (
-                  <span key={idx} className="px-2 py-0.5 bg-red-900/70 border border-red-500 rounded text-red-200 text-xs font-bold">
+                  <span key={idx} className="px-2 py-0.5 bg-red-600 border border-red-400 rounded text-white text-xs font-bold">
                     ANAPHYLAXIS: {typeof allergy === 'object' ? allergy.name : allergy}
                   </span>
                 ))}
@@ -371,7 +371,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                             key={idx}
                             className={`px-2 py-1 rounded text-sm flex items-center gap-1 ${
                               isAnaphylaxis
-                                ? 'bg-red-700 text-white font-bold border border-red-500'
+                                ? 'bg-red-600 text-white font-bold border border-red-400'
                                 : 'bg-red-900/50 text-red-300'
                             }`}
                           >
