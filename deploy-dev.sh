@@ -17,12 +17,24 @@ cleanup() {
     ssh -i $SSH_KEY $REMOTE "rm -f $LOCK_FILE" 2>/dev/null
 }
 
+# First verify SSH connectivity
+if ! ssh -i $SSH_KEY $REMOTE "echo 'SSH OK'" > /dev/null 2>&1; then
+    echo ""
+    echo "ERROR: Cannot connect to remote server."
+    echo "Check SSH key and network connectivity."
+    exit 1
+fi
+
 # Check for existing lock and wait if another deploy is running
 echo "Checking for concurrent deploys..."
 MAX_WAIT=300  # 5 minutes max wait
 WAITED=0
-while ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE" 2>/dev/null; do
-    LOCK_OWNER=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_FILE 2>/dev/null" || echo "unknown")
+while true; do
+    LOCK_CHECK=$(ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE && echo 'LOCKED' || echo 'CLEAR'")
+    if [ "$LOCK_CHECK" = "CLEAR" ]; then
+        break
+    fi
+    LOCK_OWNER=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_FILE" || echo "unknown")
     echo "  Another deploy ($LOCK_OWNER) is in progress. Waiting... ($WAITED/$MAX_WAIT seconds)"
     sleep 5
     WAITED=$((WAITED + 5))
@@ -33,6 +45,7 @@ while ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE" 2>/dev/null; do
         exit 1
     fi
 done
+echo "  No concurrent deploys detected."
 
 # Acquire lock
 echo "Acquiring deploy lock..."

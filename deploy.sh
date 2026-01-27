@@ -19,17 +19,35 @@ cleanup() {
 
 # Check for existing lock - prod deploy FAILS IMMEDIATELY if another deploy is running
 echo "Checking for concurrent deploys..."
-if ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE" 2>/dev/null; then
-    LOCK_OWNER=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_FILE 2>/dev/null" || echo "unknown")
+
+# First verify SSH connectivity
+if ! ssh -i $SSH_KEY $REMOTE "echo 'SSH OK'" > /dev/null 2>&1; then
     echo ""
-    echo "ERROR: Another deploy ($LOCK_OWNER) is in progress."
+    echo "ERROR: Cannot connect to remote server."
+    echo "Check SSH key and network connectivity."
+    exit 1
+fi
+
+# Now check for lock file
+LOCK_CHECK=$(ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE && echo 'LOCKED' || echo 'CLEAR'")
+if [ "$LOCK_CHECK" = "LOCKED" ]; then
+    LOCK_OWNER=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_FILE" || echo "unknown")
+    echo ""
+    echo "============================================"
+    echo "   DEPLOY BLOCKED - CONCURRENT DEPLOY"
+    echo "============================================"
+    echo ""
+    echo "Another deploy ($LOCK_OWNER) is currently running."
     echo "Production deploy will NOT run during another deployment."
+    echo ""
     echo "Wait for the $LOCK_OWNER deploy to complete and try again."
     echo ""
     echo "If you believe the lock is stale, remove it manually:"
     echo "  ssh -i $SSH_KEY $REMOTE 'rm -f $LOCK_FILE'"
+    echo ""
     exit 1
 fi
+echo "  No concurrent deploys detected."
 
 # Acquire lock
 echo "Acquiring deploy lock..."

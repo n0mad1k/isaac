@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import {
   CheckCircle, Circle, Clock, AlertTriangle, ChevronDown, ChevronUp,
-  Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check
+  Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check, X, User
 } from 'lucide-react'
-import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask } from '../../services/api'
+import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask, getTeamMembers } from '../../services/api'
 
 function MemberTasksTab({ member, onUpdate }) {
   const [loading, setLoading] = useState(true)
@@ -14,10 +14,21 @@ function MemberTasksTab({ member, onUpdate }) {
   const [showBacklog, setShowBacklog] = useState(true)
   const [editingTask, setEditingTask] = useState(null)
   const [openMenuId, setOpenMenuId] = useState(null)
+  const [teamMembers, setTeamMembers] = useState([])
 
   useEffect(() => {
     loadTasks()
+    loadTeamMembers()
   }, [member.id])
+
+  const loadTeamMembers = async () => {
+    try {
+      const res = await getTeamMembers()
+      setTeamMembers(res.data || [])
+    } catch (err) {
+      console.error('Failed to load team members:', err)
+    }
+  }
 
   const loadTasks = async () => {
     setLoading(true)
@@ -100,8 +111,11 @@ function MemberTasksTab({ member, onUpdate }) {
         title: editingTask.title,
         description: editingTask.description,
         priority: editingTask.priority,
-        due_date: editingTask.due_date,
-        due_time: editingTask.due_time
+        due_date: editingTask.due_date || null,
+        due_time: editingTask.due_time || null,
+        category: editingTask.category || 'custom',
+        is_backlog: editingTask.is_backlog || false,
+        assigned_to_member_id: editingTask.assigned_to_member_id
       })
       setEditingTask(null)
       await loadTasks()
@@ -347,21 +361,21 @@ function MemberTasksTab({ member, onUpdate }) {
       {/* Edit Task Modal */}
       {editingTask && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+          <div className="bg-gray-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              <h3 className="font-semibold">Edit Task</h3>
-              <button onClick={() => setEditingTask(null)} className="text-gray-400 hover:text-white">
-                ×
+              <h3 className="text-xl font-semibold">Edit Task</h3>
+              <button onClick={() => setEditingTask(null)} className="p-1 hover:bg-gray-700 rounded">
+                <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Title</label>
+                <label className="block text-sm text-gray-400 mb-1">Title *</label>
                 <input
                   type="text"
                   value={editingTask.title}
                   onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
@@ -369,9 +383,39 @@ function MemberTasksTab({ member, onUpdate }) {
                 <textarea
                   value={editingTask.description || ''}
                   onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
-                  rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  rows={2}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Category</label>
+                  <select
+                    value={editingTask.category || 'custom'}
+                    onChange={(e) => setEditingTask({ ...editingTask, category: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  >
+                    <option value="custom">Custom</option>
+                    <option value="plant_care">Plant Care</option>
+                    <option value="animal_care">Animal Care</option>
+                    <option value="home_maintenance">Home Maintenance</option>
+                    <option value="garden">Garden</option>
+                    <option value="equipment">Equipment</option>
+                    <option value="seasonal">Seasonal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Priority</label>
+                  <select
+                    value={editingTask.priority || 2}
+                    onChange={(e) => setEditingTask({ ...editingTask, priority: parseInt(e.target.value) })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  >
+                    <option value={1}>High</option>
+                    <option value={2}>Medium</option>
+                    <option value={3}>Low</option>
+                  </select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -379,8 +423,8 @@ function MemberTasksTab({ member, onUpdate }) {
                   <input
                     type="date"
                     value={editingTask.due_date?.split('T')[0] || ''}
-                    onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value || null })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
                 <div>
@@ -388,34 +432,57 @@ function MemberTasksTab({ member, onUpdate }) {
                   <input
                     type="time"
                     value={editingTask.due_time || ''}
-                    onChange={(e) => setEditingTask({ ...editingTask, due_time: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    onChange={(e) => setEditingTask({ ...editingTask, due_time: e.target.value || null })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
               </div>
+              {/* Assignment */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Priority</label>
+                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Assign To
+                </label>
                 <select
-                  value={editingTask.priority || 2}
-                  onChange={(e) => setEditingTask({ ...editingTask, priority: parseInt(e.target.value) })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  value={editingTask.assigned_to_member_id || ''}
+                  onChange={(e) => setEditingTask({
+                    ...editingTask,
+                    assigned_to_member_id: e.target.value ? parseInt(e.target.value) : null
+                  })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
-                  <option value={1}>High</option>
-                  <option value={2}>Medium</option>
-                  <option value={3}>Low</option>
+                  <option value="">Not assigned</option>
+                  {teamMembers.filter(m => m.is_active !== false).map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.nickname || m.name}{m.role_title ? ` (${m.role_title})` : ''}
+                    </option>
+                  ))}
                 </select>
+              </div>
+              {/* Options */}
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={editingTask.is_backlog || false}
+                    onChange={(e) => setEditingTask({ ...editingTask, is_backlog: e.target.checked })}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
+                  />
+                  In Backlog
+                  <span className="text-xs text-gray-500">(won't appear in Today's Schedule)</span>
+                </label>
               </div>
             </div>
             <div className="flex justify-end gap-3 p-4 border-t border-gray-700">
               <button
                 onClick={() => setEditingTask(null)}
-                className="px-4 py-2 text-gray-400 hover:text-white"
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600"
+                className="px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-green-600 transition-colors"
               >
                 Save Changes
               </button>
