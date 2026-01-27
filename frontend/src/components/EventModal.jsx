@@ -62,6 +62,7 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
     farm_area_id: event?.farm_area_id || (preselectedEntity?.type === 'farm_area' ? preselectedEntity.id : null),
     assigned_to_worker_id: event?.assigned_to_worker_id || defaultWorkerId || null,
     assigned_to_user_id: event?.assigned_to_user_id || null,
+    assigned_to_member_id: event?.assigned_to_member_id || null,
     assigned_member_ids: event?.assigned_member_ids || [],
   })
   const [isMultiDay, setIsMultiDay] = useState(!!event?.end_date && event.end_date !== event.due_date)
@@ -192,6 +193,7 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
         // Assignment
         assigned_to_worker_id: formData.assigned_to_worker_id || null,
         assigned_to_user_id: formData.assigned_to_user_id || null,
+        assigned_to_member_id: formData.assigned_to_member_id || null,
         assigned_member_ids: formData.assigned_member_ids?.length > 0 ? formData.assigned_member_ids : null,
       }
 
@@ -643,22 +645,35 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
               </label>
               <select
                 value={
+                  formData.assigned_to_member_id ? `member:${formData.assigned_to_member_id}` :
                   formData.assigned_to_worker_id ? `worker:${formData.assigned_to_worker_id}` :
                   formData.assigned_to_user_id ? `user:${formData.assigned_to_user_id}` : ''
                 }
                 onChange={(e) => {
                   const value = e.target.value
                   if (!value) {
-                    setFormData({ ...formData, assigned_to_worker_id: null, assigned_to_user_id: null })
+                    setFormData({ ...formData, assigned_to_worker_id: null, assigned_to_user_id: null, assigned_to_member_id: null })
+                  } else if (value.startsWith('member:')) {
+                    setFormData({ ...formData, assigned_to_member_id: parseInt(value.split(':')[1]), assigned_to_worker_id: null, assigned_to_user_id: null })
                   } else if (value.startsWith('worker:')) {
-                    setFormData({ ...formData, assigned_to_worker_id: parseInt(value.split(':')[1]), assigned_to_user_id: null })
+                    setFormData({ ...formData, assigned_to_worker_id: parseInt(value.split(':')[1]), assigned_to_user_id: null, assigned_to_member_id: null })
                   } else if (value.startsWith('user:')) {
-                    setFormData({ ...formData, assigned_to_user_id: parseInt(value.split(':')[1]), assigned_to_worker_id: null })
+                    setFormData({ ...formData, assigned_to_user_id: parseInt(value.split(':')[1]), assigned_to_worker_id: null, assigned_to_member_id: null })
                   }
                 }}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               >
                 <option value="">Not assigned</option>
+                {/* Team Members - show first as primary option */}
+                {Array.isArray(entities.members) && entities.members.filter(m => m.is_active !== false).length > 0 && (
+                  <optgroup label="Team Members">
+                    {entities.members.filter(m => m.is_active !== false).map(m => (
+                      <option key={`member:${m.id}`} value={`member:${m.id}`}>
+                        {m.nickname || m.name}{m.role_title ? ` (${m.role_title})` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
                 {Array.isArray(entities.workers) && entities.workers.length > 0 && (
                   <optgroup label="Workers">
                     {entities.workers.map(w => (
@@ -678,38 +693,29 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
                   </optgroup>
                 )}
               </select>
-            </div>
-          )}
 
-          {/* Team Member Multi-Assignment */}
-          {!forWorkerTask && !entitiesLoading && Array.isArray(entities.members) && entities.members.length > 0 && (
-            <div className="space-y-2 pt-3 border-t border-gray-700">
-              <label className="block text-sm text-gray-400 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Team Members (can select multiple)
-              </label>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto bg-gray-700/50 p-2 rounded-lg">
-                {entities.members.filter(m => m.is_active !== false).map(member => (
-                  <label key={member.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-600/50 p-1 rounded">
-                    <input
-                      type="checkbox"
-                      checked={formData.assigned_member_ids?.includes(member.id) || false}
-                      onChange={(e) => {
-                        const newIds = e.target.checked
-                          ? [...(formData.assigned_member_ids || []), member.id]
-                          : (formData.assigned_member_ids || []).filter(id => id !== member.id)
-                        setFormData({ ...formData, assigned_member_ids: newIds })
-                      }}
-                      className="rounded border-gray-600"
-                    />
-                    <span>{member.nickname || member.name}</span>
-                    {member.role_title && <span className="text-xs text-gray-500">({member.role_title})</span>}
-                  </label>
-                ))}
-              </div>
-              {formData.assigned_member_ids?.length > 0 && (
-                <div className="text-xs text-gray-400">
-                  {formData.assigned_member_ids.length} member{formData.assigned_member_ids.length !== 1 ? 's' : ''} selected
+              {/* Additional team members (for events with multiple attendees) */}
+              {Array.isArray(entities.members) && entities.members.filter(m => m.is_active !== false).length > 1 && (
+                <div className="mt-2">
+                  <label className="text-xs text-gray-500 block mb-1">Additional team members:</label>
+                  <div className="flex flex-wrap gap-2">
+                    {entities.members.filter(m => m.is_active !== false).map(member => (
+                      <label key={member.id} className="flex items-center gap-1 text-xs cursor-pointer bg-gray-700/50 hover:bg-gray-600/50 px-2 py-1 rounded">
+                        <input
+                          type="checkbox"
+                          checked={formData.assigned_member_ids?.includes(member.id) || false}
+                          onChange={(e) => {
+                            const newIds = e.target.checked
+                              ? [...(formData.assigned_member_ids || []), member.id]
+                              : (formData.assigned_member_ids || []).filter(id => id !== member.id)
+                            setFormData({ ...formData, assigned_member_ids: newIds })
+                          }}
+                          className="rounded border-gray-600 w-3 h-3"
+                        />
+                        <span>{member.nickname || member.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
