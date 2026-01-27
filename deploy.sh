@@ -17,22 +17,19 @@ cleanup() {
     ssh -i $SSH_KEY $REMOTE "rm -f $LOCK_FILE" 2>/dev/null
 }
 
-# Check for existing lock and wait if another deploy is running
+# Check for existing lock - prod deploy FAILS IMMEDIATELY if another deploy is running
 echo "Checking for concurrent deploys..."
-MAX_WAIT=300  # 5 minutes max wait
-WAITED=0
-while ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE" 2>/dev/null; do
+if ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE" 2>/dev/null; then
     LOCK_OWNER=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_FILE 2>/dev/null" || echo "unknown")
-    echo "  Another deploy ($LOCK_OWNER) is in progress. Waiting... ($WAITED/$MAX_WAIT seconds)"
-    sleep 5
-    WAITED=$((WAITED + 5))
-    if [ $WAITED -ge $MAX_WAIT ]; then
-        echo "ERROR: Timed out waiting for $LOCK_OWNER deploy to complete."
-        echo "If you believe the lock is stale, remove it manually:"
-        echo "  ssh -i $SSH_KEY $REMOTE 'rm -f $LOCK_FILE'"
-        exit 1
-    fi
-done
+    echo ""
+    echo "ERROR: Another deploy ($LOCK_OWNER) is in progress."
+    echo "Production deploy will NOT run during another deployment."
+    echo "Wait for the $LOCK_OWNER deploy to complete and try again."
+    echo ""
+    echo "If you believe the lock is stale, remove it manually:"
+    echo "  ssh -i $SSH_KEY $REMOTE 'rm -f $LOCK_FILE'"
+    exit 1
+fi
 
 # Acquire lock
 echo "Acquiring deploy lock..."

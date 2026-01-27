@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.29.8] - 2026-01-27
+
+### Changed
+- **Deploy script conflict behavior**
+  - Production deploy now FAILS immediately if another deploy is running (does not wait)
+  - Dev deploy still waits for other deploys to complete (up to 5 minutes)
+  - Clear error message shows which deploy is blocking
+
 ## [1.29.7] - 2026-01-27
 
 ### Added
