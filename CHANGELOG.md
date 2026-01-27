@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.29.9] - 2026-01-27
+
+### Added
+- **Dev tracker note editing commands**
+  - `dev-tracker.sh failnote <id> <note>` - Update fail note without changing status
+  - `dev-tracker.sh testnotes <id> <notes>` - Update test notes without changing status
+
 ## [1.29.8] - 2026-01-27
 
 ### Changed

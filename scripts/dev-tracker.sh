@@ -9,6 +9,8 @@
 #   ./dev-tracker.sh pending <id> [fail_note]       - Move back to pending
 #   ./dev-tracker.sh backlog <id>                   - Move to backlog (work on later)
 #   ./dev-tracker.sh collab <id> [on|off]           - Mark as needing interactive collaboration
+#   ./dev-tracker.sh failnote <id> <note>           - Update fail note without changing status
+#   ./dev-tracker.sh testnotes <id> <notes>         - Update test notes without changing status
 
 DEV_URL="https://192.168.5.56:8443/api/dev-tracker"
 
@@ -180,6 +182,74 @@ except Exception as e:
         fi
         ;;
 
+    failnote)
+        ID="$2"
+        shift 2
+        FAIL_NOTE="$*"
+
+        if [ -z "$ID" ]; then
+            echo "Usage: $0 failnote <id> <note>"
+            exit 1
+        fi
+
+        if [ -z "$FAIL_NOTE" ]; then
+            echo "ERROR: Fail note is REQUIRED"
+            echo "Usage: $0 failnote <id> <note>"
+            exit 1
+        fi
+
+        # Escape quotes for JSON
+        FAIL_NOTE_ESCAPED=$(echo "$FAIL_NOTE" | sed 's/"/\\"/g')
+        JSON="{\"fail_note\": \"$FAIL_NOTE_ESCAPED\"}"
+
+        RESULT=$(curl -sk -X PUT "$DEV_URL/$ID" \
+            -H "Content-Type: application/json" \
+            -d "$JSON" 2>/dev/null)
+
+        if echo "$RESULT" | grep -q '"id"'; then
+            TITLE=$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin)['title'][:50])")
+            echo "Updated fail note for #$ID: $TITLE"
+            echo "Fail note: $FAIL_NOTE"
+        else
+            echo "Failed to update #$ID"
+            echo "$RESULT"
+        fi
+        ;;
+
+    testnotes)
+        ID="$2"
+        shift 2
+        TEST_NOTES="$*"
+
+        if [ -z "$ID" ]; then
+            echo "Usage: $0 testnotes <id> <notes>"
+            exit 1
+        fi
+
+        if [ -z "$TEST_NOTES" ]; then
+            echo "ERROR: Test notes are REQUIRED"
+            echo "Usage: $0 testnotes <id> <notes>"
+            exit 1
+        fi
+
+        # Escape quotes for JSON
+        TEST_NOTES_ESCAPED=$(echo "$TEST_NOTES" | sed 's/"/\\"/g')
+        JSON="{\"test_notes\": \"$TEST_NOTES_ESCAPED\"}"
+
+        RESULT=$(curl -sk -X PUT "$DEV_URL/$ID" \
+            -H "Content-Type: application/json" \
+            -d "$JSON" 2>/dev/null)
+
+        if echo "$RESULT" | grep -q '"id"'; then
+            TITLE=$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin)['title'][:50])")
+            echo "Updated test notes for #$ID: $TITLE"
+            echo "Test notes: $TEST_NOTES"
+        else
+            echo "Failed to update #$ID"
+            echo "$RESULT"
+        fi
+        ;;
+
     update|verified|pending|backlog)
         if [ "$1" = "update" ]; then
             ID="$2"
@@ -227,5 +297,7 @@ except Exception as e:
         echo "  $0 pending <id> [fail_note]         - Move back to pending"
         echo "  $0 backlog <id>                     - Move to backlog (work on later)"
         echo "  $0 collab <id> [on|off]             - Mark as needing interactive fixing with user"
+        echo "  $0 failnote <id> <note>             - Update fail note without changing status"
+        echo "  $0 testnotes <id> <notes>           - Update test notes without changing status"
         ;;
 esac
