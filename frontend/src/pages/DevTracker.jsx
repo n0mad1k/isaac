@@ -974,27 +974,36 @@ function DevTracker() {
                       </>
                     ) : (
                       <>
-                        <span className="text-xs px-1.5 py-0.5 bg-gray-600 text-gray-400 rounded font-mono shrink-0" title="Item ID">
-                          #{item.id}
-                        </span>
-                        <span className="flex-1 text-gray-200 break-words whitespace-normal min-w-0">{item.title}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-2">
+                            <span className="text-xs px-1.5 py-0.5 bg-gray-600 text-gray-400 rounded font-mono shrink-0" title="Item ID">
+                              #{item.id}
+                            </span>
+                            <span className="text-gray-200 break-words whitespace-normal">{item.title}</span>
+                          </div>
+                          {item.test_notes && (
+                            <p className="text-xs text-green-400 mt-1 ml-0 italic">
+                              ✓ {item.test_notes}
+                            </p>
+                          )}
+                        </div>
                         <button
                           onClick={() => handleOpenFailModal(item)}
-                          className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
+                          className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all shrink-0"
                           title="Mark as failed (requires comment)"
                         >
                           <X className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleStartEdit(item)}
-                          className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
+                          className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all shrink-0"
                           title="Edit"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleOpenDeleteModal(item)}
-                          className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
+                          className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all shrink-0"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
