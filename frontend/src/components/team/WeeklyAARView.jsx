@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Calendar, ThumbsUp, AlertTriangle, Users, User, Settings,
+  Calendar, ThumbsUp, ThumbsDown, AlertTriangle, Users, User, Settings,
   Plus, Check, ChevronDown, ChevronUp, RefreshCw, X
 } from 'lucide-react'
-import { getWeekObservations, getCurrentAAR, createAAR, updateAAR, getAARs } from '../../services/api'
+import { getWeekObservations, getCurrentAAR, createAAR, updateAAR, getAARs, createObservation } from '../../services/api'
 
 function WeeklyAARView({ settings, members }) {
   const [loading, setLoading] = useState(true)
@@ -13,6 +13,14 @@ function WeeklyAARView({ settings, members }) {
   const [pastAARs, setPastAARs] = useState([])
   const [expandedAAR, setExpandedAAR] = useState(null)
   const [editMode, setEditMode] = useState(false)
+
+  // Quick add observation state
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [quickAddType, setQuickAddType] = useState('went_well')
+  const [quickAddMember, setQuickAddMember] = useState('')
+  const [quickAddContent, setQuickAddContent] = useState('')
+  const [quickAddScope, setQuickAddScope] = useState('team')
+  const [quickAddSubmitting, setQuickAddSubmitting] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -35,39 +43,62 @@ function WeeklyAARView({ settings, members }) {
     return new Date(dateStr).toLocaleDateString()
   }
 
-  // Load data
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        const monday = getMondayOfWeek(new Date())
-        const dateStr = monday.toISOString().split('T')[0]
+  // Load data function
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const monday = getMondayOfWeek(new Date())
+      const dateStr = monday.toISOString().split('T')[0]
 
-        const [aarRes, obsRes, pastRes] = await Promise.all([
-          getCurrentAAR(),
-          getWeekObservations(dateStr),
-          getAARs({ limit: 5 })
-        ])
+      const [aarRes, obsRes, pastRes] = await Promise.all([
+        getCurrentAAR(),
+        getWeekObservations(dateStr),
+        getAARs({ limit: 5 })
+      ])
 
-        setCurrentAAR(aarRes.data)
-        setWeekObservations(obsRes.data)
-        setPastAARs(pastRes.data.filter(a => a.week_start !== aarRes.data?.week_start))
+      setCurrentAAR(aarRes.data)
+      setWeekObservations(obsRes.data)
+      setPastAARs(pastRes.data.filter(a => a.week_start !== aarRes.data?.week_start))
 
-        if (aarRes.data.exists) {
-          setFormData({
-            summary_notes: aarRes.data.summary_notes || '',
-            action_items: aarRes.data.action_items || []
-          })
-        }
-      } catch (err) {
-        console.error('Failed to load AAR data:', err)
-        setError(err.userMessage || 'Failed to load AAR data')
-      } finally {
-        setLoading(false)
+      if (aarRes.data.exists) {
+        setFormData({
+          summary_notes: aarRes.data.summary_notes || '',
+          action_items: aarRes.data.action_items || []
+        })
       }
+    } catch (err) {
+      console.error('Failed to load AAR data:', err)
+      setError(err.userMessage || 'Failed to load AAR data')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  // Load data on mount
+  useEffect(() => {
     loadData()
   }, [])
+
+  // Handle quick add observation
+  const handleQuickAddSubmit = async () => {
+    if (!quickAddMember || !quickAddContent.trim()) return
+
+    setQuickAddSubmitting(true)
+    try {
+      await createObservation(quickAddMember, {
+        observation_type: quickAddType,
+        content: quickAddContent.trim(),
+        scope: quickAddScope
+      })
+      setQuickAddContent('')
+      setShowQuickAdd(false)
+      await loadData()
+    } catch (err) {
+      console.error('Failed to add observation:', err)
+    } finally {
+      setQuickAddSubmitting(false)
+    }
+  }
 
   // Group observations by scope and type
   const groupedObservations = {
@@ -190,21 +221,30 @@ function WeeklyAARView({ settings, members }) {
             Week {weekNum} · {formatDate(monday)} - {formatDate(new Date(monday.getTime() + 6 * 24 * 60 * 60 * 1000))}
           </p>
         </div>
-        {currentAAR?.exists && !currentAAR.is_completed && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={handleComplete}
-            disabled={saving}
-            className="flex items-center gap-2 px-3 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
+            onClick={() => setShowQuickAdd(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
           >
-            <Check className="w-4 h-4" />
-            Mark Complete
+            <Plus className="w-4 h-4" />
+            Add Observation
           </button>
-        )}
-        {currentAAR?.is_completed && (
-          <span className="px-3 py-1 bg-green-900/50 text-green-300 rounded text-sm">
-            Completed
-          </span>
-        )}
+          {currentAAR?.exists && !currentAAR.is_completed && (
+            <button
+              onClick={handleComplete}
+              disabled={saving}
+              className="flex items-center gap-2 px-3 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
+            >
+              <Check className="w-4 h-4" />
+              Mark Complete
+            </button>
+          )}
+          {currentAAR?.is_completed && (
+            <span className="px-3 py-1 bg-green-900/50 text-green-300 rounded text-sm">
+              Completed
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Observations Summary */}
@@ -463,6 +503,117 @@ function WeeklyAARView({ settings, members }) {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Add Observation Modal */}
+      {showQuickAdd && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add Observation</h3>
+
+            {/* Type Selection */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setQuickAddType('went_well')}
+                className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors ${
+                  quickAddType === 'went_well'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                <ThumbsUp className="w-4 h-4" />
+                Went Well
+              </button>
+              <button
+                onClick={() => setQuickAddType('needs_improvement')}
+                className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors ${
+                  quickAddType === 'needs_improvement'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                }`}
+              >
+                <ThumbsDown className="w-4 h-4" />
+                Needs Improvement
+              </button>
+            </div>
+
+            {/* Scope Selection */}
+            <div className="mb-4">
+              <label className="block text-sm text-gray-400 mb-1">Scope</label>
+              <div className="flex gap-2">
+                {[
+                  { value: 'individual', label: 'Individual', icon: User },
+                  { value: 'team', label: 'Team', icon: Users },
+                  { value: 'operations', label: 'Operations', icon: Settings }
+                ].map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setQuickAddScope(value)}
+                    className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1 text-sm transition-colors ${
+                      quickAddScope === value
+                        ? 'bg-farm-green text-white'
+                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Member Selection */}
+            <div className="mb-4">
+              <label className="block text-sm text-gray-400 mb-1">Who are you?</label>
+              <select
+                value={quickAddMember}
+                onChange={(e) => setQuickAddMember(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+              >
+                <option value="">Select member...</option>
+                {members.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.nickname || m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Content */}
+            <div className="mb-4">
+              <label className="block text-sm text-gray-400 mb-1">
+                {quickAddType === 'went_well' ? 'What went well?' : 'What needs improvement?'}
+              </label>
+              <textarea
+                value={quickAddContent}
+                onChange={(e) => setQuickAddContent(e.target.value)}
+                placeholder="Enter your observation..."
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white resize-none"
+                rows={3}
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShowQuickAdd(false)
+                  setQuickAddContent('')
+                }}
+                className="px-4 py-2 text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleQuickAddSubmit}
+                disabled={!quickAddMember || !quickAddContent.trim() || quickAddSubmitting}
+                className="px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {quickAddSubmitting ? 'Adding...' : 'Add'}
+              </button>
+            </div>
           </div>
         </div>
       )}
