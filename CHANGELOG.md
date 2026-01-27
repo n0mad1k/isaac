@@ -10,6 +10,24 @@ All notable changes to Isaac will be documented in this file.
   - Displays "Now (X%)" when currently raining
   - Shows "No rain 48hr" when no precipitation expected
   - Uses NWS hourly forecast data for accurate predictions
+- **Task assignment display everywhere**
+  - Task assignments now shown in cyan badges across all views
+  - Visible in TaskList, Dashboard backlog, Calendar day details
+  - Shows member name with user icon
+- **Health data improvements**
+  - Added HRV (Heart Rate Variability) tracking
+  - Removed glucose tracking (not relevant for general health)
+  - Vital averages displayed as baselines in health data tab
+  - Shows reading count next to averages
+
+### Changed
+- **Task edit modal improvements**
+  - Edit modal now matches ToDo page styling
+  - Added ability to reassign/unassign tasks to different members
+  - Added category dropdown and backlog toggle
+- **Deploy script improvements**
+  - Better lock detection with explicit SSH verification
+  - Clearer error messages when blocked by concurrent deploy
 
 ## [1.30.0] - 2026-01-27
 

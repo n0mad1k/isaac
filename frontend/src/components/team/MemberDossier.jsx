@@ -290,7 +290,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             {/* Profile Tab */}
             {activeTab === 'profile' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Basic Info */}
+                {/* 1. Basic Info */}
                 <div className="bg-gray-700 rounded-lg p-4">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <User className="w-4 h-4 text-farm-green" />
@@ -338,42 +338,10 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   </table>
                 </div>
 
-                {/* Sizing */}
+                {/* 2. Skills */}
                 <div className="bg-gray-700 rounded-lg p-4">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-farm-green" />
-                    Gear Sizing
-                  </h3>
-                  <table className="w-full text-sm">
-                    <tbody>
-                      <tr>
-                        <td className="text-gray-400 py-1 pr-4">Shoe</td>
-                        <td className="py-1">{member.shoe_size || 'N/A'}</td>
-                      </tr>
-                      <tr>
-                        <td className="text-gray-400 py-1 pr-4">Shirt</td>
-                        <td className="py-1">{member.shirt_size || 'N/A'}</td>
-                      </tr>
-                      <tr>
-                        <td className="text-gray-400 py-1 pr-4">Pants</td>
-                        <td className="py-1">{member.pants_size || 'N/A'}</td>
-                      </tr>
-                      <tr>
-                        <td className="text-gray-400 py-1 pr-4">Hat</td>
-                        <td className="py-1">{member.hat_size || 'N/A'}</td>
-                      </tr>
-                      <tr>
-                        <td className="text-gray-400 py-1 pr-4">Gloves</td>
-                        <td className="py-1">{member.glove_size || 'N/A'}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Skills */}
-                {member.skills && member.skills.length > 0 && (
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <h3 className="font-semibold mb-3">Skills</h3>
+                  <h3 className="font-semibold mb-3">Skills</h3>
+                  {member.skills && member.skills.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {member.skills.map((skill, idx) => (
                         <span key={idx} className="px-2 py-1 bg-blue-900/50 text-blue-300 rounded text-sm">
@@ -381,36 +349,12 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                         </span>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-gray-400 text-sm">No skills listed</p>
+                  )}
+                </div>
 
-                {/* Responsibilities */}
-                {member.responsibilities && member.responsibilities.length > 0 && (
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <h3 className="font-semibold mb-3">Responsibilities</h3>
-                    <ul className="space-y-1 text-sm">
-                      {member.responsibilities.map((resp, idx) => (
-                        <li key={idx} className="text-gray-300">• {resp}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Trainings */}
-                {member.trainings && member.trainings.length > 0 && (
-                  <div className="bg-gray-700 rounded-lg p-4 md:col-span-2">
-                    <h3 className="font-semibold mb-3">Completed Training</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {member.trainings.map((training, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-green-900/50 text-green-300 rounded text-sm">
-                          {training}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Allergies & Medical Conditions */}
+                {/* 3. Allergies - Critical Health Info */}
                 <div className="bg-gray-700 rounded-lg p-4">
                   <h3 className="font-semibold mb-3 text-red-400 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4" />
@@ -443,6 +387,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   )}
                 </div>
 
+                {/* 4. Medical Conditions */}
                 <div className="bg-gray-700 rounded-lg p-4">
                   <h3 className="font-semibold mb-3">Medical Conditions</h3>
                   {member.medical_conditions && member.medical_conditions.length > 0 ? (
@@ -458,7 +403,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   )}
                 </div>
 
-                {/* Emergency Contact */}
+                {/* 5. Emergency Contact */}
                 {(member.emergency_contact_name || member.emergency_contact_phone) && (
                   <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 md:col-span-2">
                     <h3 className="font-semibold mb-2 text-red-300 flex items-center gap-2">
@@ -472,13 +417,69 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   </div>
                 )}
 
-                {/* Notes */}
+                {/* 6. Responsibilities */}
+                {member.responsibilities && member.responsibilities.length > 0 && (
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold mb-3">Responsibilities</h3>
+                    <ul className="space-y-1 text-sm">
+                      {member.responsibilities.map((resp, idx) => (
+                        <li key={idx} className="text-gray-300">• {resp}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* 7. Trainings */}
+                {member.trainings && member.trainings.length > 0 && (
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <h3 className="font-semibold mb-3">Completed Training</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {member.trainings.map((training, idx) => (
+                        <span key={idx} className="px-2 py-1 bg-green-900/50 text-green-300 rounded text-sm">
+                          {training}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 8. Notes */}
                 {member.notes && (
                   <div className="bg-gray-700 rounded-lg p-4 md:col-span-2">
                     <h3 className="font-semibold mb-2">Notes</h3>
                     <p className="text-gray-300 whitespace-pre-wrap">{member.notes}</p>
                   </div>
                 )}
+
+                {/* 9. Gear Sizing - LAST */}
+                <div className="bg-gray-700 rounded-lg p-4 md:col-span-2">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-farm-green" />
+                    Gear Sizing
+                  </h3>
+                  <div className="grid grid-cols-5 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-400">Shoe</span>
+                      <p className="font-medium">{member.shoe_size || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Shirt</span>
+                      <p className="font-medium">{member.shirt_size || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Pants</span>
+                      <p className="font-medium">{member.pants_size || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Hat</span>
+                      <p className="font-medium">{member.hat_size || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Gloves</span>
+                      <p className="font-medium">{member.glove_size || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
