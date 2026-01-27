@@ -24,6 +24,11 @@ function Team() {
   const [showMemberForm, setShowMemberForm] = useState(false)
   const [editingMember, setEditingMember] = useState(null)
 
+  // Tab navigation state
+  const tabsRef = useRef(null)
+  const [showLeftArrow, setShowLeftArrow] = useState(false)
+  const [showRightArrow, setShowRightArrow] = useState(false)
+
   // Load data
   const loadData = async () => {
     try {
@@ -141,9 +146,6 @@ function Team() {
   }
 
   const selectedMember = members.find(m => m.id === selectedMemberId)
-  const tabsRef = useRef(null)
-  const [showLeftArrow, setShowLeftArrow] = useState(false)
-  const [showRightArrow, setShowRightArrow] = useState(false)
 
   // Check if tabs overflow and need arrows
   const checkTabsOverflow = () => {
