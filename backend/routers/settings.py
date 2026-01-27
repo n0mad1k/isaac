@@ -1319,7 +1319,7 @@ async def sync_calendar(db: AsyncSession = Depends(get_db)):
     }
 
 
-@router.get("/logs/files/")
+@router.get("/admin-logs/files/")
 async def get_log_files():
     """Get list of available log files"""
     from pathlib import Path
@@ -1360,7 +1360,7 @@ async def get_log_files():
     return {"files": log_files}
 
 
-@router.get("/logs/")
+@router.get("/admin-logs/")
 async def get_logs(
     lines: int = 100,
     level: Optional[str] = None,
@@ -1461,7 +1461,7 @@ async def get_logs(
         raise HTTPException(status_code=500, detail=f"Failed to read logs: {str(e)}")
 
 
-@router.post("/logs/clear/")
+@router.post("/admin-logs/clear/")
 async def clear_logs():
     """Clear the application log file"""
     import os
