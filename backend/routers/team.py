@@ -3388,32 +3388,38 @@ async def create_member_supply_request(
     current_user: User = Depends(require_auth)
 ):
     """Create a new supply request for a member"""
-    # Verify member exists
-    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
-    member = result.scalar_one_or_none()
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
+    try:
+        # Verify member exists
+        result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+        member = result.scalar_one_or_none()
+        if not member:
+            raise HTTPException(status_code=404, detail="Member not found")
 
-    req = SupplyRequest(
-        member_id=member_id,
-        item_name=data.item_name,
-        description=data.description,
-        category=data.category,
-        quantity=data.quantity,
-        link=data.link,
-        price=data.price,
-        vendor=data.vendor,
-        priority=data.priority,
-        reason=data.reason,
-        notes=data.notes,
-        status=RequestStatus.PENDING
-    )
+        req = SupplyRequest(
+            member_id=member_id,
+            item_name=data.item_name,
+            description=data.description,
+            category=data.category,
+            quantity=data.quantity,
+            link=data.link,
+            price=data.price,
+            vendor=data.vendor,
+            priority=data.priority,
+            reason=data.reason,
+            notes=data.notes,
+            status=RequestStatus.PENDING
+        )
 
-    db.add(req)
-    await db.commit()
-    await db.refresh(req)
+        db.add(req)
+        await db.commit()
+        await db.refresh(req)
 
-    return serialize_supply_request(req)
+        return serialize_supply_request(req)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to create supply request for member {member_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create supply request: {str(e)}")
 
 
 @router.patch("/supply-requests/{request_id}/")
