@@ -58,20 +58,20 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
         {/* Mission Statement - Larger */}
         {settings?.team_mission && (
           <div className="max-w-4xl mx-auto px-4">
-            <p className="text-xl text-gray-200 leading-relaxed italic font-light">
+            <p className="text-2xl text-gray-200 leading-relaxed italic font-light">
               "{settings.team_mission}"
             </p>
           </div>
         )}
 
         {/* Team Logo - Larger */}
-        <div className="flex justify-center py-2">
+        <div className="flex justify-center py-4">
           {settings?.team_logo ? (
             <div className="relative group">
               <img
                 src={`/api/team/logo/${settings.team_logo.split('/').pop()}`}
                 alt="Team Logo"
-                className="max-h-80 max-w-2xl object-contain drop-shadow-2xl"
+                className="max-h-[400px] max-w-3xl object-contain drop-shadow-2xl"
               />
               <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded">
                 <span className="text-white text-sm flex items-center gap-2">
