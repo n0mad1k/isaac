@@ -29,7 +29,9 @@ if ! ssh -i $SSH_KEY $REMOTE "echo 'SSH OK'" > /dev/null 2>&1; then
 fi
 
 # Now check for lock file
+echo "  Checking lock file: $LOCK_FILE"
 LOCK_CHECK=$(ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE && echo 'LOCKED' || echo 'CLEAR'")
+echo "  Lock status: $LOCK_CHECK"
 if [ "$LOCK_CHECK" = "LOCKED" ]; then
     LOCK_OWNER=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_FILE" || echo "unknown")
     echo ""
@@ -52,6 +54,11 @@ echo "  No concurrent deploys detected."
 # Acquire lock
 echo "Acquiring deploy lock..."
 ssh -i $SSH_KEY $REMOTE "echo '$DEPLOY_TYPE' > $LOCK_FILE"
+# Verify lock was acquired
+VERIFY=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_FILE 2>/dev/null || echo 'FAILED'")
+if [ "$VERIFY" != "$DEPLOY_TYPE" ]; then
+    echo "WARNING: Failed to verify lock acquisition (got: $VERIFY)"
+fi
 
 # Set trap to release lock on exit (normal or error)
 trap cleanup EXIT

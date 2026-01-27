@@ -27,10 +27,12 @@ fi
 
 # Check for existing lock and wait if another deploy is running
 echo "Checking for concurrent deploys..."
+echo "  Lock file: $LOCK_FILE"
 MAX_WAIT=300  # 5 minutes max wait
 WAITED=0
 while true; do
     LOCK_CHECK=$(ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE && echo 'LOCKED' || echo 'CLEAR'")
+    echo "  Lock status: $LOCK_CHECK"
     if [ "$LOCK_CHECK" = "CLEAR" ]; then
         break
     fi

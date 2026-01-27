@@ -233,7 +233,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               <div className="mt-2 flex flex-wrap gap-2">
                 <AlertTriangle className="w-4 h-4 text-red-500" />
                 {member.allergies.filter(a => typeof a === 'object' && a.anaphylaxis).map((allergy, idx) => (
-                  <span key={idx} className="px-2 py-0.5 bg-red-900/70 border border-red-500 rounded text-red-200 text-xs font-bold animate-pulse">
+                  <span key={idx} className="px-2 py-0.5 bg-red-900/70 border border-red-500 rounded text-red-200 text-xs font-bold">
                     ANAPHYLAXIS: {typeof allergy === 'object' ? allergy.name : allergy}
                   </span>
                 ))}
@@ -1162,15 +1162,16 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 <div className="font-medium">
                   {latest ? formatVitalValue(latest) : 'No data'}
                 </div>
-                {avg?.count > 1 && (
-                  <div className="text-xs text-cyan-400">
-                    Avg: {type.value === 'blood_pressure' && avg.average_secondary
+                {avg?.count >= 1 && (
+                  <div className="text-xs text-cyan-400 mt-1 p-1 bg-cyan-900/30 rounded">
+                    <span className="font-medium">{avg.count > 1 ? 'Baseline:' : 'Current:'}</span>{' '}
+                    {type.value === 'blood_pressure' && avg.average_secondary
                       ? `${avg.average}/${avg.average_secondary}`
                       : avg.average} {avg.unit}
-                    <span className="text-gray-500"> ({avg.count})</span>
+                    {avg.count > 1 && <span className="text-gray-400"> (n={avg.count})</span>}
                   </div>
                 )}
-                {latest && !avg?.count && (
+                {latest && (
                   <div className="text-xs text-gray-500">{formatDate(latest.recorded_at)}</div>
                 )}
               </div>
