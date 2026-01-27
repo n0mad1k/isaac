@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
-  Users, Plus, RefreshCw, Shield, AlertCircle, User
+  Users, Plus, RefreshCw, Shield, AlertCircle, User, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import {
   getTeamSettings, getTeamOverview, getTeamMembers, createTeamMember,
@@ -141,58 +141,109 @@ function Team() {
   }
 
   const selectedMember = members.find(m => m.id === selectedMemberId)
+  const tabsRef = useRef(null)
+  const [showLeftArrow, setShowLeftArrow] = useState(false)
+  const [showRightArrow, setShowRightArrow] = useState(false)
+
+  // Check if tabs overflow and need arrows
+  const checkTabsOverflow = () => {
+    if (tabsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current
+      setShowLeftArrow(scrollLeft > 0)
+      setShowRightArrow(scrollLeft + clientWidth < scrollWidth - 1)
+    }
+  }
+
+  useEffect(() => {
+    checkTabsOverflow()
+    window.addEventListener('resize', checkTabsOverflow)
+    return () => window.removeEventListener('resize', checkTabsOverflow)
+  }, [members])
+
+  const scrollTabs = (direction) => {
+    if (tabsRef.current) {
+      const scrollAmount = 150
+      tabsRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      })
+      setTimeout(checkTabsOverflow, 300)
+    }
+  }
 
   return (
     <div className="space-y-4">
-      {/* Header Row: Team Name + Tabs + Actions */}
-      <div className="flex items-center justify-between gap-4 border-b border-gray-700 pb-2">
-        {/* Team Name */}
-        <h1 className="text-2xl font-bold text-white flex-shrink-0">
-          {settings?.team_name || 'Team'}
-        </h1>
-
-        {/* Tab Navigation */}
-        <div className="flex gap-1 overflow-x-auto flex-1 justify-center">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'overview'
-                ? 'bg-gray-700 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-            }`}
-          >
-            Overview
-          </button>
-
-          {/* Member tabs */}
-          {members.map(member => (
+      {/* Header Row: Tabs (left) + Team Name (center) + Actions (right) */}
+      <div className="flex items-center border-b border-gray-700 pb-2">
+        {/* Tab Navigation - Left */}
+        <div className="flex items-center gap-1 flex-shrink-0 max-w-[40%]">
+          {showLeftArrow && (
             <button
-              key={member.id}
-              onClick={() => handleMemberClick(member.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 'member' && selectedMemberId === member.id
+              onClick={() => scrollTabs('left')}
+              className="p-1 text-gray-400 hover:text-white"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
+          <div
+            ref={tabsRef}
+            onScroll={checkTabsOverflow}
+            className="flex gap-1 overflow-x-hidden"
+          >
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'overview'
                   ? 'bg-gray-700 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
               }`}
             >
-              <ReadinessIndicator status={member.overall_readiness} />
-              {member.nickname || member.name.split(' ')[0]}
+              Overview
             </button>
-          ))}
 
-          <button
-            onClick={() => setActiveTab('aar')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'aar'
-                ? 'bg-gray-700 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-            }`}
-          >
-            Weekly AAR
-          </button>
+            {/* Member tabs */}
+            {members.map(member => (
+              <button
+                key={member.id}
+                onClick={() => handleMemberClick(member.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  activeTab === 'member' && selectedMemberId === member.id
+                    ? 'bg-gray-700 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                }`}
+              >
+                <ReadinessIndicator status={member.overall_readiness} />
+                {member.nickname || member.name.split(' ')[0]}
+              </button>
+            ))}
+
+            <button
+              onClick={() => setActiveTab('aar')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'aar'
+                  ? 'bg-gray-700 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+              }`}
+            >
+              Weekly AAR
+            </button>
+          </div>
+          {showRightArrow && (
+            <button
+              onClick={() => scrollTabs('right')}
+              className="p-1 text-gray-400 hover:text-white"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        {/* Actions */}
+        {/* Team Name - Center */}
+        <h1 className="text-2xl font-bold text-white flex-1 text-center">
+          {settings?.team_name || 'Team'}
+        </h1>
+
+        {/* Actions - Right */}
         <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={loadData}

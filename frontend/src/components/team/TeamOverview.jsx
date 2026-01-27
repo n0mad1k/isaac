@@ -106,8 +106,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
         {/* Core Values */}
         {settings?.team_values && settings.team_values.length > 0 && (
           <div className="pt-2">
-            <h2 className="text-lg font-bold mb-4 flex items-center justify-center gap-2">
-              <Target className="w-5 h-5 text-farm-green" />
+            <h2 className="text-lg font-bold mb-4">
               Core Values
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto">
