@@ -10,7 +10,8 @@ import {
   getMentoringSessions, createMentoringSession,
   getMemberObservations, createObservation, uploadMemberPhoto, deleteMemberPhoto,
   getMemberAppointments, createMemberAppointment, updateMemberAppointment,
-  deleteMemberAppointment, completeMemberAppointment
+  deleteMemberAppointment, completeMemberAppointment,
+  getVitalsHistory, logVital, deleteVital, getVitalTypes
 } from '../../services/api'
 import MemberMentoringTab from './MemberMentoringTab'
 import MemberObservationsTab from './MemberObservationsTab'
@@ -26,6 +27,8 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
 
   // Data states
   const [weightHistory, setWeightHistory] = useState([])
+  const [vitalsHistory, setVitalsHistory] = useState([])
+  const [vitalTypes, setVitalTypes] = useState([])
   const [medicalHistory, setMedicalHistory] = useState([])
   const [sessions, setSessions] = useState([])
   const [observations, setObservations] = useState([])
@@ -42,9 +45,15 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
       setLoading(true)
       try {
         switch (activeTab) {
-          case 'weight':
-            const weightRes = await getWeightHistory(member.id)
+          case 'health':
+            const [weightRes, vitalsRes, typesRes] = await Promise.all([
+              getWeightHistory(member.id),
+              getVitalsHistory(member.id),
+              getVitalTypes()
+            ])
             setWeightHistory(weightRes.data)
+            setVitalsHistory(vitalsRes.data)
+            setVitalTypes(typesRes.data)
             break
           case 'medical':
             const [medRes, apptRes] = await Promise.all([
@@ -152,7 +161,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
     { id: 'medical', label: 'Medical', icon: Heart },
     { id: 'mentoring', label: 'Mentoring', icon: Brain },
     { id: 'observations', label: 'Observations', icon: MessageSquare },
-    { id: 'weight', label: 'Weight', icon: Activity },
+    { id: 'health', label: 'Health Data', icon: Activity },
   ]
 
   return (
@@ -600,46 +609,27 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               />
             )}
 
-            {/* Weight Tab */}
-            {activeTab === 'weight' && (
-              <div className="space-y-4">
-                {/* Current Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <div className="text-gray-400 text-sm mb-1">Current Weight</div>
-                    <div className="text-2xl font-bold">{formatWeight(member.current_weight)}</div>
-                  </div>
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <div className="text-gray-400 text-sm mb-1">Target Weight</div>
-                    <div className="text-2xl font-bold">{formatWeight(member.target_weight)}</div>
-                  </div>
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <div className="text-gray-400 text-sm mb-1">Height</div>
-                    <div className="text-2xl font-bold">{formatHeight(member.height_inches)}</div>
-                  </div>
-                </div>
-
-                {/* Weight History */}
-                {weightHistory.length > 0 ? (
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <h3 className="font-semibold mb-3">Weight History</h3>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {weightHistory.map(entry => (
-                        <div key={entry.id} className="text-sm flex items-center gap-4 py-2 border-b border-gray-600 last:border-0">
-                          <span className="text-gray-400 w-24">{formatDate(entry.recorded_at)}</span>
-                          <span className="font-medium">{formatWeight(entry.weight)}</span>
-                          {entry.notes && <span className="text-gray-400 flex-1">{entry.notes}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-gray-700 rounded-lg p-8 text-center text-gray-400">
-                    <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No weight history recorded</p>
-                  </div>
-                )}
-              </div>
+            {/* Health Data Tab */}
+            {activeTab === 'health' && (
+              <HealthDataTab
+                member={member}
+                settings={settings}
+                weightHistory={weightHistory}
+                vitalsHistory={vitalsHistory}
+                vitalTypes={vitalTypes}
+                formatWeight={formatWeight}
+                formatHeight={formatHeight}
+                formatDate={formatDate}
+                onUpdate={async () => {
+                  const [wRes, vRes] = await Promise.all([
+                    getWeightHistory(member.id),
+                    getVitalsHistory(member.id)
+                  ])
+                  setWeightHistory(wRes.data)
+                  setVitalsHistory(vRes.data)
+                  onUpdate()
+                }}
+              />
             )}
           </>
         )}
@@ -959,5 +949,404 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
     </div>
   )
 }
+
+
+// ============================================
+// Health Data Tab Component
+// ============================================
+
+function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalTypes, formatWeight, formatHeight, formatDate, onUpdate }) {
+  const [showAddVital, setShowAddVital] = useState(false)
+  const [showAddWeight, setShowAddWeight] = useState(false)
+  const [selectedType, setSelectedType] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Form states
+  const [vitalForm, setVitalForm] = useState({
+    vital_type: '',
+    value: '',
+    value_secondary: '',
+    notes: ''
+  })
+  const [weightForm, setWeightForm] = useState({
+    weight: '',
+    notes: ''
+  })
+
+  // Calculate BMI
+  const calculateBMI = (weightLbs, heightInches) => {
+    if (!weightLbs || !heightInches) return null
+    return ((weightLbs / (heightInches * heightInches)) * 703).toFixed(1)
+  }
+
+  const bmi = calculateBMI(member.current_weight, member.height_inches)
+  const getBMICategory = (bmi) => {
+    if (!bmi) return { label: 'N/A', color: 'text-gray-400' }
+    const val = parseFloat(bmi)
+    if (val < 18.5) return { label: 'Underweight', color: 'text-blue-400' }
+    if (val < 25) return { label: 'Normal', color: 'text-green-400' }
+    if (val < 30) return { label: 'Overweight', color: 'text-yellow-400' }
+    return { label: 'Obese', color: 'text-red-400' }
+  }
+  const bmiInfo = getBMICategory(bmi)
+
+  // Get latest vital by type
+  const getLatestVital = (vitalType) => {
+    return vitalsHistory.find(v => v.vital_type === vitalType)
+  }
+
+  // Format vital value for display
+  const formatVitalValue = (vital) => {
+    if (!vital) return 'N/A'
+    if (vital.vital_type === 'blood_pressure' && vital.value_secondary) {
+      return `${Math.round(vital.value)}/${Math.round(vital.value_secondary)} ${vital.unit}`
+    }
+    return `${vital.value} ${vital.unit}`
+  }
+
+  // Handle add vital
+  const handleAddVital = async (e) => {
+    e.preventDefault()
+    if (!vitalForm.vital_type || !vitalForm.value) return
+
+    setSubmitting(true)
+    setError(null)
+    try {
+      await logVital(member.id, {
+        vital_type: vitalForm.vital_type,
+        value: parseFloat(vitalForm.value),
+        value_secondary: vitalForm.value_secondary ? parseFloat(vitalForm.value_secondary) : null,
+        notes: vitalForm.notes || null
+      })
+      setVitalForm({ vital_type: '', value: '', value_secondary: '', notes: '' })
+      setShowAddVital(false)
+      onUpdate()
+    } catch (err) {
+      setError(err.userMessage || 'Failed to add vital')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Handle add weight
+  const handleAddWeight = async (e) => {
+    e.preventDefault()
+    if (!weightForm.weight) return
+
+    setSubmitting(true)
+    setError(null)
+    try {
+      await logWeight(member.id, {
+        weight: parseFloat(weightForm.weight),
+        notes: weightForm.notes || null
+      })
+      setWeightForm({ weight: '', notes: '' })
+      setShowAddWeight(false)
+      onUpdate()
+    } catch (err) {
+      setError(err.userMessage || 'Failed to add weight')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Handle delete vital
+  const handleDeleteVital = async (vitalId) => {
+    if (!confirm('Delete this reading?')) return
+    try {
+      await deleteVital(member.id, vitalId)
+      onUpdate()
+    } catch (err) {
+      console.error('Failed to delete vital:', err)
+    }
+  }
+
+  // Get vital history by type
+  const getVitalsByType = (vitalType) => {
+    return vitalsHistory.filter(v => v.vital_type === vitalType)
+  }
+
+  // Selected vital type info
+  const selectedVitalType = vitalTypes.find(t => t.value === vitalForm.vital_type)
+
+  return (
+    <div className="space-y-4">
+      {/* Current Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gray-700 rounded-lg p-4">
+          <div className="text-gray-400 text-sm mb-1">Weight</div>
+          <div className="text-2xl font-bold">{formatWeight(member.current_weight)}</div>
+          {member.target_weight && (
+            <div className="text-xs text-gray-400">
+              Target: {formatWeight(member.target_weight)}
+            </div>
+          )}
+        </div>
+        <div className="bg-gray-700 rounded-lg p-4">
+          <div className="text-gray-400 text-sm mb-1">Height</div>
+          <div className="text-2xl font-bold">{formatHeight(member.height_inches)}</div>
+        </div>
+        <div className="bg-gray-700 rounded-lg p-4">
+          <div className="text-gray-400 text-sm mb-1">BMI</div>
+          <div className="text-2xl font-bold">{bmi || 'N/A'}</div>
+          <div className={`text-xs ${bmiInfo.color}`}>{bmiInfo.label}</div>
+        </div>
+        <div className="bg-gray-700 rounded-lg p-4">
+          <div className="text-gray-400 text-sm mb-1">Blood Type</div>
+          <div className="text-2xl font-bold text-red-400">{member.blood_type || 'N/A'}</div>
+        </div>
+      </div>
+
+      {/* Latest Vitals Quick View */}
+      <div className="bg-gray-700 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">Latest Vitals</h3>
+          <button
+            onClick={() => setShowAddVital(true)}
+            className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1"
+          >
+            <Plus className="w-4 h-4" /> Add Reading
+          </button>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {vitalTypes.map(type => {
+            const latest = getLatestVital(type.value)
+            return (
+              <div
+                key={type.value}
+                className="bg-gray-800 rounded p-3 cursor-pointer hover:bg-gray-750"
+                onClick={() => setSelectedType(selectedType === type.value ? null : type.value)}
+              >
+                <div className="text-xs text-gray-400 mb-1">{type.label}</div>
+                <div className="font-medium">
+                  {latest ? formatVitalValue(latest) : 'No data'}
+                </div>
+                {latest && (
+                  <div className="text-xs text-gray-500">{formatDate(latest.recorded_at)}</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Selected Vital History */}
+      {selectedType && (
+        <div className="bg-gray-700 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">
+              {vitalTypes.find(t => t.value === selectedType)?.label || selectedType} History
+            </h3>
+            <button
+              onClick={() => setSelectedType(null)}
+              className="text-sm text-gray-400 hover:text-white"
+            >
+              Close
+            </button>
+          </div>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {getVitalsByType(selectedType).length > 0 ? (
+              getVitalsByType(selectedType).map(vital => (
+                <div key={vital.id} className="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
+                  <div className="flex items-center gap-4">
+                    <span className="text-gray-400 text-sm w-24">{formatDate(vital.recorded_at)}</span>
+                    <span className="font-medium">{formatVitalValue(vital)}</span>
+                    {vital.notes && <span className="text-gray-400 text-sm">{vital.notes}</span>}
+                  </div>
+                  <button
+                    onClick={() => handleDeleteVital(vital.id)}
+                    className="p-1 text-gray-400 hover:text-red-400"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-400 text-sm">No readings recorded</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Weight History */}
+      <div className="bg-gray-700 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">Weight History</h3>
+          <button
+            onClick={() => setShowAddWeight(true)}
+            className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1"
+          >
+            <Plus className="w-4 h-4" /> Log Weight
+          </button>
+        </div>
+        {weightHistory.length > 0 ? (
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {weightHistory.map(entry => (
+              <div key={entry.id} className="text-sm flex items-center gap-4 py-2 border-b border-gray-600 last:border-0">
+                <span className="text-gray-400 w-24">{formatDate(entry.recorded_at)}</span>
+                <span className="font-medium">{formatWeight(entry.weight)}</span>
+                {entry.notes && <span className="text-gray-400 flex-1">{entry.notes}</span>}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-gray-400 py-4">
+            <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p>No weight history recorded</p>
+          </div>
+        )}
+      </div>
+
+      {/* Add Vital Modal */}
+      {showAddVital && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="font-semibold">Add Vital Reading</h3>
+              <button onClick={() => setShowAddVital(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddVital} className="p-4 space-y-4">
+              {error && (
+                <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
+                  {error}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Vital Type *</label>
+                <select
+                  value={vitalForm.vital_type}
+                  onChange={(e) => setVitalForm({ ...vitalForm, vital_type: e.target.value, value: '', value_secondary: '' })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  required
+                >
+                  <option value="">Select type...</option>
+                  {vitalTypes.map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </select>
+              </div>
+              {vitalForm.vital_type && (
+                <>
+                  <div className={selectedVitalType?.has_secondary ? 'grid grid-cols-2 gap-4' : ''}>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">
+                        {selectedVitalType?.has_secondary ? 'Systolic *' : `Value (${selectedVitalType?.unit}) *`}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={vitalForm.value}
+                        onChange={(e) => setVitalForm({ ...vitalForm, value: e.target.value })}
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                        placeholder={selectedVitalType?.has_secondary ? '120' : ''}
+                        required
+                      />
+                    </div>
+                    {selectedVitalType?.has_secondary && (
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">Diastolic *</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={vitalForm.value_secondary}
+                          onChange={(e) => setVitalForm({ ...vitalForm, value_secondary: e.target.value })}
+                          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                          placeholder="80"
+                          required
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                    <input
+                      type="text"
+                      value={vitalForm.notes}
+                      onChange={(e) => setVitalForm({ ...vitalForm, notes: e.target.value })}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                      placeholder="Optional notes..."
+                    />
+                  </div>
+                </>
+              )}
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setShowAddVital(false)} className="px-4 py-2 text-gray-400 hover:text-white">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !vitalForm.vital_type || !vitalForm.value}
+                  className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
+                >
+                  {submitting ? 'Saving...' : 'Save Reading'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Weight Modal */}
+      {showAddWeight && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="font-semibold">Log Weight</h3>
+              <button onClick={() => setShowAddWeight(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddWeight} className="p-4 space-y-4">
+              {error && (
+                <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
+                  {error}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Weight ({settings?.team_units === 'metric' ? 'kg' : 'lbs'}) *
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={weightForm.weight}
+                  onChange={(e) => setWeightForm({ ...weightForm, weight: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <input
+                  type="text"
+                  value={weightForm.notes}
+                  onChange={(e) => setWeightForm({ ...weightForm, notes: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  placeholder="Optional notes..."
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setShowAddWeight(false)} className="px-4 py-2 text-gray-400 hover:text-white">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !weightForm.weight}
+                  className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
+                >
+                  {submitting ? 'Saving...' : 'Save Weight'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 
 export default MemberDossier

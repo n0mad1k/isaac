@@ -25,7 +25,7 @@ from .supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from .customer_feedback import CustomerFeedback, FeedbackType, FeedbackStatus
 from .translation import TranslationCache
 from .team import (
-    TeamMember, MemberWeightLog, MemberMedicalLog, MentoringSession,
+    TeamMember, MemberWeightLog, MemberVitalsLog, MemberMedicalLog, MentoringSession,
     ValuesAssessmentHistory, WeeklyObservation, WeeklyAAR,
     MemberRole, ReadinessStatus, VisionStatus, GoalsMet,
     ObservationType, ObservationScope,
@@ -35,7 +35,9 @@ from .team import (
     # Training tracking
     MemberTraining, MemberTrainingLog, TrainingCategory,
     # Medical appointments
-    MemberMedicalAppointment, AppointmentType
+    MemberMedicalAppointment, AppointmentType,
+    # Vitals tracking
+    VitalType
 )
 
 __all__ = [
@@ -115,6 +117,8 @@ __all__ = [
     # Team models
     "TeamMember",
     "MemberWeightLog",
+    "MemberVitalsLog",
+    "VitalType",
     "MemberMedicalLog",
     "MentoringSession",
     "ValuesAssessmentHistory",

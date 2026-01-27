@@ -2,6 +2,27 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.29.6] - 2026-01-27
+
+### Added
+- **Health Data tracking for team members**
+  - Renamed "Weight" tab to "Health Data" for comprehensive health tracking
+  - Track blood pressure (systolic/diastolic), heart rate, temperature, blood oxygen (SpO2)
+  - Track body fat percentage, glucose levels, respiratory rate, waist circumference
+  - BMI automatically calculated from weight and height
+  - Latest vitals quick view with click to expand full history
+  - Add and delete vital readings with timestamps and notes
+  - Weight history logging with notes support
+
+## [1.29.5] - 2026-01-27
+
+### Added
+- **Deploy script conflict protection**
+  - Dev and prod deploy scripts now use lock file mechanism
+  - Prevents concurrent deploys from running simultaneously
+  - Waits up to 5 minutes if another deploy is in progress
+  - Auto-releases lock on completion or error via trap
+
 ## [1.29.4] - 2026-01-27
 
 ### Added

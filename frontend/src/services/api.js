@@ -482,6 +482,15 @@ export const uploadTeamLogo = (formData) =>
 export const getWeightHistory = (memberId) => api.get(`/team/members/${memberId}/weight-history/`)
 export const logWeight = (memberId, data) => api.post(`/team/members/${memberId}/weight/`, data)
 
+// Vitals Tracking
+export const getVitalsHistory = (memberId, vitalType = null) => {
+  const params = vitalType ? `?vital_type=${vitalType}` : ''
+  return api.get(`/team/members/${memberId}/vitals/${params}`)
+}
+export const logVital = (memberId, data) => api.post(`/team/members/${memberId}/vitals/`, data)
+export const deleteVital = (memberId, vitalId) => api.delete(`/team/members/${memberId}/vitals/${vitalId}/`)
+export const getVitalTypes = () => api.get('/team/vitals/types/')
+
 // Medical Tracking
 export const getMedicalHistory = (memberId) => api.get(`/team/members/${memberId}/medical-history/`)
 export const logMedicalChange = (memberId, data) => api.post(`/team/members/${memberId}/medical/`, data)

@@ -111,6 +111,21 @@ class AppointmentType(str, enum.Enum):
     CUSTOM = "CUSTOM"
 
 
+# ============================================
+# Vitals Tracking Enums
+# ============================================
+
+class VitalType(str, enum.Enum):
+    BLOOD_PRESSURE = "blood_pressure"  # Systolic/Diastolic
+    HEART_RATE = "heart_rate"  # BPM
+    TEMPERATURE = "temperature"  # Fahrenheit
+    BLOOD_OXYGEN = "blood_oxygen"  # SpO2 percentage
+    BODY_FAT = "body_fat"  # Percentage
+    GLUCOSE = "glucose"  # mg/dL
+    RESPIRATORY_RATE = "respiratory_rate"  # Breaths per minute
+    WAIST = "waist"  # Circumference in inches
+
+
 class TeamMember(Base):
     """Operator-style dossier profile for team members"""
     __tablename__ = "team_members"
@@ -189,6 +204,7 @@ class TeamMember(Base):
 
     # Relationships
     weight_logs = relationship("MemberWeightLog", back_populates="member", cascade="all, delete-orphan")
+    vitals_logs = relationship("MemberVitalsLog", back_populates="member", cascade="all, delete-orphan")
     medical_logs = relationship("MemberMedicalLog", back_populates="member", cascade="all, delete-orphan")
     mentoring_sessions = relationship("MentoringSession", back_populates="member", cascade="all, delete-orphan")
     values_history = relationship("ValuesAssessmentHistory", back_populates="member", cascade="all, delete-orphan")
@@ -213,6 +229,29 @@ class MemberWeightLog(Base):
 
     # Relationship
     member = relationship("TeamMember", back_populates="weight_logs")
+
+
+class MemberVitalsLog(Base):
+    """Vitals tracking for team members (blood pressure, heart rate, etc.)"""
+    __tablename__ = "member_vitals_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    member_id = Column(Integer, ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False)
+
+    vital_type = Column(SQLEnum(VitalType), nullable=False)
+
+    # Primary value (e.g., systolic BP, heart rate, temperature, etc.)
+    value = Column(Float, nullable=False)
+    # Secondary value (e.g., diastolic BP) - optional
+    value_secondary = Column(Float, nullable=True)
+    # Unit for display (e.g., "bpm", "°F", "%", "mg/dL", "in")
+    unit = Column(String(20), nullable=True)
+
+    notes = Column(Text, nullable=True)
+    recorded_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationship
+    member = relationship("TeamMember", back_populates="vitals_logs")
 
 
 class MemberMedicalLog(Base):

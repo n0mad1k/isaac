@@ -20,7 +20,7 @@ from loguru import logger
 from models.database import get_db
 from models.settings import AppSetting
 from models.team import (
-    TeamMember, MemberWeightLog, MemberMedicalLog, MentoringSession,
+    TeamMember, MemberWeightLog, MemberVitalsLog, MemberMedicalLog, MentoringSession,
     ValuesAssessmentHistory, WeeklyObservation, WeeklyAAR,
     MemberRole, ReadinessStatus, VisionStatus, GoalsMet,
     ObservationType, ObservationScope,
@@ -30,7 +30,9 @@ from models.team import (
     # Training tracking
     MemberTraining, MemberTrainingLog, TrainingCategory,
     # Medical appointments
-    MemberMedicalAppointment, AppointmentType
+    MemberMedicalAppointment, AppointmentType,
+    # Vitals tracking
+    VitalType
 )
 from models.supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from models.tasks import Task
@@ -145,6 +147,13 @@ class TeamMemberUpdate(BaseModel):
 class WeightLogCreate(BaseModel):
     weight: float
     height_inches: Optional[float] = None
+    notes: Optional[str] = None
+
+
+class VitalsLogCreate(BaseModel):
+    vital_type: VitalType
+    value: float
+    value_secondary: Optional[float] = None  # For blood pressure diastolic
     notes: Optional[str] = None
 
 
@@ -1018,6 +1027,133 @@ async def log_weight(
         "notes": log.notes,
         "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
     }
+
+
+# ============================================
+# Vitals Tracking
+# ============================================
+
+# Unit mappings for vital types
+VITAL_UNITS = {
+    VitalType.BLOOD_PRESSURE: "mmHg",
+    VitalType.HEART_RATE: "bpm",
+    VitalType.TEMPERATURE: "°F",
+    VitalType.BLOOD_OXYGEN: "%",
+    VitalType.BODY_FAT: "%",
+    VitalType.GLUCOSE: "mg/dL",
+    VitalType.RESPIRATORY_RATE: "bpm",
+    VitalType.WAIST: "in",
+}
+
+
+@router.get("/members/{member_id}/vitals/")
+async def get_vitals_history(
+    member_id: int,
+    vital_type: Optional[VitalType] = None,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get vitals history for a member, optionally filtered by type"""
+    query = select(MemberVitalsLog).where(MemberVitalsLog.member_id == member_id)
+    if vital_type:
+        query = query.where(MemberVitalsLog.vital_type == vital_type)
+    query = query.order_by(desc(MemberVitalsLog.recorded_at)).limit(limit)
+
+    result = await db.execute(query)
+    logs = result.scalars().all()
+
+    return [
+        {
+            "id": log.id,
+            "vital_type": log.vital_type.value,
+            "value": log.value,
+            "value_secondary": log.value_secondary,
+            "unit": log.unit or VITAL_UNITS.get(log.vital_type, ""),
+            "notes": log.notes,
+            "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
+        }
+        for log in logs
+    ]
+
+
+@router.post("/members/{member_id}/vitals/")
+async def log_vital(
+    member_id: int,
+    data: VitalsLogCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Log a vital reading for a member"""
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Create vitals log
+    log = MemberVitalsLog(
+        member_id=member_id,
+        vital_type=data.vital_type,
+        value=data.value,
+        value_secondary=data.value_secondary,
+        unit=VITAL_UNITS.get(data.vital_type, ""),
+        notes=data.notes
+    )
+    db.add(log)
+
+    await db.commit()
+    await db.refresh(log)
+
+    return {
+        "id": log.id,
+        "vital_type": log.vital_type.value,
+        "value": log.value,
+        "value_secondary": log.value_secondary,
+        "unit": log.unit,
+        "notes": log.notes,
+        "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
+    }
+
+
+@router.delete("/members/{member_id}/vitals/{vital_id}/")
+async def delete_vital(
+    member_id: int,
+    vital_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete a vital reading"""
+    result = await db.execute(
+        select(MemberVitalsLog).where(
+            and_(MemberVitalsLog.id == vital_id, MemberVitalsLog.member_id == member_id)
+        )
+    )
+    log = result.scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Vital log not found")
+
+    await db.delete(log)
+    await db.commit()
+
+    return {"status": "deleted"}
+
+
+@router.get("/vitals/types/")
+async def get_vital_types(
+    current_user: User = Depends(require_auth)
+):
+    """Get available vital types with their units"""
+    return [
+        {
+            "value": vt.value,
+            "label": vt.value.replace("_", " ").title(),
+            "unit": VITAL_UNITS.get(vt, ""),
+            "has_secondary": vt == VitalType.BLOOD_PRESSURE
+        }
+        for vt in VitalType
+    ]
 
 
 # ============================================
