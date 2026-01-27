@@ -47,6 +47,8 @@ function DevTracker() {
   const [editTitle, setEditTitle] = useState('')
   const [editPriority, setEditPriority] = useState('medium')
   const [editRequiresCollab, setEditRequiresCollab] = useState(false)
+  const [editFailNote, setEditFailNote] = useState('')
+  const [editTestNotes, setEditTestNotes] = useState('')
   const [failModalItem, setFailModalItem] = useState(null)
   const [failComment, setFailComment] = useState('')
   const [failRequiresCollab, setFailRequiresCollab] = useState(false)
@@ -349,6 +351,8 @@ function DevTracker() {
     setEditTitle(item.title)
     setEditPriority(item.priority || 'medium')
     setEditRequiresCollab(item.requires_collab || false)
+    setEditFailNote(item.fail_note || '')
+    setEditTestNotes(item.test_notes || '')
   }
 
   const handleCancelEdit = () => {
@@ -356,6 +360,8 @@ function DevTracker() {
     setEditTitle('')
     setEditPriority('medium')
     setEditRequiresCollab(false)
+    setEditFailNote('')
+    setEditTestNotes('')
   }
 
   const handleSaveEdit = async (item) => {
@@ -364,12 +370,16 @@ function DevTracker() {
       await api.updateDevTrackerItem(item.id, {
         title: editTitle.trim(),
         priority: editPriority,
-        requires_collab: editRequiresCollab
+        requires_collab: editRequiresCollab,
+        fail_note: editFailNote.trim() || null,
+        test_notes: editTestNotes.trim() || null
       })
       setEditingId(null)
       setEditTitle('')
       setEditPriority('medium')
       setEditRequiresCollab(false)
+      setEditFailNote('')
+      setEditTestNotes('')
       loadData()
     } catch (err) {
       setError(err.response?.data?.detail || err.message)
@@ -763,55 +773,79 @@ function DevTracker() {
                     }`}
                   >
                     {editingId === item.id ? (
-                      <>
-                        <input
-                          type="text"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit(item)
-                            if (e.key === 'Escape') handleCancelEdit()
-                          }}
-                          className="flex-1 px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-farm-green"
-                          autoFocus
-                        />
-                        <select
-                          value={editPriority}
-                          onChange={(e) => setEditPriority(e.target.value)}
-                          className="text-xs px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white"
-                        >
-                          <option value="critical">🔴 Critical</option>
-                          <option value="high">🟠 High</option>
-                          <option value="medium">🟡 Medium</option>
-                          <option value="low">⚪ Low</option>
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => setEditRequiresCollab(!editRequiresCollab)}
-                          className={`p-1.5 rounded transition-colors ${
-                            editRequiresCollab
-                              ? 'bg-orange-500/30 text-orange-300'
-                              : 'text-gray-400 hover:text-orange-300'
-                          }`}
-                          title={editRequiresCollab ? 'Requires collab (click to disable)' : 'Mark as requiring collab'}
-                        >
-                          <Users className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleSaveEdit(item)}
-                          className="p-1.5 text-green-400 hover:bg-gray-600 rounded"
-                          title="Save"
-                        >
-                          <Save className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={handleCancelEdit}
-                          className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded"
-                          title="Cancel"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') handleCancelEdit()
+                            }}
+                            className="flex-1 px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-farm-green"
+                            autoFocus
+                            placeholder="Title"
+                          />
+                          <select
+                            value={editPriority}
+                            onChange={(e) => setEditPriority(e.target.value)}
+                            className="text-xs px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white"
+                          >
+                            <option value="critical">🔴 Critical</option>
+                            <option value="high">🟠 High</option>
+                            <option value="medium">🟡 Medium</option>
+                            <option value="low">⚪ Low</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => setEditRequiresCollab(!editRequiresCollab)}
+                            className={`p-1.5 rounded transition-colors ${
+                              editRequiresCollab
+                                ? 'bg-orange-500/30 text-orange-300'
+                                : 'text-gray-400 hover:text-orange-300'
+                            }`}
+                            title={editRequiresCollab ? 'Requires collab (click to disable)' : 'Mark as requiring collab'}
+                          >
+                            <Users className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <label className="text-xs text-gray-400">Fail Note</label>
+                            <textarea
+                              value={editFailNote}
+                              onChange={(e) => setEditFailNote(e.target.value)}
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-farm-green resize-none"
+                              rows={2}
+                              placeholder="Why did this fail?"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs text-gray-400">Test Notes</label>
+                            <textarea
+                              value={editTestNotes}
+                              onChange={(e) => setEditTestNotes(e.target.value)}
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-farm-green resize-none"
+                              rows={2}
+                              placeholder="How to test this"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-3 py-1 text-sm text-gray-400 hover:text-white hover:bg-gray-600 rounded"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSaveEdit(item)}
+                            className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
                     ) : (
                       <>
                         <div className="flex-1 min-w-0">
@@ -923,55 +957,79 @@ function DevTracker() {
                       </div>
                     </button>
                     {editingId === item.id ? (
-                      <>
-                        <input
-                          type="text"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit(item)
-                            if (e.key === 'Escape') handleCancelEdit()
-                          }}
-                          className="flex-1 px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-farm-green"
-                          autoFocus
-                        />
-                        <select
-                          value={editPriority}
-                          onChange={(e) => setEditPriority(e.target.value)}
-                          className="text-xs px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white"
-                        >
-                          <option value="critical">🔴 Critical</option>
-                          <option value="high">🟠 High</option>
-                          <option value="medium">🟡 Medium</option>
-                          <option value="low">⚪ Low</option>
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => setEditRequiresCollab(!editRequiresCollab)}
-                          className={`p-1.5 rounded transition-colors ${
-                            editRequiresCollab
-                              ? 'bg-orange-500/30 text-orange-300'
-                              : 'text-gray-400 hover:text-orange-300'
-                          }`}
-                          title={editRequiresCollab ? 'Requires collab (click to disable)' : 'Mark as requiring collab'}
-                        >
-                          <Users className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleSaveEdit(item)}
-                          className="p-1.5 text-green-400 hover:bg-gray-600 rounded"
-                          title="Save"
-                        >
-                          <Save className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={handleCancelEdit}
-                          className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded"
-                          title="Cancel"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') handleCancelEdit()
+                            }}
+                            className="flex-1 px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-farm-green"
+                            autoFocus
+                            placeholder="Title"
+                          />
+                          <select
+                            value={editPriority}
+                            onChange={(e) => setEditPriority(e.target.value)}
+                            className="text-xs px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white"
+                          >
+                            <option value="critical">🔴 Critical</option>
+                            <option value="high">🟠 High</option>
+                            <option value="medium">🟡 Medium</option>
+                            <option value="low">⚪ Low</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => setEditRequiresCollab(!editRequiresCollab)}
+                            className={`p-1.5 rounded transition-colors ${
+                              editRequiresCollab
+                                ? 'bg-orange-500/30 text-orange-300'
+                                : 'text-gray-400 hover:text-orange-300'
+                            }`}
+                            title={editRequiresCollab ? 'Requires collab (click to disable)' : 'Mark as requiring collab'}
+                          >
+                            <Users className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <label className="text-xs text-gray-400">Fail Note</label>
+                            <textarea
+                              value={editFailNote}
+                              onChange={(e) => setEditFailNote(e.target.value)}
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-farm-green resize-none"
+                              rows={2}
+                              placeholder="Why did this fail?"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs text-gray-400">Test Notes</label>
+                            <textarea
+                              value={editTestNotes}
+                              onChange={(e) => setEditTestNotes(e.target.value)}
+                              className="w-full px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-farm-green resize-none"
+                              rows={2}
+                              placeholder="How to test this"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={handleCancelEdit}
+                            className="px-3 py-1 text-sm text-gray-400 hover:text-white hover:bg-gray-600 rounded"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleSaveEdit(item)}
+                            className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
                     ) : (
                       <>
                         <div className="flex-1 min-w-0">

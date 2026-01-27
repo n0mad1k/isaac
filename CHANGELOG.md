@@ -25,6 +25,11 @@ All notable changes to Isaac will be documented in this file.
   - Lean Mass calculated from weight and body fat percentage
   - Resting Heart Rate displayed prominently
 
+### Changed
+- Dev Tracker edit mode now shows fail note and test notes fields
+  - Click edit pencil on any item to modify title, priority, fail note, and test notes
+  - Notes can be edited for items in any status
+
 ### Removed
 - BMI from health stats (not suitable for tactical athletes with high muscle mass) analysis
 
