@@ -426,12 +426,27 @@ function TeamGearTab({ members, onRefresh }) {
                                 {contents.map(content => (
                                   <div key={content.id} className="flex items-center justify-between bg-gray-800 rounded p-2 group/content">
                                     <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 flex-wrap">
                                         <span className={`text-sm font-medium ${getContentStatusColor(content.status)}`}>
                                           {content.item_name}
                                         </span>
                                         {content.category && (
                                           <span className="text-xs text-gray-500">{content.category}</span>
+                                        )}
+                                        {content.battery_type && (
+                                          <span className="px-1.5 py-0.5 rounded text-xs bg-blue-900/50 text-blue-300">
+                                            {content.battery_type}
+                                          </span>
+                                        )}
+                                        {content.needs_cleaning && (
+                                          <span className="px-1.5 py-0.5 rounded text-xs bg-orange-900/50 text-orange-300">
+                                            Needs Clean
+                                          </span>
+                                        )}
+                                        {content.needs_recharge && (
+                                          <span className="px-1.5 py-0.5 rounded text-xs bg-yellow-900/50 text-yellow-300">
+                                            Needs Charge
+                                          </span>
                                         )}
                                       </div>
                                       <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
@@ -614,7 +629,10 @@ function GearFormModal({ gear, onClose, onSave }) {
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Category</label>
-              <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+              <select value={formData.category} onChange={(e) => {
+                  const newCat = e.target.value
+                  setFormData({ ...formData, category: newCat, is_container: newCat === 'BAG' ? true : formData.is_container })
+                }} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
                 {GEAR_CATEGORIES.map(cat => (<option key={cat.value} value={cat.value}>{cat.label}</option>))}
               </select>
             </div>
@@ -632,7 +650,9 @@ function GearFormModal({ gear, onClose, onSave }) {
             <div><label className="block text-sm text-gray-400 mb-1">Location</label><input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Where stored?" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
           </div>
           <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.is_container} onChange={(e) => setFormData({ ...formData, is_container: e.target.checked })} className="rounded" />Is Container (Go Bag)</label>
+            {formData.category !== 'BAG' && (
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.is_container} onChange={(e) => setFormData({ ...formData, is_container: e.target.checked })} className="rounded" />Is Container (Go Bag)</label>
+            )}
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.requires_cleaning} onChange={(e) => setFormData({ ...formData, requires_cleaning: e.target.checked })} className="rounded" />Requires Cleaning</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.requires_charging} onChange={(e) => setFormData({ ...formData, requires_charging: e.target.checked })} className="rounded" />Requires Charging</label>
           </div>
@@ -693,10 +713,53 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
     expiration_date: content?.expiration_date ? content.expiration_date.split('T')[0] : '',
     expiration_alert_days: content?.expiration_alert_days || 30,
     status: content?.status || 'GOOD',
+    battery_type: content?.battery_type || '',
+    needs_cleaning: content?.needs_cleaning || false,
+    needs_recharge: content?.needs_recharge || false,
     notes: content?.notes || '',
   })
+  const [units, setUnits] = useState(content?.units || [])
+  const [trackIndividual, setTrackIndividual] = useState((content?.units || []).length > 0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+
+  // Sync units array with quantity when tracking individually
+  const handleQuantityChange = (newQty) => {
+    const qty = parseInt(newQty) || 0
+    setFormData({ ...formData, quantity: newQty })
+    if (trackIndividual && qty > 0) {
+      const newUnits = [...units]
+      while (newUnits.length < qty) {
+        newUnits.push({ expiration_date: '', lot_number: '', notes: '' })
+      }
+      while (newUnits.length > qty) {
+        newUnits.pop()
+      }
+      setUnits(newUnits)
+    }
+  }
+
+  const handleToggleIndividual = (enabled) => {
+    setTrackIndividual(enabled)
+    if (enabled) {
+      const qty = parseInt(formData.quantity) || 1
+      const newUnits = []
+      for (let i = 0; i < qty; i++) {
+        newUnits.push({
+          expiration_date: units[i]?.expiration_date || formData.expiration_date || '',
+          lot_number: units[i]?.lot_number || '',
+          notes: units[i]?.notes || ''
+        })
+      }
+      setUnits(newUnits)
+    }
+  }
+
+  const handleUnitChange = (index, field, value) => {
+    const newUnits = [...units]
+    newUnits[index] = { ...newUnits[index], [field]: value }
+    setUnits(newUnits)
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -707,7 +770,12 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
         ...formData,
         quantity: parseInt(formData.quantity) || 1,
         min_quantity: formData.min_quantity ? parseInt(formData.min_quantity) : null,
-        expiration_date: formData.expiration_date ? new Date(formData.expiration_date).toISOString() : null,
+        expiration_date: !trackIndividual && formData.expiration_date ? new Date(formData.expiration_date).toISOString() : null,
+        units: trackIndividual ? units.map(u => ({
+          ...u,
+          expiration_date: u.expiration_date || null
+        })) : [],
+        last_checked: new Date().toISOString(),
       }
       await onSave(data)
     } catch (err) {
@@ -716,9 +784,11 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
     }
   }
 
+  const qty = parseInt(formData.quantity) || 0
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">{content ? 'Edit Content' : 'Add Content'}</h3>
         {error && <div className="bg-red-900/30 border border-red-700 rounded p-2 text-red-200 text-sm mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -734,10 +804,80 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
                 {CONTENT_STATUSES.map(s => (<option key={s.value} value={s.value}>{s.label}</option>))}
               </select>
             </div>
-            <div><label className="block text-sm text-gray-400 mb-1">Quantity</label><input type="number" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} min="0" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+            <div><label className="block text-sm text-gray-400 mb-1">Quantity</label><input type="number" value={formData.quantity} onChange={(e) => handleQuantityChange(e.target.value)} min="0" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
             <div><label className="block text-sm text-gray-400 mb-1">Min Quantity</label><input type="number" value={formData.min_quantity} onChange={(e) => setFormData({ ...formData, min_quantity: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
-            <div><label className="block text-sm text-gray-400 mb-1">Expiration</label><input type="date" value={formData.expiration_date} onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
-            <div><label className="block text-sm text-gray-400 mb-1">Alert Days</label><input type="number" value={formData.expiration_alert_days} onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+          </div>
+
+          {/* Individual Unit Tracking Toggle */}
+          {qty > 1 && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={trackIndividual}
+                onChange={(e) => handleToggleIndividual(e.target.checked)}
+                className="rounded border-gray-600"
+              />
+              <span className="text-gray-300">Track individual expirations (e.g., different lot numbers)</span>
+            </label>
+          )}
+
+          {/* Single Expiration Date */}
+          {!trackIndividual && (
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="block text-sm text-gray-400 mb-1">Expiration</label><input type="date" value={formData.expiration_date} onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+              <div><label className="block text-sm text-gray-400 mb-1">Alert Days</label><input type="number" value={formData.expiration_alert_days} onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+            </div>
+          )}
+
+          {/* Individual Unit Expirations */}
+          {trackIndividual && units.length > 0 && (
+            <div className="space-y-3 bg-gray-700/50 rounded-lg p-3">
+              <div className="text-sm text-gray-400 font-medium">Individual Unit Expirations</div>
+              {units.map((unit, idx) => (
+                <div key={idx} className="bg-gray-800 rounded p-2 space-y-2">
+                  <div className="text-xs text-gray-500">Unit {idx + 1}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Expiration</label>
+                      <input
+                        type="date"
+                        value={unit.expiration_date || ''}
+                        onChange={(e) => handleUnitChange(idx, 'expiration_date', e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Lot Number</label>
+                      <input
+                        type="text"
+                        value={unit.lot_number || ''}
+                        onChange={(e) => handleUnitChange(idx, 'lot_number', e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                        placeholder="Optional"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div><label className="block text-sm text-gray-400 mb-1">Alert Days Before</label><input type="number" value={formData.expiration_alert_days} onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Battery Type</label>
+            <input type="text" value={formData.battery_type} onChange={(e) => setFormData({ ...formData, battery_type: e.target.value })} placeholder="AA, AAA, CR123A, 18650, etc." className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" />
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={formData.needs_cleaning} onChange={(e) => setFormData({ ...formData, needs_cleaning: e.target.checked })} className="rounded border-gray-600" />
+              <span className="text-gray-300">Needs Cleaning</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={formData.needs_recharge} onChange={(e) => setFormData({ ...formData, needs_recharge: e.target.checked })} className="rounded border-gray-600" />
+              <span className="text-gray-300">Needs Recharge</span>
+            </label>
           </div>
           <div><label className="block text-sm text-gray-400 mb-1">Notes</label><textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
           <div className="flex justify-end gap-2 pt-4">

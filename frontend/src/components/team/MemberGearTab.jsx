@@ -386,11 +386,26 @@ function MemberGearTab({ member, onUpdate }) {
                             return (
                               <div key={content.id} className={`bg-gray-800 rounded p-3 flex items-center justify-between ${needsAttention ? 'border-l-2 border-yellow-500' : ''}`}>
                                 <div>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <span className="font-medium text-sm">{content.item_name}</span>
                                     {statusObj && (
                                       <span className={`px-2 py-0.5 rounded text-xs ${statusObj.color}`}>
                                         {statusObj.label}
+                                      </span>
+                                    )}
+                                    {content.battery_type && (
+                                      <span className="px-1.5 py-0.5 rounded text-xs bg-blue-900/50 text-blue-300">
+                                        {content.battery_type}
+                                      </span>
+                                    )}
+                                    {content.needs_cleaning && (
+                                      <span className="px-1.5 py-0.5 rounded text-xs bg-orange-900/50 text-orange-300">
+                                        Needs Clean
+                                      </span>
+                                    )}
+                                    {content.needs_recharge && (
+                                      <span className="px-1.5 py-0.5 rounded text-xs bg-yellow-900/50 text-yellow-300">
+                                        Needs Charge
                                       </span>
                                     )}
                                   </div>
@@ -606,7 +621,11 @@ function GearModal({ gear, memberId, onClose, onSave }) {
               <label className="block text-sm text-gray-400 mb-1">Category</label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) => {
+                  const newCat = e.target.value
+                  // Auto-set is_container for BAG category
+                  setFormData({ ...formData, category: newCat, is_container: newCat === 'BAG' ? true : formData.is_container })
+                }}
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
               >
                 {GEAR_CATEGORIES.map(cat => (
@@ -685,15 +704,18 @@ function GearModal({ gear, memberId, onClose, onSave }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={formData.is_container}
-                onChange={(e) => setFormData({ ...formData, is_container: e.target.checked })}
-                className="rounded"
-              />
-              Is Container (Go Bag)
-            </label>
+            {/* Only show container checkbox if not BAG category (bags are implicitly containers) */}
+            {formData.category !== 'BAG' && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={formData.is_container}
+                  onChange={(e) => setFormData({ ...formData, is_container: e.target.checked })}
+                  className="rounded"
+                />
+                Is Container
+              </label>
+            )}
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -865,6 +887,9 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
     expiration_date: content.expiration_date ? content.expiration_date.split('T')[0] : '',
     expiration_alert_days: content.expiration_alert_days || 30,
     status: content.status || 'GOOD',
+    battery_type: content.battery_type || '',
+    needs_cleaning: content.needs_cleaning || false,
+    needs_recharge: content.needs_recharge || false,
     notes: content.notes || '',
   })
   const [units, setUnits] = useState(content.units || [])
@@ -1094,6 +1119,36 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
             </div>
           )}
           <div>
+            <label className="block text-sm text-gray-400 mb-1">Battery Type</label>
+            <input
+              type="text"
+              value={formData.battery_type}
+              onChange={(e) => setFormData({ ...formData, battery_type: e.target.value })}
+              placeholder="AA, AAA, CR123A, 18650, etc."
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+            />
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.needs_cleaning}
+                onChange={(e) => setFormData({ ...formData, needs_cleaning: e.target.checked })}
+                className="rounded border-gray-600"
+              />
+              <span className="text-gray-300">Needs Cleaning</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.needs_recharge}
+                onChange={(e) => setFormData({ ...formData, needs_recharge: e.target.checked })}
+                className="rounded border-gray-600"
+              />
+              <span className="text-gray-300">Needs Recharge</span>
+            </label>
+          </div>
+          <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>
             <textarea
               value={formData.notes}
@@ -1141,6 +1196,9 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
     expiration_date: '',
     expiration_alert_days: 30,
     status: 'GOOD',
+    battery_type: '',
+    needs_cleaning: false,
+    needs_recharge: false,
     notes: '',
   })
   const [saving, setSaving] = useState(false)
@@ -1255,6 +1313,36 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
               />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Battery Type</label>
+            <input
+              type="text"
+              value={formData.battery_type}
+              onChange={(e) => setFormData({ ...formData, battery_type: e.target.value })}
+              placeholder="AA, AAA, CR123A, 18650, etc."
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+            />
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.needs_cleaning}
+                onChange={(e) => setFormData({ ...formData, needs_cleaning: e.target.checked })}
+                className="rounded border-gray-600"
+              />
+              <span className="text-gray-300">Needs Cleaning</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.needs_recharge}
+                onChange={(e) => setFormData({ ...formData, needs_recharge: e.target.checked })}
+                className="rounded border-gray-600"
+              />
+              <span className="text-gray-300">Needs Recharge</span>
+            </label>
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>

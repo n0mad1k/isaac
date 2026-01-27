@@ -431,6 +431,12 @@ class MemberGearContents(Base):
 
     status = Column(SQLEnum(ContentStatus), default=ContentStatus.GOOD)
     last_checked = Column(DateTime, nullable=True)
+
+    # Battery and maintenance tracking
+    battery_type = Column(String(50), nullable=True)  # "AA", "AAA", "CR123A", "18650", etc.
+    needs_cleaning = Column(Boolean, default=False)
+    needs_recharge = Column(Boolean, default=False)
+
     notes = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
 

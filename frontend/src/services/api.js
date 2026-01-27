@@ -551,15 +551,23 @@ export const deleteGearMaintenance = (memberId, gearId, maintId) =>
 export const completeGearMaintenance = (memberId, gearId, maintId, data) =>
   api.post(`/team/members/${memberId}/gear/${gearId}/maintenance/${maintId}/complete/`, data)
 
-// Gear Contents
+// Gear Contents (member-assigned)
 export const getGearContents = (memberId, gearId) =>
-  api.get(`/team/members/${memberId}/gear/${gearId}/contents/`)
+  memberId
+    ? api.get(`/team/members/${memberId}/gear/${gearId}/contents/`)
+    : api.get(`/team/gear/${gearId}/contents/`)
 export const createGearContents = (memberId, gearId, data) =>
-  api.post(`/team/members/${memberId}/gear/${gearId}/contents/`, data)
+  memberId
+    ? api.post(`/team/members/${memberId}/gear/${gearId}/contents/`, data)
+    : api.post(`/team/gear/${gearId}/contents/`, data)
 export const updateGearContents = (memberId, gearId, contentId, data) =>
-  api.patch(`/team/members/${memberId}/gear/${gearId}/contents/${contentId}/`, data)
+  memberId
+    ? api.patch(`/team/members/${memberId}/gear/${gearId}/contents/${contentId}/`, data)
+    : api.patch(`/team/gear/${gearId}/contents/${contentId}/`, data)
 export const deleteGearContents = (memberId, gearId, contentId) =>
-  api.delete(`/team/members/${memberId}/gear/${gearId}/contents/${contentId}/`)
+  memberId
+    ? api.delete(`/team/members/${memberId}/gear/${gearId}/contents/${contentId}/`)
+    : api.delete(`/team/gear/${gearId}/contents/${contentId}/`)
 
 // Member Training
 export const getMemberTraining = (memberId, params) =>

@@ -2034,6 +2034,114 @@ async def delete_team_gear(
 
 
 # ============================================
+# Pool Gear Contents Endpoints (for unassigned gear)
+# ============================================
+
+@router.get("/gear/{gear_id}/contents/")
+async def get_pool_gear_contents(
+    gear_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get contents for pool gear (unassigned)"""
+    result = await db.execute(
+        select(MemberGearContents)
+        .where(MemberGearContents.gear_id == gear_id)
+        .where(MemberGearContents.is_active == True)
+        .order_by(MemberGearContents.item_name)
+    )
+    contents = result.scalars().all()
+    return [serialize_gear_contents(c) for c in contents]
+
+
+@router.post("/gear/{gear_id}/contents/")
+async def create_pool_gear_contents(
+    gear_id: int,
+    data: GearContentsCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Add contents to pool gear"""
+    # Verify gear exists
+    gear_result = await db.execute(
+        select(MemberGear).where(MemberGear.id == gear_id)
+    )
+    gear = gear_result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    content = MemberGearContents(
+        gear_id=gear_id,
+        item_name=data.item_name,
+        category=data.category,
+        quantity=data.quantity,
+        min_quantity=data.min_quantity,
+        expiration_date=data.expiration_date,
+        expiration_alert_days=data.expiration_alert_days,
+        units=data.units,
+        status=data.status or ContentStatus.OK,
+        notes=data.notes,
+    )
+    db.add(content)
+    await db.commit()
+    await db.refresh(content)
+
+    return serialize_gear_contents(content)
+
+
+@router.patch("/gear/{gear_id}/contents/{content_id}/")
+async def update_pool_gear_contents(
+    gear_id: int,
+    content_id: int,
+    data: GearContentsUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update pool gear contents item"""
+    result = await db.execute(
+        select(MemberGearContents)
+        .where(MemberGearContents.id == content_id)
+        .where(MemberGearContents.gear_id == gear_id)
+    )
+    content = result.scalar_one_or_none()
+    if not content:
+        raise HTTPException(status_code=404, detail="Content item not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(content, key, value)
+
+    content.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(content)
+
+    return serialize_gear_contents(content)
+
+
+@router.delete("/gear/{gear_id}/contents/{content_id}/")
+async def delete_pool_gear_contents(
+    gear_id: int,
+    content_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete pool gear contents item"""
+    result = await db.execute(
+        select(MemberGearContents)
+        .where(MemberGearContents.id == content_id)
+        .where(MemberGearContents.gear_id == gear_id)
+    )
+    content = result.scalar_one_or_none()
+    if not content:
+        raise HTTPException(status_code=404, detail="Content item not found")
+
+    await db.delete(content)
+    await db.commit()
+
+    return {"message": "Content item deleted"}
+
+
+# ============================================
 # Member-Specific Gear Endpoints
 # ============================================
 

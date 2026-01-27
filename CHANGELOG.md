@@ -2,6 +2,24 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.28.1] - 2026-01-27
+
+### Added
+- **Battery type tracking for gear contents**
+  - Specify what type of batteries an item uses (AA, AAA, CR123A, 18650, etc.)
+  - Battery type displayed as badge on content items
+- **Cleaning and recharge status for gear contents**
+  - Mark items as needing cleaning or recharge
+  - Visual indicators show items needing attention
+
+### Fixed
+- Pool gear (unassigned) contents can now be edited without timeout errors
+  - Added dedicated API endpoints for pool gear content management
+- Content edit modal in Team Gear tab now matches Member Gear functionality
+  - Individual unit expiration tracking works in both views
+- Container checkbox now hidden when gear category is set to BAG
+  - BAG category automatically sets is_container=true
+
 ## [1.28.0] - 2026-01-27
 
 ### Added
