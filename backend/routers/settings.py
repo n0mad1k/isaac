@@ -1096,10 +1096,10 @@ async def update_setting(key: str, data: SettingUpdate, db: AsyncSession = Depen
     # Reschedule daily digest if time was changed
     if key == "email_digest_time":
         try:
-            from main import scheduler_service
-            if scheduler_service:
+            from main import scheduler
+            if scheduler:
                 import asyncio
-                asyncio.create_task(scheduler_service.schedule_daily_digest())
+                asyncio.create_task(scheduler.schedule_daily_digest())
         except Exception as e:
             logger.warning(f"Could not reschedule daily digest: {e}")
 
