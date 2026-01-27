@@ -1017,6 +1017,169 @@ async def get_recent_commits():
     return {"commits": commits}
 
 
+# Admin Logs Endpoints (must be before /{key}/ route)
+@router.get("/admin-logs/files/")
+async def get_log_files():
+    """Get list of available log files"""
+    from pathlib import Path
+    import os
+
+    log_files = []
+
+    # Check main app log
+    app_log = Path("logs/isaac.log")
+    if app_log.exists():
+        size = app_log.stat().st_size
+        log_files.append({
+            "id": "app",
+            "name": "Application Log",
+            "path": str(app_log),
+            "size": size,
+            "size_human": f"{size / 1024 / 1024:.1f} MB" if size > 1024*1024 else f"{size / 1024:.1f} KB"
+        })
+
+    # Check systemd logs (from /opt/isaac/logs/ or /opt/levi/logs/)
+    for base in ["/opt/isaac/logs", "/opt/levi/logs"]:
+        logs_dir = Path(base)
+        if logs_dir.exists():
+            for log_file in ["backend.log", "backend-error.log"]:
+                log_path = logs_dir / log_file
+                if log_path.exists():
+                    size = log_path.stat().st_size
+                    file_id = log_file.replace(".log", "").replace("-", "_")
+                    log_files.append({
+                        "id": file_id,
+                        "name": log_file.replace("-", " ").replace(".log", "").title(),
+                        "path": str(log_path),
+                        "size": size,
+                        "size_human": f"{size / 1024 / 1024:.1f} MB" if size > 1024*1024 else f"{size / 1024:.1f} KB"
+                    })
+            break  # Only check one base directory
+
+    return {"files": log_files}
+
+
+@router.get("/admin-logs/")
+async def get_admin_logs(
+    lines: int = 100,
+    level: Optional[str] = None,
+    search: Optional[str] = None,
+    log_file: Optional[str] = "app"
+):
+    """
+    Get recent application logs for admin review.
+
+    - lines: Number of recent lines to return (default 100, max 1000)
+    - level: Filter by log level (ERROR, WARNING, INFO, DEBUG)
+    - search: Search for text in log messages
+    - log_file: Which log file to read (app, backend, backend_error)
+    """
+    import os
+    from pathlib import Path
+
+    # Map log_file ID to path
+    log_paths = {
+        "app": Path("logs/isaac.log"),
+        "backend": Path("/opt/isaac/logs/backend.log"),
+        "backend_error": Path("/opt/isaac/logs/backend-error.log"),
+    }
+    # Also check levi paths
+    if not log_paths.get(log_file, Path("")).exists():
+        log_paths["backend"] = Path("/opt/levi/logs/backend.log")
+        log_paths["backend_error"] = Path("/opt/levi/logs/backend-error.log")
+
+    log_path = log_paths.get(log_file, log_paths["app"])
+
+    if not log_path.exists():
+        return {"logs": [], "total_lines": 0, "message": f"Log file not found: {log_path}"}
+
+    # Cap lines at 1000 for performance
+    lines = min(lines, 1000)
+
+    try:
+        # Read file and get last N lines
+        with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
+            all_lines = f.readlines()
+
+        # Filter by level if specified
+        if level:
+            level = level.upper()
+            all_lines = [line for line in all_lines if f"| {level}" in line]
+
+        # Filter by search term if specified
+        if search:
+            search_lower = search.lower()
+            all_lines = [line for line in all_lines if search_lower in line.lower()]
+
+        # Get last N lines
+        recent_lines = all_lines[-lines:]
+
+        # Parse lines into structured format
+        parsed_logs = []
+        for line in recent_lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Try to parse structured log format: "2026-01-27 12:00:00 | INFO     | module:func:123 - message"
+            try:
+                parts = line.split(" | ", 3)
+                if len(parts) >= 4:
+                    timestamp = parts[0]
+                    log_level = parts[1].strip()
+                    location = parts[2]
+                    message = parts[3].split(" - ", 1)[-1] if " - " in parts[3] else parts[3]
+                    parsed_logs.append({
+                        "timestamp": timestamp,
+                        "level": log_level,
+                        "location": location,
+                        "message": message
+                    })
+                else:
+                    # Unparsed line
+                    parsed_logs.append({
+                        "timestamp": "",
+                        "level": "RAW",
+                        "location": "",
+                        "message": line
+                    })
+            except Exception:
+                parsed_logs.append({
+                    "timestamp": "",
+                    "level": "RAW",
+                    "location": "",
+                    "message": line
+                })
+
+        return {
+            "logs": parsed_logs,
+            "total_lines": len(all_lines),
+            "returned_lines": len(parsed_logs)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read logs: {str(e)}")
+
+
+@router.post("/admin-logs/clear/")
+async def clear_admin_logs():
+    """Clear the application log file"""
+    import os
+    from pathlib import Path
+
+    log_path = Path("logs/isaac.log")
+
+    if log_path.exists():
+        try:
+            # Truncate the file instead of deleting (keeps file handle valid)
+            with open(log_path, 'w') as f:
+                f.write("")
+            return {"message": "Logs cleared successfully"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to clear logs: {str(e)}")
+
+    return {"message": "No log file to clear"}
+
+
 @router.get("/{key}/")
 async def get_setting_by_key(key: str, db: AsyncSession = Depends(get_db)):
     """Get a specific setting"""
@@ -1317,165 +1480,3 @@ async def sync_calendar(db: AsyncSession = Depends(get_db)):
         "events_updated": sync_result.get("updated", 0),
         "events_deleted": sync_result.get("deleted", 0),
     }
-
-
-@router.get("/admin-logs/files/")
-async def get_log_files():
-    """Get list of available log files"""
-    from pathlib import Path
-    import os
-
-    log_files = []
-
-    # Check main app log
-    app_log = Path("logs/isaac.log")
-    if app_log.exists():
-        size = app_log.stat().st_size
-        log_files.append({
-            "id": "app",
-            "name": "Application Log",
-            "path": str(app_log),
-            "size": size,
-            "size_human": f"{size / 1024 / 1024:.1f} MB" if size > 1024*1024 else f"{size / 1024:.1f} KB"
-        })
-
-    # Check systemd logs (from /opt/isaac/logs/ or /opt/levi/logs/)
-    for base in ["/opt/isaac/logs", "/opt/levi/logs"]:
-        logs_dir = Path(base)
-        if logs_dir.exists():
-            for log_file in ["backend.log", "backend-error.log"]:
-                log_path = logs_dir / log_file
-                if log_path.exists():
-                    size = log_path.stat().st_size
-                    file_id = log_file.replace(".log", "").replace("-", "_")
-                    log_files.append({
-                        "id": file_id,
-                        "name": log_file.replace("-", " ").replace(".log", "").title(),
-                        "path": str(log_path),
-                        "size": size,
-                        "size_human": f"{size / 1024 / 1024:.1f} MB" if size > 1024*1024 else f"{size / 1024:.1f} KB"
-                    })
-            break  # Only check one base directory
-
-    return {"files": log_files}
-
-
-@router.get("/admin-logs/")
-async def get_logs(
-    lines: int = 100,
-    level: Optional[str] = None,
-    search: Optional[str] = None,
-    log_file: Optional[str] = "app"
-):
-    """
-    Get recent application logs for admin review.
-
-    - lines: Number of recent lines to return (default 100, max 1000)
-    - level: Filter by log level (ERROR, WARNING, INFO, DEBUG)
-    - search: Search for text in log messages
-    - log_file: Which log file to read (app, backend, backend_error)
-    """
-    import os
-    from pathlib import Path
-
-    # Map log_file ID to path
-    log_paths = {
-        "app": Path("logs/isaac.log"),
-        "backend": Path("/opt/isaac/logs/backend.log"),
-        "backend_error": Path("/opt/isaac/logs/backend-error.log"),
-    }
-    # Also check levi paths
-    if not log_paths.get(log_file, Path("")).exists():
-        log_paths["backend"] = Path("/opt/levi/logs/backend.log")
-        log_paths["backend_error"] = Path("/opt/levi/logs/backend-error.log")
-
-    log_path = log_paths.get(log_file, log_paths["app"])
-
-    if not log_path.exists():
-        return {"logs": [], "total_lines": 0, "message": f"Log file not found: {log_path}"}
-
-    # Cap lines at 1000 for performance
-    lines = min(lines, 1000)
-
-    try:
-        # Read file and get last N lines
-        with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
-            all_lines = f.readlines()
-
-        # Filter by level if specified
-        if level:
-            level = level.upper()
-            all_lines = [line for line in all_lines if f"| {level}" in line]
-
-        # Filter by search term if specified
-        if search:
-            search_lower = search.lower()
-            all_lines = [line for line in all_lines if search_lower in line.lower()]
-
-        # Get last N lines
-        recent_lines = all_lines[-lines:]
-
-        # Parse lines into structured format
-        parsed_logs = []
-        for line in recent_lines:
-            line = line.strip()
-            if not line:
-                continue
-
-            # Try to parse structured log format: "2026-01-27 12:00:00 | INFO     | module:func:123 - message"
-            try:
-                parts = line.split(" | ", 3)
-                if len(parts) >= 4:
-                    timestamp = parts[0]
-                    log_level = parts[1].strip()
-                    location = parts[2]
-                    message = parts[3].split(" - ", 1)[-1] if " - " in parts[3] else parts[3]
-                    parsed_logs.append({
-                        "timestamp": timestamp,
-                        "level": log_level,
-                        "location": location,
-                        "message": message
-                    })
-                else:
-                    # Unparsed line
-                    parsed_logs.append({
-                        "timestamp": "",
-                        "level": "RAW",
-                        "location": "",
-                        "message": line
-                    })
-            except Exception:
-                parsed_logs.append({
-                    "timestamp": "",
-                    "level": "RAW",
-                    "location": "",
-                    "message": line
-                })
-
-        return {
-            "logs": parsed_logs,
-            "total_lines": len(all_lines),
-            "returned_lines": len(parsed_logs)
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read logs: {str(e)}")
-
-
-@router.post("/admin-logs/clear/")
-async def clear_logs():
-    """Clear the application log file"""
-    import os
-    from pathlib import Path
-
-    log_path = Path("logs/isaac.log")
-
-    if log_path.exists():
-        try:
-            # Truncate the file instead of deleting (keeps file handle valid)
-            with open(log_path, 'w') as f:
-                f.write("")
-            return {"message": "Logs cleared successfully"}
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to clear logs: {str(e)}")
-
-    return {"message": "No log file to clear"}
