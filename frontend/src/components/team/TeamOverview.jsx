@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { uploadTeamLogo } from '../../services/api'
 
-function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate, headerOnly = false, rosterOnly = false }) {
+function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate, headerOnly = false, rosterOnly = false, hideTeamName = false }) {
   const logoInputRef = useRef(null)
 
   // Handle logo upload
@@ -48,8 +48,8 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
   if (headerOnly) {
     return (
       <div className="text-center space-y-4 py-4">
-        {/* Team Name */}
-        {settings?.team_name && (
+        {/* Team Name - only show if not hidden */}
+        {!hideTeamName && settings?.team_name && (
           <h1 className="text-3xl font-bold text-white tracking-wide">
             {settings.team_name}
           </h1>

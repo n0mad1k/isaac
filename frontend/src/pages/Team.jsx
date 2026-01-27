@@ -144,26 +144,20 @@ function Team() {
 
   return (
     <div className="space-y-4">
-      {/* Overview Tab - Landing page with mission/logo/values */}
-      {activeTab === 'overview' && (
-        <TeamOverview
-          settings={settings}
-          overview={overview}
-          members={members}
-          onMemberClick={handleMemberClick}
-          onLogoUpdate={loadData}
-          headerOnly={true}
-        />
-      )}
+      {/* Header Row: Team Name + Tabs + Actions */}
+      <div className="flex items-center justify-between gap-4 border-b border-gray-700 pb-2">
+        {/* Team Name */}
+        <h1 className="text-2xl font-bold text-white flex-shrink-0">
+          {settings?.team_name || 'Team'}
+        </h1>
 
-      {/* Tab Navigation + Actions */}
-      <div className="flex items-center justify-between gap-2 border-b border-gray-700 pb-1">
-        <div className="flex gap-1 overflow-x-auto">
+        {/* Tab Navigation */}
+        <div className="flex gap-1 overflow-x-auto flex-1 justify-center">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
               activeTab === 'overview'
-                ? 'bg-gray-800 text-white border-b-2 border-farm-green'
+                ? 'bg-gray-700 text-white'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
             }`}
           >
@@ -175,9 +169,9 @@ function Team() {
             <button
               key={member.id}
               onClick={() => handleMemberClick(member.id)}
-              className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
                 activeTab === 'member' && selectedMemberId === member.id
-                  ? 'bg-gray-800 text-white border-b-2 border-farm-green'
+                  ? 'bg-gray-700 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
               }`}
             >
@@ -188,9 +182,9 @@ function Team() {
 
           <button
             onClick={() => setActiveTab('aar')}
-            className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors whitespace-nowrap ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
               activeTab === 'aar'
-                ? 'bg-gray-800 text-white border-b-2 border-farm-green'
+                ? 'bg-gray-700 text-white'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
             }`}
           >
@@ -198,6 +192,7 @@ function Team() {
           </button>
         </div>
 
+        {/* Actions */}
         <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={loadData}
@@ -218,6 +213,19 @@ function Team() {
           </button>
         </div>
       </div>
+
+      {/* Overview Tab - Landing page with mission/logo/values (no team name since it's in header) */}
+      {activeTab === 'overview' && (
+        <TeamOverview
+          settings={settings}
+          overview={overview}
+          members={members}
+          onMemberClick={handleMemberClick}
+          onLogoUpdate={loadData}
+          headerOnly={true}
+          hideTeamName={true}
+        />
+      )}
 
       {/* Tab Content - Only shown for non-overview tabs */}
       {activeTab !== 'overview' && (
