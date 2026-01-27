@@ -477,6 +477,20 @@ export const getTeamReadiness = () => api.get('/team/readiness/')
 export const updateMemberReadiness = (memberId, params) =>
   api.put(`/team/members/${memberId}/readiness/`, null, { params })
 
+// Team-Wide Gear (Pool/Inventory)
+export const getTeamGear = (params) =>
+  api.get('/team/gear/', { params })
+export const createPoolGear = (data) =>
+  api.post('/team/gear/', data)
+export const getTeamGearItem = (gearId) =>
+  api.get(`/team/gear/${gearId}/`)
+export const updateTeamGear = (gearId, data) =>
+  api.patch(`/team/gear/${gearId}/`, data)
+export const deleteTeamGear = (gearId) =>
+  api.delete(`/team/gear/${gearId}/`)
+export const assignGear = (gearId, memberId) =>
+  api.patch(`/team/gear/${gearId}/assign`, { member_id: memberId })
+
 // Member Gear
 export const getMemberGear = (memberId, params) =>
   api.get(`/team/members/${memberId}/gear/`, { params })

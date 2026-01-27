@@ -246,6 +246,7 @@ class GearCreate(BaseModel):
     make: Optional[str] = None
     model: Optional[str] = None
     caliber: Optional[str] = None
+    color: Optional[str] = None
     status: GearStatus = GearStatus.SERVICEABLE
     location: Optional[str] = None
     is_container: bool = False
@@ -264,6 +265,7 @@ class GearUpdate(BaseModel):
     make: Optional[str] = None
     model: Optional[str] = None
     caliber: Optional[str] = None
+    color: Optional[str] = None
     status: Optional[GearStatus] = None
     location: Optional[str] = None
     is_container: Optional[bool] = None
@@ -1776,6 +1778,7 @@ def serialize_gear(gear: MemberGear) -> dict:
         "make": gear.make,
         "model": gear.model,
         "caliber": gear.caliber,
+        "color": gear.color,
         "status": gear.status.value if gear.status else None,
         "location": gear.location,
         "is_container": gear.is_container,
@@ -1828,6 +1831,203 @@ def serialize_gear_contents(content: MemberGearContents) -> dict:
         "created_at": content.created_at.isoformat() if content.created_at else None,
     }
 
+
+# ============================================
+# Team-Wide Gear Endpoints (Pool/Inventory)
+# ============================================
+
+class GearAssign(BaseModel):
+    member_id: Optional[int] = None  # None = unassign to pool
+
+
+@router.get("/gear/")
+async def get_all_team_gear(
+    include_inactive: bool = False,
+    category: Optional[GearCategory] = None,
+    status: Optional[GearStatus] = None,
+    assigned_only: bool = False,
+    unassigned_only: bool = False,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get all team gear with member info - assigned and unassigned (pool)"""
+    query = select(MemberGear)
+
+    if not include_inactive:
+        query = query.where(MemberGear.is_active == True)
+    if category:
+        query = query.where(MemberGear.category == category)
+    if status:
+        query = query.where(MemberGear.status == status)
+    if assigned_only:
+        query = query.where(MemberGear.member_id != None)
+    if unassigned_only:
+        query = query.where(MemberGear.member_id == None)
+
+    query = query.order_by(MemberGear.category, MemberGear.name)
+
+    result = await db.execute(query)
+    gear_items = result.scalars().all()
+
+    # Get member info for assigned gear
+    member_ids = [g.member_id for g in gear_items if g.member_id]
+    members_map = {}
+    if member_ids:
+        members_result = await db.execute(
+            select(TeamMember).where(TeamMember.id.in_(member_ids))
+        )
+        for m in members_result.scalars().all():
+            members_map[m.id] = {"id": m.id, "name": m.name, "nickname": m.nickname}
+
+    result_list = []
+    for g in gear_items:
+        gear_data = serialize_gear(g)
+        gear_data["member"] = members_map.get(g.member_id) if g.member_id else None
+        result_list.append(gear_data)
+
+    return result_list
+
+
+@router.post("/gear/")
+async def create_pool_gear(
+    data: GearCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Create unassigned (pool) gear"""
+    gear = MemberGear(member_id=None, **data.model_dump())
+    db.add(gear)
+    await db.commit()
+    await db.refresh(gear)
+
+    return serialize_gear(gear)
+
+
+@router.patch("/gear/{gear_id}/assign")
+async def assign_gear(
+    gear_id: int,
+    data: GearAssign,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Assign gear to a member or unassign to pool"""
+    result = await db.execute(
+        select(MemberGear).where(MemberGear.id == gear_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    # If assigning to a member, verify member exists
+    if data.member_id is not None:
+        member_result = await db.execute(
+            select(TeamMember).where(TeamMember.id == data.member_id)
+        )
+        member = member_result.scalar_one_or_none()
+        if not member:
+            raise HTTPException(status_code=404, detail="Member not found")
+
+    old_member_id = gear.member_id
+    gear.member_id = data.member_id
+    gear.assigned_date = datetime.utcnow() if data.member_id else None
+
+    await db.commit()
+    await db.refresh(gear)
+
+    gear_data = serialize_gear(gear)
+
+    # Add member info if assigned
+    if gear.member_id:
+        member_result = await db.execute(
+            select(TeamMember).where(TeamMember.id == gear.member_id)
+        )
+        member = member_result.scalar_one_or_none()
+        if member:
+            gear_data["member"] = {"id": member.id, "name": member.name, "nickname": member.nickname}
+    else:
+        gear_data["member"] = None
+
+    return gear_data
+
+
+@router.get("/gear/{gear_id}/")
+async def get_team_gear_item(
+    gear_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get a specific gear item by ID (regardless of assignment)"""
+    result = await db.execute(
+        select(MemberGear).where(MemberGear.id == gear_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    gear_data = serialize_gear(gear)
+
+    # Add member info if assigned
+    if gear.member_id:
+        member_result = await db.execute(
+            select(TeamMember).where(TeamMember.id == gear.member_id)
+        )
+        member = member_result.scalar_one_or_none()
+        if member:
+            gear_data["member"] = {"id": member.id, "name": member.name, "nickname": member.nickname}
+    else:
+        gear_data["member"] = None
+
+    return gear_data
+
+
+@router.patch("/gear/{gear_id}/")
+async def update_team_gear(
+    gear_id: int,
+    data: GearUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update a gear item (regardless of assignment)"""
+    result = await db.execute(
+        select(MemberGear).where(MemberGear.id == gear_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(gear, key, value)
+
+    await db.commit()
+    await db.refresh(gear)
+
+    return serialize_gear(gear)
+
+
+@router.delete("/gear/{gear_id}/")
+async def delete_team_gear(
+    gear_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete a gear item (regardless of assignment)"""
+    result = await db.execute(
+        select(MemberGear).where(MemberGear.id == gear_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    await db.delete(gear)
+    await db.commit()
+
+    return {"message": "Gear deleted"}
+
+
+# ============================================
+# Member-Specific Gear Endpoints
+# ============================================
 
 @router.get("/members/{member_id}/gear/")
 async def get_member_gear(

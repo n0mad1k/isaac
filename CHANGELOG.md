@@ -2,6 +2,18 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.27.0] - 2026-01-27
+
+### Added
+- Team-wide Gear Inventory tab on Teams page
+  - View all gear across team members and unassigned pool
+  - Filter by category, status, and assignment
+  - Add gear to pool (unassigned)
+  - Assign/reassign gear to team members
+  - Search gear by name, make, model, serial number, or color
+- Color field for gear items (bags, clothing, etc.)
+- Gear can now exist unassigned in a pool for later assignment
+
 ## [1.26.2] - 2026-01-27
 
 ### Added

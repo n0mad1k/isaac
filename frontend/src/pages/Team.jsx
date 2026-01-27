@@ -11,6 +11,7 @@ import TeamOverview from '../components/team/TeamOverview'
 import MemberDossier from '../components/team/MemberDossier'
 import WeeklyAARView from '../components/team/WeeklyAARView'
 import MemberForm from '../components/team/MemberForm'
+import TeamGearTab from '../components/team/TeamGearTab'
 
 function Team() {
   const [loading, setLoading] = useState(true)
@@ -261,6 +262,17 @@ function Team() {
               Overview
             </button>
 
+            <button
+              onClick={() => setActiveTab('gear')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'gear'
+                  ? 'bg-gray-700 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+              }`}
+            >
+              Gear
+            </button>
+
             {/* Member tabs */}
             {members.map(member => (
               <button
@@ -400,6 +412,13 @@ function Team() {
             <WeeklyAARView
               settings={settings}
               members={members}
+            />
+          )}
+
+          {activeTab === 'gear' && (
+            <TeamGearTab
+              members={members}
+              onRefresh={loadData}
             />
           )}
         </div>

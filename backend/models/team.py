@@ -343,11 +343,11 @@ class WeeklyAAR(Base):
 # ============================================
 
 class MemberGear(Base):
-    """Assigned equipment/gear for team members"""
+    """Equipment/gear tracking - can be assigned to team members or pool (unassigned)"""
     __tablename__ = "member_gear"
 
     id = Column(Integer, primary_key=True, index=True)
-    member_id = Column(Integer, ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False)
+    member_id = Column(Integer, ForeignKey("team_members.id", ondelete="SET NULL"), nullable=True)  # NULL = pool/unassigned
 
     name = Column(String(100), nullable=False)  # "Glock 19", "72hr Go Bag"
     category = Column(SQLEnum(GearCategory), default=GearCategory.OTHER)
@@ -356,6 +356,7 @@ class MemberGear(Base):
     make = Column(String(100), nullable=True)
     model = Column(String(100), nullable=True)
     caliber = Column(String(50), nullable=True)  # For firearms
+    color = Column(String(50), nullable=True)  # For bags, clothing, etc.
 
     status = Column(SQLEnum(GearStatus), default=GearStatus.SERVICEABLE)
     location = Column(String(100), nullable=True)  # Where stored

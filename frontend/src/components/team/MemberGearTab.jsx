@@ -536,6 +536,7 @@ function GearModal({ gear, memberId, onClose, onSave }) {
     make: gear?.make || '',
     model: gear?.model || '',
     caliber: gear?.caliber || '',
+    color: gear?.color || '',
     status: gear?.status || 'SERVICEABLE',
     location: gear?.location || '',
     is_container: gear?.is_container || false,
@@ -649,6 +650,16 @@ function GearModal({ gear, memberId, onClose, onSave }) {
                 value={formData.caliber}
                 onChange={(e) => setFormData({ ...formData, caliber: e.target.value })}
                 placeholder="For firearms"
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Color</label>
+              <input
+                type="text"
+                value={formData.color || ''}
+                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                placeholder="e.g., Black, OD Green, Coyote"
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
               />
             </div>
