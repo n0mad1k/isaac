@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import {
   getMemberSupplyRequests, createMemberSupplyRequest,
-  updateSupplyRequest, deleteSupplyRequest
+  updateMemberSupplyRequest, deleteMemberSupplyRequest
 } from '../../services/api'
 
 function MemberSupplyRequestsTab({ member, onUpdate }) {
@@ -85,7 +85,7 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
       }
 
       if (editingId) {
-        await updateSupplyRequest(editingId, data)
+        await updateMemberSupplyRequest(editingId, data)
       } else {
         await createMemberSupplyRequest(member.id, data)
       }
@@ -117,7 +117,7 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this supply request?')) return
     try {
-      await deleteSupplyRequest(id)
+      await deleteMemberSupplyRequest(id)
       loadRequests()
     } catch (err) {
       console.error('Failed to delete supply request:', err)

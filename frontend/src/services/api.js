@@ -609,11 +609,11 @@ export const getMemberSupplyRequests = (memberId, params) =>
   api.get(`/team/members/${memberId}/supply-requests/`, { params })
 export const createMemberSupplyRequest = (memberId, data) =>
   api.post(`/team/members/${memberId}/supply-requests/`, data)
-export const updateSupplyRequest = (requestId, data) =>
+export const updateMemberSupplyRequest = (requestId, data) =>
   api.patch(`/team/supply-requests/${requestId}/`, data)
-export const deleteSupplyRequest = (requestId) =>
+export const deleteMemberSupplyRequest = (requestId) =>
   api.delete(`/team/supply-requests/${requestId}/`)
-export const getAllSupplyRequests = (params) =>
+export const getAllMemberSupplyRequests = (params) =>
   api.get('/team/supply-requests/', { params })
 
 // Member Tasks
