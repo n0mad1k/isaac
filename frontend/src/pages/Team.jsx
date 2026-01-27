@@ -262,17 +262,6 @@ function Team() {
               Overview
             </button>
 
-            <button
-              onClick={() => setActiveTab('gear')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                activeTab === 'gear'
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-              }`}
-            >
-              Gear
-            </button>
-
             {/* Member tabs */}
             {members.map(member => (
               <button
@@ -288,6 +277,17 @@ function Team() {
                 {member.nickname || member.name.split(' ')[0]}
               </button>
             ))}
+
+            <button
+              onClick={() => setActiveTab('gear')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'gear'
+                  ? 'bg-gray-700 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+              }`}
+            >
+              Gear
+            </button>
 
             <button
               onClick={() => setActiveTab('aar')}

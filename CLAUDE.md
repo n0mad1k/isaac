@@ -41,6 +41,12 @@
 
 The dev tracker is the source of truth for pending features, bugs, and improvements. Items are prioritized as: critical > high > medium > low. Work on items in priority order.
 
+**Ad-hoc requests from user:**
+When the user asks you to work on something that's NOT already in the dev tracker:
+1. Add it to the dev tracker with appropriate priority
+2. Work on it
+3. Move it to testing when complete
+
 **Item Title Convention:**
 - If an item title contains `*`, it means the implementation failed and the text after `*` describes what needs to be fixed
 - Example: `Feature X * backend returns 500 error` means Feature X was attempted but has a 500 error that needs fixing
