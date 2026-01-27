@@ -201,9 +201,9 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
               <ReadinessIndicator status={member.overall_readiness} />
-              {/* Blood Type - gets the old anaphylaxis color (darker) */}
+              {/* Blood Type - solid red, no border */}
               {member.blood_type && (
-                <span className="px-3 py-1 bg-red-600 border border-red-400 rounded-lg text-white font-bold text-sm flex items-center gap-1">
+                <span className="px-3 py-1 bg-red-600 rounded-lg text-white font-bold text-sm flex items-center gap-1">
                   <Heart className="w-4 h-4" />
                   {member.blood_type}
                 </span>
@@ -340,7 +340,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   {member.skills && member.skills.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {member.skills.map((skill, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-blue-900/50 text-blue-300 rounded text-sm">
+                        <span key={idx} className="px-2 py-1 rounded text-sm" style={{ backgroundColor: '#4a5d4a', color: '#c8d9c8' }}>
                           {skill}
                         </span>
                       ))}
@@ -368,8 +368,9 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                             className={`px-2 py-1 rounded text-sm flex items-center gap-1 font-bold ${
                               isAnaphylaxis
                                 ? 'bg-red-900/50 border border-red-600 text-red-300'
-                                : 'bg-orange-600 text-white'
+                                : ''
                             }`}
+                            style={!isAnaphylaxis ? { backgroundColor: '#b8763c', color: '#ffffff' } : {}}
                           >
                             {isAnaphylaxis && <AlertTriangle className="w-3 h-3" />}
                             {name}
