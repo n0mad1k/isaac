@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, desc
 from sqlalchemy.orm.attributes import flag_modified
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel, Field
 from datetime import datetime, date, timedelta
 import json
@@ -67,7 +67,7 @@ class TeamMemberCreate(BaseModel):
     pants_size: Optional[str] = None
     hat_size: Optional[str] = None
     glove_size: Optional[str] = None
-    allergies: Optional[List[str]] = []
+    allergies: Optional[List[Any]] = []  # Can be strings or {name, anaphylaxis} objects
     medical_conditions: Optional[List[str]] = []
     current_medications: Optional[List[dict]] = []
     emergency_contact_name: Optional[str] = None
@@ -115,7 +115,7 @@ class TeamMemberUpdate(BaseModel):
     pants_size: Optional[str] = None
     hat_size: Optional[str] = None
     glove_size: Optional[str] = None
-    allergies: Optional[List[str]] = None
+    allergies: Optional[List[Any]] = None  # Can be strings or {name, anaphylaxis} objects
     medical_conditions: Optional[List[str]] = None
     current_medications: Optional[List[dict]] = None
     emergency_contact_name: Optional[str] = None
