@@ -4,7 +4,7 @@
 #   ./dev-tracker.sh list [pending|testing|verified|backlog]
 #   ./dev-tracker.sh show <id>                      - Show full details of an item
 #   ./dev-tracker.sh add <priority> <title>         - Add new item (priority: low|medium|high|critical)
-#   ./dev-tracker.sh testing <id>                   - Move to testing
+#   ./dev-tracker.sh testing <id> <description>     - Move to testing WITH description (required)
 #   ./dev-tracker.sh verified <id>                  - Move to verified
 #   ./dev-tracker.sh pending <id> [fail_note]       - Move back to pending
 #   ./dev-tracker.sh backlog <id>                   - Move to backlog (work on later)
@@ -73,6 +73,9 @@ try:
         print(f\"Fail Note: {item['fail_note']}\")
     print(f\"---\")
     print(f\"Title: {item['title']}\")
+    if item.get('test_notes'):
+        print(f\"---\")
+        print(f\"Testing Notes: {item['test_notes']}\")
 except Exception as e:
     print(f'Error parsing response: {e}')
 "
@@ -140,7 +143,44 @@ except Exception as e:
         fi
         ;;
 
-    update|testing|verified|pending|backlog)
+    testing)
+        ID="$2"
+        shift 2
+        TEST_NOTES="$*"
+
+        if [ -z "$ID" ]; then
+            echo "Usage: $0 testing <id> <description>"
+            echo "  Description is REQUIRED - explain what was done/implemented"
+            exit 1
+        fi
+
+        if [ -z "$TEST_NOTES" ]; then
+            echo "ERROR: Testing description is REQUIRED"
+            echo "Usage: $0 testing <id> <description>"
+            echo ""
+            echo "Example: $0 testing 123 \"Added button to settings page, click to export data as CSV\""
+            exit 1
+        fi
+
+        # Escape quotes in test notes for JSON
+        TEST_NOTES_ESCAPED=$(echo "$TEST_NOTES" | sed 's/"/\\"/g')
+        JSON="{\"status\": \"testing\", \"test_notes\": \"$TEST_NOTES_ESCAPED\"}"
+
+        RESULT=$(curl -sk -X PUT "$DEV_URL/$ID" \
+            -H "Content-Type: application/json" \
+            -d "$JSON" 2>/dev/null)
+
+        if echo "$RESULT" | grep -q '"id"'; then
+            TITLE=$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin)['title'][:50])")
+            echo "Moved #$ID to testing: $TITLE"
+            echo "Test notes: $TEST_NOTES"
+        else
+            echo "Failed to update #$ID"
+            echo "$RESULT"
+        fi
+        ;;
+
+    update|verified|pending|backlog)
         if [ "$1" = "update" ]; then
             ID="$2"
             STATUS="$3"
@@ -182,7 +222,7 @@ except Exception as e:
         echo "  $0 list [pending|testing|verified|backlog]  - List items"
         echo "  $0 show <id>                        - Show full details of an item"
         echo "  $0 add <priority> <title>           - Add new item (low|medium|high|critical)"
-        echo "  $0 testing <id>                     - Move to testing"
+        echo "  $0 testing <id> <description>       - Move to testing (description REQUIRED)"
         echo "  $0 verified <id>                    - Move to verified"
         echo "  $0 pending <id> [fail_note]         - Move back to pending"
         echo "  $0 backlog <id>                     - Move to backlog (work on later)"

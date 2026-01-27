@@ -18,6 +18,11 @@
 
 ## Session Log (Clear at midnight daily)
 
+**2026-01-27:**
+- #182: Added custom gear categories + removed "Pool" label for unassigned gear
+- #176: Added testing description requirement - descriptions now required when moving to testing
+- Production database restore after migration corrupted member_gear table
+
 **2026-01-14:**
 - #127 UI Changes:
   - Weather widget: static background `#c2c9cd` (removed dynamic gradients)
@@ -68,6 +73,24 @@ The user marks items as [COLLAB] when:
 
 To mark an item as [COLLAB]: `./dev-tracker.sh collab <id> on`
 To remove [COLLAB]: `./dev-tracker.sh collab <id> off`
+
+**Moving Items to Testing - DESCRIPTION REQUIRED:**
+When moving items to testing status, you MUST provide a description of what was done. This helps the user verify the implementation is correct.
+
+```bash
+# REQUIRED format - description is mandatory:
+/home/n0mad1k/Tools/levi/scripts/dev-tracker.sh testing <id> "Description of what was implemented"
+```
+
+Example descriptions:
+- "Added custom category dropdown to gear form. Select '+ Add New Category' to enter custom name."
+- "Fixed duplicate email issue by adding deduplication check in send_alerts()"
+- "Added export button to settings page. Click to download data as CSV file."
+
+The description should explain:
+1. What was changed/added
+2. How to test it (if not obvious)
+3. Any edge cases the user should verify
 
 ## CRITICAL: Deployment Rules
 
