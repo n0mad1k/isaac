@@ -340,7 +340,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   {member.skills && member.skills.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {member.skills.map((skill, idx) => (
-                        <span key={idx} className="px-2 py-1 rounded text-sm" style={{ backgroundColor: '#4a5d4a', color: '#c8d9c8' }}>
+                        <span key={idx} className="px-2 py-1 rounded text-sm" style={{ backgroundColor: '#4a5d4a', color: '#ffffff' }}>
                           {skill}
                         </span>
                       ))}
