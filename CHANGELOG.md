@@ -2,6 +2,23 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.29.1] - 2026-01-27
+
+### Fixed
+- **Log viewer text readability**
+  - Brightened log text colors for better visibility on dark background
+  - Timestamps now gray-400, messages now gray-100
+  - ANSI color codes are now stripped from logs
+- **Production page improvements**
+  - Renamed page title back to "Production" (was "Farm Finances")
+  - Customers tab now uses table format instead of cards
+  - Overview now shows Harvests section with consumed/sold/preserved stats
+  - Harvests tab no longer shows "Record Sale" button (use Track Usage instead)
+- **Gear container handling**
+  - Removed redundant "Container" badge from gear display
+  - "Can Hold Contents" checkbox now shows for all categories
+  - Any gear item can be marked as a container regardless of category
+
 ## [1.29.0] - 2026-01-27
 
 ### Added
