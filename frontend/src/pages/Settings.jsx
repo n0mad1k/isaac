@@ -2586,17 +2586,17 @@ function Settings() {
                         }`}
                         style={{ borderColor: 'var(--color-border-default)' }}
                       >
-                        <span className="text-gray-500 shrink-0">{log.timestamp}</span>
+                        <span className="text-gray-400 shrink-0">{log.timestamp}</span>
                         <span className={`font-semibold shrink-0 ${
                           log.level === 'ERROR' ? 'text-red-400' :
                           log.level === 'WARNING' ? 'text-yellow-400' :
                           log.level === 'INFO' ? 'text-blue-400' :
-                          log.level === 'DEBUG' ? 'text-gray-400' :
-                          'text-gray-300'
+                          log.level === 'DEBUG' ? 'text-gray-300' :
+                          'text-gray-200'
                         }`}>
                           [{log.level}]
                         </span>
-                        <span className="text-gray-300 break-all">{log.message}</span>
+                        <span className="text-gray-100 break-all">{log.message}</span>
                       </div>
                     ))}
                   </div>
