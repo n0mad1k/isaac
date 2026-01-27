@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.27.3] - 2026-01-27
+
+### Fixed
+- Pool gear creation now works (fixed database schema constraint)
+  - The `member_id` column was incorrectly set as NOT NULL in the database
+  - Pool gear can now be created without being assigned to a member
+
 ## [1.27.2] - 2026-01-27
 
 ### Changed
