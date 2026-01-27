@@ -518,7 +518,7 @@ function FarmFinances() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0">
           <DollarSign className="w-7 h-7 text-green-500" />
-          Production
+          Production & Sales
         </h1>
         <MottoDisplay />
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -848,13 +848,21 @@ function OverviewTab({ summary, outstandingPayments, sales, formatCurrency, getC
               <span>{(summary.livestock?.total_meat_lbs || 0).toFixed(0)} lbs</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Avg Cost/lb</span>
-              <span className="text-cyan-400">{formatCurrency(summary.livestock?.avg_cost_per_pound)}</span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-gray-400">Expenses</span>
               <span className="text-yellow-400">{formatCurrency(summary.livestock?.total_expenses)}</span>
             </div>
+            {/* Cost per lb by animal type */}
+            {summary.livestock?.by_type && summary.livestock.by_type.length > 0 && (
+              <div className="pt-2 mt-2 border-t border-gray-700">
+                <div className="text-xs text-gray-500 mb-1">Cost per Pound:</div>
+                {summary.livestock.by_type.map((item) => (
+                  <div key={item.type} className="flex justify-between">
+                    <span className="text-gray-400 capitalize">{item.type.replace(/_/g, ' ')}</span>
+                    <span className="text-cyan-400">{formatCurrency(item.cost_per_pound)}/lb</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

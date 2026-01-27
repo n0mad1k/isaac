@@ -224,7 +224,7 @@ function Layout() {
     { to: '/vehicles', icon: Car, label: 'Vehicles' },
     { to: '/equipment', icon: Wrench, label: 'Equip' },
     { to: '/farm-areas', icon: Fence, label: 'Farm' },
-    { to: '/farm-finances', icon: DollarSign, label: 'Finance' },
+    { to: '/farm-finances', icon: DollarSign, label: 'Production' },
     // Dev tracker only shows on dev instance
     ...(isDevInstance ? [{ to: '/dev-tracker', icon: Bug, label: 'Dev' }] : []),
     { to: '/settings', icon: Settings, label: 'Settings' },

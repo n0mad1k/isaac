@@ -1367,6 +1367,28 @@ async def get_financial_summary(
     total_meat = sum(p.final_weight or 0 for p in livestock)
     avg_cost_per_pound = total_expenses / total_meat if total_meat > 0 else 0
 
+    # Calculate breakdown by animal type
+    by_type = {}
+    for p in livestock:
+        atype = p.animal_type or 'unknown'
+        if atype not in by_type:
+            by_type[atype] = {'count': 0, 'weight': 0, 'expenses': 0}
+        by_type[atype]['count'] += 1
+        by_type[atype]['weight'] += p.final_weight or 0
+        by_type[atype]['expenses'] += (p.total_expenses or 0) + (p.processing_cost or 0)
+
+    # Calculate cost per lb for each type
+    livestock_by_type = []
+    for atype, data in by_type.items():
+        cost_per_lb = data['expenses'] / data['weight'] if data['weight'] > 0 else 0
+        livestock_by_type.append({
+            'type': atype,
+            'count': data['count'],
+            'weight': data['weight'],
+            'expenses': data['expenses'],
+            'cost_per_pound': cost_per_lb,
+        })
+
     # Order revenue
     order_revenue = sum(o.total_paid or 0 for o in orders)
     outstanding_balance = sum(o.balance_due or 0 for o in orders if o.status != OrderStatus.CANCELLED)
@@ -1395,6 +1417,7 @@ async def get_financial_summary(
             "total_meat_lbs": total_meat,
             "total_expenses": total_expenses,
             "avg_cost_per_pound": avg_cost_per_pound,
+            "by_type": livestock_by_type,
         },
         "harvests": {
             "total_harvests": len(harvests),
