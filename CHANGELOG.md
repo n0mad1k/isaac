@@ -2,6 +2,25 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.32.0] - 2026-01-27
+
+### Added
+- **Performance-Readiness Analysis System**
+  - Automatic overall readiness calculation combining physical and medical factors
+  - Physical readiness calculated from vitals (RHR, HRV, BP, SpO2, temp, respiratory)
+  - Marine Corps taping method for body composition (no BMI)
+  - New vital types: NECK and HIP circumference for taping method
+  - Weighted scoring: Autonomic Recovery (45%), Illness Risk (25%), Cardiovascular (20%), Body Composition (10%)
+  - Risk flags with severity levels and recommendations
+  - Updates member's overall_readiness field automatically
+- **Readiness Analysis Panel in Health Data tab**
+  - Visual display of overall, physical, and medical readiness status
+  - Progress bars for physical breakdown indicators
+  - Primary drivers explaining current status
+  - Risk flags with color-coded severity
+  - Expandable details showing data quality and all indicators
+  - Refresh button to recalculate analysis
+
 ## [1.31.0] - 2026-01-27
 
 ### Added

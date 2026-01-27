@@ -492,6 +492,10 @@ export const getVitalsAverages = (memberId) => api.get(`/team/members/${memberId
 export const logVital = (memberId, data) => api.post(`/team/members/${memberId}/vitals/`, data)
 export const deleteVital = (memberId, vitalId) => api.delete(`/team/members/${memberId}/vitals/${vitalId}/`)
 export const getVitalTypes = () => api.get('/team/vitals/types/')
+export const getReadinessAnalysis = (memberId, lookbackDays = 30, updateMember = true) =>
+  api.get(`/team/members/${memberId}/readiness-analysis/`, {
+    params: { lookback_days: lookbackDays, update_member: updateMember }
+  })
 
 // Medical Tracking
 export const getMedicalHistory = (memberId) => api.get(`/team/members/${memberId}/medical-history/`)

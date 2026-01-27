@@ -3,7 +3,7 @@ import {
   User, Heart, Brain, MessageSquare, Activity,
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle, AlertTriangle,
   Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus, Target, Check, X,
-  ListTodo, Package
+  ListTodo, Package, RefreshCw, TrendingUp, TrendingDown, Minus, Info
 } from 'lucide-react'
 import {
   getWeightHistory, logWeight, getMedicalHistory, updateMedicalStatus,
@@ -11,7 +11,8 @@ import {
   getMemberObservations, createObservation, uploadMemberPhoto, deleteMemberPhoto,
   getMemberAppointments, createMemberAppointment, updateMemberAppointment,
   deleteMemberAppointment, completeMemberAppointment,
-  getVitalsHistory, getVitalsAverages, logVital, deleteVital, getVitalTypes
+  getVitalsHistory, getVitalsAverages, logVital, deleteVital, getVitalTypes,
+  getReadinessAnalysis
 } from '../../services/api'
 import MemberMentoringTab from './MemberMentoringTab'
 import MemberObservationsTab from './MemberObservationsTab'
@@ -998,6 +999,31 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
+  // Readiness Analysis state
+  const [readinessAnalysis, setReadinessAnalysis] = useState(null)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [analysisError, setAnalysisError] = useState(null)
+  const [showAnalysisDetails, setShowAnalysisDetails] = useState(false)
+
+  // Fetch readiness analysis
+  const fetchReadinessAnalysis = async (updateMember = true) => {
+    setAnalysisLoading(true)
+    setAnalysisError(null)
+    try {
+      const res = await getReadinessAnalysis(member.id, 30, updateMember)
+      setReadinessAnalysis(res.data)
+    } catch (err) {
+      setAnalysisError(err.userMessage || 'Failed to load readiness analysis')
+    } finally {
+      setAnalysisLoading(false)
+    }
+  }
+
+  // Load analysis on mount
+  useEffect(() => {
+    fetchReadinessAnalysis(false) // Don't update member on initial load
+  }, [member.id])
+
   // Form states
   const [vitalForm, setVitalForm] = useState({
     vital_type: '',
@@ -1106,8 +1132,239 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
   // Selected vital type info
   const selectedVitalType = vitalTypes.find(t => t.value === vitalForm.vital_type)
 
+  // Helper for status colors
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'GREEN': return { bg: 'bg-green-600', text: 'text-green-400', border: 'border-green-500' }
+      case 'AMBER': return { bg: 'bg-yellow-600', text: 'text-yellow-400', border: 'border-yellow-500' }
+      case 'RED': return { bg: 'bg-red-600', text: 'text-red-400', border: 'border-red-500' }
+      default: return { bg: 'bg-gray-600', text: 'text-gray-400', border: 'border-gray-500' }
+    }
+  }
+
+  // Helper for trend icons
+  const getTrendIcon = (trend) => {
+    switch (trend) {
+      case 'improving': return <TrendingUp className="w-3 h-3 text-green-400" />
+      case 'declining': return <TrendingDown className="w-3 h-3 text-red-400" />
+      case 'stable': return <Minus className="w-3 h-3 text-gray-400" />
+      default: return <Info className="w-3 h-3 text-gray-500" />
+    }
+  }
+
+  // Helper for severity badge
+  const getSeverityColor = (severity) => {
+    switch (severity) {
+      case 'critical': return 'bg-red-600 text-white'
+      case 'high': return 'bg-red-500/80 text-white'
+      case 'moderate': return 'bg-yellow-500/80 text-white'
+      case 'low': return 'bg-blue-500/60 text-white'
+      default: return 'bg-gray-500 text-white'
+    }
+  }
+
   return (
     <div className="space-y-4">
+      {/* Readiness Analysis Panel */}
+      <div className="bg-gray-700 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-lg">Overall Readiness Assessment</h3>
+          <button
+            onClick={() => fetchReadinessAnalysis(true)}
+            disabled={analysisLoading}
+            className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${analysisLoading ? 'animate-spin' : ''}`} />
+            {analysisLoading ? 'Analyzing...' : 'Refresh'}
+          </button>
+        </div>
+
+        {analysisError && (
+          <div className="text-red-400 text-sm mb-3">{analysisError}</div>
+        )}
+
+        {readinessAnalysis ? (
+          <div className="space-y-4">
+            {/* Main Status Row */}
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Overall Score */}
+              <div className={`flex-shrink-0 p-4 rounded-lg ${getStatusColor(readinessAnalysis.overall_status).bg} text-white text-center`}>
+                <div className="text-3xl font-bold">{Math.round(readinessAnalysis.score)}</div>
+                <div className="text-sm font-semibold">OVERALL</div>
+                <div className="text-lg font-bold">{readinessAnalysis.overall_status}</div>
+                <div className="text-xs opacity-80 mt-1">
+                  Confidence: {Math.round(readinessAnalysis.confidence * 100)}%
+                </div>
+              </div>
+
+              {/* Physical & Medical Status */}
+              <div className="flex-grow space-y-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 w-36">Physical Readiness</span>
+                  <span className={`px-2 py-0.5 rounded text-sm font-medium ${getStatusColor(readinessAnalysis.physical_status).bg} text-white`}>
+                    {readinessAnalysis.physical_status}
+                  </span>
+                  <span className="text-gray-300">
+                    {readinessAnalysis.indicators.find(i => i.name === 'Physical Readiness')?.value.toFixed(0) || '-'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-gray-400 w-36">Medical Readiness</span>
+                  <span className={`px-2 py-0.5 rounded text-sm font-medium ${getStatusColor(readinessAnalysis.medical_status).bg} text-white`}>
+                    {readinessAnalysis.medical_status}
+                  </span>
+                  <span className="text-gray-300">
+                    {readinessAnalysis.indicators.find(i => i.name === 'Medical Readiness')?.value.toFixed(0) || '-'}
+                  </span>
+                </div>
+
+                {/* Physical Breakdown */}
+                <div className="mt-3 pt-3 border-t border-gray-600">
+                  <div className="text-xs text-gray-400 mb-2">PHYSICAL BREAKDOWN:</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {readinessAnalysis.indicators
+                      .filter(ind => ['autonomic', 'cardiovascular', 'illness', 'body_composition'].includes(ind.category))
+                      .map(ind => (
+                        <div key={ind.category} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 w-28 truncate" title={ind.name}>{ind.name}</span>
+                          <div className="flex-grow bg-gray-800 rounded-full h-2 overflow-hidden">
+                            <div
+                              className={`h-full ${ind.value >= 80 ? 'bg-green-500' : ind.value >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                              style={{ width: `${ind.value}%` }}
+                            />
+                          </div>
+                          <span className="text-xs w-8 text-right">{ind.value.toFixed(0)}</span>
+                          {getTrendIcon(ind.trend)}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Primary Drivers */}
+            {readinessAnalysis.primary_drivers?.length > 0 && (
+              <div className="bg-gray-800 rounded p-3">
+                <div className="text-xs text-gray-400 mb-2">PRIMARY DRIVERS</div>
+                <ul className="space-y-1">
+                  {readinessAnalysis.primary_drivers.map((driver, i) => (
+                    <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
+                      <span className="text-gray-500">-</span>
+                      {driver}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Risk Flags */}
+            {readinessAnalysis.risk_flags?.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs text-gray-400">RISK FLAGS</div>
+                {readinessAnalysis.risk_flags.map((flag, i) => (
+                  <div key={i} className={`rounded p-3 border-l-4 ${flag.severity === 'critical' || flag.severity === 'high' ? 'bg-red-900/30 border-red-500' : flag.severity === 'moderate' ? 'bg-yellow-900/30 border-yellow-500' : 'bg-blue-900/30 border-blue-500'}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle className={`w-4 h-4 ${flag.severity === 'critical' || flag.severity === 'high' ? 'text-red-400' : flag.severity === 'moderate' ? 'text-yellow-400' : 'text-blue-400'}`} />
+                      <span className="font-medium">{flag.title}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${getSeverityColor(flag.severity)}`}>
+                        {flag.severity}
+                      </span>
+                      <span className="text-xs text-gray-500">[{flag.source}]</span>
+                    </div>
+                    <p className="text-sm text-gray-300 ml-6">{flag.explanation}</p>
+                    {flag.recommendation && (
+                      <p className="text-xs text-gray-400 ml-6 mt-1">
+                        <span className="text-gray-500">Recommendation:</span> {flag.recommendation}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Details Toggle */}
+            <button
+              onClick={() => setShowAnalysisDetails(!showAnalysisDetails)}
+              className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
+            >
+              {showAnalysisDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {showAnalysisDetails ? 'Hide Details' : 'Show Details'}
+            </button>
+
+            {/* Detailed View */}
+            {showAnalysisDetails && (
+              <div className="space-y-3 pt-2 border-t border-gray-600">
+                {/* Data Quality */}
+                <div className="bg-gray-800 rounded p-3">
+                  <div className="text-xs text-gray-400 mb-2">DATA QUALITY</div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-500">7-day readings:</span>
+                      <span className="ml-1">{readinessAnalysis.data_quality?.data_points_7d || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">30-day readings:</span>
+                      <span className="ml-1">{readinessAnalysis.data_quality?.data_points_30d || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Taping method:</span>
+                      <span className={`ml-1 ${readinessAnalysis.data_quality?.taping_available ? 'text-green-400' : 'text-gray-500'}`}>
+                        {readinessAnalysis.data_quality?.taping_available ? 'Available' : 'Missing data'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Updated member:</span>
+                      <span className={`ml-1 ${readinessAnalysis.member_updated ? 'text-green-400' : 'text-gray-500'}`}>
+                        {readinessAnalysis.member_updated ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  </div>
+                  {readinessAnalysis.data_quality?.vitals_missing?.length > 0 && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      Missing vitals: {readinessAnalysis.data_quality.vitals_missing.join(', ')}
+                    </div>
+                  )}
+                </div>
+
+                {/* All Indicators */}
+                <div className="bg-gray-800 rounded p-3">
+                  <div className="text-xs text-gray-400 mb-2">ALL INDICATORS</div>
+                  <div className="space-y-2">
+                    {readinessAnalysis.indicators.map(ind => (
+                      <div key={ind.name} className="text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-300">{ind.name}</span>
+                          <div className="flex items-center gap-2">
+                            {getTrendIcon(ind.trend)}
+                            <span className={ind.value >= 80 ? 'text-green-400' : ind.value >= 60 ? 'text-yellow-400' : 'text-red-400'}>
+                              {ind.value.toFixed(0)}
+                            </span>
+                            <span className="text-xs text-gray-500">({Math.round(ind.confidence * 100)}% conf)</span>
+                          </div>
+                        </div>
+                        {ind.contributing_factors?.length > 0 && (
+                          <div className="text-xs text-gray-500 ml-2">
+                            {ind.contributing_factors.join('; ')}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-500 text-right">
+                  Analyzed: {new Date(readinessAnalysis.analyzed_at).toLocaleString()}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-gray-400 text-center py-4">
+            {analysisLoading ? 'Loading analysis...' : 'No analysis available'}
+          </div>
+        )}
+      </div>
+
       {/* Current Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gray-700 rounded-lg p-4">

@@ -124,6 +124,8 @@ class VitalType(str, enum.Enum):
     BODY_FAT = "body_fat"  # Percentage
     RESPIRATORY_RATE = "respiratory_rate"  # Breaths per minute
     WAIST = "waist"  # Circumference in inches
+    NECK = "neck"  # Circumference in inches (for taping method)
+    HIP = "hip"  # Circumference in inches (for females)
 
 
 class TeamMember(Base):

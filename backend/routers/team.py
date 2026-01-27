@@ -1043,6 +1043,8 @@ VITAL_UNITS = {
     VitalType.BODY_FAT: "%",
     VitalType.RESPIRATORY_RATE: "bpm",
     VitalType.WAIST: "in",
+    VitalType.NECK: "in",
+    VitalType.HIP: "in",
 }
 
 
@@ -1118,6 +1120,84 @@ async def get_vitals_averages(
             }
 
     return averages
+
+
+@router.get("/members/{member_id}/readiness-analysis/")
+async def get_readiness_analysis(
+    member_id: int,
+    lookback_days: int = Query(default=30, ge=7, le=90),
+    update_member: bool = Query(default=True),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """
+    Analyze member's performance readiness combining physical and medical factors.
+
+    Physical readiness is calculated from vitals (RHR, HRV, BP, SpO2, temp, etc.)
+    and body composition (Marine Corps taping method - no BMI).
+
+    Medical readiness uses the existing manual medical_readiness field.
+
+    Overall readiness = worst of (physical, medical) - conservative approach.
+
+    If update_member=true, updates member.overall_readiness with the result.
+    """
+    from services.readiness_analysis import analyze_readiness, ReadinessAnalysis
+    from dataclasses import asdict
+
+    try:
+        analysis = await analyze_readiness(
+            member_id=member_id,
+            db=db,
+            lookback_days=lookback_days,
+            update_member=update_member
+        )
+
+        # Convert dataclasses to dicts for JSON serialization
+        result = {
+            "member_id": member_id,
+            "overall_status": analysis.overall_status,
+            "physical_status": analysis.physical_status,
+            "medical_status": analysis.medical_status,
+            "score": round(analysis.score, 1),
+            "confidence": round(analysis.confidence, 2),
+            "explanation": analysis.explanation,
+            "primary_drivers": analysis.primary_drivers,
+            "indicators": [
+                {
+                    "name": ind.name,
+                    "category": ind.category,
+                    "value": round(ind.value, 1),
+                    "trend": ind.trend,
+                    "explanation": ind.explanation,
+                    "confidence": round(ind.confidence, 2),
+                    "contributing_factors": ind.contributing_factors
+                }
+                for ind in analysis.indicators
+            ],
+            "risk_flags": [
+                {
+                    "code": flag.code,
+                    "severity": flag.severity,
+                    "title": flag.title,
+                    "explanation": flag.explanation,
+                    "recommendation": flag.recommendation,
+                    "source": flag.source
+                }
+                for flag in analysis.risk_flags
+            ],
+            "data_quality": analysis.data_quality,
+            "member_updated": analysis.member_updated,
+            "analyzed_at": analysis.analyzed_at
+        }
+
+        return result
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Readiness analysis failed for member {member_id}: {e}")
+        raise HTTPException(status_code=500, detail="Analysis failed")
 
 
 @router.post("/members/{member_id}/vitals/")
