@@ -365,7 +365,8 @@ function TeamGearTab({ members, onRefresh }) {
                             {item.color && (
                               <span className="text-xs px-2 py-0.5 bg-gray-600 rounded">{item.color}</span>
                             )}
-                            {item.is_container && (
+                            {/* Don't show Container badge for BAG category - it's implied */}
+                            {item.is_container && item.category !== 'BAG' && (
                               <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Container</span>
                             )}
                           </div>

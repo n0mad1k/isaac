@@ -252,7 +252,8 @@ function MemberGearTab({ member, onUpdate }) {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{item.name}</span>
                       {getStatusBadge(item.status)}
-                      {item.is_container && (
+                      {/* Don't show Container badge for BAG category - it's implied */}
+                      {item.is_container && item.category !== 'BAG' && (
                         <span className="px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded text-xs">Container</span>
                       )}
                     </div>
