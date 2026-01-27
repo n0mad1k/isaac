@@ -201,16 +201,16 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
               <ReadinessIndicator status={member.overall_readiness} />
-              {/* Blood Type - Prominent Display (hazy red) */}
+              {/* Blood Type - Hazy/muted red */}
               {member.blood_type && (
-                <span className="px-3 py-1 bg-red-900/50 border border-red-600 rounded-lg text-red-300 font-bold text-sm flex items-center gap-1">
+                <span className="px-3 py-1 rounded-lg font-bold text-sm flex items-center gap-1" style={{ backgroundColor: 'rgba(127, 29, 29, 0.5)', border: '1px solid #991b1b', color: '#fca5a5' }}>
                   <Heart className="w-4 h-4" />
                   {member.blood_type}
                 </span>
               )}
-              {/* Anaphylaxis Allergies - Same line as name and blood type (bright red) */}
+              {/* Anaphylaxis Allergies - BRIGHT RED */}
               {member.allergies && member.allergies.filter(a => typeof a === 'object' && a.anaphylaxis).map((allergy, idx) => (
-                <span key={idx} className="px-2 py-1 bg-red-600 border border-red-400 rounded text-white text-xs font-bold flex items-center gap-1">
+                <span key={idx} className="px-2 py-1 rounded font-bold text-xs flex items-center gap-1" style={{ backgroundColor: '#dc2626', border: '2px solid #ef4444', color: '#ffffff' }}>
                   <AlertTriangle className="w-3 h-3" />
                   ANAPHYLAXIS: {typeof allergy === 'object' ? allergy.name : allergy}
                 </span>
@@ -365,11 +365,11 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                         return (
                           <span
                             key={idx}
-                            className={`px-2 py-1 rounded text-sm flex items-center gap-1 ${
-                              isAnaphylaxis
-                                ? 'bg-red-600 text-white font-bold border border-red-400'
-                                : 'bg-red-900/50 text-red-300'
-                            }`}
+                            className="px-2 py-1 rounded text-sm flex items-center gap-1"
+                            style={isAnaphylaxis
+                              ? { backgroundColor: '#dc2626', border: '2px solid #ef4444', color: '#ffffff', fontWeight: 'bold' }
+                              : { backgroundColor: '#c2410c', color: '#ffffff' }
+                            }
                           >
                             {isAnaphylaxis && <AlertTriangle className="w-3 h-3" />}
                             {name}
