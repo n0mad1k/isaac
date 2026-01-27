@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.27.2] - 2026-01-27
+
+### Changed
+- Team Gear tab moved to appear before Weekly AAR in team tabs
+- Team Gear tab now shows expandable containers (bags) with full content management
+  - Click to expand and view contents
+  - Add, edit, delete contents directly
+  - Quantity +/- controls for quick adjustments
+- Dev Tracker section order reordered: To Implement → Testing → Backlog → Metrics → Verified
+
 ## [1.27.1] - 2026-01-27
 
 ### Added

@@ -1009,89 +1009,6 @@ function DevTracker() {
         </div>
       )}
 
-      {/* Verified Section - Grouped by Day */}
-      {verified.length > 0 && (() => {
-        // Group verified items by day
-        const groupedByDay = verified.reduce((acc, item) => {
-          const dateKey = item.completed_at
-            ? format(parseISO(item.completed_at), 'yyyy-MM-dd')
-            : 'unknown'
-          if (!acc[dateKey]) acc[dateKey] = []
-          acc[dateKey].push(item)
-          return acc
-        }, {})
-
-        // Sort days (newest first)
-        const sortedDays = Object.keys(groupedByDay).sort((a, b) => b.localeCompare(a))
-
-        return (
-          <div className="bg-gray-800 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                Verified ({verified.length})
-              </h2>
-            </div>
-            <div className="space-y-2">
-              {sortedDays.map((dateKey) => {
-                const dayItems = groupedByDay[dateKey]
-                const dateObj = dateKey !== 'unknown' ? parseISO(dateKey) : null
-                const isTodayDate = dateObj && isToday(dateObj)
-                const isExpanded = expandedDays[dateKey] ?? isTodayDate // Default: today expanded, others collapsed
-
-                return (
-                  <div key={dateKey} className="border border-gray-700 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setExpandedDays(prev => ({ ...prev, [dateKey]: !isExpanded }))}
-                      className="w-full px-3 py-2 bg-gray-700/50 hover:bg-gray-700 flex items-center justify-between text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
-                        <Calendar className="w-4 h-4 text-gray-400" />
-                        <span className={`font-medium ${isTodayDate ? 'text-green-400' : 'text-gray-300'}`}>
-                          {dateObj ? (isTodayDate ? 'Today' : format(dateObj, 'EEE, MMM d')) : 'Unknown'}
-                        </span>
-                        <span className="text-xs text-gray-500">({dayItems.length} items)</span>
-                      </div>
-                    </button>
-                    {isExpanded && (
-                      <div className="px-3 pb-3 pt-1 space-y-1.5">
-                        {dayItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-start gap-2 p-2 bg-gray-700/30 rounded group min-w-0"
-                          >
-                            <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                            <span className="text-xs px-1.5 py-0.5 bg-gray-600 text-gray-500 rounded font-mono shrink-0" title="Item ID">
-                              #{item.id}
-                            </span>
-                            <span className="flex-1 text-sm text-gray-400 line-through break-words whitespace-normal min-w-0">{item.title}</span>
-                            <button
-                              onClick={() => handleReopenToTesting(item)}
-                              className="p-1 text-gray-500 hover:text-blue-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
-                              title="Reopen to testing"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenDeleteModal(item)}
-                              className="p-1 text-gray-500 hover:text-red-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )
-      })()}
-
       {/* Backlog Section */}
       {backlog.length > 0 && (
         <div className="bg-gray-800 rounded-xl p-4">
@@ -1180,6 +1097,89 @@ function DevTracker() {
           </div>
         </div>
       )}
+
+      {/* Verified Section - Grouped by Day */}
+      {verified.length > 0 && (() => {
+        // Group verified items by day
+        const groupedByDay = verified.reduce((acc, item) => {
+          const dateKey = item.completed_at
+            ? format(parseISO(item.completed_at), 'yyyy-MM-dd')
+            : 'unknown'
+          if (!acc[dateKey]) acc[dateKey] = []
+          acc[dateKey].push(item)
+          return acc
+        }, {})
+
+        // Sort days (newest first)
+        const sortedDays = Object.keys(groupedByDay).sort((a, b) => b.localeCompare(a))
+
+        return (
+          <div className="bg-gray-800 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                Verified ({verified.length})
+              </h2>
+            </div>
+            <div className="space-y-2">
+              {sortedDays.map((dateKey) => {
+                const dayItems = groupedByDay[dateKey]
+                const dateObj = dateKey !== 'unknown' ? parseISO(dateKey) : null
+                const isTodayDate = dateObj && isToday(dateObj)
+                const isExpanded = expandedDays[dateKey] ?? isTodayDate // Default: today expanded, others collapsed
+
+                return (
+                  <div key={dateKey} className="border border-gray-700 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedDays(prev => ({ ...prev, [dateKey]: !isExpanded }))}
+                      className="w-full px-3 py-2 bg-gray-700/50 hover:bg-gray-700 flex items-center justify-between text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span className={`font-medium ${isTodayDate ? 'text-green-400' : 'text-gray-300'}`}>
+                          {dateObj ? (isTodayDate ? 'Today' : format(dateObj, 'EEE, MMM d')) : 'Unknown'}
+                        </span>
+                        <span className="text-xs text-gray-500">({dayItems.length} items)</span>
+                      </div>
+                    </button>
+                    {isExpanded && (
+                      <div className="px-3 pb-3 pt-1 space-y-1.5">
+                        {dayItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-start gap-2 p-2 bg-gray-700/30 rounded group min-w-0"
+                          >
+                            <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                            <span className="text-xs px-1.5 py-0.5 bg-gray-600 text-gray-500 rounded font-mono shrink-0" title="Item ID">
+                              #{item.id}
+                            </span>
+                            <span className="flex-1 text-sm text-gray-400 line-through break-words whitespace-normal min-w-0">{item.title}</span>
+                            <button
+                              onClick={() => handleReopenToTesting(item)}
+                              className="p-1 text-gray-500 hover:text-blue-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
+                              title="Reopen to testing"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenDeleteModal(item)}
+                              className="p-1 text-gray-500 hover:text-red-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Fail Modal */}
       {failModalItem && (
