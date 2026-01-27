@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar as CalendarIcon, CheckSquare, X, User, Trash2 } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckSquare, X, User, Trash2, Users } from 'lucide-react'
 import { format } from 'date-fns'
-import { createTask, updateTask, deleteTask, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas, getWorkers, getUsers } from '../services/api'
+import { createTask, updateTask, deleteTask, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas, getWorkers, getUsers, getTeamMembers } from '../services/api'
 
 const TASK_CATEGORIES = [
   { value: 'plant_care', label: 'Plant Care' },
@@ -62,13 +62,14 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
     farm_area_id: event?.farm_area_id || (preselectedEntity?.type === 'farm_area' ? preselectedEntity.id : null),
     assigned_to_worker_id: event?.assigned_to_worker_id || defaultWorkerId || null,
     assigned_to_user_id: event?.assigned_to_user_id || null,
+    assigned_member_ids: event?.assigned_member_ids || [],
   })
   const [isMultiDay, setIsMultiDay] = useState(!!event?.end_date && event.end_date !== event.due_date)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [isAllDay, setIsAllDay] = useState(!event?.due_time)
   const [hasDate, setHasDate] = useState(!!event?.due_date || !!defaultDate)
-  const [entities, setEntities] = useState({ animals: [], plants: [], vehicles: [], equipment: [], farmAreas: [], workers: [], users: [] })
+  const [entities, setEntities] = useState({ animals: [], plants: [], vehicles: [], equipment: [], farmAreas: [], workers: [], users: [], members: [] })
   const [entitiesLoading, setEntitiesLoading] = useState(true)
   const [linkType, setLinkType] = useState(
     preselectedEntity?.type ||
@@ -90,11 +91,12 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
           return
         }
 
-        // Always fetch workers and users for assignment dropdown
+        // Always fetch workers, users, and team members for assignment dropdown
         // Only fetch other entities if no preselectedEntity
         const promises = [
           getWorkers().catch(() => ({ data: [] })),
           getUsers().catch(() => ({ data: [] })),  // Fetch system users too
+          getTeamMembers().catch(() => ({ data: [] })),  // Fetch team members for multi-assignment
         ]
 
         if (!preselectedEntity) {
@@ -114,16 +116,18 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
             ...prev,
             workers: Array.isArray(results[0]?.data) ? results[0].data : [],
             users: Array.isArray(results[1]?.data) ? results[1].data : [],
+            members: Array.isArray(results[2]?.data) ? results[2].data : [],
           }))
         } else {
           setEntities({
             workers: Array.isArray(results[0]?.data) ? results[0].data : [],
             users: Array.isArray(results[1]?.data) ? results[1].data : [],
-            animals: Array.isArray(results[2]?.data) ? results[2].data : [],
-            plants: Array.isArray(results[3]?.data) ? results[3].data : [],
-            vehicles: Array.isArray(results[4]?.data) ? results[4].data : [],
-            equipment: Array.isArray(results[5]?.data) ? results[5].data : [],
-            farmAreas: Array.isArray(results[6]?.data) ? results[6].data : [],
+            members: Array.isArray(results[2]?.data) ? results[2].data : [],
+            animals: Array.isArray(results[3]?.data) ? results[3].data : [],
+            plants: Array.isArray(results[4]?.data) ? results[4].data : [],
+            vehicles: Array.isArray(results[5]?.data) ? results[5].data : [],
+            equipment: Array.isArray(results[6]?.data) ? results[6].data : [],
+            farmAreas: Array.isArray(results[7]?.data) ? results[7].data : [],
           })
         }
       } catch (error) {
@@ -188,6 +192,7 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
         // Assignment
         assigned_to_worker_id: formData.assigned_to_worker_id || null,
         assigned_to_user_id: formData.assigned_to_user_id || null,
+        assigned_member_ids: formData.assigned_member_ids?.length > 0 ? formData.assigned_member_ids : null,
       }
 
       if (event) {
@@ -673,6 +678,40 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
                   </optgroup>
                 )}
               </select>
+            </div>
+          )}
+
+          {/* Team Member Multi-Assignment */}
+          {!forWorkerTask && !entitiesLoading && Array.isArray(entities.members) && entities.members.length > 0 && (
+            <div className="space-y-2 pt-3 border-t border-gray-700">
+              <label className="block text-sm text-gray-400 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Team Members (can select multiple)
+              </label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto bg-gray-700/50 p-2 rounded-lg">
+                {entities.members.filter(m => m.is_active !== false).map(member => (
+                  <label key={member.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-600/50 p-1 rounded">
+                    <input
+                      type="checkbox"
+                      checked={formData.assigned_member_ids?.includes(member.id) || false}
+                      onChange={(e) => {
+                        const newIds = e.target.checked
+                          ? [...(formData.assigned_member_ids || []), member.id]
+                          : (formData.assigned_member_ids || []).filter(id => id !== member.id)
+                        setFormData({ ...formData, assigned_member_ids: newIds })
+                      }}
+                      className="rounded border-gray-600"
+                    />
+                    <span>{member.nickname || member.name}</span>
+                    {member.role_title && <span className="text-xs text-gray-500">({member.role_title})</span>}
+                  </label>
+                ))}
+              </div>
+              {formData.assigned_member_ids?.length > 0 && (
+                <div className="text-xs text-gray-400">
+                  {formData.assigned_member_ids.length} member{formData.assigned_member_ids.length !== 1 ? 's' : ''} selected
+                </div>
+              )}
             </div>
           )}
 
