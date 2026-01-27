@@ -55,10 +55,10 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
           </h1>
         )}
 
-        {/* Mission Statement - Larger */}
+        {/* Mission Statement */}
         {settings?.team_mission && (
           <div className="max-w-4xl mx-auto px-4">
-            <p className="text-2xl text-gray-200 leading-relaxed italic font-light">
+            <p className="text-lg text-gray-200 leading-relaxed italic font-light">
               "{settings.team_mission}"
             </p>
           </div>
@@ -103,20 +103,20 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
           )}
         </div>
 
-        {/* Core Values - Compact */}
+        {/* Core Values */}
         {settings?.team_values && settings.team_values.length > 0 && (
-          <div className="pt-1">
-            <h2 className="text-lg font-bold mb-3">
+          <div className="pt-2">
+            <h2 className="text-xl font-semibold mb-4">
               Core Values
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 max-w-5xl mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-5xl mx-auto px-4">
               {settings.team_values.map((value, idx) => (
                 <div
                   key={idx}
-                  className="bg-gray-700 rounded-lg p-2.5 border-l-4 border-farm-green"
+                  className="bg-gray-700 rounded-lg p-4 border-l-4 border-farm-green"
                 >
-                  <h3 className="text-sm font-bold text-white mb-0.5">{value.name}</h3>
-                  <p className="text-xs text-gray-300 line-clamp-2">{value.description}</p>
+                  <h3 className="text-base font-semibold text-white mb-1">{value.name}</h3>
+                  <p className="text-sm text-gray-300">{value.description}</p>
                 </div>
               ))}
             </div>
