@@ -208,13 +208,13 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   {member.blood_type}
                 </span>
               )}
-              {/* Anaphylaxis Allergies - gets the old blood type color (lighter/pinkish) */}
-              {member.allergies && member.allergies.filter(a => typeof a === 'object' && a.anaphylaxis).map((allergy, idx) => (
-                <span key={idx} className="px-2 py-1 bg-red-900/50 border border-red-600 rounded text-red-300 font-bold text-xs flex items-center gap-1">
+              {/* Anaphylaxis Allergies - grouped together */}
+              {member.allergies && member.allergies.some(a => typeof a === 'object' && a.anaphylaxis) && (
+                <span className="px-2 py-1 bg-red-900/50 border border-red-600 rounded text-red-300 font-bold text-xs flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" />
-                  ANAPHYLAXIS: {typeof allergy === 'object' ? allergy.name : allergy}
+                  ANAPHYLAXIS: {member.allergies.filter(a => typeof a === 'object' && a.anaphylaxis).map(a => a.name).join(', ')}
                 </span>
-              ))}
+              )}
             </div>
             {member.nickname && (
               <p className="text-gray-400">"{member.nickname}"</p>
