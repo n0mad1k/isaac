@@ -1319,11 +1319,53 @@ async def sync_calendar(db: AsyncSession = Depends(get_db)):
     }
 
 
+@router.get("/logs/files/")
+async def get_log_files():
+    """Get list of available log files"""
+    from pathlib import Path
+    import os
+
+    log_files = []
+
+    # Check main app log
+    app_log = Path("logs/isaac.log")
+    if app_log.exists():
+        size = app_log.stat().st_size
+        log_files.append({
+            "id": "app",
+            "name": "Application Log",
+            "path": str(app_log),
+            "size": size,
+            "size_human": f"{size / 1024 / 1024:.1f} MB" if size > 1024*1024 else f"{size / 1024:.1f} KB"
+        })
+
+    # Check systemd logs (from /opt/isaac/logs/ or /opt/levi/logs/)
+    for base in ["/opt/isaac/logs", "/opt/levi/logs"]:
+        logs_dir = Path(base)
+        if logs_dir.exists():
+            for log_file in ["backend.log", "backend-error.log"]:
+                log_path = logs_dir / log_file
+                if log_path.exists():
+                    size = log_path.stat().st_size
+                    file_id = log_file.replace(".log", "").replace("-", "_")
+                    log_files.append({
+                        "id": file_id,
+                        "name": log_file.replace("-", " ").replace(".log", "").title(),
+                        "path": str(log_path),
+                        "size": size,
+                        "size_human": f"{size / 1024 / 1024:.1f} MB" if size > 1024*1024 else f"{size / 1024:.1f} KB"
+                    })
+            break  # Only check one base directory
+
+    return {"files": log_files}
+
+
 @router.get("/logs/")
 async def get_logs(
     lines: int = 100,
     level: Optional[str] = None,
-    search: Optional[str] = None
+    search: Optional[str] = None,
+    log_file: Optional[str] = "app"
 ):
     """
     Get recent application logs for admin review.
@@ -1331,14 +1373,26 @@ async def get_logs(
     - lines: Number of recent lines to return (default 100, max 1000)
     - level: Filter by log level (ERROR, WARNING, INFO, DEBUG)
     - search: Search for text in log messages
+    - log_file: Which log file to read (app, backend, backend_error)
     """
     import os
     from pathlib import Path
 
-    log_path = Path("logs/isaac.log")
+    # Map log_file ID to path
+    log_paths = {
+        "app": Path("logs/isaac.log"),
+        "backend": Path("/opt/isaac/logs/backend.log"),
+        "backend_error": Path("/opt/isaac/logs/backend-error.log"),
+    }
+    # Also check levi paths
+    if not log_paths.get(log_file, Path("")).exists():
+        log_paths["backend"] = Path("/opt/levi/logs/backend.log")
+        log_paths["backend_error"] = Path("/opt/levi/logs/backend-error.log")
+
+    log_path = log_paths.get(log_file, log_paths["app"])
 
     if not log_path.exists():
-        return {"logs": [], "total_lines": 0, "message": "No log file found"}
+        return {"logs": [], "total_lines": 0, "message": f"Log file not found: {log_path}"}
 
     # Cap lines at 1000 for performance
     lines = min(lines, 1000)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getAppLogs, clearAppLogs } from '../services/api'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -47,6 +47,8 @@ function Settings() {
 
   // Application Logs state
   const [appLogs, setAppLogs] = useState([])
+  const [logFiles, setLogFiles] = useState([])
+  const [selectedLogFile, setSelectedLogFile] = useState('app')
   const [loadingLogs, setLoadingLogs] = useState(false)
   const [logFilter, setLogFilter] = useState({ level: '', search: '', lines: 100 })
   const [clearingAppLogs, setClearingAppLogs] = useState(false)
@@ -660,10 +662,19 @@ function Settings() {
   }
 
   // Application logs functions
-  const fetchAppLogs = async () => {
+  const fetchLogFilesList = async () => {
+    try {
+      const response = await getLogFiles()
+      setLogFiles(response.data.files || [])
+    } catch (error) {
+      console.error('Failed to fetch log files:', error)
+    }
+  }
+
+  const fetchAppLogs = async (logFile = selectedLogFile) => {
     setLoadingLogs(true)
     try {
-      const response = await getAppLogs(logFilter.lines, logFilter.level || null, logFilter.search || null)
+      const response = await getAppLogs(logFilter.lines, logFilter.level || null, logFilter.search || null, logFile)
       setAppLogs(response.data.logs || [])
     } catch (error) {
       console.error('Failed to fetch logs:', error)
@@ -698,8 +709,13 @@ function Settings() {
 
   // Fetch logs when section is expanded
   useEffect(() => {
-    if (expandedSections.logs && appLogs.length === 0) {
-      fetchAppLogs()
+    if (expandedSections.logs) {
+      if (logFiles.length === 0) {
+        fetchLogFilesList()
+      }
+      if (appLogs.length === 0) {
+        fetchAppLogs()
+      }
     }
   }, [expandedSections.logs])
 
@@ -2428,6 +2444,29 @@ function Settings() {
           </div>
           {expandedSections.logs && (
             <div className="mt-4 space-y-4">
+              {/* Log File Selector */}
+              {logFiles.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {logFiles.map(file => (
+                    <button
+                      key={file.id}
+                      onClick={() => {
+                        setSelectedLogFile(file.id)
+                        fetchAppLogs(file.id)
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                        selectedLogFile === file.id
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {file.name}
+                      <span className="ml-2 text-xs opacity-70">{file.size_human}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Filters */}
               <div className="flex flex-wrap gap-3 items-center">
                 <div className="relative flex-1 min-w-[200px]">

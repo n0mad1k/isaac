@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.28.8] - 2026-01-27
+
+### Added
+- **Multiple log file support in Settings**
+  - Can now view Application Log, Backend Log, and Backend Error Log
+  - Buttons to switch between log files with size indicators
+  - All important system logs accessible from one location
+
 ## [1.28.7] - 2026-01-27
 
 ### Fixed
