@@ -2,6 +2,22 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.30.0] - 2026-01-27
+
+### Added
+- **Blood type prominently displayed in team member header**
+  - Large red badge with heart icon shows blood type next to member name
+  - Always visible regardless of active tab
+- **Anaphylaxis allergy tracking**
+  - Allergies can now be marked as "triggers anaphylaxis"
+  - Checkbox when adding allergy to mark as anaphylaxis risk
+  - Toggle button (↑↓) on existing allergies to change severity
+  - Anaphylaxis allergies shown with warning icon and bold red styling
+  - Pulsing warning banner in header for members with anaphylaxis allergies
+- **Enhanced allergy display in profile**
+  - Clear visual distinction between regular and anaphylaxis allergies
+  - Warning triangle icon on severe allergies
+
 ## [1.29.9] - 2026-01-27
 
 ### Added

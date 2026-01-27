@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import {
   User, Heart, Brain, MessageSquare, Activity,
-  Edit, Trash2, Phone, Mail, Calendar, AlertCircle,
+  Edit, Trash2, Phone, Mail, Calendar, AlertCircle, AlertTriangle,
   Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus, Target, Check, X,
   ListTodo, Package
 } from 'lucide-react'
@@ -194,10 +194,17 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
           </div>
 
           {/* Name and info */}
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold">{member.name}</h2>
               <ReadinessIndicator status={member.overall_readiness} />
+              {/* Blood Type - Prominent Display */}
+              {member.blood_type && (
+                <span className="px-3 py-1 bg-red-900/50 border border-red-600 rounded-lg text-red-300 font-bold text-sm flex items-center gap-1">
+                  <Heart className="w-4 h-4" />
+                  {member.blood_type}
+                </span>
+              )}
             </div>
             {member.nickname && (
               <p className="text-gray-400">"{member.nickname}"</p>
@@ -218,6 +225,17 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 </span>
               )}
             </div>
+            {/* Anaphylaxis Allergies - Prominent Warning */}
+            {member.allergies && member.allergies.some(a => typeof a === 'object' && a.anaphylaxis) && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-500" />
+                {member.allergies.filter(a => typeof a === 'object' && a.anaphylaxis).map((allergy, idx) => (
+                  <span key={idx} className="px-2 py-0.5 bg-red-900/70 border border-red-500 rounded text-red-200 text-xs font-bold animate-pulse">
+                    ANAPHYLAXIS: {typeof allergy === 'object' ? allergy.name : allergy}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -397,11 +415,25 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   </h3>
                   {member.allergies && member.allergies.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {member.allergies.map((allergy, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-red-900/50 text-red-300 rounded text-sm">
-                          {allergy}
-                        </span>
-                      ))}
+                      {member.allergies.map((allergy, idx) => {
+                        const isObject = typeof allergy === 'object'
+                        const name = isObject ? allergy.name : allergy
+                        const isAnaphylaxis = isObject && allergy.anaphylaxis
+                        return (
+                          <span
+                            key={idx}
+                            className={`px-2 py-1 rounded text-sm flex items-center gap-1 ${
+                              isAnaphylaxis
+                                ? 'bg-red-700 text-white font-bold border border-red-500'
+                                : 'bg-red-900/50 text-red-300'
+                            }`}
+                          >
+                            {isAnaphylaxis && <AlertTriangle className="w-3 h-3" />}
+                            {name}
+                            {isAnaphylaxis && <span className="text-xs">(ANAPHYLAXIS)</span>}
+                          </span>
+                        )
+                      })}
                     </div>
                   ) : (
                     <p className="text-gray-400 text-sm">No known allergies</p>

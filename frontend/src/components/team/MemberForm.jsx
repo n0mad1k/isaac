@@ -599,33 +599,99 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
               {/* Allergies */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Allergies</label>
-                <div className="flex gap-2 mb-2">
+                <div className="flex gap-2 mb-2 items-center">
                   <input
                     type="text"
-                    value={newAllergy}
-                    onChange={e => setNewAllergy(e.target.value)}
+                    value={typeof newAllergy === 'object' ? newAllergy.name : newAllergy}
+                    onChange={e => setNewAllergy(typeof newAllergy === 'object' ? { ...newAllergy, name: e.target.value } : e.target.value)}
                     placeholder="Add allergy..."
                     className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                    onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddArrayItem('allergies', newAllergy, setNewAllergy))}
+                    onKeyPress={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const allergyName = typeof newAllergy === 'object' ? newAllergy.name : newAllergy
+                        if (allergyName.trim()) {
+                          const allergyData = typeof newAllergy === 'object' && newAllergy.anaphylaxis
+                            ? { name: allergyName.trim(), anaphylaxis: true }
+                            : allergyName.trim()
+                          handleAddArrayItem('allergies', allergyData, () => setNewAllergy(''))
+                        }
+                      }
+                    }}
                   />
+                  <label className="flex items-center gap-1 text-xs text-red-400 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={typeof newAllergy === 'object' && newAllergy.anaphylaxis}
+                      onChange={e => setNewAllergy(prev =>
+                        e.target.checked
+                          ? { name: typeof prev === 'string' ? prev : prev.name, anaphylaxis: true }
+                          : typeof prev === 'object' ? prev.name : prev
+                      )}
+                      className="rounded border-red-600 bg-red-900/50"
+                    />
+                    Anaphylaxis
+                  </label>
                   <button
                     type="button"
-                    onClick={() => handleAddArrayItem('allergies', newAllergy, setNewAllergy)}
+                    onClick={() => {
+                      const allergyName = typeof newAllergy === 'object' ? newAllergy.name : newAllergy
+                      if (allergyName && allergyName.trim()) {
+                        const allergyData = typeof newAllergy === 'object' && newAllergy.anaphylaxis
+                          ? { name: allergyName.trim(), anaphylaxis: true }
+                          : allergyName.trim()
+                        handleAddArrayItem('allergies', allergyData, () => setNewAllergy(''))
+                      }
+                    }}
                     className="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {formData.allergies.map((allergy, idx) => (
-                    <span key={idx} className="px-2 py-1 bg-red-900/50 text-red-300 rounded text-sm flex items-center gap-1">
-                      {allergy}
-                      <button type="button" onClick={() => handleRemoveArrayItem('allergies', idx)}>
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
+                  {formData.allergies.map((allergy, idx) => {
+                    const isObject = typeof allergy === 'object'
+                    const name = isObject ? allergy.name : allergy
+                    const isAnaphylaxis = isObject && allergy.anaphylaxis
+                    return (
+                      <span
+                        key={idx}
+                        className={`px-2 py-1 rounded text-sm flex items-center gap-1 ${
+                          isAnaphylaxis
+                            ? 'bg-red-700 text-white font-bold border border-red-500'
+                            : 'bg-red-900/50 text-red-300'
+                        }`}
+                      >
+                        {isAnaphylaxis && '⚠️ '}
+                        {name}
+                        {isAnaphylaxis && <span className="text-xs ml-1">(ANAPH)</span>}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Toggle anaphylaxis status
+                            setFormData(prev => ({
+                              ...prev,
+                              allergies: prev.allergies.map((a, i) => {
+                                if (i !== idx) return a
+                                const aName = typeof a === 'object' ? a.name : a
+                                const aAnaph = typeof a === 'object' && a.anaphylaxis
+                                return aAnaph ? aName : { name: aName, anaphylaxis: true }
+                              })
+                            }))
+                          }}
+                          className="ml-1 text-xs hover:text-yellow-300"
+                          title="Toggle anaphylaxis"
+                        >
+                          {isAnaphylaxis ? '↓' : '↑'}
+                        </button>
+                        <button type="button" onClick={() => handleRemoveArrayItem('allergies', idx)}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )
+                  })}
                 </div>
+                <p className="text-xs text-gray-500 mt-1">Use the ↑↓ button to toggle anaphylaxis severity on existing allergies</p>
               </div>
 
               {/* Medical Conditions */}
