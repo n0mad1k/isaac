@@ -52,8 +52,8 @@ api.interceptors.response.use(
   }
 )
 
-// Dashboard
-export const getDashboard = () => api.get('/dashboard/')
+// Dashboard - longer timeout for complex queries
+export const getDashboard = () => api.get('/dashboard/', { timeout: 20000 })
 export const getQuickStats = () => api.get('/dashboard/quick-stats/')
 export const getCalendarMonth = (year, month) =>
   api.get(`/dashboard/calendar/${year}/${month}`)

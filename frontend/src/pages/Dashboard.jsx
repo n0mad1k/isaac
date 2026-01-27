@@ -40,18 +40,56 @@ function Dashboard() {
     }
   }
 
+  // Retry wrapper for API calls
+  const fetchWithRetry = async (fetchFn, maxRetries = 2) => {
+    let lastError
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fetchFn()
+      } catch (err) {
+        lastError = err
+        if (attempt < maxRetries) {
+          // Wait before retry: 500ms, then 1000ms
+          await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)))
+          console.log(`Retrying request (attempt ${attempt + 2}/${maxRetries + 1})...`)
+        }
+      }
+    }
+    throw lastError
+  }
+
   const fetchData = useCallback(async () => {
     try {
-      const [dashboardRes, animalsRes, settingsRes] = await Promise.all([
-        getDashboard(),
-        getAnimals(),
-        getSettings()
+      // Use Promise.allSettled to handle partial failures gracefully
+      const [dashboardResult, animalsResult, settingsResult] = await Promise.allSettled([
+        fetchWithRetry(() => getDashboard()),
+        fetchWithRetry(() => getAnimals()),
+        fetchWithRetry(() => getSettings())
       ])
-      setData(dashboardRes.data)
-      setAnimals(animalsRes.data)
-      // Check hide_completed_today setting
-      const hideCompletedSetting = settingsRes.data?.settings?.hide_completed_today?.value
-      setHideCompleted(hideCompletedSetting === 'true')
+
+      // Dashboard is required - if it fails, show error
+      if (dashboardResult.status === 'rejected') {
+        console.error('Dashboard fetch failed:', dashboardResult.reason)
+        setError('Failed to load dashboard data. Please refresh.')
+        return
+      }
+
+      setData(dashboardResult.value.data)
+
+      // Animals and settings are optional - use cached/default if they fail
+      if (animalsResult.status === 'fulfilled') {
+        setAnimals(animalsResult.value.data)
+      } else {
+        console.warn('Animals fetch failed, using cached data:', animalsResult.reason)
+      }
+
+      if (settingsResult.status === 'fulfilled') {
+        const hideCompletedSetting = settingsResult.value.data?.settings?.hide_completed_today?.value
+        setHideCompleted(hideCompletedSetting === 'true')
+      } else {
+        console.warn('Settings fetch failed, using cached data:', settingsResult.reason)
+      }
+
       setError(null)
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err)
