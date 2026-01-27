@@ -3,7 +3,7 @@
 # Syncs code to dev environment for testing before production
 
 SSH_KEY="/home/n0mad1k/.ssh/levi"
-REMOTE="n0mad1k@levi.local"
+REMOTE="n0mad1k@192.168.5.56"
 REMOTE_PATH="/opt/isaac"
 LOCAL_PATH="/home/n0mad1k/Tools/levi"
 

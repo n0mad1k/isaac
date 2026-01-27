@@ -3,7 +3,7 @@
 # Safely syncs code to remote server without deleting important files
 
 SSH_KEY="/home/n0mad1k/.ssh/levi"
-REMOTE="n0mad1k@levi.local"
+REMOTE="n0mad1k@192.168.5.56"
 REMOTE_PATH="/opt/levi"
 LOCAL_PATH="/home/n0mad1k/Tools/levi"
 
