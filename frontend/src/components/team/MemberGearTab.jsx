@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import {
   Shield, Plus, Edit, Trash2, ChevronDown, ChevronUp, Check, Clock,
-  AlertTriangle, Package, Wrench, AlertCircle, Calendar, X
+  AlertTriangle, Package, Wrench, AlertCircle, Calendar, X, RefreshCw
 } from 'lucide-react'
 import {
   getMemberGear, createMemberGear, updateMemberGear, deleteMemberGear,
@@ -37,6 +37,7 @@ function MemberGearTab({ member, onUpdate }) {
   const [editingGear, setEditingGear] = useState(null)
   const [showAddMaint, setShowAddMaint] = useState(null)
   const [showAddContent, setShowAddContent] = useState(null)
+  const [editingContent, setEditingContent] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
 
   // Gear maintenance and contents state
@@ -119,6 +120,23 @@ function MemberGearTab({ member, onUpdate }) {
       await loadGearDetails(gearId)
     } catch (err) {
       setError(err.userMessage || 'Failed to delete content')
+    }
+  }
+
+  const handleReplenishContent = async (gearId, content) => {
+    try {
+      // Calculate new expiration date based on typical shelf life (default 1 year)
+      const today = new Date()
+      const newExpDate = new Date(today.setFullYear(today.getFullYear() + 1))
+
+      await updateGearContents(member.id, gearId, content.id, {
+        status: 'GOOD',
+        last_checked: new Date().toISOString(),
+        expiration_date: content.expiration_date ? newExpDate.toISOString() : null,
+      })
+      await loadGearDetails(gearId)
+    } catch (err) {
+      setError(err.userMessage || 'Failed to replenish content')
     }
   }
 
@@ -340,8 +358,9 @@ function MemberGearTab({ member, onUpdate }) {
                         <div className="space-y-2">
                           {gearContents[item.id].map(content => {
                             const statusObj = CONTENT_STATUSES.find(s => s.value === content.status)
+                            const needsAttention = content.status !== 'GOOD'
                             return (
-                              <div key={content.id} className="bg-gray-800 rounded p-3 flex items-center justify-between">
+                              <div key={content.id} className={`bg-gray-800 rounded p-3 flex items-center justify-between ${needsAttention ? 'border-l-2 border-yellow-500' : ''}`}>
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium text-sm">{content.item_name}</span>
@@ -362,12 +381,29 @@ function MemberGearTab({ member, onUpdate }) {
                                     </div>
                                   )}
                                 </div>
-                                <button
-                                  onClick={() => handleDeleteContent(item.id, content.id)}
-                                  className="p-1 text-gray-400 hover:text-red-400"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleReplenishContent(item.id, content)}
+                                    className="p-1 text-green-400 hover:text-green-300"
+                                    title="Mark Replenished/Replaced"
+                                  >
+                                    <RefreshCw className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingContent({ gearId: item.id, content })}
+                                    className="p-1 text-gray-400 hover:text-white"
+                                    title="Edit"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteContent(item.id, content.id)}
+                                    className="p-1 text-gray-400 hover:text-red-400"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </div>
                             )
                           })}
@@ -426,6 +462,21 @@ function MemberGearTab({ member, onUpdate }) {
           onSave={async () => {
             const gearId = showAddContent
             setShowAddContent(null)
+            await loadGearDetails(gearId)
+          }}
+        />
+      )}
+
+      {/* Edit Content Modal */}
+      {editingContent && (
+        <EditContentModal
+          memberId={member.id}
+          gearId={editingContent.gearId}
+          content={editingContent.content}
+          onClose={() => setEditingContent(null)}
+          onSave={async () => {
+            const gearId = editingContent.gearId
+            setEditingContent(null)
             await loadGearDetails(gearId)
           }}
         />
@@ -735,6 +786,191 @@ function MaintenanceModal({ memberId, gearId, onClose, onSave }) {
             >
               {saving ? 'Saving...' : 'Add Schedule'}
             </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// Edit Content Modal Component
+function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    item_name: content.item_name || '',
+    category: content.category || '',
+    quantity: content.quantity || 1,
+    min_quantity: content.min_quantity || '',
+    expiration_date: content.expiration_date ? content.expiration_date.split('T')[0] : '',
+    expiration_alert_days: content.expiration_alert_days || 30,
+    status: content.status || 'GOOD',
+    notes: content.notes || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    setError(null)
+    try {
+      const data = {
+        ...formData,
+        quantity: parseInt(formData.quantity) || 1,
+        min_quantity: formData.min_quantity ? parseInt(formData.min_quantity) : null,
+        expiration_date: formData.expiration_date ? new Date(formData.expiration_date).toISOString() : null,
+        last_checked: new Date().toISOString(),
+      }
+      await updateGearContents(memberId, gearId, content.id, data)
+      onSave()
+    } catch (err) {
+      setError(err.userMessage || 'Failed to update content')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleReplenish = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      // Set status to GOOD and update expiration if present
+      const today = new Date()
+      const newExpDate = formData.expiration_date
+        ? new Date(today.setFullYear(today.getFullYear() + 1))
+        : null
+
+      const data = {
+        status: 'GOOD',
+        last_checked: new Date().toISOString(),
+        expiration_date: newExpDate ? newExpDate.toISOString() : null,
+      }
+      await updateGearContents(memberId, gearId, content.id, data)
+      onSave()
+    } catch (err) {
+      setError(err.userMessage || 'Failed to replenish')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg w-full max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <h3 className="font-semibold">Edit Content Item</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
+              {error}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Item Name *</label>
+            <input
+              type="text"
+              value={formData.item_name}
+              onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Category</label>
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              >
+                {CONTENT_STATUSES.map(s => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Quantity</label>
+              <input
+                type="number"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                min="0"
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Min Quantity</label>
+              <input
+                type="number"
+                value={formData.min_quantity}
+                onChange={(e) => setFormData({ ...formData, min_quantity: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Expiration Date</label>
+              <input
+                type="date"
+                value={formData.expiration_date}
+                onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Alert Days Before</label>
+              <input
+                type="number"
+                value={formData.expiration_alert_days}
+                onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={2}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+            />
+          </div>
+          <div className="flex justify-between pt-4">
+            <button
+              type="button"
+              onClick={handleReplenish}
+              disabled={saving}
+              className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-600 disabled:opacity-50 flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Replenished
+            </button>
+            <div className="flex gap-3">
+              <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
