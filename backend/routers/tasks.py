@@ -10,8 +10,9 @@ from datetime import datetime, date, timedelta
 from pydantic import BaseModel, Field, field_validator
 
 from models.database import get_db
-from models.tasks import Task, TaskCategory, TaskRecurrence, TaskType, FLORIDA_MAINTENANCE_TASKS
+from models.tasks import Task, TaskCategory, TaskRecurrence, TaskType, FLORIDA_MAINTENANCE_TASKS, task_member_assignments
 from models.users import User
+from models.team import TeamMember
 from services.permissions import require_permission, require_view, require_create, require_interact, require_edit, require_delete
 from models.farm_areas import FarmArea
 from models.vehicles import Vehicle
@@ -125,6 +126,8 @@ async def enrich_tasks_with_linked_fields(tasks: list, db: AsyncSession) -> list
             "assigned_to_worker_id": task.assigned_to_worker_id,
             "assigned_to_user_id": task.assigned_to_user_id,
             "assigned_to_member_id": task.assigned_to_member_id,
+            "assigned_member_ids": [m.id for m in task.assigned_members] if hasattr(task, 'assigned_members') and task.assigned_members else [],
+            "assigned_member_names": [m.nickname or m.name for m in task.assigned_members] if hasattr(task, 'assigned_members') and task.assigned_members else [],
             "is_blocked": task.is_blocked,
             "blocked_reason": task.blocked_reason,
             "completion_note": task.completion_note,
@@ -440,7 +443,8 @@ class TaskCreate(BaseModel):
     is_backlog: bool = False  # True = in backlog, not due today
     assigned_to_worker_id: Optional[int] = Field(None, ge=1)
     assigned_to_user_id: Optional[int] = Field(None, ge=1)  # Assign to system user (not worker)
-    assigned_to_member_id: Optional[int] = Field(None, ge=1)  # Assign to team member
+    assigned_to_member_id: Optional[int] = Field(None, ge=1)  # Assign to single team member (legacy)
+    assigned_member_ids: Optional[List[int]] = None  # Assign to multiple team members
     visible_to_farmhands: bool = False
 
 
@@ -461,7 +465,8 @@ class TaskUpdate(BaseModel):
     is_backlog: Optional[bool] = None
     assigned_to_worker_id: Optional[int] = Field(None, ge=1)
     assigned_to_user_id: Optional[int] = Field(None, ge=1)
-    assigned_to_member_id: Optional[int] = Field(None, ge=1)
+    assigned_to_member_id: Optional[int] = Field(None, ge=1)  # Legacy single assignment
+    assigned_member_ids: Optional[List[int]] = None  # Multiple team member assignment
     visible_to_farmhands: Optional[bool] = None
 
 
@@ -574,10 +579,21 @@ async def create_task(
     user: User = Depends(require_create("tasks"))
 ):
     """Create a new task"""
-    db_task = Task(**task.model_dump())
+    task_data = task.model_dump(exclude={'assigned_member_ids'})
+    db_task = Task(**task_data)
     db.add(db_task)
     await db.commit()
     await db.refresh(db_task)
+
+    # Handle multiple member assignment
+    if task.assigned_member_ids:
+        result = await db.execute(
+            select(TeamMember).where(TeamMember.id.in_(task.assigned_member_ids))
+        )
+        members = result.scalars().all()
+        db_task.assigned_members = members
+        await db.commit()
+        await db.refresh(db_task)
 
     # Sync to calendar if enabled
     calendar_service = await get_calendar_service(db)
@@ -853,8 +869,21 @@ async def update_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    for field, value in updates.model_dump(exclude_unset=True).items():
+    # Get update data, excluding assigned_member_ids which needs special handling
+    update_data = updates.model_dump(exclude_unset=True, exclude={'assigned_member_ids'})
+    for field, value in update_data.items():
         setattr(task, field, value)
+
+    # Handle multiple member assignment if provided
+    if updates.assigned_member_ids is not None:
+        if updates.assigned_member_ids:
+            result = await db.execute(
+                select(TeamMember).where(TeamMember.id.in_(updates.assigned_member_ids))
+            )
+            members = result.scalars().all()
+            task.assigned_members = members
+        else:
+            task.assigned_members = []  # Clear assignments
 
     # If marking as completed, set completed_at
     if updates.is_completed:

@@ -2,11 +2,21 @@
 Task and Reminder Models
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum, Date, JSON, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum, Date, JSON, ForeignKey, Table
+from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 
 from .database import Base
+
+
+# Many-to-many junction table for task <-> team member assignments
+task_member_assignments = Table(
+    'task_member_assignments',
+    Base.metadata,
+    Column('task_id', Integer, ForeignKey('tasks.id', ondelete='CASCADE'), primary_key=True),
+    Column('member_id', Integer, ForeignKey('team_members.id', ondelete='CASCADE'), primary_key=True),
+)
 
 
 class TaskCategory(enum.Enum):
@@ -102,7 +112,15 @@ class Task(Base):
     # Worker/Member assignment
     assigned_to_worker_id = Column(Integer, ForeignKey('workers.id'), nullable=True)
     assigned_to_user_id = Column(Integer, ForeignKey('users.id'), nullable=True)  # Assign to system user (not worker)
-    assigned_to_member_id = Column(Integer, ForeignKey('team_members.id'), nullable=True)  # Assign to team member
+    assigned_to_member_id = Column(Integer, ForeignKey('team_members.id'), nullable=True)  # Assign to single team member (legacy)
+
+    # Many-to-many relationship for multiple team member assignments
+    assigned_members = relationship(
+        "TeamMember",
+        secondary=task_member_assignments,
+        backref="assigned_tasks",
+        lazy="selectin"
+    )
     is_in_progress = Column(Boolean, default=False)  # Worker started working on task
     is_blocked = Column(Boolean, default=False)  # Worker marked task as cannot complete
     blocked_reason = Column(Text, nullable=True)  # Required when is_blocked=True

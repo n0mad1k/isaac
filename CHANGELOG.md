@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.29.2] - 2026-01-27
+
+### Fixed
+- **Production & Sales page finalization**
+  - Nav icon label changed from "Finance" to "Production"
+  - Page title now "Production & Sales"
+  - Meat Production section now shows cost per lb breakdown by animal type
+  - Each animal type (beef, pig, lamb, etc.) shows individual cost/lb
+
 ## [1.29.1] - 2026-01-27
 
 ### Fixed
@@ -10,7 +19,6 @@ All notable changes to Isaac will be documented in this file.
   - Timestamps now gray-400, messages now gray-100
   - ANSI color codes are now stripped from logs
 - **Production page improvements**
-  - Renamed page title back to "Production" (was "Farm Finances")
   - Customers tab now uses table format instead of cards
   - Overview now shows Harvests section with consumed/sold/preserved stats
   - Harvests tab no longer shows "Record Sale" button (use Track Usage instead)

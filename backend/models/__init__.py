@@ -6,7 +6,7 @@ from .database import Base, engine, async_session, init_db
 from .plants import Plant, PlantCareLog, Tag, GrowthRate, SunRequirement as PlantSunRequirement
 from .seeds import Seed, SeedCategory, SunRequirement, WaterRequirement
 from .livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, AnimalExpense
-from .tasks import Task, TaskCategory, TaskRecurrence
+from .tasks import Task, TaskCategory, TaskRecurrence, TaskType, task_member_assignments
 from .weather import WeatherReading, WeatherAlert
 from .settings import AppSetting
 from .home_maintenance import HomeMaintenance, HomeMaintenanceLog, DEFAULT_CATEGORIES
