@@ -2,6 +2,18 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.26.2] - 2026-01-27
+
+### Added
+- Dev tracker backlog status for deferring items to work on later
+  - Move items from "To Implement" to backlog with archive button
+  - Backlog section shows deferred items sorted by priority
+  - Move items back to pending from backlog
+
+### Changed
+- Nav sidebar always expanded - removed "more" arrow button
+  - Settings, Dev Tracker, and User menu always visible
+
 ## [1.26.1] - 2026-01-27
 
 ### Added

@@ -1,12 +1,13 @@
 #!/bin/bash
 # Dev Tracker Management Script
 # Usage:
-#   ./dev-tracker.sh list [pending|testing|verified]
+#   ./dev-tracker.sh list [pending|testing|verified|backlog]
 #   ./dev-tracker.sh show <id>                      - Show full details of an item
 #   ./dev-tracker.sh add <priority> <title>         - Add new item (priority: low|medium|high|critical)
 #   ./dev-tracker.sh testing <id>                   - Move to testing
 #   ./dev-tracker.sh verified <id>                  - Move to verified
 #   ./dev-tracker.sh pending <id> [fail_note]       - Move back to pending
+#   ./dev-tracker.sh backlog <id>                   - Move to backlog (work on later)
 #   ./dev-tracker.sh collab <id> [on|off]           - Mark as needing interactive collaboration
 
 DEV_URL="https://192.168.5.56:8443/api/dev-tracker"
@@ -29,6 +30,7 @@ data=json.load(sys.stdin)
 pending = [i for i in data if i['status'] == 'pending']
 testing = [i for i in data if i['status'] == 'testing']
 verified = [i for i in data if i['status'] == 'verified']
+backlog = [i for i in data if i['status'] == 'backlog']
 
 print('=== PENDING ===' )
 for item in sorted(pending, key=lambda x: {'critical':0,'high':1,'medium':2,'low':3}.get(x['priority'], 4)):
@@ -40,6 +42,11 @@ for item in testing[:5]:
     print(f\"  [{item['id']}] {collab}{item['title'][:50]}{'...' if len(item['title']) > 50 else ''}\")
 if len(testing) > 5:
     print(f'  ... and {len(testing)-5} more')
+print(f'\n=== BACKLOG ({len(backlog)}) ===')
+for item in backlog[:5]:
+    print(f\"  [{item['id']}] {item['priority'].upper()} - {item['title'][:45]}{'...' if len(item['title']) > 45 else ''}\")
+if len(backlog) > 5:
+    print(f'  ... and {len(backlog)-5} more')
 print(f'\n=== VERIFIED ({len(verified)}) ===')"
         fi
         ;;
@@ -133,7 +140,7 @@ except Exception as e:
         fi
         ;;
 
-    update|testing|verified|pending)
+    update|testing|verified|pending|backlog)
         if [ "$1" = "update" ]; then
             ID="$2"
             STATUS="$3"
@@ -172,12 +179,13 @@ except Exception as e:
     *)
         echo "Dev Tracker CLI"
         echo "Usage:"
-        echo "  $0 list [pending|testing|verified]  - List items"
+        echo "  $0 list [pending|testing|verified|backlog]  - List items"
         echo "  $0 show <id>                        - Show full details of an item"
         echo "  $0 add <priority> <title>           - Add new item (low|medium|high|critical)"
         echo "  $0 testing <id>                     - Move to testing"
         echo "  $0 verified <id>                    - Move to verified"
         echo "  $0 pending <id> [fail_note]         - Move back to pending"
+        echo "  $0 backlog <id>                     - Move to backlog (work on later)"
         echo "  $0 collab <id> [on|off]             - Mark as needing interactive fixing with user"
         ;;
 esac

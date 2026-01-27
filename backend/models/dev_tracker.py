@@ -30,6 +30,7 @@ class ItemStatus(enum.Enum):
     VERIFIED = "verified"       # Tested and confirmed working
     FAILED = "failed"           # Test failed, needs fix
     DONE = "done"               # Complete
+    BACKLOG = "backlog"         # Deferred for later
 
 
 class DevTrackerMetrics(Base):

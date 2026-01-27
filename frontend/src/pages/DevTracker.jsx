@@ -24,6 +24,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   MessageCircle,
+  Archive,
 } from 'lucide-react'
 import * as api from '../services/api'
 import { format, isToday, parseISO, startOfDay } from 'date-fns'
@@ -287,6 +288,24 @@ function DevTracker() {
     }
   }
 
+  const handleMoveToBacklog = async (item) => {
+    try {
+      await api.updateDevTrackerItem(item.id, { status: 'backlog' })
+      loadData()
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message)
+    }
+  }
+
+  const handleMoveFromBacklog = async (item) => {
+    try {
+      await api.updateDevTrackerItem(item.id, { status: 'pending' })
+      loadData()
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message)
+    }
+  }
+
   const handleOpenFailModal = (item) => {
     setFailModalItem(item)
     setFailComment('')
@@ -435,6 +454,9 @@ function DevTracker() {
   const verified = safeItems
     .filter(i => i?.status === 'verified' || i?.status === 'done')
     .sort(verifiedSort === 'newest' ? sortByDateDesc : sortByDateAsc)
+  const backlog = safeItems
+    .filter(i => i?.status === 'backlog')
+    .sort(sortByPriorityThenDateAsc)
 
   if (error && error.includes('only available on dev')) {
     return (
@@ -841,6 +863,13 @@ function DevTracker() {
                           <ArrowRight className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleMoveToBacklog(item)}
+                          className="p-1.5 text-gray-400 hover:text-purple-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
+                          title="Move to Backlog (work on later)"
+                        >
+                          <Archive className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleOpenDeleteModal(item)}
                           className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
                           title="Delete"
@@ -1062,6 +1091,49 @@ function DevTracker() {
           </div>
         )
       })()}
+
+      {/* Backlog Section */}
+      {backlog.length > 0 && (
+        <div className="bg-gray-800 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <span className="w-3 h-3 bg-purple-500 rounded-full"></span>
+              Backlog ({backlog.length})
+            </h2>
+            <span className="text-xs text-gray-500">Items deferred for later</span>
+          </div>
+          <div className="space-y-2">
+            {backlog.map((item) => (
+              <div
+                key={item.id}
+                className={`flex items-start gap-2 p-3 rounded-lg group min-w-0 border-l-4 bg-purple-500/10 border-purple-500`}
+              >
+                <span className="text-xs px-1.5 py-0.5 bg-gray-600 text-gray-400 rounded font-mono shrink-0" title="Item ID">
+                  #{item.id}
+                </span>
+                <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${PRIORITY_CONFIG[item.priority]?.color} text-white`}>
+                  {item.priority}
+                </span>
+                <span className="flex-1 text-gray-300 break-words whitespace-normal min-w-0">{item.title}</span>
+                <button
+                  onClick={() => handleMoveFromBacklog(item)}
+                  className="p-1.5 text-gray-400 hover:text-green-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
+                  title="Move back to To Implement"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleOpenDeleteModal(item)}
+                  className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded md:opacity-0 md:group-hover:opacity-100 transition-all"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Metrics Section */}
       {metrics && (
