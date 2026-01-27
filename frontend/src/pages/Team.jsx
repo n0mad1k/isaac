@@ -144,15 +144,17 @@ function Team() {
 
   return (
     <div className="space-y-4">
-      {/* Team Header Section - Always visible */}
-      <TeamOverview
-        settings={settings}
-        overview={overview}
-        members={members}
-        onMemberClick={handleMemberClick}
-        onLogoUpdate={loadData}
-        headerOnly={true}
-      />
+      {/* Overview Tab - Landing page with mission/logo/values */}
+      {activeTab === 'overview' && (
+        <TeamOverview
+          settings={settings}
+          overview={overview}
+          members={members}
+          onMemberClick={handleMemberClick}
+          onLogoUpdate={loadData}
+          headerOnly={true}
+        />
+      )}
 
       {/* Tab Navigation + Actions */}
       <div className="flex items-center justify-between gap-2 border-b border-gray-700 pb-1">
@@ -217,35 +219,30 @@ function Team() {
         </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="bg-gray-800 rounded-lg p-4">
-        {/* Overview - Clean landing page, just shows header info */}
-        {activeTab === 'overview' && (
-          <div className="text-center py-8 text-gray-400">
-            <p className="text-sm">Select a team member above to view their profile, or go to Weekly AAR for observations.</p>
-          </div>
-        )}
+      {/* Tab Content - Only shown for non-overview tabs */}
+      {activeTab !== 'overview' && (
+        <div className="bg-gray-800 rounded-lg p-4">
+          {activeTab === 'member' && selectedMember && (
+            <MemberDossier
+              member={selectedMember}
+              settings={settings}
+              onEdit={() => {
+                setEditingMember(selectedMember)
+                setShowMemberForm(true)
+              }}
+              onDelete={() => handleDeleteMember(selectedMember.id)}
+              onUpdate={loadData}
+            />
+          )}
 
-        {activeTab === 'member' && selectedMember && (
-          <MemberDossier
-            member={selectedMember}
-            settings={settings}
-            onEdit={() => {
-              setEditingMember(selectedMember)
-              setShowMemberForm(true)
-            }}
-            onDelete={() => handleDeleteMember(selectedMember.id)}
-            onUpdate={loadData}
-          />
-        )}
-
-        {activeTab === 'aar' && (
-          <WeeklyAARView
-            settings={settings}
-            members={members}
-          />
-        )}
-      </div>
+          {activeTab === 'aar' && (
+            <WeeklyAARView
+              settings={settings}
+              members={members}
+            />
+          )}
+        </div>
+      )}
 
       {/* Member Form Modal */}
       {showMemberForm && (
