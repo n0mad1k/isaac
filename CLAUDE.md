@@ -56,6 +56,13 @@ When the user asks you to work on something that's NOT already in the dev tracke
 - If an item title contains `*`, it means the implementation failed and the text after `*` describes what needs to be fixed
 - Example: `Feature X * backend returns 500 error` means Feature X was attempted but has a 500 error that needs fixing
 
+**CRITICAL - Failed Items (fail_count > 0):**
+- Items with `fail_count > 0` mean a PREVIOUS ATTEMPT FAILED - they are NOT fixed
+- NEVER assume a failed item is "already done" or "already fixed"
+- You MUST actually implement the fix and test it before moving to testing
+- The fail_note explains what went wrong in the previous attempt
+- Do not say "this should already be fixed" for failed items - it clearly wasn't
+
 **[COLLAB] Flag - IMPORTANT:**
 Items marked `[COLLAB]` require interactive step-by-step fixing WITH the user. Do NOT attempt to fix these autonomously.
 

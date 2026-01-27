@@ -446,6 +446,12 @@ function MemberGearTab({ member, onUpdate }) {
                                       Expires: {formatDate(content.expiration_date)}
                                     </div>
                                   )}
+                                  {/* Show notes if present */}
+                                  {content.notes && (
+                                    <div className="text-xs text-gray-500 mt-1 italic">
+                                      {content.notes}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <button

@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.28.7] - 2026-01-27
+
+### Fixed
+- **Notes now visible for gear contents without editing**
+  - Content item notes now display below the expiration info
+  - Shows in both Member Gear tab and Team Gear tab views
+
 ## [1.28.6] - 2026-01-27
 
 ### Fixed
