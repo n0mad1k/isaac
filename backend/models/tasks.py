@@ -99,9 +99,10 @@ class Task(Base):
     visible_to_farmhands = Column(Boolean, default=False)  # True = farm hand accounts can see this task
     notes = Column(Text)
 
-    # Worker assignment
+    # Worker/Member assignment
     assigned_to_worker_id = Column(Integer, ForeignKey('workers.id'), nullable=True)
     assigned_to_user_id = Column(Integer, ForeignKey('users.id'), nullable=True)  # Assign to system user (not worker)
+    assigned_to_member_id = Column(Integer, ForeignKey('team_members.id'), nullable=True)  # Assign to team member
     is_in_progress = Column(Boolean, default=False)  # Worker started working on task
     is_blocked = Column(Boolean, default=False)  # Worker marked task as cannot complete
     blocked_reason = Column(Text, nullable=True)  # Required when is_blocked=True

@@ -2,6 +2,20 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.29.0] - 2026-01-27
+
+### Added
+- **Team Member Task Assignment**
+  - Tasks can now be assigned to team members
+  - New "Tasks" tab in member profile shows assigned tasks and backlog
+  - Backlog view shows member name badge for assigned tasks
+- **Team Member Supply Requests**
+  - New "Supplies" tab in member profile for requesting gear/equipment
+  - Request form includes item name, description, quantity, price, vendor, product link
+  - Priority levels: Low, Medium, High, Urgent
+  - Status tracking: Pending, Approved, Ordered, Delivered, Denied
+  - Admins can view all requests and update status
+
 ## [1.28.8] - 2026-01-27
 
 ### Added

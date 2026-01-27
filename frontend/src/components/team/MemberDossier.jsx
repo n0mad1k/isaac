@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import {
   User, Heart, Brain, MessageSquare, Activity,
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle,
-  Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus, Target, Check, X
+  Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus, Target, Check, X,
+  ListTodo, Package
 } from 'lucide-react'
 import {
   getWeightHistory, logWeight, getMedicalHistory, updateMedicalStatus,
@@ -15,6 +16,8 @@ import MemberMentoringTab from './MemberMentoringTab'
 import MemberObservationsTab from './MemberObservationsTab'
 import MemberGearTab from './MemberGearTab'
 import MemberTrainingTab from './MemberTrainingTab'
+import MemberTasksTab from './MemberTasksTab'
+import MemberSupplyRequestsTab from './MemberSupplyRequestsTab'
 
 function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [activeTab, setActiveTab] = useState('profile')
@@ -31,8 +34,8 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   // Load tab-specific data
   useEffect(() => {
     const loadTabData = async () => {
-      // gear and training tabs load their own data
-      if (activeTab === 'gear' || activeTab === 'training') {
+      // These tabs load their own data
+      if (['gear', 'training', 'tasks', 'supplies'].includes(activeTab)) {
         setLoading(false)
         return
       }
@@ -142,7 +145,9 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   // Tab definitions
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
+    { id: 'tasks', label: 'Tasks', icon: ListTodo },
     { id: 'gear', label: 'Gear', icon: Shield },
+    { id: 'supplies', label: 'Supplies', icon: Package },
     { id: 'training', label: 'Training', icon: Target },
     { id: 'medical', label: 'Medical', icon: Heart },
     { id: 'mentoring', label: 'Mentoring', icon: Brain },
@@ -433,9 +438,19 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               </div>
             )}
 
+            {/* Tasks Tab */}
+            {activeTab === 'tasks' && (
+              <MemberTasksTab member={member} onUpdate={onUpdate} />
+            )}
+
             {/* Gear Tab */}
             {activeTab === 'gear' && (
               <MemberGearTab member={member} onUpdate={onUpdate} />
+            )}
+
+            {/* Supplies Tab */}
+            {activeTab === 'supplies' && (
+              <MemberSupplyRequestsTab member={member} onUpdate={onUpdate} />
             )}
 
             {/* Training Tab */}

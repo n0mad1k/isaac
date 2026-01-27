@@ -604,4 +604,22 @@ export const deleteMemberAppointment = (memberId, apptId) =>
 export const completeMemberAppointment = (memberId, apptId, data) =>
   api.post(`/team/members/${memberId}/appointments/${apptId}/complete/`, data)
 
+// Member Supply Requests
+export const getMemberSupplyRequests = (memberId, params) =>
+  api.get(`/team/members/${memberId}/supply-requests/`, { params })
+export const createMemberSupplyRequest = (memberId, data) =>
+  api.post(`/team/members/${memberId}/supply-requests/`, data)
+export const updateSupplyRequest = (requestId, data) =>
+  api.patch(`/team/supply-requests/${requestId}/`, data)
+export const deleteSupplyRequest = (requestId) =>
+  api.delete(`/team/supply-requests/${requestId}/`)
+export const getAllSupplyRequests = (params) =>
+  api.get('/team/supply-requests/', { params })
+
+// Member Tasks
+export const getMemberTasks = (memberId, params) =>
+  api.get(`/team/members/${memberId}/tasks/`, { params })
+export const getMemberBacklog = (memberId) =>
+  api.get(`/team/members/${memberId}/backlog/`)
+
 export default api

@@ -124,6 +124,7 @@ async def enrich_tasks_with_linked_fields(tasks: list, db: AsyncSession) -> list
             "linked_entity": get_linked_entity(task),
             "assigned_to_worker_id": task.assigned_to_worker_id,
             "assigned_to_user_id": task.assigned_to_user_id,
+            "assigned_to_member_id": task.assigned_to_member_id,
             "is_blocked": task.is_blocked,
             "blocked_reason": task.blocked_reason,
             "completion_note": task.completion_note,
@@ -439,6 +440,7 @@ class TaskCreate(BaseModel):
     is_backlog: bool = False  # True = in backlog, not due today
     assigned_to_worker_id: Optional[int] = Field(None, ge=1)
     assigned_to_user_id: Optional[int] = Field(None, ge=1)  # Assign to system user (not worker)
+    assigned_to_member_id: Optional[int] = Field(None, ge=1)  # Assign to team member
     visible_to_farmhands: bool = False
 
 
@@ -459,6 +461,7 @@ class TaskUpdate(BaseModel):
     is_backlog: Optional[bool] = None
     assigned_to_worker_id: Optional[int] = Field(None, ge=1)
     assigned_to_user_id: Optional[int] = Field(None, ge=1)
+    assigned_to_member_id: Optional[int] = Field(None, ge=1)
     visible_to_farmhands: Optional[bool] = None
 
 
@@ -491,6 +494,7 @@ class TaskResponse(BaseModel):
     linked_entity: Optional[str] = None
     assigned_to_worker_id: Optional[int] = None
     assigned_to_user_id: Optional[int] = None
+    assigned_to_member_id: Optional[int] = None
     is_blocked: bool = False
     blocked_reason: Optional[str] = None
     completion_note: Optional[str] = None

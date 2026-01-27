@@ -32,6 +32,8 @@ from models.team import (
     # Medical appointments
     MemberMedicalAppointment, AppointmentType
 )
+from models.supply_requests import SupplyRequest, RequestStatus, RequestPriority
+from models.tasks import Task
 from routers.auth import require_auth, require_admin
 from routers.settings import get_setting, set_setting
 from models.users import User
@@ -3025,3 +3027,292 @@ async def complete_member_appointment(
     await db.refresh(appt)
 
     return serialize_appointment(appt)
+
+
+# ============================================
+# Supply Request Schemas
+# ============================================
+
+class SupplyRequestCreate(BaseModel):
+    item_name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    category: Optional[str] = None
+    quantity: int = 1
+    link: Optional[str] = None
+    price: Optional[float] = None
+    vendor: Optional[str] = None
+    priority: Optional[RequestPriority] = RequestPriority.MEDIUM
+    reason: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class SupplyRequestUpdate(BaseModel):
+    item_name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    quantity: Optional[int] = None
+    link: Optional[str] = None
+    price: Optional[float] = None
+    vendor: Optional[str] = None
+    priority: Optional[RequestPriority] = None
+    reason: Optional[str] = None
+    notes: Optional[str] = None
+    status: Optional[RequestStatus] = None
+    admin_notes: Optional[str] = None
+    approved_by: Optional[str] = None
+
+
+def serialize_supply_request(req: SupplyRequest, include_member: bool = False):
+    """Serialize a supply request to dict"""
+    data = {
+        "id": req.id,
+        "member_id": req.member_id,
+        "worker_id": req.worker_id,
+        "item_name": req.item_name,
+        "description": req.description,
+        "category": req.category,
+        "quantity": req.quantity,
+        "link": req.link,
+        "price": req.price,
+        "total_price": req.total_price,
+        "vendor": req.vendor,
+        "priority": req.priority.value if req.priority else "medium",
+        "reason": req.reason,
+        "notes": req.notes,
+        "status": req.status.value if req.status else "pending",
+        "admin_notes": req.admin_notes,
+        "approved_by": req.approved_by,
+        "approved_date": req.approved_date.isoformat() if req.approved_date else None,
+        "ordered_date": req.ordered_date.isoformat() if req.ordered_date else None,
+        "delivered_date": req.delivered_date.isoformat() if req.delivered_date else None,
+        "created_at": req.created_at.isoformat() if req.created_at else None,
+        "updated_at": req.updated_at.isoformat() if req.updated_at else None,
+    }
+    if include_member and req.member:
+        data["member_name"] = req.member.name
+    return data
+
+
+# ============================================
+# Supply Request Endpoints
+# ============================================
+
+@router.get("/members/{member_id}/supply-requests/")
+async def get_member_supply_requests(
+    member_id: int,
+    status: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get all supply requests for a member"""
+    query = select(SupplyRequest).where(SupplyRequest.member_id == member_id)
+
+    if status:
+        try:
+            status_enum = RequestStatus(status)
+            query = query.where(SupplyRequest.status == status_enum)
+        except ValueError:
+            pass
+
+    query = query.order_by(desc(SupplyRequest.created_at))
+    result = await db.execute(query)
+    requests = result.scalars().all()
+
+    return [serialize_supply_request(req) for req in requests]
+
+
+@router.post("/members/{member_id}/supply-requests/")
+async def create_member_supply_request(
+    member_id: int,
+    data: SupplyRequestCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Create a new supply request for a member"""
+    # Verify member exists
+    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    req = SupplyRequest(
+        member_id=member_id,
+        item_name=data.item_name,
+        description=data.description,
+        category=data.category,
+        quantity=data.quantity,
+        link=data.link,
+        price=data.price,
+        vendor=data.vendor,
+        priority=data.priority,
+        reason=data.reason,
+        notes=data.notes,
+        status=RequestStatus.PENDING
+    )
+
+    db.add(req)
+    await db.commit()
+    await db.refresh(req)
+
+    return serialize_supply_request(req)
+
+
+@router.patch("/supply-requests/{request_id}/")
+async def update_supply_request(
+    request_id: int,
+    data: SupplyRequestUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update a supply request"""
+    result = await db.execute(select(SupplyRequest).where(SupplyRequest.id == request_id))
+    req = result.scalar_one_or_none()
+    if not req:
+        raise HTTPException(status_code=404, detail="Supply request not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    now = datetime.utcnow()
+
+    for field, value in update_data.items():
+        if field == "status" and value:
+            old_status = req.status
+            req.status = value
+            # Auto-set timestamps based on status changes
+            if value == RequestStatus.APPROVED and old_status != RequestStatus.APPROVED:
+                req.approved_date = now
+            elif value == RequestStatus.PURCHASED and old_status != RequestStatus.PURCHASED:
+                req.ordered_date = now
+            elif value == RequestStatus.DELIVERED and old_status != RequestStatus.DELIVERED:
+                req.delivered_date = now
+        else:
+            setattr(req, field, value)
+
+    req.updated_at = now
+    await db.commit()
+    await db.refresh(req)
+
+    return serialize_supply_request(req)
+
+
+@router.delete("/supply-requests/{request_id}/")
+async def delete_supply_request(
+    request_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete a supply request"""
+    result = await db.execute(select(SupplyRequest).where(SupplyRequest.id == request_id))
+    req = result.scalar_one_or_none()
+    if not req:
+        raise HTTPException(status_code=404, detail="Supply request not found")
+
+    await db.delete(req)
+    await db.commit()
+
+    return {"message": "Supply request deleted"}
+
+
+@router.get("/supply-requests/")
+async def get_all_supply_requests(
+    status: Optional[str] = None,
+    priority: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get all supply requests (for admin view)"""
+    query = select(SupplyRequest).where(SupplyRequest.member_id.isnot(None))
+
+    if status:
+        try:
+            status_enum = RequestStatus(status)
+            query = query.where(SupplyRequest.status == status_enum)
+        except ValueError:
+            pass
+
+    if priority:
+        try:
+            priority_enum = RequestPriority(priority)
+            query = query.where(SupplyRequest.priority == priority_enum)
+        except ValueError:
+            pass
+
+    query = query.order_by(desc(SupplyRequest.created_at))
+    result = await db.execute(query)
+    requests = result.scalars().all()
+
+    # Fetch member names
+    for req in requests:
+        if req.member_id:
+            member_result = await db.execute(select(TeamMember).where(TeamMember.id == req.member_id))
+            req.member = member_result.scalar_one_or_none()
+
+    return [serialize_supply_request(req, include_member=True) for req in requests]
+
+
+# ============================================
+# Member Tasks Endpoints
+# ============================================
+
+def serialize_task_brief(task: Task):
+    """Serialize a task with minimal fields for member view"""
+    return {
+        "id": task.id,
+        "title": task.title,
+        "description": task.description,
+        "task_type": task.task_type.value if task.task_type else "todo",
+        "due_date": task.due_date.isoformat() if task.due_date else None,
+        "due_time": task.due_time,
+        "is_completed": task.is_completed,
+        "is_backlog": task.is_backlog,
+        "priority": task.priority,
+        "category": task.category.value if task.category else None,
+        "is_in_progress": task.is_in_progress,
+        "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+    }
+
+
+@router.get("/members/{member_id}/tasks/")
+async def get_member_tasks(
+    member_id: int,
+    include_completed: bool = False,
+    backlog_only: bool = False,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get tasks assigned to a member"""
+    query = select(Task).where(
+        Task.assigned_to_member_id == member_id,
+        Task.is_active == True
+    )
+
+    if not include_completed:
+        query = query.where(Task.is_completed == False)
+
+    if backlog_only:
+        query = query.where(Task.is_backlog == True)
+
+    query = query.order_by(Task.due_date, Task.priority)
+    result = await db.execute(query)
+    tasks = result.scalars().all()
+
+    return [serialize_task_brief(task) for task in tasks]
+
+
+@router.get("/members/{member_id}/backlog/")
+async def get_member_backlog(
+    member_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get backlog tasks assigned to a member"""
+    query = select(Task).where(
+        Task.assigned_to_member_id == member_id,
+        Task.is_active == True,
+        Task.is_completed == False,
+        Task.is_backlog == True
+    ).order_by(Task.priority, Task.created_at)
+
+    result = await db.execute(query)
+    tasks = result.scalars().all()
+
+    return [serialize_task_brief(task) for task in tasks]

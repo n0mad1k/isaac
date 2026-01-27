@@ -196,6 +196,7 @@ class TeamMember(Base):
     gear = relationship("MemberGear", back_populates="member", cascade="all, delete-orphan")
     training_items = relationship("MemberTraining", back_populates="member", cascade="all, delete-orphan")
     medical_appointments = relationship("MemberMedicalAppointment", back_populates="member", cascade="all, delete-orphan")
+    supply_requests = relationship("SupplyRequest", back_populates="member", cascade="all, delete-orphan")
 
 
 class MemberWeightLog(Base):

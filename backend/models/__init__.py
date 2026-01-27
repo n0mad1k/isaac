@@ -21,7 +21,7 @@ from .production import (
 from .users import User, Session, UserRole, LoginAttempt, AuditLog, AuditAction
 from .dev_tracker import DevTrackerItem, ItemType, ItemPriority, ItemStatus
 from .workers import Worker
-from .supply_requests import SupplyRequest, RequestStatus
+from .supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from .customer_feedback import CustomerFeedback, FeedbackType, FeedbackStatus
 from .translation import TranslationCache
 from .team import (
@@ -107,6 +107,7 @@ __all__ = [
     "Worker",
     "SupplyRequest",
     "RequestStatus",
+    "RequestPriority",
     "CustomerFeedback",
     "FeedbackType",
     "FeedbackStatus",

@@ -23,6 +23,7 @@ from models.equipment import Equipment
 from models.home_maintenance import HomeMaintenance
 from models.users import User
 from models.settings import AppSetting
+from models.team import TeamMember
 from services.weather import WeatherService, NWSForecastService
 from services.scheduler import get_sun_moon_data
 from routers.auth import get_current_user
@@ -62,6 +63,8 @@ class DashboardTask(BaseModel):
     linked_entity: Optional[str] = None  # Vehicle/equipment name (shown differently than location)
     is_completed: bool
     is_backlog: bool = False
+    assigned_to_member_id: Optional[int] = None
+    assigned_to_member_name: Optional[str] = None
 
 
 class DashboardAlert(BaseModel):
@@ -403,6 +406,16 @@ async def get_dashboard(
             .limit(15)
         )
         backlog = result.scalars().all()
+        # Get member names for assigned backlog tasks
+        member_names = {}
+        member_ids = [t.assigned_to_member_id for t in backlog if t.assigned_to_member_id]
+        if member_ids:
+            member_result = await db.execute(
+                select(TeamMember).where(TeamMember.id.in_(member_ids))
+            )
+            for m in member_result.scalars().all():
+                member_names[m.id] = m.name
+
         backlog_tasks = [
             DashboardTask(
                 id=t.id,
@@ -419,6 +432,8 @@ async def get_dashboard(
                 linked_entity=get_linked_entity(t),
                 is_completed=t.is_completed,
                 is_backlog=True,
+                assigned_to_member_id=t.assigned_to_member_id,
+                assigned_to_member_name=member_names.get(t.assigned_to_member_id) if t.assigned_to_member_id else None,
             )
             for t in backlog
         ]
