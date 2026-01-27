@@ -365,11 +365,11 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                         return (
                           <span
                             key={idx}
-                            className="px-2 py-1 rounded text-sm flex items-center gap-1"
-                            style={isAnaphylaxis
-                              ? { backgroundColor: '#dc2626', border: '2px solid #ef4444', color: '#ffffff', fontWeight: 'bold' }
-                              : { backgroundColor: '#c2410c', color: '#ffffff' }
-                            }
+                            className={`px-2 py-1 rounded text-sm flex items-center gap-1 font-bold ${
+                              isAnaphylaxis
+                                ? 'bg-red-900/50 border border-red-600 text-red-300'
+                                : 'bg-orange-600 text-white'
+                            }`}
                           >
                             {isAnaphylaxis && <AlertTriangle className="w-3 h-3" />}
                             {name}
