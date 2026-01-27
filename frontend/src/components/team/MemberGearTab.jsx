@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import {
   Shield, Plus, Edit, Trash2, ChevronDown, ChevronUp, Check, Clock,
-  AlertTriangle, Package, Wrench, AlertCircle, Calendar, X, RefreshCw
+  AlertTriangle, Package, Wrench, AlertCircle, Calendar, X, RefreshCw,
+  Minus
 } from 'lucide-react'
 import {
   getMemberGear, createMemberGear, updateMemberGear, deleteMemberGear,
@@ -137,6 +138,29 @@ function MemberGearTab({ member, onUpdate }) {
       await loadGearDetails(gearId)
     } catch (err) {
       setError(err.userMessage || 'Failed to replenish content')
+    }
+  }
+
+  const handleQuantityChange = async (gearId, content, delta) => {
+    const newQty = Math.max(0, (content.quantity || 0) + delta)
+    // Determine new status based on quantity
+    let newStatus = content.status
+    if (newQty === 0) {
+      newStatus = 'MISSING'
+    } else if (content.min_quantity && newQty < content.min_quantity) {
+      newStatus = 'LOW'
+    } else if (content.status === 'MISSING' || content.status === 'LOW') {
+      newStatus = 'GOOD'
+    }
+
+    try {
+      await updateGearContents(member.id, gearId, content.id, {
+        quantity: newQty,
+        status: newStatus,
+      })
+      await loadGearDetails(gearId)
+    } catch (err) {
+      setError(err.userMessage || 'Failed to update quantity')
     }
   }
 
@@ -370,10 +394,27 @@ function MemberGearTab({ member, onUpdate }) {
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-xs text-gray-400">
-                                    {content.category && `${content.category} · `}
-                                    Qty: {content.quantity}
-                                    {content.min_quantity && ` (min: ${content.min_quantity})`}
+                                  <div className="text-xs text-gray-400 flex items-center gap-2">
+                                    {content.category && <span>{content.category}</span>}
+                                    {content.category && <span>·</span>}
+                                    <span className="flex items-center gap-1">
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(item.id, content, -1) }}
+                                        className="p-0.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-white"
+                                        title="Decrease quantity"
+                                      >
+                                        <Minus className="w-3 h-3" />
+                                      </button>
+                                      <span className="min-w-[1.5rem] text-center">{content.quantity}</span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(item.id, content, 1) }}
+                                        className="p-0.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-white"
+                                        title="Increase quantity"
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                      </button>
+                                    </span>
+                                    {content.min_quantity && <span>(min: {content.min_quantity})</span>}
                                   </div>
                                   {content.expiration_date && (
                                     <div className={`text-xs ${getDueDateClass(content.expiration_date)}`}>

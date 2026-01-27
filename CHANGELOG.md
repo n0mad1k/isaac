@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.26.1] - 2026-01-27
+
+### Added
+- Quick quantity adjustment (+/-) buttons for gear contents items
+  - Adjust quantity without opening edit modal
+  - Auto-updates status (MISSING when 0, LOW when below minimum)
+
 ## [1.26.0] - 2026-01-27
 
 ### Added
