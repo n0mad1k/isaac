@@ -1344,6 +1344,24 @@ async def get_financial_summary(
     allocations_result = await db.execute(allocations_query)
     allocations = allocations_result.scalars().all()
 
+    # Get all harvest allocations
+    harvest_alloc_query = select(HarvestAllocation)
+    if year:
+        harvest_alloc_query = harvest_alloc_query.join(PlantHarvest).where(
+            extract('year', PlantHarvest.harvest_date) == year
+        )
+    harvest_alloc_result = await db.execute(harvest_alloc_query)
+    harvest_allocations = harvest_alloc_result.scalars().all()
+
+    # Get harvest count for year
+    harvest_count_query = select(PlantHarvest)
+    if year:
+        harvest_count_query = harvest_count_query.where(
+            extract('year', PlantHarvest.harvest_date) == year
+        )
+    harvest_count_result = await db.execute(harvest_count_query)
+    harvests = harvest_count_result.scalars().all()
+
     # Calculate totals
     total_expenses = sum((p.total_expenses or 0) + (p.processing_cost or 0) for p in livestock)
     total_meat = sum(p.final_weight or 0 for p in livestock)
@@ -1363,6 +1381,13 @@ async def get_financial_summary(
 
     total_revenue = order_revenue + direct_sales_revenue
 
+    # Harvest allocation breakdown
+    harvest_consumed = len([a for a in harvest_allocations if a.use_type == HarvestUseType.CONSUMED])
+    harvest_sold = len([a for a in harvest_allocations if a.use_type == HarvestUseType.SOLD])
+    harvest_preserved = len([a for a in harvest_allocations if a.use_type == HarvestUseType.PRESERVED])
+    harvest_gifted = len([a for a in harvest_allocations if a.use_type == HarvestUseType.GIFTED])
+    harvest_spoiled = len([a for a in harvest_allocations if a.use_type == HarvestUseType.SPOILED])
+
     return {
         "year": year,
         "livestock": {
@@ -1370,6 +1395,14 @@ async def get_financial_summary(
             "total_meat_lbs": total_meat,
             "total_expenses": total_expenses,
             "avg_cost_per_pound": avg_cost_per_pound,
+        },
+        "harvests": {
+            "total_harvests": len(harvests),
+            "consumed": harvest_consumed,
+            "sold": harvest_sold,
+            "preserved": harvest_preserved,
+            "gifted": harvest_gifted,
+            "spoiled": harvest_spoiled,
         },
         "orders": {
             "total_orders": len(orders),

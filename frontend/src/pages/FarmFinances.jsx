@@ -518,7 +518,7 @@ function FarmFinances() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0">
           <DollarSign className="w-7 h-7 text-green-500" />
-          Farm Finances
+          Production
         </h1>
         <MottoDisplay />
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -548,7 +548,7 @@ function FarmFinances() {
               New Order
             </button>
           )}
-          {(activeTab === 'overview' || activeTab === 'harvests') && (
+          {activeTab === 'overview' && (
             <button
               onClick={() => setShowSaleModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
@@ -831,16 +831,16 @@ function OverviewTab({ summary, outstandingPayments, sales, formatCurrency, getC
       </div>
 
       {/* Detailed Stats */}
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Livestock Stats */}
         <div className="bg-gray-800 rounded-xl p-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
             <Beef className="w-5 h-5 text-red-400" />
-            Livestock
+            Meat Production
           </h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-400">Processed</span>
+              <span className="text-gray-400">Animals Processed</span>
               <span>{summary.livestock?.total_processed || 0}</span>
             </div>
             <div className="flex justify-between">
@@ -848,8 +848,38 @@ function OverviewTab({ summary, outstandingPayments, sales, formatCurrency, getC
               <span>{(summary.livestock?.total_meat_lbs || 0).toFixed(0)} lbs</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-gray-400">Avg Cost/lb</span>
+              <span className="text-cyan-400">{formatCurrency(summary.livestock?.avg_cost_per_pound)}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-gray-400">Expenses</span>
               <span className="text-yellow-400">{formatCurrency(summary.livestock?.total_expenses)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Harvests Stats */}
+        <div className="bg-gray-800 rounded-xl p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
+            <Apple className="w-5 h-5 text-green-400" />
+            Harvests
+          </h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-400">Total Harvests</span>
+              <span>{summary.harvests?.total_harvests || 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Consumed</span>
+              <span className="text-blue-400">{summary.harvests?.consumed || 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Sold</span>
+              <span className="text-green-400">{summary.harvests?.sold || 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Preserved</span>
+              <span className="text-yellow-400">{summary.harvests?.preserved || 0}</span>
             </div>
           </div>
         </div>
@@ -880,7 +910,7 @@ function OverviewTab({ summary, outstandingPayments, sales, formatCurrency, getC
           </div>
         </div>
 
-        {/* Allocations */}
+        {/* Personal Use / Allocations */}
         <div className="bg-gray-800 rounded-xl p-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
             <HomeIcon className="w-5 h-5 text-purple-400" />
@@ -888,16 +918,16 @@ function OverviewTab({ summary, outstandingPayments, sales, formatCurrency, getC
           </h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-400">Weight</span>
+              <span className="text-gray-400">Meat Kept</span>
               <span>{(summary.allocations?.personal_weight || 0).toFixed(0)} lbs</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Cost Value</span>
-              <span className="text-cyan-400">{formatCurrency(summary.allocations?.personal_cost)}</span>
+              <span className="text-gray-400">Meat Sold</span>
+              <span>{(summary.allocations?.sold_weight || 0).toFixed(0)} lbs</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Sold Weight</span>
-              <span>{(summary.allocations?.sold_weight || 0).toFixed(0)} lbs</span>
+              <span className="text-gray-400">Personal Value</span>
+              <span className="text-cyan-400">{formatCurrency(summary.allocations?.personal_cost)}</span>
             </div>
           </div>
         </div>
@@ -1340,58 +1370,79 @@ function CustomersTab({ customers, onEdit, onDelete }) {
 
   return (
     <div className="space-y-6">
-      {/* Active Customers */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {activeCustomers.map((customer) => (
-          <div key={customer.id} className="bg-gray-800 rounded-xl p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-medium text-lg">{customer.name}</h3>
-                {customer.email && (
-                  <p className="text-sm text-gray-400">{customer.email}</p>
-                )}
-                {customer.phone && (
-                  <p className="text-sm text-gray-400">{customer.phone}</p>
-                )}
-                {customer.address && (
-                  <p className="text-sm text-gray-500 mt-2">{customer.address}</p>
-                )}
-                {customer.notes && (
-                  <p className="text-sm text-gray-500 mt-2 italic">{customer.notes}</p>
-                )}
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => onEdit(customer)}
-                  className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => onDelete(customer.id, customer.name)}
-                  className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Active Customers Table */}
+      <div className="bg-gray-800 rounded-xl overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-700">
+              <th className="text-left p-4 text-sm font-medium text-gray-400">Name</th>
+              <th className="text-left p-4 text-sm font-medium text-gray-400">Contact</th>
+              <th className="text-left p-4 text-sm font-medium text-gray-400 hidden md:table-cell">Address</th>
+              <th className="text-left p-4 text-sm font-medium text-gray-400 hidden lg:table-cell">Notes</th>
+              <th className="text-right p-4 text-sm font-medium text-gray-400">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activeCustomers.map((customer) => (
+              <tr key={customer.id} className="border-b border-gray-700 last:border-0 hover:bg-gray-700/50">
+                <td className="p-4">
+                  <span className="font-medium">{customer.name}</span>
+                </td>
+                <td className="p-4">
+                  {customer.email && (
+                    <div className="text-sm text-gray-400">{customer.email}</div>
+                  )}
+                  {customer.phone && (
+                    <div className="text-sm text-gray-400">{customer.phone}</div>
+                  )}
+                </td>
+                <td className="p-4 hidden md:table-cell">
+                  {customer.address && (
+                    <span className="text-sm text-gray-400">{customer.address}</span>
+                  )}
+                </td>
+                <td className="p-4 hidden lg:table-cell">
+                  {customer.notes && (
+                    <span className="text-sm text-gray-500 italic">{customer.notes}</span>
+                  )}
+                </td>
+                <td className="p-4 text-right">
+                  <div className="flex justify-end gap-1">
+                    <button
+                      onClick={() => onEdit(customer)}
+                      className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-600 rounded-lg transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(customer.id, customer.name)}
+                      className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Inactive Customers */}
       {inactiveCustomers.length > 0 && (
         <div>
           <h3 className="text-sm font-medium text-gray-500 mb-3">Inactive Customers</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {inactiveCustomers.map((customer) => (
-              <div key={customer.id} className="bg-gray-800/50 rounded-xl p-4 opacity-60">
-                <h3 className="font-medium">{customer.name}</h3>
-                {customer.email && (
-                  <p className="text-sm text-gray-400">{customer.email}</p>
-                )}
-              </div>
-            ))}
+          <div className="bg-gray-800/50 rounded-xl overflow-hidden">
+            <table className="w-full">
+              <tbody>
+                {inactiveCustomers.map((customer) => (
+                  <tr key={customer.id} className="border-b border-gray-700 last:border-0 opacity-60">
+                    <td className="p-4 font-medium">{customer.name}</td>
+                    <td className="p-4 text-sm text-gray-400">{customer.email}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
