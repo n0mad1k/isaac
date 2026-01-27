@@ -308,7 +308,7 @@ function Dashboard() {
                         )}
                         {/* Assigned member badge */}
                         {(task.assigned_member_names?.length > 0 || task.assigned_to_member_name) && (
-                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: 'rgba(34, 211, 238, 0.2)', color: 'rgb(34, 211, 238)' }}>
+                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-primary)' }}>
                             <User className="w-3 h-3" />
                             {task.assigned_member_names?.length > 0 ? task.assigned_member_names.join(', ') : task.assigned_to_member_name}
                           </span>

@@ -863,7 +863,7 @@ function EventChip({ event, onClick, onToggle, expanded = false, formatTime, isM
           </span>
         )}
         {expanded && (event.assigned_member_names?.length > 0 || event.assigned_to_member_name) && (
-          <span className="text-[10px] flex items-center gap-0.5 px-1 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'rgba(34, 211, 238, 0.2)', color: 'rgb(34, 211, 238)' }}>
+          <span className="text-[10px] flex items-center gap-0.5 px-1 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-primary)' }}>
             <User className="w-2.5 h-2.5" />
             {event.assigned_member_names?.length > 0 ? event.assigned_member_names.join(', ') : event.assigned_to_member_name}
           </span>
@@ -940,9 +940,9 @@ function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDelet
                         {event.linked_entity}
                       </span>
                     )}
-                    {/* Assigned member badge (cyan) */}
+                    {/* Assigned member badge */}
                     {(event.assigned_member_names?.length > 0 || event.assigned_to_member_name) && (
-                      <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'rgba(34, 211, 238, 0.2)', color: 'rgb(34, 211, 238)' }}>
+                      <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-primary)' }}>
                         <User className="w-3 h-3" />
                         {event.assigned_member_names?.length > 0 ? event.assigned_member_names.join(', ') : event.assigned_to_member_name}
                       </span>
