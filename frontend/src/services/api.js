@@ -205,6 +205,13 @@ export const updateApplication = () => api.post('/settings/update/')
 export const pushToProduction = () => api.post('/settings/push-to-prod/', {}, { timeout: 300000 }) // 5 min for build
 export const pullFromProduction = () => api.post('/settings/pull-from-prod/', {}, { timeout: 60000 }) // 1 min for db copy
 export const getRecentCommits = () => api.get('/settings/recent-commits/')
+export const getAppLogs = (lines = 100, level = null, search = null) => {
+  const params = new URLSearchParams({ lines: lines.toString() })
+  if (level) params.append('level', level)
+  if (search) params.append('search', search)
+  return api.get(`/settings/logs/?${params.toString()}`)
+}
+export const clearAppLogs = () => api.post('/settings/logs/clear/')
 
 // Storage
 export const getStorageStats = () => api.get('/dashboard/storage/')

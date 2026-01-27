@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback } from '../services/api'
+import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search } from 'lucide-react'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getAppLogs, clearAppLogs } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -45,6 +45,12 @@ function Settings() {
   const [loadingStorage, setLoadingStorage] = useState(false)
   const [clearingLogs, setClearingLogs] = useState(false)
 
+  // Application Logs state
+  const [appLogs, setAppLogs] = useState([])
+  const [loadingLogs, setLoadingLogs] = useState(false)
+  const [logFilter, setLogFilter] = useState({ level: '', search: '', lines: 100 })
+  const [clearingAppLogs, setClearingAppLogs] = useState(false)
+
   // Version state
   const [versionInfo, setVersionInfo] = useState(null)
   const [loadingVersion, setLoadingVersion] = useState(false)
@@ -83,6 +89,7 @@ function Settings() {
     translation: false,
     bible: false,
     storage: false,
+    logs: false,
     myFeedback: true
   })
   const [teamValues, setTeamValues] = useState([])
@@ -652,12 +659,49 @@ function Settings() {
     }
   }
 
+  // Application logs functions
+  const fetchAppLogs = async () => {
+    setLoadingLogs(true)
+    try {
+      const response = await getAppLogs(logFilter.lines, logFilter.level || null, logFilter.search || null)
+      setAppLogs(response.data.logs || [])
+    } catch (error) {
+      console.error('Failed to fetch logs:', error)
+      setMessage({ type: 'error', text: 'Failed to fetch logs' })
+    } finally {
+      setLoadingLogs(false)
+    }
+  }
+
+  const handleClearAppLogs = async () => {
+    if (!confirm('Are you sure you want to clear the application log file? This cannot be undone.')) return
+    setClearingAppLogs(true)
+    try {
+      await clearAppLogs()
+      setMessage({ type: 'success', text: 'Application logs cleared successfully' })
+      setTimeout(() => setMessage(null), 5000)
+      setAppLogs([])
+    } catch (error) {
+      console.error('Failed to clear app logs:', error)
+      setMessage({ type: 'error', text: 'Failed to clear logs' })
+    } finally {
+      setClearingAppLogs(false)
+    }
+  }
+
   // Fetch storage stats when section is expanded
   useEffect(() => {
     if (expandedSections.storage && !storageStats) {
       fetchStorageStats()
     }
   }, [expandedSections.storage])
+
+  // Fetch logs when section is expanded
+  useEffect(() => {
+    if (expandedSections.logs && appLogs.length === 0) {
+      fetchAppLogs()
+    }
+  }, [expandedSections.logs])
 
   // Group settings by category
   const locationSettings = ['timezone', 'latitude', 'longitude', 'usda_zone']
@@ -2363,6 +2407,118 @@ function Settings() {
                 </div>
               ) : (
                 <p className="text-gray-400 text-sm">Failed to load storage information</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Application Logs - Admin Only */}
+      {isAdmin && (
+        <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('logs')}
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+              {expandedSections.logs ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              <FileText className="w-5 h-5 text-blue-400" />
+              Application Logs
+            </h2>
+          </div>
+          {expandedSections.logs && (
+            <div className="mt-4 space-y-4">
+              {/* Filters */}
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={logFilter.search}
+                    onChange={(e) => setLogFilter({ ...logFilter, search: e.target.value })}
+                    placeholder="Search logs..."
+                    className="w-full pl-9 pr-3 py-2 rounded-lg text-sm"
+                    style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-input-border)', color: 'var(--color-input-text)' }}
+                    onKeyDown={(e) => e.key === 'Enter' && fetchAppLogs()}
+                  />
+                </div>
+                <select
+                  value={logFilter.level}
+                  onChange={(e) => setLogFilter({ ...logFilter, level: e.target.value })}
+                  className="px-3 py-2 rounded-lg text-sm"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-input-border)', color: 'var(--color-input-text)' }}
+                >
+                  <option value="">All Levels</option>
+                  <option value="ERROR">ERROR</option>
+                  <option value="WARNING">WARNING</option>
+                  <option value="INFO">INFO</option>
+                  <option value="DEBUG">DEBUG</option>
+                </select>
+                <select
+                  value={logFilter.lines}
+                  onChange={(e) => setLogFilter({ ...logFilter, lines: parseInt(e.target.value) })}
+                  className="px-3 py-2 rounded-lg text-sm"
+                  style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-input-border)', color: 'var(--color-input-text)' }}
+                >
+                  <option value={50}>Last 50</option>
+                  <option value={100}>Last 100</option>
+                  <option value={200}>Last 200</option>
+                  <option value={500}>Last 500</option>
+                </select>
+                <button
+                  onClick={fetchAppLogs}
+                  disabled={loadingLogs}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
+                  style={{ backgroundColor: 'var(--color-btn-primary-bg)', color: 'var(--color-btn-primary-text)' }}
+                >
+                  <RefreshCw className={`w-4 h-4 ${loadingLogs ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                <button
+                  onClick={handleClearAppLogs}
+                  disabled={clearingAppLogs}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-sm text-white"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {clearingAppLogs ? 'Clearing...' : 'Clear'}
+                </button>
+              </div>
+
+              {/* Log Display */}
+              {loadingLogs ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-farm-green"></div>
+                </div>
+              ) : appLogs.length === 0 ? (
+                <p className="text-sm py-4" style={{ color: 'var(--color-text-muted)' }}>No logs found</p>
+              ) : (
+                <div className="rounded-lg overflow-hidden border" style={{ borderColor: 'var(--color-border-default)' }}>
+                  <div className="max-h-[400px] overflow-y-auto font-mono text-xs" style={{ backgroundColor: '#1a1a1a' }}>
+                    {appLogs.map((log, idx) => (
+                      <div
+                        key={idx}
+                        className={`px-3 py-1.5 border-b flex flex-wrap gap-2 ${
+                          log.level === 'ERROR' ? 'bg-red-900/20' :
+                          log.level === 'WARNING' ? 'bg-yellow-900/20' :
+                          'bg-transparent'
+                        }`}
+                        style={{ borderColor: 'var(--color-border-default)' }}
+                      >
+                        <span className="text-gray-500 shrink-0">{log.timestamp}</span>
+                        <span className={`font-semibold shrink-0 ${
+                          log.level === 'ERROR' ? 'text-red-400' :
+                          log.level === 'WARNING' ? 'text-yellow-400' :
+                          log.level === 'INFO' ? 'text-blue-400' :
+                          log.level === 'DEBUG' ? 'text-gray-400' :
+                          'text-gray-300'
+                        }`}>
+                          [{log.level}]
+                        </span>
+                        <span className="text-gray-300 break-all">{log.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}

@@ -2,6 +2,23 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.28.5] - 2026-01-27
+
+### Added
+- **Application Log Viewer in Settings (Admin only)**
+  - View recent application logs directly in Settings
+  - Filter by log level (ERROR, WARNING, INFO, DEBUG)
+  - Search logs by text
+  - Configurable number of lines (50-500)
+  - Clear logs button
+  - Collapsible section to reduce clutter
+
+### Changed
+- **Dev tracker now requires testing descriptions**
+  - When moving items to testing, a description of what was done is required
+  - Use: `./dev-tracker.sh testing <id> "description"`
+  - Descriptions are shown when viewing item details
+
 ## [1.28.4] - 2026-01-27
 
 ### Added

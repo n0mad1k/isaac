@@ -1319,3 +1319,109 @@ async def sync_calendar(db: AsyncSession = Depends(get_db)):
     }
 
 
+@router.get("/logs/")
+async def get_logs(
+    lines: int = 100,
+    level: Optional[str] = None,
+    search: Optional[str] = None
+):
+    """
+    Get recent application logs for admin review.
+
+    - lines: Number of recent lines to return (default 100, max 1000)
+    - level: Filter by log level (ERROR, WARNING, INFO, DEBUG)
+    - search: Search for text in log messages
+    """
+    import os
+    from pathlib import Path
+
+    log_path = Path("logs/isaac.log")
+
+    if not log_path.exists():
+        return {"logs": [], "total_lines": 0, "message": "No log file found"}
+
+    # Cap lines at 1000 for performance
+    lines = min(lines, 1000)
+
+    try:
+        # Read file and get last N lines
+        with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
+            all_lines = f.readlines()
+
+        # Filter by level if specified
+        if level:
+            level = level.upper()
+            all_lines = [line for line in all_lines if f"| {level}" in line]
+
+        # Filter by search term if specified
+        if search:
+            search_lower = search.lower()
+            all_lines = [line for line in all_lines if search_lower in line.lower()]
+
+        # Get last N lines
+        recent_lines = all_lines[-lines:]
+
+        # Parse lines into structured format
+        parsed_logs = []
+        for line in recent_lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Try to parse structured log format: "2026-01-27 12:00:00 | INFO     | module:func:123 - message"
+            try:
+                parts = line.split(" | ", 3)
+                if len(parts) >= 4:
+                    timestamp = parts[0]
+                    log_level = parts[1].strip()
+                    location = parts[2]
+                    message = parts[3].split(" - ", 1)[-1] if " - " in parts[3] else parts[3]
+                    parsed_logs.append({
+                        "timestamp": timestamp,
+                        "level": log_level,
+                        "location": location,
+                        "message": message
+                    })
+                else:
+                    # Unparsed line
+                    parsed_logs.append({
+                        "timestamp": "",
+                        "level": "RAW",
+                        "location": "",
+                        "message": line
+                    })
+            except Exception:
+                parsed_logs.append({
+                    "timestamp": "",
+                    "level": "RAW",
+                    "location": "",
+                    "message": line
+                })
+
+        return {
+            "logs": parsed_logs,
+            "total_lines": len(all_lines),
+            "returned_lines": len(parsed_logs)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read logs: {str(e)}")
+
+
+@router.post("/logs/clear/")
+async def clear_logs():
+    """Clear the application log file"""
+    import os
+    from pathlib import Path
+
+    log_path = Path("logs/isaac.log")
+
+    if log_path.exists():
+        try:
+            # Truncate the file instead of deleting (keeps file handle valid)
+            with open(log_path, 'w') as f:
+                f.write("")
+            return {"message": "Logs cleared successfully"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to clear logs: {str(e)}")
+
+    return {"message": "No log file to clear"}
