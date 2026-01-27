@@ -1037,10 +1037,10 @@ async def log_weight(
 VITAL_UNITS = {
     VitalType.BLOOD_PRESSURE: "mmHg",
     VitalType.HEART_RATE: "bpm",
+    VitalType.HRV: "ms",
     VitalType.TEMPERATURE: "°F",
     VitalType.BLOOD_OXYGEN: "%",
     VitalType.BODY_FAT: "%",
-    VitalType.GLUCOSE: "mg/dL",
     VitalType.RESPIRATORY_RATE: "bpm",
     VitalType.WAIST: "in",
 }
@@ -1075,6 +1075,49 @@ async def get_vitals_history(
         }
         for log in logs
     ]
+
+
+@router.get("/members/{member_id}/vitals/averages/")
+async def get_vitals_averages(
+    member_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get average vitals for establishing baselines"""
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Get all vitals grouped by type
+    result = await db.execute(
+        select(MemberVitalsLog).where(MemberVitalsLog.member_id == member_id)
+    )
+    logs = result.scalars().all()
+
+    # Calculate averages per vital type
+    averages = {}
+    for vital_type in VitalType:
+        type_logs = [l for l in logs if l.vital_type == vital_type]
+        if type_logs:
+            avg_value = sum(l.value for l in type_logs) / len(type_logs)
+            avg_secondary = None
+            if vital_type == VitalType.BLOOD_PRESSURE:
+                secondary_values = [l.value_secondary for l in type_logs if l.value_secondary is not None]
+                if secondary_values:
+                    avg_secondary = sum(secondary_values) / len(secondary_values)
+            averages[vital_type.value] = {
+                "average": round(avg_value, 1),
+                "average_secondary": round(avg_secondary, 1) if avg_secondary else None,
+                "count": len(type_logs),
+                "unit": VITAL_UNITS.get(vital_type, ""),
+                "latest": type_logs[0].value if type_logs else None,
+                "latest_secondary": type_logs[0].value_secondary if type_logs and vital_type == VitalType.BLOOD_PRESSURE else None
+            }
+
+    return averages
 
 
 @router.post("/members/{member_id}/vitals/")

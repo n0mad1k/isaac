@@ -118,10 +118,10 @@ class AppointmentType(str, enum.Enum):
 class VitalType(str, enum.Enum):
     BLOOD_PRESSURE = "blood_pressure"  # Systolic/Diastolic
     HEART_RATE = "heart_rate"  # BPM
+    HRV = "hrv"  # Heart Rate Variability (ms)
     TEMPERATURE = "temperature"  # Fahrenheit
     BLOOD_OXYGEN = "blood_oxygen"  # SpO2 percentage
     BODY_FAT = "body_fat"  # Percentage
-    GLUCOSE = "glucose"  # mg/dL
     RESPIRATORY_RATE = "respiratory_rate"  # Breaths per minute
     WAIST = "waist"  # Circumference in inches
 

@@ -11,7 +11,7 @@ import {
   getMemberObservations, createObservation, uploadMemberPhoto, deleteMemberPhoto,
   getMemberAppointments, createMemberAppointment, updateMemberAppointment,
   deleteMemberAppointment, completeMemberAppointment,
-  getVitalsHistory, logVital, deleteVital, getVitalTypes
+  getVitalsHistory, getVitalsAverages, logVital, deleteVital, getVitalTypes
 } from '../../services/api'
 import MemberMentoringTab from './MemberMentoringTab'
 import MemberObservationsTab from './MemberObservationsTab'
@@ -28,6 +28,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   // Data states
   const [weightHistory, setWeightHistory] = useState([])
   const [vitalsHistory, setVitalsHistory] = useState([])
+  const [vitalsAverages, setVitalsAverages] = useState({})
   const [vitalTypes, setVitalTypes] = useState([])
   const [medicalHistory, setMedicalHistory] = useState([])
   const [sessions, setSessions] = useState([])
@@ -46,13 +47,15 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
       try {
         switch (activeTab) {
           case 'health':
-            const [weightRes, vitalsRes, typesRes] = await Promise.all([
+            const [weightRes, vitalsRes, avgRes, typesRes] = await Promise.all([
               getWeightHistory(member.id),
               getVitalsHistory(member.id),
+              getVitalsAverages(member.id),
               getVitalTypes()
             ])
             setWeightHistory(weightRes.data)
             setVitalsHistory(vitalsRes.data)
+            setVitalsAverages(avgRes.data)
             setVitalTypes(typesRes.data)
             break
           case 'medical':
@@ -648,21 +651,24 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 settings={settings}
                 weightHistory={weightHistory}
                 vitalsHistory={vitalsHistory}
+                vitalsAverages={vitalsAverages}
                 vitalTypes={vitalTypes}
                 formatWeight={formatWeight}
                 formatHeight={formatHeight}
                 formatDate={formatDate}
                 onUpdate={async () => {
-                  const [wRes, vRes] = await Promise.all([
+                  const [wRes, vRes, aRes] = await Promise.all([
                     getWeightHistory(member.id),
-                    getVitalsHistory(member.id)
+                    getVitalsHistory(member.id),
+                    getVitalsAverages(member.id)
                   ])
                   setWeightHistory(wRes.data)
                   setVitalsHistory(vRes.data)
-                  onUpdate()
+                  setVitalsAverages(aRes.data)
                 }}
               />
             )}
+
           </>
         )}
       </div>
@@ -987,7 +993,7 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
 // Health Data Tab Component
 // ============================================
 
-function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalTypes, formatWeight, formatHeight, formatDate, onUpdate }) {
+function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsAverages, vitalTypes, formatWeight, formatHeight, formatDate, onUpdate }) {
   const [showAddVital, setShowAddVital] = useState(false)
   const [showAddWeight, setShowAddWeight] = useState(false)
   const [selectedType, setSelectedType] = useState(null)
@@ -1144,6 +1150,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalTy
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {vitalTypes.map(type => {
             const latest = getLatestVital(type.value)
+            const avg = vitalsAverages?.[type.value]
             return (
               <div
                 key={type.value}
@@ -1154,7 +1161,15 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalTy
                 <div className="font-medium">
                   {latest ? formatVitalValue(latest) : 'No data'}
                 </div>
-                {latest && (
+                {avg?.count > 1 && (
+                  <div className="text-xs text-cyan-400">
+                    Avg: {type.value === 'blood_pressure' && avg.average_secondary
+                      ? `${avg.average}/${avg.average_secondary}`
+                      : avg.average} {avg.unit}
+                    <span className="text-gray-500"> ({avg.count})</span>
+                  </div>
+                )}
+                {latest && !avg?.count && (
                   <div className="text-xs text-gray-500">{formatDate(latest.recorded_at)}</div>
                 )}
               </div>
