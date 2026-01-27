@@ -528,11 +528,13 @@ function ToDo() {
                         Overdue
                       </span>
                     )}
-                    {/* Member assignment badge */}
-                    {todo.assigned_to_member_name && (
+                    {/* Member assignment badge (multi-member or single) */}
+                    {(todo.assigned_member_names?.length > 0 || todo.assigned_to_member_name) && (
                       <span className="text-xs text-cyan-400 flex items-center gap-0.5 bg-cyan-900/30 px-1.5 py-0.5 rounded flex-shrink-0">
                         <User className="w-3 h-3" />
-                        {todo.assigned_to_member_name}
+                        {todo.assigned_member_names?.length > 0
+                          ? todo.assigned_member_names.join(', ')
+                          : todo.assigned_to_member_name}
                       </span>
                     )}
                   </div>

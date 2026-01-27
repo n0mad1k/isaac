@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.29.3] - 2026-01-27
+
+### Added
+- **Multi-member assignment for events and reminders**
+  - Can now assign multiple team members to any task/event
+  - New "Team Members" multi-select checkbox UI in event form
+  - Assigned members display in ToDo page and backlog
+  - Backend support for many-to-many task-member relationship
+
 ## [1.29.2] - 2026-01-27
 
 ### Fixed

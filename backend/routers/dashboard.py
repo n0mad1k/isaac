@@ -65,6 +65,8 @@ class DashboardTask(BaseModel):
     is_backlog: bool = False
     assigned_to_member_id: Optional[int] = None
     assigned_to_member_name: Optional[str] = None
+    assigned_member_ids: List[int] = []
+    assigned_member_names: List[str] = []
 
 
 class DashboardAlert(BaseModel):
@@ -406,15 +408,22 @@ async def get_dashboard(
             .limit(15)
         )
         backlog = result.scalars().all()
-        # Get member names for assigned backlog tasks
+        # Get member names for assigned backlog tasks (both single and multi-assignment)
         member_names = {}
-        member_ids = [t.assigned_to_member_id for t in backlog if t.assigned_to_member_id]
-        if member_ids:
+        # Collect all member IDs from both single assignment and multi-assignment
+        all_member_ids = set()
+        for t in backlog:
+            if t.assigned_to_member_id:
+                all_member_ids.add(t.assigned_to_member_id)
+            if hasattr(t, 'assigned_members') and t.assigned_members:
+                for m in t.assigned_members:
+                    all_member_ids.add(m.id)
+        if all_member_ids:
             member_result = await db.execute(
-                select(TeamMember).where(TeamMember.id.in_(member_ids))
+                select(TeamMember).where(TeamMember.id.in_(all_member_ids))
             )
             for m in member_result.scalars().all():
-                member_names[m.id] = m.name
+                member_names[m.id] = m.nickname or m.name
 
         backlog_tasks = [
             DashboardTask(
@@ -434,6 +443,8 @@ async def get_dashboard(
                 is_backlog=True,
                 assigned_to_member_id=t.assigned_to_member_id,
                 assigned_to_member_name=member_names.get(t.assigned_to_member_id) if t.assigned_to_member_id else None,
+                assigned_member_ids=[m.id for m in t.assigned_members] if hasattr(t, 'assigned_members') and t.assigned_members else [],
+                assigned_member_names=[member_names.get(m.id, m.nickname or m.name) for m in t.assigned_members] if hasattr(t, 'assigned_members') and t.assigned_members else [],
             )
             for t in backlog
         ]
