@@ -57,6 +57,32 @@ function Team() {
     loadData()
   }, [])
 
+  // Check if tabs overflow and need arrows
+  const checkTabsOverflow = () => {
+    if (tabsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current
+      setShowLeftArrow(scrollLeft > 0)
+      setShowRightArrow(scrollLeft + clientWidth < scrollWidth - 1)
+    }
+  }
+
+  useEffect(() => {
+    checkTabsOverflow()
+    window.addEventListener('resize', checkTabsOverflow)
+    return () => window.removeEventListener('resize', checkTabsOverflow)
+  }, [members])
+
+  const scrollTabs = (direction) => {
+    if (tabsRef.current) {
+      const scrollAmount = 150
+      tabsRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      })
+      setTimeout(checkTabsOverflow, 300)
+    }
+  }
+
   // Handle member tab click
   const handleMemberClick = (memberId) => {
     setSelectedMemberId(memberId)
@@ -146,32 +172,6 @@ function Team() {
   }
 
   const selectedMember = members.find(m => m.id === selectedMemberId)
-
-  // Check if tabs overflow and need arrows
-  const checkTabsOverflow = () => {
-    if (tabsRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current
-      setShowLeftArrow(scrollLeft > 0)
-      setShowRightArrow(scrollLeft + clientWidth < scrollWidth - 1)
-    }
-  }
-
-  useEffect(() => {
-    checkTabsOverflow()
-    window.addEventListener('resize', checkTabsOverflow)
-    return () => window.removeEventListener('resize', checkTabsOverflow)
-  }, [members])
-
-  const scrollTabs = (direction) => {
-    if (tabsRef.current) {
-      const scrollAmount = 150
-      tabsRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      })
-      setTimeout(checkTabsOverflow, 300)
-    }
-  }
 
   return (
     <div className="space-y-4">
