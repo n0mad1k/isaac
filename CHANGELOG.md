@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.28.3] - 2026-01-27
+
+### Fixed
+- **Mobile view zoom/overflow issue on iPhone**
+  - Added overflow-x: hidden to html, body, and #root to prevent horizontal scroll
+  - Input font-size set to 16px on mobile to prevent iOS auto-zoom on focus
+  - Weather forecast now shows 3 columns on mobile (was 5)
+
 ## [1.28.2] - 2026-01-27
 
 ### Fixed

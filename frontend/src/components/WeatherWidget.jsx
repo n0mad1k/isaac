@@ -189,7 +189,7 @@ function WeatherWidget({ weather, className = '' }) {
             ))}
           </div>
         ) : forecast ? (
-          <div className="grid grid-cols-5 gap-1">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1">
             {forecast.map((day, index) => (
               <div
                 key={index}
