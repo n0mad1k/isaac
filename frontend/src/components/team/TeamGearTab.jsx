@@ -260,6 +260,12 @@ function TeamGearTab({ members, onRefresh }) {
           {GEAR_CATEGORIES.map(cat => (
             <option key={cat.value} value={cat.value}>{cat.label}</option>
           ))}
+          {/* Include custom categories from existing gear */}
+          {[...new Set(gear.map(g => g.category).filter(cat =>
+            cat && !GEAR_CATEGORIES.some(c => c.value === cat)
+          ))].map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
         </select>
         <select
           value={filterStatus}
@@ -365,15 +371,10 @@ function TeamGearTab({ members, onRefresh }) {
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-sm">
-                              {item.member ? (
+                              {item.member && (
                                 <span className="flex items-center gap-1 text-green-400">
                                   <User className="w-3 h-3" />
                                   {item.member.nickname || item.member.name}
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-1 text-purple-400">
-                                  <Package className="w-3 h-3" />
-                                  Pool
                                 </span>
                               )}
                             </div>
@@ -521,6 +522,7 @@ function TeamGearTab({ members, onRefresh }) {
       {(showAddModal || editingGear) && (
         <GearFormModal
           gear={editingGear}
+          existingCategories={[...new Set(gear.map(g => g.category).filter(Boolean))]}
           onClose={() => {
             setShowAddModal(false)
             setEditingGear(null)
@@ -579,7 +581,16 @@ function TeamGearTab({ members, onRefresh }) {
 }
 
 // Gear Form Modal
-function GearFormModal({ gear, onClose, onSave }) {
+function GearFormModal({ gear, onClose, onSave, existingCategories = [] }) {
+  // Merge base categories with custom categories from existing gear
+  const allCategories = React.useMemo(() => {
+    const baseValues = GEAR_CATEGORIES.map(c => c.value)
+    const customCats = existingCategories
+      .filter(cat => cat && !baseValues.includes(cat.toUpperCase()))
+      .map(cat => ({ value: cat, label: cat }))
+    return [...GEAR_CATEGORIES, ...customCats]
+  }, [existingCategories])
+
   const [formData, setFormData] = useState({
     name: gear?.name || '',
     category: gear?.category || 'OTHER',
@@ -597,6 +608,8 @@ function GearFormModal({ gear, onClose, onSave }) {
     has_expirables: gear?.has_expirables || false,
     notes: gear?.notes || '',
   })
+  const [useCustomCategory, setUseCustomCategory] = useState(false)
+  const [customCategoryName, setCustomCategoryName] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -605,7 +618,11 @@ function GearFormModal({ gear, onClose, onSave }) {
     setSaving(true)
     setError(null)
     try {
-      await onSave(formData)
+      const dataToSave = { ...formData }
+      if (useCustomCategory && customCategoryName.trim()) {
+        dataToSave.category = customCategoryName.trim().toUpperCase().replace(/\s+/g, '_')
+      }
+      await onSave(dataToSave)
     } catch (err) {
       setError(err.userMessage || 'Failed to save gear')
       setSaving(false)
@@ -616,7 +633,7 @@ function GearFormModal({ gear, onClose, onSave }) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">
-          {gear ? 'Edit Gear' : 'Add Gear to Pool'}
+          {gear ? 'Edit Gear' : 'Add Gear'}
         </h3>
         {error && (
           <div className="bg-red-900/30 border border-red-700 rounded p-2 text-red-200 text-sm mb-4">{error}</div>
@@ -629,12 +646,33 @@ function GearFormModal({ gear, onClose, onSave }) {
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Category</label>
-              <select value={formData.category} onChange={(e) => {
-                  const newCat = e.target.value
-                  setFormData({ ...formData, category: newCat, is_container: newCat === 'BAG' ? true : formData.is_container })
-                }} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
-                {GEAR_CATEGORIES.map(cat => (<option key={cat.value} value={cat.value}>{cat.label}</option>))}
+              <select
+                value={useCustomCategory ? 'custom' : formData.category}
+                onChange={(e) => {
+                  if (e.target.value === 'custom') {
+                    setUseCustomCategory(true)
+                  } else {
+                    setUseCustomCategory(false)
+                    setCustomCategoryName('')
+                    const newCat = e.target.value
+                    setFormData({ ...formData, category: newCat, is_container: newCat === 'BAG' ? true : formData.is_container })
+                  }
+                }}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              >
+                {allCategories.map(cat => (<option key={cat.value} value={cat.value}>{cat.label}</option>))}
+                <option value="custom">+ Add New Category</option>
               </select>
+              {useCustomCategory && (
+                <input
+                  type="text"
+                  value={customCategoryName}
+                  onChange={(e) => setCustomCategoryName(e.target.value)}
+                  placeholder="Enter custom category name"
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 mt-2"
+                  autoFocus
+                />
+              )}
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Status</label>

@@ -2,6 +2,18 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.28.4] - 2026-01-27
+
+### Added
+- **Custom gear categories**
+  - Can now add custom categories when creating gear (not limited to predefined list)
+  - Custom categories automatically appear in filter dropdown and future category selections
+
+### Changed
+- **Unassigned gear no longer shows "Pool" label**
+  - Gear without an assigned member now shows nothing instead of "Pool" indicator
+  - Assigned gear still shows the member name with green indicator
+
 ## [1.28.3] - 2026-01-27
 
 ### Fixed
