@@ -144,7 +144,7 @@ function Dashboard() {
   return (
     <div ref={containerRef} className="flex flex-col gap-2 md:gap-3 h-full md:h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] overflow-hidden">
       {/* Header Row: Date/Time and Motto */}
-      <div className="flex items-center justify-between gap-4 flex-shrink-0">
+      <div className="flex items-start justify-between gap-4 flex-shrink-0">
         {/* Left - Date/Time */}
         <div className="flex-shrink-0 min-w-0">
           <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
@@ -156,11 +156,11 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Motto - fills remaining space */}
-        <MottoDisplay />
+        {/* Motto - fills remaining space, wraps if needed */}
+        <MottoDisplay className="py-1" />
 
         {/* Spacer to balance the layout (matches Date/Time width approximately) */}
-        <div className="w-24 sm:w-32 md:w-36 lg:w-40 flex-shrink-0"></div>
+        <div className="w-24 sm:w-32 md:w-36 lg:w-40 flex-shrink-0 hidden sm:block"></div>
       </div>
 
       {/* Bible Verse - its own row */}
