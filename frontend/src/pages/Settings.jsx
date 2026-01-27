@@ -2574,29 +2574,28 @@ function Settings() {
               ) : appLogs.length === 0 ? (
                 <p className="text-sm py-4" style={{ color: 'var(--color-text-muted)' }}>No logs found</p>
               ) : (
-                <div className="rounded-lg overflow-hidden border" style={{ borderColor: 'var(--color-border-default)' }}>
-                  <div className="max-h-[400px] overflow-y-auto font-mono text-xs" style={{ backgroundColor: '#1a1a1a' }}>
+                <div className="rounded-lg overflow-hidden border" style={{ borderColor: '#ccc' }}>
+                  <div className="max-h-[400px] overflow-y-auto font-mono text-xs" style={{ backgroundColor: '#f5f5f0', color: '#333' }}>
                     {appLogs.map((log, idx) => (
                       <div
                         key={idx}
-                        className={`px-3 py-1.5 border-b flex flex-wrap gap-2 ${
-                          log.level === 'ERROR' ? 'bg-red-900/20' :
-                          log.level === 'WARNING' ? 'bg-yellow-900/20' :
-                          'bg-transparent'
-                        }`}
-                        style={{ borderColor: 'var(--color-border-default)' }}
+                        className={`px-3 py-1.5 border-b flex flex-wrap gap-2`}
+                        style={{
+                          borderColor: '#ddd',
+                          backgroundColor: log.level === 'ERROR' ? '#fee2e2' :
+                                          log.level === 'WARNING' ? '#fef3c7' : 'transparent'
+                        }}
                       >
-                        <span className="text-gray-400 shrink-0">{log.timestamp}</span>
-                        <span className={`font-semibold shrink-0 ${
-                          log.level === 'ERROR' ? 'text-red-400' :
-                          log.level === 'WARNING' ? 'text-yellow-400' :
-                          log.level === 'INFO' ? 'text-blue-400' :
-                          log.level === 'DEBUG' ? 'text-gray-300' :
-                          'text-gray-200'
-                        }`}>
+                        <span className="shrink-0" style={{ color: '#666' }}>{log.timestamp}</span>
+                        <span className="font-semibold shrink-0" style={{
+                          color: log.level === 'ERROR' ? '#dc2626' :
+                                 log.level === 'WARNING' ? '#d97706' :
+                                 log.level === 'INFO' ? '#2563eb' :
+                                 log.level === 'DEBUG' ? '#6b7280' : '#374151'
+                        }}>
                           [{log.level}]
                         </span>
-                        <span className="text-gray-100 break-all">{log.message}</span>
+                        <span className="break-all" style={{ color: '#1f2937' }}>{log.message}</span>
                       </div>
                     ))}
                   </div>

@@ -1105,9 +1105,9 @@ async def get_admin_logs(
     lines = min(lines, 1000)
 
     try:
-        # Read file and get last N lines, stripping ANSI codes
+        # Read file and get last N lines (keep ANSI codes for frontend rendering)
         with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
-            all_lines = [strip_ansi_codes(line) for line in f.readlines()]
+            all_lines = f.readlines()
 
         # Filter by level if specified
         if level:
