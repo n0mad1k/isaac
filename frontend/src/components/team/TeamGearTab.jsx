@@ -370,6 +370,10 @@ function TeamGearTab({ members, onRefresh }) {
                               <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Container</span>
                             )}
                           </div>
+                          {/* Gear notes */}
+                          {item.notes && (
+                            <div className="text-xs text-gray-400 italic ml-4 mt-1">{item.notes}</div>
+                          )}
                           <div className="flex items-center gap-3">
                             <div className="text-sm">
                               {item.member && (

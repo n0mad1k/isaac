@@ -263,6 +263,10 @@ function MemberGearTab({ member, onUpdate }) {
                       {item.model && ` ${item.model}`}
                       {item.caliber && ` (${item.caliber})`}
                     </div>
+                    {/* Gear notes */}
+                    {item.notes && (
+                      <div className="text-xs text-gray-500 italic mt-1">{item.notes}</div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
