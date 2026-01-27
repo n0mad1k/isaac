@@ -307,6 +307,9 @@ class GearContentsCreate(BaseModel):
     expiration_alert_days: int = 30
     units: Optional[List[dict]] = []  # Advanced: [{expiration_date, lot_number, notes}]
     status: ContentStatus = ContentStatus.GOOD
+    battery_type: Optional[str] = None
+    needs_cleaning: bool = False
+    needs_recharge: bool = False
     notes: Optional[str] = None
 
 
@@ -319,6 +322,9 @@ class GearContentsUpdate(BaseModel):
     expiration_alert_days: Optional[int] = None
     units: Optional[List[dict]] = None  # [{expiration_date, lot_number, notes}]
     status: Optional[ContentStatus] = None
+    battery_type: Optional[str] = None
+    needs_cleaning: Optional[bool] = None
+    needs_recharge: Optional[bool] = None
     last_checked: Optional[datetime] = None
     notes: Optional[str] = None
     is_active: Optional[bool] = None
@@ -1816,8 +1822,48 @@ def serialize_gear_maintenance(maint: MemberGearMaintenance) -> dict:
     }
 
 
+def compute_content_status(content: MemberGearContents) -> str:
+    """Compute the actual status based on quantity, min_quantity, and expiration"""
+    from datetime import datetime
+    now = datetime.utcnow()
+
+    # Check for missing quantity
+    if content.quantity == 0:
+        return "MISSING"
+
+    # Check for expired items
+    has_expired = False
+    if content.units:
+        for unit in content.units:
+            if unit.get("expiration_date"):
+                try:
+                    exp_date = datetime.fromisoformat(unit["expiration_date"].replace("Z", "+00:00"))
+                    if exp_date.replace(tzinfo=None) < now:
+                        has_expired = True
+                        break
+                except (ValueError, TypeError):
+                    pass
+    elif content.expiration_date:
+        if content.expiration_date < now:
+            has_expired = True
+
+    if has_expired:
+        return "EXPIRED"
+
+    # Check for low quantity
+    if content.min_quantity and content.quantity < content.min_quantity:
+        return "LOW"
+
+    # Check for needs_replacement status override
+    if content.status and content.status.value == "NEEDS_REPLACEMENT":
+        return "NEEDS_REPLACEMENT"
+
+    return "GOOD"
+
+
 def serialize_gear_contents(content: MemberGearContents) -> dict:
     """Serialize a gear contents item to dict"""
+    computed_status = compute_content_status(content)
     return {
         "id": content.id,
         "gear_id": content.gear_id,
@@ -1828,7 +1874,11 @@ def serialize_gear_contents(content: MemberGearContents) -> dict:
         "expiration_date": content.expiration_date.isoformat() if content.expiration_date else None,
         "expiration_alert_days": content.expiration_alert_days,
         "units": content.units or [],  # [{expiration_date, lot_number, notes}]
-        "status": content.status.value if content.status else None,
+        "status": computed_status,  # Use computed status
+        "stored_status": content.status.value if content.status else None,  # Keep original for reference
+        "battery_type": content.battery_type,
+        "needs_cleaning": content.needs_cleaning,
+        "needs_recharge": content.needs_recharge,
         "last_checked": content.last_checked.isoformat() if content.last_checked else None,
         "notes": content.notes,
         "is_active": content.is_active,

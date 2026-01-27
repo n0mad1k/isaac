@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.28.2] - 2026-01-27
+
+### Fixed
+- **Gear content status now automatically computed**
+  - Items with quantity=0 show as MISSING
+  - Items below min_quantity show as LOW
+  - Items with expired dates show as EXPIRED
+  - Status is computed server-side, no longer depends on manual setting
+
 ## [1.28.1] - 2026-01-27
 
 ### Added
