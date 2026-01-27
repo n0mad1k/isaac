@@ -1123,12 +1123,17 @@ async def get_admin_logs(
 
             # Try to parse structured log format: "2026-01-27 12:00:00 | INFO     | module:func:123 - message"
             try:
-                parts = line.split(" | ", 3)
-                if len(parts) >= 4:
+                parts = line.split(" | ", 2)
+                if len(parts) >= 3:
                     timestamp = parts[0]
                     log_level = parts[1].strip()
-                    location = parts[2]
-                    message = parts[3].split(" - ", 1)[-1] if " - " in parts[3] else parts[3]
+                    # Location and message are separated by " - "
+                    loc_msg = parts[2]
+                    if " - " in loc_msg:
+                        location, message = loc_msg.split(" - ", 1)
+                    else:
+                        location = ""
+                        message = loc_msg
                     parsed_logs.append({
                         "timestamp": timestamp,
                         "level": log_level,
