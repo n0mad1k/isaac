@@ -176,9 +176,14 @@ function Team() {
   return (
     <div className="space-y-4">
       {/* Header Row: Tabs (left) + Team Name (center) + Actions (right) */}
-      <div className="flex items-center border-b border-gray-700 pb-2">
+      <div className="relative flex items-center border-b border-gray-700 pb-2">
+        {/* Team Name - Absolutely centered */}
+        <h1 className="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-white pointer-events-none">
+          {settings?.team_name || 'Team'}
+        </h1>
+
         {/* Tab Navigation - Left */}
-        <div className="flex items-center gap-1 flex-shrink-0 max-w-[40%]">
+        <div className="flex items-center gap-1 flex-shrink-0 max-w-[35%]">
           {showLeftArrow && (
             <button
               onClick={() => scrollTabs('left')}
@@ -240,10 +245,8 @@ function Team() {
           )}
         </div>
 
-        {/* Team Name - Center */}
-        <h1 className="text-2xl font-bold text-white flex-1 text-center">
-          {settings?.team_name || 'Team'}
-        </h1>
+        {/* Spacer to push actions to right */}
+        <div className="flex-1"></div>
 
         {/* Actions - Right */}
         <div className="flex gap-2 flex-shrink-0">
