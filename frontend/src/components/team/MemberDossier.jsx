@@ -201,16 +201,16 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
               <ReadinessIndicator status={member.overall_readiness} />
-              {/* Blood Type - Hazy/muted red */}
+              {/* Blood Type - gets the old anaphylaxis color (darker) */}
               {member.blood_type && (
-                <span className="px-3 py-1 rounded-lg font-bold text-sm flex items-center gap-1" style={{ backgroundColor: 'rgba(127, 29, 29, 0.5)', border: '1px solid #991b1b', color: '#fca5a5' }}>
+                <span className="px-3 py-1 bg-red-600 border border-red-400 rounded-lg text-white font-bold text-sm flex items-center gap-1">
                   <Heart className="w-4 h-4" />
                   {member.blood_type}
                 </span>
               )}
-              {/* Anaphylaxis Allergies - BRIGHT RED */}
+              {/* Anaphylaxis Allergies - gets the old blood type color (lighter/pinkish) */}
               {member.allergies && member.allergies.filter(a => typeof a === 'object' && a.anaphylaxis).map((allergy, idx) => (
-                <span key={idx} className="px-2 py-1 rounded font-bold text-xs flex items-center gap-1" style={{ backgroundColor: '#dc2626', border: '2px solid #ef4444', color: '#ffffff' }}>
+                <span key={idx} className="px-2 py-1 bg-red-900/50 border border-red-600 rounded text-red-300 font-bold text-xs flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" />
                   ANAPHYLAXIS: {typeof allergy === 'object' ? allergy.name : allergy}
                 </span>
