@@ -11,7 +11,7 @@ import HomeMaintenance from './pages/HomeMaintenance'
 import Vehicles from './pages/Vehicles'
 import Equipment from './pages/Equipment'
 import FarmAreas from './pages/FarmAreas'
-import Production from './pages/Production'
+import FarmFinances from './pages/FarmFinances'
 import DevTracker from './pages/DevTracker'
 import WorkerTasks from './pages/WorkerTasks'
 import Team from './pages/Team'
@@ -65,7 +65,7 @@ function ProtectedRoutes() {
             <Route path="vehicles" element={<Vehicles />} />
             <Route path="equipment" element={<Equipment />} />
             <Route path="farm-areas" element={<FarmAreas />} />
-            <Route path="production" element={<Production />} />
+            <Route path="farm-finances" element={<FarmFinances />} />
             <Route path="settings" element={<Settings />} />
             <Route path="dev-tracker" element={<DevTracker />} />
             <Route path="worker-tasks" element={<WorkerTasks />} />

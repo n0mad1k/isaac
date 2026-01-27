@@ -312,6 +312,42 @@ export const createSale = (data) => api.post('/production/sales/', data)
 export const updateSale = (id, data) => api.patch(`/production/sales/${id}/`, data)
 export const deleteSale = (id) => api.delete(`/production/sales/${id}/`)
 
+// Customers
+export const getCustomers = (params) => api.get('/production/customers/', { params })
+export const getCustomer = (id) => api.get(`/production/customers/${id}/`)
+export const createCustomer = (data) => api.post('/production/customers/', data)
+export const updateCustomer = (id, data) => api.patch(`/production/customers/${id}/`, data)
+export const deleteCustomer = (id) => api.delete(`/production/customers/${id}/`)
+
+// Livestock Orders
+export const getOrders = (params) => api.get('/production/orders/', { params })
+export const getOrder = (id) => api.get(`/production/orders/${id}/`)
+export const createOrder = (data) => api.post('/production/orders/', data)
+export const updateOrder = (id, data) => api.patch(`/production/orders/${id}/`, data)
+export const deleteOrder = (id) => api.delete(`/production/orders/${id}/`)
+export const addOrderPayment = (orderId, data) => api.post(`/production/orders/${orderId}/payments/`, data)
+export const deleteOrderPayment = (orderId, paymentId) => api.delete(`/production/orders/${orderId}/payments/${paymentId}/`)
+export const completeOrder = (id) => api.post(`/production/orders/${id}/complete/`)
+
+// Production Allocations
+export const getLivestockAllocations = (productionId) => api.get(`/production/livestock/${productionId}/allocations/`)
+export const createLivestockAllocation = (productionId, data) => api.post(`/production/livestock/${productionId}/allocations/`, data)
+export const deleteLivestockAllocation = (id) => api.delete(`/production/allocations/${id}/`)
+export const allocatePersonal = (productionId, percentage, notes) =>
+  api.post(`/production/livestock/${productionId}/allocate-personal/`, null, { params: { percentage, notes } })
+
+// Harvest Allocations
+export const getHarvestAllocations = (harvestId) => api.get(`/production/harvests/${harvestId}/allocations/`)
+export const createHarvestAllocation = (harvestId, data) => api.post(`/production/harvests/${harvestId}/allocations/`, data)
+export const deleteHarvestAllocation = (id) => api.delete(`/production/harvest-allocations/${id}/`)
+export const allocateConsumed = (harvestId, quantity, notes) =>
+  api.post(`/production/harvests/${harvestId}/allocate-consumed/`, null, { params: { quantity, notes } })
+
+// Financial Summary
+export const getFinancialSummary = (year) =>
+  api.get('/production/financial-summary/', { params: year ? { year } : {} })
+export const getOutstandingPayments = () => api.get('/production/outstanding-payments/')
+
 // Authentication
 export const checkAuth = () => api.get('/auth/check')
 export const login = (username, password) =>

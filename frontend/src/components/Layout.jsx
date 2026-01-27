@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Menu, X, LogOut, User, Bug, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard, UsersRound } from 'lucide-react'
+import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Menu, X, LogOut, User, Bug, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard, UsersRound, DollarSign } from 'lucide-react'
 import { getSettings, getVersionInfo, toggleKeyboard as toggleKeyboardApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import FloatingActionMenu from './FloatingActionMenu'
@@ -224,7 +224,7 @@ function Layout() {
     { to: '/vehicles', icon: Car, label: 'Vehicles' },
     { to: '/equipment', icon: Wrench, label: 'Equip' },
     { to: '/farm-areas', icon: Fence, label: 'Farm' },
-    { to: '/production', icon: Package, label: 'Prod' },
+    { to: '/farm-finances', icon: DollarSign, label: 'Finance' },
     // Dev tracker only shows on dev instance
     ...(isDevInstance ? [{ to: '/dev-tracker', icon: Bug, label: 'Dev' }] : []),
     { to: '/settings', icon: Settings, label: 'Settings' },

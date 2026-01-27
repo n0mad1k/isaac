@@ -11,7 +11,11 @@ from datetime import datetime, date
 from pydantic import BaseModel, Field
 
 from models.database import get_db
-from models.production import LivestockProduction, PlantHarvest, HarvestQuality, Sale, SaleCategory
+from models.production import (
+    LivestockProduction, PlantHarvest, HarvestQuality, Sale, SaleCategory,
+    Customer, LivestockOrder, OrderPayment, ProductionAllocation, HarvestAllocation,
+    OrderStatus, PaymentType, PaymentMethod, AllocationType, HarvestUseType, PortionType
+)
 from models.livestock import Animal, AnimalExpense
 from models.plants import Plant
 
@@ -143,8 +147,180 @@ class SaleResponse(BaseModel):
     plant_id: Optional[int]
     harvest_id: Optional[int]
     livestock_production_id: Optional[int]
+    customer_id: Optional[int]
     created_at: datetime
     updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+# Customer Schemas
+class CustomerCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    email: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=50)
+    address: Optional[str] = Field(None, max_length=1000)
+    notes: Optional[str] = Field(None, max_length=2000)
+    is_active: bool = True
+
+
+class CustomerUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    email: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=50)
+    address: Optional[str] = Field(None, max_length=1000)
+    notes: Optional[str] = Field(None, max_length=2000)
+    is_active: Optional[bool] = None
+
+
+class CustomerResponse(BaseModel):
+    id: int
+    name: str
+    email: Optional[str]
+    phone: Optional[str]
+    address: Optional[str]
+    notes: Optional[str]
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+# Order Schemas
+class OrderPaymentCreate(BaseModel):
+    payment_type: PaymentType
+    payment_method: PaymentMethod = PaymentMethod.CASH
+    amount: float = Field(..., ge=0)
+    payment_date: Optional[date] = None
+    reference: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = Field(None, max_length=1000)
+
+
+class OrderPaymentResponse(BaseModel):
+    id: int
+    order_id: int
+    payment_type: PaymentType
+    payment_method: PaymentMethod
+    amount: float
+    payment_date: date
+    reference: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class LivestockOrderCreate(BaseModel):
+    customer_id: Optional[int] = None
+    customer_name: Optional[str] = Field(None, max_length=200)
+    livestock_production_id: Optional[int] = None
+    description: Optional[str] = Field(None, max_length=2000)
+    portion_type: PortionType = PortionType.WHOLE
+    portion_percentage: float = Field(100.0, ge=0, le=100)
+    estimated_weight: Optional[float] = Field(None, ge=0)
+    actual_weight: Optional[float] = Field(None, ge=0)
+    price_per_pound: Optional[float] = Field(None, ge=0)
+    estimated_total: Optional[float] = Field(None, ge=0)
+    final_total: Optional[float] = Field(None, ge=0)
+    status: OrderStatus = OrderStatus.RESERVED
+    order_date: Optional[date] = None
+    expected_ready_date: Optional[date] = None
+    notes: Optional[str] = Field(None, max_length=2000)
+
+
+class LivestockOrderUpdate(BaseModel):
+    customer_id: Optional[int] = None
+    customer_name: Optional[str] = Field(None, max_length=200)
+    livestock_production_id: Optional[int] = None
+    description: Optional[str] = Field(None, max_length=2000)
+    portion_type: Optional[PortionType] = None
+    portion_percentage: Optional[float] = Field(None, ge=0, le=100)
+    estimated_weight: Optional[float] = Field(None, ge=0)
+    actual_weight: Optional[float] = Field(None, ge=0)
+    price_per_pound: Optional[float] = Field(None, ge=0)
+    estimated_total: Optional[float] = Field(None, ge=0)
+    final_total: Optional[float] = Field(None, ge=0)
+    status: Optional[OrderStatus] = None
+    expected_ready_date: Optional[date] = None
+    completed_date: Optional[date] = None
+    notes: Optional[str] = Field(None, max_length=2000)
+
+
+class LivestockOrderResponse(BaseModel):
+    id: int
+    customer_id: Optional[int]
+    customer_name: Optional[str]
+    livestock_production_id: Optional[int]
+    description: Optional[str]
+    portion_type: PortionType
+    portion_percentage: float
+    estimated_weight: Optional[float]
+    actual_weight: Optional[float]
+    price_per_pound: Optional[float]
+    estimated_total: Optional[float]
+    final_total: Optional[float]
+    total_paid: float
+    balance_due: float
+    status: OrderStatus
+    order_date: date
+    expected_ready_date: Optional[date]
+    completed_date: Optional[date]
+    notes: Optional[str]
+    created_at: datetime
+    updated_at: Optional[datetime]
+    payments: Optional[List[OrderPaymentResponse]] = None
+
+    class Config:
+        from_attributes = True
+
+
+# Allocation Schemas
+class ProductionAllocationCreate(BaseModel):
+    allocation_type: AllocationType
+    percentage: Optional[float] = Field(None, ge=0, le=100)
+    weight: Optional[float] = Field(None, ge=0)
+    order_id: Optional[int] = None
+    notes: Optional[str] = Field(None, max_length=1000)
+
+
+class ProductionAllocationResponse(BaseModel):
+    id: int
+    livestock_production_id: int
+    allocation_type: AllocationType
+    percentage: Optional[float]
+    weight: Optional[float]
+    allocated_cost: Optional[float]
+    order_id: Optional[int]
+    notes: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class HarvestAllocationCreate(BaseModel):
+    use_type: HarvestUseType
+    quantity: float = Field(..., ge=0)
+    unit: Optional[str] = Field(None, max_length=50)
+    sale_id: Optional[int] = None
+    notes: Optional[str] = Field(None, max_length=1000)
+    allocation_date: Optional[date] = None
+
+
+class HarvestAllocationResponse(BaseModel):
+    id: int
+    harvest_id: int
+    use_type: HarvestUseType
+    quantity: float
+    unit: Optional[str]
+    sale_id: Optional[int]
+    notes: Optional[str]
+    allocation_date: date
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -601,3 +777,652 @@ async def delete_sale(
     await db.delete(sale)
     await db.commit()
     return {"message": "Sale deleted"}
+
+
+# ==================== Customer Routes ====================
+
+@router.get("/customers/", response_model=List[CustomerResponse])
+async def list_customers(
+    active_only: bool = True,
+    limit: int = Query(default=100, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all customers"""
+    query = select(Customer)
+    if active_only:
+        query = query.where(Customer.is_active == True)
+    query = query.order_by(Customer.name).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+@router.post("/customers/", response_model=CustomerResponse)
+async def create_customer(
+    data: CustomerCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new customer"""
+    customer = Customer(**data.model_dump())
+    db.add(customer)
+    await db.commit()
+    await db.refresh(customer)
+    return customer
+
+
+@router.get("/customers/{customer_id}/", response_model=CustomerResponse)
+async def get_customer(
+    customer_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a specific customer"""
+    result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return customer
+
+
+@router.patch("/customers/{customer_id}/", response_model=CustomerResponse)
+async def update_customer(
+    customer_id: int,
+    updates: CustomerUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a customer"""
+    result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    for field, value in updates.model_dump(exclude_unset=True).items():
+        setattr(customer, field, value)
+
+    await db.commit()
+    await db.refresh(customer)
+    return customer
+
+
+@router.delete("/customers/{customer_id}/")
+async def delete_customer(
+    customer_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a customer (soft delete - marks as inactive)"""
+    result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    customer.is_active = False
+    await db.commit()
+    return {"message": "Customer deactivated"}
+
+
+# ==================== Livestock Order Routes ====================
+
+@router.get("/orders/", response_model=List[LivestockOrderResponse])
+async def list_orders(
+    status: Optional[OrderStatus] = None,
+    customer_id: Optional[int] = None,
+    livestock_production_id: Optional[int] = None,
+    limit: int = Query(default=100, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all livestock orders"""
+    query = select(LivestockOrder)
+
+    if status:
+        query = query.where(LivestockOrder.status == status)
+    if customer_id:
+        query = query.where(LivestockOrder.customer_id == customer_id)
+    if livestock_production_id:
+        query = query.where(LivestockOrder.livestock_production_id == livestock_production_id)
+
+    query = query.order_by(LivestockOrder.order_date.desc()).limit(limit)
+    result = await db.execute(query)
+    orders = result.scalars().all()
+
+    # Load payments for each order
+    response = []
+    for order in orders:
+        payments_result = await db.execute(
+            select(OrderPayment).where(OrderPayment.order_id == order.id).order_by(OrderPayment.payment_date)
+        )
+        payments = payments_result.scalars().all()
+        order_dict = {
+            **{c.name: getattr(order, c.name) for c in order.__table__.columns},
+            "payments": payments
+        }
+        response.append(LivestockOrderResponse(**order_dict))
+
+    return response
+
+
+@router.post("/orders/", response_model=LivestockOrderResponse)
+async def create_order(
+    data: LivestockOrderCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new livestock order"""
+    # Get customer name if customer_id provided
+    customer_name = data.customer_name
+    if data.customer_id and not customer_name:
+        result = await db.execute(select(Customer).where(Customer.id == data.customer_id))
+        customer = result.scalar_one_or_none()
+        if customer:
+            customer_name = customer.name
+
+    # Calculate totals
+    estimated_total = data.estimated_total
+    if data.estimated_weight and data.price_per_pound and not estimated_total:
+        estimated_total = data.estimated_weight * data.price_per_pound
+
+    final_total = data.final_total
+    if data.actual_weight and data.price_per_pound and not final_total:
+        final_total = data.actual_weight * data.price_per_pound
+
+    order_data = data.model_dump()
+    order_data["customer_name"] = customer_name
+    order_data["estimated_total"] = estimated_total
+    order_data["final_total"] = final_total
+    order_data["order_date"] = data.order_date or date.today()
+    order_data["balance_due"] = final_total or estimated_total or 0.0
+
+    order = LivestockOrder(**order_data)
+    db.add(order)
+    await db.commit()
+    await db.refresh(order)
+
+    return LivestockOrderResponse(**{c.name: getattr(order, c.name) for c in order.__table__.columns}, payments=[])
+
+
+@router.get("/orders/{order_id}/", response_model=LivestockOrderResponse)
+async def get_order(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a specific order with payments"""
+    result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    payments_result = await db.execute(
+        select(OrderPayment).where(OrderPayment.order_id == order.id).order_by(OrderPayment.payment_date)
+    )
+    payments = payments_result.scalars().all()
+
+    return LivestockOrderResponse(
+        **{c.name: getattr(order, c.name) for c in order.__table__.columns},
+        payments=payments
+    )
+
+
+@router.patch("/orders/{order_id}/", response_model=LivestockOrderResponse)
+async def update_order(
+    order_id: int,
+    updates: LivestockOrderUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a livestock order"""
+    result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    update_data = updates.model_dump(exclude_unset=True)
+
+    # Update customer name if customer_id changed
+    if "customer_id" in update_data and update_data["customer_id"]:
+        cust_result = await db.execute(select(Customer).where(Customer.id == update_data["customer_id"]))
+        customer = cust_result.scalar_one_or_none()
+        if customer:
+            update_data["customer_name"] = customer.name
+
+    for field, value in update_data.items():
+        setattr(order, field, value)
+
+    # Recalculate totals if weights/price changed
+    if order.estimated_weight and order.price_per_pound:
+        order.estimated_total = order.estimated_weight * order.price_per_pound
+    if order.actual_weight and order.price_per_pound:
+        order.final_total = order.actual_weight * order.price_per_pound
+
+    # Recalculate balance
+    total = order.final_total or order.estimated_total or 0.0
+    order.balance_due = total - (order.total_paid or 0.0)
+
+    await db.commit()
+    await db.refresh(order)
+
+    payments_result = await db.execute(
+        select(OrderPayment).where(OrderPayment.order_id == order.id).order_by(OrderPayment.payment_date)
+    )
+    payments = payments_result.scalars().all()
+
+    return LivestockOrderResponse(
+        **{c.name: getattr(order, c.name) for c in order.__table__.columns},
+        payments=payments
+    )
+
+
+@router.delete("/orders/{order_id}/")
+async def delete_order(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a livestock order"""
+    result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    await db.delete(order)
+    await db.commit()
+    return {"message": "Order deleted"}
+
+
+# ==================== Order Payment Routes ====================
+
+@router.post("/orders/{order_id}/payments/", response_model=OrderPaymentResponse)
+async def add_payment(
+    order_id: int,
+    data: OrderPaymentCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Add a payment to an order"""
+    result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    payment = OrderPayment(
+        order_id=order_id,
+        payment_type=data.payment_type,
+        payment_method=data.payment_method,
+        amount=data.amount,
+        payment_date=data.payment_date or date.today(),
+        reference=data.reference,
+        notes=data.notes
+    )
+    db.add(payment)
+
+    # Update order totals
+    if data.payment_type == PaymentType.REFUND:
+        order.total_paid -= data.amount
+    else:
+        order.total_paid += data.amount
+
+    total = order.final_total or order.estimated_total or 0.0
+    order.balance_due = total - order.total_paid
+
+    await db.commit()
+    await db.refresh(payment)
+    return payment
+
+
+@router.delete("/orders/{order_id}/payments/{payment_id}/")
+async def delete_payment(
+    order_id: int,
+    payment_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a payment from an order"""
+    result = await db.execute(
+        select(OrderPayment).where(OrderPayment.id == payment_id, OrderPayment.order_id == order_id)
+    )
+    payment = result.scalar_one_or_none()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    order_result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
+    order = order_result.scalar_one_or_none()
+
+    # Reverse the payment
+    if payment.payment_type == PaymentType.REFUND:
+        order.total_paid += payment.amount
+    else:
+        order.total_paid -= payment.amount
+
+    total = order.final_total or order.estimated_total or 0.0
+    order.balance_due = total - order.total_paid
+
+    await db.delete(payment)
+    await db.commit()
+    return {"message": "Payment deleted"}
+
+
+@router.post("/orders/{order_id}/complete/")
+async def complete_order(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark an order as completed"""
+    result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    order.status = OrderStatus.COMPLETED
+    order.completed_date = date.today()
+    await db.commit()
+    return {"message": "Order completed"}
+
+
+# ==================== Production Allocation Routes ====================
+
+@router.get("/livestock/{production_id}/allocations/", response_model=List[ProductionAllocationResponse])
+async def list_livestock_allocations(
+    production_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """List allocations for a livestock production record"""
+    result = await db.execute(
+        select(ProductionAllocation).where(ProductionAllocation.livestock_production_id == production_id)
+    )
+    return result.scalars().all()
+
+
+@router.post("/livestock/{production_id}/allocations/", response_model=ProductionAllocationResponse)
+async def create_livestock_allocation(
+    production_id: int,
+    data: ProductionAllocationCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create an allocation for livestock production"""
+    # Verify production exists
+    prod_result = await db.execute(
+        select(LivestockProduction).where(LivestockProduction.id == production_id)
+    )
+    production = prod_result.scalar_one_or_none()
+    if not production:
+        raise HTTPException(status_code=404, detail="Livestock production not found")
+
+    # Calculate allocated cost if possible
+    allocated_cost = None
+    if data.percentage and production.cost_per_pound and production.final_weight:
+        total_cost = production.cost_per_pound * production.final_weight
+        allocated_cost = total_cost * (data.percentage / 100.0)
+
+    # Calculate weight from percentage if not provided
+    weight = data.weight
+    if not weight and data.percentage and production.final_weight:
+        weight = production.final_weight * (data.percentage / 100.0)
+
+    allocation = ProductionAllocation(
+        livestock_production_id=production_id,
+        allocation_type=data.allocation_type,
+        percentage=data.percentage,
+        weight=weight,
+        allocated_cost=allocated_cost,
+        order_id=data.order_id,
+        notes=data.notes
+    )
+    db.add(allocation)
+    await db.commit()
+    await db.refresh(allocation)
+    return allocation
+
+
+@router.delete("/allocations/{allocation_id}/")
+async def delete_allocation(
+    allocation_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a production allocation"""
+    result = await db.execute(
+        select(ProductionAllocation).where(ProductionAllocation.id == allocation_id)
+    )
+    allocation = result.scalar_one_or_none()
+    if not allocation:
+        raise HTTPException(status_code=404, detail="Allocation not found")
+
+    await db.delete(allocation)
+    await db.commit()
+    return {"message": "Allocation deleted"}
+
+
+@router.post("/livestock/{production_id}/allocate-personal/", response_model=ProductionAllocationResponse)
+async def allocate_personal(
+    production_id: int,
+    percentage: float = Query(..., ge=0, le=100),
+    notes: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Quick allocation for personal use"""
+    prod_result = await db.execute(
+        select(LivestockProduction).where(LivestockProduction.id == production_id)
+    )
+    production = prod_result.scalar_one_or_none()
+    if not production:
+        raise HTTPException(status_code=404, detail="Livestock production not found")
+
+    # Calculate values
+    weight = production.final_weight * (percentage / 100.0) if production.final_weight else None
+    allocated_cost = None
+    if production.cost_per_pound and weight:
+        allocated_cost = production.cost_per_pound * weight
+
+    allocation = ProductionAllocation(
+        livestock_production_id=production_id,
+        allocation_type=AllocationType.PERSONAL,
+        percentage=percentage,
+        weight=weight,
+        allocated_cost=allocated_cost,
+        notes=notes
+    )
+    db.add(allocation)
+    await db.commit()
+    await db.refresh(allocation)
+    return allocation
+
+
+# ==================== Harvest Allocation Routes ====================
+
+@router.get("/harvests/{harvest_id}/allocations/", response_model=List[HarvestAllocationResponse])
+async def list_harvest_allocations(
+    harvest_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """List allocations for a plant harvest"""
+    result = await db.execute(
+        select(HarvestAllocation).where(HarvestAllocation.harvest_id == harvest_id)
+    )
+    return result.scalars().all()
+
+
+@router.post("/harvests/{harvest_id}/allocations/", response_model=HarvestAllocationResponse)
+async def create_harvest_allocation(
+    harvest_id: int,
+    data: HarvestAllocationCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create an allocation for a plant harvest"""
+    # Verify harvest exists
+    harvest_result = await db.execute(
+        select(PlantHarvest).where(PlantHarvest.id == harvest_id)
+    )
+    harvest = harvest_result.scalar_one_or_none()
+    if not harvest:
+        raise HTTPException(status_code=404, detail="Harvest not found")
+
+    allocation = HarvestAllocation(
+        harvest_id=harvest_id,
+        use_type=data.use_type,
+        quantity=data.quantity,
+        unit=data.unit or harvest.unit,
+        sale_id=data.sale_id,
+        notes=data.notes,
+        allocation_date=data.allocation_date or date.today()
+    )
+    db.add(allocation)
+    await db.commit()
+    await db.refresh(allocation)
+    return allocation
+
+
+@router.delete("/harvest-allocations/{allocation_id}/")
+async def delete_harvest_allocation(
+    allocation_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a harvest allocation"""
+    result = await db.execute(
+        select(HarvestAllocation).where(HarvestAllocation.id == allocation_id)
+    )
+    allocation = result.scalar_one_or_none()
+    if not allocation:
+        raise HTTPException(status_code=404, detail="Allocation not found")
+
+    await db.delete(allocation)
+    await db.commit()
+    return {"message": "Allocation deleted"}
+
+
+@router.post("/harvests/{harvest_id}/allocate-consumed/", response_model=HarvestAllocationResponse)
+async def allocate_consumed(
+    harvest_id: int,
+    quantity: float = Query(..., ge=0),
+    notes: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Quick allocation for personal consumption"""
+    harvest_result = await db.execute(
+        select(PlantHarvest).where(PlantHarvest.id == harvest_id)
+    )
+    harvest = harvest_result.scalar_one_or_none()
+    if not harvest:
+        raise HTTPException(status_code=404, detail="Harvest not found")
+
+    allocation = HarvestAllocation(
+        harvest_id=harvest_id,
+        use_type=HarvestUseType.CONSUMED,
+        quantity=quantity,
+        unit=harvest.unit,
+        notes=notes,
+        allocation_date=date.today()
+    )
+    db.add(allocation)
+    await db.commit()
+    await db.refresh(allocation)
+    return allocation
+
+
+# ==================== Financial Summary Routes ====================
+
+@router.get("/financial-summary/")
+async def get_financial_summary(
+    year: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get comprehensive financial summary"""
+    # Get all livestock productions
+    livestock_query = select(LivestockProduction)
+    if year:
+        livestock_query = livestock_query.where(
+            extract('year', LivestockProduction.slaughter_date) == year
+        )
+    livestock_result = await db.execute(livestock_query)
+    livestock = livestock_result.scalars().all()
+
+    # Get all orders
+    orders_query = select(LivestockOrder)
+    if year:
+        orders_query = orders_query.where(extract('year', LivestockOrder.order_date) == year)
+    orders_result = await db.execute(orders_query)
+    orders = orders_result.scalars().all()
+
+    # Get all sales
+    sales_query = select(Sale)
+    if year:
+        sales_query = sales_query.where(extract('year', Sale.sale_date) == year)
+    sales_result = await db.execute(sales_query)
+    sales = sales_result.scalars().all()
+
+    # Get all allocations
+    allocations_query = select(ProductionAllocation)
+    allocations_result = await db.execute(allocations_query)
+    allocations = allocations_result.scalars().all()
+
+    # Calculate totals
+    total_expenses = sum((p.total_expenses or 0) + (p.processing_cost or 0) for p in livestock)
+    total_meat = sum(p.final_weight or 0 for p in livestock)
+    avg_cost_per_pound = total_expenses / total_meat if total_meat > 0 else 0
+
+    # Order revenue
+    order_revenue = sum(o.total_paid or 0 for o in orders)
+    outstanding_balance = sum(o.balance_due or 0 for o in orders if o.status != OrderStatus.CANCELLED)
+
+    # Direct sales revenue
+    direct_sales_revenue = sum(s.total_price or 0 for s in sales)
+
+    # Allocation breakdown
+    personal_weight = sum(a.weight or 0 for a in allocations if a.allocation_type == AllocationType.PERSONAL)
+    personal_cost = sum(a.allocated_cost or 0 for a in allocations if a.allocation_type == AllocationType.PERSONAL)
+    sold_weight = sum(a.weight or 0 for a in allocations if a.allocation_type == AllocationType.SALE)
+
+    total_revenue = order_revenue + direct_sales_revenue
+
+    return {
+        "year": year,
+        "livestock": {
+            "total_processed": len(livestock),
+            "total_meat_lbs": total_meat,
+            "total_expenses": total_expenses,
+            "avg_cost_per_pound": avg_cost_per_pound,
+        },
+        "orders": {
+            "total_orders": len(orders),
+            "completed_orders": len([o for o in orders if o.status == OrderStatus.COMPLETED]),
+            "active_orders": len([o for o in orders if o.status not in [OrderStatus.COMPLETED, OrderStatus.CANCELLED]]),
+            "total_collected": order_revenue,
+            "outstanding_balance": outstanding_balance,
+        },
+        "allocations": {
+            "personal_weight": personal_weight,
+            "personal_cost": personal_cost,
+            "sold_weight": sold_weight,
+        },
+        "sales": {
+            "total_sales": len(sales),
+            "total_revenue": direct_sales_revenue,
+        },
+        "summary": {
+            "total_revenue": total_revenue,
+            "total_expenses": total_expenses,
+            "net_profit": total_revenue - total_expenses,
+            "outstanding_payments": outstanding_balance,
+        }
+    }
+
+
+@router.get("/outstanding-payments/")
+async def get_outstanding_payments(
+    db: AsyncSession = Depends(get_db),
+):
+    """Get orders with outstanding balances"""
+    result = await db.execute(
+        select(LivestockOrder)
+        .where(LivestockOrder.balance_due > 0)
+        .where(LivestockOrder.status != OrderStatus.CANCELLED)
+        .order_by(LivestockOrder.balance_due.desc())
+    )
+    orders = result.scalars().all()
+
+    response = []
+    for order in orders:
+        payments_result = await db.execute(
+            select(OrderPayment).where(OrderPayment.order_id == order.id).order_by(OrderPayment.payment_date)
+        )
+        payments = payments_result.scalars().all()
+        response.append({
+            "order": LivestockOrderResponse(
+                **{c.name: getattr(order, c.name) for c in order.__table__.columns},
+                payments=payments
+            ),
+            "total_due": order.final_total or order.estimated_total or 0,
+            "total_paid": order.total_paid or 0,
+            "balance_due": order.balance_due or 0,
+        })
+
+    return response

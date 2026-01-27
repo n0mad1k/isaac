@@ -2,6 +2,41 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.28.0] - 2026-01-27
+
+### Added
+- **Farm Finances page** (renamed from Production & Sales)
+  - Complete redesign with new tab structure: Overview, Livestock, Harvests, Orders, Customers
+- **Customer management system**
+  - Track customers with contact info, address, and notes
+  - Link customers to sales and orders
+  - Soft delete (deactivate) customers to preserve history
+- **Multi-payment livestock orders**
+  - Create orders for livestock sales with portion tracking (whole, half, quarter, custom)
+  - Track estimated and actual weights with price per pound
+  - Payment progress bar showing deposit/partial/final payments
+  - Support for multiple payment methods: cash, check, Venmo, Zelle, card
+  - Order status tracking: Reserved, In Progress, Ready, Completed, Cancelled
+- **Production allocation tracking**
+  - Allocate livestock production for: Sale, Personal use, Gift, Loss
+  - Track weight and cost per allocation
+  - Calculate cost value of personal use meat
+- **Harvest allocation tracking**
+  - Track harvest usage: Sold, Consumed, Gifted, Preserved, Spoiled
+  - Quick "Mark as Consumed" option for personal use
+- **Enhanced financial overview**
+  - Revenue, expenses, and net profit summary
+  - Outstanding payments dashboard with quick payment actions
+  - Livestock cost per pound tracking
+  - Personal use weight and cost value
+- **Outstanding payments view**
+  - See all orders with unpaid balances
+  - Quick access to add payments from overview
+
+### Changed
+- Navigation renamed from "Prod" to "Finance" with new icon
+- Route changed from /production to /farm-finances
+
 ## [1.27.3] - 2026-01-27
 
 ### Fixed

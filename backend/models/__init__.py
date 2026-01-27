@@ -13,7 +13,11 @@ from .home_maintenance import HomeMaintenance, HomeMaintenanceLog, DEFAULT_CATEG
 from .vehicles import Vehicle, VehicleMaintenance, VehicleMaintenanceLog, VehicleType
 from .equipment import Equipment, EquipmentMaintenance, EquipmentMaintenanceLog, EquipmentType
 from .farm_areas import FarmArea, FarmAreaMaintenance, FarmAreaMaintenanceLog, FarmAreaType
-from .production import LivestockProduction, PlantHarvest, HarvestQuality, Sale, SaleCategory
+from .production import (
+    LivestockProduction, PlantHarvest, HarvestQuality, Sale, SaleCategory,
+    Customer, LivestockOrder, OrderPayment, ProductionAllocation, HarvestAllocation,
+    OrderStatus, PaymentType, PaymentMethod, AllocationType, HarvestUseType, PortionType
+)
 from .users import User, Session, UserRole, LoginAttempt, AuditLog, AuditAction
 from .dev_tracker import DevTrackerItem, ItemType, ItemPriority, ItemStatus
 from .workers import Worker
@@ -79,6 +83,17 @@ __all__ = [
     "HarvestQuality",
     "Sale",
     "SaleCategory",
+    "Customer",
+    "LivestockOrder",
+    "OrderPayment",
+    "ProductionAllocation",
+    "HarvestAllocation",
+    "OrderStatus",
+    "PaymentType",
+    "PaymentMethod",
+    "AllocationType",
+    "HarvestUseType",
+    "PortionType",
     "User",
     "Session",
     "UserRole",
