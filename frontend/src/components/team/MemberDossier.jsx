@@ -1036,27 +1036,57 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     notes: ''
   })
 
-  // Calculate BMI
-  const calculateBMI = (weightLbs, heightInches) => {
-    if (!weightLbs || !heightInches) return null
-    return ((weightLbs / (heightInches * heightInches)) * 703).toFixed(1)
-  }
-
-  const bmi = calculateBMI(member.current_weight, member.height_inches)
-  const getBMICategory = (bmi) => {
-    if (!bmi) return { label: 'N/A', color: 'text-gray-400' }
-    const val = parseFloat(bmi)
-    if (val < 18.5) return { label: 'Underweight', color: 'text-blue-400' }
-    if (val < 25) return { label: 'Normal', color: 'text-green-400' }
-    if (val < 30) return { label: 'Overweight', color: 'text-yellow-400' }
-    return { label: 'Obese', color: 'text-red-400' }
-  }
-  const bmiInfo = getBMICategory(bmi)
-
-  // Get latest vital by type
+  // Get latest vital by type (moved up for body fat calc)
   const getLatestVital = (vitalType) => {
     return vitalsHistory.find(v => v.vital_type === vitalType)
   }
+
+  // Calculate body fat using Navy/Marine Corps taping method
+  const calculateBodyFat = () => {
+    const height = member.height_inches
+    const waistVital = getLatestVital('waist')
+    const neckVital = getLatestVital('neck')
+    const hipVital = getLatestVital('hip')
+
+    if (!height || !waistVital || !neckVital) return null
+
+    const waist = waistVital.value
+    const neck = neckVital.value
+    const hip = hipVital?.value
+
+    // If hip measurement exists, use female formula
+    if (hip) {
+      const circumference = waist + hip - neck
+      if (circumference <= 0) return null
+      return 163.205 * Math.log10(circumference) - 97.684 * Math.log10(height) - 78.387
+    } else {
+      // Male formula
+      const circumference = waist - neck
+      if (circumference <= 0) return null
+      return 86.010 * Math.log10(circumference) - 70.041 * Math.log10(height) + 36.76
+    }
+  }
+
+  // Get body fat info with category
+  const bodyFat = calculateBodyFat()
+  const getBodyFatCategory = (bf) => {
+    if (bf === null) return { label: 'N/A', color: 'text-gray-400' }
+    // Using general fitness categories
+    if (bf < 10) return { label: 'Essential', color: 'text-blue-400' }
+    if (bf < 14) return { label: 'Athletic', color: 'text-green-400' }
+    if (bf < 18) return { label: 'Fitness', color: 'text-green-400' }
+    if (bf < 25) return { label: 'Average', color: 'text-yellow-400' }
+    return { label: 'Above Avg', color: 'text-orange-400' }
+  }
+  const bodyFatInfo = getBodyFatCategory(bodyFat)
+
+  // Calculate lean mass (total weight - fat mass)
+  const leanMass = (bodyFat !== null && member.current_weight)
+    ? member.current_weight * (1 - bodyFat / 100)
+    : null
+
+  // Get latest resting heart rate
+  const latestRHR = getLatestVital('heart_rate')
 
   // Format vital value for display
   const formatVitalValue = (vital) => {
@@ -1366,7 +1396,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       </div>
 
       {/* Current Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="bg-gray-700 rounded-lg p-4">
           <div className="text-gray-400 text-sm mb-1">Weight</div>
           <div className="text-2xl font-bold">{formatWeight(member.current_weight)}</div>
@@ -1381,9 +1411,23 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
           <div className="text-2xl font-bold">{formatHeight(member.height_inches)}</div>
         </div>
         <div className="bg-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-sm mb-1">BMI</div>
-          <div className="text-2xl font-bold">{bmi || 'N/A'}</div>
-          <div className={`text-xs ${bmiInfo.color}`}>{bmiInfo.label}</div>
+          <div className="text-gray-400 text-sm mb-1">Body Fat %</div>
+          <div className="text-2xl font-bold">{bodyFat !== null ? `${bodyFat.toFixed(1)}%` : 'N/A'}</div>
+          <div className={`text-xs ${bodyFatInfo.color}`}>{bodyFatInfo.label}</div>
+        </div>
+        <div className="bg-gray-700 rounded-lg p-4">
+          <div className="text-gray-400 text-sm mb-1">Lean Mass</div>
+          <div className="text-2xl font-bold">{leanMass !== null ? formatWeight(leanMass) : 'N/A'}</div>
+          {bodyFat !== null && (
+            <div className="text-xs text-gray-400">
+              Fat: {formatWeight(member.current_weight - leanMass)}
+            </div>
+          )}
+        </div>
+        <div className="bg-gray-700 rounded-lg p-4">
+          <div className="text-gray-400 text-sm mb-1">Resting HR</div>
+          <div className="text-2xl font-bold">{latestRHR ? `${Math.round(latestRHR.value)}` : 'N/A'}</div>
+          {latestRHR && <div className="text-xs text-gray-400">bpm</div>}
         </div>
         <div className="bg-gray-700 rounded-lg p-4">
           <div className="text-gray-400 text-sm mb-1">Blood Type</div>

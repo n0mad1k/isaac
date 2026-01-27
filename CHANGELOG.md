@@ -19,7 +19,14 @@ All notable changes to Isaac will be documented in this file.
   - Primary drivers explaining current status
   - Risk flags with color-coded severity
   - Expandable details showing data quality and all indicators
-  - Refresh button to recalculate analysis
+  - Refresh button to recalculate
+- **Enhanced Health Stats for tactical athletes**
+  - Body Fat % calculated via Navy/Marine Corps taping method (height, waist, neck circumference)
+  - Lean Mass calculated from weight and body fat percentage
+  - Resting Heart Rate displayed prominently
+
+### Removed
+- BMI from health stats (not suitable for tactical athletes with high muscle mass) analysis
 
 ## [1.31.0] - 2026-01-27
 
