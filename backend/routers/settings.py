@@ -1018,6 +1018,14 @@ async def get_recent_commits():
 
 
 # Admin Logs Endpoints (must be before /{key}/ route)
+# ANSI escape code pattern for stripping colors from logs
+ANSI_ESCAPE_PATTERN = re.compile(r'\x1b\[[0-9;]*[mK]|\x1b\].*?\x07')
+
+def strip_ansi_codes(text: str) -> str:
+    """Remove ANSI escape codes (colors, formatting) from text."""
+    return ANSI_ESCAPE_PATTERN.sub('', text)
+
+
 @router.get("/admin-logs/files/")
 async def get_log_files():
     """Get list of available log files"""
@@ -1097,9 +1105,9 @@ async def get_admin_logs(
     lines = min(lines, 1000)
 
     try:
-        # Read file and get last N lines
+        # Read file and get last N lines, stripping ANSI codes
         with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
-            all_lines = f.readlines()
+            all_lines = [strip_ansi_codes(line) for line in f.readlines()]
 
         # Filter by level if specified
         if level:
