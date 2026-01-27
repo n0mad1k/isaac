@@ -198,16 +198,23 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
 
           {/* Name and info */}
           <div className="flex-1">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
               <ReadinessIndicator status={member.overall_readiness} />
-              {/* Blood Type - Prominent Display */}
+              {/* Blood Type - Prominent Display (hazy red) */}
               {member.blood_type && (
                 <span className="px-3 py-1 bg-red-900/50 border border-red-600 rounded-lg text-red-300 font-bold text-sm flex items-center gap-1">
                   <Heart className="w-4 h-4" />
                   {member.blood_type}
                 </span>
               )}
+              {/* Anaphylaxis Allergies - Same line as name and blood type (bright red) */}
+              {member.allergies && member.allergies.filter(a => typeof a === 'object' && a.anaphylaxis).map((allergy, idx) => (
+                <span key={idx} className="px-2 py-1 bg-red-600 border border-red-400 rounded text-white text-xs font-bold flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  ANAPHYLAXIS: {typeof allergy === 'object' ? allergy.name : allergy}
+                </span>
+              ))}
             </div>
             {member.nickname && (
               <p className="text-gray-400">"{member.nickname}"</p>
@@ -228,17 +235,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 </span>
               )}
             </div>
-            {/* Anaphylaxis Allergies - Prominent Warning */}
-            {member.allergies && member.allergies.some(a => typeof a === 'object' && a.anaphylaxis) && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-400" />
-                {member.allergies.filter(a => typeof a === 'object' && a.anaphylaxis).map((allergy, idx) => (
-                  <span key={idx} className="px-2 py-0.5 bg-red-600 border border-red-400 rounded text-white text-xs font-bold">
-                    ANAPHYLAXIS: {typeof allergy === 'object' ? allergy.name : allergy}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
