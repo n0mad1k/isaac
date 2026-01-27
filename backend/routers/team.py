@@ -15,6 +15,7 @@ import json
 import os
 import uuid
 import shutil
+from loguru import logger
 
 from models.database import get_db
 from models.settings import AppSetting
@@ -1898,12 +1899,16 @@ async def create_pool_gear(
     current_user: User = Depends(require_auth)
 ):
     """Create unassigned (pool) gear"""
-    gear = MemberGear(member_id=None, **data.model_dump())
-    db.add(gear)
-    await db.commit()
-    await db.refresh(gear)
-
-    return serialize_gear(gear)
+    try:
+        gear = MemberGear(member_id=None, **data.model_dump())
+        db.add(gear)
+        await db.commit()
+        await db.refresh(gear)
+        return serialize_gear(gear)
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error creating pool gear: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.patch("/gear/{gear_id}/assign")
