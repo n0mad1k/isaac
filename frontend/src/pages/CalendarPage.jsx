@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Pencil, RefreshCw, Clock, CheckSquare, MapPin, Wrench } from 'lucide-react'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Pencil, RefreshCw, Clock, CheckSquare, MapPin, Wrench, User } from 'lucide-react'
 import { getCalendarMonth, getCalendarWeek, createTask, updateTask, deleteTask, completeTask, uncompleteTask, syncCalendar } from '../services/api'
 import EventModal from '../components/EventModal'
 import MottoDisplay from '../components/MottoDisplay'
@@ -862,6 +862,12 @@ function EventChip({ event, onClick, onToggle, expanded = false, formatTime, isM
             {event.linked_entity}
           </span>
         )}
+        {expanded && (event.assigned_member_names?.length > 0 || event.assigned_to_member_name) && (
+          <span className="text-[10px] flex items-center gap-0.5 px-1 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'rgba(34, 211, 238, 0.2)', color: 'rgb(34, 211, 238)' }}>
+            <User className="w-2.5 h-2.5" />
+            {event.assigned_member_names?.length > 0 ? event.assigned_member_names.join(', ') : event.assigned_to_member_name}
+          </span>
+        )}
       </div>
       {expanded && (
         <button
@@ -932,6 +938,13 @@ function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDelet
                       <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-gold-100)', color: 'var(--color-gold-700)' }}>
                         <Wrench className="w-3 h-3" />
                         {event.linked_entity}
+                      </span>
+                    )}
+                    {/* Assigned member badge (cyan) */}
+                    {(event.assigned_member_names?.length > 0 || event.assigned_to_member_name) && (
+                      <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'rgba(34, 211, 238, 0.2)', color: 'rgb(34, 211, 238)' }}>
+                        <User className="w-3 h-3" />
+                        {event.assigned_member_names?.length > 0 ? event.assigned_member_names.join(', ') : event.assigned_to_member_name}
                       </span>
                     )}
                   </div>

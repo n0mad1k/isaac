@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Check, Circle, AlertCircle, MapPin, Clock, ChevronDown, ChevronUp, Wrench } from 'lucide-react'
+import { Check, Circle, AlertCircle, MapPin, Clock, ChevronDown, ChevronUp, Wrench, User } from 'lucide-react'
 import { completeTask, uncompleteTask } from '../services/api'
 import { isAfter, startOfDay, parseISO, isSameDay } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
@@ -147,6 +147,15 @@ function TaskList({ tasks, title, onTaskToggle, showDate = false, showTimeAndLoc
             <span className="text-xs flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
               <MapPin className="w-3 h-3" />
               {task.location}
+            </span>
+          )}
+          {/* Assigned member */}
+          {(task.assigned_member_names?.length > 0 || task.assigned_to_member_name) && (
+            <span className="text-xs flex items-center gap-0.5 px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(34, 211, 238, 0.2)', color: 'rgb(34, 211, 238)' }}>
+              <User className="w-3 h-3" />
+              {task.assigned_member_names?.length > 0
+                ? task.assigned_member_names.join(', ')
+                : task.assigned_to_member_name}
             </span>
           )}
           {/* Priority indicator */}

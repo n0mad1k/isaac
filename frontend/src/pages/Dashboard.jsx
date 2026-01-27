@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { AlertTriangle, Clock, Archive, Check, Circle, ArrowUp, ChevronDown, ChevronUp, Wrench, MapPin } from 'lucide-react'
+import { AlertTriangle, Clock, Archive, Check, Circle, ArrowUp, ChevronDown, ChevronUp, Wrench, MapPin, User } from 'lucide-react'
 import { getDashboard, getAnimals, getSettings, completeTask, toggleBacklog } from '../services/api'
 import WeatherWidget from '../components/WeatherWidget'
 import SunMoonWidget from '../components/SunMoonWidget'
@@ -304,6 +304,13 @@ function Dashboard() {
                           <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: 'var(--color-gold-700)', color: 'var(--color-text-inverse)' }}>
                             <Wrench className="w-3 h-3" />
                             {task.linked_entity}
+                          </span>
+                        )}
+                        {/* Assigned member badge */}
+                        {(task.assigned_member_names?.length > 0 || task.assigned_to_member_name) && (
+                          <span className="text-xs px-1.5 py-0.5 rounded flex items-center gap-0.5 flex-shrink-0" style={{ backgroundColor: 'rgba(34, 211, 238, 0.2)', color: 'rgb(34, 211, 238)' }}>
+                            <User className="w-3 h-3" />
+                            {task.assigned_member_names?.length > 0 ? task.assigned_member_names.join(', ') : task.assigned_to_member_name}
                           </span>
                         )}
                         <div className="flex-1" />
