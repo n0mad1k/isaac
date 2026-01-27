@@ -2,6 +2,22 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.29.4] - 2026-01-27
+
+### Added
+- **Team members in Assign To dropdown**
+  - Team Members now appear in the same "Assign To" dropdown as Workers and Users
+  - Team Members shown as first optgroup for easy access
+  - Additional checkboxes below dropdown for assigning multiple members to events
+  - Single-select dropdown plus multi-select checkboxes for flexible assignment
+
+### Changed
+- **Log viewer styling**
+  - Off-white background (#f5f5f0) for better readability
+  - Dark carbon text instead of light text
+  - Color-coded backgrounds for ERROR (red) and WARNING (yellow) entries
+  - Maintains ANSI codes from logs for color preservation
+
 ## [1.29.3] - 2026-01-27
 
 ### Added
