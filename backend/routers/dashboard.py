@@ -332,6 +332,22 @@ async def get_dashboard(
     if is_farmhand:
         tasks = [t for t in tasks if t.visible_to_farmhands]
 
+    # Get member names for assigned tasks (both single and multi-assignment)
+    today_member_names = {}
+    today_member_ids = set()
+    for t in tasks:
+        if t.assigned_to_member_id:
+            today_member_ids.add(t.assigned_to_member_id)
+        if hasattr(t, 'assigned_members') and t.assigned_members:
+            for m in t.assigned_members:
+                today_member_ids.add(m.id)
+    if today_member_ids:
+        member_result = await db.execute(
+            select(TeamMember).where(TeamMember.id.in_(today_member_ids))
+        )
+        for m in member_result.scalars().all():
+            today_member_names[m.id] = m.nickname or m.name
+
     tasks_today = []
     for t in tasks:
         # For events, check if they're past their end time - auto-mark as completed
@@ -356,6 +372,10 @@ async def get_dashboard(
             linked_entity=get_linked_entity(t),
             is_completed=is_completed,
             is_backlog=t.is_backlog or False,
+            assigned_to_member_id=t.assigned_to_member_id,
+            assigned_to_member_name=today_member_names.get(t.assigned_to_member_id) if t.assigned_to_member_id else None,
+            assigned_member_ids=[m.id for m in t.assigned_members] if hasattr(t, 'assigned_members') and t.assigned_members else [],
+            assigned_member_names=[today_member_names.get(m.id, m.nickname or m.name) for m in t.assigned_members] if hasattr(t, 'assigned_members') and t.assigned_members else [],
         ))
 
     # Get undated todos (todos without a due date) - exclude backlog and worker tasks
@@ -375,6 +395,22 @@ async def get_dashboard(
     if is_farmhand:
         undated = [t for t in undated if t.visible_to_farmhands]
 
+    # Get member names for undated tasks
+    undated_member_names = {}
+    undated_member_ids = set()
+    for t in undated:
+        if t.assigned_to_member_id:
+            undated_member_ids.add(t.assigned_to_member_id)
+        if hasattr(t, 'assigned_members') and t.assigned_members:
+            for m in t.assigned_members:
+                undated_member_ids.add(m.id)
+    if undated_member_ids:
+        member_result = await db.execute(
+            select(TeamMember).where(TeamMember.id.in_(undated_member_ids))
+        )
+        for m in member_result.scalars().all():
+            undated_member_names[m.id] = m.nickname or m.name
+
     undated_todos = [
         DashboardTask(
             id=t.id,
@@ -391,6 +427,10 @@ async def get_dashboard(
             linked_entity=get_linked_entity(t),
             is_completed=t.is_completed,
             is_backlog=False,
+            assigned_to_member_id=t.assigned_to_member_id,
+            assigned_to_member_name=undated_member_names.get(t.assigned_to_member_id) if t.assigned_to_member_id else None,
+            assigned_member_ids=[m.id for m in t.assigned_members] if hasattr(t, 'assigned_members') and t.assigned_members else [],
+            assigned_member_names=[undated_member_names.get(m.id, m.nickname or m.name) for m in t.assigned_members] if hasattr(t, 'assigned_members') and t.assigned_members else [],
         )
         for t in undated
     ]
