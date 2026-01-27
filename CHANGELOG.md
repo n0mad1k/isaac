@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.31.0] - 2026-01-27
+
+### Added
+- **Rain forecast indicator in weather widget**
+  - Shows "In Xhr" when rain is expected within 48 hours
+  - Displays "Now (X%)" when currently raining
+  - Shows "No rain 48hr" when no precipitation expected
+  - Uses NWS hourly forecast data for accurate predictions
+
 ## [1.30.0] - 2026-01-27
 
 ### Added

@@ -3,7 +3,7 @@
 # Usage:
 #   ./dev-tracker.sh list [pending|testing|verified|backlog]
 #   ./dev-tracker.sh show <id>                      - Show full details of an item
-#   ./dev-tracker.sh add <priority> <title>         - Add new item (priority: low|medium|high|critical)
+#   ./dev-tracker.sh add [--backlog] <priority> <title> - Add new item (--backlog sends to backlog)
 #   ./dev-tracker.sh testing <id> <description>     - Move to testing WITH description (required)
 #   ./dev-tracker.sh verified <id>                  - Move to verified
 #   ./dev-tracker.sh pending <id> [fail_note]       - Move back to pending
@@ -85,11 +85,22 @@ except Exception as e:
 
     add)
         PRIORITY="$2"
-        shift 2
+        TO_BACKLOG=false
+
+        # Check for --backlog flag
+        if [ "$PRIORITY" = "--backlog" ]; then
+            TO_BACKLOG=true
+            PRIORITY="$3"
+            shift 3
+        else
+            shift 2
+        fi
         TITLE="$*"
+
         if [ -z "$PRIORITY" ] || [ -z "$TITLE" ]; then
-            echo "Usage: $0 add <priority> <title>"
+            echo "Usage: $0 add [--backlog] <priority> <title>"
             echo "Priority: low | medium | high | critical"
+            echo "Use --backlog to add directly to backlog"
             exit 1
         fi
         # Validate priority
@@ -101,12 +112,24 @@ except Exception as e:
                 exit 1
                 ;;
         esac
+
+        # Build JSON with optional backlog status
+        if [ "$TO_BACKLOG" = "true" ]; then
+            JSON="{\"title\": \"$TITLE\", \"priority\": \"$PRIORITY\", \"status\": \"backlog\"}"
+        else
+            JSON="{\"title\": \"$TITLE\", \"priority\": \"$PRIORITY\"}"
+        fi
+
         RESULT=$(curl -sk -X POST "$DEV_URL/" \
             -H "Content-Type: application/json" \
-            -d "{\"title\": \"$TITLE\", \"priority\": \"$PRIORITY\"}" 2>/dev/null)
+            -d "$JSON" 2>/dev/null)
         if echo "$RESULT" | grep -q '"id"'; then
             NEW_ID=$(echo "$RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
-            echo "Created #$NEW_ID ($PRIORITY): $TITLE"
+            if [ "$TO_BACKLOG" = "true" ]; then
+                echo "Created #$NEW_ID ($PRIORITY) in BACKLOG: $TITLE"
+            else
+                echo "Created #$NEW_ID ($PRIORITY): $TITLE"
+            fi
         else
             echo "Failed to create item"
             echo "$RESULT"
@@ -291,7 +314,7 @@ except Exception as e:
         echo "Usage:"
         echo "  $0 list [pending|testing|verified|backlog]  - List items"
         echo "  $0 show <id>                        - Show full details of an item"
-        echo "  $0 add <priority> <title>           - Add new item (low|medium|high|critical)"
+        echo "  $0 add [--backlog] <priority> <title> - Add new item (--backlog sends to backlog)"
         echo "  $0 testing <id> <description>       - Move to testing (description REQUIRED)"
         echo "  $0 verified <id>                    - Move to verified"
         echo "  $0 pending <id> [fail_note]         - Move back to pending"

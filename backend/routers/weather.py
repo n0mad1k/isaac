@@ -265,3 +265,10 @@ async def get_forecast():
     if not forecast:
         raise HTTPException(status_code=503, detail="Could not fetch forecast data")
     return {"forecast": forecast}
+
+
+@router.get("/rain-forecast/")
+async def get_rain_forecast():
+    """Get information about when rain is expected based on hourly forecast"""
+    rain_info = await forecast_service.get_rain_forecast()
+    return rain_info

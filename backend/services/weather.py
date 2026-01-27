@@ -238,6 +238,108 @@ class NWSForecastService:
 
         return days
 
+    async def get_hourly_forecast(self, lat: float = None, lon: float = None) -> Optional[List[Dict[str, Any]]]:
+        """Get hourly forecast from NWS (up to 156 hours)"""
+        lat = lat or config_settings.latitude
+        lon = lon or config_settings.longitude
+
+        if not lat or not lon:
+            logger.warning("Location not configured - cannot get hourly forecast")
+            return None
+
+        grid = await self.get_grid_info(lat, lon)
+        if not grid or "forecast_hourly_url" not in grid:
+            return None
+
+        client = await self.get_client()
+        try:
+            response = await client.get(grid["forecast_hourly_url"])
+            response.raise_for_status()
+            data = response.json()
+
+            forecasts = []
+            periods = data["properties"]["periods"]
+
+            for period in periods[:48]:  # Next 48 hours
+                precip_prob = period.get("probabilityOfPrecipitation")
+                rain_chance = 0
+                if precip_prob and isinstance(precip_prob, dict):
+                    rain_chance = precip_prob.get("value") or 0
+
+                forecasts.append({
+                    "start_time": period["startTime"],
+                    "temperature": period["temperature"],
+                    "short_forecast": period["shortForecast"],
+                    "rain_chance": rain_chance,
+                    "wind_speed": period["windSpeed"],
+                    "is_daytime": period["isDaytime"],
+                })
+
+            return forecasts
+        except Exception as e:
+            logger.error(f"Failed to get NWS hourly forecast: {e}")
+            return None
+
+    async def get_rain_forecast(self, lat: float = None, lon: float = None) -> Dict[str, Any]:
+        """
+        Analyze hourly forecast to determine when rain is expected.
+        Returns info about upcoming rain or clear conditions.
+        """
+        hourly = await self.get_hourly_forecast(lat, lon)
+        if not hourly:
+            return {
+                "has_data": False,
+                "message": "Forecast unavailable"
+            }
+
+        now = datetime.now()
+        rain_keywords = ['rain', 'shower', 'storm', 'thunder', 'drizzle', 'precipitation']
+
+        # Find first hour with rain in forecast text or high precipitation chance
+        first_rain_hour = None
+        for i, hour in enumerate(hourly):
+            forecast_lower = hour["short_forecast"].lower()
+            has_rain_keyword = any(kw in forecast_lower for kw in rain_keywords)
+            high_rain_chance = hour["rain_chance"] >= 40
+
+            if has_rain_keyword or high_rain_chance:
+                first_rain_hour = i
+                break
+
+        if first_rain_hour is None:
+            return {
+                "has_data": True,
+                "raining_now": False,
+                "rain_expected": False,
+                "hours_until_rain": None,
+                "rain_chance": 0,
+                "message": "No rain expected (48hr)"
+            }
+
+        hours_until = first_rain_hour
+        rain_hour = hourly[first_rain_hour]
+
+        if hours_until == 0:
+            return {
+                "has_data": True,
+                "raining_now": True,
+                "rain_expected": True,
+                "hours_until_rain": 0,
+                "rain_chance": rain_hour["rain_chance"],
+                "forecast": rain_hour["short_forecast"],
+                "message": f"Rain now ({rain_hour['rain_chance']}%)"
+            }
+
+        return {
+            "has_data": True,
+            "raining_now": False,
+            "rain_expected": True,
+            "hours_until_rain": hours_until,
+            "rain_chance": rain_hour["rain_chance"],
+            "forecast": rain_hour["short_forecast"],
+            "message": f"Rain in {hours_until}hr ({rain_hour['rain_chance']}%)"
+        }
+
 
 class WeatherService:
     """Service for fetching and processing Ambient Weather data"""

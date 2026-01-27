@@ -10,18 +10,24 @@ import {
   TrendingDown,
   CloudSnow,
   CloudLightning,
+  Clock,
 } from 'lucide-react'
-import { getWeatherForecast } from '../services/api'
+import { getWeatherForecast, getRainForecast } from '../services/api'
 
 function WeatherWidget({ weather, className = '' }) {
   const [forecast, setForecast] = useState(null)
   const [forecastLoading, setForecastLoading] = useState(true)
+  const [rainForecast, setRainForecast] = useState(null)
 
   useEffect(() => {
     const fetchForecast = async () => {
       try {
-        const response = await getWeatherForecast()
-        setForecast(response.data.forecast)
+        const [forecastRes, rainRes] = await Promise.all([
+          getWeatherForecast(),
+          getRainForecast()
+        ])
+        setForecast(forecastRes.data.forecast)
+        setRainForecast(rainRes.data)
       } catch (error) {
         console.error('Failed to fetch forecast:', error)
       } finally {
@@ -130,7 +136,7 @@ function WeatherWidget({ weather, className = '' }) {
           </div>
         </div>
 
-        {/* High/Low colors */}
+        {/* High/Low and Rain Forecast */}
         <div className="text-right">
           <div className="flex items-center gap-1">
             <TrendingUp className="w-3 h-3" style={{ color: 'var(--color-error-600)' }} />
@@ -144,6 +150,28 @@ function WeatherWidget({ weather, className = '' }) {
               {weather.temp_low_today ? Math.round(weather.temp_low_today) : '--'}°
             </span>
           </div>
+          {/* Rain Forecast Indicator */}
+          {rainForecast?.has_data && (
+            <div className="flex items-center gap-1 mt-1">
+              {rainForecast.rain_expected ? (
+                <>
+                  <CloudRain className="w-3 h-3" style={{ color: 'var(--color-teal-500)' }} />
+                  <span className="text-xs font-medium" style={{ color: 'var(--color-teal-500)' }}>
+                    {rainForecast.raining_now
+                      ? `Now (${rainForecast.rain_chance}%)`
+                      : `In ${rainForecast.hours_until_rain}hr`}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Clock className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
+                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    No rain 48hr
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

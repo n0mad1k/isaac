@@ -67,6 +67,7 @@ export const getCurrentWeather = () => api.get('/weather/current/')
 export const refreshWeather = () => api.post('/weather/refresh/')
 export const getWeatherAlerts = () => api.get('/weather/alerts/')
 export const getWeatherForecast = () => api.get('/weather/forecast/')
+export const getRainForecast = () => api.get('/weather/rain-forecast/')
 export const acknowledgeAlert = (id) => api.post(`/weather/alerts/${id}/acknowledge/`)
 export const dismissAlert = (id) => api.post(`/weather/alerts/${id}/dismiss/`)
 
