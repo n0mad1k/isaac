@@ -6,7 +6,7 @@ SSH_KEY="/home/n0mad1k/.ssh/levi"
 REMOTE="n0mad1k@192.168.5.56"
 REMOTE_PATH="/opt/isaac"
 LOCAL_PATH="/home/n0mad1k/Tools/levi"
-LOCK_FILE="/tmp/levi-deploy.lock"
+LOCK_DIR="/tmp/levi-deploy.lock"
 DEPLOY_TYPE="dev"
 
 echo "=== Deploying to Dev (Isaac) ==="
@@ -14,7 +14,7 @@ echo "=== Deploying to Dev (Isaac) ==="
 # Function to release lock on exit
 cleanup() {
     echo "Releasing deploy lock..."
-    ssh -i $SSH_KEY $REMOTE "rm -f $LOCK_FILE" 2>/dev/null
+    ssh -i $SSH_KEY $REMOTE "rm -rf $LOCK_DIR" 2>/dev/null
 }
 
 # First verify SSH connectivity
@@ -25,33 +25,32 @@ if ! ssh -i $SSH_KEY $REMOTE "echo 'SSH OK'" > /dev/null 2>&1; then
     exit 1
 fi
 
-# Check for existing lock and wait if another deploy is running
+# Atomic lock acquisition using mkdir (fails if directory exists)
 echo "Checking for concurrent deploys..."
-echo "  Lock file: $LOCK_FILE"
+echo "  Lock: $LOCK_DIR"
 MAX_WAIT=300  # 5 minutes max wait
 WAITED=0
+
 while true; do
-    LOCK_CHECK=$(ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE && echo 'LOCKED' || echo 'CLEAR'")
-    echo "  Lock status: $LOCK_CHECK"
-    if [ "$LOCK_CHECK" = "CLEAR" ]; then
+    # Try to atomically acquire lock with mkdir
+    if ssh -i $SSH_KEY $REMOTE "mkdir $LOCK_DIR 2>/dev/null && echo '$DEPLOY_TYPE' > $LOCK_DIR/owner"; then
+        echo "  Lock acquired!"
         break
     fi
-    LOCK_OWNER=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_FILE" || echo "unknown")
+
+    # Failed to acquire - lock exists
+    LOCK_OWNER=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_DIR/owner 2>/dev/null" || echo "unknown")
     echo "  Another deploy ($LOCK_OWNER) is in progress. Waiting... ($WAITED/$MAX_WAIT seconds)"
     sleep 5
     WAITED=$((WAITED + 5))
+
     if [ $WAITED -ge $MAX_WAIT ]; then
         echo "ERROR: Timed out waiting for $LOCK_OWNER deploy to complete."
         echo "If you believe the lock is stale, remove it manually:"
-        echo "  ssh -i $SSH_KEY $REMOTE 'rm -f $LOCK_FILE'"
+        echo "  ssh -i $SSH_KEY $REMOTE 'rm -rf $LOCK_DIR'"
         exit 1
     fi
 done
-echo "  No concurrent deploys detected."
-
-# Acquire lock
-echo "Acquiring deploy lock..."
-ssh -i $SSH_KEY $REMOTE "echo '$DEPLOY_TYPE' > $LOCK_FILE"
 
 # Set trap to release lock on exit (normal or error)
 trap cleanup EXIT

@@ -6,7 +6,7 @@ SSH_KEY="/home/n0mad1k/.ssh/levi"
 REMOTE="n0mad1k@192.168.5.56"
 REMOTE_PATH="/opt/levi"
 LOCAL_PATH="/home/n0mad1k/Tools/levi"
-LOCK_FILE="/tmp/levi-deploy.lock"
+LOCK_DIR="/tmp/levi-deploy.lock"
 DEPLOY_TYPE="prod"
 
 echo "=== Deploying Levi (Production) ==="
@@ -14,13 +14,11 @@ echo "=== Deploying Levi (Production) ==="
 # Function to release lock on exit
 cleanup() {
     echo "Releasing deploy lock..."
-    ssh -i $SSH_KEY $REMOTE "rm -f $LOCK_FILE" 2>/dev/null
+    ssh -i $SSH_KEY $REMOTE "rm -rf $LOCK_DIR" 2>/dev/null
 }
 
-# Check for existing lock - prod deploy FAILS IMMEDIATELY if another deploy is running
-echo "Checking for concurrent deploys..."
-
 # First verify SSH connectivity
+echo "Checking for concurrent deploys..."
 if ! ssh -i $SSH_KEY $REMOTE "echo 'SSH OK'" > /dev/null 2>&1; then
     echo ""
     echo "ERROR: Cannot connect to remote server."
@@ -28,12 +26,12 @@ if ! ssh -i $SSH_KEY $REMOTE "echo 'SSH OK'" > /dev/null 2>&1; then
     exit 1
 fi
 
-# Now check for lock file
-echo "  Checking lock file: $LOCK_FILE"
-LOCK_CHECK=$(ssh -i $SSH_KEY $REMOTE "test -f $LOCK_FILE && echo 'LOCKED' || echo 'CLEAR'")
-echo "  Lock status: $LOCK_CHECK"
-if [ "$LOCK_CHECK" = "LOCKED" ]; then
-    LOCK_OWNER=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_FILE" || echo "unknown")
+# Atomic lock acquisition using mkdir (fails if directory exists)
+# Production deploy FAILS IMMEDIATELY if another deploy is running
+echo "  Lock: $LOCK_DIR"
+if ! ssh -i $SSH_KEY $REMOTE "mkdir $LOCK_DIR 2>/dev/null && echo '$DEPLOY_TYPE' > $LOCK_DIR/owner"; then
+    # Failed to acquire lock - another deploy is running
+    LOCK_OWNER=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_DIR/owner 2>/dev/null" || echo "unknown")
     echo ""
     echo "============================================"
     echo "   DEPLOY BLOCKED - CONCURRENT DEPLOY"
@@ -45,20 +43,11 @@ if [ "$LOCK_CHECK" = "LOCKED" ]; then
     echo "Wait for the $LOCK_OWNER deploy to complete and try again."
     echo ""
     echo "If you believe the lock is stale, remove it manually:"
-    echo "  ssh -i $SSH_KEY $REMOTE 'rm -f $LOCK_FILE'"
+    echo "  ssh -i $SSH_KEY $REMOTE 'rm -rf $LOCK_DIR'"
     echo ""
     exit 1
 fi
-echo "  No concurrent deploys detected."
-
-# Acquire lock
-echo "Acquiring deploy lock..."
-ssh -i $SSH_KEY $REMOTE "echo '$DEPLOY_TYPE' > $LOCK_FILE"
-# Verify lock was acquired
-VERIFY=$(ssh -i $SSH_KEY $REMOTE "cat $LOCK_FILE 2>/dev/null || echo 'FAILED'")
-if [ "$VERIFY" != "$DEPLOY_TYPE" ]; then
-    echo "WARNING: Failed to verify lock acquisition (got: $VERIFY)"
-fi
+echo "  Lock acquired!"
 
 # Set trap to release lock on exit (normal or error)
 trap cleanup EXIT
