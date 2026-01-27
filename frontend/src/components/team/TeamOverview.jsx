@@ -47,7 +47,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
   // Header Only Mode - just team name, mission, logo, values
   if (headerOnly) {
     return (
-      <div className="text-center space-y-4 py-4">
+      <div className="text-center space-y-3 py-2">
         {/* Team Name - only show if not hidden */}
         {!hideTeamName && settings?.team_name && (
           <h1 className="text-3xl font-bold text-white tracking-wide">
@@ -55,23 +55,23 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
           </h1>
         )}
 
-        {/* Mission Statement - Smaller */}
+        {/* Mission Statement - Larger */}
         {settings?.team_mission && (
-          <div className="max-w-3xl mx-auto">
-            <p className="text-base text-gray-300 leading-relaxed italic">
+          <div className="max-w-4xl mx-auto px-4">
+            <p className="text-xl text-gray-200 leading-relaxed italic font-light">
               "{settings.team_mission}"
             </p>
           </div>
         )}
 
-        {/* Team Logo */}
-        <div className="flex justify-center py-4">
+        {/* Team Logo - Larger */}
+        <div className="flex justify-center py-2">
           {settings?.team_logo ? (
             <div className="relative group">
               <img
                 src={`/api/team/logo/${settings.team_logo.split('/').pop()}`}
                 alt="Team Logo"
-                className="max-h-64 max-w-xl object-contain drop-shadow-2xl"
+                className="max-h-80 max-w-2xl object-contain drop-shadow-2xl"
               />
               <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded">
                 <span className="text-white text-sm flex items-center gap-2">
@@ -88,8 +88,8 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
             </div>
           ) : (
             <label className="cursor-pointer">
-              <div className="w-48 h-36 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-gray-500 hover:text-gray-400 transition-colors">
-                <Image className="w-12 h-12 mb-2" />
+              <div className="w-56 h-44 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-gray-500 hover:text-gray-400 transition-colors">
+                <Image className="w-14 h-14 mb-2" />
                 <span className="text-sm">Upload Team Logo</span>
               </div>
               <input
@@ -103,20 +103,20 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
           )}
         </div>
 
-        {/* Core Values */}
+        {/* Core Values - Compact */}
         {settings?.team_values && settings.team_values.length > 0 && (
-          <div className="pt-2">
-            <h2 className="text-lg font-bold mb-4">
+          <div className="pt-1">
+            <h2 className="text-lg font-bold mb-3">
               Core Values
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 max-w-5xl mx-auto px-4">
               {settings.team_values.map((value, idx) => (
                 <div
                   key={idx}
-                  className="bg-gray-700 rounded-lg p-3 border-l-4 border-farm-green"
+                  className="bg-gray-700 rounded-lg p-2.5 border-l-4 border-farm-green"
                 >
-                  <h3 className="text-base font-bold text-white mb-1">{value.name}</h3>
-                  <p className="text-xs text-gray-300">{value.description}</p>
+                  <h3 className="text-sm font-bold text-white mb-0.5">{value.name}</h3>
+                  <p className="text-xs text-gray-300 line-clamp-2">{value.description}</p>
                 </div>
               ))}
             </div>
