@@ -35,6 +35,7 @@ import {
   getSettings,
   getWorkers,
   getTaskMetrics,
+  getTeamMembers,
 } from '../services/api'
 import { format, isAfter, startOfDay, parseISO, addDays, endOfWeek, endOfMonth, isWithinInterval, isSameDay, isToday, isTomorrow } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
@@ -72,7 +73,9 @@ function ToDo() {
   const [selectedAlerts, setSelectedAlerts] = useState([])
   const [displayLimit, setDisplayLimit] = useState(20)  // For "All" tab pagination
   const [workers, setWorkers] = useState([])
+  const [members, setMembers] = useState([])
   const [selectedWorkerId, setSelectedWorkerId] = useState(null)
+  const [selectedMemberId, setSelectedMemberId] = useState(null)
   const [isAllDay, setIsAllDay] = useState(true)  // Default to all-day (no time)
   const [metrics, setMetrics] = useState(null)
   const [metricsLoading, setMetricsLoading] = useState(false)
@@ -133,15 +136,17 @@ function ToDo() {
   const fetchTodos = async () => {
     setLoading(true)
     try {
-      // Fetch settings, tasks, and workers
-      const [settingsRes, response, workersRes] = await Promise.all([
+      // Fetch settings, tasks, workers, and team members
+      const [settingsRes, response, workersRes, membersRes] = await Promise.all([
         getSettings(),
         getTasks(),  // Get all tasks (both completed and incomplete)
-        getWorkers().catch(() => ({ data: [] }))
+        getWorkers().catch(() => ({ data: [] })),
+        getTeamMembers().catch(() => ({ data: [] }))
       ])
 
-      // Set workers for dropdown
+      // Set workers and members for dropdown
       setWorkers(workersRes.data || [])
+      setMembers(membersRes.data || [])
 
       // Check hide_completed_today setting
       const hideCompletedSetting = settingsRes.data?.settings?.hide_completed_today?.value
@@ -225,6 +230,7 @@ function ToDo() {
     setCustomInterval(todo.recurrence_interval?.toString() || '')
     setSelectedAlerts(todo.reminder_alerts || [])
     setSelectedWorkerId(todo.assigned_to_worker_id || null)
+    setSelectedMemberId(todo.assigned_to_member_id || null)
     setIsAllDay(!todo.due_time)  // Set based on whether existing todo has a time
     setShowForm(true)
   }
@@ -263,6 +269,7 @@ function ToDo() {
       visible_to_farmhands: formData.get('visible_to_farmhands') === 'on',
       reminder_alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
       assigned_to_worker_id: selectedWorkerId || null,
+      assigned_to_member_id: selectedMemberId || null,
     }
 
     try {
@@ -275,6 +282,7 @@ function ToDo() {
       setEditingTodo(null)
       setSelectedAlerts([])
       setSelectedWorkerId(null)
+      setSelectedMemberId(null)
       fetchTodos()
     } catch (error) {
       console.error('Failed to save to do:', error)
@@ -814,24 +822,52 @@ function ToDo() {
                   })}
                 </div>
               </div>
-              {/* Assign to Worker */}
-              {workers.length > 0 && (
+              {/* Assign To (Team Members, Workers) */}
+              {(members.length > 0 || workers.length > 0) && (
                 <div>
                   <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    Assign to Worker (optional)
+                    Assign To (optional)
                   </label>
                   <select
-                    value={selectedWorkerId || ''}
-                    onChange={(e) => setSelectedWorkerId(e.target.value ? parseInt(e.target.value) : null)}
+                    value={
+                      selectedMemberId ? `member:${selectedMemberId}` :
+                      selectedWorkerId ? `worker:${selectedWorkerId}` : ''
+                    }
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (!value) {
+                        setSelectedMemberId(null)
+                        setSelectedWorkerId(null)
+                      } else if (value.startsWith('member:')) {
+                        setSelectedMemberId(parseInt(value.split(':')[1]))
+                        setSelectedWorkerId(null)
+                      } else if (value.startsWith('worker:')) {
+                        setSelectedWorkerId(parseInt(value.split(':')[1]))
+                        setSelectedMemberId(null)
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="">Not assigned</option>
-                    {workers.map(w => (
-                      <option key={w.id} value={w.id}>
-                        {w.name}{w.role ? ` (${w.role})` : ''}
-                      </option>
-                    ))}
+                    {members.filter(m => m.is_active !== false).length > 0 && (
+                      <optgroup label="Team Members">
+                        {members.filter(m => m.is_active !== false).map(m => (
+                          <option key={`member:${m.id}`} value={`member:${m.id}`}>
+                            {m.nickname || m.name}{m.role_title ? ` (${m.role_title})` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {workers.length > 0 && (
+                      <optgroup label="Workers">
+                        {workers.map(w => (
+                          <option key={`worker:${w.id}`} value={`worker:${w.id}`}>
+                            {w.name}{w.role ? ` (${w.role})` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
               )}
