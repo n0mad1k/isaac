@@ -252,10 +252,6 @@ function MemberGearTab({ member, onUpdate }) {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{item.name}</span>
                       {getStatusBadge(item.status)}
-                      {/* Don't show Container badge for BAG category - it's implied */}
-                      {item.is_container && item.category !== 'BAG' && (
-                        <span className="px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded text-xs">Container</span>
-                      )}
                     </div>
                     <div className="text-sm text-gray-400">
                       {item.category}
@@ -715,18 +711,15 @@ function GearModal({ gear, memberId, onClose, onSave }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-4">
-            {/* Only show container checkbox if not BAG category (bags are implicitly containers) */}
-            {formData.category !== 'BAG' && (
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={formData.is_container}
-                  onChange={(e) => setFormData({ ...formData, is_container: e.target.checked })}
-                  className="rounded"
-                />
-                Is Container
-              </label>
-            )}
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={formData.is_container}
+                onChange={(e) => setFormData({ ...formData, is_container: e.target.checked })}
+                className="rounded"
+              />
+              Can Hold Contents
+            </label>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"

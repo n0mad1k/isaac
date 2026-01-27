@@ -365,10 +365,6 @@ function TeamGearTab({ members, onRefresh }) {
                             {item.color && (
                               <span className="text-xs px-2 py-0.5 bg-gray-600 rounded">{item.color}</span>
                             )}
-                            {/* Don't show Container badge for BAG category - it's implied */}
-                            {item.is_container && item.category !== 'BAG' && (
-                              <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Container</span>
-                            )}
                           </div>
                           {/* Gear notes */}
                           {item.notes && (
@@ -699,9 +695,7 @@ function GearFormModal({ gear, onClose, onSave, existingCategories = [] }) {
             <div><label className="block text-sm text-gray-400 mb-1">Location</label><input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Where stored?" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
           </div>
           <div className="flex flex-wrap gap-4">
-            {formData.category !== 'BAG' && (
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.is_container} onChange={(e) => setFormData({ ...formData, is_container: e.target.checked })} className="rounded" />Is Container (Go Bag)</label>
-            )}
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.is_container} onChange={(e) => setFormData({ ...formData, is_container: e.target.checked })} className="rounded" />Can Hold Contents</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.requires_cleaning} onChange={(e) => setFormData({ ...formData, requires_cleaning: e.target.checked })} className="rounded" />Requires Cleaning</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.requires_charging} onChange={(e) => setFormData({ ...formData, requires_charging: e.target.checked })} className="rounded" />Requires Charging</label>
           </div>
