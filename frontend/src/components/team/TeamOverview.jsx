@@ -1,29 +1,9 @@
-import React, { useRef } from 'react'
+import React from 'react'
 import {
-  Users, Shield, Heart, Activity, Calendar, Target,
-  ChevronRight, Upload, Image
+  Users, Calendar, Target, ChevronRight
 } from 'lucide-react'
-import { uploadTeamLogo } from '../../services/api'
 
-function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate, headerOnly = false, rosterOnly = false, hideTeamName = false }) {
-  const logoInputRef = useRef(null)
-
-  // Handle logo upload
-  const handleLogoUpload = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-
-    const formData = new FormData()
-    formData.append('file', file)
-
-    try {
-      await uploadTeamLogo(formData)
-      if (onLogoUpdate) onLogoUpdate()
-    } catch (err) {
-      console.error('Failed to upload logo:', err)
-    }
-  }
-
+function TeamOverview({ settings, overview, members, onMemberClick, headerOnly = false, rosterOnly = false, hideTeamName = false }) {
   // Readiness indicator component
   const ReadinessIndicator = ({ status, size = 'md' }) => {
     const colors = {
@@ -64,44 +44,16 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
           </div>
         )}
 
-        {/* Team Logo - Larger */}
-        <div className="flex justify-center py-4">
-          {settings?.team_logo ? (
-            <div className="relative group">
-              <img
-                src={`/api/team/logo/${settings.team_logo.split('/').pop()}`}
-                alt="Team Logo"
-                className="max-h-[400px] max-w-3xl object-contain drop-shadow-2xl"
-              />
-              <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded">
-                <span className="text-white text-sm flex items-center gap-2">
-                  <Upload className="w-4 h-4" /> Change Logo
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="hidden"
-                  ref={logoInputRef}
-                />
-              </label>
-            </div>
-          ) : (
-            <label className="cursor-pointer">
-              <div className="w-56 h-44 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-gray-500 hover:text-gray-400 transition-colors">
-                <Image className="w-14 h-14 mb-2" />
-                <span className="text-sm">Upload Team Logo</span>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoUpload}
-                className="hidden"
-                ref={logoInputRef}
-              />
-            </label>
-          )}
-        </div>
+        {/* Team Logo - Larger (upload in Settings) */}
+        {settings?.team_logo && (
+          <div className="flex justify-center py-4">
+            <img
+              src={`/api/team/logo/${settings.team_logo.split('/').pop()}`}
+              alt="Team Logo"
+              className="max-h-[400px] max-w-3xl object-contain drop-shadow-2xl"
+            />
+          </div>
+        )}
 
         {/* Core Values */}
         {settings?.team_values && settings.team_values.length > 0 && (
@@ -242,44 +194,16 @@ function TeamOverview({ settings, overview, members, onMemberClick, onLogoUpdate
           </div>
         )}
 
-        {/* Team Logo */}
-        <div className="flex justify-center py-8">
-          {settings?.team_logo ? (
-            <div className="relative group">
-              <img
-                src={`/api/team/logo/${settings.team_logo.split('/').pop()}`}
-                alt="Team Logo"
-                className="max-h-96 max-w-2xl object-contain drop-shadow-2xl"
-              />
-              <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded">
-                <span className="text-white text-sm flex items-center gap-2">
-                  <Upload className="w-4 h-4" /> Change Logo
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="hidden"
-                  ref={logoInputRef}
-                />
-              </label>
-            </div>
-          ) : (
-            <label className="cursor-pointer">
-              <div className="w-64 h-48 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-gray-500 hover:text-gray-400 transition-colors">
-                <Image className="w-16 h-16 mb-3" />
-                <span className="text-lg">Upload Team Logo</span>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoUpload}
-                className="hidden"
-                ref={logoInputRef}
-              />
-            </label>
-          )}
-        </div>
+        {/* Team Logo (upload in Settings) */}
+        {settings?.team_logo && (
+          <div className="flex justify-center py-8">
+            <img
+              src={`/api/team/logo/${settings.team_logo.split('/').pop()}`}
+              alt="Team Logo"
+              className="max-h-96 max-w-2xl object-contain drop-shadow-2xl"
+            />
+          </div>
+        )}
 
         {/* Core Values */}
         {settings?.team_values && settings.team_values.length > 0 && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs } from '../services/api'
+import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search, Upload, Image } from 'lucide-react'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -2107,6 +2107,49 @@ function Settings() {
               <p className="text-sm text-gray-400">
                 Configure your team name, mission, values, and meeting schedule.
               </p>
+
+              {/* Team Logo */}
+              <div className="bg-gray-700/50 rounded-lg p-4">
+                <label className="block text-sm font-medium mb-3">Team Logo</label>
+                <div className="flex items-center gap-4">
+                  {settings.team_logo?.value ? (
+                    <img
+                      src={`/api/team/logo/${settings.team_logo.value.split('/').pop()}`}
+                      alt="Team Logo"
+                      className="h-24 w-auto object-contain rounded bg-gray-800 p-2"
+                    />
+                  ) : (
+                    <div className="h-24 w-24 bg-gray-800 rounded flex items-center justify-center text-gray-500">
+                      <Image className="w-8 h-8" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors">
+                      <Upload className="w-4 h-4" />
+                      <span>{settings.team_logo?.value ? 'Change Logo' : 'Upload Logo'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          try {
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            await uploadTeamLogo(formData)
+                            loadSettings()
+                            setMessage({ type: 'success', text: 'Logo uploaded successfully!' })
+                          } catch (err) {
+                            setMessage({ type: 'error', text: 'Failed to upload logo' })
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                    <p className="text-xs text-gray-400 mt-2">Recommended: PNG or SVG with transparent background</p>
+                  </div>
+                </div>
+              </div>
 
               {/* Basic Team Info */}
               <div className="space-y-4">
