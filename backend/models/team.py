@@ -47,6 +47,70 @@ class ObservationScope(str, enum.Enum):
     OPERATIONS = "operations"
 
 
+# ============================================
+# Gear Tracking Enums
+# ============================================
+
+class GearCategory(str, enum.Enum):
+    FIREARM = "FIREARM"
+    BAG = "BAG"
+    MEDICAL = "MEDICAL"
+    COMMS = "COMMS"
+    OPTICS = "OPTICS"
+    CLOTHING = "CLOTHING"
+    TOOLS = "TOOLS"
+    ELECTRONICS = "ELECTRONICS"
+    OTHER = "OTHER"
+
+
+class GearStatus(str, enum.Enum):
+    SERVICEABLE = "SERVICEABLE"
+    NEEDS_MAINTENANCE = "NEEDS_MAINTENANCE"
+    NEEDS_REPAIR = "NEEDS_REPAIR"
+    OUT_OF_SERVICE = "OUT_OF_SERVICE"
+
+
+class ContentStatus(str, enum.Enum):
+    GOOD = "GOOD"
+    LOW = "LOW"
+    EXPIRED = "EXPIRED"
+    MISSING = "MISSING"
+    NEEDS_REPLACEMENT = "NEEDS_REPLACEMENT"
+
+
+# ============================================
+# Training Tracking Enums
+# ============================================
+
+class TrainingCategory(str, enum.Enum):
+    SHOOTING = "SHOOTING"
+    MEDICAL = "MEDICAL"
+    COMMS = "COMMS"
+    NAVIGATION = "NAVIGATION"
+    FITNESS = "FITNESS"
+    DRIVING = "DRIVING"
+    OTHER = "OTHER"
+
+
+# ============================================
+# Medical Appointment Enums
+# ============================================
+
+class AppointmentType(str, enum.Enum):
+    PHYSICAL = "PHYSICAL"
+    DENTAL = "DENTAL"
+    VISION = "VISION"
+    SPECIALIST = "SPECIALIST"
+    IMMUNIZATION = "IMMUNIZATION"
+    LAB_WORK = "LAB_WORK"
+    OBGYN = "OBGYN"
+    MAMMOGRAM = "MAMMOGRAM"
+    PAP_SMEAR = "PAP_SMEAR"
+    PEDIATRIC = "PEDIATRIC"
+    WELL_CHILD = "WELL_CHILD"
+    CUSTOM = "CUSTOM"
+
+
 class TeamMember(Base):
     """Operator-style dossier profile for team members"""
     __tablename__ = "team_members"
@@ -129,6 +193,9 @@ class TeamMember(Base):
     mentoring_sessions = relationship("MentoringSession", back_populates="member", cascade="all, delete-orphan")
     values_history = relationship("ValuesAssessmentHistory", back_populates="member", cascade="all, delete-orphan")
     observations = relationship("WeeklyObservation", back_populates="member", cascade="all, delete-orphan")
+    gear = relationship("MemberGear", back_populates="member", cascade="all, delete-orphan")
+    training_items = relationship("MemberTraining", back_populates="member", cascade="all, delete-orphan")
+    medical_appointments = relationship("MemberMedicalAppointment", back_populates="member", cascade="all, delete-orphan")
 
 
 class MemberWeightLog(Base):
@@ -269,3 +336,210 @@ class WeeklyAAR(Base):
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ============================================
+# Gear Tracking Models
+# ============================================
+
+class MemberGear(Base):
+    """Assigned equipment/gear for team members"""
+    __tablename__ = "member_gear"
+
+    id = Column(Integer, primary_key=True, index=True)
+    member_id = Column(Integer, ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False)
+
+    name = Column(String(100), nullable=False)  # "Glock 19", "72hr Go Bag"
+    category = Column(SQLEnum(GearCategory), default=GearCategory.OTHER)
+    subcategory = Column(String(50), nullable=True)  # "Pistol", "Rifle", "IFAK"
+    serial_number = Column(String(100), nullable=True)
+    make = Column(String(100), nullable=True)
+    model = Column(String(100), nullable=True)
+    caliber = Column(String(50), nullable=True)  # For firearms
+
+    status = Column(SQLEnum(GearStatus), default=GearStatus.SERVICEABLE)
+    location = Column(String(100), nullable=True)  # Where stored
+
+    is_container = Column(Boolean, default=False)  # True for go bags (has contents)
+    requires_cleaning = Column(Boolean, default=False)  # Needs regular cleaning
+    requires_charging = Column(Boolean, default=False)  # Needs regular charging
+    has_expirables = Column(Boolean, default=False)  # Has items that expire
+
+    assigned_date = Column(DateTime, nullable=True)
+    notes = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    member = relationship("TeamMember", back_populates="gear")
+    maintenance_schedules = relationship("MemberGearMaintenance", back_populates="gear", cascade="all, delete-orphan")
+    contents = relationship("MemberGearContents", back_populates="gear", cascade="all, delete-orphan")
+    maintenance_logs = relationship("MemberGearMaintenanceLog", back_populates="gear", cascade="all, delete-orphan")
+
+
+class MemberGearMaintenance(Base):
+    """Recurring maintenance schedules for gear"""
+    __tablename__ = "member_gear_maintenance"
+
+    id = Column(Integer, primary_key=True, index=True)
+    gear_id = Column(Integer, ForeignKey("member_gear.id", ondelete="CASCADE"), nullable=False)
+
+    name = Column(String(100), nullable=False)  # "Cleaning", "Lubrication", "Battery Check"
+    description = Column(Text, nullable=True)
+
+    frequency_days = Column(Integer, nullable=True)  # Days between maintenance
+    frequency_rounds = Column(Integer, nullable=True)  # For firearms: clean every X rounds
+
+    last_performed = Column(DateTime, nullable=True)
+    last_round_count = Column(Integer, nullable=True)  # Round count at last cleaning
+    next_due_date = Column(DateTime, nullable=True)
+    manual_due_date = Column(DateTime, nullable=True)  # Override auto-calculated date
+
+    is_active = Column(Boolean, default=True)
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    gear = relationship("MemberGear", back_populates="maintenance_schedules")
+
+    @property
+    def due_date(self):
+        """Get the effective due date (manual overrides calculated)"""
+        return self.manual_due_date or self.next_due_date
+
+
+class MemberGearContents(Base):
+    """Go bag / container contents tracking"""
+    __tablename__ = "member_gear_contents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    gear_id = Column(Integer, ForeignKey("member_gear.id", ondelete="CASCADE"), nullable=False)
+
+    item_name = Column(String(100), nullable=False)  # "TQ CAT Gen 7", "MRE", "AA Batteries"
+    category = Column(String(50), nullable=True)  # "Medical", "Food", "Power", "Tools"
+    quantity = Column(Integer, default=1)
+    min_quantity = Column(Integer, nullable=True)  # Alert when below min
+
+    expiration_date = Column(DateTime, nullable=True)
+    expiration_alert_days = Column(Integer, default=30)  # Days before expiration to alert
+
+    status = Column(SQLEnum(ContentStatus), default=ContentStatus.GOOD)
+    last_checked = Column(DateTime, nullable=True)
+    notes = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    gear = relationship("MemberGear", back_populates="contents")
+
+
+class MemberGearMaintenanceLog(Base):
+    """Audit trail for gear maintenance"""
+    __tablename__ = "member_gear_maintenance_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    gear_id = Column(Integer, ForeignKey("member_gear.id", ondelete="CASCADE"), nullable=False)
+    maintenance_id = Column(Integer, ForeignKey("member_gear_maintenance.id", ondelete="SET NULL"), nullable=True)
+
+    action = Column(String(100), nullable=False)  # "Cleaned", "Lubricated", "Inspected"
+    performed_at = Column(DateTime, default=datetime.utcnow)
+    round_count_at = Column(Integer, nullable=True)  # For firearms
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    gear = relationship("MemberGear", back_populates="maintenance_logs")
+
+
+# ============================================
+# Training Tracking Models
+# ============================================
+
+class MemberTraining(Base):
+    """Training tracking for skill development"""
+    __tablename__ = "member_training"
+
+    id = Column(Integer, primary_key=True, index=True)
+    member_id = Column(Integer, ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False)
+
+    name = Column(String(100), nullable=False)  # "Shooting - Pistol", "Medical - TCCC"
+    category = Column(SQLEnum(TrainingCategory), default=TrainingCategory.OTHER)
+    description = Column(Text, nullable=True)  # Details about the training
+
+    last_trained = Column(DateTime, nullable=True)  # Date of last training session
+    frequency_days = Column(Integer, nullable=True)  # Optional: days between training
+    next_due = Column(DateTime, nullable=True)  # Calculated from last_trained + frequency_days
+    total_sessions = Column(Integer, default=0)  # Count of training sessions logged
+
+    notes = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    member = relationship("TeamMember", back_populates="training_items")
+    training_logs = relationship("MemberTrainingLog", back_populates="training", cascade="all, delete-orphan")
+
+
+class MemberTrainingLog(Base):
+    """Training session history"""
+    __tablename__ = "member_training_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    training_id = Column(Integer, ForeignKey("member_training.id", ondelete="CASCADE"), nullable=False)
+
+    trained_at = Column(DateTime, default=datetime.utcnow)  # Date/time of session
+    duration_minutes = Column(Integer, nullable=True)  # Optional: how long
+    notes = Column(Text, nullable=True)  # What was practiced, performance notes
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationship
+    training = relationship("MemberTraining", back_populates="training_logs")
+
+
+# ============================================
+# Medical Appointment Tracking
+# ============================================
+
+class MemberMedicalAppointment(Base):
+    """Flexible medical appointment tracking"""
+    __tablename__ = "member_medical_appointments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    member_id = Column(Integer, ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False)
+
+    appointment_type = Column(SQLEnum(AppointmentType), nullable=False)
+    custom_type_name = Column(String(100), nullable=True)  # When type is CUSTOM
+
+    provider_name = Column(String(200), nullable=True)
+    provider_phone = Column(String(50), nullable=True)
+    provider_address = Column(Text, nullable=True)
+
+    last_appointment = Column(DateTime, nullable=True)
+    next_due = Column(DateTime, nullable=True)
+    frequency_months = Column(Integer, default=12)  # How often (12 for annual, 6 for biannual)
+
+    is_active = Column(Boolean, default=True)
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    member = relationship("TeamMember", back_populates="medical_appointments")
+
+    @property
+    def display_type(self):
+        """Get display name for appointment type"""
+        if self.appointment_type == AppointmentType.CUSTOM and self.custom_type_name:
+            return self.custom_type_name
+        return self.appointment_type.value.replace("_", " ").title()

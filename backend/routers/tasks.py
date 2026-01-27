@@ -345,6 +345,67 @@ async def update_source_entity_on_complete(db: AsyncSession, notes: str):
                 except ValueError:
                     pass
 
+        # Gear maintenance
+        elif source_type == "gear_maint":
+            from models.team import MemberGearMaintenance
+            maint_id = int(source_id_or_key)
+            result = await db.execute(select(MemberGearMaintenance).where(MemberGearMaintenance.id == maint_id))
+            maint = result.scalar_one_or_none()
+            if maint:
+                maint.last_performed = now
+                maint.manual_due_date = None  # Clear manual override
+                if maint.frequency_days:
+                    maint.next_due_date = now + timedelta(days=maint.frequency_days)
+                logger.info(f"Updated MemberGearMaintenance {maint.name} last_performed to {today}")
+
+        # Gear expiration (just mark the reminder as complete, user should update content)
+        elif source_type == "gear_exp":
+            from models.team import MemberGearContents
+            content_id = int(source_id_or_key)
+            result = await db.execute(select(MemberGearContents).where(MemberGearContents.id == content_id))
+            content = result.scalar_one_or_none()
+            if content:
+                content.last_checked = now
+                logger.info(f"Updated MemberGearContents {content.item_name} last_checked to {today}")
+
+        # Member training
+        elif source_type == "member_training":
+            from models.team import MemberTraining, MemberTrainingLog
+            training_id = int(source_id_or_key)
+            result = await db.execute(select(MemberTraining).where(MemberTraining.id == training_id))
+            training = result.scalar_one_or_none()
+            if training:
+                training.last_trained = now
+                training.total_sessions = (training.total_sessions or 0) + 1
+                if training.frequency_days:
+                    training.next_due = now + timedelta(days=training.frequency_days)
+                # Create log entry
+                log = MemberTrainingLog(
+                    training_id=training_id,
+                    trained_at=now,
+                    notes="Completed via task reminder"
+                )
+                db.add(log)
+                logger.info(f"Updated MemberTraining {training.name} last_trained to {today}")
+
+        # Medical appointment
+        elif source_type == "member_medical":
+            from models.team import MemberMedicalAppointment
+            appt_id = int(source_id_or_key)
+            result = await db.execute(select(MemberMedicalAppointment).where(MemberMedicalAppointment.id == appt_id))
+            appt = result.scalar_one_or_none()
+            if appt:
+                appt.last_appointment = now
+                if appt.frequency_months:
+                    # Add months to calculate next due
+                    next_due = now
+                    next_due = next_due.replace(
+                        year=next_due.year + (next_due.month + appt.frequency_months - 1) // 12,
+                        month=(next_due.month + appt.frequency_months - 1) % 12 + 1
+                    )
+                    appt.next_due = next_due
+                logger.info(f"Updated MemberMedicalAppointment {appt.display_type} last_appointment to {today}")
+
     except Exception as e:
         logger.error(f"Error updating source entity for {notes}: {e}")
 
@@ -885,6 +946,15 @@ async def complete_task(
                 logger.info(f"Re-synced maintenance reminders after completion: {stats}")
             except Exception as e:
                 logger.error(f"Failed to re-sync maintenance reminders: {e}")
+
+        # Re-sync member reminders (gear, training, medical)
+        if any(x in task.notes for x in ["gear_maint:", "gear_exp:", "member_training:", "member_medical:"]):
+            from services.auto_reminders import sync_all_member_reminders
+            try:
+                stats = await sync_all_member_reminders(db)
+                logger.info(f"Re-synced member reminders after completion: {stats}")
+            except Exception as e:
+                logger.error(f"Failed to re-sync member reminders: {e}")
 
     return task
 

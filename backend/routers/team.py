@@ -22,7 +22,14 @@ from models.team import (
     TeamMember, MemberWeightLog, MemberMedicalLog, MentoringSession,
     ValuesAssessmentHistory, WeeklyObservation, WeeklyAAR,
     MemberRole, ReadinessStatus, VisionStatus, GoalsMet,
-    ObservationType, ObservationScope
+    ObservationType, ObservationScope,
+    # Gear tracking
+    MemberGear, MemberGearMaintenance, MemberGearContents, MemberGearMaintenanceLog,
+    GearCategory, GearStatus, ContentStatus,
+    # Training tracking
+    MemberTraining, MemberTrainingLog, TrainingCategory,
+    # Medical appointments
+    MemberMedicalAppointment, AppointmentType
 )
 from routers.auth import require_auth, require_admin
 from routers.settings import get_setting, set_setting
@@ -225,6 +232,158 @@ class TeamSettingsUpdate(BaseModel):
     mentoring_day: Optional[str] = None
     aar_day: Optional[str] = None
     team_values: Optional[List[dict]] = None
+
+
+# ============================================
+# Gear Schemas
+# ============================================
+
+class GearCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    category: GearCategory = GearCategory.OTHER
+    subcategory: Optional[str] = None
+    serial_number: Optional[str] = None
+    make: Optional[str] = None
+    model: Optional[str] = None
+    caliber: Optional[str] = None
+    status: GearStatus = GearStatus.SERVICEABLE
+    location: Optional[str] = None
+    is_container: bool = False
+    requires_cleaning: bool = False
+    requires_charging: bool = False
+    has_expirables: bool = False
+    assigned_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class GearUpdate(BaseModel):
+    name: Optional[str] = None
+    category: Optional[GearCategory] = None
+    subcategory: Optional[str] = None
+    serial_number: Optional[str] = None
+    make: Optional[str] = None
+    model: Optional[str] = None
+    caliber: Optional[str] = None
+    status: Optional[GearStatus] = None
+    location: Optional[str] = None
+    is_container: Optional[bool] = None
+    requires_cleaning: Optional[bool] = None
+    requires_charging: Optional[bool] = None
+    has_expirables: Optional[bool] = None
+    assigned_date: Optional[datetime] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class GearMaintenanceCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = None
+    frequency_days: Optional[int] = None
+    frequency_rounds: Optional[int] = None
+    next_due_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class GearMaintenanceUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    frequency_days: Optional[int] = None
+    frequency_rounds: Optional[int] = None
+    next_due_date: Optional[datetime] = None
+    manual_due_date: Optional[datetime] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class GearContentsCreate(BaseModel):
+    item_name: str = Field(..., min_length=1, max_length=100)
+    category: Optional[str] = None
+    quantity: int = 1
+    min_quantity: Optional[int] = None
+    expiration_date: Optional[datetime] = None
+    expiration_alert_days: int = 30
+    status: ContentStatus = ContentStatus.GOOD
+    notes: Optional[str] = None
+
+
+class GearContentsUpdate(BaseModel):
+    item_name: Optional[str] = None
+    category: Optional[str] = None
+    quantity: Optional[int] = None
+    min_quantity: Optional[int] = None
+    expiration_date: Optional[datetime] = None
+    expiration_alert_days: Optional[int] = None
+    status: Optional[ContentStatus] = None
+    last_checked: Optional[datetime] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class GearMaintenanceComplete(BaseModel):
+    action: str = "Completed"
+    round_count_at: Optional[int] = None
+    notes: Optional[str] = None
+
+
+# ============================================
+# Training Schemas
+# ============================================
+
+class TrainingCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    category: TrainingCategory = TrainingCategory.OTHER
+    description: Optional[str] = None
+    frequency_days: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class TrainingUpdate(BaseModel):
+    name: Optional[str] = None
+    category: Optional[TrainingCategory] = None
+    description: Optional[str] = None
+    frequency_days: Optional[int] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class TrainingLogCreate(BaseModel):
+    trained_at: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    notes: Optional[str] = None
+
+
+# ============================================
+# Medical Appointment Schemas
+# ============================================
+
+class MedicalAppointmentCreate(BaseModel):
+    appointment_type: AppointmentType
+    custom_type_name: Optional[str] = None
+    provider_name: Optional[str] = None
+    provider_phone: Optional[str] = None
+    provider_address: Optional[str] = None
+    last_appointment: Optional[datetime] = None
+    next_due: Optional[datetime] = None
+    frequency_months: int = 12
+    notes: Optional[str] = None
+
+
+class MedicalAppointmentUpdate(BaseModel):
+    appointment_type: Optional[AppointmentType] = None
+    custom_type_name: Optional[str] = None
+    provider_name: Optional[str] = None
+    provider_phone: Optional[str] = None
+    provider_address: Optional[str] = None
+    last_appointment: Optional[datetime] = None
+    next_due: Optional[datetime] = None
+    frequency_months: Optional[int] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class MedicalAppointmentComplete(BaseModel):
+    appointment_date: Optional[datetime] = None
+    notes: Optional[str] = None
 
 
 # ============================================
@@ -1599,3 +1758,904 @@ async def update_member_readiness(
     await db.commit()
 
     return {"message": "Readiness updated", "overall_readiness": overall_readiness.value}
+
+
+# ============================================
+# Gear CRUD Endpoints
+# ============================================
+
+def serialize_gear(gear: MemberGear) -> dict:
+    """Serialize a gear item to dict"""
+    return {
+        "id": gear.id,
+        "member_id": gear.member_id,
+        "name": gear.name,
+        "category": gear.category.value if gear.category else None,
+        "subcategory": gear.subcategory,
+        "serial_number": gear.serial_number,
+        "make": gear.make,
+        "model": gear.model,
+        "caliber": gear.caliber,
+        "status": gear.status.value if gear.status else None,
+        "location": gear.location,
+        "is_container": gear.is_container,
+        "requires_cleaning": gear.requires_cleaning,
+        "requires_charging": gear.requires_charging,
+        "has_expirables": gear.has_expirables,
+        "assigned_date": gear.assigned_date.isoformat() if gear.assigned_date else None,
+        "notes": gear.notes,
+        "is_active": gear.is_active,
+        "created_at": gear.created_at.isoformat() if gear.created_at else None,
+        "updated_at": gear.updated_at.isoformat() if gear.updated_at else None,
+    }
+
+
+def serialize_gear_maintenance(maint: MemberGearMaintenance) -> dict:
+    """Serialize a gear maintenance schedule to dict"""
+    return {
+        "id": maint.id,
+        "gear_id": maint.gear_id,
+        "name": maint.name,
+        "description": maint.description,
+        "frequency_days": maint.frequency_days,
+        "frequency_rounds": maint.frequency_rounds,
+        "last_performed": maint.last_performed.isoformat() if maint.last_performed else None,
+        "last_round_count": maint.last_round_count,
+        "next_due_date": maint.next_due_date.isoformat() if maint.next_due_date else None,
+        "manual_due_date": maint.manual_due_date.isoformat() if maint.manual_due_date else None,
+        "due_date": maint.due_date.isoformat() if maint.due_date else None,
+        "is_active": maint.is_active,
+        "notes": maint.notes,
+        "created_at": maint.created_at.isoformat() if maint.created_at else None,
+    }
+
+
+def serialize_gear_contents(content: MemberGearContents) -> dict:
+    """Serialize a gear contents item to dict"""
+    return {
+        "id": content.id,
+        "gear_id": content.gear_id,
+        "item_name": content.item_name,
+        "category": content.category,
+        "quantity": content.quantity,
+        "min_quantity": content.min_quantity,
+        "expiration_date": content.expiration_date.isoformat() if content.expiration_date else None,
+        "expiration_alert_days": content.expiration_alert_days,
+        "status": content.status.value if content.status else None,
+        "last_checked": content.last_checked.isoformat() if content.last_checked else None,
+        "notes": content.notes,
+        "is_active": content.is_active,
+        "created_at": content.created_at.isoformat() if content.created_at else None,
+    }
+
+
+@router.get("/members/{member_id}/gear/")
+async def get_member_gear(
+    member_id: int,
+    include_inactive: bool = False,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get all gear for a member"""
+    # Verify member exists
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    query = select(MemberGear).where(MemberGear.member_id == member_id)
+    if not include_inactive:
+        query = query.where(MemberGear.is_active == True)
+    query = query.order_by(MemberGear.name)
+
+    result = await db.execute(query)
+    gear_items = result.scalars().all()
+
+    return [serialize_gear(g) for g in gear_items]
+
+
+@router.post("/members/{member_id}/gear/")
+async def create_member_gear(
+    member_id: int,
+    data: GearCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Create a new gear item for a member"""
+    # Verify member exists
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    gear = MemberGear(member_id=member_id, **data.model_dump())
+    db.add(gear)
+    await db.commit()
+    await db.refresh(gear)
+
+    return serialize_gear(gear)
+
+
+@router.get("/members/{member_id}/gear/{gear_id}/")
+async def get_gear_item(
+    member_id: int,
+    gear_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get a specific gear item"""
+    result = await db.execute(
+        select(MemberGear)
+        .where(MemberGear.id == gear_id)
+        .where(MemberGear.member_id == member_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    return serialize_gear(gear)
+
+
+@router.patch("/members/{member_id}/gear/{gear_id}/")
+async def update_gear_item(
+    member_id: int,
+    gear_id: int,
+    data: GearUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update a gear item"""
+    result = await db.execute(
+        select(MemberGear)
+        .where(MemberGear.id == gear_id)
+        .where(MemberGear.member_id == member_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(gear, key, value)
+
+    gear.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(gear)
+
+    return serialize_gear(gear)
+
+
+@router.delete("/members/{member_id}/gear/{gear_id}/")
+async def delete_gear_item(
+    member_id: int,
+    gear_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete a gear item"""
+    result = await db.execute(
+        select(MemberGear)
+        .where(MemberGear.id == gear_id)
+        .where(MemberGear.member_id == member_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    await db.delete(gear)
+    await db.commit()
+
+    return {"message": "Gear deleted"}
+
+
+# ============================================
+# Gear Maintenance Endpoints
+# ============================================
+
+@router.get("/members/{member_id}/gear/{gear_id}/maintenance/")
+async def get_gear_maintenance(
+    member_id: int,
+    gear_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get maintenance schedules for a gear item"""
+    # Verify gear exists and belongs to member
+    result = await db.execute(
+        select(MemberGear)
+        .where(MemberGear.id == gear_id)
+        .where(MemberGear.member_id == member_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    result = await db.execute(
+        select(MemberGearMaintenance)
+        .where(MemberGearMaintenance.gear_id == gear_id)
+        .where(MemberGearMaintenance.is_active == True)
+        .order_by(MemberGearMaintenance.name)
+    )
+    schedules = result.scalars().all()
+
+    return [serialize_gear_maintenance(s) for s in schedules]
+
+
+@router.post("/members/{member_id}/gear/{gear_id}/maintenance/")
+async def create_gear_maintenance(
+    member_id: int,
+    gear_id: int,
+    data: GearMaintenanceCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Create a maintenance schedule for a gear item"""
+    # Verify gear exists and belongs to member
+    result = await db.execute(
+        select(MemberGear)
+        .where(MemberGear.id == gear_id)
+        .where(MemberGear.member_id == member_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    maint = MemberGearMaintenance(gear_id=gear_id, **data.model_dump())
+    db.add(maint)
+    await db.commit()
+    await db.refresh(maint)
+
+    return serialize_gear_maintenance(maint)
+
+
+@router.patch("/members/{member_id}/gear/{gear_id}/maintenance/{maint_id}/")
+async def update_gear_maintenance(
+    member_id: int,
+    gear_id: int,
+    maint_id: int,
+    data: GearMaintenanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update a maintenance schedule"""
+    result = await db.execute(
+        select(MemberGearMaintenance)
+        .where(MemberGearMaintenance.id == maint_id)
+        .where(MemberGearMaintenance.gear_id == gear_id)
+    )
+    maint = result.scalar_one_or_none()
+    if not maint:
+        raise HTTPException(status_code=404, detail="Maintenance schedule not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(maint, key, value)
+
+    maint.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(maint)
+
+    return serialize_gear_maintenance(maint)
+
+
+@router.delete("/members/{member_id}/gear/{gear_id}/maintenance/{maint_id}/")
+async def delete_gear_maintenance(
+    member_id: int,
+    gear_id: int,
+    maint_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete a maintenance schedule"""
+    result = await db.execute(
+        select(MemberGearMaintenance)
+        .where(MemberGearMaintenance.id == maint_id)
+        .where(MemberGearMaintenance.gear_id == gear_id)
+    )
+    maint = result.scalar_one_or_none()
+    if not maint:
+        raise HTTPException(status_code=404, detail="Maintenance schedule not found")
+
+    await db.delete(maint)
+    await db.commit()
+
+    return {"message": "Maintenance schedule deleted"}
+
+
+@router.post("/members/{member_id}/gear/{gear_id}/maintenance/{maint_id}/complete/")
+async def complete_gear_maintenance(
+    member_id: int,
+    gear_id: int,
+    maint_id: int,
+    data: GearMaintenanceComplete,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Mark a maintenance task as complete"""
+    result = await db.execute(
+        select(MemberGearMaintenance)
+        .where(MemberGearMaintenance.id == maint_id)
+        .where(MemberGearMaintenance.gear_id == gear_id)
+    )
+    maint = result.scalar_one_or_none()
+    if not maint:
+        raise HTTPException(status_code=404, detail="Maintenance schedule not found")
+
+    now = datetime.utcnow()
+    maint.last_performed = now
+    if data.round_count_at:
+        maint.last_round_count = data.round_count_at
+    maint.manual_due_date = None  # Clear manual override
+
+    # Calculate next due date
+    if maint.frequency_days:
+        maint.next_due_date = now + timedelta(days=maint.frequency_days)
+
+    maint.updated_at = now
+
+    # Create log entry
+    log = MemberGearMaintenanceLog(
+        gear_id=gear_id,
+        maintenance_id=maint_id,
+        action=data.action,
+        performed_at=now,
+        round_count_at=data.round_count_at,
+        notes=data.notes
+    )
+    db.add(log)
+
+    await db.commit()
+    await db.refresh(maint)
+
+    return serialize_gear_maintenance(maint)
+
+
+# ============================================
+# Gear Contents Endpoints
+# ============================================
+
+@router.get("/members/{member_id}/gear/{gear_id}/contents/")
+async def get_gear_contents(
+    member_id: int,
+    gear_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get contents for a container gear item"""
+    # Verify gear exists and belongs to member
+    result = await db.execute(
+        select(MemberGear)
+        .where(MemberGear.id == gear_id)
+        .where(MemberGear.member_id == member_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    result = await db.execute(
+        select(MemberGearContents)
+        .where(MemberGearContents.gear_id == gear_id)
+        .where(MemberGearContents.is_active == True)
+        .order_by(MemberGearContents.category, MemberGearContents.item_name)
+    )
+    contents = result.scalars().all()
+
+    return [serialize_gear_contents(c) for c in contents]
+
+
+@router.post("/members/{member_id}/gear/{gear_id}/contents/")
+async def create_gear_contents(
+    member_id: int,
+    gear_id: int,
+    data: GearContentsCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Add contents to a container gear item"""
+    # Verify gear exists and belongs to member
+    result = await db.execute(
+        select(MemberGear)
+        .where(MemberGear.id == gear_id)
+        .where(MemberGear.member_id == member_id)
+    )
+    gear = result.scalar_one_or_none()
+    if not gear:
+        raise HTTPException(status_code=404, detail="Gear not found")
+
+    content = MemberGearContents(gear_id=gear_id, **data.model_dump())
+    db.add(content)
+
+    # Auto-set has_expirables on the gear if this content has expiration
+    if data.expiration_date and not gear.has_expirables:
+        gear.has_expirables = True
+
+    await db.commit()
+    await db.refresh(content)
+
+    return serialize_gear_contents(content)
+
+
+@router.patch("/members/{member_id}/gear/{gear_id}/contents/{content_id}/")
+async def update_gear_contents(
+    member_id: int,
+    gear_id: int,
+    content_id: int,
+    data: GearContentsUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update a contents item"""
+    result = await db.execute(
+        select(MemberGearContents)
+        .where(MemberGearContents.id == content_id)
+        .where(MemberGearContents.gear_id == gear_id)
+    )
+    content = result.scalar_one_or_none()
+    if not content:
+        raise HTTPException(status_code=404, detail="Content item not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(content, key, value)
+
+    content.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(content)
+
+    return serialize_gear_contents(content)
+
+
+@router.delete("/members/{member_id}/gear/{gear_id}/contents/{content_id}/")
+async def delete_gear_contents(
+    member_id: int,
+    gear_id: int,
+    content_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete a contents item"""
+    result = await db.execute(
+        select(MemberGearContents)
+        .where(MemberGearContents.id == content_id)
+        .where(MemberGearContents.gear_id == gear_id)
+    )
+    content = result.scalar_one_or_none()
+    if not content:
+        raise HTTPException(status_code=404, detail="Content item not found")
+
+    await db.delete(content)
+    await db.commit()
+
+    return {"message": "Content item deleted"}
+
+
+# ============================================
+# Training CRUD Endpoints
+# ============================================
+
+def serialize_training(training: MemberTraining) -> dict:
+    """Serialize a training item to dict"""
+    return {
+        "id": training.id,
+        "member_id": training.member_id,
+        "name": training.name,
+        "category": training.category.value if training.category else None,
+        "description": training.description,
+        "last_trained": training.last_trained.isoformat() if training.last_trained else None,
+        "frequency_days": training.frequency_days,
+        "next_due": training.next_due.isoformat() if training.next_due else None,
+        "total_sessions": training.total_sessions,
+        "notes": training.notes,
+        "is_active": training.is_active,
+        "created_at": training.created_at.isoformat() if training.created_at else None,
+        "updated_at": training.updated_at.isoformat() if training.updated_at else None,
+    }
+
+
+def serialize_training_log(log: MemberTrainingLog) -> dict:
+    """Serialize a training log to dict"""
+    return {
+        "id": log.id,
+        "training_id": log.training_id,
+        "trained_at": log.trained_at.isoformat() if log.trained_at else None,
+        "duration_minutes": log.duration_minutes,
+        "notes": log.notes,
+        "created_at": log.created_at.isoformat() if log.created_at else None,
+    }
+
+
+@router.get("/members/{member_id}/training/")
+async def get_member_training(
+    member_id: int,
+    include_inactive: bool = False,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get all training items for a member"""
+    # Verify member exists
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    query = select(MemberTraining).where(MemberTraining.member_id == member_id)
+    if not include_inactive:
+        query = query.where(MemberTraining.is_active == True)
+    query = query.order_by(MemberTraining.name)
+
+    result = await db.execute(query)
+    training_items = result.scalars().all()
+
+    return [serialize_training(t) for t in training_items]
+
+
+@router.post("/members/{member_id}/training/")
+async def create_member_training(
+    member_id: int,
+    data: TrainingCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Create a new training item for a member"""
+    # Verify member exists
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    training = MemberTraining(member_id=member_id, **data.model_dump())
+    db.add(training)
+    await db.commit()
+    await db.refresh(training)
+
+    return serialize_training(training)
+
+
+@router.patch("/members/{member_id}/training/{training_id}/")
+async def update_member_training(
+    member_id: int,
+    training_id: int,
+    data: TrainingUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update a training item"""
+    result = await db.execute(
+        select(MemberTraining)
+        .where(MemberTraining.id == training_id)
+        .where(MemberTraining.member_id == member_id)
+    )
+    training = result.scalar_one_or_none()
+    if not training:
+        raise HTTPException(status_code=404, detail="Training item not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(training, key, value)
+
+    training.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(training)
+
+    return serialize_training(training)
+
+
+@router.delete("/members/{member_id}/training/{training_id}/")
+async def delete_member_training(
+    member_id: int,
+    training_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete a training item"""
+    result = await db.execute(
+        select(MemberTraining)
+        .where(MemberTraining.id == training_id)
+        .where(MemberTraining.member_id == member_id)
+    )
+    training = result.scalar_one_or_none()
+    if not training:
+        raise HTTPException(status_code=404, detail="Training item not found")
+
+    await db.delete(training)
+    await db.commit()
+
+    return {"message": "Training item deleted"}
+
+
+@router.post("/members/{member_id}/training/{training_id}/log/")
+async def log_training_session(
+    member_id: int,
+    training_id: int,
+    data: TrainingLogCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Log a training session"""
+    result = await db.execute(
+        select(MemberTraining)
+        .where(MemberTraining.id == training_id)
+        .where(MemberTraining.member_id == member_id)
+    )
+    training = result.scalar_one_or_none()
+    if not training:
+        raise HTTPException(status_code=404, detail="Training item not found")
+
+    now = datetime.utcnow()
+    trained_at = data.trained_at or now
+
+    # Create log entry
+    log = MemberTrainingLog(
+        training_id=training_id,
+        trained_at=trained_at,
+        duration_minutes=data.duration_minutes,
+        notes=data.notes
+    )
+    db.add(log)
+
+    # Update training record
+    training.last_trained = trained_at
+    training.total_sessions = (training.total_sessions or 0) + 1
+    if training.frequency_days:
+        training.next_due = trained_at + timedelta(days=training.frequency_days)
+    training.updated_at = now
+
+    await db.commit()
+    await db.refresh(log)
+
+    return serialize_training_log(log)
+
+
+@router.get("/members/{member_id}/training/{training_id}/history/")
+async def get_training_history(
+    member_id: int,
+    training_id: int,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get training session history"""
+    result = await db.execute(
+        select(MemberTrainingLog)
+        .where(MemberTrainingLog.training_id == training_id)
+        .order_by(desc(MemberTrainingLog.trained_at))
+        .limit(limit)
+    )
+    logs = result.scalars().all()
+
+    return [serialize_training_log(log) for log in logs]
+
+
+@router.get("/training-summary/")
+async def get_training_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get team-wide training overview"""
+    # Get all active members
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.is_active == True)
+    )
+    members = result.scalars().all()
+
+    # Get all active training items
+    result = await db.execute(
+        select(MemberTraining).where(MemberTraining.is_active == True)
+    )
+    all_training = result.scalars().all()
+
+    # Group by category
+    by_category = {}
+    for t in all_training:
+        cat = t.category.value if t.category else "OTHER"
+        if cat not in by_category:
+            by_category[cat] = []
+        by_category[cat].append({
+            "member_id": t.member_id,
+            "name": t.name,
+            "last_trained": t.last_trained.isoformat() if t.last_trained else None,
+            "total_sessions": t.total_sessions,
+            "next_due": t.next_due.isoformat() if t.next_due else None,
+        })
+
+    # Find overdue training
+    now = datetime.utcnow()
+    overdue = []
+    for t in all_training:
+        if t.next_due and t.next_due < now:
+            member = next((m for m in members if m.id == t.member_id), None)
+            overdue.append({
+                "member_id": t.member_id,
+                "member_name": member.name if member else "Unknown",
+                "training_name": t.name,
+                "category": t.category.value if t.category else "OTHER",
+                "next_due": t.next_due.isoformat(),
+                "days_overdue": (now - t.next_due).days,
+            })
+
+    overdue.sort(key=lambda x: x["days_overdue"], reverse=True)
+
+    return {
+        "total_members": len(members),
+        "total_training_items": len(all_training),
+        "by_category": by_category,
+        "overdue": overdue[:20],
+    }
+
+
+# ============================================
+# Medical Appointment Endpoints
+# ============================================
+
+def serialize_appointment(appt: MemberMedicalAppointment) -> dict:
+    """Serialize a medical appointment to dict"""
+    return {
+        "id": appt.id,
+        "member_id": appt.member_id,
+        "appointment_type": appt.appointment_type.value if appt.appointment_type else None,
+        "custom_type_name": appt.custom_type_name,
+        "display_type": appt.display_type,
+        "provider_name": appt.provider_name,
+        "provider_phone": appt.provider_phone,
+        "provider_address": appt.provider_address,
+        "last_appointment": appt.last_appointment.isoformat() if appt.last_appointment else None,
+        "next_due": appt.next_due.isoformat() if appt.next_due else None,
+        "frequency_months": appt.frequency_months,
+        "is_active": appt.is_active,
+        "notes": appt.notes,
+        "created_at": appt.created_at.isoformat() if appt.created_at else None,
+        "updated_at": appt.updated_at.isoformat() if appt.updated_at else None,
+    }
+
+
+@router.get("/members/{member_id}/appointments/")
+async def get_member_appointments(
+    member_id: int,
+    include_inactive: bool = False,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get all medical appointments for a member"""
+    # Verify member exists
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    query = select(MemberMedicalAppointment).where(MemberMedicalAppointment.member_id == member_id)
+    if not include_inactive:
+        query = query.where(MemberMedicalAppointment.is_active == True)
+    query = query.order_by(MemberMedicalAppointment.next_due.nulls_last())
+
+    result = await db.execute(query)
+    appointments = result.scalars().all()
+
+    return [serialize_appointment(a) for a in appointments]
+
+
+@router.post("/members/{member_id}/appointments/")
+async def create_member_appointment(
+    member_id: int,
+    data: MedicalAppointmentCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Create a new medical appointment for a member"""
+    # Verify member exists
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    appt = MemberMedicalAppointment(member_id=member_id, **data.model_dump())
+    db.add(appt)
+    await db.commit()
+    await db.refresh(appt)
+
+    return serialize_appointment(appt)
+
+
+@router.patch("/members/{member_id}/appointments/{appt_id}/")
+async def update_member_appointment(
+    member_id: int,
+    appt_id: int,
+    data: MedicalAppointmentUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update a medical appointment"""
+    result = await db.execute(
+        select(MemberMedicalAppointment)
+        .where(MemberMedicalAppointment.id == appt_id)
+        .where(MemberMedicalAppointment.member_id == member_id)
+    )
+    appt = result.scalar_one_or_none()
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(appt, key, value)
+
+    appt.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(appt)
+
+    return serialize_appointment(appt)
+
+
+@router.delete("/members/{member_id}/appointments/{appt_id}/")
+async def delete_member_appointment(
+    member_id: int,
+    appt_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete a medical appointment"""
+    result = await db.execute(
+        select(MemberMedicalAppointment)
+        .where(MemberMedicalAppointment.id == appt_id)
+        .where(MemberMedicalAppointment.member_id == member_id)
+    )
+    appt = result.scalar_one_or_none()
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    await db.delete(appt)
+    await db.commit()
+
+    return {"message": "Appointment deleted"}
+
+
+@router.post("/members/{member_id}/appointments/{appt_id}/complete/")
+async def complete_member_appointment(
+    member_id: int,
+    appt_id: int,
+    data: MedicalAppointmentComplete,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Mark a medical appointment as complete and calculate next due"""
+    result = await db.execute(
+        select(MemberMedicalAppointment)
+        .where(MemberMedicalAppointment.id == appt_id)
+        .where(MemberMedicalAppointment.member_id == member_id)
+    )
+    appt = result.scalar_one_or_none()
+    if not appt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    now = datetime.utcnow()
+    appointment_date = data.appointment_date or now
+
+    appt.last_appointment = appointment_date
+    # Calculate next due based on frequency
+    if appt.frequency_months:
+        # Add months to the appointment date
+        next_due = appointment_date
+        next_due = next_due.replace(
+            year=next_due.year + (next_due.month + appt.frequency_months - 1) // 12,
+            month=(next_due.month + appt.frequency_months - 1) % 12 + 1
+        )
+        appt.next_due = next_due
+
+    if data.notes:
+        appt.notes = data.notes
+
+    appt.updated_at = now
+    await db.commit()
+    await db.refresh(appt)
+
+    return serialize_appointment(appt)

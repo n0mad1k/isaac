@@ -2,6 +2,48 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.26.0] - 2026-01-27
+
+### Added
+- **Team Member Gear Tracking**
+  - Assign equipment/gear to team members (firearms, bags, medical, comms, optics, tools, electronics)
+  - Track serial numbers, make, model, caliber, status, and location
+  - Container support for go bags with contents tracking
+  - Maintenance schedules with frequency (days or rounds for firearms)
+  - Mark maintenance complete to auto-calculate next due date
+  - Expiration tracking for contents (MREs, medical supplies, batteries)
+  - Status badges: Serviceable, Needs Maintenance, Needs Repair, Out of Service
+- **Training Tracking System**
+  - Track training items per member (Shooting, Medical, Comms, Navigation, Fitness, Driving)
+  - "Days since last trained" counter with color coding (green <30, amber 30-60, red >60 days)
+  - Optional frequency setting with overdue warnings
+  - Quick log or detailed session logging with duration and notes
+  - Training history view per item
+  - Team training summary showing overdue training across all members
+- **Enhanced Medical Appointment Tracking**
+  - Flexible appointment types: Physical, Dental, Vision, Specialist, Immunization, Lab Work
+  - Age/gender-appropriate types: OB/GYN, Mammogram, Pap Smear, Pediatric, Well Child
+  - Custom appointment type support
+  - Provider details (name, phone, address) per appointment type
+  - Configurable frequency (3, 6, 12, 24, 36 months)
+  - Mark complete to auto-calculate next due date
+- **Children's Sizing Options**
+  - Baby shirt sizes: NB, 0-3M, 3-6M, 6-9M, 9-12M, 12-18M, 18-24M
+  - Toddler shirt sizes: 2T, 3T, 4T, 5T
+  - Kids shirt sizes: 4, 5, 6, 6X, 7, 8, 10, 12, 14, 16
+  - Baby shoe sizes: 0-5
+  - Toddler shoe sizes: 5T-10T
+  - Kids shoe sizes: 10.5K-6Y
+- **Auto-Reminders for Team Members**
+  - Gear maintenance due reminders synced to calendar
+  - Gear expiration alerts (configurable days before expiration)
+  - Training due reminders (when frequency is set)
+  - Medical appointment due reminders
+
+### Changed
+- Member dossier now has Gear and Training tabs between Profile and Medical
+- Medical tab now includes tracked appointments section
+
 ## [1.25.0] - 2026-01-26
 
 ### Added

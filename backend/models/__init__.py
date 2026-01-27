@@ -24,7 +24,14 @@ from .team import (
     TeamMember, MemberWeightLog, MemberMedicalLog, MentoringSession,
     ValuesAssessmentHistory, WeeklyObservation, WeeklyAAR,
     MemberRole, ReadinessStatus, VisionStatus, GoalsMet,
-    ObservationType, ObservationScope
+    ObservationType, ObservationScope,
+    # Gear tracking
+    MemberGear, MemberGearMaintenance, MemberGearContents, MemberGearMaintenanceLog,
+    GearCategory, GearStatus, ContentStatus,
+    # Training tracking
+    MemberTraining, MemberTrainingLog, TrainingCategory,
+    # Medical appointments
+    MemberMedicalAppointment, AppointmentType
 )
 
 __all__ = [
@@ -103,4 +110,19 @@ __all__ = [
     "GoalsMet",
     "ObservationType",
     "ObservationScope",
+    # Gear tracking
+    "MemberGear",
+    "MemberGearMaintenance",
+    "MemberGearContents",
+    "MemberGearMaintenanceLog",
+    "GearCategory",
+    "GearStatus",
+    "ContentStatus",
+    # Training tracking
+    "MemberTraining",
+    "MemberTrainingLog",
+    "TrainingCategory",
+    # Medical appointments
+    "MemberMedicalAppointment",
+    "AppointmentType",
 ]

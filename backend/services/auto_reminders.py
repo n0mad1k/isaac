@@ -79,6 +79,11 @@ NOTIFICATION_SETTINGS = {
     "notify_plant_sow": "dashboard,email,calendar",
     # Maintenance
     "notify_maintenance": "dashboard,email,calendar",
+    # Team member tracking
+    "notify_gear_maintenance": "dashboard,calendar",
+    "notify_gear_expiration": "dashboard,email,calendar",
+    "notify_medical_appointment": "dashboard,email,calendar",
+    "notify_training_due": "dashboard,calendar",
 }
 
 
@@ -1241,4 +1246,266 @@ async def sync_all_maintenance_reminders(db: AsyncSession) -> Dict[str, int]:
     await db.commit()
 
     logger.info(f"Maintenance reminder sync: {stats}")
+    return stats
+
+
+# ============================================
+# Team Member Auto-Reminders (Gear, Training, Medical)
+# ============================================
+
+async def sync_all_member_reminders(db: AsyncSession) -> Dict[str, int]:
+    """Sync all team member gear maintenance, expirations, training, and medical appointments to calendar."""
+    from models.team import (
+        TeamMember, MemberGear, MemberGearMaintenance, MemberGearContents,
+        MemberTraining, MemberMedicalAppointment
+    )
+
+    stats = {"created": 0, "updated": 0, "skipped": 0, "cleaned": 0}
+    calendar_service = await get_calendar_service(db)
+    today = date.today()
+    now = datetime.now()
+
+    # Track valid reminder keys for cleanup
+    valid_keys = set()
+
+    # --- Gear Maintenance ---
+    result = await db.execute(
+        select(MemberGearMaintenance)
+        .where(MemberGearMaintenance.is_active == True)
+    )
+    gear_maint_tasks = result.scalars().all()
+
+    for maint in gear_maint_tasks:
+        due_date = maint.manual_due_date or maint.next_due_date
+        if not due_date:
+            continue
+
+        # Get gear and member info
+        gear_result = await db.execute(
+            select(MemberGear).where(MemberGear.id == maint.gear_id)
+        )
+        gear = gear_result.scalar_one_or_none()
+        if not gear or not gear.is_active:
+            continue
+
+        member_result = await db.execute(
+            select(TeamMember).where(TeamMember.id == gear.member_id)
+        )
+        member = member_result.scalar_one_or_none()
+        if not member or not member.is_active:
+            continue
+
+        due_date_obj = due_date.date() if isinstance(due_date, datetime) else due_date
+        source_key = f"gear_maint:{maint.id}"
+        valid_keys.add(f"auto:{source_key}")
+
+        title = f"{member.name} - {gear.name}: {maint.name}"
+        description = maint.description or f"Gear maintenance: {maint.name}"
+        if maint.frequency_days:
+            description += f"\nEvery {maint.frequency_days} days"
+        if maint.frequency_rounds:
+            description += f"\nEvery {maint.frequency_rounds} rounds"
+
+        task = await create_or_update_reminder(
+            db=db,
+            source_type="gear_maint",
+            source_id=maint.id,
+            title=title,
+            due_date=due_date_obj,
+            description=description,
+            category=TaskCategory.CUSTOM,
+            notification_setting_key="notify_gear_maintenance",
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # --- Gear Expirations (Contents) ---
+    result = await db.execute(
+        select(MemberGearContents)
+        .where(MemberGearContents.is_active == True)
+        .where(MemberGearContents.expiration_date.isnot(None))
+    )
+    contents = result.scalars().all()
+
+    for content in contents:
+        if not content.expiration_date:
+            continue
+
+        exp_date = content.expiration_date.date() if isinstance(content.expiration_date, datetime) else content.expiration_date
+
+        # Calculate alert date
+        alert_days = content.expiration_alert_days or 30
+        alert_date = exp_date - timedelta(days=alert_days)
+
+        # Only create reminder if we're within the alert window
+        if alert_date > today:
+            continue
+
+        # Get gear and member info
+        gear_result = await db.execute(
+            select(MemberGear).where(MemberGear.id == content.gear_id)
+        )
+        gear = gear_result.scalar_one_or_none()
+        if not gear or not gear.is_active:
+            continue
+
+        member_result = await db.execute(
+            select(TeamMember).where(TeamMember.id == gear.member_id)
+        )
+        member = member_result.scalar_one_or_none()
+        if not member or not member.is_active:
+            continue
+
+        source_key = f"gear_exp:{content.id}"
+        valid_keys.add(f"auto:{source_key}")
+
+        title = f"{member.name} - {gear.name}: {content.item_name} Expiring"
+        description = f"Item: {content.item_name}\nExpires: {exp_date.isoformat()}"
+        if content.quantity:
+            description += f"\nQuantity: {content.quantity}"
+
+        task = await create_or_update_reminder(
+            db=db,
+            source_type="gear_exp",
+            source_id=content.id,
+            title=title,
+            due_date=exp_date,
+            description=description,
+            category=TaskCategory.CUSTOM,
+            notification_setting_key="notify_gear_expiration",
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # --- Training Due ---
+    result = await db.execute(
+        select(MemberTraining)
+        .where(MemberTraining.is_active == True)
+        .where(MemberTraining.next_due.isnot(None))
+    )
+    training_items = result.scalars().all()
+
+    for training in training_items:
+        if not training.next_due:
+            continue
+
+        due_date_obj = training.next_due.date() if isinstance(training.next_due, datetime) else training.next_due
+
+        # Get member info
+        member_result = await db.execute(
+            select(TeamMember).where(TeamMember.id == training.member_id)
+        )
+        member = member_result.scalar_one_or_none()
+        if not member or not member.is_active:
+            continue
+
+        source_key = f"member_training:{training.id}"
+        valid_keys.add(f"auto:{source_key}")
+
+        title = f"{member.name}: {training.name} Training Due"
+        description = training.description or f"Training: {training.name}"
+        if training.frequency_days:
+            description += f"\nFrequency: every {training.frequency_days} days"
+        if training.total_sessions:
+            description += f"\nTotal sessions: {training.total_sessions}"
+
+        task = await create_or_update_reminder(
+            db=db,
+            source_type="member_training",
+            source_id=training.id,
+            title=title,
+            due_date=due_date_obj,
+            description=description,
+            category=TaskCategory.CUSTOM,
+            notification_setting_key="notify_training_due",
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # --- Medical Appointments ---
+    result = await db.execute(
+        select(MemberMedicalAppointment)
+        .where(MemberMedicalAppointment.is_active == True)
+        .where(MemberMedicalAppointment.next_due.isnot(None))
+    )
+    appointments = result.scalars().all()
+
+    for appt in appointments:
+        if not appt.next_due:
+            continue
+
+        due_date_obj = appt.next_due.date() if isinstance(appt.next_due, datetime) else appt.next_due
+
+        # Get member info
+        member_result = await db.execute(
+            select(TeamMember).where(TeamMember.id == appt.member_id)
+        )
+        member = member_result.scalar_one_or_none()
+        if not member or not member.is_active:
+            continue
+
+        source_key = f"member_medical:{appt.id}"
+        valid_keys.add(f"auto:{source_key}")
+
+        title = f"{member.name}: {appt.display_type} Appointment Due"
+        description = f"Appointment type: {appt.display_type}"
+        if appt.provider_name:
+            description += f"\nProvider: {appt.provider_name}"
+        if appt.provider_phone:
+            description += f"\nPhone: {appt.provider_phone}"
+        if appt.notes:
+            description += f"\n\n{appt.notes}"
+
+        task = await create_or_update_reminder(
+            db=db,
+            source_type="member_medical",
+            source_id=appt.id,
+            title=title,
+            due_date=due_date_obj,
+            description=description,
+            location=appt.provider_address,
+            category=TaskCategory.CUSTOM,
+            notification_setting_key="notify_medical_appointment",
+        )
+        if task:
+            stats["created" if task.created_at == task.updated_at else "updated"] += 1
+        else:
+            stats["skipped"] += 1
+
+    # --- Cleanup stale member reminders ---
+    result = await db.execute(
+        select(Task).where(
+            Task.is_active == True,
+            Task.notes.isnot(None)
+        )
+    )
+    all_tasks = result.scalars().all()
+
+    for task in all_tasks:
+        if not task.notes:
+            continue
+
+        # Check for member auto-reminders that are no longer valid
+        for prefix in ["auto:gear_maint:", "auto:gear_exp:", "auto:member_training:", "auto:member_medical:"]:
+            if prefix in task.notes:
+                if task.notes not in valid_keys:
+                    if calendar_service and calendar_service.connect():
+                        await calendar_service.delete_task_from_calendar(
+                            task.id,
+                            calendar_uid=task.calendar_uid
+                        )
+                    task.is_active = False
+                    stats["cleaned"] += 1
+                    logger.debug(f"Cleaned up stale member reminder: {task.title}")
+                break
+
+    await db.commit()
+
+    logger.info(f"Member reminder sync: {stats}")
     return stats

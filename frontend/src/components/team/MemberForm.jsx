@@ -152,8 +152,29 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
   const readinessStatuses = ['GREEN', 'AMBER', 'RED']
   const visionStatuses = ['CORRECTED', 'UNCORRECTED', 'N/A']
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
-  const shirtSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
+  // Expanded shirt sizes with baby, toddler, kids, and adult
+  const shirtSizes = [
+    // Baby
+    'NB', '0-3M', '3-6M', '6-9M', '9-12M', '12-18M', '18-24M',
+    // Toddler
+    '2T', '3T', '4T', '5T',
+    // Kids
+    '4', '5', '6', '6X', '7', '8', '10', '12', '14', '16',
+    // Adult
+    'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'
+  ]
   const gloveSizes = ['XS', 'S', 'M', 'L', 'XL']
+  // Expanded shoe sizes
+  const shoeSizeOptions = [
+    // Baby (0-12 months)
+    { group: 'Baby', sizes: ['0', '1', '2', '3', '4', '5'] },
+    // Toddler (1-4 years)
+    { group: 'Toddler', sizes: ['5T', '6T', '7T', '8T', '9T', '10T'] },
+    // Kids (4-8 years)
+    { group: 'Kids', sizes: ['10.5K', '11K', '12K', '13K', '1Y', '2Y', '3Y', '4Y', '5Y', '6Y'] },
+    // Adult
+    { group: 'Adult', sizes: ['6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5', '11', '11.5', '12', '13', '14', '15'] }
+  ]
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -427,13 +448,20 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Shoe Size</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.shoe_size}
                     onChange={e => handleChange('shoe_size', e.target.value)}
-                    placeholder="e.g., 10.5, 11W"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                  />
+                  >
+                    <option value="">Select...</option>
+                    {shoeSizeOptions.map(group => (
+                      <optgroup key={group.group} label={group.group}>
+                        {group.sizes.map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Shirt Size</label>

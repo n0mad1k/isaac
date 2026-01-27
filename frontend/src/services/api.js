@@ -477,4 +477,65 @@ export const getTeamReadiness = () => api.get('/team/readiness/')
 export const updateMemberReadiness = (memberId, params) =>
   api.put(`/team/members/${memberId}/readiness/`, null, { params })
 
+// Member Gear
+export const getMemberGear = (memberId, params) =>
+  api.get(`/team/members/${memberId}/gear/`, { params })
+export const createMemberGear = (memberId, data) =>
+  api.post(`/team/members/${memberId}/gear/`, data)
+export const getMemberGearItem = (memberId, gearId) =>
+  api.get(`/team/members/${memberId}/gear/${gearId}/`)
+export const updateMemberGear = (memberId, gearId, data) =>
+  api.patch(`/team/members/${memberId}/gear/${gearId}/`, data)
+export const deleteMemberGear = (memberId, gearId) =>
+  api.delete(`/team/members/${memberId}/gear/${gearId}/`)
+
+// Gear Maintenance
+export const getGearMaintenance = (memberId, gearId) =>
+  api.get(`/team/members/${memberId}/gear/${gearId}/maintenance/`)
+export const createGearMaintenance = (memberId, gearId, data) =>
+  api.post(`/team/members/${memberId}/gear/${gearId}/maintenance/`, data)
+export const updateGearMaintenance = (memberId, gearId, maintId, data) =>
+  api.patch(`/team/members/${memberId}/gear/${gearId}/maintenance/${maintId}/`, data)
+export const deleteGearMaintenance = (memberId, gearId, maintId) =>
+  api.delete(`/team/members/${memberId}/gear/${gearId}/maintenance/${maintId}/`)
+export const completeGearMaintenance = (memberId, gearId, maintId, data) =>
+  api.post(`/team/members/${memberId}/gear/${gearId}/maintenance/${maintId}/complete/`, data)
+
+// Gear Contents
+export const getGearContents = (memberId, gearId) =>
+  api.get(`/team/members/${memberId}/gear/${gearId}/contents/`)
+export const createGearContents = (memberId, gearId, data) =>
+  api.post(`/team/members/${memberId}/gear/${gearId}/contents/`, data)
+export const updateGearContents = (memberId, gearId, contentId, data) =>
+  api.patch(`/team/members/${memberId}/gear/${gearId}/contents/${contentId}/`, data)
+export const deleteGearContents = (memberId, gearId, contentId) =>
+  api.delete(`/team/members/${memberId}/gear/${gearId}/contents/${contentId}/`)
+
+// Member Training
+export const getMemberTraining = (memberId, params) =>
+  api.get(`/team/members/${memberId}/training/`, { params })
+export const createMemberTraining = (memberId, data) =>
+  api.post(`/team/members/${memberId}/training/`, data)
+export const updateMemberTraining = (memberId, trainingId, data) =>
+  api.patch(`/team/members/${memberId}/training/${trainingId}/`, data)
+export const deleteMemberTraining = (memberId, trainingId) =>
+  api.delete(`/team/members/${memberId}/training/${trainingId}/`)
+export const logTrainingSession = (memberId, trainingId, data) =>
+  api.post(`/team/members/${memberId}/training/${trainingId}/log/`, data)
+export const getTrainingHistory = (memberId, trainingId) =>
+  api.get(`/team/members/${memberId}/training/${trainingId}/history/`)
+export const getTrainingSummary = () => api.get('/team/training-summary/')
+
+// Member Medical Appointments
+export const getMemberAppointments = (memberId, params) =>
+  api.get(`/team/members/${memberId}/appointments/`, { params })
+export const createMemberAppointment = (memberId, data) =>
+  api.post(`/team/members/${memberId}/appointments/`, data)
+export const updateMemberAppointment = (memberId, apptId, data) =>
+  api.patch(`/team/members/${memberId}/appointments/${apptId}/`, data)
+export const deleteMemberAppointment = (memberId, apptId) =>
+  api.delete(`/team/members/${memberId}/appointments/${apptId}/`)
+export const completeMemberAppointment = (memberId, apptId, data) =>
+  api.post(`/team/members/${memberId}/appointments/${apptId}/complete/`, data)
+
 export default api

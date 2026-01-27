@@ -2,15 +2,19 @@ import React, { useState, useEffect } from 'react'
 import {
   User, Heart, Brain, MessageSquare, Activity,
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle,
-  Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus
+  Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus, Target, Check, X
 } from 'lucide-react'
 import {
   getWeightHistory, logWeight, getMedicalHistory, updateMedicalStatus,
   getMentoringSessions, createMentoringSession,
-  getMemberObservations, createObservation, uploadMemberPhoto, deleteMemberPhoto
+  getMemberObservations, createObservation, uploadMemberPhoto, deleteMemberPhoto,
+  getMemberAppointments, createMemberAppointment, updateMemberAppointment,
+  deleteMemberAppointment, completeMemberAppointment
 } from '../../services/api'
 import MemberMentoringTab from './MemberMentoringTab'
 import MemberObservationsTab from './MemberObservationsTab'
+import MemberGearTab from './MemberGearTab'
+import MemberTrainingTab from './MemberTrainingTab'
 
 function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [activeTab, setActiveTab] = useState('profile')
@@ -22,10 +26,16 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [medicalHistory, setMedicalHistory] = useState([])
   const [sessions, setSessions] = useState([])
   const [observations, setObservations] = useState([])
+  const [appointments, setAppointments] = useState([])
 
   // Load tab-specific data
   useEffect(() => {
     const loadTabData = async () => {
+      // gear and training tabs load their own data
+      if (activeTab === 'gear' || activeTab === 'training') {
+        setLoading(false)
+        return
+      }
       setLoading(true)
       try {
         switch (activeTab) {
@@ -34,8 +44,12 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             setWeightHistory(weightRes.data)
             break
           case 'medical':
-            const medRes = await getMedicalHistory(member.id)
+            const [medRes, apptRes] = await Promise.all([
+              getMedicalHistory(member.id),
+              getMemberAppointments(member.id)
+            ])
             setMedicalHistory(medRes.data)
+            setAppointments(apptRes.data)
             break
           case 'mentoring':
             const sessRes = await getMentoringSessions(member.id)
@@ -128,6 +142,8 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   // Tab definitions
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
+    { id: 'gear', label: 'Gear', icon: Shield },
+    { id: 'training', label: 'Training', icon: Target },
     { id: 'medical', label: 'Medical', icon: Heart },
     { id: 'mentoring', label: 'Mentoring', icon: Brain },
     { id: 'observations', label: 'Observations', icon: MessageSquare },
@@ -417,6 +433,16 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               </div>
             )}
 
+            {/* Gear Tab */}
+            {activeTab === 'gear' && (
+              <MemberGearTab member={member} onUpdate={onUpdate} />
+            )}
+
+            {/* Training Tab */}
+            {activeTab === 'training' && (
+              <MemberTrainingTab member={member} onUpdate={onUpdate} />
+            )}
+
             {/* Medical Tab */}
             {activeTab === 'medical' && (
               <div className="space-y-6">
@@ -486,6 +512,16 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     </div>
                   )}
                 </div>
+
+                {/* Medical Appointments */}
+                <MedicalAppointmentsSection
+                  member={member}
+                  appointments={appointments}
+                  onUpdate={async () => {
+                    const apptRes = await getMemberAppointments(member.id)
+                    setAppointments(apptRes.data)
+                  }}
+                />
 
                 {/* Current Medications */}
                 {member.current_medications && member.current_medications.length > 0 && (
@@ -592,6 +628,318 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             )}
           </>
         )}
+      </div>
+    </div>
+  )
+}
+
+// Medical Appointments Section Component
+const APPOINTMENT_TYPES = [
+  { value: 'PHYSICAL', label: 'Physical Exam' },
+  { value: 'DENTAL', label: 'Dental' },
+  { value: 'VISION', label: 'Vision/Eye' },
+  { value: 'SPECIALIST', label: 'Specialist' },
+  { value: 'IMMUNIZATION', label: 'Immunization' },
+  { value: 'LAB_WORK', label: 'Lab Work' },
+  { value: 'OBGYN', label: 'OB/GYN' },
+  { value: 'MAMMOGRAM', label: 'Mammogram' },
+  { value: 'PAP_SMEAR', label: 'Pap Smear' },
+  { value: 'PEDIATRIC', label: 'Pediatric' },
+  { value: 'WELL_CHILD', label: 'Well Child Visit' },
+  { value: 'CUSTOM', label: 'Custom' }
+]
+
+function MedicalAppointmentsSection({ member, appointments, onUpdate }) {
+  const [showAdd, setShowAdd] = useState(false)
+  const [editingAppt, setEditingAppt] = useState(null)
+  const [error, setError] = useState(null)
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A'
+    return new Date(dateStr).toLocaleDateString()
+  }
+
+  const getDueDateClass = (dateStr) => {
+    if (!dateStr) return ''
+    const due = new Date(dateStr)
+    const today = new Date()
+    const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24))
+    if (diffDays < 0) return 'text-red-400'
+    if (diffDays <= 30) return 'text-yellow-400'
+    return 'text-green-400'
+  }
+
+  const handleComplete = async (appt) => {
+    try {
+      await completeMemberAppointment(member.id, appt.id, {
+        appointment_date: new Date().toISOString()
+      })
+      onUpdate()
+    } catch (err) {
+      setError(err.userMessage || 'Failed to mark complete')
+    }
+  }
+
+  const handleDelete = async (apptId) => {
+    if (!confirm('Delete this appointment tracking?')) return
+    try {
+      await deleteMemberAppointment(member.id, apptId)
+      onUpdate()
+    } catch (err) {
+      setError(err.userMessage || 'Failed to delete')
+    }
+  }
+
+  return (
+    <div className="bg-gray-700 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-farm-green" />
+          Tracked Appointments
+        </h3>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1"
+        >
+          <Plus className="w-4 h-4" /> Add
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-3 p-2 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
+          {error}
+        </div>
+      )}
+
+      {appointments.length === 0 ? (
+        <p className="text-sm text-gray-400">No appointments tracked. Add appointment types to track.</p>
+      ) : (
+        <div className="space-y-2">
+          {appointments.map(appt => (
+            <div key={appt.id} className="bg-gray-800 rounded p-3 flex items-center justify-between">
+              <div>
+                <div className="font-medium text-sm">{appt.display_type}</div>
+                <div className="text-xs text-gray-400">
+                  {appt.provider_name && <span>{appt.provider_name} · </span>}
+                  Every {appt.frequency_months} months
+                </div>
+                <div className="text-xs flex gap-4">
+                  <span className="text-gray-400">
+                    Last: {formatDate(appt.last_appointment)}
+                  </span>
+                  <span className={getDueDateClass(appt.next_due)}>
+                    Due: {formatDate(appt.next_due)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleComplete(appt)}
+                  className="p-1 text-green-400 hover:text-green-300"
+                  title="Mark Complete"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setEditingAppt(appt)}
+                  className="p-1 text-gray-400 hover:text-white"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(appt.id)}
+                  className="p-1 text-gray-400 hover:text-red-400"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add/Edit Modal */}
+      {(showAdd || editingAppt) && (
+        <AppointmentModal
+          appointment={editingAppt}
+          memberId={member.id}
+          onClose={() => { setShowAdd(false); setEditingAppt(null) }}
+          onSave={() => {
+            setShowAdd(false)
+            setEditingAppt(null)
+            onUpdate()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Appointment Modal
+function AppointmentModal({ appointment, memberId, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    appointment_type: appointment?.appointment_type || 'PHYSICAL',
+    custom_type_name: appointment?.custom_type_name || '',
+    provider_name: appointment?.provider_name || '',
+    provider_phone: appointment?.provider_phone || '',
+    provider_address: appointment?.provider_address || '',
+    last_appointment: appointment?.last_appointment ? appointment.last_appointment.split('T')[0] : '',
+    next_due: appointment?.next_due ? appointment.next_due.split('T')[0] : '',
+    frequency_months: appointment?.frequency_months || 12,
+    notes: appointment?.notes || '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    setError(null)
+    try {
+      const data = {
+        ...formData,
+        last_appointment: formData.last_appointment ? new Date(formData.last_appointment).toISOString() : null,
+        next_due: formData.next_due ? new Date(formData.next_due).toISOString() : null,
+        frequency_months: parseInt(formData.frequency_months),
+      }
+      if (appointment) {
+        await updateMemberAppointment(memberId, appointment.id, data)
+      } else {
+        await createMemberAppointment(memberId, data)
+      }
+      onSave()
+    } catch (err) {
+      setError(err.userMessage || 'Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <h3 className="font-semibold">{appointment ? 'Edit Appointment' : 'Add Appointment Type'}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
+              {error}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Appointment Type *</label>
+            <select
+              value={formData.appointment_type}
+              onChange={(e) => setFormData({ ...formData, appointment_type: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              required
+            >
+              {APPOINTMENT_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+          {formData.appointment_type === 'CUSTOM' && (
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Custom Type Name *</label>
+              <input
+                type="text"
+                value={formData.custom_type_name}
+                onChange={(e) => setFormData({ ...formData, custom_type_name: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                required
+              />
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Last Appointment</label>
+              <input
+                type="date"
+                value={formData.last_appointment}
+                onChange={(e) => setFormData({ ...formData, last_appointment: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Next Due</label>
+              <input
+                type="date"
+                value={formData.next_due}
+                onChange={(e) => setFormData({ ...formData, next_due: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Frequency (months)</label>
+            <select
+              value={formData.frequency_months}
+              onChange={(e) => setFormData({ ...formData, frequency_months: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+            >
+              <option value={3}>Every 3 months</option>
+              <option value={6}>Every 6 months</option>
+              <option value={12}>Annually</option>
+              <option value={24}>Every 2 years</option>
+              <option value={36}>Every 3 years</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Provider Name</label>
+            <input
+              type="text"
+              value={formData.provider_name}
+              onChange={(e) => setFormData({ ...formData, provider_name: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Phone</label>
+              <input
+                type="tel"
+                value={formData.provider_phone}
+                onChange={(e) => setFormData({ ...formData, provider_phone: e.target.value })}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Address</label>
+            <textarea
+              value={formData.provider_address}
+              onChange={(e) => setFormData({ ...formData, provider_address: e.target.value })}
+              rows={2}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={2}
+              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : appointment ? 'Save Changes' : 'Add Appointment'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
