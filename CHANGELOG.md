@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.28.6] - 2026-01-27
+
+### Fixed
+- **Multiple expiration dates when adding content items**
+  - Add Content modal now supports tracking individual unit expirations
+  - When quantity > 1, checkbox appears to enable individual tracking
+  - Each unit can have its own expiration date and lot number
+
 ## [1.28.5] - 2026-01-27
 
 ### Added
