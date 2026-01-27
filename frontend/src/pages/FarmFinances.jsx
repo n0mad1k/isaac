@@ -518,7 +518,7 @@ function FarmFinances() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0">
           <DollarSign className="w-7 h-7 text-green-500" />
-          Production & Sales
+          Production
         </h1>
         <MottoDisplay />
         <div className="flex items-center gap-2 flex-shrink-0">
