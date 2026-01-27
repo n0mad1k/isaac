@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Menu, X, LogOut, User, Bug, ChevronDown, ChevronUp, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard, UsersRound } from 'lucide-react'
+import { Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Menu, X, LogOut, User, Bug, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard, UsersRound } from 'lucide-react'
 import { getSettings, getVersionInfo, toggleKeyboard as toggleKeyboardApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import FloatingActionMenu from './FloatingActionMenu'
 
 function Layout() {
   const [refreshInterval, setRefreshInterval] = useState(0) // 0 = disabled
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isDevInstance, setIsDevInstance] = useState(false)
   const [workerTasksEnabled, setWorkerTasksEnabled] = useState(false)
   const [teamEnabled, setTeamEnabled] = useState(false)
@@ -132,10 +131,6 @@ function Layout() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Close mobile menu on navigation
-  useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [location.pathname])
 
   // Fetch refresh interval from settings and check if dev instance
   useEffect(() => {
@@ -276,89 +271,75 @@ function Layout() {
           ))}
         </nav>
 
-        {/* Bottom section - Settings, Dev, User (expandable) */}
+        {/* Bottom section - Settings, Dev, User */}
         <div className="pt-1 flex flex-col items-center" style={{ borderTop: '1px solid var(--color-border-strong)' }}>
-          {/* Expanded options */}
-          {mobileMenuOpen && (
-            <>
-              {isDevInstance && (
-                <NavLink
-                  to="/dev-tracker"
-                  className={({ isActive }) =>
-                    `flex items-center justify-center w-12 h-12 rounded-lg transition-colors ${
-                      isActive ? 'text-farm-green' : 'hover:opacity-80'
-                    }`
-                  }
-                  style={({ isActive }) => ({
-                    backgroundColor: isActive ? 'var(--color-nav-item-bg-active)' : 'transparent',
-                    color: isActive ? 'var(--color-nav-item-text-active)' : 'var(--color-nav-item-text)'
-                  })}
-                  title="Dev Tracker"
-                >
-                  <Bug className="w-6 h-6" />
-                </NavLink>
-              )}
-              <NavLink
-                to="/settings"
-                className={({ isActive }) =>
-                  `flex items-center justify-center w-12 h-12 rounded-lg transition-colors ${
-                    isActive ? 'text-farm-green' : 'hover:opacity-80'
-                  }`
-                }
-                style={({ isActive }) => ({
-                  backgroundColor: isActive ? 'var(--color-nav-item-bg-active)' : 'transparent',
-                  color: isActive ? 'var(--color-nav-item-text-active)' : 'var(--color-nav-item-text)'
-                })}
-                title="Settings"
+          {isDevInstance && (
+            <NavLink
+              to="/dev-tracker"
+              className={({ isActive }) =>
+                `flex items-center justify-center w-12 h-12 rounded-lg transition-colors ${
+                  isActive ? 'text-farm-green' : 'hover:opacity-80'
+                }`
+              }
+              style={({ isActive }) => ({
+                backgroundColor: isActive ? 'var(--color-nav-item-bg-active)' : 'transparent',
+                color: isActive ? 'var(--color-nav-item-text-active)' : 'var(--color-nav-item-text)'
+              })}
+              title="Dev Tracker"
+            >
+              <Bug className="w-6 h-6" />
+            </NavLink>
+          )}
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center justify-center w-12 h-12 rounded-lg transition-colors ${
+                isActive ? 'text-farm-green' : 'hover:opacity-80'
+              }`
+            }
+            style={({ isActive }) => ({
+              backgroundColor: isActive ? 'var(--color-nav-item-bg-active)' : 'transparent',
+              color: isActive ? 'var(--color-nav-item-text-active)' : 'var(--color-nav-item-text)'
+            })}
+            title="Settings"
+          >
+            <Settings className="w-6 h-6" />
+          </NavLink>
+          {user && (
+            <div className="relative" ref={desktopUserMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex flex-col items-center py-2 rounded-lg w-12 transition-colors hover:opacity-80"
+                style={{ color: 'var(--color-nav-item-text)' }}
+                title="User menu"
               >
-                <Settings className="w-6 h-6" />
-              </NavLink>
-              {user && (
-                <div className="relative" ref={desktopUserMenuRef}>
-                  <button
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex flex-col items-center py-2 rounded-lg w-12 transition-colors hover:opacity-80"
-                    style={{ color: 'var(--color-nav-item-text)' }}
-                    title="User menu"
-                  >
-                    <User className="w-6 h-6 mb-1" />
-                    <span className="text-[10px] leading-tight text-center max-w-[60px] truncate">
-                      {user.display_name || user.username}
-                    </span>
-                  </button>
-                  {userMenuOpen && (
-                    <div className="absolute bottom-full left-0 mb-2 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-1 z-50">
-                      {isAdmin && (
-                        <button
-                          onClick={handleUserManagement}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
-                        >
-                          <Users className="w-4 h-4" />
-                          User Management
-                        </button>
-                      )}
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Log Out
-                      </button>
-                    </div>
+                <User className="w-6 h-6 mb-1" />
+                <span className="text-[10px] leading-tight text-center max-w-[60px] truncate">
+                  {user.display_name || user.username}
+                </span>
+              </button>
+              {userMenuOpen && (
+                <div className="absolute bottom-full left-0 mb-2 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-1 z-50">
+                  {isAdmin && (
+                    <button
+                      onClick={handleUserManagement}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                    >
+                      <Users className="w-4 h-4" />
+                      User Management
+                    </button>
                   )}
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Log Out
+                  </button>
                 </div>
               )}
-            </>
+            </div>
           )}
-          {/* Expand button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="w-12 h-10 rounded-lg flex items-center justify-center hover:opacity-80"
-            style={{ color: 'var(--color-nav-item-text)' }}
-            title={mobileMenuOpen ? 'Less' : 'More'}
-          >
-            {mobileMenuOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-          </button>
         </div>
       </aside>
 
