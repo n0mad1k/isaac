@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
-  Users, Plus, RefreshCw, Shield, AlertCircle, User, ChevronLeft, ChevronRight
+  Users, Plus, RefreshCw, Shield, AlertCircle, User, ChevronLeft, ChevronRight,
+  ChevronDown, UserPlus, MessageSquare, Calendar, ThumbsUp, ThumbsDown, Settings
 } from 'lucide-react'
 import {
   getTeamSettings, getTeamOverview, getTeamMembers, createTeamMember,
-  updateTeamMember, deleteTeamMember
+  updateTeamMember, deleteTeamMember, createObservation, createMentoringSession
 } from '../services/api'
 import TeamOverview from '../components/team/TeamOverview'
 import MemberDossier from '../components/team/MemberDossier'
@@ -23,6 +24,20 @@ function Team() {
   // Modal states
   const [showMemberForm, setShowMemberForm] = useState(false)
   const [editingMember, setEditingMember] = useState(null)
+  const [showAddMenu, setShowAddMenu] = useState(false)
+  const [showObservationModal, setShowObservationModal] = useState(false)
+  const [showSessionModal, setShowSessionModal] = useState(false)
+
+  // Quick add observation state
+  const [obsType, setObsType] = useState('went_well')
+  const [obsMember, setObsMember] = useState('')
+  const [obsContent, setObsContent] = useState('')
+  const [obsScope, setObsScope] = useState('team')
+  const [obsSubmitting, setObsSubmitting] = useState(false)
+
+  // Quick add session state
+  const [sessionMember, setSessionMember] = useState('')
+  const [sessionSubmitting, setSessionSubmitting] = useState(false)
 
   // Tab navigation state
   const tabsRef = useRef(null)
@@ -128,6 +143,44 @@ function Team() {
       await loadData()
     } catch (err) {
       console.error('Failed to delete member:', err)
+    }
+  }
+
+  // Handle quick add observation
+  const handleAddObservation = async () => {
+    if (!obsMember || !obsContent.trim()) return
+    setObsSubmitting(true)
+    try {
+      await createObservation(obsMember, {
+        observation_type: obsType,
+        content: obsContent.trim(),
+        scope: obsScope
+      })
+      setObsContent('')
+      setShowObservationModal(false)
+      await loadData()
+    } catch (err) {
+      console.error('Failed to add observation:', err)
+    } finally {
+      setObsSubmitting(false)
+    }
+  }
+
+  // Handle quick add session
+  const handleAddSession = async () => {
+    if (!sessionMember) return
+    setSessionSubmitting(true)
+    try {
+      await createMentoringSession(sessionMember, {})
+      setShowSessionModal(false)
+      // Navigate to that member's tab
+      setSelectedMemberId(parseInt(sessionMember))
+      setActiveTab('member')
+      await loadData()
+    } catch (err) {
+      console.error('Failed to create session:', err)
+    } finally {
+      setSessionSubmitting(false)
     }
   }
 
@@ -257,16 +310,60 @@ function Team() {
           >
             <RefreshCw className="w-5 h-5" />
           </button>
-          <button
-            onClick={() => {
-              setEditingMember(null)
-              setShowMemberForm(true)
-            }}
-            className="flex items-center gap-2 px-3 py-2 bg-farm-green text-white rounded-lg hover:bg-green-600"
-          >
-            <Plus className="w-4 h-4" />
-            Add Member
-          </button>
+
+          {/* Add Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowAddMenu(!showAddMenu)}
+              className="flex items-center gap-2 px-3 py-2 bg-farm-green text-white rounded-lg hover:bg-green-600"
+            >
+              <Plus className="w-4 h-4" />
+              Add
+              <ChevronDown className="w-4 h-4" />
+            </button>
+
+            {showAddMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowAddMenu(false)}
+                />
+                <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      setShowAddMenu(false)
+                      setEditingMember(null)
+                      setShowMemberForm(true)
+                    }}
+                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                  >
+                    <UserPlus className="w-4 h-4 text-farm-green" />
+                    Add Member
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAddMenu(false)
+                      setShowObservationModal(true)
+                    }}
+                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                  >
+                    <MessageSquare className="w-4 h-4 text-blue-400" />
+                    Add Observation
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAddMenu(false)
+                      setShowSessionModal(true)
+                    }}
+                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                  >
+                    <Calendar className="w-4 h-4 text-purple-400" />
+                    Add Session
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -319,6 +416,162 @@ function Team() {
             setEditingMember(null)
           }}
         />
+      )}
+
+      {/* Quick Add Observation Modal */}
+      {showObservationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add Observation</h3>
+
+            <div className="space-y-4">
+              {/* Member Selection */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Team Member</label>
+                <select
+                  value={obsMember}
+                  onChange={(e) => setObsMember(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                >
+                  <option value="">Select member...</option>
+                  {members.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.nickname || m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Observation Type */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Type</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setObsType('went_well')}
+                    className={`flex-1 px-3 py-2 rounded flex items-center justify-center gap-2 ${
+                      obsType === 'went_well'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    <ThumbsUp className="w-4 h-4" />
+                    Went Well
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setObsType('needs_improvement')}
+                    className={`flex-1 px-3 py-2 rounded flex items-center justify-center gap-2 ${
+                      obsType === 'needs_improvement'
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    <ThumbsDown className="w-4 h-4" />
+                    Needs Work
+                  </button>
+                </div>
+              </div>
+
+              {/* Scope */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Scope</label>
+                <select
+                  value={obsScope}
+                  onChange={(e) => setObsScope(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                >
+                  <option value="individual">Individual</option>
+                  <option value="team">Team</option>
+                  <option value="operations">Operations</option>
+                </select>
+              </div>
+
+              {/* Content */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Observation</label>
+                <textarea
+                  value={obsContent}
+                  onChange={(e) => setObsContent(e.target.value)}
+                  placeholder="What happened..."
+                  rows={3}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => {
+                  setShowObservationModal(false)
+                  setObsContent('')
+                  setObsMember('')
+                }}
+                className="px-4 py-2 text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddObservation}
+                disabled={obsSubmitting || !obsMember || !obsContent.trim()}
+                className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
+              >
+                {obsSubmitting ? 'Adding...' : 'Add Observation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Add Session Modal */}
+      {showSessionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Start Mentoring Session</h3>
+
+            <div className="space-y-4">
+              {/* Member Selection */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Team Member</label>
+                <select
+                  value={sessionMember}
+                  onChange={(e) => setSessionMember(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                >
+                  <option value="">Select member...</option>
+                  {members.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.nickname || m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <p className="text-sm text-gray-400">
+                This will create a new mentoring session for the selected member and navigate to their profile.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => {
+                  setShowSessionModal(false)
+                  setSessionMember('')
+                }}
+                className="px-4 py-2 text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddSession}
+                disabled={sessionSubmitting || !sessionMember}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500 disabled:opacity-50"
+              >
+                {sessionSubmitting ? 'Creating...' : 'Start Session'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
