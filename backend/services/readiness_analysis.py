@@ -61,20 +61,16 @@ class ReadinessAnalysis:
     member_updated: bool = False
 
 
-# Marine Corps body fat standards by age group (max allowable %)
-# Source: MCO 6110.3A
-USMC_BF_STANDARDS_MALE = {
-    (17, 26): 18,
-    (27, 39): 19,
-    (40, 45): 20,
-    (46, 999): 21
+# ACE Fitness body fat standards (max for "Normal/Acceptable" category)
+# Source: American Council on Exercise
+# Males: Essential 2-5%, Athletes 6-13%, Fitness 14-17%, Acceptable 18-24%, Overweight 25%+
+# Females: Essential 10-13%, Athletes 14-20%, Fitness 21-24%, Acceptable 25-31%, Overweight 32%+
+ACE_BF_STANDARDS_MALE = {
+    (17, 999): 24  # Max for "Normal" category (all ages same for general fitness)
 }
 
-USMC_BF_STANDARDS_FEMALE = {
-    (17, 26): 26,
-    (27, 39): 27,
-    (40, 45): 28,
-    (46, 999): 29
+ACE_BF_STANDARDS_FEMALE = {
+    (17, 999): 31  # Max for "Normal" category
 }
 
 
@@ -124,15 +120,15 @@ def _calculate_body_fat_taping(
 
 
 def _get_bf_standard(age: Optional[int], is_female: bool) -> float:
-    """Get max allowable body fat % for age/gender"""
-    standards = USMC_BF_STANDARDS_FEMALE if is_female else USMC_BF_STANDARDS_MALE
+    """Get max allowable body fat % for age/gender (ACE fitness standards)"""
+    standards = ACE_BF_STANDARDS_FEMALE if is_female else ACE_BF_STANDARDS_MALE
     if not age:
-        age = 30  # Default to middle range
+        age = 30  # Default
 
     for (min_age, max_age), max_bf in standards.items():
         if min_age <= age <= max_age:
             return max_bf
-    return 21 if not is_female else 29  # Default to oldest bracket
+    return 24 if not is_female else 31  # Default to standard max
 
 
 def _calculate_rolling_baseline(
@@ -448,7 +444,7 @@ def _analyze_body_composition(
         category="body_composition",
         value=score,
         trend=trend,
-        explanation="Marine Corps taping method body fat assessment",
+        explanation="Body fat via taping method, assessed against ACE fitness standards",
         confidence=confidence,
         contributing_factors=factors
     )
