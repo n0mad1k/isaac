@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.34.3] - 2026-01-28
+
+### Fixed
+- **Body fat standards in readiness analysis** - Now uses ACE fitness standards instead of Marine Corps standards
+  - 20% body fat now correctly shows as "within standard" (was showing yellow for exceeding 18% military limit)
+  - Male standard: up to 24% is Normal (was 18% for USMC)
+  - Female standard: up to 31% is Normal (was 26% for USMC)
+
 ## [1.34.2] - 2026-01-28
 
 ### Added
