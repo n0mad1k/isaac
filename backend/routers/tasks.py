@@ -1136,9 +1136,14 @@ async def get_tasks_by_category(
 
 # CalDAV Sync
 @router.get("/caldav/status/")
-async def get_caldav_status():
+async def get_caldav_status(db: AsyncSession = Depends(get_db)):
     """Get CalDAV sync status"""
-    caldav_service = get_calendar_service()
+    caldav_service = await get_calendar_service(db)
+    if caldav_service is None:
+        return {
+            "configured": False,
+            "connected": False,
+        }
     return {
         "configured": caldav_service.is_configured(),
         "connected": caldav_service._initialized,
@@ -1148,8 +1153,8 @@ async def get_caldav_status():
 @router.post("/caldav/sync/")
 async def sync_tasks_to_caldav(db: AsyncSession = Depends(get_db)):
     """Sync all active tasks to CalDAV calendar"""
-    caldav_service = get_calendar_service()
-    if not caldav_service.is_configured():
+    caldav_service = await get_calendar_service(db)
+    if not caldav_service or not caldav_service.is_configured():
         raise HTTPException(
             status_code=400,
             detail="CalDAV not configured. Set CALDAV_URL, CALDAV_USERNAME, and CALDAV_PASSWORD in .env"
@@ -1170,8 +1175,8 @@ async def sync_tasks_to_caldav(db: AsyncSession = Depends(get_db)):
 @router.post("/caldav/sync/{task_id}/")
 async def sync_single_task(task_id: int, db: AsyncSession = Depends(get_db)):
     """Sync a single task to CalDAV"""
-    caldav_service = get_calendar_service()
-    if not caldav_service.is_configured():
+    caldav_service = await get_calendar_service(db)
+    if not caldav_service or not caldav_service.is_configured():
         raise HTTPException(status_code=400, detail="CalDAV not configured")
 
     result = await db.execute(select(Task).where(Task.id == task_id))
