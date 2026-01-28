@@ -14,6 +14,8 @@ All notable changes to Isaac will be documented in this file.
 - **Collapsible sections** in Business and Homestead tabs for better organization
 - **Recurring expense** tracking with monthly/quarterly/annually intervals
 
+- **Fitness score explanation** in fitness tracker - detailed score breakdown with progress bars, tier markers, best vs average scores, recent scored workouts, and variance warnings (matches readiness assessment style)
+
 ### Changed
 - **Overview tab** now shows full P&L: Revenue, Expenses, Net Profit, Outstanding, and Homestead Costs
 - **Business tab** consolidates Sales, Livestock Production, Orders & Payments, Customers, and Business Expenses

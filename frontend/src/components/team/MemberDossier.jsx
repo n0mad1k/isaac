@@ -2448,26 +2448,115 @@ function FitnessTab({ member, settings, formatDate }) {
                   <div className="text-xs text-gray-400">FITNESS SCORE</div>
                 </div>
               </div>
-              {/* Tier breakdown by workout type */}
+              {/* Score Explanation - Detailed Breakdown */}
               {fitnessProfile.by_type && Object.keys(fitnessProfile.by_type).length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-600">
-                  <div className="text-xs text-gray-400 mb-2">PERFORMANCE BY TYPE</div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {Object.entries(fitnessProfile.by_type).map(([type, data]) => (
-                      <div key={type} className="flex items-center justify-between bg-gray-800 rounded p-2">
-                        <span className="text-sm text-gray-300">{type}</span>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                            data.tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
-                            data.tier === 'MARINE' ? 'bg-green-500 text-green-900' :
-                            'bg-blue-500 text-blue-900'
-                          }`}>
-                            {data.tier}
-                          </span>
-                          <span className="text-sm font-medium">{Math.round(data.score)}</span>
+                  <div className="text-xs text-gray-400 mb-3">SCORE BREAKDOWN</div>
+                  <div className="space-y-2">
+                    {Object.entries(fitnessProfile.by_type)
+                      .sort((a, b) => (b[1].best_score || b[1].score || 0) - (a[1].best_score || a[1].score || 0))
+                      .map(([type, data]) => {
+                        const bestScore = data.best_score || data.score || 0
+                        const avgScore = data.average_score || data.score || 0
+                        const typeLabel = WORKOUT_TYPES.find(t => t.value === type)
+                        const icon = typeLabel ? typeLabel.icon : ''
+                        return (
+                          <div key={type} className="bg-gray-800 rounded p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                {icon && <span className="text-sm">{icon}</span>}
+                                <span className="text-sm font-medium text-gray-200">{typeLabel?.label || type}</span>
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                  data.tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
+                                  data.tier === 'MARINE' ? 'bg-green-500 text-green-900' :
+                                  'bg-blue-500 text-blue-900'
+                                }`}>
+                                  {data.tier} {data.sub_tier || ''}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs text-gray-500">{data.workout_count || 0} workout{(data.workout_count || 0) !== 1 ? 's' : ''}</span>
+                                <span className={`text-lg font-bold ${
+                                  bestScore >= 90 ? 'text-yellow-400' :
+                                  bestScore >= 70 ? 'text-green-400' :
+                                  bestScore >= 40 ? 'text-blue-400' :
+                                  'text-gray-400'
+                                }`}>{Math.round(bestScore)}</span>
+                              </div>
+                            </div>
+                            {/* Progress bar */}
+                            <div className="w-full bg-gray-700 rounded-full h-2 mt-1">
+                              <div
+                                className={`h-2 rounded-full transition-all ${
+                                  bestScore >= 90 ? 'bg-yellow-500' :
+                                  bestScore >= 70 ? 'bg-green-500' :
+                                  bestScore >= 40 ? 'bg-blue-500' :
+                                  'bg-gray-500'
+                                }`}
+                                style={{ width: `${Math.min(100, bestScore)}%` }}
+                              />
+                            </div>
+                            {/* Score markers */}
+                            <div className="flex justify-between text-[10px] text-gray-600 mt-0.5 px-0.5">
+                              <span>0</span>
+                              <span className="text-blue-600">|40 CIV</span>
+                              <span className="text-green-600">|70 MAR</span>
+                              <span className="text-yellow-600">|90 SF</span>
+                              <span>100</span>
+                            </div>
+                            {/* Average vs Best */}
+                            {data.workout_count > 1 && avgScore !== bestScore && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Best: {Math.round(bestScore)} | Avg: {Math.round(avgScore)}
+                                {bestScore - avgScore > 15 && (
+                                  <span className="text-yellow-500 ml-2">High variance - consistency will improve score</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                  </div>
+                  {/* How scoring works */}
+                  <div className="mt-3 text-xs text-gray-500">
+                    Overall score = average of your best score in each category. Only your top performance per type counts.
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Scored Workouts */}
+              {fitnessProfile.recent_scored_workouts && fitnessProfile.recent_scored_workouts.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-600">
+                  <div className="text-xs text-gray-400 mb-2">RECENT SCORED WORKOUTS</div>
+                  <div className="space-y-1">
+                    {fitnessProfile.recent_scored_workouts.slice(0, 8).map((w, i) => {
+                      const typeLabel = WORKOUT_TYPES.find(t => t.value === w.type)
+                      return (
+                        <div key={w.workout_id || i} className="flex items-center justify-between text-sm bg-gray-800 rounded px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span>{typeLabel?.icon || ''}</span>
+                            <span className="text-gray-300">{typeLabel?.label || w.type}</span>
+                            <span className="text-xs text-gray-500">{w.date ? new Date(w.date).toLocaleDateString() : ''}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-1.5 py-0.5 rounded text-xs ${
+                              w.tier === 'SF' ? 'bg-yellow-500/20 text-yellow-400' :
+                              w.tier === 'MARINE' ? 'bg-green-500/20 text-green-400' :
+                              'bg-blue-500/20 text-blue-400'
+                            }`}>{w.tier}</span>
+                            <span className={`font-medium ${
+                              w.score >= 90 ? 'text-yellow-400' :
+                              w.score >= 70 ? 'text-green-400' :
+                              w.score >= 40 ? 'text-blue-400' :
+                              'text-gray-400'
+                            }`}>{Math.round(w.score)}</span>
+                            {w.confidence && w.confidence !== 'HIGH' && (
+                              <span className="text-xs text-yellow-600">({w.confidence})</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )}
