@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.41.1] - 2026-01-28
+
+### Fixed
+- **Task editing from team member tab** now includes Location field and Link to entity selector (animal, plant, vehicle, equipment, farm area)
+- **Multi-select Assign To** dropdown now works across all pages (calendar events, vehicles, equipment, farm areas, plants, animals)
+
 ## [1.41.0] - 2026-01-28
 
 ### Changed

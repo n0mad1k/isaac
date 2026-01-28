@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar as CalendarIcon, CheckSquare, X, User, Trash2, Users } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckSquare, X, User, Trash2, Users, ChevronDown, Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { createTask, updateTask, deleteTask, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas, getWorkers, getUsers, getTeamMembers } from '../services/api'
 
@@ -72,6 +72,7 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
   const [hasDate, setHasDate] = useState(!!event?.due_date || !!defaultDate)
   const [entities, setEntities] = useState({ animals: [], plants: [], vehicles: [], equipment: [], farmAreas: [], workers: [], users: [], members: [] })
   const [entitiesLoading, setEntitiesLoading] = useState(true)
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false)
   const [linkType, setLinkType] = useState(
     preselectedEntity?.type ||
     (event?.animal_id ? 'animal' :
@@ -635,88 +636,79 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
 
           {/* Assignment Section - hide when already in worker task mode */}
           {!forWorkerTask && !entitiesLoading && (
-            (Array.isArray(entities.workers) && entities.workers.length > 0) ||
-            (Array.isArray(entities.users) && entities.users.length > 0)
-          ) && (
             <div className="space-y-2 pt-3 border-t border-gray-700">
               <label className="block text-sm text-gray-400 flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Assign To (optional)
               </label>
-              <select
-                value={
-                  formData.assigned_to_member_id ? `member:${formData.assigned_to_member_id}` :
-                  formData.assigned_to_worker_id ? `worker:${formData.assigned_to_worker_id}` :
-                  formData.assigned_to_user_id ? `user:${formData.assigned_to_user_id}` : ''
-                }
-                onChange={(e) => {
-                  const value = e.target.value
-                  if (!value) {
-                    setFormData({ ...formData, assigned_to_worker_id: null, assigned_to_user_id: null, assigned_to_member_id: null })
-                  } else if (value.startsWith('member:')) {
-                    setFormData({ ...formData, assigned_to_member_id: parseInt(value.split(':')[1]), assigned_to_worker_id: null, assigned_to_user_id: null })
-                  } else if (value.startsWith('worker:')) {
-                    setFormData({ ...formData, assigned_to_worker_id: parseInt(value.split(':')[1]), assigned_to_user_id: null, assigned_to_member_id: null })
-                  } else if (value.startsWith('user:')) {
-                    setFormData({ ...formData, assigned_to_user_id: parseInt(value.split(':')[1]), assigned_to_worker_id: null, assigned_to_member_id: null })
-                  }
-                }}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              >
-                <option value="">Not assigned</option>
-                {/* Team Members - show first as primary option */}
-                {Array.isArray(entities.members) && entities.members.filter(m => m.is_active !== false).length > 0 && (
-                  <optgroup label="Team Members">
-                    {entities.members.filter(m => m.is_active !== false).map(m => (
-                      <option key={`member:${m.id}`} value={`member:${m.id}`}>
-                        {m.nickname || m.name}{m.role_title ? ` (${m.role_title})` : ''}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {Array.isArray(entities.workers) && entities.workers.length > 0 && (
-                  <optgroup label="Workers">
-                    {entities.workers.map(w => (
-                      <option key={`worker:${w.id}`} value={`worker:${w.id}`}>
-                        {w.name}{w.role ? ` (${w.role})` : ''}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {Array.isArray(entities.users) && entities.users.filter(u => u.email && u.is_active).length > 0 && (
-                  <optgroup label="System Users">
-                    {entities.users.filter(u => u.email && u.is_active).map(u => (
-                      <option key={`user:${u.id}`} value={`user:${u.id}`}>
-                        {u.display_name || u.username}{u.email ? ` (${u.email})` : ''}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
-
-              {/* Additional team members (for events with multiple attendees) */}
-              {Array.isArray(entities.members) && entities.members.filter(m => m.is_active !== false).length > 1 && (
-                <div className="mt-2">
-                  <label className="text-xs text-gray-500 block mb-1">Additional team members:</label>
-                  <div className="flex flex-wrap gap-2">
-                    {entities.members.filter(m => m.is_active !== false).map(member => (
-                      <label key={member.id} className="flex items-center gap-1 text-xs cursor-pointer bg-gray-700/50 hover:bg-gray-600/50 px-2 py-1 rounded">
-                        <input
-                          type="checkbox"
-                          checked={formData.assigned_member_ids?.includes(member.id) || false}
-                          onChange={(e) => {
-                            const newIds = e.target.checked
-                              ? [...(formData.assigned_member_ids || []), member.id]
-                              : (formData.assigned_member_ids || []).filter(id => id !== member.id)
-                            setFormData({ ...formData, assigned_member_ids: newIds })
-                          }}
-                          className="rounded border-gray-600 w-3 h-3"
-                        />
-                        <span>{member.nickname || member.name}</span>
-                      </label>
-                    ))}
-                  </div>
+              {/* Team Members Multi-Select Dropdown */}
+              {Array.isArray(entities.members) && entities.members.filter(m => m.is_active !== false).length > 0 && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowMemberDropdown(!showMemberDropdown)}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-left flex items-center justify-between"
+                  >
+                    <span className={!(formData.assigned_member_ids?.length > 0) ? 'text-gray-400' : ''}>
+                      {!(formData.assigned_member_ids?.length > 0)
+                        ? 'Select team members...'
+                        : formData.assigned_member_ids.length === 1
+                          ? (() => { const m = entities.members.find(m => m.id === formData.assigned_member_ids[0]); return m ? (m.nickname || m.name) : '1 member selected' })()
+                          : `${formData.assigned_member_ids.length} members selected`}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showMemberDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showMemberDropdown && (
+                    <div className="absolute z-50 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {entities.members.filter(m => m.is_active !== false).map(m => {
+                        const isSelected = formData.assigned_member_ids?.includes(m.id) || false
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => {
+                              const currentIds = formData.assigned_member_ids || []
+                              const newIds = isSelected
+                                ? currentIds.filter(id => id !== m.id)
+                                : [...currentIds, m.id]
+                              setFormData({ ...formData, assigned_member_ids: newIds })
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-600 flex items-center gap-2"
+                          >
+                            <div className={`w-4 h-4 border rounded flex items-center justify-center ${isSelected ? 'bg-farm-green border-farm-green' : 'border-gray-500'}`}>
+                              {isSelected && <Check className="w-3 h-3 text-white" />}
+                            </div>
+                            <span>{m.nickname || m.name}{m.role_title ? ` (${m.role_title})` : ''}</span>
+                          </button>
+                        )
+                      })}
+                      {formData.assigned_member_ids?.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, assigned_member_ids: [] })}
+                          className="w-full px-3 py-2 text-left text-red-400 hover:bg-gray-600 border-t border-gray-600"
+                        >
+                          Clear selection
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
+              )}
+              {/* Workers Single Select (legacy) */}
+              {Array.isArray(entities.workers) && entities.workers.length > 0 && (
+                <select
+                  value={formData.assigned_to_worker_id || ''}
+                  onChange={(e) => setFormData({ ...formData, assigned_to_worker_id: e.target.value ? parseInt(e.target.value) : null })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  <option value="">No worker assigned</option>
+                  {entities.workers.map(w => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}{w.role ? ` (${w.role})` : ''}
+                    </option>
+                  ))}
+                </select>
               )}
             </div>
           )}

@@ -3,7 +3,7 @@ import {
   CheckCircle, Circle, Clock, AlertTriangle, ChevronDown, ChevronUp,
   Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check, X, User, Bell
 } from 'lucide-react'
-import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask, getTeamMembers } from '../../services/api'
+import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask, getTeamMembers, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas } from '../../services/api'
 
 // Alert options matching ToDo.jsx
 const ALERT_OPTIONS = [
@@ -35,10 +35,13 @@ function MemberTasksTab({ member, onUpdate }) {
   const [customInterval, setCustomInterval] = useState('')
   const [selectedMemberIds, setSelectedMemberIds] = useState([])
   const [showMemberDropdown, setShowMemberDropdown] = useState(false)
+  const [linkType, setLinkType] = useState('none')
+  const [linkEntities, setLinkEntities] = useState({ animals: [], plants: [], vehicles: [], equipment: [], farmAreas: [] })
 
   useEffect(() => {
     loadTasks()
     loadTeamMembers()
+    loadLinkEntities()
   }, [member.id])
 
   const loadTeamMembers = async () => {
@@ -47,6 +50,21 @@ function MemberTasksTab({ member, onUpdate }) {
       setTeamMembers(res.data || [])
     } catch (err) {
       console.error('Failed to load team members:', err)
+    }
+  }
+
+  const loadLinkEntities = async () => {
+    try {
+      const [animals, plants, vehicles, equipment, farmAreas] = await Promise.all([
+        getAnimals().then(r => r.data || []).catch(() => []),
+        getPlants().then(r => r.data || []).catch(() => []),
+        getVehicles().then(r => r.data || []).catch(() => []),
+        getEquipment().then(r => r.data || []).catch(() => []),
+        getFarmAreas().then(r => r.data || []).catch(() => []),
+      ])
+      setLinkEntities({ animals, plants, vehicles, equipment, farmAreas })
+    } catch (err) {
+      console.error('Failed to load link entities:', err)
     }
   }
 
@@ -132,6 +150,13 @@ function MemberTasksTab({ member, onUpdate }) {
         ? task.assigned_member_ids
         : task.assigned_to_member_id ? [task.assigned_to_member_id] : []
     )
+    // Set link type based on existing entity links
+    if (task.animal_id) setLinkType('animal')
+    else if (task.plant_id) setLinkType('plant')
+    else if (task.vehicle_id) setLinkType('vehicle')
+    else if (task.equipment_id) setLinkType('equipment')
+    else if (task.farm_area_id) setLinkType('farm_area')
+    else setLinkType('none')
     setOpenMenuId(null)
   }
 
@@ -143,6 +168,7 @@ function MemberTasksTab({ member, onUpdate }) {
     setIsAllDay(true)
     setSelectedMemberIds([])
     setShowMemberDropdown(false)
+    setLinkType('none')
   }
 
   const handleSaveEdit = async () => {
@@ -154,12 +180,18 @@ function MemberTasksTab({ member, onUpdate }) {
         due_date: editingTask.due_date || null,
         due_time: isAllDay ? null : (editingTask.due_time || null),
         category: editingTask.category || 'custom',
+        location: editingTask.location || null,
         is_backlog: editingTask.is_backlog || false,
         visible_to_farmhands: editingTask.visible_to_farmhands || false,
         assigned_member_ids: selectedMemberIds.length > 0 ? selectedMemberIds : [],
         alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
         recurrence: selectedRecurrence,
-        recurrence_interval: selectedRecurrence === 'custom' ? parseInt(customInterval) || null : null
+        recurrence_interval: selectedRecurrence === 'custom' ? parseInt(customInterval) || null : null,
+        animal_id: linkType === 'animal' ? editingTask.animal_id : null,
+        plant_id: linkType === 'plant' ? editingTask.plant_id : null,
+        vehicle_id: linkType === 'vehicle' ? editingTask.vehicle_id : null,
+        equipment_id: linkType === 'equipment' ? editingTask.equipment_id : null,
+        farm_area_id: linkType === 'farm_area' ? editingTask.farm_area_id : null,
       })
       closeEditModal()
       setSelectedAlerts([])
@@ -433,6 +465,118 @@ function MemberTasksTab({ member, onUpdate }) {
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={editingTask.location || ''}
+                  onChange={(e) => setEditingTask({ ...editingTask, location: e.target.value })}
+                  placeholder="e.g., Vet clinic, Farm, Home"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              {/* Link to entity */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Link to (optional)</label>
+                <select
+                  value={linkType}
+                  onChange={(e) => {
+                    setLinkType(e.target.value)
+                    // Clear previous entity IDs when changing type
+                    setEditingTask(prev => ({
+                      ...prev,
+                      animal_id: null,
+                      plant_id: null,
+                      vehicle_id: null,
+                      equipment_id: null,
+                      farm_area_id: null,
+                    }))
+                  }}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  <option value="none">None</option>
+                  <option value="animal">Animal</option>
+                  <option value="plant">Plant</option>
+                  <option value="vehicle">Vehicle</option>
+                  <option value="equipment">Equipment</option>
+                  <option value="farm_area">Farm Area</option>
+                </select>
+              </div>
+              {linkType === 'animal' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Select Animal</label>
+                  <select
+                    value={editingTask.animal_id || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, animal_id: e.target.value ? parseInt(e.target.value) : null })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  >
+                    <option value="">Choose animal...</option>
+                    {linkEntities.animals.map(a => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {linkType === 'plant' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Select Plant</label>
+                  <select
+                    value={editingTask.plant_id || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, plant_id: e.target.value ? parseInt(e.target.value) : null })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  >
+                    <option value="">Choose plant...</option>
+                    {linkEntities.plants.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {linkType === 'vehicle' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Select Vehicle</label>
+                  <select
+                    value={editingTask.vehicle_id || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, vehicle_id: e.target.value ? parseInt(e.target.value) : null })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  >
+                    <option value="">Choose vehicle...</option>
+                    {linkEntities.vehicles.map(v => (
+                      <option key={v.id} value={v.id}>{v.year ? `${v.year} ` : ''}{v.make} {v.model}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {linkType === 'equipment' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Select Equipment</label>
+                  <select
+                    value={editingTask.equipment_id || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, equipment_id: e.target.value ? parseInt(e.target.value) : null })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  >
+                    <option value="">Choose equipment...</option>
+                    {linkEntities.equipment.map(eq => (
+                      <option key={eq.id} value={eq.id}>{eq.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {linkType === 'farm_area' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Select Farm Area</label>
+                  <select
+                    value={editingTask.farm_area_id || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, farm_area_id: e.target.value ? parseInt(e.target.value) : null })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  >
+                    <option value="">Choose farm area...</option>
+                    {linkEntities.farmAreas.map(fa => (
+                      <option key={fa.id} value={fa.id}>{fa.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Category</label>
