@@ -2,16 +2,27 @@
 Dev Tracker API Routes - For QA testing and feature tracking (Dev instance only)
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
+import os
+import uuid
+import shutil
 
 from models.database import get_db
-from models.dev_tracker import DevTrackerItem, DevTrackerMetrics, ItemType, ItemPriority, ItemStatus
+from models.dev_tracker import DevTrackerItem, DevTrackerImage, DevTrackerMetrics, ItemType, ItemPriority, ItemStatus
 from config import settings
+
+# Image storage directory
+IMAGES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "dev_tracker_images")
+os.makedirs(IMAGES_DIR, exist_ok=True)
+
+ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"}
+MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 router = APIRouter(prefix="/dev-tracker", tags=["Dev Tracker"])
@@ -40,6 +51,19 @@ class ItemUpdate(BaseModel):
     requires_collab: Optional[bool] = None  # When True, Claude must work interactively with user
 
 
+class ImageResponse(BaseModel):
+    id: int
+    item_id: int
+    filename: str
+    original_name: Optional[str]
+    content_type: Optional[str]
+    file_size: Optional[int]
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ItemResponse(BaseModel):
     id: int
     item_type: ItemType
@@ -58,6 +82,7 @@ class ItemResponse(BaseModel):
     completed_at: Optional[datetime] = None
     is_archived: Optional[bool] = False
     archived_at: Optional[datetime] = None
+    images: Optional[List[ImageResponse]] = []
 
     class Config:
         from_attributes = True
@@ -404,3 +429,106 @@ async def seed_from_changelog(version: str, db: AsyncSession = Depends(get_db)):
     await db.commit()
 
     return {"message": f"Created {items_created} test items for version {version}"}
+
+
+# ==================== Image Routes ====================
+
+@router.post("/{item_id}/images/", response_model=ImageResponse)
+async def upload_image(
+    item_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload an image to a dev tracker item"""
+    check_dev_only()
+
+    # Verify item exists
+    result = await db.execute(
+        select(DevTrackerItem).where(DevTrackerItem.id == item_id)
+    )
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    # Validate content type
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid image type. Allowed: {', '.join(ALLOWED_IMAGE_TYPES)}"
+        )
+
+    # Read and validate size
+    contents = await file.read()
+    if len(contents) > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=400, detail="Image too large. Max 10MB.")
+
+    # Generate unique filename
+    ext = os.path.splitext(file.filename or "image.png")[1] or ".png"
+    stored_filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(IMAGES_DIR, stored_filename)
+
+    # Save file
+    with open(file_path, "wb") as f:
+        f.write(contents)
+
+    # Create DB record
+    image = DevTrackerImage(
+        item_id=item_id,
+        filename=stored_filename,
+        original_name=file.filename,
+        content_type=file.content_type,
+        file_size=len(contents),
+    )
+    db.add(image)
+    await db.commit()
+    await db.refresh(image)
+
+    return image
+
+
+@router.get("/images/{filename}")
+async def serve_image(filename: str):
+    """Serve a dev tracker image file"""
+    check_dev_only()
+
+    file_path = os.path.join(IMAGES_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    # Prevent path traversal
+    real_path = os.path.realpath(file_path)
+    if not real_path.startswith(os.path.realpath(IMAGES_DIR)):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return FileResponse(file_path)
+
+
+@router.delete("/{item_id}/images/{image_id}")
+async def delete_image(
+    item_id: int,
+    image_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete an image from a dev tracker item"""
+    check_dev_only()
+
+    result = await db.execute(
+        select(DevTrackerImage).where(
+            DevTrackerImage.id == image_id,
+            DevTrackerImage.item_id == item_id,
+        )
+    )
+    image = result.scalar_one_or_none()
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    # Delete file from disk
+    file_path = os.path.join(IMAGES_DIR, image.filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+    # Delete DB record
+    await db.delete(image)
+    await db.commit()
+
+    return {"message": "Image deleted"}

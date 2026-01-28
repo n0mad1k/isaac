@@ -15,6 +15,10 @@ All notable changes to Isaac will be documented in this file.
 - **Recurring expense** tracking with monthly/quarterly/annually intervals
 
 - **Fitness score explanation** in fitness tracker - detailed score breakdown with progress bars, tier markers, best vs average scores, recent scored workouts, and variance warnings (matches readiness assessment style)
+- **Dev tracker image attachments** - upload or paste images on dev tracker items for visual bug reports and screenshots
+  - Upload via file picker or paste from clipboard
+  - Click thumbnails to view full-size in lightbox
+  - Delete images individually; auto-cleaned when items are deleted
 
 ### Changed
 - **Overview tab** now shows full P&L: Revenue, Expenses, Net Profit, Outstanding, and Homestead Costs

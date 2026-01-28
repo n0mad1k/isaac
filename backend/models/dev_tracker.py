@@ -2,7 +2,8 @@
 Dev Tracker Models - For tracking QA testing and feature requests
 """
 
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Enum, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 
@@ -95,5 +96,27 @@ class DevTrackerItem(Base):
     is_archived = Column(Boolean, default=False)
     archived_at = Column(DateTime, nullable=True)
 
+    # Relationships
+    images = relationship("DevTrackerImage", back_populates="item", cascade="all, delete-orphan", lazy="selectin")
+
     def __repr__(self):
         return f"<DevTrackerItem {self.item_type.value}: {self.title}>"
+
+
+class DevTrackerImage(Base):
+    """Images attached to dev tracker items"""
+    __tablename__ = "dev_tracker_images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    item_id = Column(Integer, ForeignKey("dev_tracker_items.id", ondelete="CASCADE"), nullable=False)
+    filename = Column(String(255), nullable=False)  # Stored filename (UUID-based)
+    original_name = Column(String(255))  # Original file name
+    content_type = Column(String(100))  # MIME type
+    file_size = Column(Integer)  # Size in bytes
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    item = relationship("DevTrackerItem", back_populates="images")
+
+    def __repr__(self):
+        return f"<DevTrackerImage {self.original_name} for item {self.item_id}>"

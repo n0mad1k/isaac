@@ -20,7 +20,7 @@ from .production import (
 )
 from .expense import FarmExpense, ExpenseCategory, ExpenseScope
 from .users import User, Session, UserRole, LoginAttempt, AuditLog, AuditAction
-from .dev_tracker import DevTrackerItem, ItemType, ItemPriority, ItemStatus
+from .dev_tracker import DevTrackerItem, DevTrackerImage, ItemType, ItemPriority, ItemStatus
 from .workers import Worker
 from .supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from .customer_feedback import CustomerFeedback, FeedbackType, FeedbackStatus
@@ -107,6 +107,7 @@ __all__ = [
     "AuditLog",
     "AuditAction",
     "DevTrackerItem",
+    "DevTrackerImage",
     "ItemType",
     "ItemPriority",
     "ItemStatus",

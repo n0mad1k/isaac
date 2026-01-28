@@ -455,6 +455,17 @@ export const seedFromChangelog = (version) => api.post('/dev-tracker/seed-from-c
 export const getDevTrackerStats = () => api.get('/dev-tracker/stats/summary/')
 export const getDevTrackerMetrics = () => api.get('/dev-tracker/metrics/')
 
+// Dev Tracker Images
+export const uploadDevTrackerImage = (itemId, file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post(`/dev-tracker/${itemId}/images/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+export const deleteDevTrackerImage = (itemId, imageId) => api.delete(`/dev-tracker/${itemId}/images/${imageId}/`)
+export const getDevTrackerImageUrl = (filename) => `${api.defaults.baseURL}/dev-tracker/images/${filename}`
+
 // Customer Feedback
 export const checkFeedbackEnabled = () => api.get('/feedback/enabled/')
 export const submitFeedback = (data) => api.post('/feedback/submit/', data)

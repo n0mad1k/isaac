@@ -25,6 +25,9 @@ import {
   ThumbsDown,
   MessageCircle,
   Archive,
+  Image,
+  Upload,
+  Clipboard,
 } from 'lucide-react'
 import * as api from '../services/api'
 import { format, isToday, parseISO, startOfDay } from 'date-fns'
@@ -73,6 +76,11 @@ function DevTracker() {
   const [feedbackCollapsed, setFeedbackCollapsed] = useState(false)
   const [deletingFeedbackId, setDeletingFeedbackId] = useState(null)
   const feedbackRefreshRef = useRef(null)
+
+  // Image state
+  const [uploadingImageFor, setUploadingImageFor] = useState(null)
+  const [lightboxImage, setLightboxImage] = useState(null)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     loadData()
@@ -416,6 +424,64 @@ function DevTracker() {
     }
   }
 
+  // Image handlers
+  const handleImageUpload = async (itemId, file) => {
+    if (!file) return
+    setUploadingImageFor(itemId)
+    try {
+      await api.uploadDevTrackerImage(itemId, file)
+      loadData()
+    } catch (err) {
+      console.error('Failed to upload image:', err)
+      setError(err.response?.data?.detail || 'Failed to upload image')
+    } finally {
+      setUploadingImageFor(null)
+    }
+  }
+
+  const handleDeleteImage = async (itemId, imageId) => {
+    if (!window.confirm('Delete this image?')) return
+    try {
+      await api.deleteDevTrackerImage(itemId, imageId)
+      loadData()
+    } catch (err) {
+      console.error('Failed to delete image:', err)
+    }
+  }
+
+  const handleFileSelect = (itemId) => {
+    // Create a temporary file input
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = (e) => {
+      const file = e.target.files[0]
+      if (file) handleImageUpload(itemId, file)
+    }
+    input.click()
+  }
+
+  const handlePasteImage = async (itemId) => {
+    try {
+      const clipboardItems = await navigator.clipboard.read()
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith('image/')) {
+            const blob = await item.getType(type)
+            const ext = type.split('/')[1] || 'png'
+            const file = new File([blob], `pasted-image.${ext}`, { type })
+            await handleImageUpload(itemId, file)
+            return
+          }
+        }
+      }
+      setError('No image found in clipboard')
+    } catch (err) {
+      console.error('Failed to paste image:', err)
+      setError('Could not read clipboard. Try using the upload button instead.')
+    }
+  }
+
   const handleOpenDeleteModal = (item) => {
     setDeleteModalItem(item)
   }
@@ -488,6 +554,62 @@ function DevTracker() {
   const backlog = safeItems
     .filter(i => i?.status === 'backlog')
     .sort(sortByPriorityThenDateAsc)
+
+  // Inline image display + controls
+  const renderItemImages = (item) => {
+    const images = item.images || []
+    const isUploading = uploadingImageFor === item.id
+    return (
+      <div className="mt-2">
+        {/* Existing images */}
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {images.map((img) => (
+              <div key={img.id} className="relative group/img">
+                <img
+                  src={api.getDevTrackerImageUrl(img.filename)}
+                  alt={img.original_name || 'Attached image'}
+                  className="w-20 h-20 object-cover rounded border border-gray-600 cursor-pointer hover:border-blue-400 transition-colors"
+                  onClick={() => setLightboxImage({ ...img, itemId: item.id })}
+                />
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeleteImage(item.id, img.id) }}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity"
+                  title="Delete image"
+                >
+                  <X className="w-3 h-3 text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Upload/Paste buttons */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => handleFileSelect(item.id)}
+            disabled={isUploading}
+            className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-500 hover:text-blue-400 hover:bg-gray-600/50 rounded transition-colors"
+            title="Upload image"
+          >
+            {isUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+            Upload
+          </button>
+          <button
+            onClick={() => handlePasteImage(item.id)}
+            disabled={isUploading}
+            className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-500 hover:text-blue-400 hover:bg-gray-600/50 rounded transition-colors"
+            title="Paste image from clipboard"
+          >
+            <Clipboard className="w-3 h-3" />
+            Paste
+          </button>
+          {images.length > 0 && (
+            <span className="text-[10px] text-gray-600">{images.length} image{images.length !== 1 ? 's' : ''}</span>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   if (error && error.includes('only available on dev')) {
     return (
@@ -929,6 +1051,7 @@ function DevTracker() {
                               )
                             } catch { return null }
                           })()}
+                          {renderItemImages(item)}
                         </div>
                         <button
                           onClick={() => handleToggleCollab(item)}
@@ -1103,6 +1226,7 @@ function DevTracker() {
                               ✓ {item.test_notes}
                             </p>
                           )}
+                          {renderItemImages(item)}
                         </div>
                         <button
                           onClick={() => handleOpenFailModal(item)}
@@ -1381,6 +1505,48 @@ function DevTracker() {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={api.getDevTrackerImageUrl(lightboxImage.filename)}
+              alt={lightboxImage.original_name || 'Image'}
+              className="max-w-full max-h-[85vh] object-contain rounded-lg"
+            />
+            <div className="absolute top-2 right-2 flex gap-2">
+              <button
+                onClick={() => handleDeleteImage(lightboxImage.itemId, lightboxImage.id)}
+                className="p-2 bg-red-600 rounded-full text-white hover:bg-red-700"
+                title="Delete image"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setLightboxImage(null)}
+                className="p-2 bg-gray-700 rounded-full text-white hover:bg-gray-600"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {lightboxImage.original_name && (
+              <div className="text-center mt-2 text-sm text-gray-400">
+                {lightboxImage.original_name}
+                {lightboxImage.file_size && (
+                  <span className="ml-2 text-gray-500">
+                    ({(lightboxImage.file_size / 1024).toFixed(0)} KB)
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
