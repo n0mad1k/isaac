@@ -18,6 +18,7 @@ import shutil
 from loguru import logger
 
 from models.database import get_db
+from services.readiness_analysis import _calculate_body_fat_taping
 from models.settings import AppSetting
 from models.team import (
     TeamMember, MemberWeightLog, MemberVitalsLog, MemberMedicalLog, MentoringSession,
@@ -1233,7 +1234,61 @@ async def log_vital(
     await db.commit()
     await db.refresh(log)
 
-    return {
+    # Auto-calculate body fat when waist, neck, or hip is logged
+    body_fat_log = None
+    taping_types = [VitalType.WAIST, VitalType.NECK, VitalType.HIP]
+    if data.vital_type in taping_types and member.height_inches:
+        # Get latest measurements for each type
+        measurements = {}
+        for vtype in taping_types:
+            vresult = await db.execute(
+                select(MemberVitalsLog)
+                .where(and_(
+                    MemberVitalsLog.member_id == member_id,
+                    MemberVitalsLog.vital_type == vtype
+                ))
+                .order_by(desc(MemberVitalsLog.recorded_at))
+                .limit(1)
+            )
+            vlog = vresult.scalar_one_or_none()
+            if vlog:
+                measurements[vtype] = vlog.value
+
+        # Check if we have enough data to calculate
+        is_female = member.gender == Gender.FEMALE if member.gender else False
+        waist = measurements.get(VitalType.WAIST)
+        neck = measurements.get(VitalType.NECK)
+        hip = measurements.get(VitalType.HIP)
+
+        # For females, we need hip; for males, we need waist and neck
+        can_calculate = False
+        if is_female and waist and neck and hip:
+            can_calculate = True
+        elif not is_female and waist and neck:
+            can_calculate = True
+
+        if can_calculate:
+            bf_pct = _calculate_body_fat_taping(
+                member.height_inches,
+                waist,
+                neck,
+                hip if is_female else None,
+                is_female
+            )
+            if bf_pct is not None and 0 < bf_pct < 60:  # Sanity check
+                # Create auto-calculated body fat log
+                body_fat_log = MemberVitalsLog(
+                    member_id=member_id,
+                    vital_type=VitalType.BODY_FAT,
+                    value=round(bf_pct, 1),
+                    unit="%",
+                    notes="Auto-calculated from taping measurements"
+                )
+                db.add(body_fat_log)
+                await db.commit()
+                await db.refresh(body_fat_log)
+
+    response = {
         "id": log.id,
         "vital_type": log.vital_type.value,
         "value": log.value,
@@ -1242,6 +1297,17 @@ async def log_vital(
         "notes": log.notes,
         "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
     }
+
+    # Include calculated body fat in response if it was created
+    if body_fat_log:
+        response["calculated_body_fat"] = {
+            "id": body_fat_log.id,
+            "value": body_fat_log.value,
+            "unit": body_fat_log.unit,
+            "notes": body_fat_log.notes
+        }
+
+    return response
 
 
 @router.delete("/members/{member_id}/vitals/{vital_id}/")

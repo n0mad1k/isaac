@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.35.1] - 2026-01-28
+
+### Added
+- **Auto-calculate body fat** - Body fat percentage is now automatically calculated and stored when waist, neck, or hip measurements are logged
+  - Uses Navy/Marine Corps taping method formula
+  - Stores calculated body fat as a tracked vital with note "Auto-calculated from taping measurements"
+  - Manual body fat entry still available for other measurement methods (calipers, DEXA, etc.)
+
 ## [1.35.0] - 2026-01-28
 
 ### Added
