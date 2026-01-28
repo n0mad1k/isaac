@@ -5,7 +5,7 @@ import {
   Filter, RefreshCw
 } from 'lucide-react'
 import {
-  getAllTeamSupplyRequests, updateMemberSupplyRequest, deleteMemberSupplyRequest
+  getAllMemberSupplyRequests, updateMemberSupplyRequest, deleteMemberSupplyRequest
 } from '../../services/api'
 
 function TeamSupplyRequestsTab({ members }) {
@@ -41,7 +41,7 @@ function TeamSupplyRequestsTab({ members }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await getAllTeamSupplyRequests()
+      const res = await getAllMemberSupplyRequests()
       setRequests(res.data)
     } catch (err) {
       console.error('Failed to load supply requests:', err)
