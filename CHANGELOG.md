@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.34.1] - 2026-01-28
+
+### Added
+- **Environment Switcher** - Quick link in Settings to switch between Dev and Prod instances
+  - Shows DEV/PROD badge indicating current environment
+  - One-click link to navigate to the other environment
+
 ## [1.34.0] - 2026-01-28
 
 ### Changed
