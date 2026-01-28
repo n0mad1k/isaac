@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from 'react'
 import {
   CheckCircle, Circle, Clock, AlertTriangle, ChevronDown, ChevronUp,
-  Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check, X, User
+  Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check, X, User, Bell
 } from 'lucide-react'
 import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask, getTeamMembers } from '../../services/api'
+
+// Alert options matching ToDo.jsx
+const ALERT_OPTIONS = [
+  { value: 0, label: 'At time' },
+  { value: 5, label: '5 min' },
+  { value: 10, label: '10 min' },
+  { value: 15, label: '15 min' },
+  { value: 30, label: '30 min' },
+  { value: 60, label: '1 hr' },
+  { value: 120, label: '2 hrs' },
+  { value: 1440, label: '1 day' },
+  { value: 2880, label: '2 days' },
+  { value: 10080, label: '1 week' },
+]
 
 function MemberTasksTab({ member, onUpdate }) {
   const [loading, setLoading] = useState(true)
@@ -15,6 +29,8 @@ function MemberTasksTab({ member, onUpdate }) {
   const [editingTask, setEditingTask] = useState(null)
   const [openMenuId, setOpenMenuId] = useState(null)
   const [teamMembers, setTeamMembers] = useState([])
+  const [isAllDay, setIsAllDay] = useState(true)
+  const [selectedAlerts, setSelectedAlerts] = useState([])
 
   useEffect(() => {
     loadTasks()
@@ -102,7 +118,15 @@ function MemberTasksTab({ member, onUpdate }) {
 
   const handleEdit = (task) => {
     setEditingTask(task)
+    setIsAllDay(!task.due_time)
+    setSelectedAlerts(task.alerts || [])
     setOpenMenuId(null)
+  }
+
+  const closeEditModal = () => {
+    closeEditModal()
+    setSelectedAlerts([])
+    setIsAllDay(true)
   }
 
   const handleSaveEdit = async () => {
@@ -112,12 +136,16 @@ function MemberTasksTab({ member, onUpdate }) {
         description: editingTask.description,
         priority: editingTask.priority,
         due_date: editingTask.due_date || null,
-        due_time: editingTask.due_time || null,
+        due_time: isAllDay ? null : (editingTask.due_time || null),
         category: editingTask.category || 'custom',
         is_backlog: editingTask.is_backlog || false,
-        assigned_to_member_id: editingTask.assigned_to_member_id
+        visible_to_farmhands: editingTask.visible_to_farmhands || false,
+        assigned_to_member_id: editingTask.assigned_to_member_id,
+        alerts: selectedAlerts.length > 0 ? selectedAlerts : null
       })
-      setEditingTask(null)
+      closeEditModal()
+      setSelectedAlerts([])
+      setIsAllDay(true)
       await loadTasks()
       if (onUpdate) onUpdate()
     } catch (err) {
@@ -364,7 +392,7 @@ function MemberTasksTab({ member, onUpdate }) {
           <div className="bg-gray-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
               <h3 className="text-xl font-semibold">Edit Task</h3>
-              <button onClick={() => setEditingTask(null)} className="p-1 hover:bg-gray-700 rounded">
+              <button onClick={() => closeEditModal()} className="p-1 hover:bg-gray-700 rounded">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -417,18 +445,29 @@ function MemberTasksTab({ member, onUpdate }) {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Due Date</label>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Due Date (optional)</label>
+                <input
+                  type="date"
+                  value={editingTask.due_date?.split('T')[0] || ''}
+                  onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value || null })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                />
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
                   <input
-                    type="date"
-                    value={editingTask.due_date?.split('T')[0] || ''}
-                    onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value || null })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    type="checkbox"
+                    checked={isAllDay}
+                    onChange={(e) => setIsAllDay(e.target.checked)}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
                   />
-                </div>
+                  All day (no specific time)
+                </label>
+              </div>
+              {!isAllDay && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Due Time</label>
+                  <label className="block text-sm text-gray-400 mb-1">Time</label>
                   <input
                     type="time"
                     value={editingTask.due_time || ''}
@@ -436,7 +475,7 @@ function MemberTasksTab({ member, onUpdate }) {
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
-              </div>
+              )}
               {/* Assignment */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
@@ -472,10 +511,54 @@ function MemberTasksTab({ member, onUpdate }) {
                   <span className="text-xs text-gray-500">(won't appear in Today's Schedule)</span>
                 </label>
               </div>
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={editingTask.visible_to_farmhands || false}
+                    onChange={(e) => setEditingTask({ ...editingTask, visible_to_farmhands: e.target.checked })}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-500"
+                  />
+                  Visible to Farm Hands
+                  <span className="text-xs text-gray-500">(show this task to farm hand accounts)</span>
+                </label>
+              </div>
+              {/* Alerts */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
+                  <Bell className="w-4 h-4" />
+                  Alerts (optional)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ALERT_OPTIONS.map(opt => {
+                    const isSelected = selectedAlerts.includes(opt.value)
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAlerts(prev =>
+                            isSelected
+                              ? prev.filter(v => v !== opt.value)
+                              : [...prev, opt.value].sort((a, b) => b - a)
+                          )
+                        }}
+                        className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                          isSelected
+                            ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
+                            : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
             <div className="flex justify-end gap-3 p-4 border-t border-gray-700">
               <button
-                onClick={() => setEditingTask(null)}
+                onClick={() => closeEditModal()}
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
               >
                 Cancel

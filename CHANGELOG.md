@@ -6,6 +6,12 @@ All notable changes to Isaac will be documented in this file.
 
 ### Added
 - **Global Supply Requests tab** - New "Supplies" tab in Team page for admin view
+
+### Changed
+- **Team Tasks edit modal** - Now matches ToDo edit modal features:
+  - Added "All day" checkbox with conditional time field
+  - Added "Visible to Farm Hands" checkbox
+  - Added alerts selection (at time, 5 min, 10 min, etc.)
   - View all team member supply requests in one place
   - Filter by status, priority, or member
   - Quick status change dropdown on each request
