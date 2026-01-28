@@ -33,6 +33,8 @@ function MemberTasksTab({ member, onUpdate }) {
   const [selectedAlerts, setSelectedAlerts] = useState([])
   const [selectedRecurrence, setSelectedRecurrence] = useState('once')
   const [customInterval, setCustomInterval] = useState('')
+  const [selectedMemberIds, setSelectedMemberIds] = useState([])
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false)
 
   useEffect(() => {
     loadTasks()
@@ -124,6 +126,12 @@ function MemberTasksTab({ member, onUpdate }) {
     setSelectedAlerts(task.alerts || [])
     setSelectedRecurrence(task.recurrence || 'once')
     setCustomInterval(task.recurrence_interval ? String(task.recurrence_interval) : '')
+    // Support both new multi-select and legacy single select
+    setSelectedMemberIds(
+      task.assigned_member_ids?.length > 0
+        ? task.assigned_member_ids
+        : task.assigned_to_member_id ? [task.assigned_to_member_id] : []
+    )
     setOpenMenuId(null)
   }
 
@@ -133,6 +141,8 @@ function MemberTasksTab({ member, onUpdate }) {
     setSelectedRecurrence('once')
     setCustomInterval('')
     setIsAllDay(true)
+    setSelectedMemberIds([])
+    setShowMemberDropdown(false)
   }
 
   const handleSaveEdit = async () => {
@@ -146,7 +156,7 @@ function MemberTasksTab({ member, onUpdate }) {
         category: editingTask.category || 'custom',
         is_backlog: editingTask.is_backlog || false,
         visible_to_farmhands: editingTask.visible_to_farmhands || false,
-        assigned_to_member_id: editingTask.assigned_to_member_id,
+        assigned_member_ids: selectedMemberIds.length > 0 ? selectedMemberIds : [],
         alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
         recurrence: selectedRecurrence,
         recurrence_interval: selectedRecurrence === 'custom' ? parseInt(customInterval) || null : null
@@ -514,27 +524,77 @@ function MemberTasksTab({ member, onUpdate }) {
                   />
                 </div>
               )}
-              {/* Assignment */}
-              <div>
+              {/* Assignment - Multi-select */}
+              <div className="relative">
                 <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Assign To
                 </label>
-                <select
-                  value={editingTask.assigned_to_member_id || ''}
-                  onChange={(e) => setEditingTask({
-                    ...editingTask,
-                    assigned_to_member_id: e.target.value ? parseInt(e.target.value) : null
-                  })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                <button
+                  type="button"
+                  onClick={() => setShowMemberDropdown(!showMemberDropdown)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-left focus:outline-none focus:ring-2 focus:ring-farm-green flex items-center justify-between"
                 >
-                  <option value="">Not assigned</option>
-                  {teamMembers.filter(m => m.is_active !== false).map(m => (
-                    <option key={m.id} value={m.id}>
-                      {m.nickname || m.name}{m.role_title ? ` (${m.role_title})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  <span className={selectedMemberIds.length === 0 ? 'text-gray-400' : ''}>
+                    {selectedMemberIds.length === 0
+                      ? 'Not assigned'
+                      : selectedMemberIds.length === 1
+                        ? teamMembers.find(m => m.id === selectedMemberIds[0])?.nickname ||
+                          teamMembers.find(m => m.id === selectedMemberIds[0])?.name ||
+                          '1 member'
+                        : `${selectedMemberIds.length} members`
+                    }
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showMemberDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showMemberDropdown && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowMemberDropdown(false)}
+                    />
+                    <div className="absolute z-50 mt-1 w-full bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {/* Clear selection option */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMemberIds([])
+                          setShowMemberDropdown(false)
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 text-gray-400"
+                      >
+                        Clear selection
+                      </button>
+                      <div className="border-t border-gray-700" />
+                      {teamMembers.filter(m => m.is_active !== false).map(m => {
+                        const isSelected = selectedMemberIds.includes(m.id)
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedMemberIds(prev =>
+                                isSelected
+                                  ? prev.filter(id => id !== m.id)
+                                  : [...prev, m.id]
+                              )
+                            }}
+                            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2 ${
+                              isSelected ? 'bg-gray-700/50' : ''
+                            }`}
+                          >
+                            <div className={`w-4 h-4 border rounded flex items-center justify-center ${
+                              isSelected ? 'bg-farm-green border-farm-green' : 'border-gray-500'
+                            }`}>
+                              {isSelected && <Check className="w-3 h-3 text-white" />}
+                            </div>
+                            <span>{m.nickname || m.name}{m.role_title ? ` (${m.role_title})` : ''}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
               {/* Options */}
               <div>
