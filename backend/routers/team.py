@@ -1241,6 +1241,47 @@ async def get_vitals_averages(
     return averages
 
 
+async def _compute_health_data_hash(member_id: int, db: AsyncSession) -> str:
+    """Compute hash of health data to detect changes since last analysis.
+
+    Similar to compute_task_sync_hash in calendar_sync.
+    Includes: vital count + latest timestamp, workout count + latest timestamp.
+    If hash matches stored hash, no re-analysis needed.
+    """
+    import hashlib
+
+    # Vitals: count + latest timestamp
+    vital_result = await db.execute(
+        select(func.count(), func.max(MemberVitalsLog.recorded_at))
+        .where(MemberVitalsLog.member_id == member_id)
+    )
+    vital_count, latest_vital = vital_result.one()
+
+    # Workouts: count + latest timestamp
+    workout_result = await db.execute(
+        select(func.count(), func.max(MemberWorkout.workout_date))
+        .where(and_(MemberWorkout.member_id == member_id, MemberWorkout.is_active == True))
+    )
+    workout_count, latest_workout = workout_result.one()
+
+    # Subjective inputs: count + latest
+    subj_result = await db.execute(
+        select(func.count(), func.max(MemberSubjectiveInput.created_at))
+        .where(MemberSubjectiveInput.member_id == member_id)
+    )
+    subj_count, latest_subj = subj_result.one()
+
+    parts = [
+        str(vital_count or 0),
+        str(latest_vital or ''),
+        str(workout_count or 0),
+        str(latest_workout or ''),
+        str(subj_count or 0),
+        str(latest_subj or ''),
+    ]
+    return hashlib.sha256('|'.join(parts).encode()).hexdigest()[:16]
+
+
 async def _calculate_and_store_body_fat(member_id: int, db: AsyncSession, force: bool = False) -> Optional[float]:
     """Calculate body fat from taping measurements and store it if successful.
 
@@ -1353,100 +1394,58 @@ async def calculate_body_fat(
 async def get_readiness_analysis(
     member_id: int,
     lookback_days: int = Query(default=35, ge=7, le=90),
-    update_member: bool = Query(default=True),
+    force: bool = Query(default=False, description="Force re-analysis even if data unchanged"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_auth)
 ):
     """
-    Evidence-based readiness analysis with dual-track system:
-    1. Medical Safety (hard gate) - BP, SpO2, temperature
-    2. Performance Readiness - autonomic recovery, training load, illness patterns
+    Evidence-based readiness analysis with hash-based change detection.
 
-    Key features:
-    - Dual baselines (7-day short + 35-day long term)
-    - Persistence-based HRV/RHR decisions (2+ days required)
-    - ACC/AHA blood pressure categories
-    - Training load ACWR analysis
-    - Explainable results with primary drivers
-
-    If update_member=true, updates member.overall_readiness with the result.
+    Computes a hash of the member's health data (vitals + workouts).
+    If hash matches the stored hash, returns cached result.
+    Only re-runs the full analysis when data has actually changed or force=true.
     """
+    import json as json_module
+
+    member_result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+    member = member_result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail=f"Member {member_id} not found")
+
+    # Compute hash of current health data
+    current_hash = await _compute_health_data_hash(member_id, db)
+
+    # If hash unchanged and cache exists, return cached result
+    if not force and member.readiness_data_hash == current_hash and member.readiness_analysis_cache:
+        try:
+            cached = json_module.loads(member.readiness_analysis_cache)
+            cached["from_cache"] = True
+            return cached
+        except (json_module.JSONDecodeError, TypeError):
+            pass  # Cache corrupt, fall through to fresh analysis
+
+    # Data changed (or no cache) — run full analysis
     from services.readiness_analysis import analyze_readiness
 
     try:
-        # Calculate and store body fat from existing measurements
         await _calculate_and_store_body_fat(member_id, db)
 
         analysis = await analyze_readiness(
             member_id=member_id,
             db=db,
             lookback_days=lookback_days,
-            update_member=update_member
+            update_member=True
         )
 
-        # Build training load dict if present
-        training_load_dict = None
-        if analysis.training_load:
-            tl = analysis.training_load
-            training_load_dict = {
-                "acute_load": tl.acute_load,
-                "chronic_load": tl.chronic_load,
-                "acwr": tl.acwr,
-                "risk_level": tl.risk_level,
-                "spike_detected": tl.spike_detected,
-                "monotony": tl.monotony,
-                "notes": tl.notes
-            }
+        result = _build_analysis_result(member_id, analysis)
 
-        # Build medical safety dict
-        ms = analysis.medical_safety
-        medical_safety_dict = {
-            "status": ms.status,
-            "flags": ms.flags,
-            "action": ms.action
-        }
+        # Cache result + store hash
+        member.readiness_data_hash = current_hash
+        member.readiness_analysis_cache = json_module.dumps(result)
+        member.readiness_analyzed_at = datetime.utcnow()
+        await db.commit()
 
-        # Convert dataclasses to dicts for JSON serialization
-        result = {
-            "member_id": member_id,
-            "overall_status": analysis.overall_status,
-            "score": round(analysis.score, 1),
-            "confidence": analysis.confidence,
-            "primary_drivers": analysis.primary_drivers,
-            "data_sources_used": analysis.data_sources_used,
-            "data_quality_note": analysis.data_quality_note,
-            "medical_safety": medical_safety_dict,
-            "performance_readiness": round(analysis.performance_readiness, 1),
-            "training_load": training_load_dict,
-            "subjective_factors": analysis.subjective_factors,
-            "indicators": [
-                {
-                    "name": ind.name,
-                    "category": ind.category,
-                    "value": round(ind.value, 1),
-                    "trend": ind.trend,
-                    "explanation": ind.explanation,
-                    "confidence": ind.confidence,
-                    "contributing_factors": ind.contributing_factors
-                }
-                for ind in analysis.indicators
-            ],
-            "risk_flags": [
-                {
-                    "code": flag.code,
-                    "severity": flag.severity,
-                    "title": flag.title,
-                    "explanation": flag.explanation,
-                    "recommendation": flag.recommendation,
-                    "source": flag.source
-                }
-                for flag in analysis.risk_flags
-            ],
-            "data_quality": analysis.data_quality,
-            "member_updated": analysis.member_updated,
-            "analyzed_at": analysis.analyzed_at
-        }
-
+        result["from_cache"] = False
         return result
 
     except ValueError as e:
@@ -1454,6 +1453,69 @@ async def get_readiness_analysis(
     except Exception as e:
         logger.error(f"Readiness analysis failed for member {member_id}: {e}")
         raise HTTPException(status_code=500, detail="Analysis failed")
+
+
+def _build_analysis_result(member_id: int, analysis) -> dict:
+    """Convert analysis dataclasses to JSON-serializable dict."""
+    training_load_dict = None
+    if analysis.training_load:
+        tl = analysis.training_load
+        training_load_dict = {
+            "acute_load": tl.acute_load,
+            "chronic_load": tl.chronic_load,
+            "acwr": tl.acwr,
+            "risk_level": tl.risk_level,
+            "spike_detected": tl.spike_detected,
+            "monotony": tl.monotony,
+            "notes": tl.notes
+        }
+
+    ms = analysis.medical_safety
+    medical_safety_dict = {
+        "status": ms.status,
+        "flags": ms.flags,
+        "action": ms.action
+    }
+
+    return {
+        "member_id": member_id,
+        "overall_status": analysis.overall_status,
+        "score": round(analysis.score, 1),
+        "confidence": analysis.confidence,
+        "primary_drivers": analysis.primary_drivers,
+        "data_sources_used": analysis.data_sources_used,
+        "data_quality_note": analysis.data_quality_note,
+        "medical_safety": medical_safety_dict,
+        "performance_readiness": round(analysis.performance_readiness, 1),
+        "training_load": training_load_dict,
+        "subjective_factors": analysis.subjective_factors,
+        "indicators": [
+            {
+                "name": ind.name,
+                "category": ind.category,
+                "value": round(ind.value, 1),
+                "trend": ind.trend,
+                "explanation": ind.explanation,
+                "confidence": ind.confidence,
+                "contributing_factors": ind.contributing_factors
+            }
+            for ind in analysis.indicators
+        ],
+        "risk_flags": [
+            {
+                "code": flag.code,
+                "severity": flag.severity,
+                "title": flag.title,
+                "explanation": flag.explanation,
+                "recommendation": flag.recommendation,
+                "source": flag.source
+            }
+            for flag in analysis.risk_flags
+        ],
+        "data_quality": analysis.data_quality,
+        "member_updated": analysis.member_updated,
+        "analyzed_at": analysis.analyzed_at
+    }
 
 
 @router.post("/members/{member_id}/daily-checkin/")

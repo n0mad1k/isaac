@@ -224,6 +224,9 @@ class TeamMember(Base):
     performance_readiness_score = Column(Float, nullable=True)  # 0-100 physical/performance score
     medical_safety_status = Column(String(10), nullable=True)  # GREEN/AMBER/RED from automated analysis
     readiness_notes = Column(Text, nullable=True)
+    readiness_data_hash = Column(String(32), nullable=True)  # Hash of input data - skip analysis if unchanged
+    readiness_analysis_cache = Column(Text, nullable=True)  # JSON cache of full analysis result
+    readiness_analyzed_at = Column(DateTime, nullable=True)  # When analysis was last run
 
     # Fitness Level (3-tier system: CIVILIAN, MARINE, SF)
     fitness_tier = Column(String(20), nullable=True)  # "CIVILIAN", "MARINE", "SF"

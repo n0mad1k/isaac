@@ -504,9 +504,9 @@ export const logVital = (memberId, data) => api.post(`/team/members/${memberId}/
 export const deleteVital = (memberId, vitalId) => api.delete(`/team/members/${memberId}/vitals/${vitalId}/`)
 export const updateVital = (memberId, vitalId, data) => api.put(`/team/members/${memberId}/vitals/${vitalId}/`, data)
 export const getVitalTypes = () => api.get('/team/vitals/types/')
-export const getReadinessAnalysis = (memberId, lookbackDays = 30, updateMember = true) =>
+export const getReadinessAnalysis = (memberId, lookbackDays = 30, force = false) =>
   api.get(`/team/members/${memberId}/readiness-analysis/`, {
-    params: { lookback_days: lookbackDays, update_member: updateMember }
+    params: { lookback_days: lookbackDays, force }
   })
 export const calculateBodyFat = (memberId) => api.post(`/team/members/${memberId}/calculate-body-fat/`)
 

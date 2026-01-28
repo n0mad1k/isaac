@@ -1095,12 +1095,12 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     }
   }
 
-  // Fetch readiness analysis
-  const fetchReadinessAnalysis = async (updateMember = true) => {
+  // Fetch readiness analysis (hash-based caching - only re-analyzes when data changes)
+  const fetchReadinessAnalysis = async (force = false) => {
     setAnalysisLoading(true)
     setAnalysisError(null)
     try {
-      const res = await getReadinessAnalysis(member.id, 30, updateMember)
+      const res = await getReadinessAnalysis(member.id, 30, force)
       setReadinessAnalysis(res.data)
     } catch (err) {
       setAnalysisError(err.userMessage || 'Failed to load readiness analysis')
@@ -1109,9 +1109,9 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     }
   }
 
-  // Load analysis on mount
+  // Load analysis on mount (returns cache if data unchanged)
   useEffect(() => {
-    fetchReadinessAnalysis(false) // Don't update member on initial load
+    fetchReadinessAnalysis()
   }, [member.id])
 
   // Available context factors for vitals
