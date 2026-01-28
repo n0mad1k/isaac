@@ -2206,7 +2206,7 @@ function FitnessTab({ member, settings, formatDate }) {
   const [editingWorkout, setEditingWorkout] = useState(null)  // Workout being edited
   const [submitting, setSubmitting] = useState(false)
   const [selectedType, setSelectedType] = useState(null)
-  const [viewMode, setViewMode] = useState('list') // 'list' or 'stats'
+  const [viewMode, setViewMode] = useState('stats') // 'list' or 'stats'
 
   // Form state
   const [workoutForm, setWorkoutForm] = useState({
