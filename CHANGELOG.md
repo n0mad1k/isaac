@@ -2,6 +2,20 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.33.0] - 2026-01-27
+
+### Added
+- **Health Monitoring System**
+  - Automatic health checks every 5 minutes monitoring API, database, CalDAV, memory, disk, and CPU
+  - Health logs stored in database with 7-day retention
+  - Email alerts sent when issues are detected (with cooldown to prevent spam)
+  - Health Monitoring section in Settings page showing:
+    - Current system status with individual check results
+    - 24-hour uptime statistics
+    - Historical health logs with status filtering
+    - Manual health check trigger
+    - Option to clear old health logs
+
 ## [1.32.0] - 2026-01-27
 
 ### Added

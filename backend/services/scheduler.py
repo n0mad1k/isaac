@@ -343,6 +343,15 @@ class SchedulerService:
             replace_existing=True,
         )
 
+        # Health monitoring - every 5 minutes
+        self.scheduler.add_job(
+            self.run_health_check,
+            IntervalTrigger(minutes=5),
+            id="health_check",
+            name="Health Monitor",
+            replace_existing=True,
+        )
+
         self.scheduler.start()
         logger.info("Scheduler started with all jobs")
 
@@ -1386,3 +1395,37 @@ class SchedulerService:
 
         except Exception as e:
             logger.error(f"Error cleaning up weather data: {e}")
+
+    async def run_health_check(self):
+        """Run periodic health checks and send alerts if needed"""
+        logger.debug("Running health check...")
+        try:
+            from services.health_monitor import (
+                health_monitor, log_health_check, send_health_alert,
+                HealthStatus
+            )
+
+            async with async_session() as db:
+                # Run all health checks
+                checks = await health_monitor.run_all_checks(db)
+                overall_status = health_monitor.get_overall_status(checks)
+
+                # Log to database
+                await log_health_check(db, checks, overall_status)
+
+                # Check if we should send alerts
+                for check in checks:
+                    if health_monitor.should_send_alert(check.name, check.status):
+                        # Send alert email
+                        await send_health_alert(checks, overall_status)
+                        # Record that we sent an alert for each check
+                        for c in checks:
+                            if c.status in [HealthStatus.WARNING, HealthStatus.CRITICAL]:
+                                health_monitor.record_alert_sent(c.name)
+                        break  # Only send one alert per check cycle
+
+                if overall_status != HealthStatus.HEALTHY:
+                    logger.warning(f"Health check: {overall_status}")
+
+        except Exception as e:
+            logger.error(f"Error running health check: {e}")

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search, Upload, Image } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo } from '../services/api'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -53,6 +53,13 @@ function Settings() {
   const [logFilter, setLogFilter] = useState({ level: '', search: '', lines: 100 })
   const [clearingAppLogs, setClearingAppLogs] = useState(false)
 
+  // Health Monitor state
+  const [healthSummary, setHealthSummary] = useState(null)
+  const [healthLogs, setHealthLogs] = useState([])
+  const [loadingHealth, setLoadingHealth] = useState(false)
+  const [runningHealthCheck, setRunningHealthCheck] = useState(false)
+  const [healthFilter, setHealthFilter] = useState({ status: '', limit: 50 })
+
   // Version state
   const [versionInfo, setVersionInfo] = useState(null)
   const [loadingVersion, setLoadingVersion] = useState(false)
@@ -91,6 +98,7 @@ function Settings() {
     translation: false,
     bible: false,
     storage: false,
+    healthMonitor: false,
     logs: false,
     myFeedback: true
   })
@@ -700,6 +708,52 @@ function Settings() {
     }
   }
 
+  // Health monitoring functions
+  const fetchHealthData = async () => {
+    setLoadingHealth(true)
+    try {
+      const [summaryRes, logsRes] = await Promise.all([
+        getHealthSummary(),
+        getHealthLogs(healthFilter.limit, healthFilter.status || null)
+      ])
+      setHealthSummary(summaryRes.data)
+      setHealthLogs(logsRes.data.logs || [])
+    } catch (error) {
+      console.error('Failed to fetch health data:', error)
+      setMessage({ type: 'error', text: 'Failed to fetch health data' })
+    } finally {
+      setLoadingHealth(false)
+    }
+  }
+
+  const handleRunHealthCheck = async () => {
+    setRunningHealthCheck(true)
+    try {
+      const response = await runHealthCheck()
+      setMessage({ type: 'success', text: `Health check complete: ${response.data.overall_status}` })
+      setTimeout(() => setMessage(null), 5000)
+      fetchHealthData()
+    } catch (error) {
+      console.error('Failed to run health check:', error)
+      setMessage({ type: 'error', text: 'Failed to run health check' })
+    } finally {
+      setRunningHealthCheck(false)
+    }
+  }
+
+  const handleClearHealthLogs = async () => {
+    if (!confirm('Are you sure you want to clear health logs older than 7 days?')) return
+    try {
+      await clearHealthLogs(7)
+      setMessage({ type: 'success', text: 'Old health logs cleared' })
+      setTimeout(() => setMessage(null), 5000)
+      fetchHealthData()
+    } catch (error) {
+      console.error('Failed to clear health logs:', error)
+      setMessage({ type: 'error', text: 'Failed to clear health logs' })
+    }
+  }
+
   // Fetch storage stats when section is expanded
   useEffect(() => {
     if (expandedSections.storage && !storageStats) {
@@ -718,6 +772,13 @@ function Settings() {
       }
     }
   }, [expandedSections.logs])
+
+  // Fetch health data when section is expanded
+  useEffect(() => {
+    if (expandedSections.healthMonitor) {
+      fetchHealthData()
+    }
+  }, [expandedSections.healthMonitor])
 
   // Group settings by category
   const locationSettings = ['timezone', 'latitude', 'longitude', 'usda_zone']
@@ -2466,6 +2527,172 @@ function Settings() {
                 </div>
               ) : (
                 <p className="text-gray-400 text-sm">Failed to load storage information</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Health Monitoring (Admin Only) */}
+      {isAdmin && (
+        <div className="bg-gray-800 rounded-xl p-6">
+          <div
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('healthMonitor')}
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              {expandedSections.healthMonitor ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              <Server className="w-5 h-5 text-green-400" />
+              Health Monitoring
+            </h2>
+          </div>
+          {expandedSections.healthMonitor && (
+            <div className="mt-4 space-y-4">
+              {loadingHealth ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-farm-green"></div>
+                </div>
+              ) : (
+                <>
+                  {/* Health Summary */}
+                  {healthSummary && (
+                    <div className="space-y-4">
+                      {/* Current Status */}
+                      {healthSummary.latest && (
+                        <div className="bg-gray-700/50 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium">Current Status</span>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              healthSummary.latest.overall_status === 'healthy' ? 'bg-green-600 text-green-100' :
+                              healthSummary.latest.overall_status === 'warning' ? 'bg-yellow-600 text-yellow-100' :
+                              healthSummary.latest.overall_status === 'critical' ? 'bg-red-600 text-red-100' :
+                              'bg-gray-600 text-gray-100'
+                            }`}>
+                              {healthSummary.latest.overall_status?.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                            {['api', 'database', 'caldav', 'memory', 'disk', 'cpu'].map(check => {
+                              const data = healthSummary.latest[check]
+                              if (!data) return null
+                              return (
+                                <div key={check} className="flex items-center justify-between bg-gray-800/50 rounded px-3 py-2">
+                                  <span className="text-gray-400 capitalize">{check}</span>
+                                  <span className={`text-xs font-medium ${
+                                    data.status === 'healthy' ? 'text-green-400' :
+                                    data.status === 'warning' ? 'text-yellow-400' :
+                                    data.status === 'critical' ? 'text-red-400' :
+                                    'text-gray-400'
+                                  }`}>
+                                    {data.status === 'healthy' ? '✓' : data.status === 'warning' ? '!' : data.status === 'critical' ? '✗' : '?'}
+                                    {data.percent !== undefined && ` ${data.percent?.toFixed(0)}%`}
+                                    {data.latency_ms !== undefined && ` ${data.latency_ms?.toFixed(0)}ms`}
+                                    {data.load !== undefined && ` ${data.load?.toFixed(1)}`}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Last check: {new Date(healthSummary.latest.checked_at).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 24h Stats */}
+                      <div className="bg-gray-700/50 rounded-lg p-4">
+                        <h3 className="text-sm font-medium mb-3">Last 24 Hours</h3>
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div>
+                            <p className="text-2xl font-bold text-green-400">{healthSummary.last_24h?.uptime_percent || 0}%</p>
+                            <p className="text-xs text-gray-400">Uptime</p>
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold">{healthSummary.last_24h?.total_checks || 0}</p>
+                            <p className="text-xs text-gray-400">Total Checks</p>
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold text-red-400">{healthSummary.last_24h?.by_status?.critical || 0}</p>
+                            <p className="text-xs text-gray-400">Critical</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleRunHealthCheck}
+                      disabled={runningHealthCheck}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${runningHealthCheck ? 'animate-spin' : ''}`} />
+                      {runningHealthCheck ? 'Checking...' : 'Run Health Check'}
+                    </button>
+                    <button
+                      onClick={fetchHealthData}
+                      disabled={loadingHealth}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors text-sm"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${loadingHealth ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </button>
+                    <button
+                      onClick={handleClearHealthLogs}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-600/50 hover:bg-red-600 rounded-lg transition-colors text-sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Clear Old Logs
+                    </button>
+                  </div>
+
+                  {/* Health Logs */}
+                  <div className="border-t border-gray-700 pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium">Recent Health Logs</h3>
+                      <select
+                        value={healthFilter.status}
+                        onChange={(e) => {
+                          setHealthFilter({ ...healthFilter, status: e.target.value })
+                          fetchHealthData()
+                        }}
+                        className="px-2 py-1 bg-gray-700 rounded text-sm"
+                      >
+                        <option value="">All Status</option>
+                        <option value="healthy">Healthy</option>
+                        <option value="warning">Warning</option>
+                        <option value="critical">Critical</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {healthLogs.length === 0 ? (
+                        <p className="text-gray-400 text-sm py-4 text-center">No health logs yet</p>
+                      ) : (
+                        healthLogs.map((log, idx) => (
+                          <div key={idx} className={`flex items-center justify-between px-3 py-2 rounded text-sm ${
+                            log.overall_status === 'healthy' ? 'bg-green-900/20' :
+                            log.overall_status === 'warning' ? 'bg-yellow-900/20' :
+                            log.overall_status === 'critical' ? 'bg-red-900/20' :
+                            'bg-gray-800/50'
+                          }`}>
+                            <span className="text-gray-400 text-xs">
+                              {new Date(log.checked_at).toLocaleString()}
+                            </span>
+                            <span className={`font-medium ${
+                              log.overall_status === 'healthy' ? 'text-green-400' :
+                              log.overall_status === 'warning' ? 'text-yellow-400' :
+                              log.overall_status === 'critical' ? 'text-red-400' :
+                              'text-gray-400'
+                            }`}>
+                              {log.overall_status?.toUpperCase()}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}

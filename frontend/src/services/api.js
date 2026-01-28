@@ -215,6 +215,17 @@ export const getAppLogs = (lines = 100, level = null, search = null, logFile = '
 }
 export const clearAppLogs = () => api.post('/settings/admin-logs/clear/')
 
+// Health Monitoring
+export const runHealthCheck = () => api.get('/settings/health-check/')
+export const getHealthLogs = (limit = 100, status = null) => {
+  const params = new URLSearchParams({ limit: limit.toString() })
+  if (status) params.append('status', status)
+  return api.get(`/settings/health-logs/?${params.toString()}`)
+}
+export const getHealthSummary = () => api.get('/settings/health-summary/')
+export const clearHealthLogs = (olderThanDays = 7) =>
+  api.delete(`/settings/health-logs/`, { params: { older_than_days: olderThanDays } })
+
 // Storage
 export const getStorageStats = () => api.get('/dashboard/storage/')
 export const clearLogs = () => api.post('/dashboard/storage/clear-logs/')

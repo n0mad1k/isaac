@@ -1193,6 +1193,120 @@ async def clear_admin_logs():
     return {"message": "No log file to clear"}
 
 
+# ============================================
+# Health Monitoring Endpoints
+# ============================================
+
+@router.get("/health-check/")
+async def run_health_check(db: AsyncSession = Depends(get_db)):
+    """Run health checks and return current status"""
+    from services.health_monitor import health_monitor, log_health_check
+    from loguru import logger
+
+    try:
+        # Run all health checks
+        checks = await health_monitor.run_all_checks(db)
+        overall_status = health_monitor.get_overall_status(checks)
+
+        # Log to database
+        log = await log_health_check(db, checks, overall_status)
+
+        return {
+            "overall_status": overall_status,
+            "checks": [c.to_dict() for c in checks],
+            "log_id": log.id,
+            "checked_at": log.checked_at.isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+
+
+@router.get("/health-logs/")
+async def get_health_logs(
+    limit: int = 100,
+    status: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get health check history"""
+    from models.settings import HealthLog
+    from sqlalchemy import desc
+
+    query = select(HealthLog).order_by(desc(HealthLog.checked_at))
+
+    if status:
+        query = query.where(HealthLog.overall_status == status)
+
+    query = query.limit(min(limit, 500))
+
+    result = await db.execute(query)
+    logs = result.scalars().all()
+
+    return {
+        "logs": [log.to_dict() for log in logs],
+        "count": len(logs)
+    }
+
+
+@router.get("/health-summary/")
+async def get_health_summary(db: AsyncSession = Depends(get_db)):
+    """Get health summary statistics"""
+    from models.settings import HealthLog
+    from sqlalchemy import desc, func
+    from datetime import datetime, timedelta
+
+    # Get latest health check
+    result = await db.execute(
+        select(HealthLog).order_by(desc(HealthLog.checked_at)).limit(1)
+    )
+    latest = result.scalar_one_or_none()
+
+    # Get counts by status for last 24 hours
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+    result = await db.execute(
+        select(HealthLog.overall_status, func.count(HealthLog.id))
+        .where(HealthLog.checked_at >= cutoff)
+        .group_by(HealthLog.overall_status)
+    )
+    status_counts = {row[0]: row[1] for row in result.fetchall()}
+
+    # Get total checks in last 24h
+    total_24h = sum(status_counts.values())
+
+    # Calculate uptime percentage (healthy / total)
+    healthy_count = status_counts.get("healthy", 0)
+    uptime_percent = (healthy_count / total_24h * 100) if total_24h > 0 else 0
+
+    return {
+        "latest": latest.to_dict() if latest else None,
+        "last_24h": {
+            "total_checks": total_24h,
+            "by_status": status_counts,
+            "uptime_percent": round(uptime_percent, 1)
+        }
+    }
+
+
+@router.delete("/health-logs/")
+async def clear_health_logs(
+    older_than_days: int = 7,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_admin)
+):
+    """Clear health logs older than specified days (admin only)"""
+    from models.settings import HealthLog
+    from sqlalchemy import delete
+    from datetime import datetime, timedelta
+
+    cutoff = datetime.utcnow() - timedelta(days=older_than_days)
+    result = await db.execute(
+        delete(HealthLog).where(HealthLog.checked_at < cutoff)
+    )
+    await db.commit()
+
+    return {"message": f"Cleared health logs older than {older_than_days} days", "deleted": result.rowcount}
+
+
 @router.get("/{key}/")
 async def get_setting_by_key(key: str, db: AsyncSession = Depends(get_db)):
     """Get a specific setting"""

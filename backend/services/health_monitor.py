@@ -1,0 +1,282 @@
+"""
+Health Monitor Service
+Monitors system health and sends alerts when issues are detected.
+"""
+
+import asyncio
+import aiohttp
+import psutil
+import os
+from datetime import datetime, timedelta
+from typing import Optional, Dict, List, Any
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, delete, text
+from loguru import logger
+
+from config import settings
+
+
+class HealthStatus:
+    """Health check status constants"""
+    HEALTHY = "healthy"
+    WARNING = "warning"
+    CRITICAL = "critical"
+    UNKNOWN = "unknown"
+
+
+class HealthCheck:
+    """Individual health check result"""
+    def __init__(self, name: str, status: str, message: str, value: Optional[float] = None):
+        self.name = name
+        self.status = status
+        self.message = message
+        self.value = value
+        self.checked_at = datetime.utcnow()
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "status": self.status,
+            "message": self.message,
+            "value": self.value,
+            "checked_at": self.checked_at.isoformat()
+        }
+
+
+class HealthMonitor:
+    """
+    Health monitoring service that performs periodic health checks
+    and sends alerts when issues are detected.
+    """
+
+    def __init__(self):
+        self.last_alert_time: Dict[str, datetime] = {}
+        self.alert_cooldown_minutes = 15  # Don't spam alerts
+        self.consecutive_failures: Dict[str, int] = {}
+
+    async def check_api_health(self, port: int = 8000) -> HealthCheck:
+        """Check if the API is responding"""
+        try:
+            timeout = aiohttp.ClientTimeout(total=5)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                url = f"http://127.0.0.1:{port}/api/health/"
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        return HealthCheck("api", HealthStatus.HEALTHY, f"API responding on port {port}")
+                    else:
+                        return HealthCheck("api", HealthStatus.WARNING, f"API returned status {response.status}")
+        except asyncio.TimeoutError:
+            return HealthCheck("api", HealthStatus.CRITICAL, "API request timed out")
+        except Exception as e:
+            return HealthCheck("api", HealthStatus.CRITICAL, f"API unreachable: {str(e)[:100]}")
+
+    async def check_database(self, db: AsyncSession) -> HealthCheck:
+        """Check database connectivity"""
+        try:
+            start = datetime.utcnow()
+            result = await db.execute(text("SELECT 1"))
+            result.scalar()
+            elapsed = (datetime.utcnow() - start).total_seconds() * 1000
+
+            if elapsed > 1000:
+                return HealthCheck("database", HealthStatus.WARNING, f"Database slow: {elapsed:.0f}ms", elapsed)
+            return HealthCheck("database", HealthStatus.HEALTHY, f"Database responding: {elapsed:.0f}ms", elapsed)
+        except Exception as e:
+            return HealthCheck("database", HealthStatus.CRITICAL, f"Database error: {str(e)[:100]}")
+
+    async def check_caldav(self) -> HealthCheck:
+        """Check CalDAV/Radicale status"""
+        if not settings.caldav_url:
+            return HealthCheck("caldav", HealthStatus.UNKNOWN, "CalDAV not configured")
+
+        try:
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                # Try to reach radicale
+                url = settings.caldav_url.rstrip('/') + '/'
+                auth = aiohttp.BasicAuth(settings.caldav_username, settings.caldav_password)
+                async with session.options(url, auth=auth, ssl=False) as response:
+                    if response.status in [200, 204, 207]:
+                        return HealthCheck("caldav", HealthStatus.HEALTHY, "CalDAV server responding")
+                    else:
+                        return HealthCheck("caldav", HealthStatus.WARNING, f"CalDAV returned status {response.status}")
+        except asyncio.TimeoutError:
+            return HealthCheck("caldav", HealthStatus.WARNING, "CalDAV request timed out")
+        except Exception as e:
+            return HealthCheck("caldav", HealthStatus.WARNING, f"CalDAV error: {str(e)[:100]}")
+
+    def check_memory(self) -> HealthCheck:
+        """Check system memory usage"""
+        try:
+            memory = psutil.virtual_memory()
+            used_percent = memory.percent
+
+            if used_percent > 90:
+                return HealthCheck("memory", HealthStatus.CRITICAL, f"Memory critical: {used_percent:.1f}%", used_percent)
+            elif used_percent > 80:
+                return HealthCheck("memory", HealthStatus.WARNING, f"Memory high: {used_percent:.1f}%", used_percent)
+            return HealthCheck("memory", HealthStatus.HEALTHY, f"Memory OK: {used_percent:.1f}%", used_percent)
+        except Exception as e:
+            return HealthCheck("memory", HealthStatus.UNKNOWN, f"Memory check failed: {str(e)[:100]}")
+
+    def check_disk(self) -> HealthCheck:
+        """Check disk space usage"""
+        try:
+            disk = psutil.disk_usage('/')
+            used_percent = disk.percent
+
+            if used_percent > 95:
+                return HealthCheck("disk", HealthStatus.CRITICAL, f"Disk critical: {used_percent:.1f}%", used_percent)
+            elif used_percent > 85:
+                return HealthCheck("disk", HealthStatus.WARNING, f"Disk high: {used_percent:.1f}%", used_percent)
+            return HealthCheck("disk", HealthStatus.HEALTHY, f"Disk OK: {used_percent:.1f}%", used_percent)
+        except Exception as e:
+            return HealthCheck("disk", HealthStatus.UNKNOWN, f"Disk check failed: {str(e)[:100]}")
+
+    def check_cpu(self) -> HealthCheck:
+        """Check CPU load average"""
+        try:
+            load_avg = os.getloadavg()
+            cpu_count = psutil.cpu_count() or 1
+            load_percent = (load_avg[0] / cpu_count) * 100
+
+            if load_percent > 200:
+                return HealthCheck("cpu", HealthStatus.CRITICAL, f"CPU overloaded: {load_avg[0]:.2f}", load_percent)
+            elif load_percent > 100:
+                return HealthCheck("cpu", HealthStatus.WARNING, f"CPU high: {load_avg[0]:.2f}", load_percent)
+            return HealthCheck("cpu", HealthStatus.HEALTHY, f"CPU OK: {load_avg[0]:.2f}", load_percent)
+        except Exception as e:
+            return HealthCheck("cpu", HealthStatus.UNKNOWN, f"CPU check failed: {str(e)[:100]}")
+
+    async def run_all_checks(self, db: AsyncSession) -> List[HealthCheck]:
+        """Run all health checks"""
+        checks = []
+
+        # Run async checks
+        checks.append(await self.check_api_health())
+        checks.append(await self.check_database(db))
+        checks.append(await self.check_caldav())
+
+        # Run sync checks
+        checks.append(self.check_memory())
+        checks.append(self.check_disk())
+        checks.append(self.check_cpu())
+
+        return checks
+
+    def get_overall_status(self, checks: List[HealthCheck]) -> str:
+        """Determine overall health status from all checks"""
+        statuses = [c.status for c in checks]
+        if HealthStatus.CRITICAL in statuses:
+            return HealthStatus.CRITICAL
+        if HealthStatus.WARNING in statuses:
+            return HealthStatus.WARNING
+        if all(s == HealthStatus.HEALTHY for s in statuses):
+            return HealthStatus.HEALTHY
+        return HealthStatus.UNKNOWN
+
+    def should_send_alert(self, check_name: str, status: str) -> bool:
+        """Determine if an alert should be sent based on cooldown and consecutive failures"""
+        if status == HealthStatus.HEALTHY:
+            # Reset failure count on healthy
+            self.consecutive_failures[check_name] = 0
+            return False
+
+        # Increment failure count
+        self.consecutive_failures[check_name] = self.consecutive_failures.get(check_name, 0) + 1
+
+        # Only alert after 2 consecutive failures (avoid transient issues)
+        if self.consecutive_failures[check_name] < 2:
+            return False
+
+        # Check cooldown
+        last_alert = self.last_alert_time.get(check_name)
+        if last_alert:
+            cooldown = timedelta(minutes=self.alert_cooldown_minutes)
+            if datetime.utcnow() - last_alert < cooldown:
+                return False
+
+        return True
+
+    def record_alert_sent(self, check_name: str):
+        """Record that an alert was sent"""
+        self.last_alert_time[check_name] = datetime.utcnow()
+
+
+async def log_health_check(db: AsyncSession, checks: List[HealthCheck], overall_status: str):
+    """Log health check results to the database"""
+    from models.settings import HealthLog
+
+    log = HealthLog(
+        overall_status=overall_status,
+        api_status=next((c.status for c in checks if c.name == "api"), "unknown"),
+        api_message=next((c.message for c in checks if c.name == "api"), ""),
+        database_status=next((c.status for c in checks if c.name == "database"), "unknown"),
+        database_message=next((c.message for c in checks if c.name == "database"), ""),
+        database_latency_ms=next((c.value for c in checks if c.name == "database"), None),
+        caldav_status=next((c.status for c in checks if c.name == "caldav"), "unknown"),
+        caldav_message=next((c.message for c in checks if c.name == "caldav"), ""),
+        memory_status=next((c.status for c in checks if c.name == "memory"), "unknown"),
+        memory_percent=next((c.value for c in checks if c.name == "memory"), None),
+        disk_status=next((c.status for c in checks if c.name == "disk"), "unknown"),
+        disk_percent=next((c.value for c in checks if c.name == "disk"), None),
+        cpu_status=next((c.status for c in checks if c.name == "cpu"), "unknown"),
+        cpu_load=next((c.value for c in checks if c.name == "cpu"), None),
+    )
+
+    db.add(log)
+    await db.commit()
+
+    # Cleanup old logs (keep last 7 days)
+    cutoff = datetime.utcnow() - timedelta(days=7)
+    await db.execute(delete(HealthLog).where(HealthLog.checked_at < cutoff))
+    await db.commit()
+
+    return log
+
+
+async def send_health_alert(checks: List[HealthCheck], overall_status: str):
+    """Send email alert for health issues"""
+    from services.email_service import send_email
+
+    # Build alert message
+    issues = [c for c in checks if c.status in [HealthStatus.WARNING, HealthStatus.CRITICAL]]
+    if not issues:
+        return
+
+    subject = f"[{settings.app_name}] Health Alert: {overall_status.upper()}"
+
+    body_lines = [
+        f"Health check detected issues at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "",
+        "Issues detected:",
+    ]
+
+    for check in issues:
+        severity = "CRITICAL" if check.status == HealthStatus.CRITICAL else "WARNING"
+        body_lines.append(f"  [{severity}] {check.name}: {check.message}")
+
+    body_lines.extend([
+        "",
+        "All checks:",
+    ])
+
+    for check in checks:
+        status_icon = "✓" if check.status == HealthStatus.HEALTHY else "✗" if check.status == HealthStatus.CRITICAL else "!"
+        body_lines.append(f"  {status_icon} {check.name}: {check.message}")
+
+    body = "\n".join(body_lines)
+
+    try:
+        await send_email(
+            subject=subject,
+            body=body,
+            is_alert=True
+        )
+        logger.info(f"Health alert email sent: {overall_status}")
+    except Exception as e:
+        logger.error(f"Failed to send health alert email: {e}")
+
+
+# Global instance
+health_monitor = HealthMonitor()
