@@ -2,6 +2,20 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.34.2] - 2026-01-28
+
+### Added
+- **Full function test script** - Comprehensive API endpoint testing script (`scripts/test-endpoints.sh`)
+  - Tests 73 endpoints across all modules (dashboard, weather, tasks, animals, etc.)
+  - Color-coded output with pass/fail/warning status
+  - Use before deployments to verify nothing is broken
+
+### Fixed
+- **Dashboard quick-stats 500 error** - Fixed broken endpoint that was referencing non-existent Animal columns
+  - Now properly uses Animal model properties (next_hoof_trim, next_worming)
+- **CalDAV status endpoint** - Fixed 500 error due to missing method calls
+- **Dev tracker fail_count display** - FAILED badge now shows count (e.g., "FAILED x3")
+
 ## [1.34.1] - 2026-01-28
 
 ### Added
