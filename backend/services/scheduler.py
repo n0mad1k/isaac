@@ -362,6 +362,15 @@ class SchedulerService:
             replace_existing=True,
         )
 
+        # Cleanup old health data - daily at 4 AM (2 year retention)
+        self.scheduler.add_job(
+            self.cleanup_old_health_data,
+            CronTrigger(hour=4, minute=0),
+            id="cleanup_health_data",
+            name="Cleanup Old Health Data",
+            replace_existing=True,
+        )
+
         # Health monitoring - every 5 minutes
         self.scheduler.add_job(
             self.run_health_check,
@@ -1470,6 +1479,62 @@ class SchedulerService:
 
         except Exception as e:
             logger.error(f"Error cleaning up old tasks: {e}")
+
+    async def cleanup_old_health_data(self):
+        """Clean up old health data to prevent database bloat.
+
+        Retention policy: 2 years for vitals, workouts, weight logs, and subjective inputs.
+        Health data is kept longer than tasks since it may be needed for long-term trend analysis.
+        """
+        logger.debug("Running health data cleanup...")
+        try:
+            from models.team import MemberVitalsLog, MemberWorkoutLog, MemberWeightLog, MemberSubjectiveInput
+            from sqlalchemy import delete
+
+            # 2 year retention for health data
+            cutoff_date = datetime.now() - timedelta(days=730)
+
+            async with async_session() as db:
+                # Delete old vitals
+                result = await db.execute(
+                    delete(MemberVitalsLog).where(
+                        MemberVitalsLog.recorded_at < cutoff_date
+                    )
+                )
+                deleted_vitals = result.rowcount
+
+                # Delete old workouts
+                result = await db.execute(
+                    delete(MemberWorkoutLog).where(
+                        MemberWorkoutLog.workout_date < cutoff_date
+                    )
+                )
+                deleted_workouts = result.rowcount
+
+                # Delete old weight logs
+                result = await db.execute(
+                    delete(MemberWeightLog).where(
+                        MemberWeightLog.recorded_at < cutoff_date
+                    )
+                )
+                deleted_weights = result.rowcount
+
+                # Delete old subjective inputs
+                result = await db.execute(
+                    delete(MemberSubjectiveInput).where(
+                        MemberSubjectiveInput.input_date < cutoff_date.date()
+                    )
+                )
+                deleted_subjective = result.rowcount
+
+                await db.commit()
+
+                total_deleted = deleted_vitals + deleted_workouts + deleted_weights + deleted_subjective
+                if total_deleted > 0:
+                    logger.info(f"Health data cleanup: removed {deleted_vitals} vitals, {deleted_workouts} workouts, {deleted_weights} weights, {deleted_subjective} subjective inputs (>2 years old)")
+
+        except Exception as e:
+            logger.error(f"Error cleaning up old health data: {e}")
 
     async def run_health_check(self):
         """Run periodic health checks and send alerts if needed"""
