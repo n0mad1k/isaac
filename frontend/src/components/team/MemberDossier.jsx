@@ -212,19 +212,35 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
-              {/* Readiness Score & Status */}
+              {/* Readiness Scores - 3 colored number badges */}
               <div className="flex items-center gap-1">
-                {member.readiness_score && (
-                  <span className={`px-2 py-0.5 rounded text-sm font-bold ${
-                    member.overall_readiness === 'GREEN' ? 'bg-green-600' :
-                    member.overall_readiness === 'AMBER' ? 'bg-yellow-600' :
-                    member.overall_readiness === 'RED' ? 'bg-red-600' :
-                    'bg-gray-600'
-                  } text-white`}>
-                    {Math.round(member.readiness_score)}
-                  </span>
-                )}
-                <ReadinessIndicator status={member.overall_readiness} />
+                {/* Overall Readiness */}
+                <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${
+                  member.overall_readiness === 'GREEN' ? 'bg-green-600' :
+                  member.overall_readiness === 'AMBER' ? 'bg-yellow-600' :
+                  member.overall_readiness === 'RED' ? 'bg-red-600' :
+                  'bg-gray-600'
+                }`} title="Overall Readiness">
+                  {member.readiness_score ? Math.round(member.readiness_score) : '—'}
+                </span>
+                {/* Physical Readiness */}
+                <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${
+                  member.physical_readiness === 'GREEN' ? 'bg-green-600' :
+                  member.physical_readiness === 'AMBER' ? 'bg-yellow-600' :
+                  member.physical_readiness === 'RED' ? 'bg-red-600' :
+                  'bg-gray-600'
+                }`} title="Physical Readiness">
+                  {member.physical_readiness === 'GREEN' ? '✓' : member.physical_readiness === 'AMBER' ? '!' : member.physical_readiness === 'RED' ? '✗' : '—'}
+                </span>
+                {/* Medical Safety */}
+                <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${
+                  member.medical_readiness === 'GREEN' ? 'bg-green-600' :
+                  member.medical_readiness === 'AMBER' ? 'bg-yellow-600' :
+                  member.medical_readiness === 'RED' ? 'bg-red-600' :
+                  'bg-gray-600'
+                }`} title="Medical Safety">
+                  {member.medical_readiness === 'GREEN' ? '✓' : member.medical_readiness === 'AMBER' ? '!' : member.medical_readiness === 'RED' ? '✗' : '—'}
+                </span>
               </div>
               {/* Fitness Tier Badge */}
               {member.fitness_tier && (
@@ -232,7 +248,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   member.fitness_tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
                   member.fitness_tier === 'MARINE' ? 'bg-green-500 text-green-900' :
                   'bg-blue-500 text-blue-900'
-                }`}>
+                }`} title={`Fitness: ${member.fitness_tier} ${member.fitness_sub_tier || ''}`}>
                   {member.fitness_tier}
                 </span>
               )}
@@ -375,72 +391,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   </table>
                 </div>
 
-                {/* 2. Readiness & Fitness Summary */}
-                <div className="bg-gray-700 rounded-lg p-4">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-blue-400" />
-                    Readiness & Fitness
-                  </h3>
-                  <div className="space-y-3">
-                    {/* Overall Readiness */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400 text-sm">Overall Readiness</span>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          member.overall_readiness === 'GREEN' ? 'bg-green-600' :
-                          member.overall_readiness === 'AMBER' ? 'bg-yellow-600' :
-                          member.overall_readiness === 'RED' ? 'bg-red-600' :
-                          'bg-gray-600'
-                        } text-white`}>
-                          {member.overall_readiness || 'UNKNOWN'}
-                        </span>
-                        {member.readiness_score && (
-                          <span className="text-gray-300 font-medium">{Math.round(member.readiness_score)}</span>
-                        )}
-                      </div>
-                    </div>
-                    {/* Physical Readiness */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400 text-sm">Physical Status</span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                        member.physical_readiness === 'GREEN' ? 'bg-green-600' :
-                        member.physical_readiness === 'AMBER' ? 'bg-yellow-600' :
-                        member.physical_readiness === 'RED' ? 'bg-red-600' :
-                        'bg-gray-600'
-                      } text-white`}>
-                        {member.physical_readiness || 'UNKNOWN'}
-                      </span>
-                    </div>
-                    {/* Medical Safety */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400 text-sm">Medical Safety</span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                        member.medical_readiness === 'GREEN' ? 'bg-green-600' :
-                        member.medical_readiness === 'AMBER' ? 'bg-yellow-600' :
-                        member.medical_readiness === 'RED' ? 'bg-red-600' :
-                        'bg-gray-600'
-                      } text-white`}>
-                        {member.medical_readiness || 'UNKNOWN'}
-                      </span>
-                    </div>
-                    {/* Fitness Level - shown if available */}
-                    {member.fitness_tier && (
-                      <div className="flex items-center justify-between pt-2 border-t border-gray-600">
-                        <span className="text-gray-400 text-sm">Fitness Level</span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          member.fitness_tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
-                          member.fitness_tier === 'MARINE' ? 'bg-green-500 text-green-900' :
-                          'bg-blue-500 text-blue-900'
-                        }`}>
-                          {member.fitness_tier} {member.fitness_sub_tier && `- ${member.fitness_sub_tier}`}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">See Health Data tab for detailed analysis</p>
-                </div>
-
-                {/* 3. Skills */}
+                {/* 2. Skills */}
                 <div className="bg-gray-700 rounded-lg p-4">
                   <h3 className="font-semibold mb-3">Skills</h3>
                   {member.skills && member.skills.length > 0 ? (
