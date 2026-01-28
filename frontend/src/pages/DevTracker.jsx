@@ -255,6 +255,26 @@ function DevTracker() {
     }
   }
 
+  const handleAddToBacklog = async () => {
+    if (!newItem.trim()) return
+    try {
+      await api.createDevTrackerItem({
+        title: newItem.trim(),
+        item_type: 'feature',
+        priority: newPriority,
+        status: 'backlog',
+        requires_collab: newRequiresCollab,
+      })
+      setNewItem('')
+      setNewPriority('low')
+      setNewRequiresCollab(false)
+      await loadData()
+    } catch (err) {
+      console.error('Error adding to backlog:', err)
+      setError(err.response?.data?.detail || err.message || 'Failed to add to backlog')
+    }
+  }
+
   const handleChangePriority = async (item, newPriority) => {
     try {
       await api.updateDevTrackerItem(item.id, { priority: newPriority })
@@ -731,8 +751,18 @@ function DevTracker() {
           type="submit"
           disabled={!newItem.trim()}
           className="px-4 py-3 bg-farm-green hover:bg-farm-green-dark text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+          title="Add to pending"
         >
           <Plus className="w-5 h-5" />
+        </button>
+        <button
+          type="button"
+          onClick={handleAddToBacklog}
+          disabled={!newItem.trim()}
+          className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+          title="Send to backlog"
+        >
+          <Archive className="w-5 h-5" />
         </button>
       </form>
 
