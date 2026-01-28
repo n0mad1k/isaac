@@ -23,11 +23,13 @@ All notable changes to Isaac will be documented in this file.
   - Body measurements: Weight, Waist, Neck, Hip
   - Subjective inputs: Energy level, Sleep quality/hours, Soreness, Pain, Stress
   - Context factors: Alcohol, Poor sleep, High caffeine, Travel, Illness, etc.
-- **Quick Add FAB** - Floating action button on Team page for fast data entry:
+- **Quick Add in Team page** - Health data options added to "+ Add" dropdown menu:
   - Daily Check-in, Log Workout, Log Vital, Log Weight
   - Member selector to log for any active team member
 - **Subjective Inputs Model** - New data model to capture fatigue, pain, and context factors
 - **Training Load Spike Detection** - Warns when ACWR > 1.5 (elevated injury risk)
+- **Readiness & Fitness card** in Profile tab - Shows overall readiness, physical status, medical safety, and fitness tier
+- **Health data retention** - Automatic cleanup of health data older than 2 years (runs daily at 4 AM)
 
 ### Changed
 - **Readiness display updated** - Now shows:
@@ -36,6 +38,12 @@ All notable changes to Isaac will be documented in this file.
   - Better confidence display with color-coded HIGH/MEDIUM/LOW badges
   - Data quality note explaining analysis confidence
 - **BP categories** now follow ACC/AHA guidelines (crisis = >180/120)
+- **Hip measurement** now only shows for female members in Daily Check-in form
+- **Body fat auto-calculation** no longer creates duplicate entries when value unchanged
+
+### Fixed
+- **Context factors** now properly read from individual vital logs (not just function parameters)
+  - BP Stage 1 readings with explainable factors (caffeine, stress, etc.) won't trigger AMBER status
 
 ## [1.39.1] - 2026-01-28
 
