@@ -2121,7 +2121,7 @@ function FitnessTab({ member, settings, formatDate }) {
     setLoading(true)
     try {
       const [workoutsRes, statsRes] = await Promise.all([
-        getWorkouts(member.id, { limit: 50, days_back: 90 }),
+        getWorkouts(member.id, { limit: 50, days_back: 365 }),
         getWorkoutStats(member.id, 30)
       ])
       setWorkouts(workoutsRes.data)

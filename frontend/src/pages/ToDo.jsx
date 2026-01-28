@@ -20,6 +20,8 @@ import {
   TrendingUp,
   Flame,
   Target,
+  ChevronDown,
+  Check,
 } from 'lucide-react'
 import {
   getTasks,
@@ -75,7 +77,8 @@ function ToDo() {
   const [workers, setWorkers] = useState([])
   const [members, setMembers] = useState([])
   const [selectedWorkerId, setSelectedWorkerId] = useState(null)
-  const [selectedMemberId, setSelectedMemberId] = useState(null)
+  const [selectedMemberIds, setSelectedMemberIds] = useState([])  // Multi-select for team members
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false)  // Dropdown visibility
   const [isAllDay, setIsAllDay] = useState(true)  // Default to all-day (no time)
   const [metrics, setMetrics] = useState(null)
   const [metricsLoading, setMetricsLoading] = useState(false)
@@ -230,7 +233,14 @@ function ToDo() {
     setCustomInterval(todo.recurrence_interval?.toString() || '')
     setSelectedAlerts(todo.reminder_alerts || [])
     setSelectedWorkerId(todo.assigned_to_worker_id || null)
-    setSelectedMemberId(todo.assigned_to_member_id || null)
+    // Use assigned_member_ids array, or fall back to legacy single member
+    setSelectedMemberIds(
+      todo.assigned_member_ids?.length > 0
+        ? todo.assigned_member_ids
+        : todo.assigned_to_member_id
+          ? [todo.assigned_to_member_id]
+          : []
+    )
     setIsAllDay(!todo.due_time)  // Set based on whether existing todo has a time
     setShowForm(true)
   }
@@ -269,7 +279,7 @@ function ToDo() {
       visible_to_farmhands: formData.get('visible_to_farmhands') === 'on',
       reminder_alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
       assigned_to_worker_id: selectedWorkerId || null,
-      assigned_to_member_id: selectedMemberId || null,
+      assigned_member_ids: selectedMemberIds.length > 0 ? selectedMemberIds : null,
     }
 
     try {
@@ -282,7 +292,8 @@ function ToDo() {
       setEditingTodo(null)
       setSelectedAlerts([])
       setSelectedWorkerId(null)
-      setSelectedMemberId(null)
+      setSelectedMemberIds([])
+      setShowMemberDropdown(false)
       fetchTodos()
     } catch (error) {
       console.error('Failed to save to do:', error)
@@ -300,6 +311,8 @@ function ToDo() {
     setCustomInterval('')
     setSelectedAlerts([])
     setSelectedWorkerId(null)
+    setSelectedMemberIds([])
+    setShowMemberDropdown(false)
     setIsAllDay(true)  // Reset to default
   }
 
@@ -822,53 +835,82 @@ function ToDo() {
                   })}
                 </div>
               </div>
-              {/* Assign To (Team Members, Workers) */}
+              {/* Assign To (Team Members - Multi-select, Workers - Single select) */}
               {(members.length > 0 || workers.length > 0) && (
                 <div>
                   <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
                     <User className="w-4 h-4" />
                     Assign To (optional)
                   </label>
-                  <select
-                    value={
-                      selectedMemberId ? `member:${selectedMemberId}` :
-                      selectedWorkerId ? `worker:${selectedWorkerId}` : ''
-                    }
-                    onChange={(e) => {
-                      const value = e.target.value
-                      if (!value) {
-                        setSelectedMemberId(null)
-                        setSelectedWorkerId(null)
-                      } else if (value.startsWith('member:')) {
-                        setSelectedMemberId(parseInt(value.split(':')[1]))
-                        setSelectedWorkerId(null)
-                      } else if (value.startsWith('worker:')) {
-                        setSelectedWorkerId(parseInt(value.split(':')[1]))
-                        setSelectedMemberId(null)
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-                  >
-                    <option value="">Not assigned</option>
-                    {members.filter(m => m.is_active !== false).length > 0 && (
-                      <optgroup label="Team Members">
-                        {members.filter(m => m.is_active !== false).map(m => (
-                          <option key={`member:${m.id}`} value={`member:${m.id}`}>
-                            {m.nickname || m.name}{m.role_title ? ` (${m.role_title})` : ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    {workers.length > 0 && (
-                      <optgroup label="Workers">
-                        {workers.map(w => (
-                          <option key={`worker:${w.id}`} value={`worker:${w.id}`}>
-                            {w.name}{w.role ? ` (${w.role})` : ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                  </select>
+                  {/* Team Members Multi-Select */}
+                  {members.filter(m => m.is_active !== false).length > 0 && (
+                    <div className="relative mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowMemberDropdown(!showMemberDropdown)}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-left flex items-center justify-between"
+                      >
+                        <span className={selectedMemberIds.length === 0 ? 'text-gray-400' : ''}>
+                          {selectedMemberIds.length === 0
+                            ? 'Select team members...'
+                            : selectedMemberIds.length === 1
+                              ? members.find(m => m.id === selectedMemberIds[0])?.nickname || members.find(m => m.id === selectedMemberIds[0])?.name
+                              : `${selectedMemberIds.length} members selected`}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showMemberDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                      {showMemberDropdown && (
+                        <div className="absolute z-50 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {members.filter(m => m.is_active !== false).map(m => {
+                            const isSelected = selectedMemberIds.includes(m.id)
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedMemberIds(selectedMemberIds.filter(id => id !== m.id))
+                                  } else {
+                                    setSelectedMemberIds([...selectedMemberIds, m.id])
+                                  }
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-gray-600 flex items-center gap-2"
+                              >
+                                <div className={`w-4 h-4 border rounded flex items-center justify-center ${isSelected ? 'bg-farm-green border-farm-green' : 'border-gray-500'}`}>
+                                  {isSelected && <Check className="w-3 h-3 text-white" />}
+                                </div>
+                                <span>{m.nickname || m.name}{m.role_title ? ` (${m.role_title})` : ''}</span>
+                              </button>
+                            )
+                          })}
+                          {selectedMemberIds.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedMemberIds([])}
+                              className="w-full px-3 py-2 text-left text-red-400 hover:bg-gray-600 border-t border-gray-600"
+                            >
+                              Clear selection
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Workers Single Select (legacy) */}
+                  {workers.length > 0 && (
+                    <select
+                      value={selectedWorkerId || ''}
+                      onChange={(e) => setSelectedWorkerId(e.target.value ? parseInt(e.target.value) : null)}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    >
+                      <option value="">No worker assigned</option>
+                      {workers.map(w => (
+                        <option key={w.id} value={w.id}>
+                          {w.name}{w.role ? ` (${w.role})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               )}
               <div className="flex gap-3 pt-4">
