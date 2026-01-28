@@ -1442,6 +1442,58 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
         </div>
       </div>
 
+      {/* Baseline Summary - shows averages and flags abnormalities */}
+      {Object.keys(vitalsAverages).length > 0 && (
+        <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-700/50 rounded-lg p-4">
+          <h3 className="font-semibold mb-3 text-cyan-300">Baseline Averages</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {Object.entries(vitalsAverages).map(([vitalType, data]) => {
+              const latest = getLatestVital(vitalType)
+              const typeInfo = vitalTypes.find(t => t.value === vitalType)
+              if (!data || data.count < 1) return null
+
+              // Calculate deviation from baseline
+              let deviation = null
+              let isAbnormal = false
+              if (latest && data.count > 1) {
+                deviation = latest.value - data.average
+                // Flag as abnormal if deviation is significant (>10% or specific thresholds)
+                const threshold = vitalType === 'heart_rate' || vitalType === 'resting_heart_rate' ? 10
+                  : vitalType === 'blood_pressure' ? 15
+                  : vitalType === 'hrv' ? data.average * 0.2
+                  : vitalType === 'blood_oxygen' ? 3
+                  : vitalType === 'temperature' ? 1
+                  : data.average * 0.15
+                isAbnormal = Math.abs(deviation) > threshold
+              }
+
+              return (
+                <div key={vitalType} className={`bg-gray-800/50 rounded p-2 ${isAbnormal ? 'ring-2 ring-yellow-500/50' : ''}`}>
+                  <div className="text-xs text-gray-400">{typeInfo?.label || vitalType.replace(/_/g, ' ')}</div>
+                  <div className="font-semibold text-cyan-300">
+                    {vitalType === 'blood_pressure' && data.average_secondary
+                      ? `${data.average}/${data.average_secondary}`
+                      : data.average} <span className="text-xs font-normal text-gray-400">{data.unit}</span>
+                  </div>
+                  {latest && data.count > 1 && (
+                    <div className={`text-xs mt-1 ${isAbnormal ? 'text-yellow-400 font-medium' : 'text-gray-500'}`}>
+                      Current: {Math.round(latest.value)}
+                      {deviation !== null && (
+                        <span className={deviation > 0 ? 'text-red-400' : 'text-green-400'}>
+                          {' '}({deviation > 0 ? '+' : ''}{Math.round(deviation)})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-500">n={data.count}</div>
+                </div>
+              )
+            })}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Yellow highlight indicates current reading deviates significantly from baseline</p>
+        </div>
+      )}
+
       {/* Latest Vitals Quick View */}
       <div className="bg-gray-700 rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
