@@ -333,19 +333,24 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                       className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-400 mb-1">Hip (in)</label>
-                    <input
-                      type="number"
-                      step="0.25"
-                      value={hip}
-                      onChange={(e) => setHip(e.target.value)}
-                      placeholder="38"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
-                    />
-                  </div>
+                  {/* Hip - only show for females (required for female body fat calculation) */}
+                  {members.find(m => m.id == selectedMemberId)?.gender === 'female' && (
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Hip (in)</label>
+                      <input
+                        type="number"
+                        step="0.25"
+                        value={hip}
+                        onChange={(e) => setHip(e.target.value)}
+                        placeholder="38"
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      />
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-gray-500">Body fat is auto-calculated from waist/neck/hip measurements</p>
+                <p className="text-xs text-gray-500">
+                  Body fat is auto-calculated from waist/neck{members.find(m => m.id == selectedMemberId)?.gender === 'female' ? '/hip' : ''} measurements
+                </p>
               </div>
             )}
           </div>
