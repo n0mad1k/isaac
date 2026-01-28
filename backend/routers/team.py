@@ -1775,7 +1775,11 @@ async def get_fitness_profile(
             "distance_miles": w.distance_miles,
             "weight_carried_lbs": w.weight_carried_lbs,
             "rpe": w.rpe,
-            "exercises": w.exercises
+            "exercises": w.exercises,
+            "score": w.score,
+            "avg_heart_rate": w.avg_heart_rate,
+            "max_heart_rate": w.max_heart_rate,
+            "test_standard": w.test_standard,
         }
         for w in workouts
     ]

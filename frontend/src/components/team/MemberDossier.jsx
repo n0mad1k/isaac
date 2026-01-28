@@ -251,7 +251,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                       <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${statusBg(overallStatus)}`}>
                         {overallScore != null ? Math.round(overallScore) : '—'}
                       </span>
-                      <span className="text-[9px] text-gray-500 mt-0.5">READY</span>
+                      <span className="text-[9px] text-gray-500 mt-0.5">OVERALL</span>
                     </div>
                     <div className="flex flex-col items-center" title="Performance Readiness">
                       <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${scoreBg(perfScore)}`}>

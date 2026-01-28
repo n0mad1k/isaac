@@ -2,6 +2,26 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.41.0] - 2026-01-28
+
+### Changed
+- **Fitness Scoring Overhaul** - Complete rewrite with real military and civilian standards:
+  - **Run scoring** now uses official USMC PFT 3-mile run scoring function (time → PFT points → score)
+  - **Ruck scoring** anchored to MARSOC A&S standards with 4-mile full credit distance
+  - **Swim scoring** based on 300m continuous swim time standards
+  - **Bike scoring** with population speed data and medium confidence flag for outdoor rides
+  - **Row scoring** using 500m split time standards from RowingLevel.com
+  - **Strength scoring** with BW ratio for barbell lifts (squat, deadlift, bench, OHP) plus PFT bodyweight exercises (pull-ups, push-ups, plank)
+  - **HIIT/COMBAT** uses RPE × duration + HR bonus, capped at SF Good (96)
+  - **PT_TEST** maps PFT/CFT scores (0-300) to our scale via class-based anchors
+  - **MOBILITY** participation credit, capped at Civilian Excellent (69)
+- **Sub-tier names** renamed to Passing/Good/Excellent across all tiers
+- **9 explicit thresholds** per age bracket for granular scoring
+- **Distance scaling** neutral point moved to 55 (was 70) — short efforts no longer inflate scores
+- **Composite score** now uses best recent score per workout type category (recovery jogs don't drag down run score)
+- **Badge label** changed from "READY" to "OVERALL" in member dossier header
+- **Workout data** now passes score, avg/max heart rate, and test standard to fitness scoring
+
 ## [1.40.0] - 2026-01-28
 
 ### Added
