@@ -3,7 +3,8 @@ import {
   User, Heart, Brain, MessageSquare, Activity,
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle, AlertTriangle,
   Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus, Target, Check, X,
-  ListTodo, Package, RefreshCw, TrendingUp, TrendingDown, Minus, Info
+  ListTodo, Package, RefreshCw, TrendingUp, TrendingDown, Minus, Info, Dumbbell,
+  Clock, Flame, Mountain, Timer
 } from 'lucide-react'
 import {
   getWeightHistory, logWeight, getMedicalHistory, updateMedicalStatus,
@@ -12,7 +13,8 @@ import {
   getMemberAppointments, createMemberAppointment, updateMemberAppointment,
   deleteMemberAppointment, completeMemberAppointment,
   getVitalsHistory, getVitalsAverages, logVital, deleteVital, getVitalTypes,
-  getReadinessAnalysis, calculateBodyFat
+  getReadinessAnalysis, calculateBodyFat,
+  getWorkoutTypes, getWorkouts, getWorkoutStats, logWorkout, deleteWorkout
 } from '../../services/api'
 import MemberMentoringTab from './MemberMentoringTab'
 import MemberObservationsTab from './MemberObservationsTab'
@@ -35,12 +37,15 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [sessions, setSessions] = useState([])
   const [observations, setObservations] = useState([])
   const [appointments, setAppointments] = useState([])
+  const [workouts, setWorkouts] = useState([])
+  const [workoutStats, setWorkoutStats] = useState(null)
+  const [workoutTypes, setWorkoutTypes] = useState([])
 
   // Load tab-specific data
   useEffect(() => {
     const loadTabData = async () => {
       // These tabs load their own data
-      if (['gear', 'training', 'tasks', 'supplies'].includes(activeTab)) {
+      if (['gear', 'training', 'tasks', 'supplies', 'fitness'].includes(activeTab)) {
         setLoading(false)
         return
       }
@@ -170,6 +175,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
     { id: 'mentoring', label: 'Mentoring', icon: Brain },
     { id: 'observations', label: 'Observations', icon: MessageSquare },
     { id: 'health', label: 'Health Data', icon: Activity },
+    { id: 'fitness', label: 'Fitness', icon: Dumbbell },
   ]
 
   return (
@@ -675,6 +681,15 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   setVitalsHistory(vRes.data)
                   setVitalsAverages(aRes.data)
                 }}
+              />
+            )}
+
+            {/* Fitness Tab */}
+            {activeTab === 'fitness' && (
+              <FitnessTab
+                member={member}
+                settings={settings}
+                formatDate={formatDate}
               />
             )}
 
@@ -1871,6 +1886,595 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                   className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
                 >
                   {submitting ? 'Saving...' : 'Save Recording'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+// ============================================
+// Fitness Tab Component
+// ============================================
+
+const WORKOUT_TYPES = [
+  { value: 'RUN', label: 'Run', icon: '🏃' },
+  { value: 'RUCK', label: 'Ruck', icon: '🎒' },
+  { value: 'SWIM', label: 'Swim', icon: '🏊' },
+  { value: 'BIKE', label: 'Bike', icon: '🚴' },
+  { value: 'ROW', label: 'Row', icon: '🚣' },
+  { value: 'STRENGTH', label: 'Strength', icon: '🏋️' },
+  { value: 'HIIT', label: 'HIIT', icon: '⚡' },
+  { value: 'COMBAT', label: 'Combat', icon: '🥊' },
+  { value: 'PT_TEST', label: 'PT Test', icon: '📋' },
+  { value: 'MOBILITY', label: 'Mobility', icon: '🧘' },
+  { value: 'OTHER', label: 'Other', icon: '💪' },
+]
+
+function FitnessTab({ member, settings, formatDate }) {
+  const [workouts, setWorkouts] = useState([])
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [showAddWorkout, setShowAddWorkout] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [selectedType, setSelectedType] = useState(null)
+  const [viewMode, setViewMode] = useState('list') // 'list' or 'stats'
+
+  // Form state
+  const [workoutForm, setWorkoutForm] = useState({
+    workout_type: '',
+    workout_date: new Date().toISOString().split('T')[0],
+    duration_minutes: '',
+    distance_miles: '',
+    weight_carried_lbs: '',
+    elevation_gain_ft: '',
+    avg_heart_rate: '',
+    calories_burned: '',
+    rpe: '',
+    quality_rating: '',
+    exercises: [],
+    notes: ''
+  })
+
+  // Load workouts and stats
+  useEffect(() => {
+    loadData()
+  }, [member.id])
+
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const [workoutsRes, statsRes] = await Promise.all([
+        getWorkouts(member.id, { limit: 50, days_back: 90 }),
+        getWorkoutStats(member.id, 30)
+      ])
+      setWorkouts(workoutsRes.data)
+      setStats(statsRes.data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle workout submission
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const data = {
+        workout_type: workoutForm.workout_type,
+        workout_date: workoutForm.workout_date ? new Date(workoutForm.workout_date).toISOString() : null,
+        duration_minutes: workoutForm.duration_minutes ? parseInt(workoutForm.duration_minutes) : null,
+        distance_miles: workoutForm.distance_miles ? parseFloat(workoutForm.distance_miles) : null,
+        weight_carried_lbs: workoutForm.weight_carried_lbs ? parseFloat(workoutForm.weight_carried_lbs) : null,
+        elevation_gain_ft: workoutForm.elevation_gain_ft ? parseFloat(workoutForm.elevation_gain_ft) : null,
+        avg_heart_rate: workoutForm.avg_heart_rate ? parseInt(workoutForm.avg_heart_rate) : null,
+        calories_burned: workoutForm.calories_burned ? parseInt(workoutForm.calories_burned) : null,
+        rpe: workoutForm.rpe ? parseInt(workoutForm.rpe) : null,
+        quality_rating: workoutForm.quality_rating ? parseInt(workoutForm.quality_rating) : null,
+        exercises: workoutForm.exercises.length > 0 ? workoutForm.exercises : null,
+        notes: workoutForm.notes || null
+      }
+
+      await logWorkout(member.id, data)
+      await loadData()
+
+      setShowAddWorkout(false)
+      setWorkoutForm({
+        workout_type: '',
+        workout_date: new Date().toISOString().split('T')[0],
+        duration_minutes: '',
+        distance_miles: '',
+        weight_carried_lbs: '',
+        elevation_gain_ft: '',
+        avg_heart_rate: '',
+        calories_burned: '',
+        rpe: '',
+        quality_rating: '',
+        exercises: [],
+        notes: ''
+      })
+      setSelectedType(null)
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Handle delete
+  const handleDelete = async (workoutId) => {
+    if (!window.confirm('Delete this workout?')) return
+    try {
+      await deleteWorkout(member.id, workoutId)
+      await loadData()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  // Format pace (seconds per mile to mm:ss)
+  const formatPace = (seconds) => {
+    if (!seconds) return '--'
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Check if workout type is cardio (shows distance fields)
+  const isCardioType = ['RUN', 'RUCK', 'SWIM', 'BIKE', 'ROW'].includes(workoutForm.workout_type)
+  const isRuck = workoutForm.workout_type === 'RUCK'
+  const isStrength = workoutForm.workout_type === 'STRENGTH'
+
+  if (loading) {
+    return <div className="text-center py-8 text-gray-400">Loading fitness data...</div>
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Dumbbell className="w-6 h-6 text-blue-400" />
+          <h3 className="text-lg font-semibold">Fitness Tracking</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-gray-700 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1 rounded text-sm ${viewMode === 'list' ? 'bg-gray-600' : 'hover:bg-gray-600'}`}
+            >
+              Workouts
+            </button>
+            <button
+              onClick={() => setViewMode('stats')}
+              className={`px-3 py-1 rounded text-sm ${viewMode === 'stats' ? 'bg-gray-600' : 'hover:bg-gray-600'}`}
+            >
+              Stats
+            </button>
+          </div>
+          <button
+            onClick={() => setShowAddWorkout(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4" />
+            Log Workout
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-900/50 border border-red-500 rounded p-3 text-red-200">
+          {error}
+        </div>
+      )}
+
+      {/* Stats View */}
+      {viewMode === 'stats' && stats && (
+        <div className="space-y-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+              <div className="text-3xl font-bold text-blue-400">{stats.total_workouts}</div>
+              <div className="text-sm text-gray-400">Workouts (30d)</div>
+            </div>
+            <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+              <div className="text-3xl font-bold text-green-400">{stats.workouts_per_week}</div>
+              <div className="text-sm text-gray-400">Per Week</div>
+            </div>
+            <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+              <div className="text-3xl font-bold text-purple-400">{stats.total_distance_miles}</div>
+              <div className="text-sm text-gray-400">Miles</div>
+            </div>
+            <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+              <div className="text-3xl font-bold text-orange-400">{Math.round(stats.total_duration_minutes / 60)}h</div>
+              <div className="text-sm text-gray-400">Total Time</div>
+            </div>
+          </div>
+
+          {/* Trend Indicator */}
+          <div className="bg-gray-700/30 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-gray-400">Trend:</span>
+              {stats.trend === 'increasing' && (
+                <span className="flex items-center gap-1 text-green-400">
+                  <TrendingUp className="w-4 h-4" />
+                  Increasing activity
+                </span>
+              )}
+              {stats.trend === 'decreasing' && (
+                <span className="flex items-center gap-1 text-red-400">
+                  <TrendingDown className="w-4 h-4" />
+                  Decreasing activity
+                </span>
+              )}
+              {stats.trend === 'stable' && (
+                <span className="flex items-center gap-1 text-blue-400">
+                  <Minus className="w-4 h-4" />
+                  Stable activity
+                </span>
+              )}
+              <span className="text-gray-500 text-sm">
+                ({stats.recent_count_7d} workouts last 7d vs {stats.previous_count_7d} previous 7d)
+              </span>
+            </div>
+          </div>
+
+          {/* Breakdown by Type */}
+          {Object.keys(stats.by_type || {}).length > 0 && (
+            <div className="bg-gray-700/30 rounded-lg p-4">
+              <h4 className="font-semibold mb-3">Breakdown by Type</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {Object.entries(stats.by_type).map(([type, data]) => {
+                  const typeInfo = WORKOUT_TYPES.find(t => t.value === type) || { label: type, icon: '💪' }
+                  return (
+                    <div key={type} className="bg-gray-800 rounded p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span>{typeInfo.icon}</span>
+                        <span className="font-medium">{typeInfo.label}</span>
+                      </div>
+                      <div className="text-sm text-gray-400 space-y-1">
+                        <div>{data.count} sessions</div>
+                        {data.distance_miles > 0 && (
+                          <div>{data.distance_miles.toFixed(1)} miles</div>
+                        )}
+                        <div>{Math.round(data.duration_minutes / 60)}h {data.duration_minutes % 60}m</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Best Performances */}
+          {Object.keys(stats.best_performances || {}).length > 0 && (
+            <div className="bg-gray-700/30 rounded-lg p-4">
+              <h4 className="font-semibold mb-3">Best Performances (30d)</h4>
+              <div className="space-y-3">
+                {Object.entries(stats.best_performances).map(([type, perf]) => {
+                  const typeInfo = WORKOUT_TYPES.find(t => t.value === type) || { label: type, icon: '💪' }
+                  return (
+                    <div key={type} className="flex items-center justify-between bg-gray-800 rounded p-3">
+                      <div className="flex items-center gap-2">
+                        <span>{typeInfo.icon}</span>
+                        <span className="font-medium">{typeInfo.label}</span>
+                      </div>
+                      <div className="text-right text-sm">
+                        <div className="text-green-400 font-medium">
+                          {perf.distance_miles} mi @ {formatPace(perf.pace_seconds_per_mile)}/mi
+                        </div>
+                        {perf.weight_carried_lbs && (
+                          <div className="text-gray-400">{perf.weight_carried_lbs} lbs</div>
+                        )}
+                        <div className="text-gray-500 text-xs">
+                          {formatDate(perf.date)}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <div className="space-y-4">
+          {workouts.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              No workouts logged yet. Start tracking your fitness!
+            </div>
+          ) : (
+            workouts.map((workout) => {
+              const typeInfo = WORKOUT_TYPES.find(t => t.value === workout.workout_type) || { label: workout.workout_type, icon: '💪' }
+              return (
+                <div key={workout.id} className="bg-gray-700/50 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{typeInfo.icon}</span>
+                      <div>
+                        <div className="font-semibold">{typeInfo.label}</div>
+                        <div className="text-sm text-gray-400">{formatDate(workout.workout_date)}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(workout.id)}
+                      className="text-gray-500 hover:text-red-400"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    {workout.duration_minutes && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span>{workout.duration_minutes} min</span>
+                      </div>
+                    )}
+                    {workout.distance_miles && (
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-gray-400" />
+                        <span>{workout.distance_miles} mi</span>
+                      </div>
+                    )}
+                    {workout.pace_seconds_per_mile && (
+                      <div className="flex items-center gap-2">
+                        <Timer className="w-4 h-4 text-gray-400" />
+                        <span>{formatPace(workout.pace_seconds_per_mile)}/mi</span>
+                      </div>
+                    )}
+                    {workout.weight_carried_lbs && (
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-gray-400" />
+                        <span>{workout.weight_carried_lbs} lbs</span>
+                      </div>
+                    )}
+                    {workout.elevation_gain_ft && (
+                      <div className="flex items-center gap-2">
+                        <Mountain className="w-4 h-4 text-gray-400" />
+                        <span>{workout.elevation_gain_ft} ft</span>
+                      </div>
+                    )}
+                    {workout.avg_heart_rate && (
+                      <div className="flex items-center gap-2">
+                        <Heart className="w-4 h-4 text-gray-400" />
+                        <span>{workout.avg_heart_rate} bpm</span>
+                      </div>
+                    )}
+                    {workout.calories_burned && (
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-gray-400" />
+                        <span>{workout.calories_burned} cal</span>
+                      </div>
+                    )}
+                    {workout.rpe && (
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-gray-400" />
+                        <span>RPE {workout.rpe}/10</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {workout.notes && (
+                    <div className="mt-2 text-sm text-gray-400 italic">
+                      {workout.notes}
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
+
+      {/* Add Workout Modal */}
+      {showAddWorkout && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Log Workout</h3>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Workout Type Selection */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Workout Type *</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {WORKOUT_TYPES.map(type => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => {
+                        setWorkoutForm({ ...workoutForm, workout_type: type.value })
+                        setSelectedType(type)
+                      }}
+                      className={`p-2 rounded text-center ${
+                        workoutForm.workout_type === type.value
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 hover:bg-gray-600'
+                      }`}
+                    >
+                      <div className="text-xl">{type.icon}</div>
+                      <div className="text-xs mt-1">{type.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date and Duration */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Date *</label>
+                  <input
+                    type="date"
+                    value={workoutForm.workout_date}
+                    onChange={(e) => setWorkoutForm({ ...workoutForm, workout_date: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Duration (minutes)</label>
+                  <input
+                    type="number"
+                    value={workoutForm.duration_minutes}
+                    onChange={(e) => setWorkoutForm({ ...workoutForm, duration_minutes: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    placeholder="45"
+                  />
+                </div>
+              </div>
+
+              {/* Cardio-specific fields */}
+              {isCardioType && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Distance (miles)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={workoutForm.distance_miles}
+                        onChange={(e) => setWorkoutForm({ ...workoutForm, distance_miles: e.target.value })}
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                        placeholder="3.0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Elevation Gain (ft)</label>
+                      <input
+                        type="number"
+                        value={workoutForm.elevation_gain_ft}
+                        onChange={(e) => setWorkoutForm({ ...workoutForm, elevation_gain_ft: e.target.value })}
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                        placeholder="250"
+                      />
+                    </div>
+                  </div>
+
+                  {isRuck && (
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Weight Carried (lbs)</label>
+                      <input
+                        type="number"
+                        value={workoutForm.weight_carried_lbs}
+                        onChange={(e) => setWorkoutForm({ ...workoutForm, weight_carried_lbs: e.target.value })}
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                        placeholder="45"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Heart Rate and Calories */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Avg Heart Rate (bpm)</label>
+                  <input
+                    type="number"
+                    value={workoutForm.avg_heart_rate}
+                    onChange={(e) => setWorkoutForm({ ...workoutForm, avg_heart_rate: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    placeholder="145"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Calories Burned</label>
+                  <input
+                    type="number"
+                    value={workoutForm.calories_burned}
+                    onChange={(e) => setWorkoutForm({ ...workoutForm, calories_burned: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    placeholder="350"
+                  />
+                </div>
+              </div>
+
+              {/* RPE and Quality */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">RPE (1-10)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={workoutForm.rpe}
+                    onChange={(e) => setWorkoutForm({ ...workoutForm, rpe: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    placeholder="7"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Rate of Perceived Exertion</p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Quality (1-5)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={workoutForm.quality_rating}
+                    onChange={(e) => setWorkoutForm({ ...workoutForm, quality_rating: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    placeholder="4"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">How good did the workout feel?</p>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <textarea
+                  value={workoutForm.notes}
+                  onChange={(e) => setWorkoutForm({ ...workoutForm, notes: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  rows={3}
+                  placeholder="How did it feel? Any PRs?"
+                />
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddWorkout(false)
+                    setWorkoutForm({
+                      workout_type: '',
+                      workout_date: new Date().toISOString().split('T')[0],
+                      duration_minutes: '',
+                      distance_miles: '',
+                      weight_carried_lbs: '',
+                      elevation_gain_ft: '',
+                      avg_heart_rate: '',
+                      calories_burned: '',
+                      rpe: '',
+                      quality_rating: '',
+                      exercises: [],
+                      notes: ''
+                    })
+                    setSelectedType(null)
+                  }}
+                  className="px-4 py-2 text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting || !workoutForm.workout_type}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {submitting ? 'Saving...' : 'Log Workout'}
                 </button>
               </div>
             </form>

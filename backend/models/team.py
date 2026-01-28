@@ -98,6 +98,24 @@ class TrainingCategory(str, enum.Enum):
 
 
 # ============================================
+# Physical Fitness Tracking Enums
+# ============================================
+
+class WorkoutType(str, enum.Enum):
+    RUN = "RUN"               # Running (road, trail)
+    RUCK = "RUCK"             # Rucking with weight
+    SWIM = "SWIM"             # Swimming
+    BIKE = "BIKE"             # Cycling
+    ROW = "ROW"               # Rowing/erg
+    STRENGTH = "STRENGTH"     # Weight training
+    HIIT = "HIIT"             # High intensity interval training
+    COMBAT = "COMBAT"         # Fighting/martial arts
+    PT_TEST = "PT_TEST"       # Physical fitness test
+    MOBILITY = "MOBILITY"     # Stretching/yoga/mobility
+    OTHER = "OTHER"
+
+
+# ============================================
 # Medical Appointment Enums
 # ============================================
 
@@ -222,6 +240,7 @@ class TeamMember(Base):
     training_items = relationship("MemberTraining", back_populates="member", cascade="all, delete-orphan")
     medical_appointments = relationship("MemberMedicalAppointment", back_populates="member", cascade="all, delete-orphan")
     supply_requests = relationship("SupplyRequest", back_populates="member", cascade="all, delete-orphan")
+    workouts = relationship("MemberWorkout", back_populates="member", cascade="all, delete-orphan")
 
 
 class MemberWeightLog(Base):
@@ -604,3 +623,53 @@ class MemberMedicalAppointment(Base):
         if self.appointment_type == AppointmentType.CUSTOM and self.custom_type_name:
             return self.custom_type_name
         return self.appointment_type.value.replace("_", " ").title()
+
+
+# ============================================
+# Physical Fitness Tracking Models
+# ============================================
+
+class MemberWorkout(Base):
+    """
+    Physical fitness workout tracking for team members.
+    Captures cardio, strength, and performance test data.
+    """
+    __tablename__ = "member_workouts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    member_id = Column(Integer, ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False)
+
+    workout_type = Column(SQLEnum(WorkoutType), nullable=False)
+    workout_date = Column(DateTime, default=datetime.utcnow)
+    duration_minutes = Column(Integer, nullable=True)
+
+    # Cardio metrics
+    distance_miles = Column(Float, nullable=True)          # Distance covered
+    weight_carried_lbs = Column(Float, nullable=True)      # For rucks
+    pace_seconds_per_mile = Column(Integer, nullable=True) # Pace in seconds per mile
+    elevation_gain_ft = Column(Float, nullable=True)       # Elevation gained
+    avg_heart_rate = Column(Integer, nullable=True)        # Average HR during workout
+    max_heart_rate = Column(Integer, nullable=True)        # Max HR during workout
+    calories_burned = Column(Integer, nullable=True)       # Estimated calories
+
+    # Strength metrics (JSON for flexibility)
+    # Format: [{"exercise": "Deadlift", "sets": 3, "reps": 5, "weight_lbs": 315}, ...]
+    exercises = Column(JSON, nullable=True)
+
+    # PT Test / Assessment metrics
+    score = Column(Float, nullable=True)                   # Test score (0-100 or raw)
+    pass_fail = Column(Boolean, nullable=True)             # Pass/fail result
+    test_standard = Column(String(100), nullable=True)     # e.g., "Marine PFT", "Army ACFT"
+
+    # Perceived effort and quality
+    rpe = Column(Integer, nullable=True)                   # Rate of Perceived Exertion (1-10)
+    quality_rating = Column(Integer, nullable=True)        # Self-rated workout quality (1-5)
+
+    notes = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    member = relationship("TeamMember", back_populates="workouts")

@@ -33,7 +33,9 @@ from models.team import (
     # Medical appointments
     MemberMedicalAppointment, AppointmentType,
     # Vitals tracking
-    VitalType
+    VitalType,
+    # Fitness/Workout tracking
+    MemberWorkout, WorkoutType
 )
 from models.supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from models.tasks import Task
@@ -158,6 +160,63 @@ class VitalsLogCreate(BaseModel):
     value: float
     value_secondary: Optional[float] = None  # For blood pressure diastolic
     context_factors: Optional[List[str]] = None  # e.g., ["caffeine", "stress", "white_coat"]
+    notes: Optional[str] = None
+
+
+# ============================================
+# Workout/Fitness Schemas
+# ============================================
+
+class WorkoutExercise(BaseModel):
+    """Individual exercise within a strength workout"""
+    exercise: str
+    sets: Optional[int] = None
+    reps: Optional[int] = None
+    weight_lbs: Optional[float] = None
+    notes: Optional[str] = None
+
+
+class WorkoutCreate(BaseModel):
+    workout_type: WorkoutType
+    workout_date: Optional[datetime] = None  # Defaults to now
+    duration_minutes: Optional[int] = None
+    # Cardio metrics
+    distance_miles: Optional[float] = None
+    weight_carried_lbs: Optional[float] = None
+    pace_seconds_per_mile: Optional[int] = None  # Calculated from distance/time if not provided
+    elevation_gain_ft: Optional[float] = None
+    avg_heart_rate: Optional[int] = None
+    max_heart_rate: Optional[int] = None
+    calories_burned: Optional[int] = None
+    # Strength metrics
+    exercises: Optional[List[dict]] = None
+    # PT Test / Assessment
+    score: Optional[float] = None
+    pass_fail: Optional[bool] = None
+    test_standard: Optional[str] = None
+    # Quality metrics
+    rpe: Optional[int] = Field(None, ge=1, le=10)  # Rate of Perceived Exertion 1-10
+    quality_rating: Optional[int] = Field(None, ge=1, le=5)  # Self-rated quality 1-5
+    notes: Optional[str] = None
+
+
+class WorkoutUpdate(BaseModel):
+    workout_type: Optional[WorkoutType] = None
+    workout_date: Optional[datetime] = None
+    duration_minutes: Optional[int] = None
+    distance_miles: Optional[float] = None
+    weight_carried_lbs: Optional[float] = None
+    pace_seconds_per_mile: Optional[int] = None
+    elevation_gain_ft: Optional[float] = None
+    avg_heart_rate: Optional[int] = None
+    max_heart_rate: Optional[int] = None
+    calories_burned: Optional[int] = None
+    exercises: Optional[List[dict]] = None
+    score: Optional[float] = None
+    pass_fail: Optional[bool] = None
+    test_standard: Optional[str] = None
+    rpe: Optional[int] = Field(None, ge=1, le=10)
+    quality_rating: Optional[int] = Field(None, ge=1, le=5)
     notes: Optional[str] = None
 
 
@@ -3740,3 +3799,281 @@ async def get_member_backlog(
     tasks = result.scalars().all()
 
     return [serialize_task_brief(task) for task in tasks]
+
+
+# ============================================
+# Workout / Fitness Tracking Endpoints
+# ============================================
+
+def serialize_workout(workout: MemberWorkout):
+    """Serialize a workout for API response"""
+    return {
+        "id": workout.id,
+        "member_id": workout.member_id,
+        "workout_type": workout.workout_type.value if workout.workout_type else None,
+        "workout_date": workout.workout_date.isoformat() if workout.workout_date else None,
+        "duration_minutes": workout.duration_minutes,
+        "distance_miles": workout.distance_miles,
+        "weight_carried_lbs": workout.weight_carried_lbs,
+        "pace_seconds_per_mile": workout.pace_seconds_per_mile,
+        "elevation_gain_ft": workout.elevation_gain_ft,
+        "avg_heart_rate": workout.avg_heart_rate,
+        "max_heart_rate": workout.max_heart_rate,
+        "calories_burned": workout.calories_burned,
+        "exercises": workout.exercises,
+        "score": workout.score,
+        "pass_fail": workout.pass_fail,
+        "test_standard": workout.test_standard,
+        "rpe": workout.rpe,
+        "quality_rating": workout.quality_rating,
+        "notes": workout.notes,
+        "created_at": workout.created_at.isoformat() if workout.created_at else None,
+        "updated_at": workout.updated_at.isoformat() if workout.updated_at else None,
+    }
+
+
+@router.get("/workout-types/")
+async def get_workout_types(
+    current_user: User = Depends(require_auth)
+):
+    """Get list of available workout types"""
+    return [
+        {"value": wt.value, "label": wt.value.replace("_", " ").title()}
+        for wt in WorkoutType
+    ]
+
+
+@router.get("/members/{member_id}/workouts/")
+async def get_member_workouts(
+    member_id: int,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    workout_type: Optional[WorkoutType] = None,
+    days_back: Optional[int] = Query(None, ge=1, le=365),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get workout history for a member"""
+    # Verify member exists
+    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    query = select(MemberWorkout).where(
+        MemberWorkout.member_id == member_id,
+        MemberWorkout.is_active == True
+    )
+
+    if workout_type:
+        query = query.where(MemberWorkout.workout_type == workout_type)
+
+    if days_back:
+        cutoff = datetime.utcnow() - timedelta(days=days_back)
+        query = query.where(MemberWorkout.workout_date >= cutoff)
+
+    query = query.order_by(desc(MemberWorkout.workout_date)).offset(offset).limit(limit)
+
+    result = await db.execute(query)
+    workouts = result.scalars().all()
+
+    return [serialize_workout(w) for w in workouts]
+
+
+@router.get("/members/{member_id}/workouts/stats/")
+async def get_workout_stats(
+    member_id: int,
+    days_back: int = Query(30, ge=1, le=365),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get workout statistics for a member over a period"""
+    # Verify member exists
+    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    cutoff = datetime.utcnow() - timedelta(days=days_back)
+
+    query = select(MemberWorkout).where(
+        MemberWorkout.member_id == member_id,
+        MemberWorkout.is_active == True,
+        MemberWorkout.workout_date >= cutoff
+    ).order_by(desc(MemberWorkout.workout_date))
+
+    result = await db.execute(query)
+    workouts = list(result.scalars().all())
+
+    # Calculate statistics
+    total_workouts = len(workouts)
+    total_duration = sum(w.duration_minutes or 0 for w in workouts)
+    total_distance = sum(w.distance_miles or 0 for w in workouts)
+    total_calories = sum(w.calories_burned or 0 for w in workouts)
+
+    # Breakdown by type
+    by_type = {}
+    for w in workouts:
+        wt = w.workout_type.value if w.workout_type else "OTHER"
+        if wt not in by_type:
+            by_type[wt] = {"count": 0, "duration_minutes": 0, "distance_miles": 0}
+        by_type[wt]["count"] += 1
+        by_type[wt]["duration_minutes"] += w.duration_minutes or 0
+        by_type[wt]["distance_miles"] += w.distance_miles or 0
+
+    # Weekly frequency
+    weeks_in_period = max(1, days_back // 7)
+    workouts_per_week = total_workouts / weeks_in_period
+
+    # Recent trends (last 7 days vs previous 7 days)
+    recent_cutoff = datetime.utcnow() - timedelta(days=7)
+    prev_cutoff = datetime.utcnow() - timedelta(days=14)
+    recent_workouts = [w for w in workouts if w.workout_date >= recent_cutoff]
+    prev_workouts = [w for w in workouts if prev_cutoff <= w.workout_date < recent_cutoff]
+
+    trend = "stable"
+    if len(recent_workouts) > len(prev_workouts) * 1.2:
+        trend = "increasing"
+    elif len(recent_workouts) < len(prev_workouts) * 0.8:
+        trend = "decreasing"
+
+    # Best performances (for cardio - fastest pace for distance)
+    cardio_types = [WorkoutType.RUN, WorkoutType.RUCK, WorkoutType.SWIM, WorkoutType.BIKE, WorkoutType.ROW]
+    best_performances = {}
+    for wt in cardio_types:
+        type_workouts = [w for w in workouts if w.workout_type == wt and w.distance_miles and w.distance_miles > 0]
+        if type_workouts:
+            best = min(type_workouts, key=lambda w: (w.pace_seconds_per_mile or 9999))
+            if best.pace_seconds_per_mile:
+                best_performances[wt.value] = {
+                    "date": best.workout_date.isoformat() if best.workout_date else None,
+                    "distance_miles": best.distance_miles,
+                    "pace_seconds_per_mile": best.pace_seconds_per_mile,
+                    "duration_minutes": best.duration_minutes,
+                    "weight_carried_lbs": best.weight_carried_lbs
+                }
+
+    return {
+        "period_days": days_back,
+        "total_workouts": total_workouts,
+        "total_duration_minutes": total_duration,
+        "total_distance_miles": round(total_distance, 2),
+        "total_calories_burned": total_calories,
+        "workouts_per_week": round(workouts_per_week, 1),
+        "trend": trend,
+        "by_type": by_type,
+        "best_performances": best_performances,
+        "recent_count_7d": len(recent_workouts),
+        "previous_count_7d": len(prev_workouts)
+    }
+
+
+@router.post("/members/{member_id}/workouts/")
+async def log_workout(
+    member_id: int,
+    workout_data: WorkoutCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Log a new workout for a member"""
+    # Verify member exists
+    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Auto-calculate pace if distance and duration provided but pace not
+    pace = workout_data.pace_seconds_per_mile
+    if pace is None and workout_data.distance_miles and workout_data.duration_minutes:
+        if workout_data.distance_miles > 0:
+            pace = int((workout_data.duration_minutes * 60) / workout_data.distance_miles)
+
+    workout = MemberWorkout(
+        member_id=member_id,
+        workout_type=workout_data.workout_type,
+        workout_date=workout_data.workout_date or datetime.utcnow(),
+        duration_minutes=workout_data.duration_minutes,
+        distance_miles=workout_data.distance_miles,
+        weight_carried_lbs=workout_data.weight_carried_lbs,
+        pace_seconds_per_mile=pace,
+        elevation_gain_ft=workout_data.elevation_gain_ft,
+        avg_heart_rate=workout_data.avg_heart_rate,
+        max_heart_rate=workout_data.max_heart_rate,
+        calories_burned=workout_data.calories_burned,
+        exercises=workout_data.exercises,
+        score=workout_data.score,
+        pass_fail=workout_data.pass_fail,
+        test_standard=workout_data.test_standard,
+        rpe=workout_data.rpe,
+        quality_rating=workout_data.quality_rating,
+        notes=workout_data.notes
+    )
+
+    db.add(workout)
+    await db.commit()
+    await db.refresh(workout)
+
+    logger.info(f"Logged workout {workout.id} for member {member_id}: {workout.workout_type.value}")
+
+    return serialize_workout(workout)
+
+
+@router.put("/members/{member_id}/workouts/{workout_id}/")
+async def update_workout(
+    member_id: int,
+    workout_id: int,
+    workout_data: WorkoutUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update an existing workout"""
+    result = await db.execute(
+        select(MemberWorkout).where(
+            MemberWorkout.id == workout_id,
+            MemberWorkout.member_id == member_id
+        )
+    )
+    workout = result.scalar_one_or_none()
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+
+    # Update fields
+    update_dict = workout_data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(workout, key, value)
+
+    # Recalculate pace if needed
+    if workout.distance_miles and workout.duration_minutes and not workout.pace_seconds_per_mile:
+        if workout.distance_miles > 0:
+            workout.pace_seconds_per_mile = int((workout.duration_minutes * 60) / workout.distance_miles)
+
+    workout.updated_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(workout)
+
+    return serialize_workout(workout)
+
+
+@router.delete("/members/{member_id}/workouts/{workout_id}/")
+async def delete_workout(
+    member_id: int,
+    workout_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete a workout (soft delete)"""
+    result = await db.execute(
+        select(MemberWorkout).where(
+            MemberWorkout.id == workout_id,
+            MemberWorkout.member_id == member_id
+        )
+    )
+    workout = result.scalar_one_or_none()
+    if not workout:
+        raise HTTPException(status_code=404, detail="Workout not found")
+
+    workout.is_active = False
+    await db.commit()
+
+    return {"success": True, "message": "Workout deleted"}

@@ -2,6 +2,20 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.37.0] - 2026-01-28
+
+### Added
+- **Fitness tracking tab** - New tab in Team member dossier to track workouts
+  - Log workouts with detailed metrics: duration, distance, weight carried, elevation, heart rate, calories
+  - Support for multiple workout types: Run, Ruck, Swim, Bike, Row, Strength, HIIT, Combat, PT Test, Mobility
+  - Track RPE (Rate of Perceived Exertion) and workout quality ratings
+  - Stats view showing 30-day summary, workout frequency, breakdown by type, and best performances
+  - Pace auto-calculated from distance and time
+- **Fitness integration with readiness** - Workout consistency now affects overall readiness score
+  - Fitness Performance indicator added (10% weight in physical readiness)
+  - Tracks workout frequency, training variety (cardio + strength), and sustainable intensity
+  - Trend analysis compares recent vs older workout patterns
+
 ## [1.36.0] - 2026-01-28
 
 ### Added

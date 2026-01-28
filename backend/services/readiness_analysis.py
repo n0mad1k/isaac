@@ -17,6 +17,7 @@ import math
 
 from models.team import (
     TeamMember, MemberVitalsLog, MemberWeightLog, MemberTraining, MemberTrainingLog,
+    MemberWorkout, WorkoutType,
     VitalType, ReadinessStatus, Gender
 )
 
@@ -472,6 +473,151 @@ def _analyze_body_composition(
     )
 
 
+def _analyze_fitness_performance(
+    workouts: List[MemberWorkout],
+    lookback_days: int = 14
+) -> PerformanceIndicator:
+    """
+    Analyze physical fitness based on recent workout data.
+
+    Scoring based on:
+    - Workout consistency (are they training regularly?)
+    - Training load (appropriate volume)
+    - Performance quality (RPE, quality ratings)
+
+    Target: 3-5 workouts per week for active individuals
+    """
+    factors = []
+    score = 85  # Default if no data (assume maintaining)
+    confidence = 0.3
+
+    if not workouts:
+        factors.append("No recent workout data")
+        return PerformanceIndicator(
+            name="Fitness Performance",
+            category="fitness",
+            value=score,
+            trend="insufficient_data",
+            explanation="No workout data available",
+            confidence=0.2,
+            contributing_factors=factors
+        )
+
+    # Filter to lookback period
+    cutoff = datetime.utcnow() - timedelta(days=lookback_days)
+    recent_workouts = [w for w in workouts if w.workout_date and w.workout_date >= cutoff]
+
+    if not recent_workouts:
+        factors.append(f"No workouts in last {lookback_days} days")
+        return PerformanceIndicator(
+            name="Fitness Performance",
+            category="fitness",
+            value=70,  # Some penalty for inactivity
+            trend="declining",
+            explanation=f"No workouts logged in last {lookback_days} days",
+            confidence=0.4,
+            contributing_factors=factors
+        )
+
+    # Calculate frequency
+    weeks = lookback_days / 7
+    workouts_per_week = len(recent_workouts) / weeks
+    confidence = 0.6
+
+    # Frequency scoring (target: 3-5/week for maintaining, 5+/week for improving)
+    if workouts_per_week >= 5:
+        freq_score = 100
+        factors.append(f"High training frequency: {workouts_per_week:.1f}/week")
+    elif workouts_per_week >= 3:
+        freq_score = 90
+        factors.append(f"Good training frequency: {workouts_per_week:.1f}/week")
+    elif workouts_per_week >= 2:
+        freq_score = 75
+        factors.append(f"Moderate training frequency: {workouts_per_week:.1f}/week")
+    elif workouts_per_week >= 1:
+        freq_score = 60
+        factors.append(f"Low training frequency: {workouts_per_week:.1f}/week")
+    else:
+        freq_score = 40
+        factors.append(f"Minimal training: {workouts_per_week:.1f}/week")
+
+    # Check for workout variety (bonus for cross-training)
+    workout_types = set(w.workout_type for w in recent_workouts if w.workout_type)
+    cardio_types = {WorkoutType.RUN, WorkoutType.RUCK, WorkoutType.SWIM, WorkoutType.BIKE, WorkoutType.ROW}
+    strength_types = {WorkoutType.STRENGTH, WorkoutType.HIIT}
+
+    has_cardio = bool(workout_types & cardio_types)
+    has_strength = bool(workout_types & strength_types)
+
+    variety_bonus = 0
+    if has_cardio and has_strength:
+        variety_bonus = 5
+        factors.append("Good training variety (cardio + strength)")
+    elif len(workout_types) >= 3:
+        variety_bonus = 3
+        factors.append(f"Diverse training: {len(workout_types)} workout types")
+
+    # Check average RPE (should be sustainable 5-7 for most training)
+    rpe_workouts = [w for w in recent_workouts if w.rpe]
+    if rpe_workouts:
+        avg_rpe = sum(w.rpe for w in rpe_workouts) / len(rpe_workouts)
+        if avg_rpe >= 8.5:
+            # Overtraining risk
+            rpe_modifier = -10
+            factors.append(f"High average RPE ({avg_rpe:.1f}) - potential overtraining")
+        elif avg_rpe >= 7:
+            rpe_modifier = 0
+            factors.append(f"Challenging training load (RPE {avg_rpe:.1f})")
+        elif avg_rpe >= 5:
+            rpe_modifier = 5
+            factors.append(f"Sustainable training load (RPE {avg_rpe:.1f})")
+        else:
+            rpe_modifier = 0
+            factors.append(f"Light training intensity (RPE {avg_rpe:.1f})")
+    else:
+        rpe_modifier = 0
+
+    # Total duration check (minimum for fitness maintenance)
+    total_minutes = sum(w.duration_minutes or 0 for w in recent_workouts)
+    weekly_minutes = total_minutes / weeks
+
+    if weekly_minutes >= 200:
+        duration_bonus = 5
+    elif weekly_minutes >= 150:
+        duration_bonus = 3
+    elif weekly_minutes >= 75:
+        duration_bonus = 0
+    else:
+        duration_bonus = -5
+        factors.append(f"Low weekly volume: {weekly_minutes:.0f} min/week")
+
+    # Calculate final score
+    score = min(100, max(0, freq_score + variety_bonus + rpe_modifier + duration_bonus))
+    confidence = min(0.9, confidence + 0.1 * len(recent_workouts) / 10)
+
+    # Determine trend by comparing recent vs older
+    mid_point = datetime.utcnow() - timedelta(days=lookback_days // 2)
+    recent_half = [w for w in recent_workouts if w.workout_date >= mid_point]
+    older_half = [w for w in recent_workouts if w.workout_date < mid_point]
+
+    if len(recent_half) > len(older_half) * 1.3:
+        trend = "improving"
+    elif len(recent_half) < len(older_half) * 0.7:
+        trend = "declining"
+    else:
+        trend = "stable"
+
+    return PerformanceIndicator(
+        name="Fitness Performance",
+        category="fitness",
+        value=score,
+        trend=trend,
+        explanation=f"Based on {len(recent_workouts)} workouts over {lookback_days} days",
+        confidence=confidence,
+        contributing_factors=factors
+    )
+
+
 def _generate_risk_flags(
     indicators: List[PerformanceIndicator],
     medical_status: ReadinessStatus
@@ -546,6 +692,11 @@ def _get_recommendation(category: str, severity: str) -> str:
             "low": "Review nutrition and exercise plan",
             "moderate": "Implement body composition improvement plan",
             "high": "Structured nutrition and training program recommended"
+        },
+        "fitness": {
+            "low": "Consider increasing training frequency",
+            "moderate": "Evaluate training consistency and recovery",
+            "high": "Review training program - potential detraining or overtraining"
         }
     }
     return recommendations.get(category, {}).get(severity, "Monitor and reassess")
@@ -619,27 +770,43 @@ async def analyze_readiness(
     recent_cutoff = datetime.utcnow() - timedelta(days=7)
     recent_vitals = [v for v in vitals if v.recorded_at >= recent_cutoff]
 
+    # Fetch workouts for fitness analysis (last 30 days)
+    workout_cutoff = datetime.utcnow() - timedelta(days=30)
+    workouts_result = await db.execute(
+        select(MemberWorkout)
+        .where(and_(
+            MemberWorkout.member_id == member_id,
+            MemberWorkout.is_active == True,
+            MemberWorkout.workout_date >= workout_cutoff
+        ))
+        .order_by(desc(MemberWorkout.workout_date))
+    )
+    workouts = list(workouts_result.scalars().all())
+
     # Analyze each component
     autonomic = _analyze_autonomic_recovery(recent_vitals, all_vitals)
     cardiovascular = _analyze_cardiovascular(recent_vitals)
     illness = _analyze_illness_indicators(recent_vitals, all_vitals)
     body_comp = _analyze_body_composition(member, vitals)
+    fitness = _analyze_fitness_performance(workouts, lookback_days=14)
 
     # Calculate physical readiness score with weighting
-    # Autonomic: 45%, Illness: 25%, Cardiovascular: 20%, Body Comp: 10%
+    # Autonomic: 40%, Illness: 20%, Cardiovascular: 20%, Body Comp: 10%, Fitness: 10%
     physical_score = (
-        autonomic.value * 0.45 +
-        illness.value * 0.25 +
+        autonomic.value * 0.40 +
+        illness.value * 0.20 +
         cardiovascular.value * 0.20 +
-        body_comp.value * 0.10
+        body_comp.value * 0.10 +
+        fitness.value * 0.10
     )
 
     # Calculate confidence (weighted average)
     physical_confidence = (
-        autonomic.confidence * 0.45 +
-        illness.confidence * 0.25 +
+        autonomic.confidence * 0.40 +
+        illness.confidence * 0.20 +
         cardiovascular.confidence * 0.20 +
-        body_comp.confidence * 0.10
+        body_comp.confidence * 0.10 +
+        fitness.confidence * 0.10
     )
 
     physical_status = _score_to_status(physical_score)
@@ -675,17 +842,18 @@ async def analyze_readiness(
         autonomic,
         cardiovascular,
         illness,
-        body_comp
+        body_comp,
+        fitness
     ]
 
     # Generate risk flags
-    risk_flags = _generate_risk_flags([autonomic, cardiovascular, illness, body_comp], medical_status)
+    risk_flags = _generate_risk_flags([autonomic, cardiovascular, illness, body_comp, fitness], medical_status)
 
     # Build primary drivers
     primary_drivers = []
     if physical_status != ReadinessStatus.GREEN:
         # Find lowest scoring physical indicator
-        physical_indicators = [autonomic, cardiovascular, illness, body_comp]
+        physical_indicators = [autonomic, cardiovascular, illness, body_comp, fitness]
         lowest = min(physical_indicators, key=lambda x: x.value)
         if lowest.contributing_factors:
             primary_drivers.append(f"Physical: {lowest.contributing_factors[0]}")
@@ -713,7 +881,8 @@ async def analyze_readiness(
         "vitals_missing": vital_types_missing,
         "taping_available": taping_available,
         "data_points_7d": len(recent_vitals),
-        "data_points_30d": len(vitals)
+        "data_points_30d": len(vitals),
+        "workouts_30d": len(workouts)
     }
 
     # Build explanation

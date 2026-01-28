@@ -509,6 +509,18 @@ export const getReadinessAnalysis = (memberId, lookbackDays = 30, updateMember =
   })
 export const calculateBodyFat = (memberId) => api.post(`/team/members/${memberId}/calculate-body-fat/`)
 
+// Workout/Fitness Tracking
+export const getWorkoutTypes = () => api.get('/team/workout-types/')
+export const getWorkouts = (memberId, params = {}) =>
+  api.get(`/team/members/${memberId}/workouts/`, { params })
+export const getWorkoutStats = (memberId, daysBack = 30) =>
+  api.get(`/team/members/${memberId}/workouts/stats/`, { params: { days_back: daysBack } })
+export const logWorkout = (memberId, data) => api.post(`/team/members/${memberId}/workouts/`, data)
+export const updateWorkout = (memberId, workoutId, data) =>
+  api.put(`/team/members/${memberId}/workouts/${workoutId}/`, data)
+export const deleteWorkout = (memberId, workoutId) =>
+  api.delete(`/team/members/${memberId}/workouts/${workoutId}/`)
+
 // Medical Tracking
 export const getMedicalHistory = (memberId) => api.get(`/team/members/${memberId}/medical-history/`)
 export const logMedicalChange = (memberId, data) => api.post(`/team/members/${memberId}/medical/`, data)
