@@ -4,7 +4,7 @@ Plant and Tree API Routes
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func, and_, desc
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, date, timedelta
@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from models.database import get_db
 from models.plants import Plant, PlantCareLog, Tag, GrowthRate, SunRequirement, MoisturePreference
+from models.weather import WeatherReading
 from models.users import User
 from services.permissions import require_create, require_edit, require_delete, require_interact
 from services.auto_reminders import delete_reminder
@@ -870,3 +871,166 @@ async def get_watering_history(
 
     history = await analyze_watering_history(db, plant_id)
     return history
+
+
+@router.get("/water-overview/")
+async def get_water_overview(
+    days: int = Query(7, ge=1, le=90),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get comprehensive water overview for all plants.
+
+    Returns rain totals, watering activity, smart watering decisions,
+    soil moisture status, and upcoming watering schedule.
+    """
+    now = datetime.utcnow()
+    cutoff = now - timedelta(days=days)
+
+    # --- Rain Data ---
+    rain_result = await db.execute(
+        select(
+            func.date(WeatherReading.timestamp).label('day'),
+            func.max(WeatherReading.rain_daily).label('rain_daily')
+        )
+        .where(WeatherReading.timestamp >= cutoff)
+        .group_by(func.date(WeatherReading.timestamp))
+        .order_by(desc(func.date(WeatherReading.timestamp)))
+    )
+    rain_rows = rain_result.all()
+
+    rain_by_day = []
+    total_rain = 0.0
+    for row in rain_rows:
+        day_str = str(row.day)
+        daily_rain = float(row.rain_daily or 0)
+        rain_by_day.append({"date": day_str, "rain_inches": round(daily_rain, 2)})
+        total_rain += daily_rain
+
+    rain_days = len([r for r in rain_by_day if r["rain_inches"] > 0])
+
+    # Current rain (latest reading)
+    latest_weather = await db.execute(
+        select(WeatherReading)
+        .order_by(desc(WeatherReading.timestamp))
+        .limit(1)
+    )
+    latest = latest_weather.scalar_one_or_none()
+    current_rain = {
+        "rain_rate": round(float(latest.rain_rate or 0), 2) if latest else 0,
+        "rain_daily": round(float(latest.rain_daily or 0), 2) if latest else 0,
+        "rain_weekly": round(float(latest.rain_weekly or 0), 2) if latest else 0,
+        "rain_monthly": round(float(latest.rain_monthly or 0), 2) if latest else 0,
+    }
+
+    # Soil moisture from latest reading
+    soil_moisture = None
+    if latest:
+        sensors = []
+        for i in range(1, 5):
+            val = getattr(latest, f'soil_moisture_{i}', None)
+            if val is not None:
+                sensors.append({"sensor": i, "moisture_pct": round(float(val), 1)})
+        if sensors:
+            soil_moisture = sensors
+
+    # --- Watering Activity ---
+    care_result = await db.execute(
+        select(PlantCareLog)
+        .where(and_(
+            PlantCareLog.performed_at >= cutoff,
+            PlantCareLog.care_type.in_(["watered", "skipped"])
+        ))
+        .order_by(desc(PlantCareLog.performed_at))
+    )
+    care_logs = list(care_result.scalars().all())
+
+    watered_count = len([c for c in care_logs if c.care_type == "watered"])
+    skipped_count = len([c for c in care_logs if c.care_type == "skipped"])
+
+    # Skip reasons breakdown
+    skip_reasons = {}
+    for c in care_logs:
+        if c.care_type == "skipped" and c.skip_reason:
+            skip_reasons[c.skip_reason] = skip_reasons.get(c.skip_reason, 0) + 1
+
+    # Watering activity by day
+    activity_by_day = {}
+    for c in care_logs:
+        day_str = c.performed_at.strftime('%Y-%m-%d') if c.performed_at else None
+        if day_str:
+            if day_str not in activity_by_day:
+                activity_by_day[day_str] = {"watered": 0, "skipped": 0}
+            activity_by_day[day_str][c.care_type] = activity_by_day[day_str].get(c.care_type, 0) + 1
+
+    # --- Plant Watering Status ---
+    plants_result = await db.execute(
+        select(Plant)
+        .options(selectinload(Plant.tags))
+        .where(Plant.is_active == True)
+    )
+    all_plants = list(plants_result.scalars().all())
+
+    needs_water = []
+    recently_watered = []
+    rain_tracked = 0
+    sprinkler_tracked = 0
+    total_with_schedule = 0
+
+    for p in all_plants:
+        next_water = p.next_watering
+        if next_water and next_water <= now:
+            needs_water.append({
+                "id": p.id,
+                "name": p.name,
+                "location": p.location,
+                "days_overdue": (now - next_water).days,
+                "last_watered": p.last_watered.isoformat() if p.last_watered else None,
+            })
+        elif p.last_watered and (now - p.last_watered).days <= 2:
+            recently_watered.append({
+                "id": p.id,
+                "name": p.name,
+                "last_watered": p.last_watered.isoformat(),
+            })
+
+        if p.receives_rain:
+            rain_tracked += 1
+        if p.sprinkler_enabled:
+            sprinkler_tracked += 1
+        if p.water_schedule or p.moisture_preference:
+            total_with_schedule += 1
+
+    # Sort needs_water by most overdue first
+    needs_water.sort(key=lambda x: x["days_overdue"], reverse=True)
+
+    return {
+        "period_days": days,
+        "rain": {
+            "total_inches": round(total_rain, 2),
+            "rain_days": rain_days,
+            "dry_days": days - rain_days,
+            "current": current_rain,
+            "by_day": rain_by_day[:14],  # Last 14 days max
+        },
+        "soil_moisture": soil_moisture,
+        "watering_activity": {
+            "total_watered": watered_count,
+            "total_skipped": skipped_count,
+            "skip_reasons": skip_reasons,
+            "by_day": [
+                {"date": k, **v}
+                for k, v in sorted(activity_by_day.items(), reverse=True)
+            ][:14],
+        },
+        "plant_status": {
+            "total_plants": len(all_plants),
+            "needs_water_now": len(needs_water),
+            "recently_watered": len(recently_watered),
+            "rain_tracked": rain_tracked,
+            "sprinkler_tracked": sprinkler_tracked,
+            "with_schedule": total_with_schedule,
+            "needs_water_list": needs_water[:20],
+            "recently_watered_list": recently_watered[:10],
+        },
+    }

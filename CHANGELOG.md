@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.43.0] - 2026-01-28
+
+### Added
+- **Water Overview** on Plants page - collapsible dashboard showing comprehensive water status
+  - Rain totals (daily, weekly, monthly) with daily rain bar chart
+  - Soil moisture sensor readings
+  - Smart watering tracking: rain-tracked plants, sprinkler coverage, scheduled plants
+  - Watering activity: plants watered vs skipped with skip reason breakdown
+  - "Needs Water Now" list showing overdue plants sorted by urgency
+  - Configurable time period (7d, 14d, 30d)
+
 ## [1.42.2] - 2026-01-28
 
 ### Fixed

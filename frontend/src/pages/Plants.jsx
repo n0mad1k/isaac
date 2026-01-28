@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react'
 import {
   Plus, Search, Leaf, Droplets, Sun, Snowflake, ChevronDown, ChevronUp,
   Thermometer, MapPin, Calendar, Clock, Scissors, Apple, AlertTriangle,
-  Info, X, Tag as TagIcon, Pencil, Save, Package, Copy, CalendarPlus
+  Info, X, Tag as TagIcon, Pencil, Save, Package, Copy, CalendarPlus,
+  CloudRain, Sprout
 } from 'lucide-react'
 import {
   getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag,
-  recordPlantHarvest, previewPlantImport, importPlant, getFarmAreas
+  recordPlantHarvest, previewPlantImport, importPlant, getFarmAreas, getWaterOverview
 } from '../services/api'
 import { Download, ExternalLink, Loader2 } from 'lucide-react'
 import EventModal from '../components/EventModal'
@@ -277,6 +278,18 @@ function Plants() {
   const [showHarvestForm, setShowHarvestForm] = useState(null) // plant object or null
   const [showImportModal, setShowImportModal] = useState(false)
   const [showReminderFor, setShowReminderFor] = useState(null) // plant object for reminder modal
+  const [waterOverview, setWaterOverview] = useState(null)
+  const [showWaterOverview, setShowWaterOverview] = useState(false)
+  const [waterOverviewDays, setWaterOverviewDays] = useState(7)
+
+  const fetchWaterOverview = async (days = waterOverviewDays) => {
+    try {
+      const res = await getWaterOverview(days)
+      setWaterOverview(res.data)
+    } catch (error) {
+      console.error('Failed to fetch water overview:', error)
+    }
+  }
 
   const fetchData = async () => {
     try {
@@ -297,6 +310,7 @@ function Plants() {
 
   useEffect(() => {
     fetchData()
+    fetchWaterOverview()
   }, [])
 
   const filteredPlants = plants.filter((plant) => {
@@ -505,6 +519,184 @@ function Plants() {
           </div>
           <div className="text-sm text-gray-400">Need Fertilizer</div>
         </div>
+      </div>
+
+      {/* Water Overview */}
+      <div className="bg-gray-800 rounded-xl overflow-hidden">
+        <button
+          onClick={() => setShowWaterOverview(!showWaterOverview)}
+          className="w-full flex items-center justify-between p-4 hover:bg-gray-750 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Droplets className="w-5 h-5 text-cyan-400" />
+            <span className="font-semibold">Water Overview</span>
+            {waterOverview && (
+              <span className="text-sm text-gray-400">
+                — {waterOverview.rain?.total_inches || 0}" rain, {waterOverview.watering_activity?.total_watered || 0} watered, {waterOverview.plant_status?.needs_water_now || 0} need water
+              </span>
+            )}
+          </div>
+          {showWaterOverview ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+        </button>
+
+        {showWaterOverview && waterOverview && (
+          <div className="px-4 pb-4 space-y-4 border-t border-gray-700">
+            {/* Period selector */}
+            <div className="flex items-center gap-2 pt-3">
+              <span className="text-xs text-gray-500">Period:</span>
+              {[7, 14, 30].map(d => (
+                <button
+                  key={d}
+                  onClick={() => { setWaterOverviewDays(d); fetchWaterOverview(d) }}
+                  className={`px-2 py-1 rounded text-xs ${
+                    waterOverviewDays === d ? 'bg-cyan-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                  }`}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+
+            {/* Top summary cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold text-cyan-400">{waterOverview.rain?.total_inches || 0}"</div>
+                <div className="text-xs text-gray-400">Total Rain</div>
+              </div>
+              <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold text-cyan-300">
+                  {waterOverview.rain?.rain_days || 0} / {waterOverview.rain?.dry_days || 0}
+                </div>
+                <div className="text-xs text-gray-400">Rain / Dry Days</div>
+              </div>
+              <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold text-green-400">{waterOverview.watering_activity?.total_watered || 0}</div>
+                <div className="text-xs text-gray-400">Plants Watered</div>
+              </div>
+              <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold text-yellow-400">{waterOverview.watering_activity?.total_skipped || 0}</div>
+                <div className="text-xs text-gray-400">Waterings Skipped</div>
+              </div>
+            </div>
+
+            {/* Current Rain & Soil Moisture */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Current Rain */}
+              <div className="bg-gray-700/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1">
+                  <CloudRain className="w-3.5 h-3.5" /> CURRENT RAIN
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><span className="text-gray-500">Rate:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_rate || 0} in/hr</span></div>
+                  <div><span className="text-gray-500">Today:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_daily || 0}"</span></div>
+                  <div><span className="text-gray-500">Week:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_weekly || 0}"</span></div>
+                  <div><span className="text-gray-500">Month:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_monthly || 0}"</span></div>
+                </div>
+              </div>
+
+              {/* Soil Moisture */}
+              <div className="bg-gray-700/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1">
+                  <Sprout className="w-3.5 h-3.5" /> SOIL MOISTURE
+                </div>
+                {waterOverview.soil_moisture ? (
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {waterOverview.soil_moisture.map(s => (
+                      <div key={s.sensor}>
+                        <span className="text-gray-500">Sensor {s.sensor}:</span>{' '}
+                        <span className={s.moisture_pct > 50 ? 'text-cyan-400' : s.moisture_pct > 25 ? 'text-green-400' : 'text-yellow-400'}>
+                          {s.moisture_pct}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">No soil sensors detected</div>
+                )}
+              </div>
+            </div>
+
+            {/* Smart Watering Tracking */}
+            <div className="bg-gray-700/30 rounded-lg p-3">
+              <div className="text-xs font-semibold text-gray-300 mb-2">SMART WATERING TRACKING</div>
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                <div>
+                  <span className="text-gray-500">Rain-tracked:</span>{' '}
+                  <span className="text-cyan-400">{waterOverview.plant_status?.rain_tracked || 0} plants</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Sprinkler:</span>{' '}
+                  <span className="text-blue-400">{waterOverview.plant_status?.sprinkler_tracked || 0} plants</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">With schedule:</span>{' '}
+                  <span className="text-green-400">{waterOverview.plant_status?.with_schedule || 0} plants</span>
+                </div>
+              </div>
+              {/* Skip reasons */}
+              {waterOverview.watering_activity?.skip_reasons && Object.keys(waterOverview.watering_activity.skip_reasons).length > 0 && (
+                <div className="mt-2 pt-2 border-t border-gray-600">
+                  <div className="text-xs text-gray-500 mb-1">Skip reasons:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(waterOverview.watering_activity.skip_reasons).map(([reason, count]) => (
+                      <span key={reason} className="text-xs bg-gray-800 rounded px-2 py-0.5 text-gray-400">
+                        {reason}: {count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Daily Rain Chart (simple bar representation) */}
+            {waterOverview.rain?.by_day && waterOverview.rain.by_day.length > 0 && (
+              <div className="bg-gray-700/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-gray-300 mb-2">DAILY RAIN ({waterOverviewDays}d)</div>
+                <div className="flex items-end gap-1 h-16">
+                  {waterOverview.rain.by_day.slice().reverse().map((day, i) => {
+                    const maxRain = Math.max(...waterOverview.rain.by_day.map(d => d.rain_inches), 0.1)
+                    const height = Math.max(2, (day.rain_inches / maxRain) * 100)
+                    return (
+                      <div
+                        key={i}
+                        className="flex-1 bg-cyan-500 rounded-t opacity-80 hover:opacity-100 transition-opacity relative group"
+                        style={{ height: `${height}%` }}
+                        title={`${day.date}: ${day.rain_inches}"`}
+                      >
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-gray-900 text-xs text-gray-300 px-1.5 py-0.5 rounded whitespace-nowrap z-10">
+                          {day.date.slice(5)}: {day.rain_inches}"
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Needs Water List */}
+            {waterOverview.plant_status?.needs_water_list?.length > 0 && (
+              <div className="bg-gray-700/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
+                  NEEDS WATER NOW ({waterOverview.plant_status.needs_water_now})
+                </div>
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {waterOverview.plant_status.needs_water_list.map(p => (
+                    <div key={p.id} className="flex items-center justify-between text-sm bg-gray-800 rounded px-2 py-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-300">{p.name}</span>
+                        {p.location && <span className="text-xs text-gray-500">{p.location}</span>}
+                      </div>
+                      <span className={`text-xs ${p.days_overdue > 3 ? 'text-red-400' : 'text-yellow-400'}`}>
+                        {p.days_overdue}d overdue
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Filters */}

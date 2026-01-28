@@ -87,6 +87,7 @@ export const createPlantTag = (name, color) =>
 export const getPlantsNeedingWater = () => api.get('/plants/needs-water/today/')
 export const getPlantsNeedingFertilizer = () => api.get('/plants/needs-fertilizer/today/')
 export const getFrostSensitivePlants = () => api.get('/plants/frost-sensitive/list/')
+export const getWaterOverview = (days = 7) => api.get('/plants/water-overview/', { params: { days } })
 export const previewPlantImport = (url) => api.post('/plants/import/preview/', { url })
 export const importPlant = (url) => api.post('/plants/import/', { url })
 export const waterPlant = (plantId, notes = null) =>
