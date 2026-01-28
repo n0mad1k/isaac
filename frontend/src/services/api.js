@@ -502,6 +502,7 @@ export const getVitalsHistory = (memberId, vitalType = null) => {
 export const getVitalsAverages = (memberId) => api.get(`/team/members/${memberId}/vitals/averages/`)
 export const logVital = (memberId, data) => api.post(`/team/members/${memberId}/vitals/`, data)
 export const deleteVital = (memberId, vitalId) => api.delete(`/team/members/${memberId}/vitals/${vitalId}/`)
+export const updateVital = (memberId, vitalId, data) => api.put(`/team/members/${memberId}/vitals/${vitalId}/`, data)
 export const getVitalTypes = () => api.get('/team/vitals/types/')
 export const getReadinessAnalysis = (memberId, lookbackDays = 30, updateMember = true) =>
   api.get(`/team/members/${memberId}/readiness-analysis/`, {

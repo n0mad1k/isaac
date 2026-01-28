@@ -12,7 +12,7 @@ import {
   getMemberObservations, createObservation, uploadMemberPhoto, deleteMemberPhoto,
   getMemberAppointments, createMemberAppointment, updateMemberAppointment,
   deleteMemberAppointment, completeMemberAppointment,
-  getVitalsHistory, getVitalsAverages, logVital, deleteVital, getVitalTypes,
+  getVitalsHistory, getVitalsAverages, logVital, deleteVital, updateVital, getVitalTypes,
   getReadinessAnalysis, calculateBodyFat,
   getWorkoutTypes, getWorkouts, getWorkoutStats, logWorkout, deleteWorkout
 } from '../../services/api'
@@ -1097,6 +1097,15 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     notes: ''
   })
 
+  // Editing state
+  const [editingVital, setEditingVital] = useState(null)
+  const [editForm, setEditForm] = useState({
+    value: '',
+    value_secondary: '',
+    context_factors: [],
+    notes: ''
+  })
+
   // Get latest vital by type (moved up for body fat calc)
   const getLatestVital = (vitalType) => {
     return vitalsHistory.find(v => v.vital_type === vitalType)
@@ -1247,6 +1256,40 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       onUpdate()
     } catch (err) {
       console.error('Failed to delete vital:', err)
+    }
+  }
+
+  // Handle start editing vital
+  const handleStartEdit = (vital) => {
+    setEditingVital(vital)
+    setEditForm({
+      value: vital.value?.toString() || '',
+      value_secondary: vital.value_secondary?.toString() || '',
+      context_factors: vital.context_factors || [],
+      notes: vital.notes || ''
+    })
+  }
+
+  // Handle save edit vital
+  const handleSaveEdit = async () => {
+    if (!editingVital || !editForm.value) return
+
+    setSubmitting(true)
+    setError(null)
+    try {
+      await updateVital(member.id, editingVital.id, {
+        value: parseFloat(editForm.value),
+        value_secondary: editForm.value_secondary ? parseFloat(editForm.value_secondary) : null,
+        context_factors: editForm.context_factors.length > 0 ? editForm.context_factors : null,
+        notes: editForm.notes || null
+      })
+      setEditingVital(null)
+      setEditForm({ value: '', value_secondary: '', context_factors: [], notes: '' })
+      onUpdate()
+    } catch (err) {
+      setError(err.userMessage || 'Failed to update vital')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -1687,15 +1730,29 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                     <div className="flex items-center gap-4">
                       <span className="text-gray-400 text-sm w-24">{formatDate(vital.recorded_at)}</span>
                       <span className="font-medium">{formatVitalValue(vital)}</span>
+                      {vital.context_factors?.length > 0 && (
+                        <span className="text-sm" title={vital.context_factors.map(f => CONTEXT_FACTORS.find(cf => cf.id === f)?.label || f).join(', ')}>
+                          {vital.context_factors.map(f => CONTEXT_FACTORS.find(cf => cf.id === f)?.icon || '').join(' ')}
+                        </span>
+                      )}
                       {vital.notes && <span className="text-gray-400 text-sm">{vital.notes}</span>}
                     </div>
-                    <button
-                      onClick={() => handleDeleteVital(vital.id)}
-                      className="p-1 text-gray-400 hover:text-red-400"
-                      title="Delete reading"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleStartEdit(vital)}
+                        className="p-1 text-gray-400 hover:text-blue-400"
+                        title="Edit reading"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteVital(vital.id)}
+                        className="p-1 text-gray-400 hover:text-red-400"
+                        title="Delete reading"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -1889,6 +1946,120 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Vital Modal */}
+      {editingVital && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="font-semibold">Edit {vitalTypes.find(t => t.value === editingVital.vital_type)?.label || editingVital.vital_type}</h3>
+              <button onClick={() => { setEditingVital(null); setEditForm({ value: '', value_secondary: '', context_factors: [], notes: '' }); setError(null) }} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {error && (
+                <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
+                  {error}
+                </div>
+              )}
+              <div className="text-sm text-gray-400 mb-2">
+                Recorded: {formatDate(editingVital.recorded_at)}
+              </div>
+              {editingVital.vital_type === 'blood_pressure' ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Systolic (mmHg) *</label>
+                    <input
+                      type="number"
+                      value={editForm.value}
+                      onChange={(e) => setEditForm({ ...editForm, value: e.target.value })}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Diastolic (mmHg) *</label>
+                    <input
+                      type="number"
+                      value={editForm.value_secondary}
+                      onChange={(e) => setEditForm({ ...editForm, value_secondary: e.target.value })}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                      required
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    Value ({vitalTypes.find(t => t.value === editingVital.vital_type)?.unit || ''}) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editForm.value}
+                    onChange={(e) => setEditForm({ ...editForm, value: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    required
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Context Factors</label>
+                <div className="flex flex-wrap gap-2">
+                  {CONTEXT_FACTORS.map(factor => (
+                    <label
+                      key={factor.id}
+                      className={`flex items-center gap-1 px-2 py-1 rounded cursor-pointer text-sm transition-colors ${
+                        editForm.context_factors.includes(factor.id)
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={editForm.context_factors.includes(factor.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditForm({ ...editForm, context_factors: [...editForm.context_factors, factor.id] })
+                          } else {
+                            setEditForm({ ...editForm, context_factors: editForm.context_factors.filter(f => f !== factor.id) })
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <span>{factor.icon}</span>
+                      <span>{factor.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <input
+                  type="text"
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  placeholder="Optional notes..."
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => { setEditingVital(null); setEditForm({ value: '', value_secondary: '', context_factors: [], notes: '' }); setError(null) }} className="px-4 py-2 text-gray-400 hover:text-white">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={submitting || !editForm.value}
+                  className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
+                >
+                  {submitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

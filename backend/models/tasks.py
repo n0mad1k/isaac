@@ -130,6 +130,7 @@ class Task(Base):
     # Calendar sync
     calendar_uid = Column(String(255), unique=True, nullable=True, index=True)
     calendar_synced_at = Column(DateTime, nullable=True)  # Last time this task was synced to calendar
+    calendar_content_hash = Column(String(64), nullable=True)  # Hash of synced content - skip sync if unchanged
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

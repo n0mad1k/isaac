@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.39.0] - 2026-01-28
+
+### Fixed
+- **Calendar sync performance** - Fixed sync hanging for 1.5+ minutes every 10 minutes
+  - Added content hash to detect actual changes, skip unchanged tasks
+  - Pre-fetch calendar todos once for bulk operations instead of N+1 calls
+  - Completed/inactive tasks properly cached after removal from calendar
+
+### Added
+- **Data retention cleanup** - Automatic cleanup of old tasks to prevent database bloat
+  - Tasks completed >1 year ago are automatically deleted daily at 3:30 AM
+  - Inactive/deleted tasks >1 year old also removed
+
 ## [1.38.0] - 2026-01-28
 
 ### Added

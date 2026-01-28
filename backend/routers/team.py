@@ -163,6 +163,14 @@ class VitalsLogCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class VitalsLogUpdate(BaseModel):
+    value: Optional[float] = None
+    value_secondary: Optional[float] = None
+    context_factors: Optional[List[str]] = None
+    notes: Optional[str] = None
+    recorded_at: Optional[datetime] = None
+
+
 # ============================================
 # Workout/Fitness Schemas
 # ============================================
@@ -1479,6 +1487,44 @@ async def delete_vital(
     await db.commit()
 
     return {"status": "deleted"}
+
+
+@router.put("/members/{member_id}/vitals/{vital_id}/")
+async def update_vital(
+    member_id: int,
+    vital_id: int,
+    data: VitalsLogUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update a vital reading"""
+    result = await db.execute(
+        select(MemberVitalsLog).where(
+            and_(MemberVitalsLog.id == vital_id, MemberVitalsLog.member_id == member_id)
+        )
+    )
+    log = result.scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Vital log not found")
+
+    # Update fields
+    update_dict = data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(log, key, value)
+
+    await db.commit()
+    await db.refresh(log)
+
+    return {
+        "id": log.id,
+        "member_id": log.member_id,
+        "vital_type": log.vital_type.value,
+        "value": log.value,
+        "value_secondary": log.value_secondary,
+        "context_factors": log.context_factors,
+        "notes": log.notes,
+        "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
+    }
 
 
 @router.get("/vitals/types/")

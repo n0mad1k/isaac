@@ -13,6 +13,31 @@ from sqlalchemy import select
 import icalendar
 import uuid
 import pytz
+import hashlib
+
+
+def compute_task_sync_hash(task) -> str:
+    """Compute a hash of task fields relevant to calendar sync.
+
+    If this hash matches the stored hash, no sync is needed.
+    Includes: title, due_date, due_time, end_date, end_time, location,
+              description, is_completed, is_active, task_type
+    """
+    # Build a string of all sync-relevant fields
+    parts = [
+        str(task.title or ''),
+        str(task.due_date or ''),
+        str(task.due_time or ''),
+        str(task.end_date or ''),
+        str(task.end_time or ''),
+        str(task.location or ''),
+        str(task.description or '')[:500],  # Limit description length
+        str(task.is_completed),
+        str(task.is_active),
+        str(task.task_type.value if task.task_type else ''),
+    ]
+    content = '|'.join(parts)
+    return hashlib.sha256(content.encode()).hexdigest()[:32]
 
 from models.tasks import Task, TaskCategory, TaskType
 from models.settings import AppSetting
@@ -554,9 +579,16 @@ class CalendarSyncService:
                     logger.info(f"Task '{task.title}' was deleted on phone, marking inactive")
                     continue
 
+            # Hash-based change detection - skip if content unchanged
+            current_hash = compute_task_sync_hash(task)
+            if task.calendar_content_hash == current_hash and task.calendar_uid:
+                skipped += 1
+                continue
+
             result = await self.sync_task_to_calendar(task, db, existing_events)
             if result:
                 task.calendar_synced_at = now
+                task.calendar_content_hash = current_hash  # Store hash after successful sync
                 # Check if task was linked to existing event (has non-isaac UID now)
                 if task.calendar_uid and not task.calendar_uid.startswith('isaac-task-') and not task.calendar_uid.startswith('levi-task-'):
                     linked += 1
@@ -565,20 +597,14 @@ class CalendarSyncService:
 
         # PART 2: Delete completed/inactive tasks from calendar
         # Find tasks that were synced to calendar but are now completed or inactive
+        # Only get tasks where the hash might have changed (not already processed)
         delete_query = (
             select(Task)
-            .where(Task.calendar_uid.isnot(None))  # Has been synced
-            .where(Task.calendar_synced_at.isnot(None))  # Was synced
+            .where(Task.calendar_uid.isnot(None))  # Has been synced to calendar
             .where(
                 or_(
                     Task.is_completed == True,
                     Task.is_active == False,
-                )
-            )
-            .where(
-                or_(
-                    Task.calendar_synced_at < Task.updated_at,  # Changed since sync
-                    force_full == True,
                 )
             )
         )
@@ -586,15 +612,36 @@ class CalendarSyncService:
         result = await db.execute(delete_query)
         tasks_to_delete = result.scalars().all()
 
+        # Pre-fetch todos once for bulk deletion (avoids N+1 network calls)
+        cached_todos = None
+        tasks_needing_deletion = []
+
+        # Filter to only tasks where hash changed (not already processed as deleted)
         for task in tasks_to_delete:
+            current_hash = compute_task_sync_hash(task)
+            if task.calendar_content_hash != current_hash:
+                tasks_needing_deletion.append((task, current_hash))
+
+        if tasks_needing_deletion:
+            try:
+                calendar = self.get_or_create_calendar()
+                if calendar:
+                    cached_todos = calendar.todos(include_completed=True)
+                    logger.debug(f"Cached {len(cached_todos)} todos for bulk deletion of {len(tasks_needing_deletion)} tasks")
+            except Exception as e:
+                logger.warning(f"Could not pre-fetch todos for deletion: {e}")
+
+        for task, current_hash in tasks_needing_deletion:
             # Only delete app-originated tasks (isaac-task-X or levi-task-X)
             is_app_uid = (
                 task.calendar_uid and
                 (task.calendar_uid.startswith('isaac-task-') or task.calendar_uid.startswith('levi-task-'))
             )
             if is_app_uid:
-                if await self.delete_task_from_calendar(task.id, task.calendar_uid):
-                    task.calendar_synced_at = now  # Mark as synced (deleted)
+                if await self.delete_task_from_calendar(task.id, task.calendar_uid, cached_todos=cached_todos):
+                    # Update hash - task won't be processed again unless it changes
+                    task.calendar_content_hash = current_hash
+                    task.calendar_synced_at = now
                     deleted += 1
                     logger.debug(f"Deleted completed/inactive task '{task.title}' from calendar")
 
@@ -908,13 +955,14 @@ class CalendarSyncService:
         logger.info(f"Calendar sync: {created} created, {updated} updated, {deleted} deleted")
         return {"created": created, "updated": updated, "deleted": deleted}
 
-    async def delete_task_from_calendar(self, task_id: int, calendar_uid: str = None, task_type: TaskType = None) -> bool:
+    async def delete_task_from_calendar(self, task_id: int, calendar_uid: str = None, task_type: TaskType = None, cached_todos: list = None) -> bool:
         """Delete a task's calendar event or todo.
 
         Args:
             task_id: The task ID (used to build isaac-task UID if calendar_uid not provided)
             calendar_uid: The actual calendar UID (for iPhone-originated items)
             task_type: Optional task type hint
+            cached_todos: Pre-fetched list of calendar todos (to avoid repeated network calls)
         """
         calendar = self.get_or_create_calendar()
         if not calendar:
@@ -938,8 +986,8 @@ class CalendarSyncService:
         # If not found as event, try as VTODO
         if not deleted:
             try:
-                # Search through todos to find the one with matching UID
-                todos = calendar.todos(include_completed=True)
+                # Use cached todos if provided, otherwise fetch (for single deletes)
+                todos = cached_todos if cached_todos is not None else calendar.todos(include_completed=True)
                 for todo in todos:
                     try:
                         cal = icalendar.Calendar.from_ical(todo.data)

@@ -343,6 +343,15 @@ class SchedulerService:
             replace_existing=True,
         )
 
+        # Cleanup old completed tasks - daily at 3:30 AM (1 year retention)
+        self.scheduler.add_job(
+            self.cleanup_old_tasks,
+            CronTrigger(hour=3, minute=30),
+            id="cleanup_tasks",
+            name="Cleanup Old Completed Tasks",
+            replace_existing=True,
+        )
+
         # Health monitoring - every 5 minutes
         self.scheduler.add_job(
             self.run_health_check,
@@ -1395,6 +1404,52 @@ class SchedulerService:
 
         except Exception as e:
             logger.error(f"Error cleaning up weather data: {e}")
+
+    async def cleanup_old_tasks(self):
+        """Clean up old completed/inactive tasks to prevent database bloat.
+
+        Retention policy: 1 year for completed tasks
+        """
+        logger.debug("Running old tasks cleanup...")
+        try:
+            from models.tasks import Task
+            from sqlalchemy import delete, and_
+            from datetime import datetime, timedelta
+
+            # Delete tasks completed more than 1 year ago
+            cutoff_date = datetime.utcnow() - timedelta(days=365)
+
+            async with async_session() as db:
+                # Delete old completed tasks
+                result = await db.execute(
+                    delete(Task).where(
+                        and_(
+                            Task.is_completed == True,
+                            Task.completed_at < cutoff_date
+                        )
+                    )
+                )
+                deleted_completed = result.rowcount
+
+                # Delete old inactive tasks (deleted/archived)
+                result = await db.execute(
+                    delete(Task).where(
+                        and_(
+                            Task.is_active == False,
+                            Task.updated_at < cutoff_date
+                        )
+                    )
+                )
+                deleted_inactive = result.rowcount
+
+                await db.commit()
+
+                total_deleted = deleted_completed + deleted_inactive
+                if total_deleted > 0:
+                    logger.info(f"Task cleanup: removed {deleted_completed} completed, {deleted_inactive} inactive tasks (>1 year old)")
+
+        except Exception as e:
+            logger.error(f"Error cleaning up old tasks: {e}")
 
     async def run_health_check(self):
         """Run periodic health checks and send alerts if needed"""
