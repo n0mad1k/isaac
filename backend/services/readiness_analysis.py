@@ -1210,8 +1210,10 @@ async def analyze_readiness(
         else:
             member.overall_readiness = ReadinessStatus.RED
 
-        # Save the readiness score
+        # Save all readiness scores
         member.readiness_score = round(overall_score, 1)
+        member.performance_readiness_score = round(performance_score, 1)
+        member.medical_safety_status = medical_safety.status
         member.readiness_notes = f"Auto-calculated: {overall_status} (score: {overall_score:.0f}) as of {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
         await db.commit()
         member_updated = True

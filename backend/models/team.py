@@ -221,6 +221,8 @@ class TeamMember(Base):
     # Overall Readiness
     overall_readiness = Column(SQLEnum(ReadinessStatus), default=ReadinessStatus.GREEN)
     readiness_score = Column(Float, nullable=True)  # 0-100 score from readiness analysis
+    performance_readiness_score = Column(Float, nullable=True)  # 0-100 physical/performance score
+    medical_safety_status = Column(String(10), nullable=True)  # GREEN/AMBER/RED from automated analysis
     readiness_notes = Column(Text, nullable=True)
 
     # Fitness Level (3-tier system: CIVILIAN, MARINE, SF)

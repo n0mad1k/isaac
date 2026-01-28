@@ -214,32 +214,33 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               <h2 className="text-xl font-bold">{member.name}</h2>
               {/* Readiness Scores - 3 colored number badges */}
               <div className="flex items-center gap-1">
-                {/* Overall Readiness */}
+                {/* Overall Readiness Score */}
                 <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${
                   member.overall_readiness === 'GREEN' ? 'bg-green-600' :
                   member.overall_readiness === 'AMBER' ? 'bg-yellow-600' :
                   member.overall_readiness === 'RED' ? 'bg-red-600' :
                   'bg-gray-600'
                 }`} title="Overall Readiness">
-                  {member.readiness_score ? Math.round(member.readiness_score) : '—'}
+                  {member.readiness_score != null ? Math.round(member.readiness_score) : '—'}
                 </span>
-                {/* Physical Readiness */}
+                {/* Performance Readiness Score */}
                 <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${
-                  member.physical_readiness === 'GREEN' ? 'bg-green-600' :
-                  member.physical_readiness === 'AMBER' ? 'bg-yellow-600' :
-                  member.physical_readiness === 'RED' ? 'bg-red-600' :
-                  'bg-gray-600'
-                }`} title="Physical Readiness">
-                  {member.physical_readiness === 'GREEN' ? '✓' : member.physical_readiness === 'AMBER' ? '!' : member.physical_readiness === 'RED' ? '✗' : '—'}
+                  member.performance_readiness_score != null ? (
+                    member.performance_readiness_score >= 80 ? 'bg-green-600' :
+                    member.performance_readiness_score >= 60 ? 'bg-yellow-600' :
+                    'bg-red-600'
+                  ) : 'bg-gray-600'
+                }`} title="Performance Readiness">
+                  {member.performance_readiness_score != null ? Math.round(member.performance_readiness_score) : '—'}
                 </span>
                 {/* Medical Safety */}
                 <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${
-                  member.medical_readiness === 'GREEN' ? 'bg-green-600' :
-                  member.medical_readiness === 'AMBER' ? 'bg-yellow-600' :
-                  member.medical_readiness === 'RED' ? 'bg-red-600' :
+                  member.medical_safety_status === 'GREEN' ? 'bg-green-600' :
+                  member.medical_safety_status === 'AMBER' ? 'bg-yellow-600' :
+                  member.medical_safety_status === 'RED' ? 'bg-red-600' :
                   'bg-gray-600'
                 }`} title="Medical Safety">
-                  {member.medical_readiness === 'GREEN' ? '✓' : member.medical_readiness === 'AMBER' ? '!' : member.medical_readiness === 'RED' ? '✗' : '—'}
+                  {member.medical_safety_status === 'GREEN' ? '✓' : member.medical_safety_status === 'AMBER' ? '!' : member.medical_safety_status === 'RED' ? '✗' : '—'}
                 </span>
               </div>
               {/* Fitness Tier Badge */}
