@@ -633,29 +633,35 @@ async def get_quick_stats(db: AsyncSession = Depends(get_db)):
         .where(Task.assigned_to_worker_id.is_(None))
     )
 
-    # Animals needing care soon
+    # Animals needing care soon - use the calculated properties
     week_ahead = today + timedelta(days=7)
-    horses_need_farrier = await db.execute(
-        select(func.count())
-        .select_from(Animal)
+
+    # Get horses with hoof trim tracking
+    horses_result = await db.execute(
+        select(Animal)
         .where(Animal.animal_type == AnimalType.HORSE)
         .where(Animal.is_active == True)
-        .where(Animal.next_farrier_date <= week_ahead)
+        .where(Animal.hoof_trim_frequency_days.isnot(None))
     )
-    animals_need_worming = await db.execute(
-        select(func.count())
-        .select_from(Animal)
+    horses = horses_result.scalars().all()
+    farrier_due = sum(1 for h in horses if h.next_hoof_trim and h.next_hoof_trim.date() <= week_ahead)
+
+    # Get animals with worming tracking
+    animals_result = await db.execute(
+        select(Animal)
         .where(Animal.is_active == True)
-        .where(Animal.next_worming_date <= week_ahead)
+        .where(Animal.worming_frequency_days.isnot(None))
     )
+    animals = animals_result.scalars().all()
+    worming_due = sum(1 for a in animals if a.next_worming and a.next_worming.date() <= week_ahead)
 
     # Latest weather
     reading = await weather_service.get_latest_reading(db)
 
     return {
         "tasks_pending": tasks_pending.scalar() or 0,
-        "farrier_due": horses_need_farrier.scalar() or 0,
-        "worming_due": animals_need_worming.scalar() or 0,
+        "farrier_due": farrier_due,
+        "worming_due": worming_due,
         "current_temp": reading.temp_outdoor if reading else None,
         "last_updated": reading.reading_time.isoformat() if reading else None,
     }
