@@ -157,6 +157,7 @@ class VitalsLogCreate(BaseModel):
     vital_type: VitalType
     value: float
     value_secondary: Optional[float] = None  # For blood pressure diastolic
+    context_factors: Optional[List[str]] = None  # e.g., ["caffeine", "stress", "white_coat"]
     notes: Optional[str] = None
 
 
@@ -1077,6 +1078,7 @@ async def get_vitals_history(
             "value": log.value,
             "value_secondary": log.value_secondary,
             "unit": log.unit or VITAL_UNITS.get(log.vital_type, ""),
+            "context_factors": log.context_factors,
             "notes": log.notes,
             "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
         }
@@ -1312,6 +1314,7 @@ async def log_vital(
         value=data.value,
         value_secondary=data.value_secondary,
         unit=VITAL_UNITS.get(data.vital_type, ""),
+        context_factors=data.context_factors,
         notes=data.notes
     )
     db.add(log)
@@ -1379,6 +1382,7 @@ async def log_vital(
         "value": log.value,
         "value_secondary": log.value_secondary,
         "unit": log.unit,
+        "context_factors": log.context_factors,
         "notes": log.notes,
         "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
     }

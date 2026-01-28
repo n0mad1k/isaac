@@ -256,6 +256,10 @@ class MemberVitalsLog(Base):
     # Unit for display (e.g., "bpm", "°F", "%", "mg/dL", "in")
     unit = Column(String(20), nullable=True)
 
+    # Context factors that may affect the reading (JSON array)
+    # e.g., ["caffeine", "stress", "white_coat", "post_exercise", "fasting"]
+    context_factors = Column(JSON, nullable=True)
+
     notes = Column(Text, nullable=True)
     recorded_at = Column(DateTime, default=datetime.utcnow)
 

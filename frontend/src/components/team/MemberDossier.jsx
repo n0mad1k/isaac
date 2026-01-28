@@ -1058,11 +1058,23 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     fetchReadinessAnalysis(false) // Don't update member on initial load
   }, [member.id])
 
+  // Available context factors for vitals
+  const CONTEXT_FACTORS = [
+    { id: 'caffeine', label: 'Caffeine', icon: '☕' },
+    { id: 'stress', label: 'Stress', icon: '😰' },
+    { id: 'white_coat', label: 'White Coat', icon: '🩺' },
+    { id: 'post_exercise', label: 'Post-Exercise', icon: '🏃' },
+    { id: 'fasting', label: 'Fasting', icon: '🍽️' },
+    { id: 'dehydrated', label: 'Dehydrated', icon: '💧' },
+    { id: 'poor_sleep', label: 'Poor Sleep', icon: '😴' },
+  ]
+
   // Form states
   const [vitalForm, setVitalForm] = useState({
     vital_type: '',
     value: '',
     value_secondary: '',
+    context_factors: [],
     notes: ''
   })
   const [weightForm, setWeightForm] = useState({
@@ -1169,10 +1181,19 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
         vital_type: vitalForm.vital_type,
         value: parseFloat(vitalForm.value),
         value_secondary: vitalForm.value_secondary ? parseFloat(vitalForm.value_secondary) : null,
+        context_factors: vitalForm.context_factors.length > 0 ? vitalForm.context_factors : null,
         notes: vitalForm.notes || null
       })
-      setVitalForm({ vital_type: '', value: '', value_secondary: '', notes: '' })
+      setVitalForm({ vital_type: '', value: '', value_secondary: '', context_factors: [], notes: '' })
       setShowAddVital(false)
+      // Auto-refresh vitals, averages, and readiness analysis
+      const [vRes, aRes] = await Promise.all([
+        getVitalsHistory(member.id),
+        getVitalsAverages(member.id)
+      ])
+      setVitalsHistory(vRes.data)
+      setVitalsAverages(aRes.data)
+      fetchReadinessAnalysis(true)  // Update readiness with new data
       onUpdate()
     } catch (err) {
       setError(err.userMessage || 'Failed to add vital')
@@ -1693,8 +1714,16 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                     notes: weightForm.notes || null
                   })
                   setWeightForm({ weight: '', notes: '' })
-                  setVitalForm({ vital_type: '', value: '', value_secondary: '', notes: '' })
+                  setVitalForm({ vital_type: '', value: '', value_secondary: '', context_factors: [], notes: '' })
                   setShowAddVital(false)
+                  // Auto-refresh vitals and analysis
+                  const [vRes, aRes] = await Promise.all([
+                    getVitalsHistory(member.id),
+                    getVitalsAverages(member.id)
+                  ])
+                  setVitalsHistory(vRes.data)
+                  setVitalsAverages(aRes.data)
+                  fetchReadinessAnalysis(true)
                   onUpdate()
                 } catch (err) {
                   setError(err.userMessage || 'Failed to add weight')
@@ -1790,6 +1819,37 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                     )}
                   </div>
                   <div>
+                    <label className="block text-sm text-gray-400 mb-1">Context Factors</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CONTEXT_FACTORS.map(factor => (
+                        <label
+                          key={factor.id}
+                          className={`flex items-center gap-1 px-2 py-1 rounded cursor-pointer text-sm transition-colors ${
+                            vitalForm.context_factors.includes(factor.id)
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={vitalForm.context_factors.includes(factor.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setVitalForm({ ...vitalForm, context_factors: [...vitalForm.context_factors, factor.id] })
+                              } else {
+                                setVitalForm({ ...vitalForm, context_factors: vitalForm.context_factors.filter(f => f !== factor.id) })
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <span>{factor.icon}</span>
+                          <span>{factor.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Select any factors that may affect this reading</p>
+                  </div>
+                  <div>
                     <label className="block text-sm text-gray-400 mb-1">Notes</label>
                     <input
                       type="text"
@@ -1802,7 +1862,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 </>
               )}
               <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => { setShowAddVital(false); setVitalForm({ vital_type: '', value: '', value_secondary: '', notes: '' }) }} className="px-4 py-2 text-gray-400 hover:text-white">
+                <button type="button" onClick={() => { setShowAddVital(false); setVitalForm({ vital_type: '', value: '', value_secondary: '', context_factors: [], notes: '' }) }} className="px-4 py-2 text-gray-400 hover:text-white">
                   Cancel
                 </button>
                 <button

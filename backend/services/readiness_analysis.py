@@ -243,12 +243,13 @@ def _analyze_cardiovascular(
     """
     Analyze cardiovascular health from BP and SpO2.
 
-    BP Categories (AHA):
-    - Normal: <120/<80
-    - Elevated: 120-129/<80
-    - Stage 1: 130-139/80-89
-    - Stage 2: >=140/>=90
+    BP Categories (adjusted for athletic population - less strict than AHA clinical):
+    - Normal: <130/<85
+    - Elevated: 130-139/85-89
+    - Stage 1: 140-159/90-99
+    - Stage 2: >=160/>=100
 
+    Note: Context factors (caffeine, stress, white coat) can affect readings.
     SpO2: <95% = concern, <92% = critical
     """
     factors = []
@@ -256,22 +257,40 @@ def _analyze_cardiovascular(
     spo2_score = 100
     confidence = 0.0
 
-    # Blood Pressure
+    # Blood Pressure (adjusted thresholds for athletic population)
     latest_bp = _get_latest_vital(vitals, VitalType.BLOOD_PRESSURE)
     if latest_bp:
         sys = latest_bp.value
         dia = latest_bp.value_secondary or 80
 
-        if sys >= 140 or dia >= 90:
+        # Check for context factors that might explain elevated readings
+        context_note = ""
+        if latest_bp.notes:
+            notes_lower = latest_bp.notes.lower()
+            context_factors = []
+            if 'caffeine' in notes_lower or 'coffee' in notes_lower:
+                context_factors.append("caffeine")
+            if 'stress' in notes_lower:
+                context_factors.append("stress")
+            if 'white coat' in notes_lower or 'whitecoat' in notes_lower:
+                context_factors.append("white coat")
+            if 'post-exercise' in notes_lower or 'after workout' in notes_lower:
+                context_factors.append("post-exercise")
+            if context_factors:
+                context_note = f" (noted: {', '.join(context_factors)})"
+
+        # Adjusted thresholds - less strict for fit individuals
+        if sys >= 160 or dia >= 100:
             bp_score = 50
-            factors.append(f"BP Stage 2: {sys:.0f}/{dia:.0f}")
-        elif sys >= 130 or dia >= 80:
+            factors.append(f"BP High: {sys:.0f}/{dia:.0f}{context_note}")
+        elif sys >= 140 or dia >= 90:
             bp_score = 70
-            factors.append(f"BP Stage 1: {sys:.0f}/{dia:.0f}")
-        elif sys >= 120:
-            bp_score = 85
-            factors.append(f"BP Elevated: {sys:.0f}/{dia:.0f}")
+            factors.append(f"BP Elevated: {sys:.0f}/{dia:.0f}{context_note}")
+        elif sys >= 130 or dia >= 85:
+            bp_score = 90  # Minor concern, not a big penalty
+            factors.append(f"BP Slightly Elevated: {sys:.0f}/{dia:.0f}{context_note}")
         else:
+            bp_score = 100
             factors.append(f"BP Normal: {sys:.0f}/{dia:.0f}")
         confidence += 0.5
 

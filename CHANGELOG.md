@@ -2,6 +2,23 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.36.0] - 2026-01-28
+
+### Added
+- **Context factors for vitals** - Tag readings with factors that may affect them:
+  - Caffeine, Stress, White Coat, Post-Exercise, Fasting, Dehydrated, Poor Sleep
+  - Select multiple factors when logging vitals
+  - BP analysis accounts for these factors in scoring
+- **Auto-refresh on data entry** - Vitals list and readiness analysis auto-refresh after adding new recordings
+
+### Changed
+- **Adjusted BP thresholds** - Less strict for athletic population:
+  - Normal: <130/85 (was <120/80)
+  - Elevated: 130-139/85-89 (was 120-129/80)
+  - Stage 1: 140-159/90-99 (was 130-139/80-89)
+  - Stage 2: ≥160/100 (was ≥140/90)
+- 130/85 now scores 90 instead of 70 (minor concern, not amber)
+
 ## [1.35.3] - 2026-01-28
 
 ### Changed
