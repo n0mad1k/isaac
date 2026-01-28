@@ -86,18 +86,29 @@ class HealthMonitor:
         except Exception as e:
             return HealthCheck("database", HealthStatus.CRITICAL, f"Database error: {str(e)[:100]}")
 
-    async def check_caldav(self) -> HealthCheck:
+    async def check_caldav(self, db: AsyncSession) -> HealthCheck:
         """Check CalDAV/Radicale status"""
-        if not settings.caldav_url:
-            return HealthCheck("caldav", HealthStatus.UNKNOWN, "CalDAV not configured")
+        from services.calendar_sync import get_calendar_setting
+
+        # Read settings from database
+        enabled = await get_calendar_setting(db, "calendar_enabled")
+        if enabled != "true":
+            return HealthCheck("caldav", HealthStatus.UNKNOWN, "CalDAV not enabled")
+
+        url = await get_calendar_setting(db, "calendar_url")
+        username = await get_calendar_setting(db, "calendar_username")
+        password = await get_calendar_setting(db, "calendar_password")
+
+        if not url or not username or not password:
+            return HealthCheck("caldav", HealthStatus.UNKNOWN, "CalDAV not fully configured")
 
         try:
             timeout = aiohttp.ClientTimeout(total=10)
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 # Try to reach radicale
-                url = settings.caldav_url.rstrip('/') + '/'
-                auth = aiohttp.BasicAuth(settings.caldav_username, settings.caldav_password)
-                async with session.options(url, auth=auth, ssl=False) as response:
+                check_url = url.rstrip('/') + '/'
+                auth = aiohttp.BasicAuth(username, password)
+                async with session.options(check_url, auth=auth, ssl=False) as response:
                     if response.status in [200, 204, 207]:
                         return HealthCheck("caldav", HealthStatus.HEALTHY, "CalDAV server responding")
                     else:
@@ -157,7 +168,7 @@ class HealthMonitor:
         # Run async checks
         checks.append(await self.check_api_health())
         checks.append(await self.check_database(db))
-        checks.append(await self.check_caldav())
+        checks.append(await self.check_caldav(db))
 
         # Run sync checks
         checks.append(self.check_memory())
