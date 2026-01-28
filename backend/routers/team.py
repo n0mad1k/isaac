@@ -1127,6 +1127,87 @@ async def get_vitals_averages(
     return averages
 
 
+async def _calculate_and_store_body_fat(member_id: int, db: AsyncSession) -> Optional[float]:
+    """Calculate body fat from taping measurements and store it if successful."""
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member or not member.height_inches:
+        return None
+
+    # Get latest measurements
+    measurements = {}
+    for vtype in [VitalType.WAIST, VitalType.NECK, VitalType.HIP]:
+        vresult = await db.execute(
+            select(MemberVitalsLog)
+            .where(and_(
+                MemberVitalsLog.member_id == member_id,
+                MemberVitalsLog.vital_type == vtype
+            ))
+            .order_by(desc(MemberVitalsLog.recorded_at))
+            .limit(1)
+        )
+        vlog = vresult.scalar_one_or_none()
+        if vlog:
+            measurements[vtype] = vlog.value
+
+    is_female = member.gender == Gender.FEMALE if member.gender else False
+    waist = measurements.get(VitalType.WAIST)
+    neck = measurements.get(VitalType.NECK)
+    hip = measurements.get(VitalType.HIP)
+
+    # Check if we can calculate
+    can_calculate = False
+    if is_female and waist and neck and hip:
+        can_calculate = True
+    elif not is_female and waist and neck:
+        can_calculate = True
+
+    if not can_calculate:
+        return None
+
+    bf_pct = _calculate_body_fat_taping(
+        member.height_inches,
+        waist,
+        neck,
+        hip if is_female else None,
+        is_female
+    )
+
+    if bf_pct is None or not (0 < bf_pct < 60):
+        return None
+
+    # Store body fat
+    body_fat_log = MemberVitalsLog(
+        member_id=member_id,
+        vital_type=VitalType.BODY_FAT,
+        value=round(bf_pct, 1),
+        unit="%",
+        notes="Auto-calculated from taping measurements"
+    )
+    db.add(body_fat_log)
+    await db.commit()
+
+    return round(bf_pct, 1)
+
+
+@router.post("/members/{member_id}/calculate-body-fat/")
+async def calculate_body_fat(
+    member_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Calculate and store body fat from existing taping measurements."""
+    bf_pct = await _calculate_and_store_body_fat(member_id, db)
+    if bf_pct is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot calculate body fat. Missing required measurements (waist, neck, and hip for females) or height."
+        )
+    return {"body_fat": bf_pct, "message": "Body fat calculated and stored"}
+
+
 @router.get("/members/{member_id}/readiness-analysis/")
 async def get_readiness_analysis(
     member_id: int,
@@ -1146,11 +1227,15 @@ async def get_readiness_analysis(
     Overall readiness = worst of (physical, medical) - conservative approach.
 
     If update_member=true, updates member.overall_readiness with the result.
+    Also calculates and stores body fat if taping measurements are available.
     """
     from services.readiness_analysis import analyze_readiness, ReadinessAnalysis
     from dataclasses import asdict
 
     try:
+        # Calculate and store body fat from existing measurements
+        await _calculate_and_store_body_fat(member_id, db)
+
         analysis = await analyze_readiness(
             member_id=member_id,
             db=db,

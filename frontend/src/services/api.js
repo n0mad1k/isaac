@@ -507,6 +507,7 @@ export const getReadinessAnalysis = (memberId, lookbackDays = 30, updateMember =
   api.get(`/team/members/${memberId}/readiness-analysis/`, {
     params: { lookback_days: lookbackDays, update_member: updateMember }
   })
+export const calculateBodyFat = (memberId) => api.post(`/team/members/${memberId}/calculate-body-fat/`)
 
 // Medical Tracking
 export const getMedicalHistory = (memberId) => api.get(`/team/members/${memberId}/medical-history/`)

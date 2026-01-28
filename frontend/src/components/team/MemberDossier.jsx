@@ -12,7 +12,7 @@ import {
   getMemberAppointments, createMemberAppointment, updateMemberAppointment,
   deleteMemberAppointment, completeMemberAppointment,
   getVitalsHistory, getVitalsAverages, logVital, deleteVital, getVitalTypes,
-  getReadinessAnalysis
+  getReadinessAnalysis, calculateBodyFat
 } from '../../services/api'
 import MemberMentoringTab from './MemberMentoringTab'
 import MemberObservationsTab from './MemberObservationsTab'
@@ -1018,6 +1018,26 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
   const [analysisLoading, setAnalysisLoading] = useState(false)
   const [analysisError, setAnalysisError] = useState(null)
   const [showAnalysisDetails, setShowAnalysisDetails] = useState(false)
+  const [calculatingBodyFat, setCalculatingBodyFat] = useState(false)
+
+  // Handle calculate body fat
+  const handleCalculateBodyFat = async () => {
+    setCalculatingBodyFat(true)
+    try {
+      await calculateBodyFat(member.id)
+      // Refresh vitals to show new body fat
+      const [vRes, aRes] = await Promise.all([
+        getVitalsHistory(member.id),
+        getVitalsAverages(member.id)
+      ])
+      setVitalsHistory(vRes.data)
+      setVitalsAverages(aRes.data)
+    } catch (err) {
+      setError(err.response?.data?.detail || err.userMessage || 'Failed to calculate body fat')
+    } finally {
+      setCalculatingBodyFat(false)
+    }
+  }
 
   // Fetch readiness analysis
   const fetchReadinessAnalysis = async (updateMember = true) => {
@@ -1055,8 +1075,15 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     return vitalsHistory.find(v => v.vital_type === vitalType)
   }
 
-  // Calculate body fat using Navy/Marine Corps taping method
-  const calculateBodyFat = () => {
+  // Get body fat - first check for stored body_fat vital, then calculate from measurements
+  const getBodyFat = () => {
+    // First, check for a stored body_fat vital
+    const storedBodyFat = getLatestVital('body_fat')
+    if (storedBodyFat) {
+      return storedBodyFat.value
+    }
+
+    // Otherwise, calculate from taping measurements
     const height = member.height_inches
     const waistVital = getLatestVital('waist')
     const neckVital = getLatestVital('neck')
@@ -1084,7 +1111,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
   }
 
   // Get body fat info with category - using ACE fitness standards (gender-specific)
-  const bodyFat = calculateBodyFat()
+  const bodyFat = getBodyFat()
   const getBodyFatCategory = (bf) => {
     if (bf === null) return { label: 'N/A', color: 'text-gray-400' }
     const isFemale = member.gender === 'female'
@@ -1455,6 +1482,15 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
           <div className="text-gray-400 text-sm mb-1">Body Fat %</div>
           <div className="text-2xl font-bold">{bodyFat !== null ? `${bodyFat.toFixed(1)}%` : 'N/A'}</div>
           <div className={`text-xs ${bodyFatInfo.color}`}>{bodyFatInfo.label}</div>
+          {bodyFat === null && member.height_inches && (
+            <button
+              onClick={handleCalculateBodyFat}
+              disabled={calculatingBodyFat}
+              className="mt-2 text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
+            >
+              {calculatingBodyFat ? 'Calculating...' : 'Calculate from Measurements'}
+            </button>
+          )}
         </div>
         <div className="bg-gray-700 rounded-lg p-4">
           <div className="text-gray-400 text-sm mb-1">Lean Mass</div>

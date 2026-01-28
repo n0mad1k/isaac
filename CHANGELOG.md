@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.35.2] - 2026-01-28
+
+### Added
+- **Calculate Body Fat button** - In Health Data tab, click "Calculate from Measurements" to calculate and store body fat from existing taping measurements
+- Body fat display now checks for stored body fat vitals first, then falls back to on-the-fly calculation
+- New `/calculate-body-fat/` endpoint for manual body fat calculation
+- Readiness analysis now also stores calculated body fat when refreshed
+
 ## [1.35.1] - 2026-01-28
 
 ### Added
