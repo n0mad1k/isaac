@@ -1285,7 +1285,7 @@ class SchedulerService:
             # Build email subject and body
             subject = f"🔔 Reminder: {task.title} ({timing})"
 
-            due_str = task.due_date.strftime("%A, %B %d, %Y")
+            due_str = task.due_date.strftime("%m/%d/%Y")
             if task.due_time:
                 due_str += f" at {task.due_time}"
 

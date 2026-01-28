@@ -491,7 +491,7 @@ function FarmAreas() {
                               )}
                               {(task.next_due_date || task.manual_due_date) && (
                                 <span className={`ml-2 ${task.status === 'overdue' ? 'text-red-400' : task.status === 'due_soon' ? 'text-yellow-400' : ''}`}>
-                                  | Due: {format(new Date(task.next_due_date || task.manual_due_date), 'MMM d')}
+                                  | Due: {format(new Date(task.next_due_date || task.manual_due_date), 'MM/dd/yyyy')}
                                 </span>
                               )}
                             </div>
@@ -554,7 +554,7 @@ function FarmAreas() {
                               )}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
-                              {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'No due date'}
+                              {task.due_date ? format(new Date(task.due_date), 'MM/dd/yyyy') : 'No due date'}
                               {task.due_time && ` at ${formatTime(task.due_time)}`}
                             </div>
                           </div>

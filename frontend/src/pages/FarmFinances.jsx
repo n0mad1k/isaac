@@ -1168,7 +1168,7 @@ function BusinessTab({
                       {sale.sale_date && (
                         <span className="flex items-center gap-1 text-gray-400">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(sale.sale_date), 'MMM d, yyyy')}
+                          {format(new Date(sale.sale_date), 'MM/dd/yyyy')}
                         </span>
                       )}
                     </div>
@@ -1207,7 +1207,7 @@ function BusinessTab({
                       {record.slaughter_date && (
                         <span className="flex items-center gap-1 text-gray-400">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(record.slaughter_date), 'MMM d, yyyy')}
+                          {format(new Date(record.slaughter_date), 'MM/dd/yyyy')}
                         </span>
                       )}
                       {record.final_weight && <span className="text-gray-400">Final: <span className="text-green-400 font-medium">{record.final_weight} lbs</span></span>}
@@ -1274,7 +1274,7 @@ function BusinessTab({
                     <div><span className="text-gray-400">Portion:</span> <span className="capitalize">{order.portion_type}</span></div>
                     {order.estimated_weight && <div><span className="text-gray-400">Est:</span> {order.estimated_weight} lbs</div>}
                     {order.price_per_pound && <div><span className="text-gray-400">Price/lb:</span> {formatCurrency(order.price_per_pound)}</div>}
-                    {order.order_date && <div><span className="text-gray-400">Date:</span> {format(new Date(order.order_date), 'MMM d, yyyy')}</div>}
+                    {order.order_date && <div><span className="text-gray-400">Date:</span> {format(new Date(order.order_date), 'MM/dd/yyyy')}</div>}
                   </div>
 
                   {/* Payment Progress */}
@@ -1303,7 +1303,7 @@ function BusinessTab({
                             <span className={payment.payment_type === 'refund' ? 'text-red-400' : 'text-green-400'}>
                               {payment.payment_type === 'refund' ? '-' : '+'}{formatCurrency(payment.amount)}
                             </span>
-                            <span className="text-gray-500">{format(new Date(payment.payment_date), 'M/d/yy')}</span>
+                            <span className="text-gray-500">{format(new Date(payment.payment_date), 'MM/dd/yyyy')}</span>
                             <button onClick={() => handleDeletePayment(order.id, payment.id)} className="text-gray-500 hover:text-red-400"><X className="w-3 h-3" /></button>
                           </div>
                         </div>
@@ -1429,7 +1429,7 @@ function HomesteadTab({
                       {record.harvest_date && (
                         <span className="flex items-center gap-1 text-gray-400">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(record.harvest_date), 'MMM d, yyyy')}
+                          {format(new Date(record.harvest_date), 'MM/dd/yyyy')}
                         </span>
                       )}
                     </div>
@@ -1538,7 +1538,7 @@ function ExpenseList({ expenses, formatCurrency, onEdit, onDelete }) {
               {expense.expense_date && (
                 <span className="flex items-center gap-1 text-gray-400">
                   <Calendar className="w-3 h-3" />
-                  {format(new Date(expense.expense_date), 'MMM d, yyyy')}
+                  {format(new Date(expense.expense_date), 'MM/dd/yyyy')}
                 </span>
               )}
             </div>

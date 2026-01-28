@@ -220,7 +220,7 @@ function MemberTasksTab({ member, onUpdate }) {
   const formatDate = (dateStr) => {
     if (!dateStr) return 'No due date'
     const date = new Date(dateStr)
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
   }
 
   const TaskCard = ({ task, isBacklog = false }) => {

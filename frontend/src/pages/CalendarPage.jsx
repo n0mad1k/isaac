@@ -178,11 +178,11 @@ function CalendarPage() {
       const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 })
       const weekEnd = addDays(weekStart, 6)
       if (weekStart.getMonth() === weekEnd.getMonth()) {
-        return `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'd, yyyy')}`
+        return `${format(weekStart, 'MM/dd')} - ${format(weekEnd, 'MM/dd/yyyy')}`
       }
-      return `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`
+      return `${format(weekStart, 'MM/dd')} - ${format(weekEnd, 'MM/dd/yyyy')}`
     }
-    return format(currentDate, 'EEEE, MMMM d, yyyy')
+    return format(currentDate, 'MM/dd/yyyy')
   }
 
   return (
@@ -889,7 +889,7 @@ function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDelet
     <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-          {format(selectedDate, 'EEEE, MMMM d')}
+          {format(selectedDate, 'MM/dd/yyyy')}
         </h3>
         <button
           onClick={onAddEvent}

@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.43.1] - 2026-01-28
+
+### Fixed
+- **Date formatting standardized to MM/DD/YYYY** across entire application
+  - Fixed 25+ date-fns format() calls using inconsistent formats (MMM d, MMMM d, M/d/yy)
+  - Fixed local formatDate functions in Plants and Member Tasks to use MM/DD/YYYY
+  - Fixed default browser locale toLocaleDateString calls to specify explicit format
+  - Updated email subjects, digest headers, alert timestamps, and task reminders to use MM/DD/YYYY
+  - Updated CLAUDE.md with date formatting rules for future consistency
+
 ## [1.43.0] - 2026-01-28
 
 ### Added

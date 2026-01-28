@@ -406,7 +406,7 @@ function Vehicles() {
                             {task.frequency_days && ` | Every ${task.frequency_days} days`}
                             {task.next_due_date && (
                               <span className="ml-2 text-cyan-400">
-                                | Due: {format(new Date(task.next_due_date), 'MMM d, yyyy')}
+                                | Due: {format(new Date(task.next_due_date), 'MM/dd/yyyy')}
                               </span>
                             )}
                             {task.last_completed && (
@@ -479,7 +479,7 @@ function Vehicles() {
                               )}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
-                              {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'No due date'}
+                              {task.due_date ? format(new Date(task.due_date), 'MM/dd/yyyy') : 'No due date'}
                               {task.due_time && ` at ${formatTime(task.due_time)}`}
                             </div>
                           </div>

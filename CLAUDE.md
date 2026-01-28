@@ -33,6 +33,10 @@
 
 ## Session Log (Clear at midnight daily)
 
+**2026-01-28:**
+- #230: Standardized all date formats to MM/DD/YYYY across frontend and backend
+- #178: Added water overview to plants page
+
 **2026-01-27:**
 - #182: Added custom gear categories + removed "Pool" label for unassigned gear
 - #176: Added testing description requirement - descriptions now required when moving to testing
@@ -201,6 +205,29 @@ Or with the host alias `levi` if SSH config is loaded.
 - Timestamps in database are stored as **naive UTC** - convert to user timezone for display
 - When comparing dates (e.g., "today's tasks"), always use the configured timezone
 - CalDAV sync, scheduler jobs, and dashboard queries must all respect this setting
+
+## Date Formatting
+
+**ALL user-facing dates MUST be formatted as MM/DD/YYYY (e.g., 01/28/2026)**
+
+### Frontend Rules
+- **date-fns format()**: Use `'MM/dd/yyyy'` — NEVER `'MMM d, yyyy'`, `'MMMM d, yyyy'`, `'MMM d'`, or `'M/d/yy'`
+- **toLocaleDateString()**: Always pass `'en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }`
+- **NEVER** use default `toLocaleDateString()` without explicit format options
+- **Calendar month labels** (e.g., "January 2024") and **weekday abbreviations** (e.g., "Mon") are OK as-is — these are navigation labels, not date displays
+- **HTML input type="date"** uses yyyy-mm-dd internally — this is correct for form inputs
+- **Internal ISO dates** (yyyy-MM-dd) for API data exchange are fine — only change user-facing displays
+
+### Backend Rules
+- **Python strftime**: Use `"%m/%d/%Y"` for user-facing dates in emails, notifications, reminders
+- **API responses**: Keep `.isoformat()` (ISO 8601) — the frontend handles display formatting
+- **iCalendar/CalDAV**: Keep standard format (`%Y%m%dT%H%M%SZ`) — protocol requirement
+- **CSV exports**: Keep `%Y-%m-%d` — standard data format
+
+### Existing Central Format Function
+- `SettingsContext.jsx` has a `formatDate()` function that already returns MM/DD/YYYY
+- Use it via `const { formatDate } = useSettings()` when available in a component
+- Some components define their own local `formatDate` — these must also use the MM/DD/YYYY format
 
 ## Database Schema Changes
 

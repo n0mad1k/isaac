@@ -314,7 +314,7 @@ function Production() {
                     {record.sale_date && (
                       <span className="flex items-center gap-1 text-gray-400">
                         <Calendar className="w-4 h-4" />
-                        {format(new Date(record.sale_date), 'MMM d, yyyy')}
+                        {format(new Date(record.sale_date), 'MM/dd/yyyy')}
                       </span>
                     )}
                   </div>
@@ -362,7 +362,7 @@ function Production() {
                     {record.slaughter_date && (
                       <span className="flex items-center gap-1 text-gray-400">
                         <Calendar className="w-4 h-4" />
-                        {format(new Date(record.slaughter_date), 'MMM d, yyyy')}
+                        {format(new Date(record.slaughter_date), 'MM/dd/yyyy')}
                       </span>
                     )}
                     {record.processor && (
@@ -452,7 +452,7 @@ function Production() {
                     {record.harvest_date && (
                       <span className="flex items-center gap-1 text-gray-400">
                         <Calendar className="w-4 h-4" />
-                        {format(new Date(record.harvest_date), 'MMM d, yyyy')}
+                        {format(new Date(record.harvest_date), 'MM/dd/yyyy')}
                       </span>
                     )}
                   </div>

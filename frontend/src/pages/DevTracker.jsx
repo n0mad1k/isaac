@@ -1042,7 +1042,7 @@ function DevTracker() {
                                         <div key={i} className="text-[10px] text-red-400/60">
                                           <span className="text-red-400/40">#{entry.attempt || i + 1}</span>
                                           {' '}{entry.note}
-                                          {entry.date && <span className="text-gray-500 ml-1">({new Date(entry.date).toLocaleDateString()})</span>}
+                                          {entry.date && <span className="text-gray-500 ml-1">({new Date(entry.date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})</span>}
                                         </div>
                                       ))}
                                     </div>
@@ -1388,7 +1388,7 @@ function DevTracker() {
                         {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
                         <Calendar className="w-4 h-4 text-gray-400" />
                         <span className={`font-medium ${isTodayDate ? 'text-green-400' : 'text-gray-300'}`}>
-                          {dateObj ? (isTodayDate ? 'Today' : format(dateObj, 'EEE, MMM d')) : 'Unknown'}
+                          {dateObj ? (isTodayDate ? 'Today' : format(dateObj, 'MM/dd/yyyy')) : 'Unknown'}
                         </span>
                         <span className="text-xs text-gray-500">({dayItems.length} items)</span>
                       </div>

@@ -402,7 +402,7 @@ function HomeMaintenance() {
                           )}
                           {task.next_due && (
                             <span className="ml-2" style={{ color: `var(${STATUS_COLORS[task.status]})` }}>
-                              | Next: {format(new Date(task.next_due), 'MMM d')}
+                              | Next: {format(new Date(task.next_due), 'MM/dd/yyyy')}
                             </span>
                           )}
                         </div>

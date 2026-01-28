@@ -2747,7 +2747,7 @@ function FitnessTab({ member, settings, formatDate }) {
                           <div className="flex items-center gap-2">
                             <span>{typeLabel?.icon || ''}</span>
                             <span className="text-gray-300">{typeLabel?.label || w.type}</span>
-                            <span className="text-xs text-gray-500">{w.date ? new Date(w.date).toLocaleDateString() : ''}</span>
+                            <span className="text-xs text-gray-500">{w.date ? new Date(w.date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`px-1.5 py-0.5 rounded text-xs ${

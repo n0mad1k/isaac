@@ -1916,7 +1916,7 @@ function AnimalCard({
                       {slaughterDays <= 0 ? 'Ready!' : `${slaughterDays} days`}
                     </span>
                   </div>
-                  <p className="text-sm">{format(safeParseDate(animal.slaughter_date), 'MMMM d, yyyy')}</p>
+                  <p className="text-sm">{format(safeParseDate(animal.slaughter_date), 'MM/dd/yyyy')}</p>
                   {animal.target_weight && (
                     <p className="text-xs mt-1 opacity-75">Target: {animal.target_weight} lbs</p>
                   )}
@@ -2014,7 +2014,7 @@ function CareCard({ title, icon, lastDate, nextDate, isOverdue, frequencyDays, o
       </div>
       <div className="text-xs font-medium">{title}</div>
       <div className="flex items-center gap-1 text-xs text-gray-500">
-        <span>Last: {lastDate ? format(safeParseDate(lastDate), 'MMM d') : 'Never'}</span>
+        <span>Last: {lastDate ? format(safeParseDate(lastDate), 'MM/dd/yyyy') : 'Never'}</span>
         {onEditDate && (
           <button
             onClick={(e) => { e.stopPropagation(); onEditDate() }}
@@ -2028,7 +2028,7 @@ function CareCard({ title, icon, lastDate, nextDate, isOverdue, frequencyDays, o
       {nextDate && (
         <div className={`text-xs ${isOverdue ? 'text-red-300' : 'text-gray-400'}`}>
           {isOverdue ? 'Was due: ' : 'Due: '}
-          {format(safeParseDate(nextDate), 'MMM d')}
+          {format(safeParseDate(nextDate), 'MM/dd/yyyy')}
         </div>
       )}
       <button
@@ -2072,7 +2072,7 @@ function DynamicCareCard({ schedule, onComplete, onEdit, onDelete }) {
       </div>
       <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
         {schedule.last_performed ? (
-          <span>Last: {format(safeParseDate(schedule.last_performed), 'MMM d')}</span>
+          <span>Last: {format(safeParseDate(schedule.last_performed), 'MM/dd/yyyy')}</span>
         ) : (
           <span>Never done</span>
         )}
@@ -2080,7 +2080,7 @@ function DynamicCareCard({ schedule, onComplete, onEdit, onDelete }) {
       {schedule.due_date && (
         <div className="text-xs" style={{ color: isOverdue ? 'var(--color-error-600)' : 'var(--color-text-muted)' }}>
           {isOverdue ? 'Was due: ' : 'Due: '}
-          {format(safeParseDate(schedule.due_date), 'MMM d')}
+          {format(safeParseDate(schedule.due_date), 'MM/dd/yyyy')}
           {schedule.due_time && ` @ ${formatTime(schedule.due_time)}`}
           {daysUntil !== null && !isOverdue && ` (${daysUntil}d)`}
         </div>

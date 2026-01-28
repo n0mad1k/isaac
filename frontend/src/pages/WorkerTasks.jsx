@@ -665,7 +665,7 @@ function WorkerTasks() {
                       <div className="flex items-center gap-3">
                         {task.due_date && (
                           <span className="text-sm text-gray-400">
-                            {format(new Date(task.due_date), 'MMM d')}
+                            {format(new Date(task.due_date), 'MM/dd/yyyy')}
                             {task.due_time && ` ${formatTime(task.due_time)}`}
                           </span>
                         )}
@@ -896,7 +896,7 @@ function WorkerTasks() {
                     </div>
                   )}
                   <div className="mt-2 pl-8 text-xs text-gray-500">
-                    {t('supply.requested')} {format(new Date(request.created_at), 'MMM d, yyyy')}
+                    {t('supply.requested')} {format(new Date(request.created_at), 'MM/dd/yyyy')}
                   </div>
                   {/* Action buttons based on status */}
                   <div className="mt-3 flex flex-wrap gap-2 pl-8">

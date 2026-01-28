@@ -162,7 +162,7 @@ class EmailService:
         verse: dict = None,
     ) -> bool:
         """Send daily digest email with verse of the day, tasks and weather"""
-        subject = f"Daily Farm Digest - {datetime.now().strftime('%A, %B %d')}"
+        subject = f"Daily Farm Digest - {datetime.now().strftime('%m/%d/%Y')}"
 
         # Verse of the day section
         verse_section = ""
@@ -199,7 +199,7 @@ class EmailService:
         <body>
             <div class="header">
                 <h1>🌾 Isaac Daily Digest</h1>
-                <p>{datetime.now().strftime('%A, %B %d, %Y')}</p>
+                <p>{datetime.now().strftime('%m/%d/%Y')}</p>
             </div>
             {verse_section}
         """
@@ -298,7 +298,7 @@ class EmailService:
                 <p>{_escape_html(alert.get('recommended_actions', 'Monitor conditions.'))}</p>
 
                 <p style="color: #666; font-size: 12px; margin-top: 30px;">
-                    Alert generated at {datetime.now().strftime('%I:%M %p on %B %d, %Y')}
+                    Alert generated at {datetime.now().strftime('%I:%M %p on %m/%d/%Y')}
                 </p>
             </div>
         </body>
@@ -313,7 +313,7 @@ class EmailService:
 
         due_date = task.get("due_date", "Soon")
         if hasattr(due_date, "strftime"):
-            due_date = due_date.strftime("%B %d, %Y")
+            due_date = due_date.strftime("%m/%d/%Y")
 
         html = f"""
         <html>
