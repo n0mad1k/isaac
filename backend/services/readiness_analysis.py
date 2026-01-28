@@ -17,7 +17,7 @@ import math
 
 from models.team import (
     TeamMember, MemberVitalsLog, MemberWeightLog, MemberTraining, MemberTrainingLog,
-    VitalType, ReadinessStatus
+    VitalType, ReadinessStatus, Gender
 )
 
 
@@ -401,32 +401,35 @@ def _analyze_body_composition(
         neck = latest_neck.value
         hip = latest_hip.value if latest_hip else None
 
-        # Determine if female (check name patterns or add gender field later)
-        # For now, require hip measurement to use female formula
-        is_female = hip is not None
+        # Use member's gender for formula selection and standards
+        is_female = member.gender == Gender.FEMALE if member.gender else False
 
-        bf_pct = _calculate_body_fat_taping(height, waist, neck, hip, is_female)
-
-        if bf_pct is not None:
-            age = _get_age_from_birthdate(member.birth_date)
-            max_bf = _get_bf_standard(age, is_female)
-
-            if bf_pct > max_bf + 5:
-                score = 50
-                factors.append(f"Body fat {bf_pct:.1f}% exceeds standard ({max_bf}%) by >5%")
-            elif bf_pct > max_bf:
-                score = 70
-                factors.append(f"Body fat {bf_pct:.1f}% exceeds standard ({max_bf}%)")
-            elif bf_pct <= max_bf - 5:
-                score = 100
-                factors.append(f"Body fat {bf_pct:.1f}% well within standard ({max_bf}%)")
-            else:
-                score = 90
-                factors.append(f"Body fat {bf_pct:.1f}% within standard ({max_bf}%)")
-
-            confidence = 0.8
+        # Female formula requires hip measurement
+        if is_female and not hip:
+            factors.append("Female body fat calculation requires hip measurement")
         else:
-            factors.append("Taping calculation failed - check measurements")
+            bf_pct = _calculate_body_fat_taping(height, waist, neck, hip, is_female)
+
+            if bf_pct is not None:
+                age = _get_age_from_birthdate(member.birth_date)
+                max_bf = _get_bf_standard(age, is_female)
+
+                if bf_pct > max_bf + 5:
+                    score = 50
+                    factors.append(f"Body fat {bf_pct:.1f}% exceeds standard ({max_bf}%) by >5%")
+                elif bf_pct > max_bf:
+                    score = 70
+                    factors.append(f"Body fat {bf_pct:.1f}% exceeds standard ({max_bf}%)")
+                elif bf_pct <= max_bf - 5:
+                    score = 100
+                    factors.append(f"Body fat {bf_pct:.1f}% well within standard ({max_bf}%)")
+                else:
+                    score = 90
+                    factors.append(f"Body fat {bf_pct:.1f}% within standard ({max_bf}%)")
+
+                confidence = 0.8
+            else:
+                factors.append("Taping calculation failed - check measurements")
     else:
         missing = []
         if not height:

@@ -47,6 +47,11 @@ class ObservationScope(str, enum.Enum):
     OPERATIONS = "operations"
 
 
+class Gender(str, enum.Enum):
+    MALE = "male"
+    FEMALE = "female"
+
+
 # ============================================
 # Gear Tracking Enums
 # ============================================
@@ -148,6 +153,7 @@ class TeamMember(Base):
     phone = Column(String(50), nullable=True)
     join_date = Column(DateTime, nullable=True)
     birth_date = Column(DateTime, nullable=True)
+    gender = Column(SQLEnum(Gender), nullable=True)  # For gender-specific health standards
 
     # Physical (configurable units in settings)
     height_inches = Column(Float, nullable=True)

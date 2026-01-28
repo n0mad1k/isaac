@@ -2,6 +2,23 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.35.0] - 2026-01-28
+
+### Added
+- **Gender field for team members** - Track gender for each team member
+  - Gender displayed in profile Basic Information section
+  - Edit gender in the Identity tab of member form
+  - Health stats now use gender-specific body fat standards (ACE fitness)
+
+### Changed
+- **Date format standardization** - All dates now display in mm/dd/yyyy format
+  - Updated SettingsContext formatDate to default to mm/dd/yyyy
+  - Updated team components (MemberDossier, TeamGearTab, etc.)
+  - Updated Settings, DevTracker, and other pages
+- **Body fat calculation** - Now uses member gender instead of inferring from hip measurement
+  - Female body fat requires hip measurement
+  - Gender-specific ACE fitness standards applied
+
 ## [1.34.4] - 2026-01-28
 
 ### Added

@@ -9,6 +9,7 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
     name: member?.name || '',
     nickname: member?.nickname || '',
     callsign: member?.callsign || '',
+    gender: member?.gender || '',
     role: member?.role || 'MEMBER',
     role_title: member?.role_title || '',
 
@@ -149,6 +150,10 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
   ]
 
   const roles = ['LEADER', 'MEMBER', 'SUPPORT', 'TRAINEE']
+  const genders = [
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' }
+  ]
   const readinessStatuses = ['GREEN', 'AMBER', 'RED']
   const visionStatuses = ['CORRECTED', 'UNCORRECTED', 'N/A']
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
@@ -246,6 +251,19 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                     onChange={e => handleChange('callsign', e.target.value)}
                     className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Gender</label>
+                  <select
+                    value={formData.gender}
+                    onChange={e => handleChange('gender', e.target.value)}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  >
+                    <option value="">Select...</option>
+                    {genders.map(g => (
+                      <option key={g.value} value={g.value}>{g.label}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Role</label>

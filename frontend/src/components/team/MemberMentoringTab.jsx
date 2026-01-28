@@ -17,7 +17,11 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A'
-    return new Date(dateStr).toLocaleDateString()
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    })
   }
 
   // Session form component

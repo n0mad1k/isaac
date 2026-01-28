@@ -604,7 +604,7 @@ function DevTracker() {
                         <p className="text-sm mt-2" style={{ color: 'var(--color-text-secondary)' }}>{fb.description}</p>
                       )}
                       <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
-                        {fb.submitted_by || 'Anonymous'} · {new Date(fb.created_at).toLocaleDateString()}
+                        {fb.submitted_by || 'Anonymous'} · {new Date(fb.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                       </p>
                     </div>
                   </div>

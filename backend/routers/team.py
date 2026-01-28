@@ -22,7 +22,7 @@ from models.settings import AppSetting
 from models.team import (
     TeamMember, MemberWeightLog, MemberVitalsLog, MemberMedicalLog, MentoringSession,
     ValuesAssessmentHistory, WeeklyObservation, WeeklyAAR,
-    MemberRole, ReadinessStatus, VisionStatus, GoalsMet,
+    MemberRole, ReadinessStatus, VisionStatus, GoalsMet, Gender,
     ObservationType, ObservationScope,
     # Gear tracking
     MemberGear, MemberGearMaintenance, MemberGearContents, MemberGearMaintenanceLog,
@@ -58,6 +58,7 @@ class TeamMemberCreate(BaseModel):
     phone: Optional[str] = None
     join_date: Optional[datetime] = None
     birth_date: Optional[datetime] = None
+    gender: Optional[Gender] = None
     height_inches: Optional[float] = None
     current_weight: Optional[float] = None
     target_weight: Optional[float] = None
@@ -106,6 +107,7 @@ class TeamMemberUpdate(BaseModel):
     phone: Optional[str] = None
     join_date: Optional[datetime] = None
     birth_date: Optional[datetime] = None
+    gender: Optional[Gender] = None
     height_inches: Optional[float] = None
     current_weight: Optional[float] = None
     target_weight: Optional[float] = None
@@ -433,6 +435,7 @@ def serialize_member(member: TeamMember) -> dict:
         "phone": member.phone,
         "join_date": member.join_date.isoformat() if member.join_date else None,
         "birth_date": member.birth_date.isoformat() if member.birth_date else None,
+        "gender": member.gender.value if member.gender else None,
         "height_inches": member.height_inches,
         "current_weight": member.current_weight,
         "target_weight": member.target_weight,

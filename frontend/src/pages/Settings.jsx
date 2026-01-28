@@ -3047,11 +3047,11 @@ function Settings() {
                               </div>
                             )}
                             <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
-                              Submitted {new Date(fb.created_at).toLocaleDateString()}
+                              Submitted {new Date(fb.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                               {fb.submitted_by && ` by ${fb.submitted_by}`}
                               {fb.completed_at && (
                                 <span className="ml-2 text-green-500">
-                                  • Completed {new Date(fb.completed_at).toLocaleDateString()}
+                                  • Completed {new Date(fb.completed_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                                 </span>
                               )}
                             </p>
@@ -3177,7 +3177,7 @@ function Settings() {
                 </div>
                 {versionInfo.git?.commit_date && (
                   <div className="text-xs text-gray-500 mt-1">
-                    Last updated: {new Date(versionInfo.git.commit_date).toLocaleDateString()}
+                    Last updated: {new Date(versionInfo.git.commit_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   </div>
                 )}
               </div>

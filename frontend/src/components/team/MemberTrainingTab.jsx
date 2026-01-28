@@ -86,7 +86,11 @@ function MemberTrainingTab({ member, onUpdate }) {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'Never'
-    return new Date(dateStr).toLocaleDateString()
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    })
   }
 
   const getDaysSince = (dateStr) => {

@@ -100,10 +100,14 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
     )
   }
 
-  // Format date
+  // Format date (mm/dd/yyyy)
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A'
-    return new Date(dateStr).toLocaleDateString()
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    })
   }
 
   // Calculate age
@@ -299,6 +303,12 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                         <td className="text-gray-400 py-1 pr-4">Role</td>
                         <td className="py-1">{member.role_title || member.role}</td>
                       </tr>
+                      {member.gender && (
+                        <tr>
+                          <td className="text-gray-400 py-1 pr-4">Gender</td>
+                          <td className="py-1 capitalize">{member.gender}</td>
+                        </tr>
+                      )}
                       {member.birth_date && (
                         <tr>
                           <td className="text-gray-400 py-1 pr-4">Age</td>
@@ -698,7 +708,11 @@ function MedicalAppointmentsSection({ member, appointments, onUpdate }) {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A'
-    return new Date(dateStr).toLocaleDateString()
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    })
   }
 
   const getDueDateClass = (dateStr) => {
@@ -1047,6 +1061,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     const waistVital = getLatestVital('waist')
     const neckVital = getLatestVital('neck')
     const hipVital = getLatestVital('hip')
+    const isFemale = member.gender === 'female'
 
     if (!height || !waistVital || !neckVital) return null
 
@@ -1054,8 +1069,9 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     const neck = neckVital.value
     const hip = hipVital?.value
 
-    // If hip measurement exists, use female formula
-    if (hip) {
+    // Female formula requires hip measurement
+    if (isFemale) {
+      if (!hip) return null  // Cannot calculate without hip for females
       const circumference = waist + hip - neck
       if (circumference <= 0) return null
       return 163.205 * Math.log10(circumference) - 97.684 * Math.log10(height) - 78.387
@@ -1067,18 +1083,31 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     }
   }
 
-  // Get body fat info with category - using realistic health standards
+  // Get body fat info with category - using ACE fitness standards (gender-specific)
   const bodyFat = calculateBodyFat()
   const getBodyFatCategory = (bf) => {
     if (bf === null) return { label: 'N/A', color: 'text-gray-400' }
-    // Men's body fat categories (ACE fitness standards)
-    // Essential: 2-5%, Athletes: 6-13%, Fitness: 14-17%, Acceptable: 18-24%, Obesity: 25%+
-    if (bf < 6) return { label: 'Essential', color: 'text-blue-400' }
-    if (bf < 14) return { label: 'Athletic', color: 'text-green-400' }
-    if (bf < 18) return { label: 'Fitness', color: 'text-green-400' }
-    if (bf < 25) return { label: 'Normal', color: 'text-green-400' }  // 18-24% is healthy/normal
-    if (bf < 32) return { label: 'Above Normal', color: 'text-yellow-400' }
-    return { label: 'High', color: 'text-orange-400' }
+    const isFemale = member.gender === 'female'
+
+    if (isFemale) {
+      // Women's body fat categories (ACE fitness standards)
+      // Essential: 10-13%, Athletes: 14-20%, Fitness: 21-24%, Normal: 25-31%, Obesity: 32%+
+      if (bf < 14) return { label: 'Essential', color: 'text-blue-400' }
+      if (bf < 21) return { label: 'Athletic', color: 'text-green-400' }
+      if (bf < 25) return { label: 'Fitness', color: 'text-green-400' }
+      if (bf < 32) return { label: 'Normal', color: 'text-green-400' }
+      if (bf < 40) return { label: 'Above Normal', color: 'text-yellow-400' }
+      return { label: 'High', color: 'text-orange-400' }
+    } else {
+      // Men's body fat categories (ACE fitness standards)
+      // Essential: 2-5%, Athletes: 6-13%, Fitness: 14-17%, Normal: 18-24%, Obesity: 25%+
+      if (bf < 6) return { label: 'Essential', color: 'text-blue-400' }
+      if (bf < 14) return { label: 'Athletic', color: 'text-green-400' }
+      if (bf < 18) return { label: 'Fitness', color: 'text-green-400' }
+      if (bf < 25) return { label: 'Normal', color: 'text-green-400' }
+      if (bf < 32) return { label: 'Above Normal', color: 'text-yellow-400' }
+      return { label: 'High', color: 'text-orange-400' }
+    }
   }
   const bodyFatInfo = getBodyFatCategory(bodyFat)
 

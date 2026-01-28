@@ -408,7 +408,7 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
                 </div>
 
                 <div className="text-xs text-gray-500 mt-2">
-                  Requested {new Date(request.created_at).toLocaleDateString()}
+                  Requested {new Date(request.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   {request.vendor && ` | From: ${request.vendor}`}
                 </div>
               </div>

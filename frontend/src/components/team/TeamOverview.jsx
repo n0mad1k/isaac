@@ -149,7 +149,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                       <td className="p-3">{apt.member_name}</td>
                       <td className="p-3">{apt.type}</td>
                       <td className="p-3 text-gray-400">
-                        {new Date(apt.due_date).toLocaleDateString()}
+                        {new Date(apt.due_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                       </td>
                       <td className="p-3">
                         <span className={`px-2 py-1 rounded text-xs ${
@@ -297,7 +297,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                     <td className="p-3">{apt.member_name}</td>
                     <td className="p-3">{apt.type}</td>
                     <td className="p-3 text-gray-400">
-                      {new Date(apt.due_date).toLocaleDateString()}
+                      {new Date(apt.due_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                     </td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded text-xs ${

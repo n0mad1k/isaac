@@ -129,15 +129,19 @@ export function SettingsProvider({ children }) {
     }
   }
 
-  // Format a Date object in the configured timezone
+  // Format a Date object in the configured timezone (default: mm/dd/yyyy)
   const formatDate = (date, options = {}) => {
     if (!date) return ''
     const tz = getTimezone()
     const dateObj = date instanceof Date ? date : new Date(date)
     if (isNaN(dateObj.getTime())) return ''
 
+    // Default to mm/dd/yyyy format
     const defaultOptions = {
       timeZone: tz,
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
       ...options
     }
 
@@ -145,7 +149,7 @@ export function SettingsProvider({ children }) {
       return new Intl.DateTimeFormat('en-US', defaultOptions).format(dateObj)
     } catch (e) {
       // Fallback if timezone is invalid
-      return new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'America/New_York' }).format(dateObj)
+      return new Intl.DateTimeFormat('en-US', { ...defaultOptions, timeZone: 'America/New_York' }).format(dateObj)
     }
   }
 
