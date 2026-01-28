@@ -1067,16 +1067,18 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     }
   }
 
-  // Get body fat info with category
+  // Get body fat info with category - using realistic health standards
   const bodyFat = calculateBodyFat()
   const getBodyFatCategory = (bf) => {
     if (bf === null) return { label: 'N/A', color: 'text-gray-400' }
-    // Using general fitness categories
-    if (bf < 10) return { label: 'Essential', color: 'text-blue-400' }
+    // Men's body fat categories (ACE fitness standards)
+    // Essential: 2-5%, Athletes: 6-13%, Fitness: 14-17%, Acceptable: 18-24%, Obesity: 25%+
+    if (bf < 6) return { label: 'Essential', color: 'text-blue-400' }
     if (bf < 14) return { label: 'Athletic', color: 'text-green-400' }
     if (bf < 18) return { label: 'Fitness', color: 'text-green-400' }
-    if (bf < 25) return { label: 'Average', color: 'text-yellow-400' }
-    return { label: 'Above Avg', color: 'text-orange-400' }
+    if (bf < 25) return { label: 'Normal', color: 'text-green-400' }  // 18-24% is healthy/normal
+    if (bf < 32) return { label: 'Above Normal', color: 'text-yellow-400' }
+    return { label: 'High', color: 'text-orange-400' }
   }
   const bodyFatInfo = getBodyFatCategory(bodyFat)
 
@@ -1201,14 +1203,22 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       <div className="bg-gray-700 rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-lg">Overall Readiness Assessment</h3>
-          <button
-            onClick={() => fetchReadinessAnalysis(true)}
-            disabled={analysisLoading}
-            className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${analysisLoading ? 'animate-spin' : ''}`} />
-            {analysisLoading ? 'Analyzing...' : 'Refresh'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowAddVital(true)}
+              className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" /> Add Recording
+            </button>
+            <button
+              onClick={() => fetchReadinessAnalysis(true)}
+              disabled={analysisLoading}
+              className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${analysisLoading ? 'animate-spin' : ''}`} />
+              {analysisLoading ? 'Analyzing...' : 'Refresh'}
+            </button>
+          </div>
         </div>
 
         {analysisError && (
@@ -1442,73 +1452,42 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
         </div>
       </div>
 
-      {/* Baseline Summary - shows averages and flags abnormalities */}
-      {Object.keys(vitalsAverages).length > 0 && (
-        <div className="bg-gray-700 rounded-lg p-4">
-          <h3 className="font-semibold mb-3">Baseline Averages</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {Object.entries(vitalsAverages).map(([vitalType, data]) => {
-              const latest = getLatestVital(vitalType)
-              const typeInfo = vitalTypes.find(t => t.value === vitalType)
-              if (!data || data.count < 1) return null
 
-              // Calculate deviation from baseline
-              let deviation = null
-              let isAbnormal = false
-              if (latest && data.count > 1) {
-                deviation = latest.value - data.average
-                // Flag as abnormal if deviation is significant (>10% or specific thresholds)
-                const threshold = vitalType === 'heart_rate' || vitalType === 'resting_heart_rate' ? 10
-                  : vitalType === 'blood_pressure' ? 15
-                  : vitalType === 'hrv' ? data.average * 0.2
-                  : vitalType === 'blood_oxygen' ? 3
-                  : vitalType === 'temperature' ? 1
-                  : data.average * 0.15
-                isAbnormal = Math.abs(deviation) > threshold
-              }
-
-              return (
-                <div key={vitalType} className={`bg-gray-800 rounded p-2 ${isAbnormal ? 'ring-2 ring-yellow-500/50' : ''}`}>
-                  <div className="text-xs text-gray-400">{typeInfo?.label || vitalType.replace(/_/g, ' ')}</div>
-                  <div className="font-semibold text-white">
-                    {vitalType === 'blood_pressure' && data.average_secondary
-                      ? `${data.average}/${data.average_secondary}`
-                      : data.average} <span className="text-xs font-normal text-gray-400">{data.unit}</span>
-                  </div>
-                  {latest && data.count > 1 && (
-                    <div className={`text-xs mt-1 ${isAbnormal ? 'text-yellow-400 font-medium' : 'text-gray-500'}`}>
-                      Current: {Math.round(latest.value)}
-                      {deviation !== null && (
-                        <span className={deviation > 0 ? 'text-red-400' : 'text-green-400'}>
-                          {' '}({deviation > 0 ? '+' : ''}{Math.round(deviation)})
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <div className="text-xs text-gray-500">n={data.count}</div>
-                </div>
-              )
-            })}
-          </div>
-          <p className="text-xs text-gray-500 mt-2">Yellow highlight indicates current reading deviates significantly from baseline</p>
-        </div>
-      )}
-
-      {/* Latest Vitals Quick View */}
+      {/* Latest Vitals - includes weight and all measurements */}
       <div className="bg-gray-700 rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">Latest Vitals</h3>
-          <button
-            onClick={() => setShowAddVital(true)}
-            className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1"
-          >
-            <Plus className="w-4 h-4" /> Add Reading
-          </button>
+          <span className="text-xs text-gray-500">Click any card to see history</span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Weight card first */}
+          <div
+            className="bg-gray-800 rounded p-3 cursor-pointer hover:bg-gray-750"
+            onClick={() => setSelectedType(selectedType === 'weight' ? null : 'weight')}
+          >
+            <div className="text-xs text-gray-400 mb-1">Weight</div>
+            <div className="font-medium">
+              {member.current_weight ? formatWeight(member.current_weight) : 'No data'}
+            </div>
+            {weightHistory.length > 1 && (
+              <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                {weightHistory.slice(1, 4).map((w, i) => (
+                  <div key={w.id} className="flex justify-between">
+                    <span>{formatDate(w.recorded_at)}</span>
+                    <span>{formatWeight(w.weight)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {weightHistory.length > 0 && (
+              <div className="text-xs text-gray-500 mt-1">{formatDate(weightHistory[0]?.recorded_at)}</div>
+            )}
+          </div>
+          {/* Other vital types */}
           {vitalTypes.map(type => {
-            const latest = getLatestVital(type.value)
-            const avg = vitalsAverages?.[type.value]
+            const allReadings = getVitalsByType(type.value)
+            const latest = allReadings[0]
+            const recentReadings = allReadings.slice(1, 4) // Next 3 readings after latest
             return (
               <div
                 key={type.value}
@@ -1519,17 +1498,20 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 <div className="font-medium">
                   {latest ? formatVitalValue(latest) : 'No data'}
                 </div>
-                {avg?.count >= 1 && (
-                  <div className="text-xs text-cyan-400 mt-1 p-1 bg-cyan-900/30 rounded">
-                    <span className="font-medium">{avg.count > 1 ? 'Baseline:' : 'Current:'}</span>{' '}
-                    {type.value === 'blood_pressure' && avg.average_secondary
-                      ? `${avg.average}/${avg.average_secondary}`
-                      : avg.average} {avg.unit}
-                    {avg.count > 1 && <span className="text-gray-400"> (n={avg.count})</span>}
+                {recentReadings.length > 0 && (
+                  <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                    {recentReadings.map(v => (
+                      <div key={v.id} className="flex justify-between">
+                        <span>{formatDate(v.recorded_at)}</span>
+                        <span>{type.value === 'blood_pressure' && v.value_secondary
+                          ? `${Math.round(v.value)}/${Math.round(v.value_secondary)}`
+                          : v.value} {type.unit}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
                 {latest && (
-                  <div className="text-xs text-gray-500">{formatDate(latest.recorded_at)}</div>
+                  <div className="text-xs text-gray-500 mt-1">{formatDate(latest.recorded_at)}</div>
                 )}
               </div>
             )
@@ -1537,12 +1519,12 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
         </div>
       </div>
 
-      {/* Selected Vital History */}
+      {/* Selected Vital/Weight History */}
       {selectedType && (
         <div className="bg-gray-700 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold">
-              {vitalTypes.find(t => t.value === selectedType)?.label || selectedType} History
+              {selectedType === 'weight' ? 'Weight' : vitalTypes.find(t => t.value === selectedType)?.label || selectedType} History
             </h3>
             <button
               onClick={() => setSelectedType(null)}
@@ -1552,89 +1534,136 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
             </button>
           </div>
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {getVitalsByType(selectedType).length > 0 ? (
-              getVitalsByType(selectedType).map(vital => (
-                <div key={vital.id} className="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
-                  <div className="flex items-center gap-4">
-                    <span className="text-gray-400 text-sm w-24">{formatDate(vital.recorded_at)}</span>
-                    <span className="font-medium">{formatVitalValue(vital)}</span>
-                    {vital.notes && <span className="text-gray-400 text-sm">{vital.notes}</span>}
+            {selectedType === 'weight' ? (
+              // Weight history
+              weightHistory.length > 0 ? (
+                weightHistory.map(entry => (
+                  <div key={entry.id} className="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
+                    <div className="flex items-center gap-4">
+                      <span className="text-gray-400 text-sm w-24">{formatDate(entry.recorded_at)}</span>
+                      <span className="font-medium">{formatWeight(entry.weight)}</span>
+                      {entry.notes && <span className="text-gray-400 text-sm">{entry.notes}</span>}
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleDeleteVital(vital.id)}
-                    className="p-1 text-gray-400 hover:text-red-400"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))
+                ))
+              ) : (
+                <p className="text-gray-400 text-sm">No weight readings recorded</p>
+              )
             ) : (
-              <p className="text-gray-400 text-sm">No readings recorded</p>
+              // Vital history
+              getVitalsByType(selectedType).length > 0 ? (
+                getVitalsByType(selectedType).map(vital => (
+                  <div key={vital.id} className="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
+                    <div className="flex items-center gap-4">
+                      <span className="text-gray-400 text-sm w-24">{formatDate(vital.recorded_at)}</span>
+                      <span className="font-medium">{formatVitalValue(vital)}</span>
+                      {vital.notes && <span className="text-gray-400 text-sm">{vital.notes}</span>}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteVital(vital.id)}
+                      className="p-1 text-gray-400 hover:text-red-400"
+                      title="Delete reading"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-400 text-sm">No readings recorded</p>
+              )
             )}
           </div>
         </div>
       )}
 
-      {/* Weight History */}
-      <div className="bg-gray-700 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold">Weight History</h3>
-          <button
-            onClick={() => setShowAddWeight(true)}
-            className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1"
-          >
-            <Plus className="w-4 h-4" /> Log Weight
-          </button>
-        </div>
-        {weightHistory.length > 0 ? (
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {weightHistory.map(entry => (
-              <div key={entry.id} className="text-sm flex items-center gap-4 py-2 border-b border-gray-600 last:border-0">
-                <span className="text-gray-400 w-24">{formatDate(entry.recorded_at)}</span>
-                <span className="font-medium">{formatWeight(entry.weight)}</span>
-                {entry.notes && <span className="text-gray-400 flex-1">{entry.notes}</span>}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center text-gray-400 py-4">
-            <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p>No weight history recorded</p>
-          </div>
-        )}
-      </div>
-
-      {/* Add Vital Modal */}
+      {/* Add Recording Modal - unified for all vitals including weight */}
       {showAddVital && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-lg w-full max-w-md">
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              <h3 className="font-semibold">Add Vital Reading</h3>
-              <button onClick={() => setShowAddVital(false)} className="text-gray-400 hover:text-white">
+              <h3 className="font-semibold">Add Recording</h3>
+              <button onClick={() => { setShowAddVital(false); setVitalForm({ vital_type: '', value: '', value_secondary: '', notes: '' }) }} className="text-gray-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleAddVital} className="p-4 space-y-4">
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              if (vitalForm.vital_type === 'weight') {
+                // Handle weight submission directly
+                if (!weightForm.weight) return
+                setSubmitting(true)
+                setError(null)
+                try {
+                  await logWeight(member.id, {
+                    weight: parseFloat(weightForm.weight),
+                    notes: weightForm.notes || null
+                  })
+                  setWeightForm({ weight: '', notes: '' })
+                  setVitalForm({ vital_type: '', value: '', value_secondary: '', notes: '' })
+                  setShowAddVital(false)
+                  onUpdate()
+                } catch (err) {
+                  setError(err.userMessage || 'Failed to add weight')
+                } finally {
+                  setSubmitting(false)
+                }
+              } else {
+                handleAddVital(e)
+              }
+            }} className="p-4 space-y-4">
               {error && (
                 <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
                   {error}
                 </div>
               )}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Vital Type *</label>
+                <label className="block text-sm text-gray-400 mb-1">Recording Type *</label>
                 <select
                   value={vitalForm.vital_type}
-                  onChange={(e) => setVitalForm({ ...vitalForm, vital_type: e.target.value, value: '', value_secondary: '' })}
+                  onChange={(e) => {
+                    const newType = e.target.value
+                    setVitalForm({ ...vitalForm, vital_type: newType, value: '', value_secondary: '' })
+                    if (newType === 'weight') {
+                      setWeightForm({ weight: '', notes: '' })
+                    }
+                  }}
                   className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
                   required
                 >
                   <option value="">Select type...</option>
+                  <option value="weight">Weight</option>
                   {vitalTypes.map(type => (
                     <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </select>
               </div>
-              {vitalForm.vital_type && (
+              {vitalForm.vital_type === 'weight' ? (
+                <>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">
+                      Weight ({settings?.team_units === 'metric' ? 'kg' : 'lbs'}) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={weightForm.weight}
+                      onChange={(e) => setWeightForm({ ...weightForm, weight: e.target.value })}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                    <input
+                      type="text"
+                      value={weightForm.notes}
+                      onChange={(e) => setWeightForm({ ...weightForm, notes: e.target.value })}
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                      placeholder="Optional notes..."
+                    />
+                  </div>
+                </>
+              ) : vitalForm.vital_type && (
                 <>
                   <div className={selectedVitalType?.has_secondary ? 'grid grid-cols-2 gap-4' : ''}>
                     <div>
@@ -1679,71 +1708,15 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 </>
               )}
               <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => setShowAddVital(false)} className="px-4 py-2 text-gray-400 hover:text-white">
+                <button type="button" onClick={() => { setShowAddVital(false); setVitalForm({ vital_type: '', value: '', value_secondary: '', notes: '' }) }} className="px-4 py-2 text-gray-400 hover:text-white">
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || !vitalForm.vital_type || !vitalForm.value}
+                  disabled={submitting || !vitalForm.vital_type || (vitalForm.vital_type === 'weight' ? !weightForm.weight : !vitalForm.value)}
                   className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
                 >
-                  {submitting ? 'Saving...' : 'Save Reading'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Weight Modal */}
-      {showAddWeight && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              <h3 className="font-semibold">Log Weight</h3>
-              <button onClick={() => setShowAddWeight(false)} className="text-gray-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleAddWeight} className="p-4 space-y-4">
-              {error && (
-                <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
-                  {error}
-                </div>
-              )}
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">
-                  Weight ({settings?.team_units === 'metric' ? 'kg' : 'lbs'}) *
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={weightForm.weight}
-                  onChange={(e) => setWeightForm({ ...weightForm, weight: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
-                <input
-                  type="text"
-                  value={weightForm.notes}
-                  onChange={(e) => setWeightForm({ ...weightForm, notes: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
-                  placeholder="Optional notes..."
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => setShowAddWeight(false)} className="px-4 py-2 text-gray-400 hover:text-white">
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !weightForm.weight}
-                  className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50"
-                >
-                  {submitting ? 'Saving...' : 'Save Weight'}
+                  {submitting ? 'Saving...' : 'Save Recording'}
                 </button>
               </div>
             </form>

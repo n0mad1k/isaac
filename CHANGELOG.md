@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.34.0] - 2026-01-28
+
+### Changed
+- **Consolidated Health Data UI** - Streamlined health data tab layout:
+  - Single "Add Recording" button in header (near refresh) for all vitals including weight
+  - Weight now included in Latest Vitals grid as first card
+  - Each vital card shows last 3 readings in small text (instead of baseline box)
+  - Removed separate Baseline Averages section (info visible in other areas)
+  - Removed separate Weight History section (weight now in Latest Vitals)
+  - Click any vital card to see full history with delete option
+- **Body fat categories updated** - 18-25% now shows as "Normal" (green) instead of "Average" (yellow)
+  - Uses ACE fitness standards: Essential (<6%), Athletic (6-14%), Fitness (14-18%), Normal (18-25%), Above Normal (25-32%), High (32%+)
+
 ## [1.33.3] - 2026-01-28
 
 ### Fixed
