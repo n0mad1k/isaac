@@ -290,6 +290,15 @@ function Team() {
               >
                 <ReadinessIndicator status={member.overall_readiness} />
                 {member.nickname || member.name.split(' ')[0]}
+                {member.fitness_tier && (
+                  <span className={`px-1 py-0.5 rounded text-[9px] font-bold leading-none ${
+                    member.fitness_tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
+                    member.fitness_tier === 'MARINE' ? 'bg-green-500 text-green-900' :
+                    'bg-blue-500 text-blue-900'
+                  }`}>
+                    {member.fitness_tier}
+                  </span>
+                )}
               </button>
             ))}
 
