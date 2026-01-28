@@ -1144,9 +1144,12 @@ async def get_caldav_status(db: AsyncSession = Depends(get_db)):
             "configured": False,
             "connected": False,
         }
+    # CalendarSyncService is configured if it was returned (get_calendar_service checks config)
+    # Test connection by seeing if we can connect
+    connected = caldav_service.connect()
     return {
-        "configured": caldav_service.is_configured(),
-        "connected": caldav_service._initialized,
+        "configured": True,
+        "connected": connected,
     }
 
 
@@ -1154,10 +1157,10 @@ async def get_caldav_status(db: AsyncSession = Depends(get_db)):
 async def sync_tasks_to_caldav(db: AsyncSession = Depends(get_db)):
     """Sync all active tasks to CalDAV calendar"""
     caldav_service = await get_calendar_service(db)
-    if not caldav_service or not caldav_service.is_configured():
+    if not caldav_service:
         raise HTTPException(
             status_code=400,
-            detail="CalDAV not configured. Set CALDAV_URL, CALDAV_USERNAME, and CALDAV_PASSWORD in .env"
+            detail="CalDAV not configured. Enable calendar sync in Settings."
         )
 
     # Get all active, incomplete tasks
@@ -1176,7 +1179,7 @@ async def sync_tasks_to_caldav(db: AsyncSession = Depends(get_db)):
 async def sync_single_task(task_id: int, db: AsyncSession = Depends(get_db)):
     """Sync a single task to CalDAV"""
     caldav_service = await get_calendar_service(db)
-    if not caldav_service or not caldav_service.is_configured():
+    if not caldav_service:
         raise HTTPException(status_code=400, detail="CalDAV not configured")
 
     result = await db.execute(select(Task).where(Task.id == task_id))
