@@ -113,16 +113,49 @@ FEMALE_RUN_PACE_STANDARDS = {
 
 
 # ============================================
+# Ruck Pace Standards (seconds per mile)
+# Calibrated for ~35lb standard load
+# ============================================
+
+# Male ruck pace standards by age bracket index
+# Format: [SF Excellent, SF Passing, Marine Excellent, Marine Passing, Civilian Excellent, Civilian Average]
+MALE_RUCK_PACE_STANDARDS = {
+    0: [600, 720, 780, 900, 960, 1080],   # 17-20: 10:00, 12:00, 13:00, 15:00, 16:00, 18:00
+    1: [600, 720, 780, 900, 960, 1080],   # 21-25
+    2: [630, 750, 810, 930, 990, 1110],   # 26-30: 10:30, 12:30, 13:30, 15:30, 16:30, 18:30
+    3: [630, 750, 810, 930, 990, 1110],   # 31-35
+    4: [660, 780, 840, 960, 1020, 1140],  # 36-40: 11:00, 13:00, 14:00, 16:00, 17:00, 19:00
+    5: [660, 780, 840, 960, 1020, 1140],  # 41-45
+    6: [720, 840, 900, 1020, 1080, 1200], # 46-50: 12:00, 14:00, 15:00, 17:00, 18:00, 20:00
+    7: [720, 840, 900, 1020, 1080, 1200], # 51-55
+    8: [780, 900, 960, 1080, 1140, 1260], # 56+:   13:00, 15:00, 16:00, 18:00, 19:00, 21:00
+}
+
+# Female ruck pace standards: ~60 seconds slower per tier
+FEMALE_RUCK_PACE_STANDARDS = {
+    0: [660, 780, 840, 960, 1020, 1140],   # 17-20
+    1: [660, 780, 840, 960, 1020, 1140],   # 21-25
+    2: [690, 810, 870, 990, 1050, 1170],   # 26-30
+    3: [690, 810, 870, 990, 1050, 1170],   # 31-35
+    4: [720, 840, 900, 1020, 1080, 1200],  # 36-40
+    5: [720, 840, 900, 1020, 1080, 1200],  # 41-45
+    6: [780, 900, 960, 1080, 1140, 1260],  # 46-50
+    7: [780, 900, 960, 1080, 1140, 1260],  # 51-55
+    8: [840, 960, 1020, 1140, 1200, 1320], # 56+
+}
+
+
+# ============================================
 # Ruck Weight Standards (% of body weight)
 # ============================================
 
 RUCK_WEIGHT_ADJUSTMENTS = [
-    (0.30, 10),    # 30%+ BW = +10 bonus
-    (0.25, 5),     # 25-30% BW = +5
+    (0.30, 5),     # 30%+ BW = +5 bonus
+    (0.25, 3),     # 25-30% BW = +3
     (0.20, 0),     # 20-25% BW = standard (0)
-    (0.15, -5),    # 15-20% BW = -5
-    (0.10, -10),   # 10-15% BW = -10
-    (0.0, -15),    # <10% BW = -15
+    (0.15, -3),    # 15-20% BW = -3
+    (0.10, -5),    # 10-15% BW = -5
+    (0.0, -8),     # <10% BW = -8
 ]
 
 
@@ -292,29 +325,64 @@ def calculate_ruck_score(
     distance_miles: Optional[float] = None
 ) -> FitnessScore:
     """
-    Calculate fitness score for a ruck, adjusted for weight carried.
+    Calculate fitness score for a ruck using ruck-specific pace standards.
 
-    Starts with run pace score, then applies ruck weight adjustment.
+    Uses separate ruck pace tables (calibrated for ~35lb standard load),
+    then applies weight adjustment for heavier/lighter loads.
     """
-    # Get base score from pace (rucks are inherently slower, so standards are more lenient)
-    # Apply a 90 second/mile adjustment to pace thresholds for rucks
-    adjusted_pace = pace_seconds_per_mile - 90
+    bracket_idx = get_age_bracket_index(age)
+    standards = FEMALE_RUCK_PACE_STANDARDS if is_female else MALE_RUCK_PACE_STANDARDS
+    thresholds = standards.get(bracket_idx, standards[1])
 
-    base_score_result = calculate_run_score(
-        pace_seconds_per_mile=adjusted_pace,
-        age=age,
-        is_female=is_female,
-        distance_miles=distance_miles
-    )
+    # Thresholds: [SF Excellent, SF Passing, Marine Excellent, Marine Passing, Civilian Excellent, Civilian Average]
+    sf_excellent = thresholds[0]
+    sf_passing = thresholds[1]
+    marine_excellent = thresholds[2]
+    marine_passing = thresholds[3]
+    civilian_excellent = thresholds[4]
+    civilian_average = thresholds[5]
+
+    factors = []
+
+    # Calculate base score from ruck pace (lower = faster = better)
+    if pace_seconds_per_mile <= sf_excellent:
+        score = 97 + (sf_excellent - pace_seconds_per_mile) / 60 * 3
+        score = min(100, score)
+        factors.append(f"Elite ruck pace: {pace_seconds_to_string(pace_seconds_per_mile)}")
+    elif pace_seconds_per_mile <= sf_passing:
+        ratio = (sf_passing - pace_seconds_per_mile) / (sf_passing - sf_excellent)
+        score = 90 + ratio * 7
+        factors.append(f"SF-level ruck pace: {pace_seconds_to_string(pace_seconds_per_mile)}")
+    elif pace_seconds_per_mile <= marine_excellent:
+        ratio = (marine_excellent - pace_seconds_per_mile) / (marine_excellent - sf_passing)
+        score = 83 + ratio * 7
+        factors.append(f"Strong Marine ruck pace: {pace_seconds_to_string(pace_seconds_per_mile)}")
+    elif pace_seconds_per_mile <= marine_passing:
+        ratio = (marine_passing - pace_seconds_per_mile) / (marine_passing - marine_excellent)
+        score = 70 + ratio * 13
+        factors.append(f"Marine ruck pace: {pace_seconds_to_string(pace_seconds_per_mile)}")
+    elif pace_seconds_per_mile <= civilian_excellent:
+        ratio = (civilian_excellent - pace_seconds_per_mile) / (civilian_excellent - marine_passing)
+        score = 65 + ratio * 5
+        factors.append(f"Strong civilian ruck pace: {pace_seconds_to_string(pace_seconds_per_mile)}")
+    elif pace_seconds_per_mile <= civilian_average:
+        ratio = (civilian_average - pace_seconds_per_mile) / (civilian_average - civilian_excellent)
+        score = 40 + ratio * 25
+        factors.append(f"Civilian ruck pace: {pace_seconds_to_string(pace_seconds_per_mile)}")
+    else:
+        slowest_expected = civilian_average + 300  # 5 min slower than average for rucks
+        if pace_seconds_per_mile >= slowest_expected:
+            score = 0
+        else:
+            ratio = (slowest_expected - pace_seconds_per_mile) / (slowest_expected - civilian_average)
+            score = ratio * 40
+        factors.append(f"Below average ruck pace: {pace_seconds_to_string(pace_seconds_per_mile)}")
 
     # Apply ruck weight adjustment
     weight_adjustment = get_ruck_weight_adjustment(weight_carried_lbs, body_weight_lbs)
+    final_score = max(0, min(100, score + weight_adjustment))
 
-    final_score = max(0, min(100, base_score_result.score + weight_adjustment))
-
-    # Build factors
-    factors = [f"Ruck pace: {pace_seconds_to_string(pace_seconds_per_mile)}"]
-
+    # Build context factors
     if body_weight_lbs and body_weight_lbs > 0:
         weight_pct = (weight_carried_lbs / body_weight_lbs) * 100
         factors.append(f"Weight: {weight_carried_lbs:.0f} lbs ({weight_pct:.0f}% BW)")
@@ -326,15 +394,14 @@ def calculate_ruck_score(
     else:
         factors.append(f"Weight: {weight_carried_lbs:.0f} lbs")
 
-    # Add remaining factors from base calculation
-    for factor in base_score_result.contributing_factors[1:]:  # Skip pace (we added our own)
-        if "pace" not in factor.lower():
-            factors.append(factor)
+    # Add age/gender context
+    gender_str = "female" if is_female else "male"
+    bracket = get_age_bracket(age)
+    factors.append(f"Standards: {gender_str}, age {bracket[0]}-{bracket[1]}")
 
     if distance_miles:
-        # Calculate ton-miles (training load metric)
         ton_miles = (weight_carried_lbs * distance_miles) / 2000
-        factors.append(f"Ton-miles: {ton_miles:.2f}")
+        factors.append(f"Distance: {distance_miles:.2f} mi, Ton-miles: {ton_miles:.2f}")
 
     tier, sub_tier, badge_color = classify_score(final_score)
 
