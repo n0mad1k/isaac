@@ -245,6 +245,9 @@ class SchedulerService:
         self.weather_service = WeatherService()
         self.forecast_service = NWSForecastService()
         self._sunset_job_scheduled = False
+        # Calendar sync health tracking
+        self.last_calendar_sync_duration: float = 0
+        self.last_calendar_sync_time: datetime = None
 
     async def get_email_service(self, db) -> EmailService:
         """Get email service configured from database settings"""
@@ -387,7 +390,9 @@ class SchedulerService:
     async def sync_calendar(self):
         """Perform bi-directional calendar sync"""
         from services.calendar_sync import get_calendar_service
+        import time
 
+        start_time = time.time()
         try:
             async with async_session() as db:
                 service = await get_calendar_service(db)
@@ -411,7 +416,15 @@ class SchedulerService:
                 events_synced = await service.sync_calendar_to_tasks(db)
                 tasks_synced = await service.sync_all_tasks_to_calendar(db, calendar_uids)
 
-                logger.info(f"Calendar sync complete: {tasks_synced} tasks synced, {events_synced} events imported")
+                duration = time.time() - start_time
+                # Store sync stats for health monitoring
+                self.last_calendar_sync_duration = duration
+                self.last_calendar_sync_time = datetime.now()
+
+                if duration > 60:
+                    logger.warning(f"Calendar sync slow: {duration:.1f}s - {tasks_synced} tasks, {events_synced} events")
+                else:
+                    logger.info(f"Calendar sync complete in {duration:.1f}s: {tasks_synced} tasks synced, {events_synced} events imported")
 
         except Exception as e:
             logger.error(f"Calendar sync failed: {e}")

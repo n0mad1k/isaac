@@ -118,6 +118,31 @@ class HealthMonitor:
         except Exception as e:
             return HealthCheck("caldav", HealthStatus.WARNING, f"CalDAV error: {str(e)[:100]}")
 
+    def check_calendar_sync_performance(self) -> HealthCheck:
+        """Check if calendar sync is running slowly"""
+        from services.scheduler import scheduler_service
+
+        if not scheduler_service or not scheduler_service.last_calendar_sync_time:
+            return HealthCheck("calendar_sync", HealthStatus.UNKNOWN, "No sync data yet")
+
+        duration = scheduler_service.last_calendar_sync_duration
+        last_sync = scheduler_service.last_calendar_sync_time
+        minutes_ago = (datetime.utcnow() - last_sync).total_seconds() / 60 if last_sync else 0
+
+        # Alert if sync takes more than 60 seconds (should be <10s normally)
+        if duration > 90:
+            return HealthCheck("calendar_sync", HealthStatus.CRITICAL,
+                f"Calendar sync very slow: {duration:.0f}s", duration)
+        elif duration > 60:
+            return HealthCheck("calendar_sync", HealthStatus.WARNING,
+                f"Calendar sync slow: {duration:.0f}s", duration)
+        elif minutes_ago > 15:
+            return HealthCheck("calendar_sync", HealthStatus.WARNING,
+                f"Calendar sync stale: {minutes_ago:.0f}m ago", minutes_ago)
+
+        return HealthCheck("calendar_sync", HealthStatus.HEALTHY,
+            f"Calendar sync OK: {duration:.1f}s, {minutes_ago:.0f}m ago", duration)
+
     def check_memory(self) -> HealthCheck:
         """Check system memory usage"""
         try:
@@ -174,6 +199,7 @@ class HealthMonitor:
         checks.append(self.check_memory())
         checks.append(self.check_disk())
         checks.append(self.check_cpu())
+        checks.append(self.check_calendar_sync_performance())
 
         return checks
 

@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.39.1] - 2026-01-28
+
+### Added
+- **Calendar sync monitoring** - Health monitor now tracks sync duration
+  - Alerts if sync takes >60s (warning) or >90s (critical)
+  - Alerts if sync hasn't run in >15 minutes
+  - Logs warning when sync is slow
+
 ## [1.39.0] - 2026-01-28
 
 ### Fixed
