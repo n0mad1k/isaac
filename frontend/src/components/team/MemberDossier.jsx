@@ -1772,8 +1772,8 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
               <div className="text-xs text-gray-500 mt-1">{formatDate(weightHistory[0]?.recorded_at)}</div>
             )}
           </div>
-          {/* Other vital types */}
-          {vitalTypes.map(type => {
+          {/* Other vital types - hide hip for males */}
+          {vitalTypes.filter(type => !(type.value === 'hip' && member.gender !== 'female')).map(type => {
             const allReadings = getVitalsByType(type.value)
             const latest = allReadings[0]
             const recentReadings = allReadings.slice(1, 4) // Next 3 readings after latest
@@ -1937,7 +1937,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 >
                   <option value="">Select type...</option>
                   <option value="weight">Weight</option>
-                  {vitalTypes.map(type => (
+                  {vitalTypes.filter(type => !(type.value === 'hip' && member.gender !== 'female')).map(type => (
                     <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </select>
