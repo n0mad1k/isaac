@@ -112,6 +112,15 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                       <div className="font-medium flex items-center gap-2">
                         {member.nickname || member.name}
                         <ReadinessIndicator status={member.overall_readiness} size="sm" />
+                        {member.fitness_tier && (
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            member.fitness_tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
+                            member.fitness_tier === 'MARINE' ? 'bg-green-500 text-green-900' :
+                            'bg-blue-500 text-blue-900'
+                          }`} title={`Fitness: ${member.fitness_tier} ${member.fitness_sub_tier || ''}`}>
+                            {member.fitness_tier}
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm text-gray-400">
                         {member.role_title || member.role}
