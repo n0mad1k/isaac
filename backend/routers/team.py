@@ -581,6 +581,8 @@ def serialize_member(member: TeamMember) -> dict:
         "performance_readiness_score": member.performance_readiness_score,
         "medical_safety_status": member.medical_safety_status,
         "readiness_notes": member.readiness_notes,
+        "fitness_tier": member.fitness_tier,
+        "fitness_sub_tier": member.fitness_sub_tier,
         "is_active": member.is_active,
         "notes": member.notes,
         "created_at": member.created_at.isoformat() if member.created_at else None,
