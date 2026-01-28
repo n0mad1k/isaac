@@ -538,12 +538,12 @@ async def get_water_overview(
     # --- Rain Data ---
     rain_result = await db.execute(
         select(
-            func.date(WeatherReading.timestamp).label('day'),
+            func.date(WeatherReading.reading_time).label('day'),
             func.max(WeatherReading.rain_daily).label('rain_daily')
         )
-        .where(WeatherReading.timestamp >= cutoff)
-        .group_by(func.date(WeatherReading.timestamp))
-        .order_by(desc(func.date(WeatherReading.timestamp)))
+        .where(WeatherReading.reading_time >= cutoff)
+        .group_by(func.date(WeatherReading.reading_time))
+        .order_by(desc(func.date(WeatherReading.reading_time)))
     )
     rain_rows = rain_result.all()
 
@@ -560,7 +560,7 @@ async def get_water_overview(
     # Current rain (latest reading)
     latest_weather = await db.execute(
         select(WeatherReading)
-        .order_by(desc(WeatherReading.timestamp))
+        .order_by(desc(WeatherReading.reading_time))
         .limit(1)
     )
     latest = latest_weather.scalar_one_or_none()
