@@ -212,7 +212,30 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
-              <ReadinessIndicator status={member.overall_readiness} />
+              {/* Readiness Score & Status */}
+              <div className="flex items-center gap-1">
+                {member.readiness_score && (
+                  <span className={`px-2 py-0.5 rounded text-sm font-bold ${
+                    member.overall_readiness === 'GREEN' ? 'bg-green-600' :
+                    member.overall_readiness === 'AMBER' ? 'bg-yellow-600' :
+                    member.overall_readiness === 'RED' ? 'bg-red-600' :
+                    'bg-gray-600'
+                  } text-white`}>
+                    {Math.round(member.readiness_score)}
+                  </span>
+                )}
+                <ReadinessIndicator status={member.overall_readiness} />
+              </div>
+              {/* Fitness Tier Badge */}
+              {member.fitness_tier && (
+                <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                  member.fitness_tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
+                  member.fitness_tier === 'MARINE' ? 'bg-green-500 text-green-900' :
+                  'bg-blue-500 text-blue-900'
+                }`}>
+                  {member.fitness_tier}
+                </span>
+              )}
               {/* Blood Type - solid red, no border */}
               {member.blood_type && (
                 <span className="px-3 py-1 bg-red-600 rounded-lg text-white font-bold text-sm flex items-center gap-1">

@@ -1708,6 +1708,13 @@ async def get_fitness_profile(
         body_weight_lbs=member.current_weight
     )
 
+    # Update member's fitness tier if profile has one
+    if profile.get("overall_tier"):
+        member.fitness_tier = profile["overall_tier"]
+        member.fitness_sub_tier = profile.get("overall_sub_tier")
+        await db.commit()
+        logger.info(f"Updated member {member_id} fitness_tier to {profile['overall_tier']}")
+
     # Add member context
     profile["member_id"] = member_id
     profile["period_days"] = days_back
