@@ -81,6 +81,7 @@ class DevTrackerItem(Base):
     # Failure tracking
     fail_note = Column(Text)  # Current failure reason (shown below title)
     fail_count = Column(Integer, default=0)  # Number of times failed
+    fail_note_history = Column(Text)  # JSON array of past fail notes with timestamps
 
     # Collaboration flag - when True, Claude must work through this interactively with user
     requires_collab = Column(Boolean, default=False)  # Set when kicking back if needs step-by-step fixing

@@ -51,6 +51,7 @@ class ItemResponse(BaseModel):
     test_notes: Optional[str]
     fail_note: Optional[str]
     fail_count: Optional[int]
+    fail_note_history: Optional[str] = None  # JSON array of past fail notes
     requires_collab: Optional[bool] = False  # When True, Claude must work interactively with user
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -293,6 +294,22 @@ async def update_item(item_id: int, data: ItemUpdate, db: AsyncSession = Depends
 
         # Track fail_count when failing, clear fail_note on success
         if new_status == ItemStatus.PENDING and 'fail_note' in update_data and update_data['fail_note']:
+            # Append current fail_note to history before overwriting
+            import json
+            history = json.loads(item.fail_note_history or '[]')
+            if item.fail_note:
+                history.append({
+                    "note": item.fail_note,
+                    "date": item.updated_at.isoformat() if item.updated_at else datetime.utcnow().isoformat(),
+                    "attempt": item.fail_count or 0,
+                })
+            # Add the new note to history too
+            history.append({
+                "note": update_data['fail_note'],
+                "date": datetime.utcnow().isoformat(),
+                "attempt": (item.fail_count or 0) + 1,
+            })
+            item.fail_note_history = json.dumps(history)
             # Increment fail count when marking as failed
             item.fail_count = (item.fail_count or 0) + 1
         elif new_status == ItemStatus.TESTING:

@@ -53,6 +53,7 @@ function DevTracker() {
   const [failComment, setFailComment] = useState('')
   const [failRequiresCollab, setFailRequiresCollab] = useState(false)
   const [deleteModalItem, setDeleteModalItem] = useState(null)
+  const [expandedHistory, setExpandedHistory] = useState({})
   const [toImplementSort, setToImplementSort] = useState('priority-oldest') // priority-oldest, oldest, newest
   const [testingSort, setTestingSort] = useState('oldest') // oldest, newest
   const [verifiedSort, setVerifiedSort] = useState('newest') // newest, oldest
@@ -870,6 +871,34 @@ function DevTracker() {
                               {item.fail_note}
                             </p>
                           )}
+                          {item.fail_note_history && (() => {
+                            try {
+                              const history = JSON.parse(item.fail_note_history)
+                              if (history.length === 0) return null
+                              const isExpanded = expandedHistory[item.id]
+                              return (
+                                <div className="mt-1">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setExpandedHistory(prev => ({ ...prev, [item.id]: !prev[item.id] })) }}
+                                    className="text-[10px] text-red-400/70 hover:text-red-300 underline"
+                                  >
+                                    {isExpanded ? 'Hide' : 'Show'} fail history ({history.length})
+                                  </button>
+                                  {isExpanded && (
+                                    <div className="mt-1 space-y-1 border-l-2 border-red-500/30 pl-2">
+                                      {history.map((entry, i) => (
+                                        <div key={i} className="text-[10px] text-red-400/60">
+                                          <span className="text-red-400/40">#{entry.attempt || i + 1}</span>
+                                          {' '}{entry.note}
+                                          {entry.date && <span className="text-gray-500 ml-1">({new Date(entry.date).toLocaleDateString()})</span>}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            } catch { return null }
+                          })()}
                         </div>
                         <button
                           onClick={() => handleToggleCollab(item)}
