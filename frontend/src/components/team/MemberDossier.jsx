@@ -14,7 +14,7 @@ import {
   deleteMemberAppointment, completeMemberAppointment,
   getVitalsHistory, getVitalsAverages, logVital, deleteVital, updateVital, getVitalTypes,
   getReadinessAnalysis, calculateBodyFat,
-  getWorkoutTypes, getWorkouts, getWorkoutStats, logWorkout, deleteWorkout
+  getWorkoutTypes, getWorkouts, getWorkoutStats, logWorkout, updateWorkout, deleteWorkout
 } from '../../services/api'
 import MemberMentoringTab from './MemberMentoringTab'
 import MemberObservationsTab from './MemberObservationsTab'
@@ -2092,6 +2092,7 @@ function FitnessTab({ member, settings, formatDate }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showAddWorkout, setShowAddWorkout] = useState(false)
+  const [editingWorkout, setEditingWorkout] = useState(null)  // Workout being edited
   const [submitting, setSubmitting] = useState(false)
   const [selectedType, setSelectedType] = useState(null)
   const [viewMode, setViewMode] = useState('list') // 'list' or 'stats'
@@ -2157,23 +2158,7 @@ function FitnessTab({ member, settings, formatDate }) {
 
       await logWorkout(member.id, data)
       await loadData()
-
-      setShowAddWorkout(false)
-      setWorkoutForm({
-        workout_type: '',
-        workout_date: new Date().toISOString().split('T')[0],
-        duration_minutes: '',
-        distance_miles: '',
-        weight_carried_lbs: '',
-        elevation_gain_ft: '',
-        avg_heart_rate: '',
-        calories_burned: '',
-        rpe: '',
-        quality_rating: '',
-        exercises: [],
-        notes: ''
-      })
-      setSelectedType(null)
+      closeWorkoutModal()
     } catch (err) {
       setError(err.response?.data?.detail || err.message)
     } finally {
@@ -2190,6 +2175,79 @@ function FitnessTab({ member, settings, formatDate }) {
     } catch (err) {
       setError(err.message)
     }
+  }
+
+  // Start editing a workout
+  const handleStartEdit = (workout) => {
+    setEditingWorkout(workout)
+    setWorkoutForm({
+      workout_type: workout.workout_type || '',
+      workout_date: workout.workout_date ? new Date(workout.workout_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      duration_minutes: workout.duration_minutes || '',
+      distance_miles: workout.distance_miles || '',
+      weight_carried_lbs: workout.weight_carried_lbs || '',
+      elevation_gain_ft: workout.elevation_gain_ft || '',
+      avg_heart_rate: workout.avg_heart_rate || '',
+      calories_burned: workout.calories_burned || '',
+      rpe: workout.rpe || '',
+      quality_rating: workout.quality_rating || '',
+      exercises: workout.exercises || [],
+      notes: workout.notes || ''
+    })
+    setShowAddWorkout(true)
+  }
+
+  // Save edit
+  const handleSaveEdit = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const data = {
+        workout_type: workoutForm.workout_type,
+        workout_date: workoutForm.workout_date ? new Date(workoutForm.workout_date).toISOString() : null,
+        duration_minutes: workoutForm.duration_minutes ? parseInt(workoutForm.duration_minutes) : null,
+        distance_miles: workoutForm.distance_miles ? parseFloat(workoutForm.distance_miles) : null,
+        weight_carried_lbs: workoutForm.weight_carried_lbs ? parseFloat(workoutForm.weight_carried_lbs) : null,
+        elevation_gain_ft: workoutForm.elevation_gain_ft ? parseFloat(workoutForm.elevation_gain_ft) : null,
+        avg_heart_rate: workoutForm.avg_heart_rate ? parseInt(workoutForm.avg_heart_rate) : null,
+        calories_burned: workoutForm.calories_burned ? parseInt(workoutForm.calories_burned) : null,
+        rpe: workoutForm.rpe ? parseInt(workoutForm.rpe) : null,
+        quality_rating: workoutForm.quality_rating ? parseInt(workoutForm.quality_rating) : null,
+        exercises: workoutForm.exercises.length > 0 ? workoutForm.exercises : null,
+        notes: workoutForm.notes || null
+      }
+
+      await updateWorkout(member.id, editingWorkout.id, data)
+      await loadData()
+      closeWorkoutModal()
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Close workout modal (add or edit)
+  const closeWorkoutModal = () => {
+    setShowAddWorkout(false)
+    setEditingWorkout(null)
+    setWorkoutForm({
+      workout_type: '',
+      workout_date: new Date().toISOString().split('T')[0],
+      duration_minutes: '',
+      distance_miles: '',
+      weight_carried_lbs: '',
+      elevation_gain_ft: '',
+      avg_heart_rate: '',
+      calories_burned: '',
+      rpe: '',
+      quality_rating: '',
+      exercises: [],
+      notes: ''
+    })
+    setSelectedType(null)
   }
 
   // Format pace (seconds per mile to mm:ss)
@@ -2379,12 +2437,22 @@ function FitnessTab({ member, settings, formatDate }) {
                         <div className="text-sm text-gray-400">{formatDate(workout.workout_date)}</div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDelete(workout.id)}
-                      className="text-gray-500 hover:text-red-400"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleStartEdit(workout)}
+                        className="text-gray-500 hover:text-blue-400"
+                        title="Edit workout"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(workout.id)}
+                        className="text-gray-500 hover:text-red-400"
+                        title="Delete workout"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -2450,13 +2518,13 @@ function FitnessTab({ member, settings, formatDate }) {
         </div>
       )}
 
-      {/* Add Workout Modal */}
+      {/* Add/Edit Workout Modal */}
       {showAddWorkout && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Log Workout</h3>
+            <h3 className="text-lg font-semibold mb-4">{editingWorkout ? 'Edit Workout' : 'Log Workout'}</h3>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={editingWorkout ? handleSaveEdit : handleSubmit} className="space-y-4">
               {/* Workout Type Selection */}
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Workout Type *</label>
@@ -2618,24 +2686,7 @@ function FitnessTab({ member, settings, formatDate }) {
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowAddWorkout(false)
-                    setWorkoutForm({
-                      workout_type: '',
-                      workout_date: new Date().toISOString().split('T')[0],
-                      duration_minutes: '',
-                      distance_miles: '',
-                      weight_carried_lbs: '',
-                      elevation_gain_ft: '',
-                      avg_heart_rate: '',
-                      calories_burned: '',
-                      rpe: '',
-                      quality_rating: '',
-                      exercises: [],
-                      notes: ''
-                    })
-                    setSelectedType(null)
-                  }}
+                  onClick={closeWorkoutModal}
                   className="px-4 py-2 text-gray-400 hover:text-white"
                 >
                   Cancel
@@ -2645,7 +2696,7 @@ function FitnessTab({ member, settings, formatDate }) {
                   disabled={submitting || !workoutForm.workout_type}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {submitting ? 'Saving...' : 'Log Workout'}
+                  {submitting ? 'Saving...' : (editingWorkout ? 'Save Changes' : 'Log Workout')}
                 </button>
               </div>
             </form>
