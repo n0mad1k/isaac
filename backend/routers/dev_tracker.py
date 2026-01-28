@@ -21,6 +21,7 @@ router = APIRouter(prefix="/dev-tracker", tags=["Dev Tracker"])
 class ItemCreate(BaseModel):
     item_type: ItemType = ItemType.TEST
     priority: ItemPriority = ItemPriority.MEDIUM
+    status: Optional[ItemStatus] = ItemStatus.PENDING  # Allow direct creation to backlog
     title: str = Field(..., min_length=1, max_length=2000)  # Allow paragraph-length descriptions
     description: Optional[str] = None
     version: Optional[str] = None
@@ -253,6 +254,7 @@ async def create_item(data: ItemCreate, db: AsyncSession = Depends(get_db)):
     item = DevTrackerItem(
         item_type=data.item_type,
         priority=data.priority,
+        status=data.status,
         title=data.title,
         description=data.description,
         version=data.version,
