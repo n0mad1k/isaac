@@ -1624,6 +1624,19 @@ def get_fitness_profile(
         overall_sub_tier = sub_tier
         overall_badge = badge
 
+    # Add scoring details per type for expandable UI
+    scoring_details = get_all_scoring_details(
+        types=list(scores_by_type.keys()),
+        age=age,
+        is_female=is_female,
+        body_weight_lbs=body_weight_lbs
+    )
+
+    # Merge scoring details into type_averages
+    for wtype, details in scoring_details.items():
+        if wtype in type_averages:
+            type_averages[wtype]["scoring_details"] = details
+
     return {
         "overall_score": round(overall_score, 1) if overall_score else None,
         "overall_tier": overall_tier,
@@ -1636,6 +1649,318 @@ def get_fitness_profile(
         "recent_scored_workouts": scored_workouts[-10:] if scored_workouts else [],
         "age_bracket": get_age_bracket(age),
         "gender": "female" if is_female else "male"
+    }
+
+
+# ============================================
+# Scoring Details Per Type (for expandable UI)
+# ============================================
+
+def get_scoring_details_for_type(
+    workout_type: str,
+    age: int,
+    is_female: bool = False,
+    body_weight_lbs: Optional[float] = None
+) -> Dict[str, Any]:
+    """
+    Return detailed scoring methodology for a specific workout type and member demographics.
+    Used in the frontend expandable score breakdown.
+    """
+    bracket_idx = get_age_bracket_index(age)
+    bracket = get_age_bracket(age)
+    gender = "female" if is_female else "male"
+    wtype = workout_type.upper()
+
+    details = {
+        "type": wtype,
+        "age_bracket": f"{bracket[0]}-{bracket[1]}",
+        "gender": gender,
+        "scoring_method": "",
+        "scale": [
+            {"label": "SF Excellent", "score": "97-100", "color": "gold"},
+            {"label": "SF Good", "score": "94-96", "color": "gold"},
+            {"label": "SF Passing", "score": "90-93", "color": "gold"},
+            {"label": "Marine Excellent", "score": "84-89", "color": "green"},
+            {"label": "Marine Good", "score": "77-83", "color": "green"},
+            {"label": "Marine Passing", "score": "70-76", "color": "green"},
+            {"label": "Civilian Excellent", "score": "65-69", "color": "blue"},
+            {"label": "Civilian Good", "score": "55-64", "color": "blue"},
+            {"label": "Civilian Passing", "score": "40-54", "color": "blue"},
+            {"label": "Below Average", "score": "0-39", "color": "gray"},
+        ],
+        "thresholds": [],
+        "adjustments": [],
+        "notes": [],
+    }
+
+    if wtype == "RUN":
+        details["scoring_method"] = "USMC PFT 3-mile run scoring"
+        table = PFT_RUN_FEMALE if is_female else PFT_RUN_MALE
+        max_idx = min(bracket_idx, max(table.keys()))
+        max_time, min_time = table.get(max_idx, table[1])
+        details["thresholds"] = [
+            {"label": "PFT Max (100pts)", "value": f"{_time_to_string(max_time)} 3-mile time", "pace": f"{pace_seconds_to_string(max_time // 3)}"},
+            {"label": "PFT Min (40pts)", "value": f"{_time_to_string(min_time)} 3-mile time", "pace": f"{pace_seconds_to_string(min_time // 3)}"},
+        ]
+        details["notes"] = [
+            "Pace converted to 3-mile equivalent time, then scored via USMC PFT tables",
+            f"PFT standards for {gender}, age {bracket[0]}-{bracket[1]}",
+            "PFT 100pts → Score 97 (SF Exc), 85pts → 90 (SF Pass), 78pts → 84 (Mar Exc), 50pts → 70 (Mar Pass), 40pts → 65 (Civ Exc)",
+        ]
+        details["distance_scaling"] = {
+            "full_credit": "3.0 mi",
+            "levels": [
+                {"distance": "3.0+ mi", "credit": "100%"},
+                {"distance": "2.0 mi", "credit": "85%"},
+                {"distance": "1.0 mi", "credit": "60%"},
+            ],
+            "note": "Shorter distances get partial credit (scaled from neutral point of 55)"
+        }
+        # Show what pace is needed for each tier
+        # We can reverse-engineer approximate paces from PFT points
+        # PFT 85pts -> SF Pass, PFT 78 -> Mar Exc, etc.
+        # PFT is linear: pts = 40 + ((min_time - time_3mi) / (min_time - max_time)) * 60
+        # So time_3mi = min_time - (pts - 40) / 60 * (min_time - max_time) for pts >= 40
+        range_sec = min_time - max_time
+        tier_paces = []
+        for label, pft_pts in [("SF Excellent", 100), ("SF Passing", 85), ("Marine Excellent", 78),
+                                ("Marine Passing", 50), ("Civilian Excellent", 40)]:
+            if pft_pts >= 100:
+                time_3mi = max_time
+            elif pft_pts >= 40:
+                time_3mi = min_time - ((pft_pts - 40) / 60) * range_sec
+            else:
+                time_3mi = min_time
+            pace = int(time_3mi / 3)
+            tier_paces.append({"label": label, "pace": pace_seconds_to_string(pace), "time_3mi": _time_to_string(int(time_3mi))})
+        details["tier_paces"] = tier_paces
+
+    elif wtype == "RUCK":
+        details["scoring_method"] = "MARSOC A&S anchored pace tables + pack weight adjustment"
+        standards = FEMALE_RUCK_PACE_STANDARDS if is_female else MALE_RUCK_PACE_STANDARDS
+        thresholds = standards.get(bracket_idx, standards[1])
+        labels = ["SF Exc", "SF Good", "SF Pass", "Mar Exc", "Mar Good", "Mar Pass", "Civ Exc", "Civ Good", "Civ Pass"]
+        details["thresholds"] = [
+            {"label": labels[i], "pace": pace_seconds_to_string(thresholds[i])}
+            for i in range(9)
+        ]
+        details["adjustments"] = [
+            {"label": "Heavy load bonus", "condition": "≥30% body weight", "adjustment": "+5 pts"},
+            {"label": "Moderate bonus", "condition": "25-30% body weight", "adjustment": "+3 pts"},
+            {"label": "Standard", "condition": "20-25% body weight", "adjustment": "0 pts"},
+            {"label": "Light penalty", "condition": "15-20% body weight", "adjustment": "-3 pts"},
+            {"label": "Very light penalty", "condition": "10-15% body weight", "adjustment": "-5 pts"},
+            {"label": "Minimal load penalty", "condition": "<10% body weight", "adjustment": "-8 pts"},
+        ]
+        if body_weight_lbs and body_weight_lbs > 0:
+            details["body_weight_context"] = {
+                "body_weight": f"{body_weight_lbs:.0f} lbs",
+                "weight_targets": {
+                    "30% BW (bonus)": f"{body_weight_lbs * 0.30:.0f} lbs",
+                    "25% BW": f"{body_weight_lbs * 0.25:.0f} lbs",
+                    "20% BW (standard)": f"{body_weight_lbs * 0.20:.0f} lbs",
+                }
+            }
+        details["distance_scaling"] = {
+            "full_credit": "4.0 mi",
+            "levels": [
+                {"distance": "4.0+ mi", "credit": "100%"},
+                {"distance": "3.0 mi", "credit": "90%"},
+                {"distance": "2.0 mi", "credit": "75%"},
+                {"distance": "1.0 mi", "credit": "60%"},
+            ],
+            "note": "Based on MARSOC A&S standard 4-mile ruck distance"
+        }
+        details["notes"] = [
+            f"Pace standards for {gender}, age {bracket[0]}-{bracket[1]} with ~45lb base load",
+            "Pack weight scored as % of body weight — heavier loads earn bonus points",
+            "Distance scaling: 4mi = full credit, shorter distances reduced from neutral (55)",
+        ]
+
+    elif wtype == "SWIM":
+        details["scoring_method"] = "300m continuous swim time standards"
+        standards = FEMALE_SWIM_300M_STANDARDS if is_female else MALE_SWIM_300M_STANDARDS
+        thresholds = standards.get(bracket_idx, standards[1])
+        labels = ["SF Exc", "SF Good", "SF Pass", "Mar Exc", "Mar Good", "Mar Pass", "Civ Exc", "Civ Good", "Civ Pass"]
+        details["thresholds"] = [
+            {"label": labels[i], "time_300m": _time_to_string(thresholds[i])}
+            for i in range(9)
+        ]
+        details["distance_scaling"] = {
+            "full_credit": "300m (0.186 mi)",
+            "levels": [
+                {"distance": "300m+", "credit": "100%"},
+                {"distance": "200m", "credit": "80%"},
+            ],
+            "note": "Pace converted to 300m equivalent time for scoring"
+        }
+        details["notes"] = [
+            f"Standards for {gender}, age {bracket[0]}-{bracket[1]}",
+            "Pace per mile converted to 300m time equivalent",
+        ]
+
+    elif wtype == "BIKE":
+        details["scoring_method"] = "Population speed data (medium confidence for outdoor)"
+        standards = FEMALE_BIKE_PACE_STANDARDS if is_female else MALE_BIKE_PACE_STANDARDS
+        thresholds = standards.get(bracket_idx, standards[1])
+        labels = ["SF Exc", "SF Good", "SF Pass", "Mar Exc", "Mar Good", "Mar Pass", "Civ Exc", "Civ Good", "Civ Pass"]
+        details["thresholds"] = [
+            {"label": labels[i], "pace": pace_seconds_to_string(thresholds[i]),
+             "speed": f"{3600 / thresholds[i]:.1f} mph"}
+            for i in range(9)
+        ]
+        details["distance_scaling"] = {
+            "full_credit": "10.0 mi",
+            "levels": [
+                {"distance": "10+ mi", "credit": "100%"},
+                {"distance": "5.0 mi", "credit": "80%"},
+                {"distance": "3.0 mi", "credit": "65%"},
+            ],
+        }
+        details["notes"] = [
+            f"Standards for {gender}, age {bracket[0]}-{bracket[1]}",
+            "Medium confidence — outdoor speed affected by terrain, wind, elevation",
+        ]
+
+    elif wtype == "ROW":
+        details["scoring_method"] = "500m split time standards"
+        standards = FEMALE_ROW_500M_STANDARDS if is_female else MALE_ROW_500M_STANDARDS
+        thresholds = standards.get(bracket_idx, standards[1])
+        labels = ["SF Exc", "SF Good", "SF Pass", "Mar Exc", "Mar Good", "Mar Pass", "Civ Exc", "Civ Good", "Civ Pass"]
+        details["thresholds"] = [
+            {"label": labels[i], "split_500m": _time_to_string(thresholds[i])}
+            for i in range(9)
+        ]
+        details["distance_scaling"] = {
+            "full_credit": "2000m (1.243 mi)",
+            "levels": [
+                {"distance": "2000m+", "credit": "100%"},
+                {"distance": "1000m", "credit": "80%"},
+                {"distance": "500m", "credit": "65%"},
+            ],
+        }
+        details["notes"] = [
+            f"Standards for {gender}, age {bracket[0]}-{bracket[1]}",
+            "Pace per mile converted to 500m split time for scoring",
+        ]
+
+    elif wtype == "STRENGTH":
+        details["scoring_method"] = "Exercise-level 1RM body weight ratio + bodyweight exercise standards"
+        age_mult = STRENGTH_AGE_MULTIPLIER.get(bracket_idx, 1.0)
+        bw_table = FEMALE_BW_RATIO if is_female else MALE_BW_RATIO
+        labels = ["SF Exc", "SF Good", "SF Pass", "Mar Exc", "Mar Good", "Mar Pass", "Civ Exc", "Civ Good", "Civ Pass"]
+
+        # Barbell lift BW ratio thresholds
+        lift_thresholds = {}
+        for lift in ["SQUAT", "DEADLIFT", "BENCH", "OHP"]:
+            base = bw_table.get(lift, [])
+            if base:
+                adjusted = [round(t * age_mult, 2) for t in base]
+                lift_entries = []
+                for i in range(9):
+                    entry = {"label": labels[i], "bw_ratio": f"{adjusted[i]:.2f}x"}
+                    if body_weight_lbs and body_weight_lbs > 0:
+                        entry["weight"] = f"{adjusted[i] * body_weight_lbs:.0f} lbs"
+                    lift_entries.append(entry)
+                lift_thresholds[lift.title()] = lift_entries
+        details["lift_thresholds"] = lift_thresholds
+
+        # Bodyweight exercise thresholds
+        bw_exercises = {}
+        pullup_table = FEMALE_PULLUP_STANDARDS if is_female else MALE_PULLUP_STANDARDS
+        pullup_thresh = pullup_table.get(bracket_idx, pullup_table[1])
+        bw_exercises["Pull-ups"] = [{"label": labels[i], "reps": pullup_thresh[i]} for i in range(9)]
+
+        pushup_table = FEMALE_PUSHUP_STANDARDS if is_female else MALE_PUSHUP_STANDARDS
+        pushup_thresh = pushup_table.get(bracket_idx, pushup_table[1])
+        bw_exercises["Push-ups"] = [{"label": labels[i], "reps": pushup_thresh[i]} for i in range(9)]
+
+        bw_exercises["Plank"] = [{"label": labels[i], "time": _time_to_string(PLANK_STANDARDS[i])} for i in range(9)]
+
+        details["bodyweight_thresholds"] = bw_exercises
+
+        details["adjustments"] = [
+            {"label": "Age multiplier", "value": f"{age_mult:.2f}x",
+             "note": f"Lift thresholds adjusted for age {bracket[0]}-{bracket[1]}"},
+        ]
+        if body_weight_lbs:
+            details["adjustments"].append(
+                {"label": "Body weight", "value": f"{body_weight_lbs:.0f} lbs",
+                 "note": "Used to calculate BW ratio from estimated 1RM"}
+            )
+        details["notes"] = [
+            "Each recognized exercise scored individually, then averaged",
+            "Barbell lifts: Epley formula estimates 1RM from weight × reps, then divided by body weight",
+            "Bodyweight exercises: scored against rep/time standards",
+            "Falls back to RPE × duration if no recognized exercises (capped at 89)",
+        ]
+
+    elif wtype in ["HIIT", "COMBAT"]:
+        details["scoring_method"] = "RPE × duration + heart rate bonus (capped at SF Good = 96)"
+        details["thresholds"] = [
+            {"label": "Base formula", "value": "RPE × 8 (RPE 10 → base 80)"},
+            {"label": "Duration bonus", "value": "log2(minutes/15) × 8 (45min → +13.2)"},
+            {"label": "HR bonus (>85% max)", "value": "+5 pts"},
+            {"label": "HR bonus (>80% max)", "value": "+3 pts"},
+            {"label": "Score cap", "value": "96 (SF Good — cannot reach SF Excellent)"},
+        ]
+        details["notes"] = [
+            "Max HR from profile or estimated as 220 - age",
+            f"Estimated max HR for age {age}: {220 - age} bpm",
+            "HIIT/Combat workouts cannot score SF Excellent due to subjectivity of RPE",
+        ]
+
+    elif wtype == "PT_TEST":
+        details["scoring_method"] = "PFT/CFT class-based mapping (0-300 → 0-100)"
+        details["thresholds"] = [
+            {"label": "PFT/CFT 285+", "score": "97 (SF Excellent)"},
+            {"label": "PFT/CFT 270", "score": "94 (SF Good)"},
+            {"label": "PFT/CFT 250", "score": "90 (SF Passing)"},
+            {"label": "PFT/CFT 235 (1st Class)", "score": "84 (Marine Excellent)"},
+            {"label": "PFT/CFT 210", "score": "77 (Marine Good)"},
+            {"label": "PFT/CFT 200 (2nd Class)", "score": "70 (Marine Passing)"},
+            {"label": "PFT/CFT 150 (3rd Class)", "score": "55 (Civilian Good)"},
+            {"label": "PFT/CFT 120", "score": "40 (Civilian Passing)"},
+        ]
+        details["notes"] = [
+            "Official PFT/CFT scores mapped to our 0-100 scale",
+            "1st Class PFT (235+) = Marine Excellent tier",
+        ]
+
+    elif wtype == "MOBILITY":
+        details["scoring_method"] = "Participation credit (capped at Civilian Excellent = 69)"
+        details["thresholds"] = [
+            {"label": "60+ minutes", "score": "69 (Civilian Excellent)"},
+            {"label": "45-59 minutes", "score": "65"},
+            {"label": "30-44 minutes", "score": "60"},
+            {"label": "15-29 minutes", "score": "55 (Civilian Good)"},
+            {"label": "<15 minutes", "score": "45"},
+        ]
+        details["notes"] = [
+            "Mobility is participation-based — cannot score above Civilian Excellent",
+            "Focus is on consistency and recovery, not performance",
+        ]
+
+    else:
+        details["scoring_method"] = "RPE × duration fallback (capped at Marine Excellent = 89)"
+        details["notes"] = [
+            "Unrecognized workout types scored from RPE and duration",
+            "Cannot score above 89 (Marine Excellent) with RPE-only scoring",
+        ]
+
+    return details
+
+
+def get_all_scoring_details(
+    types: List[str],
+    age: int,
+    is_female: bool = False,
+    body_weight_lbs: Optional[float] = None
+) -> Dict[str, Dict[str, Any]]:
+    """Return scoring details for multiple workout types."""
+    return {
+        wtype: get_scoring_details_for_type(wtype, age, is_female, body_weight_lbs)
+        for wtype in types
     }
 
 

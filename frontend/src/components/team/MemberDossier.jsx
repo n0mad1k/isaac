@@ -2207,6 +2207,7 @@ function FitnessTab({ member, settings, formatDate }) {
   const [submitting, setSubmitting] = useState(false)
   const [selectedType, setSelectedType] = useState(null)
   const [viewMode, setViewMode] = useState('stats') // 'list' or 'stats'
+  const [expandedScoreType, setExpandedScoreType] = useState(null) // which type's scoring details are expanded
 
   // Form state
   const [workoutForm, setWorkoutForm] = useState({
@@ -2451,7 +2452,7 @@ function FitnessTab({ member, settings, formatDate }) {
               {/* Score Explanation - Detailed Breakdown */}
               {fitnessProfile.by_type && Object.keys(fitnessProfile.by_type).length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-600">
-                  <div className="text-xs text-gray-400 mb-3">SCORE BREAKDOWN</div>
+                  <div className="text-xs text-gray-400 mb-3">SCORE BREAKDOWN <span className="text-gray-500">(tap type to expand details)</span></div>
                   <div className="space-y-2">
                     {Object.entries(fitnessProfile.by_type)
                       .sort((a, b) => (b[1].best_score || b[1].score || 0) - (a[1].best_score || a[1].score || 0))
@@ -2460,56 +2461,266 @@ function FitnessTab({ member, settings, formatDate }) {
                         const avgScore = data.average_score || data.score || 0
                         const typeLabel = WORKOUT_TYPES.find(t => t.value === type)
                         const icon = typeLabel ? typeLabel.icon : ''
+                        const isExpanded = expandedScoreType === type
+                        const details = data.scoring_details
                         return (
-                          <div key={type} className="bg-gray-800 rounded p-3">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
-                                {icon && <span className="text-sm">{icon}</span>}
-                                <span className="text-sm font-medium text-gray-200">{typeLabel?.label || type}</span>
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                  data.tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
-                                  data.tier === 'MARINE' ? 'bg-green-500 text-green-900' :
-                                  'bg-blue-500 text-blue-900'
-                                }`}>
-                                  {data.tier} {data.sub_tier || ''}
-                                </span>
+                          <div key={type} className="bg-gray-800 rounded overflow-hidden">
+                            {/* Clickable header row */}
+                            <div
+                              className="p-3 cursor-pointer hover:bg-gray-750"
+                              onClick={() => setExpandedScoreType(isExpanded ? null : type)}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  {icon && <span className="text-sm">{icon}</span>}
+                                  <span className="text-sm font-medium text-gray-200">{typeLabel?.label || type}</span>
+                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                    data.tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
+                                    data.tier === 'MARINE' ? 'bg-green-500 text-green-900' :
+                                    'bg-blue-500 text-blue-900'
+                                  }`}>
+                                    {data.tier} {data.sub_tier || ''}
+                                  </span>
+                                  {isExpanded ? <ChevronUp className="w-3 h-3 text-gray-500" /> : <ChevronDown className="w-3 h-3 text-gray-500" />}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs text-gray-500">{data.workout_count || 0} workout{(data.workout_count || 0) !== 1 ? 's' : ''}</span>
+                                  <span className={`text-lg font-bold ${
+                                    bestScore >= 90 ? 'text-yellow-400' :
+                                    bestScore >= 70 ? 'text-green-400' :
+                                    bestScore >= 40 ? 'text-blue-400' :
+                                    'text-gray-400'
+                                  }`}>{Math.round(bestScore)}</span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs text-gray-500">{data.workout_count || 0} workout{(data.workout_count || 0) !== 1 ? 's' : ''}</span>
-                                <span className={`text-lg font-bold ${
-                                  bestScore >= 90 ? 'text-yellow-400' :
-                                  bestScore >= 70 ? 'text-green-400' :
-                                  bestScore >= 40 ? 'text-blue-400' :
-                                  'text-gray-400'
-                                }`}>{Math.round(bestScore)}</span>
+                              {/* Progress bar */}
+                              <div className="w-full bg-gray-700 rounded-full h-2 mt-1">
+                                <div
+                                  className={`h-2 rounded-full transition-all ${
+                                    bestScore >= 90 ? 'bg-yellow-500' :
+                                    bestScore >= 70 ? 'bg-green-500' :
+                                    bestScore >= 40 ? 'bg-blue-500' :
+                                    'bg-gray-500'
+                                  }`}
+                                  style={{ width: `${Math.min(100, bestScore)}%` }}
+                                />
                               </div>
+                              {/* Score markers */}
+                              <div className="flex justify-between text-[10px] text-gray-600 mt-0.5 px-0.5">
+                                <span>0</span>
+                                <span className="text-blue-600">|40 CIV</span>
+                                <span className="text-green-600">|70 MAR</span>
+                                <span className="text-yellow-600">|90 SF</span>
+                                <span>100</span>
+                              </div>
+                              {/* Average vs Best */}
+                              {data.workout_count > 1 && avgScore !== bestScore && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Best: {Math.round(bestScore)} | Avg: {Math.round(avgScore)}
+                                  {bestScore - avgScore > 15 && (
+                                    <span className="text-yellow-500 ml-2">High variance - consistency will improve score</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            {/* Progress bar */}
-                            <div className="w-full bg-gray-700 rounded-full h-2 mt-1">
-                              <div
-                                className={`h-2 rounded-full transition-all ${
-                                  bestScore >= 90 ? 'bg-yellow-500' :
-                                  bestScore >= 70 ? 'bg-green-500' :
-                                  bestScore >= 40 ? 'bg-blue-500' :
-                                  'bg-gray-500'
-                                }`}
-                                style={{ width: `${Math.min(100, bestScore)}%` }}
-                              />
-                            </div>
-                            {/* Score markers */}
-                            <div className="flex justify-between text-[10px] text-gray-600 mt-0.5 px-0.5">
-                              <span>0</span>
-                              <span className="text-blue-600">|40 CIV</span>
-                              <span className="text-green-600">|70 MAR</span>
-                              <span className="text-yellow-600">|90 SF</span>
-                              <span>100</span>
-                            </div>
-                            {/* Average vs Best */}
-                            {data.workout_count > 1 && avgScore !== bestScore && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Best: {Math.round(bestScore)} | Avg: {Math.round(avgScore)}
-                                {bestScore - avgScore > 15 && (
-                                  <span className="text-yellow-500 ml-2">High variance - consistency will improve score</span>
+
+                            {/* Expanded scoring details */}
+                            {isExpanded && details && (
+                              <div className="px-3 pb-3 border-t border-gray-700 space-y-3">
+                                {/* Scoring method */}
+                                <div className="mt-3">
+                                  <div className="text-xs font-semibold text-gray-300 mb-1">SCORING METHOD</div>
+                                  <div className="text-xs text-gray-400">{details.scoring_method}</div>
+                                  <div className="text-xs text-gray-500 mt-0.5">
+                                    Standards: {details.gender}, age {details.age_bracket}
+                                  </div>
+                                </div>
+
+                                {/* Tier pace targets for RUN */}
+                                {details.tier_paces && (
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-300 mb-1">PACE TARGETS</div>
+                                    <div className="grid grid-cols-1 gap-1">
+                                      {details.tier_paces.map((tp, i) => (
+                                        <div key={i} className="flex justify-between text-xs bg-gray-900 rounded px-2 py-1">
+                                          <span className={
+                                            tp.label.includes('SF') ? 'text-yellow-400' :
+                                            tp.label.includes('Marine') ? 'text-green-400' :
+                                            'text-blue-400'
+                                          }>{tp.label}</span>
+                                          <span className="text-gray-300">{tp.pace} ({tp.time_3mi} 3mi)</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Generic thresholds (RUCK pace, SWIM times, BIKE speeds, ROW splits, HIIT formula, PT_TEST mapping, MOBILITY) */}
+                                {details.thresholds && details.thresholds.length > 0 && !details.tier_paces && (
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-300 mb-1">
+                                      {type === 'RUCK' ? 'PACE STANDARDS (at ~45lb)' :
+                                       type === 'SWIM' ? '300M TIME STANDARDS' :
+                                       type === 'BIKE' ? 'SPEED STANDARDS' :
+                                       type === 'ROW' ? '500M SPLIT STANDARDS' :
+                                       'SCORING THRESHOLDS'}
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-1">
+                                      {details.thresholds.map((t, i) => (
+                                        <div key={i} className="flex justify-between text-xs bg-gray-900 rounded px-2 py-1">
+                                          <span className={
+                                            t.label.includes('SF') ? 'text-yellow-400' :
+                                            t.label.includes('Mar') ? 'text-green-400' :
+                                            t.label.includes('Civ') ? 'text-blue-400' :
+                                            'text-gray-300'
+                                          }>{t.label}</span>
+                                          <span className="text-gray-300">
+                                            {t.pace || t.time_300m || t.split_500m || t.speed
+                                              ? [t.pace, t.time_300m, t.split_500m, t.speed].filter(Boolean).join(' / ')
+                                              : t.value || t.score || ''}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Strength: Lift BW ratio thresholds */}
+                                {details.lift_thresholds && (
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-300 mb-1">BARBELL LIFT STANDARDS (1RM / Body Weight)</div>
+                                    {Object.entries(details.lift_thresholds).map(([lift, entries]) => (
+                                      <div key={lift} className="mb-2">
+                                        <div className="text-xs text-gray-400 font-medium mb-0.5">{lift}</div>
+                                        <div className="grid grid-cols-3 gap-1">
+                                          {entries.filter((_, i) => [0, 2, 5, 8].includes(i)).map((e, i) => (
+                                            <div key={i} className="text-[11px] bg-gray-900 rounded px-1.5 py-0.5 text-center">
+                                              <span className={
+                                                e.label.includes('SF') ? 'text-yellow-400' :
+                                                e.label.includes('Mar') ? 'text-green-400' :
+                                                'text-blue-400'
+                                              }>{e.label.replace(' Exc', '').replace(' Pass', '')}</span>
+                                              <span className="text-gray-400 mx-1">{e.bw_ratio}</span>
+                                              {e.weight && <span className="text-gray-500">({e.weight})</span>}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Strength: Bodyweight exercise thresholds */}
+                                {details.bodyweight_thresholds && (
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-300 mb-1">BODYWEIGHT EXERCISE STANDARDS</div>
+                                    {Object.entries(details.bodyweight_thresholds).map(([exercise, entries]) => (
+                                      <div key={exercise} className="mb-1.5">
+                                        <div className="text-xs text-gray-400 font-medium mb-0.5">{exercise}</div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {entries.filter((_, i) => [0, 2, 5, 8].includes(i)).map((e, i) => (
+                                            <span key={i} className="text-[11px] bg-gray-900 rounded px-1.5 py-0.5">
+                                              <span className={
+                                                e.label.includes('SF') ? 'text-yellow-400' :
+                                                e.label.includes('Mar') ? 'text-green-400' :
+                                                'text-blue-400'
+                                              }>{e.label.replace(' Exc', '').replace(' Pass', '')}</span>
+                                              <span className="text-gray-400 ml-1">{e.reps != null ? `${e.reps} reps` : e.time}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Pack weight adjustments (RUCK) */}
+                                {details.adjustments && details.adjustments.length > 0 && (
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-300 mb-1">
+                                      {type === 'RUCK' ? 'PACK WEIGHT ADJUSTMENTS' :
+                                       type === 'STRENGTH' ? 'SCORING ADJUSTMENTS' :
+                                       'ADJUSTMENTS'}
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-1">
+                                      {details.adjustments.map((adj, i) => (
+                                        <div key={i} className="flex justify-between text-xs bg-gray-900 rounded px-2 py-1">
+                                          <span className="text-gray-400">{adj.label}{adj.condition ? `: ${adj.condition}` : ''}</span>
+                                          <span className={
+                                            (adj.adjustment || '').includes('+') ? 'text-green-400' :
+                                            (adj.adjustment || '').includes('-') ? 'text-red-400' :
+                                            'text-gray-300'
+                                          }>{adj.adjustment || adj.value || ''}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Body weight context for RUCK */}
+                                {details.body_weight_context && (
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-300 mb-1">YOUR BODY WEIGHT CONTEXT</div>
+                                    <div className="text-xs text-gray-400 mb-1">Body weight: {details.body_weight_context.body_weight}</div>
+                                    <div className="grid grid-cols-1 gap-1">
+                                      {Object.entries(details.body_weight_context.weight_targets).map(([label, val]) => (
+                                        <div key={label} className="flex justify-between text-xs bg-gray-900 rounded px-2 py-1">
+                                          <span className="text-gray-400">{label}</span>
+                                          <span className="text-gray-300">{val}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Distance scaling */}
+                                {details.distance_scaling && (
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-300 mb-1">DISTANCE SCALING</div>
+                                    <div className="text-xs text-gray-400 mb-1">Full credit: {details.distance_scaling.full_credit}</div>
+                                    <div className="grid grid-cols-1 gap-1">
+                                      {(details.distance_scaling.levels || []).map((l, i) => (
+                                        <div key={i} className="flex justify-between text-xs bg-gray-900 rounded px-2 py-1">
+                                          <span className="text-gray-400">{l.distance}</span>
+                                          <span className="text-gray-300">{l.credit}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {details.distance_scaling.note && (
+                                      <div className="text-[11px] text-gray-500 mt-1">{details.distance_scaling.note}</div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Notes */}
+                                {details.notes && details.notes.length > 0 && (
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-300 mb-1">NOTES</div>
+                                    <ul className="text-xs text-gray-500 space-y-0.5">
+                                      {details.notes.map((note, i) => (
+                                        <li key={i}>• {note}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {/* Tier scale reference */}
+                                {details.scale && (
+                                  <div>
+                                    <div className="text-xs font-semibold text-gray-300 mb-1">GRADE SCALE</div>
+                                    <div className="grid grid-cols-2 gap-1">
+                                      {details.scale.filter(s => !s.label.includes('Below')).map((s, i) => (
+                                        <div key={i} className="flex justify-between text-[11px] bg-gray-900 rounded px-2 py-0.5">
+                                          <span className={
+                                            s.color === 'gold' ? 'text-yellow-400' :
+                                            s.color === 'green' ? 'text-green-400' :
+                                            'text-blue-400'
+                                          }>{s.label}</span>
+                                          <span className="text-gray-500">{s.score}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             )}

@@ -2,6 +2,18 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.42.1] - 2026-01-28
+
+### Fixed
+- **Fitness score explanation** - Expanded score breakdown with full scoring details per workout type
+  - Tap any workout type to expand detailed scoring inputs, thresholds, and grading scale
+  - Shows pace/time targets for each tier (SF/Marine/Civilian) based on age and gender
+  - Ruck: pack weight adjustments table with body weight context (% BW targets)
+  - Strength: barbell lift BW ratio thresholds with actual weight targets, bodyweight exercise standards
+  - Distance scaling info showing partial credit for shorter distances
+  - HIIT/Combat: RPE formula breakdown with HR bonus and score cap
+  - Full 9-tier grade scale reference in every expanded section
+
 ## [1.42.0] - 2026-01-28
 
 ### Added
