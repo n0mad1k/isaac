@@ -31,6 +31,8 @@ function MemberTasksTab({ member, onUpdate }) {
   const [teamMembers, setTeamMembers] = useState([])
   const [isAllDay, setIsAllDay] = useState(true)
   const [selectedAlerts, setSelectedAlerts] = useState([])
+  const [selectedRecurrence, setSelectedRecurrence] = useState('once')
+  const [customInterval, setCustomInterval] = useState('')
 
   useEffect(() => {
     loadTasks()
@@ -120,12 +122,16 @@ function MemberTasksTab({ member, onUpdate }) {
     setEditingTask(task)
     setIsAllDay(!task.due_time)
     setSelectedAlerts(task.alerts || [])
+    setSelectedRecurrence(task.recurrence || 'once')
+    setCustomInterval(task.recurrence_interval ? String(task.recurrence_interval) : '')
     setOpenMenuId(null)
   }
 
   const closeEditModal = () => {
-    closeEditModal()
+    setEditingTask(null)
     setSelectedAlerts([])
+    setSelectedRecurrence('once')
+    setCustomInterval('')
     setIsAllDay(true)
   }
 
@@ -141,7 +147,9 @@ function MemberTasksTab({ member, onUpdate }) {
         is_backlog: editingTask.is_backlog || false,
         visible_to_farmhands: editingTask.visible_to_farmhands || false,
         assigned_to_member_id: editingTask.assigned_to_member_id,
-        alerts: selectedAlerts.length > 0 ? selectedAlerts : null
+        alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
+        recurrence: selectedRecurrence,
+        recurrence_interval: selectedRecurrence === 'custom' ? parseInt(customInterval) || null : null
       })
       closeEditModal()
       setSelectedAlerts([])
@@ -472,6 +480,36 @@ function MemberTasksTab({ member, onUpdate }) {
                     type="time"
                     value={editingTask.due_time || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, due_time: e.target.value || null })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Recurrence</label>
+                <select
+                  value={selectedRecurrence}
+                  onChange={(e) => setSelectedRecurrence(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  <option value="once">One-time</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="annually">Annually</option>
+                  <option value="custom">Custom (every X days)</option>
+                </select>
+              </div>
+              {selectedRecurrence === 'custom' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Repeat every (days)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={customInterval}
+                    onChange={(e) => setCustomInterval(e.target.value)}
+                    placeholder="e.g., 14"
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
