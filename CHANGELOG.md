@@ -2,6 +2,26 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.33.2] - 2026-01-28
+
+### Fixed
+- **CalDAV sync false change detection** - Fixed bug where calendar sync was incorrectly detecting changes and overwriting tasks with data from different calendar events
+- **UNIQUE constraint error** - Added check to prevent calendar_uid collision when linking tasks to calendar events
+- **Cleared Python cache on prod** - Fixed stale bytecode causing email import errors in health monitor
+
+## [1.33.1] - 2026-01-28
+
+### Added
+- **Resting Heart Rate tracking** - New vital type for resting HR separate from active HR
+- **Active Heart Rate display** - Health data tab now shows both Resting HR and Active HR
+- **Baseline Averages section** - Prominent display of all vital baselines with deviation indicators
+  - Shows yellow highlight when current reading deviates significantly from baseline
+  - Displays sample count for each baseline
+
+### Fixed
+- Baseline averages section now uses standard gray theme for better readability
+- Readiness analysis uses resting HR for baseline comparisons (falls back to regular HR if no resting data)
+
 ## [1.33.0] - 2026-01-27
 
 ### Added

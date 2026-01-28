@@ -9,6 +9,21 @@
 4. Do NOT move items to testing until ALL sub-tasks are done
 5. If an item has a fail_count > 0 or [COLLAB] flag, ASK the user before proceeding
 
+## Autonomous/Overnight Mode
+
+**When user says "run overnight", "while I sleep", "until X am", or similar:**
+1. **DO NOT** ask questions or wait for human input
+2. **SKIP** items with fail_count > 0 - note them for later
+3. **SKIP** items marked [COLLAB] - these explicitly need the user
+4. **SKIP** anything that would require clarification - make a note and move on
+5. **Work autonomously** on everything you can handle solo
+6. **Deploy to dev** unless explicitly told to deploy to prod
+7. **At the end time**, compile a report of:
+   - What was completed
+   - What was skipped and why
+   - Any errors encountered
+   - Current system health status
+
 **ALWAYS use git for change control:**
 1. Commit changes locally before deploying
 2. Use meaningful commit messages describing what was changed

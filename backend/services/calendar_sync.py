@@ -717,6 +717,7 @@ class CalendarSyncService:
                     select(Task).where(Task.calendar_uid == calendar_uid)
                 )
                 existing_task = result.scalar_one_or_none()
+                found_by_uid = existing_task is not None
 
                 # If not found by UID but we have the task ID, look up by ID
                 if not existing_task and event_dict.get('levi_task_id'):
@@ -724,11 +725,26 @@ class CalendarSyncService:
                         select(Task).where(Task.id == event_dict['levi_task_id'])
                     )
                     existing_task = result.scalar_one_or_none()
-                    # Link the calendar_uid to this task for future syncs
-                    if existing_task and not existing_task.calendar_uid:
-                        existing_task.calendar_uid = calendar_uid
-                        logger.info(f"Linked calendar UID {calendar_uid} to task {existing_task.id}")
-                if existing_task:
+                    # Only link calendar_uid if task doesn't already have one
+                    # If task has a different calendar_uid, skip this event to avoid overwriting wrong task
+                    if existing_task:
+                        if existing_task.calendar_uid and existing_task.calendar_uid != calendar_uid:
+                            # Task already linked to a different calendar event - skip
+                            logger.debug(f"Skipping event {calendar_uid} - task {existing_task.id} already linked to {existing_task.calendar_uid}")
+                            continue
+                        if not existing_task.calendar_uid:
+                            # Check if this calendar_uid is already used by another task (prevent UNIQUE constraint error)
+                            uid_check = await db.execute(
+                                select(Task).where(Task.calendar_uid == calendar_uid)
+                            )
+                            if uid_check.scalar_one_or_none():
+                                logger.warning(f"Calendar UID {calendar_uid} already assigned to another task, skipping link to task {existing_task.id}")
+                                continue
+                            existing_task.calendar_uid = calendar_uid
+                            logger.info(f"Linked calendar UID {calendar_uid} to task {existing_task.id}")
+                            found_by_uid = True  # Now it's linked, treat as found by UID
+
+                if existing_task and found_by_uid:
                     changed = False
                     old_title = existing_task.title
 
