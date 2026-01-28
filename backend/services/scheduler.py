@@ -1421,7 +1421,7 @@ class SchedulerService:
                 for check in checks:
                     if health_monitor.should_send_alert(check.name, check.status):
                         # Send alert email
-                        await send_health_alert(checks, overall_status)
+                        await send_health_alert(db, checks, overall_status)
                         # Record that we sent an alert for each check
                         for c in checks:
                             if c.status in [HealthStatus.WARNING, HealthStatus.CRITICAL]:

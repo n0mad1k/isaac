@@ -248,9 +248,9 @@ async def log_health_check(db: AsyncSession, checks: List[HealthCheck], overall_
     return log
 
 
-async def send_health_alert(checks: List[HealthCheck], overall_status: str):
+async def send_health_alert(db: AsyncSession, checks: List[HealthCheck], overall_status: str):
     """Send email alert for health issues"""
-    from services.email_service import send_email
+    from services.email import EmailService
 
     # Build alert message
     issues = [c for c in checks if c.status in [HealthStatus.WARNING, HealthStatus.CRITICAL]]
@@ -281,7 +281,8 @@ async def send_health_alert(checks: List[HealthCheck], overall_status: str):
     body = "\n".join(body_lines)
 
     try:
-        await send_email(
+        email_service = await EmailService.get_configured_service(db)
+        await email_service.send_email(
             subject=subject,
             body=body,
             is_alert=True
