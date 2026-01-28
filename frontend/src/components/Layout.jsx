@@ -12,6 +12,11 @@ function Layout() {
   const [teamEnabled, setTeamEnabled] = useState(false)
   const [showKeyboardButton, setShowKeyboardButton] = useState(false)
   const [showHardRefreshButton, setShowHardRefreshButton] = useState(true)
+  const [pageToggles, setPageToggles] = useState({
+    calendar: true, plants: true, seeds: true, animals: true,
+    home_maintenance: true, vehicles: true, equipment: true,
+    farm_areas: true, farm_finances: true,
+  })
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
@@ -155,6 +160,18 @@ function Layout() {
         // Check hard refresh button enabled (defaults to true)
         const hardRefreshEnabled = settings?.show_hard_refresh_button?.value !== 'false'
         setShowHardRefreshButton(hardRefreshEnabled)
+        // Check page toggles (default to true if not set)
+        setPageToggles({
+          calendar: settings?.page_calendar_enabled?.value !== 'false',
+          plants: settings?.page_plants_enabled?.value !== 'false',
+          seeds: settings?.page_seeds_enabled?.value !== 'false',
+          animals: settings?.page_animals_enabled?.value !== 'false',
+          home_maintenance: settings?.page_home_maintenance_enabled?.value !== 'false',
+          vehicles: settings?.page_vehicles_enabled?.value !== 'false',
+          equipment: settings?.page_equipment_enabled?.value !== 'false',
+          farm_areas: settings?.page_farm_areas_enabled?.value !== 'false',
+          farm_finances: settings?.page_farm_finances_enabled?.value !== 'false',
+        })
       } catch (error) {
         console.error('Failed to fetch settings:', error)
       }
@@ -212,20 +229,17 @@ function Layout() {
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dash' },
     { to: '/todo', icon: ListTodo, label: 'To Do' },
-    { to: '/calendar', icon: Calendar, label: 'Calendar' },
-    // Worker Tasks only shows when enabled in settings
+    ...(pageToggles.calendar ? [{ to: '/calendar', icon: Calendar, label: 'Calendar' }] : []),
     ...(workerTasksEnabled ? [{ to: '/worker-tasks', icon: ClipboardList, label: 'Workers' }] : []),
-    // Team shows when enabled in settings
     ...(teamEnabled ? [{ to: '/team', icon: UsersRound, label: 'Team' }] : []),
-    { to: '/plants', icon: Leaf, label: 'Plants' },
-    { to: '/seeds', icon: Sprout, label: 'Seeds' },
-    { to: '/animals', icon: PawPrint, label: 'Animals' },
-    { to: '/home-maintenance', icon: Home, label: 'Home' },
-    { to: '/vehicles', icon: Car, label: 'Vehicles' },
-    { to: '/equipment', icon: Wrench, label: 'Equip' },
-    { to: '/farm-areas', icon: Fence, label: 'Farm' },
-    { to: '/farm-finances', icon: DollarSign, label: 'Production' },
-    // Dev tracker only shows on dev instance
+    ...(pageToggles.plants ? [{ to: '/plants', icon: Leaf, label: 'Plants' }] : []),
+    ...(pageToggles.seeds ? [{ to: '/seeds', icon: Sprout, label: 'Seeds' }] : []),
+    ...(pageToggles.animals ? [{ to: '/animals', icon: PawPrint, label: 'Animals' }] : []),
+    ...(pageToggles.home_maintenance ? [{ to: '/home-maintenance', icon: Home, label: 'Home' }] : []),
+    ...(pageToggles.vehicles ? [{ to: '/vehicles', icon: Car, label: 'Vehicles' }] : []),
+    ...(pageToggles.equipment ? [{ to: '/equipment', icon: Wrench, label: 'Equip' }] : []),
+    ...(pageToggles.farm_areas ? [{ to: '/farm-areas', icon: Fence, label: 'Farm' }] : []),
+    ...(pageToggles.farm_finances ? [{ to: '/farm-finances', icon: DollarSign, label: 'Production' }] : []),
     ...(isDevInstance ? [{ to: '/dev-tracker', icon: Bug, label: 'Dev' }] : []),
     { to: '/settings', icon: Settings, label: 'Settings' },
   ]

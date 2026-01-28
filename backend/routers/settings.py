@@ -292,6 +292,44 @@ DEFAULT_SETTINGS = {
         "description": "Disk usage percentage to trigger critical alert"
     },
 
+    # === Feature Toggles (Page Visibility) ===
+    "page_calendar_enabled": {
+        "value": "true",
+        "description": "Show the Calendar page in navigation"
+    },
+    "page_plants_enabled": {
+        "value": "true",
+        "description": "Show the Plants page in navigation"
+    },
+    "page_seeds_enabled": {
+        "value": "true",
+        "description": "Show the Seeds page in navigation"
+    },
+    "page_animals_enabled": {
+        "value": "true",
+        "description": "Show the Animals page in navigation"
+    },
+    "page_home_maintenance_enabled": {
+        "value": "true",
+        "description": "Show the Home Maintenance page in navigation"
+    },
+    "page_vehicles_enabled": {
+        "value": "true",
+        "description": "Show the Vehicles page in navigation"
+    },
+    "page_equipment_enabled": {
+        "value": "true",
+        "description": "Show the Equipment page in navigation"
+    },
+    "page_farm_areas_enabled": {
+        "value": "true",
+        "description": "Show the Farm Areas page in navigation"
+    },
+    "page_farm_finances_enabled": {
+        "value": "true",
+        "description": "Show the Farm Finances page in navigation"
+    },
+
     # === Worker Tasks Settings ===
     "worker_tasks_enabled": {
         "value": "false",

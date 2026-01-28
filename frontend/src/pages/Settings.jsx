@@ -97,6 +97,7 @@ function Settings() {
     team: false,
     translation: false,
     bible: false,
+    featureToggles: false,
     storage: false,
     healthMonitor: false,
     logs: false,
@@ -2145,6 +2146,65 @@ function Settings() {
                 </div>
               </div>
               )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Feature Toggles */}
+      <div className="bg-gray-800 rounded-xl p-6">
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => toggleSection('featureToggles')}
+        >
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            {expandedSections.featureToggles ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            <ToggleRight className="w-5 h-5 text-cyan-400" />
+            Feature Toggles
+          </h2>
+        </div>
+        {expandedSections.featureToggles && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-400 mb-4">
+              Toggle pages on or off to customize your navigation. Disabled pages won't appear in the sidebar.
+            </p>
+            <div className="space-y-3">
+              {[
+                { key: 'page_calendar_enabled', label: 'Calendar', desc: 'Event calendar and scheduling' },
+                { key: 'page_plants_enabled', label: 'Plants', desc: 'Plant tracking and watering schedules' },
+                { key: 'page_seeds_enabled', label: 'Seeds', desc: 'Seed inventory and planting plans' },
+                { key: 'page_animals_enabled', label: 'Animals', desc: 'Livestock and pet management' },
+                { key: 'page_home_maintenance_enabled', label: 'Home Maintenance', desc: 'Home repairs and upkeep tracking' },
+                { key: 'page_vehicles_enabled', label: 'Vehicles', desc: 'Vehicle maintenance and records' },
+                { key: 'page_equipment_enabled', label: 'Equipment', desc: 'Farm and shop equipment tracking' },
+                { key: 'page_farm_areas_enabled', label: 'Farm Areas', desc: 'Field and area management' },
+                { key: 'page_farm_finances_enabled', label: 'Farm Finances', desc: 'Production tracking and finances' },
+                { key: 'worker_tasks_enabled', label: 'Worker Tasks', desc: 'Task management for farm workers' },
+                { key: 'team_enabled', label: 'Team Management', desc: 'Member dossiers, mentoring, and AAR' },
+              ].map(toggle => (
+                <div key={toggle.key} className="bg-gray-750 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-sm">{toggle.label}</h3>
+                      <p className="text-xs text-gray-400">{toggle.desc}</p>
+                    </div>
+                    <button
+                      onClick={() => handleChange(toggle.key, settings[toggle.key]?.value === 'true' ? 'false' : 'true')}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                        settings[toggle.key]?.value !== 'false'
+                          ? 'bg-farm-green'
+                          : 'bg-gray-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          settings[toggle.key]?.value !== 'false' ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
