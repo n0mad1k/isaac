@@ -1482,14 +1482,43 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
           <div className="text-gray-400 text-sm mb-1">Body Fat %</div>
           <div className="text-2xl font-bold">{bodyFat !== null ? `${bodyFat.toFixed(1)}%` : 'N/A'}</div>
           <div className={`text-xs ${bodyFatInfo.color}`}>{bodyFatInfo.label}</div>
-          {bodyFat === null && member.height_inches && (
-            <button
-              onClick={handleCalculateBodyFat}
-              disabled={calculatingBodyFat}
-              className="mt-2 text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
-            >
-              {calculatingBodyFat ? 'Calculating...' : 'Calculate from Measurements'}
-            </button>
+          {bodyFat === null && (
+            <>
+              {/* Show what's missing for body fat calculation */}
+              {(() => {
+                const isFemale = member.gender === 'female'
+                const hasHeight = !!member.height_inches
+                const hasWaist = !!getLatestVital('waist')
+                const hasNeck = !!getLatestVital('neck')
+                const hasHip = !!getLatestVital('hip')
+
+                const missing = []
+                if (!hasHeight) missing.push('height')
+                if (!hasWaist) missing.push('waist')
+                if (!hasNeck) missing.push('neck')
+                if (isFemale && !hasHip) missing.push('hip')
+
+                if (missing.length > 0) {
+                  return (
+                    <div className="text-xs text-yellow-400 mt-1">
+                      Missing: {missing.join(', ')}
+                      {isFemale && !hasHip && <span className="block text-gray-400">(Hip required for women)</span>}
+                    </div>
+                  )
+                }
+
+                // Has all measurements, show calculate button
+                return (
+                  <button
+                    onClick={handleCalculateBodyFat}
+                    disabled={calculatingBodyFat}
+                    className="mt-2 text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
+                  >
+                    {calculatingBodyFat ? 'Calculating...' : 'Calculate from Measurements'}
+                  </button>
+                )
+              })()}
+            </>
           )}
         </div>
         <div className="bg-gray-700 rounded-lg p-4">

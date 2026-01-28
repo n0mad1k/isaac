@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.35.3] - 2026-01-28
+
+### Changed
+- **Body fat requirements shown** - Body Fat card now shows which measurements are missing
+  - Shows "Missing: waist, neck" etc. when measurements needed
+  - For women, shows "(Hip required for women)" when hip is missing
+  - Calculate button only appears when all required measurements exist
+
 ## [1.35.2] - 2026-01-28
 
 ### Added
