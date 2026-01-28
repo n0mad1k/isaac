@@ -212,7 +212,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
-              {/* Readiness Scores - 3 colored badges from analysis */}
+              {/* Readiness & Fitness Badges */}
               {(() => {
                 const overallStatus = readinessAnalysis?.overall_status || member.overall_readiness
                 const overallScore = readinessAnalysis?.score ?? member.readiness_score
@@ -220,30 +220,39 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 const medStatus = readinessAnalysis?.medical_safety?.status || member.medical_safety_status
                 const statusBg = (s) => s === 'GREEN' ? 'bg-green-600' : s === 'AMBER' ? 'bg-yellow-600' : s === 'RED' ? 'bg-red-600' : 'bg-gray-600'
                 const scoreBg = (v) => v != null ? (v >= 80 ? 'bg-green-600' : v >= 60 ? 'bg-yellow-600' : 'bg-red-600') : 'bg-gray-600'
+                const fitTier = member.fitness_tier
+                const fitBg = fitTier === 'SF' ? 'bg-yellow-500 text-yellow-900' : fitTier === 'MARINE' ? 'bg-green-500 text-green-900' : fitTier ? 'bg-blue-500 text-blue-900' : null
                 return (
-                  <div className="flex items-center gap-1">
-                    <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${statusBg(overallStatus)}`} title="Overall Readiness">
-                      {overallScore != null ? Math.round(overallScore) : '—'}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${scoreBg(perfScore)}`} title="Performance Readiness">
-                      {perfScore != null ? Math.round(perfScore) : '—'}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${statusBg(medStatus)}`} title="Medical Safety">
-                      {medStatus === 'GREEN' ? '✓' : medStatus === 'AMBER' ? '!' : medStatus === 'RED' ? '✗' : '—'}
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-center" title="Overall Readiness">
+                      <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${statusBg(overallStatus)}`}>
+                        {overallScore != null ? Math.round(overallScore) : '—'}
+                      </span>
+                      <span className="text-[9px] text-gray-500 mt-0.5">READY</span>
+                    </div>
+                    <div className="flex flex-col items-center" title="Performance Readiness">
+                      <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${scoreBg(perfScore)}`}>
+                        {perfScore != null ? Math.round(perfScore) : '—'}
+                      </span>
+                      <span className="text-[9px] text-gray-500 mt-0.5">PERF</span>
+                    </div>
+                    <div className="flex flex-col items-center" title="Medical Safety">
+                      <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${statusBg(medStatus)}`}>
+                        {medStatus === 'GREEN' ? '✓' : medStatus === 'AMBER' ? '!' : medStatus === 'RED' ? '✗' : '—'}
+                      </span>
+                      <span className="text-[9px] text-gray-500 mt-0.5">MED</span>
+                    </div>
+                    {fitBg && (
+                      <div className="flex flex-col items-center" title={`Fitness: ${fitTier} ${member.fitness_sub_tier || ''}`}>
+                        <span className={`px-2 py-0.5 rounded text-sm font-bold ${fitBg}`}>
+                          {fitTier}
+                        </span>
+                        <span className="text-[9px] text-gray-500 mt-0.5">FIT</span>
+                      </div>
+                    )}
                   </div>
                 )
               })()}
-              {/* Fitness Tier Badge */}
-              {member.fitness_tier && (
-                <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                  member.fitness_tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
-                  member.fitness_tier === 'MARINE' ? 'bg-green-500 text-green-900' :
-                  'bg-blue-500 text-blue-900'
-                }`} title={`Fitness: ${member.fitness_tier} ${member.fitness_sub_tier || ''}`}>
-                  {member.fitness_tier}
-                </span>
-              )}
               {/* Blood Type - solid red, no border */}
               {member.blood_type && (
                 <span className="px-3 py-1 bg-red-600 rounded-lg text-white font-bold text-sm flex items-center gap-1">

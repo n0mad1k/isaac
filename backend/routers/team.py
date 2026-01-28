@@ -1736,7 +1736,7 @@ async def get_fitness_profile(
 
     is_female = member.gender == Gender.FEMALE if member.gender else False
 
-    # Fetch workouts
+    # Fetch workouts - try requested window first, fall back to all time if none found
     cutoff = datetime.utcnow() - timedelta(days=days_back)
     workouts_result = await db.execute(
         select(MemberWorkout)
@@ -1748,6 +1748,21 @@ async def get_fitness_profile(
         .order_by(desc(MemberWorkout.workout_date))
     )
     workouts = list(workouts_result.scalars().all())
+
+    # If no recent workouts, fall back to all available workout history
+    actual_days_back = days_back
+    if not workouts:
+        workouts_result = await db.execute(
+            select(MemberWorkout)
+            .where(and_(
+                MemberWorkout.member_id == member_id,
+                MemberWorkout.is_active == True
+            ))
+            .order_by(desc(MemberWorkout.workout_date))
+        )
+        workouts = list(workouts_result.scalars().all())
+        if workouts and workouts[0].workout_date:
+            actual_days_back = (datetime.utcnow() - workouts[0].workout_date).days + 1
 
     # Convert to dicts for fitness_standards service
     workout_dicts = [
@@ -1782,7 +1797,7 @@ async def get_fitness_profile(
 
     # Add member context
     profile["member_id"] = member_id
-    profile["period_days"] = days_back
+    profile["period_days"] = actual_days_back
     profile["total_workouts"] = len(workouts)
     profile["tier_thresholds"] = get_tier_thresholds()
 
