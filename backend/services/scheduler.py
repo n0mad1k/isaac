@@ -27,6 +27,10 @@ from services.weather import WeatherService, NWSForecastService
 from services.email import EmailService
 
 
+# Module-level reference to the scheduler instance (set when instantiated)
+scheduler_service: 'SchedulerService' = None
+
+
 # Default settings (mirrors routers/settings.py)
 DEFAULT_SETTINGS = {
     "email_alerts_enabled": "true",
@@ -241,6 +245,7 @@ class SchedulerService:
     """Background task scheduler for Isaac"""
 
     def __init__(self):
+        global scheduler_service
         self.scheduler = AsyncIOScheduler(timezone=settings.timezone)
         self.weather_service = WeatherService()
         self.forecast_service = NWSForecastService()
@@ -248,6 +253,8 @@ class SchedulerService:
         # Calendar sync health tracking
         self.last_calendar_sync_duration: float = 0
         self.last_calendar_sync_time: datetime = None
+        # Set module-level reference
+        scheduler_service = self
 
     async def get_email_service(self, db) -> EmailService:
         """Get email service configured from database settings"""
