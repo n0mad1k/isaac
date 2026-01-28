@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.33.3] - 2026-01-28
+
+### Fixed
+- **Title whitespace accumulation** - Fixed bug where task titles starting with "Home:" or similar patterns accumulated leading spaces each sync cycle
+- **Title comparison** - Now strips whitespace when comparing titles to prevent false change detection
+
 ## [1.33.2] - 2026-01-28
 
 ### Fixed

@@ -286,10 +286,10 @@ class CalendarSyncService:
         else:
             task_dict['task_type'] = TaskType.EVENT
 
-        # Title
+        # Title - strip whitespace to handle sanitization artifacts
         summary = component.get('summary')
         if summary:
-            task_dict['title'] = str(summary)
+            task_dict['title'] = str(summary).strip()
 
         # Description
         description = component.get('description')
@@ -770,10 +770,10 @@ class CalendarSyncService:
                     )
 
                     if phone_is_newer:
-                        # Sync title from phone
+                        # Sync title from phone - strip both for comparison to avoid whitespace-only changes
                         phone_title = event_dict.get('title')
-                        if phone_title and existing_task.title != phone_title:
-                            existing_task.title = phone_title
+                        if phone_title and (existing_task.title or '').strip() != phone_title.strip():
+                            existing_task.title = phone_title.strip()
                             changed = True
                             logger.info(f"Task title updated from phone: '{old_title}' -> '{phone_title}'")
 
