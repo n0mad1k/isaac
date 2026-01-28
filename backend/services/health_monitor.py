@@ -57,8 +57,8 @@ class HealthMonitor:
     async def check_api_health(self) -> HealthCheck:
         """Check if the API is responding"""
         try:
-            # Use appropriate port based on environment (dev=8001, prod=8000)
-            port = 8001 if settings.is_dev_instance else 8000
+            # Health monitoring runs on prod (port 8000)
+            port = 8000
             timeout = aiohttp.ClientTimeout(total=5)
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 url = f"http://127.0.0.1:{port}/health"

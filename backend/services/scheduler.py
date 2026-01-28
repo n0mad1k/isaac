@@ -1398,6 +1398,10 @@ class SchedulerService:
 
     async def run_health_check(self):
         """Run periodic health checks and send alerts if needed"""
+        # Only run health monitoring on production
+        if settings.is_dev_instance:
+            return
+
         logger.debug("Running health check...")
         try:
             from services.health_monitor import (
