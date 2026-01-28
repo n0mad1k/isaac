@@ -4,9 +4,18 @@ All notable changes to Isaac will be documented in this file.
 
 ## [1.41.1] - 2026-01-28
 
+### Added
+- **Feature Toggles** section in Settings - toggle on/off any page from navigation (Calendar, Plants, Seeds, Animals, Home, Vehicles, Equipment, Farm Areas, Farm Finances, Workers, Team)
+- **Fitness badge** next to team member names in tabs and roster (SF=yellow, MARINE=green, CIVILIAN=blue)
+- **Dev tracker fail note history** - expandable log of all past fail notes with timestamps and attempt numbers
+- **Send to backlog button** when creating new dev tracker items (purple Archive button)
+
 ### Fixed
 - **Task editing from team member tab** now includes Location field and Link to entity selector (animal, plant, vehicle, equipment, farm area)
 - **Multi-select Assign To** dropdown now works across all pages (calendar events, vehicles, equipment, farm areas, plants, animals)
+- **Hip measurement** hidden for males in Latest Vitals display and check-in recording type dropdown
+- **Workouts** default to Stats view instead of list view
+- **Fitness tier data** (fitness_tier, fitness_sub_tier) now included in member API serialization
 
 ## [1.41.0] - 2026-01-28
 
