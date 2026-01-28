@@ -1085,8 +1085,10 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     ? member.current_weight * (1 - bodyFat / 100)
     : null
 
-  // Get latest resting heart rate
-  const latestRHR = getLatestVital('heart_rate')
+  // Get latest resting heart rate (prefer resting_heart_rate, fall back to heart_rate)
+  const latestRHR = getLatestVital('resting_heart_rate') || getLatestVital('heart_rate')
+  // Get latest active/normal heart rate
+  const latestActiveHR = getLatestVital('heart_rate')
 
   // Format vital value for display
   const formatVitalValue = (vital) => {
@@ -1428,6 +1430,11 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
           <div className="text-gray-400 text-sm mb-1">Resting HR</div>
           <div className="text-2xl font-bold">{latestRHR ? `${Math.round(latestRHR.value)}` : 'N/A'}</div>
           {latestRHR && <div className="text-xs text-gray-400">bpm</div>}
+        </div>
+        <div className="bg-gray-700 rounded-lg p-4">
+          <div className="text-gray-400 text-sm mb-1">Active HR</div>
+          <div className="text-2xl font-bold">{latestActiveHR ? `${Math.round(latestActiveHR.value)}` : 'N/A'}</div>
+          {latestActiveHR && <div className="text-xs text-gray-400">bpm</div>}
         </div>
         <div className="bg-gray-700 rounded-lg p-4">
           <div className="text-gray-400 text-sm mb-1">Blood Type</div>

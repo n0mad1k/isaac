@@ -1037,6 +1037,7 @@ async def log_weight(
 VITAL_UNITS = {
     VitalType.BLOOD_PRESSURE: "mmHg",
     VitalType.HEART_RATE: "bpm",
+    VitalType.RESTING_HEART_RATE: "bpm",
     VitalType.HRV: "ms",
     VitalType.TEMPERATURE: "°F",
     VitalType.BLOOD_OXYGEN: "%",

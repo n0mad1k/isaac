@@ -173,9 +173,13 @@ def _analyze_autonomic_recovery(
     hrv_score = 100
     confidence = 0.0
 
-    # Get current and baseline RHR
-    latest_rhr = _get_latest_vital(vitals, VitalType.HEART_RATE)
-    baseline_rhr = _calculate_rolling_baseline(all_vitals, VitalType.HEART_RATE, 30)
+    # Get current and baseline RHR (prefer RESTING_HEART_RATE, fall back to HEART_RATE)
+    latest_rhr = _get_latest_vital(vitals, VitalType.RESTING_HEART_RATE)
+    baseline_rhr = _calculate_rolling_baseline(all_vitals, VitalType.RESTING_HEART_RATE, 30)
+    # Fall back to regular heart rate if no resting HR data
+    if not latest_rhr:
+        latest_rhr = _get_latest_vital(vitals, VitalType.HEART_RATE)
+        baseline_rhr = _calculate_rolling_baseline(all_vitals, VitalType.HEART_RATE, 30)
 
     if latest_rhr and baseline_rhr:
         diff = latest_rhr.value - baseline_rhr
@@ -332,9 +336,12 @@ def _analyze_illness_indicators(
             score = min(score, 40)
             factors.append(f"Fever: {temp:.1f}°F")
         elif temp >= 99.5:
-            # Check for elevated RHR too
-            latest_rhr = _get_latest_vital(vitals, VitalType.HEART_RATE)
-            baseline_rhr = _calculate_rolling_baseline(all_vitals, VitalType.HEART_RATE, 30)
+            # Check for elevated RHR too (prefer resting HR)
+            latest_rhr = _get_latest_vital(vitals, VitalType.RESTING_HEART_RATE)
+            baseline_rhr = _calculate_rolling_baseline(all_vitals, VitalType.RESTING_HEART_RATE, 30)
+            if not latest_rhr:
+                latest_rhr = _get_latest_vital(vitals, VitalType.HEART_RATE)
+                baseline_rhr = _calculate_rolling_baseline(all_vitals, VitalType.HEART_RATE, 30)
             if latest_rhr and baseline_rhr and latest_rhr.value > baseline_rhr + 5:
                 score = min(score, 60)
                 factors.append(f"Low-grade fever ({temp:.1f}°F) with elevated HR")
