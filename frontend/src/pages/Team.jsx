@@ -12,6 +12,7 @@ import MemberDossier from '../components/team/MemberDossier'
 import WeeklyAARView from '../components/team/WeeklyAARView'
 import MemberForm from '../components/team/MemberForm'
 import TeamGearTab from '../components/team/TeamGearTab'
+import TeamSupplyRequestsTab from '../components/team/TeamSupplyRequestsTab'
 
 function Team() {
   const [loading, setLoading] = useState(true)
@@ -290,6 +291,17 @@ function Team() {
             </button>
 
             <button
+              onClick={() => setActiveTab('supplies')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'supplies'
+                  ? 'bg-gray-700 text-white'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+              }`}
+            >
+              Supplies
+            </button>
+
+            <button
               onClick={() => setActiveTab('aar')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'aar'
@@ -419,6 +431,12 @@ function Team() {
             <TeamGearTab
               members={members}
               onRefresh={loadData}
+            />
+          )}
+
+          {activeTab === 'supplies' && (
+            <TeamSupplyRequestsTab
+              members={members}
             />
           )}
         </div>

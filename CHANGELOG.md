@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.38.0] - 2026-01-28
+
+### Added
+- **Global Supply Requests tab** - New "Supplies" tab in Team page for admin view
+  - View all team member supply requests in one place
+  - Filter by status, priority, or member
+  - Quick status change dropdown on each request
+  - Summary cards showing request counts by status
+  - Pending/Approved total cost display
+  - Add admin notes to requests
+
 ## [1.37.0] - 2026-01-28
 
 ### Added
