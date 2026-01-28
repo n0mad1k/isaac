@@ -2,9 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
-## [1.42.1] - 2026-01-28
+## [1.42.2] - 2026-01-28
 
 ### Fixed
+- **Readiness assessment data quality** - Fixed missing data points display for 7-day and 30-day readings
+  - Taping method now correctly reports availability based on waist/neck/hip measurements
+  - Missing vitals list now shows which key vital types have no data
 - **Fitness score explanation** - Expanded score breakdown with full scoring details per workout type
   - Tap any workout type to expand detailed scoring inputs, thresholds, and grading scale
   - Shows pace/time targets for each tier (SF/Marine/Civilian) based on age and gender

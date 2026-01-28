@@ -1184,11 +1184,35 @@ async def analyze_readiness(
     if overall_confidence == "LOW":
         data_quality_note += " - limited data, conservative assessment"
 
+    # Count vitals in specific time windows
+    cutoff_7d = datetime.utcnow() - timedelta(days=7)
+    cutoff_30d = datetime.utcnow() - timedelta(days=30)
+    data_points_7d = len([v for v in all_vitals if v.recorded_at >= cutoff_7d])
+    data_points_30d = len([v for v in all_vitals if v.recorded_at >= cutoff_30d])
+
+    # Check taping method availability (waist + neck required, hip for females)
+    recent_vital_types = set(v.vital_type.value for v in all_vitals) if all_vitals else set()
+    has_waist = "waist" in recent_vital_types
+    has_neck = "neck" in recent_vital_types
+    is_female = member.gender == Gender.FEMALE if member.gender else False
+    if is_female:
+        taping_available = has_waist and has_neck and ("hip" in recent_vital_types)
+    else:
+        taping_available = has_waist and has_neck
+
+    # Determine missing vitals (key types used in readiness assessment)
+    key_vital_types = ["resting_heart_rate", "blood_pressure", "blood_oxygen", "temperature"]
+    vitals_missing = [vt for vt in key_vital_types if vt not in recent_vital_types]
+
     data_quality = {
         "total_datapoints": total_datapoints,
         "days_with_data": days_with_data,
         "workouts_28d": len(workouts),
-        "confidence": overall_confidence
+        "confidence": overall_confidence,
+        "data_points_7d": data_points_7d,
+        "data_points_30d": data_points_30d,
+        "taping_available": taping_available,
+        "vitals_missing": vitals_missing,
     }
 
     # ============================================
