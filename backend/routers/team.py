@@ -1238,8 +1238,14 @@ async def get_vitals_averages(
     return averages
 
 
-async def _calculate_and_store_body_fat(member_id: int, db: AsyncSession) -> Optional[float]:
-    """Calculate body fat from taping measurements and store it if successful."""
+async def _calculate_and_store_body_fat(member_id: int, db: AsyncSession, force: bool = False) -> Optional[float]:
+    """Calculate body fat from taping measurements and store it if successful.
+
+    Args:
+        member_id: The member to calculate body fat for
+        db: Database session
+        force: If True, always create a new record. If False, only create if value changed.
+    """
     result = await db.execute(
         select(TeamMember).where(TeamMember.id == member_id)
     )
@@ -1289,18 +1295,38 @@ async def _calculate_and_store_body_fat(member_id: int, db: AsyncSession) -> Opt
     if bf_pct is None or not (0 < bf_pct < 60):
         return None
 
-    # Store body fat
+    bf_rounded = round(bf_pct, 1)
+
+    # Check if we already have a body fat log with the same value
+    # Only skip creating if force=False and the most recent auto-calculated value is the same
+    if not force:
+        existing_result = await db.execute(
+            select(MemberVitalsLog)
+            .where(and_(
+                MemberVitalsLog.member_id == member_id,
+                MemberVitalsLog.vital_type == VitalType.BODY_FAT,
+                MemberVitalsLog.notes == "Auto-calculated from taping measurements"
+            ))
+            .order_by(desc(MemberVitalsLog.recorded_at))
+            .limit(1)
+        )
+        existing_log = existing_result.scalar_one_or_none()
+        if existing_log and existing_log.value == bf_rounded:
+            # Value hasn't changed, don't create duplicate
+            return bf_rounded
+
+    # Store body fat (only if value changed or force=True)
     body_fat_log = MemberVitalsLog(
         member_id=member_id,
         vital_type=VitalType.BODY_FAT,
-        value=round(bf_pct, 1),
+        value=bf_rounded,
         unit="%",
         notes="Auto-calculated from taping measurements"
     )
     db.add(body_fat_log)
     await db.commit()
 
-    return round(bf_pct, 1)
+    return bf_rounded
 
 
 @router.post("/members/{member_id}/calculate-body-fat/")
@@ -1310,7 +1336,8 @@ async def calculate_body_fat(
     current_user: User = Depends(require_auth)
 ):
     """Calculate and store body fat from existing taping measurements."""
-    bf_pct = await _calculate_and_store_body_fat(member_id, db)
+    # Use force=True since user explicitly requested calculation
+    bf_pct = await _calculate_and_store_body_fat(member_id, db, force=True)
     if bf_pct is None:
         raise HTTPException(
             status_code=400,
@@ -1721,58 +1748,12 @@ async def log_vital(
     await db.refresh(log)
 
     # Auto-calculate body fat when waist, neck, or hip is logged
-    body_fat_log = None
+    # Use the shared function which checks for duplicates
+    calculated_body_fat = None
     taping_types = [VitalType.WAIST, VitalType.NECK, VitalType.HIP]
     if data.vital_type in taping_types and member.height_inches:
-        # Get latest measurements for each type
-        measurements = {}
-        for vtype in taping_types:
-            vresult = await db.execute(
-                select(MemberVitalsLog)
-                .where(and_(
-                    MemberVitalsLog.member_id == member_id,
-                    MemberVitalsLog.vital_type == vtype
-                ))
-                .order_by(desc(MemberVitalsLog.recorded_at))
-                .limit(1)
-            )
-            vlog = vresult.scalar_one_or_none()
-            if vlog:
-                measurements[vtype] = vlog.value
-
-        # Check if we have enough data to calculate
-        is_female = member.gender == Gender.FEMALE if member.gender else False
-        waist = measurements.get(VitalType.WAIST)
-        neck = measurements.get(VitalType.NECK)
-        hip = measurements.get(VitalType.HIP)
-
-        # For females, we need hip; for males, we need waist and neck
-        can_calculate = False
-        if is_female and waist and neck and hip:
-            can_calculate = True
-        elif not is_female and waist and neck:
-            can_calculate = True
-
-        if can_calculate:
-            bf_pct = _calculate_body_fat_taping(
-                member.height_inches,
-                waist,
-                neck,
-                hip if is_female else None,
-                is_female
-            )
-            if bf_pct is not None and 0 < bf_pct < 60:  # Sanity check
-                # Create auto-calculated body fat log
-                body_fat_log = MemberVitalsLog(
-                    member_id=member_id,
-                    vital_type=VitalType.BODY_FAT,
-                    value=round(bf_pct, 1),
-                    unit="%",
-                    notes="Auto-calculated from taping measurements"
-                )
-                db.add(body_fat_log)
-                await db.commit()
-                await db.refresh(body_fat_log)
+        # Calculate and store body fat (only if value changed from last auto-calc)
+        calculated_body_fat = await _calculate_and_store_body_fat(member_id, db, force=False)
 
     response = {
         "id": log.id,
@@ -1785,13 +1766,12 @@ async def log_vital(
         "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
     }
 
-    # Include calculated body fat in response if it was created
-    if body_fat_log:
+    # Include calculated body fat in response if it was calculated
+    if calculated_body_fat is not None:
         response["calculated_body_fat"] = {
-            "id": body_fat_log.id,
-            "value": body_fat_log.value,
-            "unit": body_fat_log.unit,
-            "notes": body_fat_log.notes
+            "value": calculated_body_fat,
+            "unit": "%",
+            "notes": "Auto-calculated from taping measurements"
         }
 
     return response
