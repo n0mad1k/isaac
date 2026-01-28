@@ -330,6 +330,15 @@ def _assess_medical_safety(
         diastolic = latest_bp.value_secondary or 80
         bp_category = _get_bp_category(systolic, diastolic)
 
+        # Combine context factors from the vital log itself and passed parameters
+        bp_context_factors = list(latest_bp.context_factors or []) if latest_bp.context_factors else []
+        if context_factors:
+            bp_context_factors.extend(context_factors)
+
+        # Context factors that can explain elevated BP readings
+        bp_explainable_factors = ["caffeine", "stress", "post_exercise", "white_coat", "high_caffeine", "high_stress"]
+        has_explainable_factors = any(f in bp_explainable_factors for f in bp_context_factors)
+
         if bp_category == "crisis":
             status = "RED"
             flags.append(f"BP CRISIS: {systolic:.0f}/{diastolic:.0f}")
@@ -339,12 +348,17 @@ def _assess_medical_safety(
                 status = "AMBER"
             flags.append(f"BP Stage 2: {systolic:.0f}/{diastolic:.0f}")
             action = "Medical follow-up recommended"
+            if has_explainable_factors:
+                flags.append(f"  (Context: {', '.join(bp_context_factors)})")
         elif bp_category == "stage1":
             # Only flag if no context factors explain it
-            if not context_factors or not any(f in ["caffeine", "stress", "post_exercise"] for f in (context_factors or [])):
+            if not has_explainable_factors:
                 if status == "GREEN":
-                    status = "AMBER" if status == "GREEN" else status
+                    status = "AMBER"
                 flags.append(f"BP Stage 1: {systolic:.0f}/{diastolic:.0f}")
+            else:
+                # Add note that context factors explain the reading
+                flags.append(f"BP elevated but context explains it: {', '.join(bp_context_factors)}")
 
     # Blood Oxygen (SpO2)
     latest_spo2 = _get_latest_vital(vitals, VitalType.BLOOD_OXYGEN)
