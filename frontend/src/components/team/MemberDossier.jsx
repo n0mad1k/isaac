@@ -212,37 +212,28 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
-              {/* Readiness Scores - 3 colored number badges */}
-              <div className="flex items-center gap-1">
-                {/* Overall Readiness Score */}
-                <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${
-                  member.overall_readiness === 'GREEN' ? 'bg-green-600' :
-                  member.overall_readiness === 'AMBER' ? 'bg-yellow-600' :
-                  member.overall_readiness === 'RED' ? 'bg-red-600' :
-                  'bg-gray-600'
-                }`} title="Overall Readiness">
-                  {member.readiness_score != null ? Math.round(member.readiness_score) : '—'}
-                </span>
-                {/* Performance Readiness Score */}
-                <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${
-                  member.performance_readiness_score != null ? (
-                    member.performance_readiness_score >= 80 ? 'bg-green-600' :
-                    member.performance_readiness_score >= 60 ? 'bg-yellow-600' :
-                    'bg-red-600'
-                  ) : 'bg-gray-600'
-                }`} title="Performance Readiness">
-                  {member.performance_readiness_score != null ? Math.round(member.performance_readiness_score) : '—'}
-                </span>
-                {/* Medical Safety */}
-                <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${
-                  member.medical_safety_status === 'GREEN' ? 'bg-green-600' :
-                  member.medical_safety_status === 'AMBER' ? 'bg-yellow-600' :
-                  member.medical_safety_status === 'RED' ? 'bg-red-600' :
-                  'bg-gray-600'
-                }`} title="Medical Safety">
-                  {member.medical_safety_status === 'GREEN' ? '✓' : member.medical_safety_status === 'AMBER' ? '!' : member.medical_safety_status === 'RED' ? '✗' : '—'}
-                </span>
-              </div>
+              {/* Readiness Scores - 3 colored badges from analysis */}
+              {(() => {
+                const overallStatus = readinessAnalysis?.overall_status || member.overall_readiness
+                const overallScore = readinessAnalysis?.score ?? member.readiness_score
+                const perfScore = readinessAnalysis?.performance_readiness ?? member.performance_readiness_score
+                const medStatus = readinessAnalysis?.medical_safety?.status || member.medical_safety_status
+                const statusBg = (s) => s === 'GREEN' ? 'bg-green-600' : s === 'AMBER' ? 'bg-yellow-600' : s === 'RED' ? 'bg-red-600' : 'bg-gray-600'
+                const scoreBg = (v) => v != null ? (v >= 80 ? 'bg-green-600' : v >= 60 ? 'bg-yellow-600' : 'bg-red-600') : 'bg-gray-600'
+                return (
+                  <div className="flex items-center gap-1">
+                    <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${statusBg(overallStatus)}`} title="Overall Readiness">
+                      {overallScore != null ? Math.round(overallScore) : '—'}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${scoreBg(perfScore)}`} title="Performance Readiness">
+                      {perfScore != null ? Math.round(perfScore) : '—'}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${statusBg(medStatus)}`} title="Medical Safety">
+                      {medStatus === 'GREEN' ? '✓' : medStatus === 'AMBER' ? '!' : medStatus === 'RED' ? '✗' : '—'}
+                    </span>
+                  </div>
+                )
+              })()}
               {/* Fitness Tier Badge */}
               {member.fitness_tier && (
                 <span className={`px-2 py-0.5 rounded text-xs font-bold ${
@@ -1102,6 +1093,10 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     try {
       const res = await getReadinessAnalysis(member.id, 30, force)
       setReadinessAnalysis(res.data)
+      // Refresh member data if fresh analysis ran (updates stored scores)
+      if (!res.data.from_cache) {
+        onUpdate()
+      }
     } catch (err) {
       setAnalysisError(err.userMessage || 'Failed to load readiness analysis')
     } finally {
