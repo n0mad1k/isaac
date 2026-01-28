@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.34.4] - 2026-01-28
+
+### Added
+- **Send dev tracker items directly to backlog** - Use `./dev-tracker.sh add --backlog <priority> <title>` to create items in backlog
+
 ## [1.34.3] - 2026-01-28
 
 ### Fixed
