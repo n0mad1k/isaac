@@ -2,6 +2,41 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.40.0] - 2026-01-28
+
+### Added
+- **Three-Tier Fitness Classification System** - Performance scores now classified as:
+  - **CIVILIAN** (0-69) - Blue badge - General population fitness
+  - **MARINE** (70-89) - Green badge - Military-grade fitness
+  - **SF** (90-100) - Gold badge - Special Forces/Elite operator fitness
+  - Age/gender-normalized using Marine Corps CFT-style brackets
+  - Ruck weight body ratio adjustments (30%+ BW = +10 bonus)
+- **Fitness Profile display** - New fitness tier badges in Stats view showing overall tier and breakdown by workout type
+- **Evidence-Based Readiness Analysis** - Major refactor of readiness system:
+  - **Medical Safety** as hard gate (RED = no-go regardless of performance)
+  - **Dual baselines** - 7-day short-term + 35-day long-term trends
+  - **Persistence-based fatigue detection** - Single bad day no longer triggers alerts
+  - **Training Load Analysis** with ACWR (Acute:Chronic Workload Ratio)
+  - **Confidence levels** now show HIGH/MEDIUM/LOW instead of percentage
+- **Daily Check-in Feature** - Comprehensive form to log all health metrics at once:
+  - Vitals section: RHR, HRV, BP, SpO2, Temperature, Respiratory Rate
+  - Body measurements: Weight, Waist, Neck, Hip
+  - Subjective inputs: Energy level, Sleep quality/hours, Soreness, Pain, Stress
+  - Context factors: Alcohol, Poor sleep, High caffeine, Travel, Illness, etc.
+- **Quick Add FAB** - Floating action button on Team page for fast data entry:
+  - Daily Check-in, Log Workout, Log Vital, Log Weight
+  - Member selector to log for any active team member
+- **Subjective Inputs Model** - New data model to capture fatigue, pain, and context factors
+- **Training Load Spike Detection** - Warns when ACWR > 1.5 (elevated injury risk)
+
+### Changed
+- **Readiness display updated** - Now shows:
+  - Medical Safety status with hard gate indicator
+  - Training Load panel with ACWR, acute/chronic loads, and spike warnings
+  - Better confidence display with color-coded HIGH/MEDIUM/LOW badges
+  - Data quality note explaining analysis confidence
+- **BP categories** now follow ACC/AHA guidelines (crisis = >180/120)
+
 ## [1.39.1] - 2026-01-28
 
 ### Added

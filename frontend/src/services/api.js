@@ -522,6 +522,12 @@ export const updateWorkout = (memberId, workoutId, data) =>
 export const deleteWorkout = (memberId, workoutId) =>
   api.delete(`/team/members/${memberId}/workouts/${workoutId}/`)
 
+// Daily Check-in and Fitness Profile
+export const submitDailyCheckin = (memberId, data) =>
+  api.post(`/team/members/${memberId}/daily-checkin/`, data)
+export const getFitnessProfile = (memberId, daysBack = 30) =>
+  api.get(`/team/members/${memberId}/fitness-profile/`, { params: { days_back: daysBack } })
+
 // Medical Tracking
 export const getMedicalHistory = (memberId) => api.get(`/team/members/${memberId}/medical-history/`)
 export const logMedicalChange = (memberId, data) => api.post(`/team/members/${memberId}/medical/`, data)

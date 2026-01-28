@@ -5,7 +5,8 @@ import {
 } from 'lucide-react'
 import {
   getTeamSettings, getTeamOverview, getTeamMembers, createTeamMember,
-  updateTeamMember, deleteTeamMember, createObservation, createMentoringSession
+  updateTeamMember, deleteTeamMember, createObservation, createMentoringSession,
+  logWeight
 } from '../services/api'
 import TeamOverview from '../components/team/TeamOverview'
 import MemberDossier from '../components/team/MemberDossier'
@@ -13,6 +14,10 @@ import WeeklyAARView from '../components/team/WeeklyAARView'
 import MemberForm from '../components/team/MemberForm'
 import TeamGearTab from '../components/team/TeamGearTab'
 import TeamSupplyRequestsTab from '../components/team/TeamSupplyRequestsTab'
+import FloatingActionButton from '../components/team/FloatingActionButton'
+import DailyCheckinModal from '../components/team/DailyCheckinModal'
+import QuickAddWorkout from '../components/team/QuickAddWorkout'
+import QuickAddVital from '../components/team/QuickAddVital'
 
 function Team() {
   const [loading, setLoading] = useState(true)
@@ -40,6 +45,15 @@ function Team() {
   // Quick add session state
   const [sessionMember, setSessionMember] = useState('')
   const [sessionSubmitting, setSessionSubmitting] = useState(false)
+
+  // Quick Add FAB modal states
+  const [showDailyCheckin, setShowDailyCheckin] = useState(false)
+  const [showQuickWorkout, setShowQuickWorkout] = useState(false)
+  const [showQuickVital, setShowQuickVital] = useState(false)
+  const [showQuickWeight, setShowQuickWeight] = useState(false)
+  const [quickWeightMemberId, setQuickWeightMemberId] = useState('')
+  const [quickWeightValue, setQuickWeightValue] = useState('')
+  const [quickWeightSubmitting, setQuickWeightSubmitting] = useState(false)
 
   // Tab navigation state
   const tabsRef = useRef(null)
@@ -609,6 +623,116 @@ function Team() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Quick Add Weight Modal */}
+      {showQuickWeight && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Log Weight</h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Team Member</label>
+                <select
+                  value={quickWeightMemberId}
+                  onChange={(e) => setQuickWeightMemberId(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                >
+                  <option value="">Select member...</option>
+                  {members.filter(m => m.is_active !== false).map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.nickname || m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Weight (lbs)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={quickWeightValue}
+                  onChange={(e) => setQuickWeightValue(e.target.value)}
+                  placeholder="170"
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => {
+                  setShowQuickWeight(false)
+                  setQuickWeightMemberId('')
+                  setQuickWeightValue('')
+                }}
+                className="px-4 py-2 text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!quickWeightMemberId || !quickWeightValue) return
+                  setQuickWeightSubmitting(true)
+                  try {
+                    await logWeight(quickWeightMemberId, { weight: parseFloat(quickWeightValue) })
+                    setShowQuickWeight(false)
+                    setQuickWeightMemberId('')
+                    setQuickWeightValue('')
+                    await loadData()
+                  } catch (err) {
+                    console.error('Failed to log weight:', err)
+                  } finally {
+                    setQuickWeightSubmitting(false)
+                  }
+                }}
+                disabled={quickWeightSubmitting || !quickWeightMemberId || !quickWeightValue}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500 disabled:opacity-50"
+              >
+                {quickWeightSubmitting ? 'Saving...' : 'Log Weight'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Check-in Modal */}
+      {showDailyCheckin && (
+        <DailyCheckinModal
+          members={members}
+          onClose={() => setShowDailyCheckin(false)}
+          onSuccess={loadData}
+        />
+      )}
+
+      {/* Quick Add Workout Modal */}
+      {showQuickWorkout && (
+        <QuickAddWorkout
+          members={members}
+          onClose={() => setShowQuickWorkout(false)}
+          onSuccess={loadData}
+        />
+      )}
+
+      {/* Quick Add Vital Modal */}
+      {showQuickVital && (
+        <QuickAddVital
+          members={members}
+          onClose={() => setShowQuickVital(false)}
+          onSuccess={loadData}
+        />
+      )}
+
+      {/* Floating Action Button - only show when NOT in a member dossier */}
+      {activeTab !== 'member' && (
+        <FloatingActionButton
+          onDailyCheckin={() => setShowDailyCheckin(true)}
+          onLogWorkout={() => setShowQuickWorkout(true)}
+          onLogVital={() => setShowQuickVital(true)}
+          onLogWeight={() => setShowQuickWeight(true)}
+        />
       )}
     </div>
   )

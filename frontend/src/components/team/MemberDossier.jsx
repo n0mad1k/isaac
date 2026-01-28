@@ -14,7 +14,8 @@ import {
   deleteMemberAppointment, completeMemberAppointment,
   getVitalsHistory, getVitalsAverages, logVital, deleteVital, updateVital, getVitalTypes,
   getReadinessAnalysis, calculateBodyFat,
-  getWorkoutTypes, getWorkouts, getWorkoutStats, logWorkout, updateWorkout, deleteWorkout
+  getWorkoutTypes, getWorkouts, getWorkoutStats, logWorkout, updateWorkout, deleteWorkout,
+  getFitnessProfile
 } from '../../services/api'
 import MemberMentoringTab from './MemberMentoringTab'
 import MemberObservationsTab from './MemberObservationsTab'
@@ -1365,57 +1366,127 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
             {/* Main Status Row */}
             <div className="flex flex-col md:flex-row gap-4">
               {/* Overall Score */}
-              <div className={`flex-shrink-0 p-4 rounded-lg ${getStatusColor(readinessAnalysis.overall_status).bg} text-white text-center`}>
+              <div className={`flex-shrink-0 p-4 rounded-lg ${getStatusColor(readinessAnalysis.overall_status).bg} text-white text-center min-w-[120px]`}>
                 <div className="text-3xl font-bold">{Math.round(readinessAnalysis.score)}</div>
                 <div className="text-sm font-semibold">OVERALL</div>
                 <div className="text-lg font-bold">{readinessAnalysis.overall_status}</div>
-                <div className="text-xs opacity-80 mt-1">
-                  Confidence: {Math.round(readinessAnalysis.confidence * 100)}%
+                <div className={`text-xs mt-1 px-2 py-0.5 rounded ${
+                  readinessAnalysis.confidence === 'HIGH' ? 'bg-green-900/50' :
+                  readinessAnalysis.confidence === 'MEDIUM' ? 'bg-yellow-900/50' :
+                  'bg-red-900/50'
+                }`}>
+                  {readinessAnalysis.confidence} Confidence
                 </div>
               </div>
 
-              {/* Physical & Medical Status */}
-              <div className="flex-grow space-y-2">
+              {/* Medical Safety & Performance */}
+              <div className="flex-grow space-y-3">
+                {/* Medical Safety - Hard Gate */}
+                {readinessAnalysis.medical_safety && (
+                  <div className={`flex items-center gap-3 p-2 rounded ${
+                    readinessAnalysis.medical_safety.status === 'RED' ? 'bg-red-900/30 border border-red-600' :
+                    readinessAnalysis.medical_safety.status === 'AMBER' ? 'bg-yellow-900/30 border border-yellow-600' :
+                    'bg-green-900/20 border border-green-800'
+                  }`}>
+                    <Shield className={`w-5 h-5 ${
+                      readinessAnalysis.medical_safety.status === 'RED' ? 'text-red-400' :
+                      readinessAnalysis.medical_safety.status === 'AMBER' ? 'text-yellow-400' :
+                      'text-green-400'
+                    }`} />
+                    <div className="flex-grow">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Medical Safety</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${getStatusColor(readinessAnalysis.medical_safety.status).bg} text-white`}>
+                          {readinessAnalysis.medical_safety.status}
+                        </span>
+                        {readinessAnalysis.medical_safety.status === 'RED' && (
+                          <span className="text-xs text-red-400">(HARD GATE)</span>
+                        )}
+                      </div>
+                      {readinessAnalysis.medical_safety.recommendation && (
+                        <p className="text-xs text-gray-400 mt-1">{readinessAnalysis.medical_safety.recommendation}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Performance Readiness */}
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-400 w-36">Physical Readiness</span>
-                  <span className={`px-2 py-0.5 rounded text-sm font-medium ${getStatusColor(readinessAnalysis.physical_status).bg} text-white`}>
-                    {readinessAnalysis.physical_status}
+                  <span className="text-gray-400 w-36">Performance</span>
+                  <span className={`px-2 py-0.5 rounded text-sm font-medium ${getStatusColor(readinessAnalysis.physical_status || readinessAnalysis.overall_status).bg} text-white`}>
+                    {readinessAnalysis.physical_status || readinessAnalysis.overall_status}
                   </span>
                   <span className="text-gray-300">
-                    {readinessAnalysis.indicators.find(i => i.name === 'Physical Readiness')?.value.toFixed(0) || '-'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-gray-400 w-36">Medical Readiness</span>
-                  <span className={`px-2 py-0.5 rounded text-sm font-medium ${getStatusColor(readinessAnalysis.medical_status).bg} text-white`}>
-                    {readinessAnalysis.medical_status}
-                  </span>
-                  <span className="text-gray-300">
-                    {readinessAnalysis.indicators.find(i => i.name === 'Medical Readiness')?.value.toFixed(0) || '-'}
+                    {readinessAnalysis.indicators?.find(i => i.name === 'Physical Readiness')?.value?.toFixed(0) || '-'}
                   </span>
                 </div>
 
-                {/* Physical Breakdown */}
-                <div className="mt-3 pt-3 border-t border-gray-600">
-                  <div className="text-xs text-gray-400 mb-2">PHYSICAL BREAKDOWN:</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {readinessAnalysis.indicators
-                      .filter(ind => ['autonomic', 'cardiovascular', 'illness', 'body_composition'].includes(ind.category))
-                      .map(ind => (
-                        <div key={ind.category} className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-28 truncate" title={ind.name}>{ind.name}</span>
-                          <div className="flex-grow bg-gray-800 rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-full ${ind.value >= 80 ? 'bg-green-500' : ind.value >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                              style={{ width: `${ind.value}%` }}
-                            />
-                          </div>
-                          <span className="text-xs w-8 text-right">{ind.value.toFixed(0)}</span>
-                          {getTrendIcon(ind.trend)}
-                        </div>
-                      ))}
+                {/* Training Load Analysis */}
+                {readinessAnalysis.training_load && (
+                  <div className="bg-gray-800 rounded p-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Activity className="w-4 h-4 text-blue-400" />
+                      <span className="text-xs text-gray-400 font-medium">TRAINING LOAD</span>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        readinessAnalysis.training_load.risk === 'HIGH' ? 'bg-red-600' :
+                        readinessAnalysis.training_load.risk === 'MODERATE' ? 'bg-yellow-600' :
+                        'bg-green-600'
+                      } text-white`}>
+                        {readinessAnalysis.training_load.risk} RISK
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <span className="text-gray-500">ACWR:</span>
+                        <span className={`ml-1 font-medium ${
+                          readinessAnalysis.training_load.acwr > 1.5 ? 'text-red-400' :
+                          readinessAnalysis.training_load.acwr > 1.3 ? 'text-yellow-400' :
+                          'text-green-400'
+                        }`}>
+                          {readinessAnalysis.training_load.acwr?.toFixed(2) || '-'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Acute:</span>
+                        <span className="ml-1">{readinessAnalysis.training_load.acute_load?.toFixed(0) || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Chronic:</span>
+                        <span className="ml-1">{readinessAnalysis.training_load.chronic_load?.toFixed(0) || '-'}</span>
+                      </div>
+                    </div>
+                    {readinessAnalysis.training_load.spike_detected && (
+                      <div className="mt-2 text-xs text-yellow-400 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Training load spike detected - injury risk elevated
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
+
+                {/* Physical Breakdown */}
+                {readinessAnalysis.indicators?.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-600">
+                    <div className="text-xs text-gray-400 mb-2">PHYSICAL BREAKDOWN:</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {readinessAnalysis.indicators
+                        .filter(ind => ['autonomic', 'cardiovascular', 'illness', 'body_composition'].includes(ind.category))
+                        .map(ind => (
+                          <div key={ind.category} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-28 truncate" title={ind.name}>{ind.name}</span>
+                            <div className="flex-grow bg-gray-800 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full ${ind.value >= 80 ? 'bg-green-500' : ind.value >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                style={{ width: `${ind.value}%` }}
+                              />
+                            </div>
+                            <span className="text-xs w-8 text-right">{ind.value?.toFixed(0) || '-'}</span>
+                            {getTrendIcon(ind.trend)}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1474,6 +1545,9 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 {/* Data Quality */}
                 <div className="bg-gray-800 rounded p-3">
                   <div className="text-xs text-gray-400 mb-2">DATA QUALITY</div>
+                  {readinessAnalysis.data_quality_note && (
+                    <p className="text-sm text-gray-300 mb-2">{readinessAnalysis.data_quality_note}</p>
+                  )}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                     <div>
                       <span className="text-gray-500">7-day readings:</span>
@@ -1496,6 +1570,11 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                       </span>
                     </div>
                   </div>
+                  {readinessAnalysis.data_sources_used?.length > 0 && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      Data sources: {readinessAnalysis.data_sources_used.join(', ')}
+                    </div>
+                  )}
                   {readinessAnalysis.data_quality?.vitals_missing?.length > 0 && (
                     <div className="mt-2 text-xs text-gray-500">
                       Missing vitals: {readinessAnalysis.data_quality.vitals_missing.join(', ')}
@@ -2089,6 +2168,7 @@ const WORKOUT_TYPES = [
 function FitnessTab({ member, settings, formatDate }) {
   const [workouts, setWorkouts] = useState([])
   const [stats, setStats] = useState(null)
+  const [fitnessProfile, setFitnessProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showAddWorkout, setShowAddWorkout] = useState(false)
@@ -2121,12 +2201,14 @@ function FitnessTab({ member, settings, formatDate }) {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [workoutsRes, statsRes] = await Promise.all([
+      const [workoutsRes, statsRes, profileRes] = await Promise.all([
         getWorkouts(member.id, { limit: 50, days_back: 365 }),
-        getWorkoutStats(member.id, 30)
+        getWorkoutStats(member.id, 30),
+        getFitnessProfile(member.id).catch(() => ({ data: null }))
       ])
       setWorkouts(workoutsRes.data)
       setStats(statsRes.data)
+      setFitnessProfile(profileRes.data)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -2309,6 +2391,58 @@ function FitnessTab({ member, settings, formatDate }) {
       {/* Stats View */}
       {viewMode === 'stats' && stats && (
         <div className="space-y-6">
+          {/* Fitness Profile Tier Badge */}
+          {fitnessProfile && fitnessProfile.overall_tier && (
+            <div className={`rounded-lg p-4 border-2 ${
+              fitnessProfile.overall_tier === 'SF' ? 'bg-yellow-900/20 border-yellow-500' :
+              fitnessProfile.overall_tier === 'MARINE' ? 'bg-green-900/20 border-green-500' :
+              'bg-blue-900/20 border-blue-500'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`px-3 py-1 rounded-full font-bold ${
+                    fitnessProfile.overall_tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
+                    fitnessProfile.overall_tier === 'MARINE' ? 'bg-green-500 text-green-900' :
+                    'bg-blue-500 text-blue-900'
+                  }`}>
+                    {fitnessProfile.overall_tier}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white">{fitnessProfile.overall_sub_tier}</div>
+                    <div className="text-sm text-gray-400">Overall Fitness Level</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold">{Math.round(fitnessProfile.overall_score || 0)}</div>
+                  <div className="text-xs text-gray-400">FITNESS SCORE</div>
+                </div>
+              </div>
+              {/* Tier breakdown by workout type */}
+              {fitnessProfile.by_type && Object.keys(fitnessProfile.by_type).length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-600">
+                  <div className="text-xs text-gray-400 mb-2">PERFORMANCE BY TYPE</div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {Object.entries(fitnessProfile.by_type).map(([type, data]) => (
+                      <div key={type} className="flex items-center justify-between bg-gray-800 rounded p-2">
+                        <span className="text-sm text-gray-300">{type}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            data.tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
+                            data.tier === 'MARINE' ? 'bg-green-500 text-green-900' :
+                            'bg-blue-500 text-blue-900'
+                          }`}>
+                            {data.tier}
+                          </span>
+                          <span className="text-sm font-medium">{Math.round(data.score)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-700/50 rounded-lg p-4 text-center">

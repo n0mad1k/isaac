@@ -241,6 +241,7 @@ class TeamMember(Base):
     medical_appointments = relationship("MemberMedicalAppointment", back_populates="member", cascade="all, delete-orphan")
     supply_requests = relationship("SupplyRequest", back_populates="member", cascade="all, delete-orphan")
     workouts = relationship("MemberWorkout", back_populates="member", cascade="all, delete-orphan")
+    subjective_inputs = relationship("MemberSubjectiveInput", back_populates="member", cascade="all, delete-orphan")
 
 
 class MemberWeightLog(Base):
@@ -673,3 +674,47 @@ class MemberWorkout(Base):
 
     # Relationship
     member = relationship("TeamMember", back_populates="workouts")
+
+
+# ============================================
+# Subjective Readiness Input
+# ============================================
+
+class MemberSubjectiveInput(Base):
+    """
+    Daily subjective readiness inputs from team members.
+    Captures fatigue, sleep, pain, stress, and context factors.
+    Used to improve readiness analysis accuracy.
+    """
+    __tablename__ = "member_subjective_inputs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    member_id = Column(Integer, ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False)
+
+    input_date = Column(DateTime, default=datetime.utcnow)
+
+    # Fatigue/Energy (0-10, where 0=exhausted, 10=fresh)
+    energy_level = Column(Integer, nullable=True)
+
+    # Sleep
+    sleep_hours = Column(Float, nullable=True)
+    sleep_quality = Column(Integer, nullable=True)  # 1-5
+
+    # Soreness/Pain
+    soreness = Column(Integer, nullable=True)       # 0-10
+    pain_severity = Column(Integer, nullable=True)  # 0-10
+    pain_location = Column(String(100), nullable=True)
+
+    # Stress (0-10)
+    stress_level = Column(Integer, nullable=True)
+
+    # Context factors (JSON array)
+    # e.g., ["alcohol", "travel", "illness_symptoms", "high_caffeine", "heat_exposure"]
+    context_factors = Column(JSON, nullable=True)
+
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationship
+    member = relationship("TeamMember", back_populates="subjective_inputs")

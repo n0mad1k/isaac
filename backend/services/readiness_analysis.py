@@ -1,14 +1,24 @@
 """
-Performance-Readiness Analysis Service
+Evidence-Based Readiness Analysis Service
 
-Combines physical readiness (from vitals/training data) with medical readiness
-to calculate overall readiness status (GREEN/AMBER/RED).
+Two-track system:
+1. MEDICAL SAFETY (Hard Gate) - BP, SpO2, temperature, severe symptoms
+2. PERFORMANCE READINESS - Autonomic recovery (RHR/HRV), training load, subjective factors
+
+Key improvements over previous version:
+- Dual baselines (7-day short + 35-day long term)
+- Persistence-based HRV/RHR decisions (2+ days required to trigger flags)
+- Separate medical safety from performance readiness
+- Uncertainty handling (no more "neutral = 85" when data is missing)
+- ACC/AHA blood pressure categories
+- Body composition as long-term context only
+- Explainable readiness with primary drivers
 
 Uses Marine Corps taping method for body composition - NO BMI.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, desc
@@ -22,39 +32,83 @@ from models.team import (
 )
 
 
+# ============================================
+# Data Classes
+# ============================================
+
+@dataclass
+class BaselineData:
+    """Dual baseline for a vital type"""
+    short_avg: Optional[float] = None   # 7-day average
+    long_avg: Optional[float] = None    # 35-day average
+    short_count: int = 0
+    long_count: int = 0
+    trend: str = "unknown"              # improving, stable, declining
+    confidence: str = "LOW"             # LOW, MEDIUM, HIGH
+
+
+@dataclass
+class MedicalSafetyResult:
+    """Medical safety assessment (hard gate)"""
+    status: str                         # GREEN, AMBER, RED
+    flags: List[str] = field(default_factory=list)
+    action: Optional[str] = None
+
+
 @dataclass
 class PerformanceIndicator:
     """Individual performance metric with score and explanation"""
-    name: str                      # e.g., "Autonomic Recovery", "Physical Readiness"
-    category: str                  # physical, medical, autonomic, cardiovascular, illness, body_composition
-    value: float                   # 0-100 score
-    trend: str                     # improving, stable, declining, insufficient_data
+    name: str
+    category: str                       # autonomic, cardiovascular, illness, training_load, subjective
+    value: float                        # 0-100 score
+    trend: str                          # improving, stable, declining, insufficient_data
     explanation: str
-    confidence: float              # 0-1
+    confidence: str                     # LOW, MEDIUM, HIGH
     contributing_factors: List[str] = field(default_factory=list)
+
+
+@dataclass
+class TrainingLoadAnalysis:
+    """Training load metrics"""
+    acute_load: float                   # Last 7 days
+    chronic_load: float                 # Last 28 days average per week
+    acwr: float                         # Acute:Chronic Workload Ratio
+    risk_level: str                     # LOW, MODERATE, HIGH
+    spike_detected: bool = False
+    monotony: Optional[float] = None    # Training monotony score
+    notes: List[str] = field(default_factory=list)
 
 
 @dataclass
 class RiskFlag:
     """Warning flag for concerning indicators"""
-    code: str                      # e.g., "elevated_rhr", "medical_red"
-    severity: str                  # low, moderate, high, critical
+    code: str
+    severity: str                       # low, moderate, high, critical
     title: str
     explanation: str
-    recommendation: Optional[str]
-    source: str                    # "physical" or "medical"
+    recommendation: Optional[str] = None
+    source: str = "physical"            # "physical" or "medical"
 
 
 @dataclass
 class ReadinessAnalysis:
     """Complete readiness analysis result"""
-    overall_status: str            # GREEN, AMBER, RED
-    physical_status: str           # GREEN, AMBER, RED
-    medical_status: str            # GREEN, AMBER, RED
-    score: float                   # 0-100
-    confidence: float              # 0-1
-    explanation: str
-    primary_drivers: List[str]     # Top reasons for status
+    overall_status: str                 # GREEN, AMBER, RED
+    score: float                        # 0-100
+    confidence: str                     # LOW, MEDIUM, HIGH
+
+    # Explainability (required)
+    primary_drivers: List[str]          # Top 2-4 reasons for status
+    data_sources_used: List[str]        # What data influenced result
+    data_quality_note: str              # e.g., "Based on 12 datapoints over 14 days"
+
+    # Breakdown
+    medical_safety: MedicalSafetyResult
+    performance_readiness: float        # 0-100
+    training_load: Optional[TrainingLoadAnalysis] = None
+    subjective_factors: List[str] = field(default_factory=list)
+
+    # Detailed data
     indicators: List[PerformanceIndicator] = field(default_factory=list)
     risk_flags: List[RiskFlag] = field(default_factory=list)
     data_quality: Dict[str, Any] = field(default_factory=dict)
@@ -62,18 +116,35 @@ class ReadinessAnalysis:
     member_updated: bool = False
 
 
+# ============================================
+# Constants
+# ============================================
+
+SHORT_BASELINE_DAYS = 7
+LONG_BASELINE_DAYS = 35
+
+# Minimum data points for confidence levels
+MIN_DATAPOINTS_LOW = 1
+MIN_DATAPOINTS_MEDIUM = 7
+MIN_DATAPOINTS_HIGH = 15
+
+# ACC/AHA Blood Pressure Categories
+BP_CATEGORIES = {
+    "normal": {"systolic": (0, 120), "diastolic": (0, 80)},
+    "elevated": {"systolic": (120, 130), "diastolic": (0, 80)},
+    "stage1": {"systolic": (130, 140), "diastolic": (80, 90)},
+    "stage2": {"systolic": (140, 180), "diastolic": (90, 120)},
+    "crisis": {"systolic": (180, 999), "diastolic": (120, 999)}
+}
+
 # ACE Fitness body fat standards (max for "Normal/Acceptable" category)
-# Source: American Council on Exercise
-# Males: Essential 2-5%, Athletes 6-13%, Fitness 14-17%, Acceptable 18-24%, Overweight 25%+
-# Females: Essential 10-13%, Athletes 14-20%, Fitness 21-24%, Acceptable 25-31%, Overweight 32%+
-ACE_BF_STANDARDS_MALE = {
-    (17, 999): 24  # Max for "Normal" category (all ages same for general fitness)
-}
+ACE_BF_STANDARDS_MALE = {(17, 999): 24}
+ACE_BF_STANDARDS_FEMALE = {(17, 999): 31}
 
-ACE_BF_STANDARDS_FEMALE = {
-    (17, 999): 31  # Max for "Normal" category
-}
 
+# ============================================
+# Helper Functions
+# ============================================
 
 def _get_age_from_birthdate(birth_date: Optional[datetime]) -> Optional[int]:
     """Calculate age from birthdate"""
@@ -98,8 +169,6 @@ def _calculate_body_fat_taping(
 
     Males: BF% = 86.010 × log10(waist - neck) - 70.041 × log10(height) + 36.76
     Females: BF% = 163.205 × log10(waist + hip - neck) - 97.684 × log10(height) - 78.387
-
-    Returns body fat percentage or None if measurements missing.
     """
     if not height_inches or not waist or not neck:
         return None
@@ -117,34 +186,72 @@ def _calculate_body_fat_taping(
             return None
         bf = 86.010 * math.log10(circumference_value) - 70.041 * math.log10(height_inches) + 36.76
 
-    return max(0, min(60, bf))  # Clamp to reasonable range
+    return max(0, min(60, bf))
 
 
 def _get_bf_standard(age: Optional[int], is_female: bool) -> float:
     """Get max allowable body fat % for age/gender (ACE fitness standards)"""
     standards = ACE_BF_STANDARDS_FEMALE if is_female else ACE_BF_STANDARDS_MALE
     if not age:
-        age = 30  # Default
+        age = 30
 
     for (min_age, max_age), max_bf in standards.items():
         if min_age <= age <= max_age:
             return max_bf
-    return 24 if not is_female else 31  # Default to standard max
+    return 24 if not is_female else 31
 
 
-def _calculate_rolling_baseline(
+def _get_confidence_level(datapoints: int) -> str:
+    """Get confidence level based on number of data points"""
+    if datapoints >= MIN_DATAPOINTS_HIGH:
+        return "HIGH"
+    elif datapoints >= MIN_DATAPOINTS_MEDIUM:
+        return "MEDIUM"
+    return "LOW"
+
+
+def _calculate_dual_baseline(
     vitals: List[MemberVitalsLog],
-    vital_type: VitalType,
-    window_days: int = 7
-) -> Optional[float]:
-    """Calculate 7-day rolling average for baseline comparison"""
-    cutoff = datetime.utcnow() - timedelta(days=window_days)
-    relevant = [v for v in vitals if v.vital_type == vital_type and v.recorded_at >= cutoff]
+    vital_type: VitalType
+) -> BaselineData:
+    """
+    Calculate dual baselines (7-day short-term + 35-day long-term).
 
-    if not relevant:
-        return None
+    Returns BaselineData with trend analysis.
+    """
+    now = datetime.utcnow()
+    short_cutoff = now - timedelta(days=SHORT_BASELINE_DAYS)
+    long_cutoff = now - timedelta(days=LONG_BASELINE_DAYS)
 
-    return sum(v.value for v in relevant) / len(relevant)
+    short_values = [v.value for v in vitals if v.vital_type == vital_type and v.recorded_at >= short_cutoff]
+    long_values = [v.value for v in vitals if v.vital_type == vital_type and v.recorded_at >= long_cutoff]
+
+    result = BaselineData()
+
+    if short_values:
+        result.short_avg = sum(short_values) / len(short_values)
+        result.short_count = len(short_values)
+
+    if long_values:
+        result.long_avg = sum(long_values) / len(long_values)
+        result.long_count = len(long_values)
+
+    # Determine confidence
+    result.confidence = _get_confidence_level(result.long_count)
+
+    # Determine trend
+    if result.short_avg and result.long_avg:
+        pct_diff = ((result.short_avg - result.long_avg) / result.long_avg) * 100
+        if pct_diff > 5:
+            result.trend = "increasing"
+        elif pct_diff < -5:
+            result.trend = "decreasing"
+        else:
+            result.trend = "stable"
+    else:
+        result.trend = "unknown"
+
+    return result
 
 
 def _get_latest_vital(vitals: List[MemberVitalsLog], vital_type: VitalType) -> Optional[MemberVitalsLog]:
@@ -155,147 +262,310 @@ def _get_latest_vital(vitals: List[MemberVitalsLog], vital_type: VitalType) -> O
     return max(matching, key=lambda v: v.recorded_at)
 
 
+def _get_recent_vitals(
+    vitals: List[MemberVitalsLog],
+    vital_type: VitalType,
+    days: int = 3
+) -> List[MemberVitalsLog]:
+    """Get vitals from the last N days for persistence checking"""
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    return [v for v in vitals if v.vital_type == vital_type and v.recorded_at >= cutoff]
+
+
+def _get_bp_category(systolic: float, diastolic: float) -> str:
+    """Classify blood pressure using ACC/AHA categories"""
+    for category, ranges in BP_CATEGORIES.items():
+        sys_range = ranges["systolic"]
+        dia_range = ranges["diastolic"]
+        if (sys_range[0] <= systolic < sys_range[1]) or (dia_range[0] <= diastolic < dia_range[1]):
+            if category == "crisis" and (systolic >= 180 or diastolic >= 120):
+                return "crisis"
+            elif category == "stage2" and (systolic >= 140 or diastolic >= 90):
+                return "stage2"
+            elif category == "stage1" and (systolic >= 130 or diastolic >= 80):
+                return "stage1"
+            elif category == "elevated" and (systolic >= 120):
+                return "elevated"
+            else:
+                continue
+
+    # Default classification
+    if systolic >= 180 or diastolic >= 120:
+        return "crisis"
+    elif systolic >= 140 or diastolic >= 90:
+        return "stage2"
+    elif systolic >= 130 or diastolic >= 80:
+        return "stage1"
+    elif systolic >= 120:
+        return "elevated"
+    return "normal"
+
+
+# ============================================
+# Medical Safety Assessment (Hard Gate)
+# ============================================
+
+def _assess_medical_safety(
+    vitals: List[MemberVitalsLog],
+    context_factors: Optional[List[str]] = None
+) -> MedicalSafetyResult:
+    """
+    Assess medical safety - this is a HARD GATE.
+    If RED, overall status is RED regardless of performance readiness.
+
+    Checks:
+    - Blood pressure (ACC/AHA categories)
+    - SpO2 (<92% = critical, <95% = concern)
+    - Temperature (fever detection)
+    - Severe symptom patterns
+    """
+    flags = []
+    status = "GREEN"
+    action = None
+
+    # Blood Pressure
+    latest_bp = _get_latest_vital(vitals, VitalType.BLOOD_PRESSURE)
+    if latest_bp:
+        systolic = latest_bp.value
+        diastolic = latest_bp.value_secondary or 80
+        bp_category = _get_bp_category(systolic, diastolic)
+
+        if bp_category == "crisis":
+            status = "RED"
+            flags.append(f"BP CRISIS: {systolic:.0f}/{diastolic:.0f}")
+            action = "Seek immediate medical evaluation"
+        elif bp_category == "stage2":
+            if status != "RED":
+                status = "AMBER"
+            flags.append(f"BP Stage 2: {systolic:.0f}/{diastolic:.0f}")
+            action = "Medical follow-up recommended"
+        elif bp_category == "stage1":
+            # Only flag if no context factors explain it
+            if not context_factors or not any(f in ["caffeine", "stress", "post_exercise"] for f in (context_factors or [])):
+                if status == "GREEN":
+                    status = "AMBER" if status == "GREEN" else status
+                flags.append(f"BP Stage 1: {systolic:.0f}/{diastolic:.0f}")
+
+    # Blood Oxygen (SpO2)
+    latest_spo2 = _get_latest_vital(vitals, VitalType.BLOOD_OXYGEN)
+    if latest_spo2:
+        spo2 = latest_spo2.value
+        if spo2 < 92:
+            status = "RED"
+            flags.append(f"SpO2 CRITICAL: {spo2:.0f}%")
+            action = "Seek immediate medical attention"
+        elif spo2 < 95:
+            if status != "RED":
+                status = "AMBER"
+            flags.append(f"SpO2 low: {spo2:.0f}%")
+
+    # Temperature (fever detection)
+    latest_temp = _get_latest_vital(vitals, VitalType.TEMPERATURE)
+    if latest_temp:
+        temp = latest_temp.value
+        if temp >= 103:
+            status = "RED"
+            flags.append(f"HIGH FEVER: {temp:.1f}°F")
+            action = "Seek medical evaluation"
+        elif temp >= 100.4:
+            if status != "RED":
+                status = "AMBER"
+            flags.append(f"Fever: {temp:.1f}°F")
+
+    return MedicalSafetyResult(status=status, flags=flags, action=action)
+
+
+# ============================================
+# Autonomic Recovery (Persistence-Based)
+# ============================================
+
+def _check_autonomic_fatigue(
+    vitals: List[MemberVitalsLog],
+    all_vitals: List[MemberVitalsLog]
+) -> Tuple[Optional[str], List[str]]:
+    """
+    Check for autonomic fatigue using persistence-based logic.
+
+    Requires pattern to persist for 2+ days before flagging.
+    Single-day HRV/RHR changes are common and often meaningless.
+
+    Returns: (fatigue_type, factors_list)
+    """
+    factors = []
+
+    # Get baselines
+    rhr_baseline = _calculate_dual_baseline(all_vitals, VitalType.RESTING_HEART_RATE)
+    hrv_baseline = _calculate_dual_baseline(all_vitals, VitalType.HRV)
+
+    # Fall back to regular heart rate if no resting HR
+    if not rhr_baseline.long_avg:
+        rhr_baseline = _calculate_dual_baseline(all_vitals, VitalType.HEART_RATE)
+
+    # Get last 3 days of data for persistence check
+    recent_rhr = _get_recent_vitals(vitals, VitalType.RESTING_HEART_RATE, days=3)
+    if not recent_rhr:
+        recent_rhr = _get_recent_vitals(vitals, VitalType.HEART_RATE, days=3)
+
+    recent_hrv = _get_recent_vitals(vitals, VitalType.HRV, days=3)
+
+    # Count suppressed/elevated days
+    hrv_suppressed_days = 0
+    rhr_elevated_days = 0
+
+    if rhr_baseline.long_avg and recent_rhr:
+        for v in recent_rhr:
+            if v.value > rhr_baseline.long_avg + 5:
+                rhr_elevated_days += 1
+
+    if hrv_baseline.long_avg and recent_hrv:
+        for v in recent_hrv:
+            if v.value < hrv_baseline.long_avg * 0.85:
+                hrv_suppressed_days += 1
+
+    # Check for fatigue patterns (require 2+ days)
+    fatigue_type = None
+
+    if hrv_suppressed_days >= 2 and rhr_elevated_days >= 2:
+        fatigue_type = "STACKED_FATIGUE"
+        factors.append(f"HRV suppressed {hrv_suppressed_days}/3 days + RHR elevated {rhr_elevated_days}/3 days")
+    elif hrv_suppressed_days >= 2:
+        fatigue_type = "HRV_FATIGUE"
+        factors.append(f"HRV suppressed {hrv_suppressed_days} of last 3 days")
+    elif rhr_elevated_days >= 2:
+        fatigue_type = "RHR_FATIGUE"
+        factors.append(f"RHR elevated {rhr_elevated_days} of last 3 days")
+
+    # Add baseline context
+    if rhr_baseline.long_avg:
+        latest_rhr = _get_latest_vital(vitals, VitalType.RESTING_HEART_RATE)
+        if not latest_rhr:
+            latest_rhr = _get_latest_vital(vitals, VitalType.HEART_RATE)
+        if latest_rhr:
+            diff = latest_rhr.value - rhr_baseline.long_avg
+            if abs(diff) > 3:
+                factors.append(f"RHR: {latest_rhr.value:.0f} bpm (baseline: {rhr_baseline.long_avg:.0f})")
+
+    if hrv_baseline.long_avg:
+        latest_hrv = _get_latest_vital(vitals, VitalType.HRV)
+        if latest_hrv:
+            pct = ((latest_hrv.value - hrv_baseline.long_avg) / hrv_baseline.long_avg) * 100
+            if abs(pct) > 10:
+                factors.append(f"HRV: {latest_hrv.value:.0f} ms ({pct:+.0f}% vs baseline)")
+
+    return fatigue_type, factors
+
+
 def _analyze_autonomic_recovery(
     vitals: List[MemberVitalsLog],
     all_vitals: List[MemberVitalsLog]
 ) -> PerformanceIndicator:
     """
-    Analyze autonomic recovery from RHR and HRV.
+    Analyze autonomic recovery using persistence-based logic.
 
-    RHR: +5 bpm = AMBER, +10 bpm = RED (vs baseline)
-    HRV: -15% = AMBER, -25% = RED (vs baseline)
+    Key change: Single-day drops don't trigger flags.
     """
     factors = []
-    rhr_score = 100
-    hrv_score = 100
-    confidence = 0.0
+    score = 85  # Default uncertain
+    confidence = "LOW"
 
-    # Get current and baseline RHR (prefer RESTING_HEART_RATE, fall back to HEART_RATE)
-    latest_rhr = _get_latest_vital(vitals, VitalType.RESTING_HEART_RATE)
-    baseline_rhr = _calculate_rolling_baseline(all_vitals, VitalType.RESTING_HEART_RATE, 30)
-    # Fall back to regular heart rate if no resting HR data
-    if not latest_rhr:
-        latest_rhr = _get_latest_vital(vitals, VitalType.HEART_RATE)
-        baseline_rhr = _calculate_rolling_baseline(all_vitals, VitalType.HEART_RATE, 30)
+    # Check for fatigue patterns
+    fatigue_type, fatigue_factors = _check_autonomic_fatigue(vitals, all_vitals)
+    factors.extend(fatigue_factors)
 
-    if latest_rhr and baseline_rhr:
-        diff = latest_rhr.value - baseline_rhr
-        if diff >= 10:
-            rhr_score = 40
-            factors.append(f"RHR elevated +{diff:.0f} bpm (RED)")
-        elif diff >= 5:
-            rhr_score = 70
-            factors.append(f"RHR elevated +{diff:.0f} bpm (AMBER)")
-        elif diff <= -5:
-            rhr_score = 100
-            factors.append(f"RHR improved {diff:.0f} bpm")
-        confidence += 0.4
+    # Get baselines for confidence
+    rhr_baseline = _calculate_dual_baseline(all_vitals, VitalType.RESTING_HEART_RATE)
+    hrv_baseline = _calculate_dual_baseline(all_vitals, VitalType.HRV)
 
-    # Get current and baseline HRV
-    latest_hrv = _get_latest_vital(vitals, VitalType.HRV)
-    baseline_hrv = _calculate_rolling_baseline(all_vitals, VitalType.HRV, 30)
+    total_datapoints = rhr_baseline.long_count + hrv_baseline.long_count
+    confidence = _get_confidence_level(total_datapoints // 2)
 
-    if latest_hrv and baseline_hrv and baseline_hrv > 0:
-        pct_change = ((latest_hrv.value - baseline_hrv) / baseline_hrv) * 100
-        if pct_change <= -25:
-            hrv_score = 40
-            factors.append(f"HRV down {abs(pct_change):.0f}% (RED)")
-        elif pct_change <= -15:
-            hrv_score = 70
-            factors.append(f"HRV down {abs(pct_change):.0f}% (AMBER)")
-        elif pct_change >= 10:
-            hrv_score = 100
-            factors.append(f"HRV improved +{pct_change:.0f}%")
-        confidence += 0.4
+    if fatigue_type == "STACKED_FATIGUE":
+        score = 45
+        factors.append("Both HRV and RHR indicate fatigue (persistent)")
+    elif fatigue_type == "HRV_FATIGUE":
+        score = 60
+        factors.append("HRV suppressed (persistent pattern)")
+    elif fatigue_type == "RHR_FATIGUE":
+        score = 65
+        factors.append("RHR elevated (persistent pattern)")
+    elif total_datapoints < MIN_DATAPOINTS_MEDIUM:
+        # Insufficient data - don't assume good recovery
+        score = 65
+        factors.append("Insufficient autonomic data for reliable assessment")
+        confidence = "LOW"
+    else:
+        # Check for positive signals
+        latest_hrv = _get_latest_vital(vitals, VitalType.HRV)
+        if latest_hrv and hrv_baseline.long_avg:
+            pct = ((latest_hrv.value - hrv_baseline.long_avg) / hrv_baseline.long_avg) * 100
+            if pct >= 10:
+                score = 95
+                factors.append(f"HRV elevated +{pct:.0f}% - good recovery")
+            elif pct >= 0:
+                score = 85
+                factors.append("HRV stable - normal recovery")
 
-    # Weight RHR more heavily (it's more reliable)
-    final_score = (rhr_score * 0.6 + hrv_score * 0.4) if confidence > 0 else 85
-    confidence = min(confidence, 1.0)
+        latest_rhr = _get_latest_vital(vitals, VitalType.RESTING_HEART_RATE)
+        if latest_rhr and rhr_baseline.long_avg:
+            diff = latest_rhr.value - rhr_baseline.long_avg
+            if diff <= -5:
+                score = min(100, score + 5)
+                factors.append(f"RHR improved {diff:.0f} bpm")
 
-    trend = "insufficient_data"
-    if confidence >= 0.4:
-        if final_score >= 90:
-            trend = "stable"
-        elif final_score >= 70:
-            trend = "stable"
-        else:
-            trend = "declining"
+    trend = "stable"
+    if score < 70:
+        trend = "declining"
+    elif score >= 90:
+        trend = "improving"
 
-    explanation = "Autonomic nervous system recovery indicators"
     if not factors:
-        explanation = "Insufficient RHR/HRV data for baseline comparison"
-        final_score = 85  # Conservative default
-        confidence = 0.3
+        factors.append("Autonomic indicators within normal range")
 
     return PerformanceIndicator(
         name="Autonomic Recovery",
         category="autonomic",
-        value=final_score,
+        value=score,
         trend=trend,
-        explanation=explanation,
+        explanation="RHR and HRV recovery indicators (persistence-based)",
         confidence=confidence,
         contributing_factors=factors
     )
 
 
-def _analyze_cardiovascular(
-    vitals: List[MemberVitalsLog]
-) -> PerformanceIndicator:
-    """
-    Analyze cardiovascular health from BP and SpO2.
+# ============================================
+# Cardiovascular Assessment
+# ============================================
 
-    BP Categories (adjusted for athletic population - less strict than AHA clinical):
-    - Normal: <130/<85
-    - Elevated: 130-139/85-89
-    - Stage 1: 140-159/90-99
-    - Stage 2: >=160/>=100
-
-    Note: Context factors (caffeine, stress, white coat) can affect readings.
-    SpO2: <95% = concern, <92% = critical
-    """
+def _analyze_cardiovascular(vitals: List[MemberVitalsLog]) -> PerformanceIndicator:
+    """Analyze cardiovascular health from BP and SpO2."""
     factors = []
     bp_score = 100
     spo2_score = 100
-    confidence = 0.0
+    confidence = "LOW"
+    datapoints = 0
 
-    # Blood Pressure (adjusted thresholds for athletic population)
     latest_bp = _get_latest_vital(vitals, VitalType.BLOOD_PRESSURE)
     if latest_bp:
         sys = latest_bp.value
         dia = latest_bp.value_secondary or 80
+        bp_category = _get_bp_category(sys, dia)
 
-        # Check for context factors that might explain elevated readings
-        context_note = ""
-        if latest_bp.notes:
-            notes_lower = latest_bp.notes.lower()
-            context_factors = []
-            if 'caffeine' in notes_lower or 'coffee' in notes_lower:
-                context_factors.append("caffeine")
-            if 'stress' in notes_lower:
-                context_factors.append("stress")
-            if 'white coat' in notes_lower or 'whitecoat' in notes_lower:
-                context_factors.append("white coat")
-            if 'post-exercise' in notes_lower or 'after workout' in notes_lower:
-                context_factors.append("post-exercise")
-            if context_factors:
-                context_note = f" (noted: {', '.join(context_factors)})"
-
-        # Adjusted thresholds - less strict for fit individuals
-        if sys >= 160 or dia >= 100:
+        if bp_category == "crisis":
+            bp_score = 30
+            factors.append(f"BP Critical: {sys:.0f}/{dia:.0f}")
+        elif bp_category == "stage2":
             bp_score = 50
-            factors.append(f"BP High: {sys:.0f}/{dia:.0f}{context_note}")
-        elif sys >= 140 or dia >= 90:
+            factors.append(f"BP High (Stage 2): {sys:.0f}/{dia:.0f}")
+        elif bp_category == "stage1":
             bp_score = 70
-            factors.append(f"BP Elevated: {sys:.0f}/{dia:.0f}{context_note}")
-        elif sys >= 130 or dia >= 85:
-            bp_score = 90  # Minor concern, not a big penalty
-            factors.append(f"BP Slightly Elevated: {sys:.0f}/{dia:.0f}{context_note}")
+            factors.append(f"BP Elevated (Stage 1): {sys:.0f}/{dia:.0f}")
+        elif bp_category == "elevated":
+            bp_score = 85
+            factors.append(f"BP Slightly Elevated: {sys:.0f}/{dia:.0f}")
         else:
-            bp_score = 100
             factors.append(f"BP Normal: {sys:.0f}/{dia:.0f}")
-        confidence += 0.5
+        datapoints += 1
 
-    # Blood Oxygen
     latest_spo2 = _get_latest_vital(vitals, VitalType.BLOOD_OXYGEN)
     if latest_spo2:
         spo2 = latest_spo2.value
@@ -306,326 +576,349 @@ def _analyze_cardiovascular(
             spo2_score = 60
             factors.append(f"SpO2 low: {spo2:.0f}%")
         elif spo2 < 97:
-            spo2_score = 85
+            spo2_score = 80
             factors.append(f"SpO2 borderline: {spo2:.0f}%")
         else:
             factors.append(f"SpO2 normal: {spo2:.0f}%")
-        confidence += 0.4
+        datapoints += 1
 
-    final_score = min(bp_score, spo2_score) if confidence > 0 else 85
-    confidence = min(confidence, 1.0)
+    final_score = min(bp_score, spo2_score) if datapoints > 0 else 65
+    confidence = _get_confidence_level(datapoints * 5)
+
+    if not factors:
+        factors.append("No cardiovascular data available")
+        final_score = 65
+        confidence = "LOW"
 
     trend = "stable" if final_score >= 70 else "declining"
-    if confidence < 0.3:
-        trend = "insufficient_data"
 
     return PerformanceIndicator(
         name="Cardiovascular",
         category="cardiovascular",
         value=final_score,
         trend=trend,
-        explanation="Blood pressure and oxygen saturation",
+        explanation="Blood pressure (ACC/AHA) and oxygen saturation",
         confidence=confidence,
         contributing_factors=factors
     )
 
 
-def _analyze_illness_indicators(
+# ============================================
+# Illness Detection (Pattern-Based)
+# ============================================
+
+def _detect_illness_pattern(
     vitals: List[MemberVitalsLog],
     all_vitals: List[MemberVitalsLog]
 ) -> PerformanceIndicator:
     """
-    Detect potential illness from temperature, respiratory rate, and RHR.
+    Detect potential illness using pattern recognition.
 
-    Fever: >99.5°F with elevated RHR = flag
-    Respiratory: >20/min = concern, >25/min = flag
+    Illness appears as PATTERN before thresholds are crossed.
     """
     factors = []
-    score = 100
-    confidence = 0.0
+    score = 95  # Default healthy
+    signals = []
+    confidence = "LOW"
 
-    # Temperature
     latest_temp = _get_latest_vital(vitals, VitalType.TEMPERATURE)
-    if latest_temp:
-        temp = latest_temp.value
-        if temp >= 100.4:
-            score = min(score, 40)
-            factors.append(f"Fever: {temp:.1f}°F")
-        elif temp >= 99.5:
-            # Check for elevated RHR too (prefer resting HR)
-            latest_rhr = _get_latest_vital(vitals, VitalType.RESTING_HEART_RATE)
-            baseline_rhr = _calculate_rolling_baseline(all_vitals, VitalType.RESTING_HEART_RATE, 30)
-            if not latest_rhr:
-                latest_rhr = _get_latest_vital(vitals, VitalType.HEART_RATE)
-                baseline_rhr = _calculate_rolling_baseline(all_vitals, VitalType.HEART_RATE, 30)
-            if latest_rhr and baseline_rhr and latest_rhr.value > baseline_rhr + 5:
-                score = min(score, 60)
-                factors.append(f"Low-grade fever ({temp:.1f}°F) with elevated HR")
-            else:
-                score = min(score, 80)
-                factors.append(f"Elevated temp: {temp:.1f}°F")
-        confidence += 0.4
-
-    # Respiratory Rate
+    rhr_baseline = _calculate_dual_baseline(all_vitals, VitalType.RESTING_HEART_RATE)
+    latest_rhr = _get_latest_vital(vitals, VitalType.RESTING_HEART_RATE)
+    latest_hrv = _get_latest_vital(vitals, VitalType.HRV)
+    hrv_baseline = _calculate_dual_baseline(all_vitals, VitalType.HRV)
     latest_rr = _get_latest_vital(vitals, VitalType.RESPIRATORY_RATE)
+
+    datapoints = sum(1 for v in [latest_temp, latest_rhr, latest_hrv, latest_rr] if v)
+    confidence = _get_confidence_level(datapoints * 3)
+
+    # Pattern: Temp elevated + RHR elevated together
+    if latest_temp and latest_rhr and rhr_baseline.long_avg:
+        if latest_temp.value > 99.0 and latest_rhr.value > rhr_baseline.long_avg + 8:
+            signals.append("temp_rhr_pattern")
+            factors.append(f"Temperature ({latest_temp.value:.1f}°F) + elevated RHR")
+
+    # Pattern: HRV drops sharply + respiratory changes
+    if latest_hrv and hrv_baseline.long_avg and latest_rr:
+        if latest_hrv.value < hrv_baseline.long_avg * 0.75 and latest_rr.value > 18:
+            signals.append("hrv_respiratory_pattern")
+            factors.append("HRV significantly suppressed + elevated respiratory rate")
+
+    # Pattern: Multiple minor elevations
+    minor_flags = 0
+    if latest_temp and latest_temp.value > 98.8:
+        minor_flags += 1
+    if latest_rhr and rhr_baseline.long_avg and latest_rhr.value > rhr_baseline.long_avg + 5:
+        minor_flags += 1
+    if latest_hrv and hrv_baseline.long_avg and latest_hrv.value < hrv_baseline.long_avg * 0.9:
+        minor_flags += 1
+
+    if minor_flags >= 2:
+        signals.append("multi_minor_elevation")
+        factors.append(f"Multiple minor elevations detected ({minor_flags} indicators)")
+
+    # Single-factor illness indicators
+    if latest_temp:
+        if latest_temp.value >= 100.4:
+            score = min(score, 40)
+            factors.append(f"Fever: {latest_temp.value:.1f}°F")
+        elif latest_temp.value >= 99.5:
+            score = min(score, 70)
+            factors.append(f"Elevated temp: {latest_temp.value:.1f}°F")
+
     if latest_rr:
-        rr = latest_rr.value
-        if rr >= 25:
+        if latest_rr.value >= 25:
             score = min(score, 50)
-            factors.append(f"Respiratory rate high: {rr:.0f}/min")
-        elif rr >= 20:
+            factors.append(f"Respiratory rate high: {latest_rr.value:.0f}/min")
+        elif latest_rr.value >= 20:
             score = min(score, 75)
-            factors.append(f"Respiratory rate elevated: {rr:.0f}/min")
-        confidence += 0.3
+            factors.append(f"Respiratory rate elevated: {latest_rr.value:.0f}/min")
+
+    # Apply illness pattern penalty
+    if len(signals) >= 2:
+        score = min(score, 50)
+        factors.append("ILLNESS LIKELY: Multiple illness patterns detected")
+    elif len(signals) == 1:
+        score = min(score, 70)
 
     if not factors:
         factors.append("No illness indicators detected")
 
     trend = "stable" if score >= 80 else "declining"
-    if confidence < 0.3:
-        trend = "insufficient_data"
-        score = 95  # Assume healthy if no data
 
     return PerformanceIndicator(
         name="Illness Risk",
         category="illness",
         value=score,
         trend=trend,
-        explanation="Temperature and respiratory indicators",
-        confidence=max(confidence, 0.3),
+        explanation="Pattern-based illness detection",
+        confidence=confidence,
         contributing_factors=factors
     )
 
 
-def _analyze_body_composition(
+# ============================================
+# Training Load Analysis
+# ============================================
+
+def _calculate_session_load(workout: MemberWorkout) -> float:
+    """
+    Calculate session load: duration × RPE
+
+    For rucks: Apply ton-miles multiplier.
+    """
+    duration = workout.duration_minutes or 30  # Default 30 min
+    rpe = workout.rpe or 5  # Default moderate effort
+
+    session_load = duration * rpe
+
+    # Ruck multiplier
+    if workout.workout_type == WorkoutType.RUCK and workout.weight_carried_lbs and workout.distance_miles:
+        ton_miles = workout.weight_carried_lbs * workout.distance_miles
+        session_load *= (1 + ton_miles / 100)
+
+    return session_load
+
+
+def _analyze_training_load(workouts: List[MemberWorkout]) -> TrainingLoadAnalysis:
+    """
+    Analyze training load using Acute:Chronic Workload Ratio (ACWR).
+
+    Acute = last 7 days total load
+    Chronic = last 28 days average weekly load
+
+    ACWR > 1.5 = HIGH injury risk
+    ACWR 1.3-1.5 = MODERATE risk
+    ACWR < 1.3 = LOW risk
+    """
+    now = datetime.utcnow()
+    acute_cutoff = now - timedelta(days=7)
+    chronic_cutoff = now - timedelta(days=28)
+
+    acute_workouts = [w for w in workouts if w.workout_date and w.workout_date >= acute_cutoff]
+    chronic_workouts = [w for w in workouts if w.workout_date and w.workout_date >= chronic_cutoff]
+
+    acute_load = sum(_calculate_session_load(w) for w in acute_workouts)
+    chronic_total = sum(_calculate_session_load(w) for w in chronic_workouts)
+    chronic_load = chronic_total / 4 if chronic_total > 0 else 0  # Average weekly
+
+    if chronic_load > 0:
+        acwr = acute_load / chronic_load
+    else:
+        acwr = 1.0 if acute_load == 0 else 2.0  # No baseline = risky if training
+
+    notes = []
+    spike_detected = False
+
+    if acwr > 1.5:
+        risk_level = "HIGH"
+        spike_detected = True
+        notes.append(f"Training spike detected (ACWR: {acwr:.2f})")
+    elif acwr > 1.3:
+        risk_level = "MODERATE"
+        notes.append(f"Elevated training load (ACWR: {acwr:.2f})")
+    elif acwr < 0.8:
+        risk_level = "LOW"
+        notes.append("Training load declining - detraining risk")
+    else:
+        risk_level = "LOW"
+        notes.append(f"Training load balanced (ACWR: {acwr:.2f})")
+
+    # Calculate monotony (standard deviation of daily loads)
+    monotony = None
+    if len(chronic_workouts) >= 7:
+        daily_loads = {}
+        for w in chronic_workouts:
+            day_key = w.workout_date.date() if w.workout_date else None
+            if day_key:
+                daily_loads[day_key] = daily_loads.get(day_key, 0) + _calculate_session_load(w)
+
+        if len(daily_loads) >= 5:
+            loads = list(daily_loads.values())
+            mean_load = sum(loads) / len(loads)
+            variance = sum((l - mean_load) ** 2 for l in loads) / len(loads)
+            std_dev = variance ** 0.5
+            if std_dev > 0:
+                monotony = mean_load / std_dev
+                if monotony > 2.0:
+                    notes.append(f"High training monotony ({monotony:.1f}) - increase variety")
+
+    return TrainingLoadAnalysis(
+        acute_load=round(acute_load, 1),
+        chronic_load=round(chronic_load, 1),
+        acwr=round(acwr, 2),
+        risk_level=risk_level,
+        spike_detected=spike_detected,
+        monotony=round(monotony, 1) if monotony else None,
+        notes=notes
+    )
+
+
+# ============================================
+# Body Composition (Context Only)
+# ============================================
+
+def _get_body_composition_context(
     member: TeamMember,
     vitals: List[MemberVitalsLog]
-) -> PerformanceIndicator:
+) -> Dict[str, Any]:
     """
-    Analyze body composition using Marine Corps taping method.
-    NO BMI - only tape measurements.
-    """
-    factors = []
-    score = 85  # Default if no data
-    confidence = 0.3
+    Get body composition context (NOT used in daily readiness scoring).
 
-    # Get measurements
+    This is long-term health context only.
+    """
     height = member.height_inches
     latest_waist = _get_latest_vital(vitals, VitalType.WAIST)
     latest_neck = _get_latest_vital(vitals, VitalType.NECK)
     latest_hip = _get_latest_vital(vitals, VitalType.HIP)
 
-    # Try to calculate body fat via taping
+    result = {
+        "body_fat_pct": None,
+        "within_standards": None,
+        "note": "Context only - does not affect daily readiness"
+    }
+
     if height and latest_waist and latest_neck:
         waist = latest_waist.value
         neck = latest_neck.value
         hip = latest_hip.value if latest_hip else None
-
-        # Use member's gender for formula selection and standards
         is_female = member.gender == Gender.FEMALE if member.gender else False
 
-        # Female formula requires hip measurement
         if is_female and not hip:
-            factors.append("Female body fat calculation requires hip measurement")
+            result["note"] = "Female body fat calculation requires hip measurement"
         else:
             bf_pct = _calculate_body_fat_taping(height, waist, neck, hip, is_female)
-
             if bf_pct is not None:
                 age = _get_age_from_birthdate(member.birth_date)
                 max_bf = _get_bf_standard(age, is_female)
+                result["body_fat_pct"] = round(bf_pct, 1)
+                result["within_standards"] = bf_pct <= max_bf
+                result["standard"] = max_bf
 
-                if bf_pct > max_bf + 5:
-                    score = 50
-                    factors.append(f"Body fat {bf_pct:.1f}% exceeds standard ({max_bf}%) by >5%")
-                elif bf_pct > max_bf:
-                    score = 70
-                    factors.append(f"Body fat {bf_pct:.1f}% exceeds standard ({max_bf}%)")
-                elif bf_pct <= max_bf - 5:
-                    score = 100
-                    factors.append(f"Body fat {bf_pct:.1f}% well within standard ({max_bf}%)")
-                else:
-                    score = 90
-                    factors.append(f"Body fat {bf_pct:.1f}% within standard ({max_bf}%)")
-
-                confidence = 0.8
-            else:
-                factors.append("Taping calculation failed - check measurements")
-    else:
-        missing = []
-        if not height:
-            missing.append("height")
-        if not latest_waist:
-            missing.append("waist")
-        if not latest_neck:
-            missing.append("neck")
-        factors.append(f"Missing measurements: {', '.join(missing)}")
-
-    trend = "insufficient_data" if confidence < 0.5 else "stable"
-
-    return PerformanceIndicator(
-        name="Body Composition",
-        category="body_composition",
-        value=score,
-        trend=trend,
-        explanation="Body fat via taping method, assessed against ACE fitness standards",
-        confidence=confidence,
-        contributing_factors=factors
-    )
+    return result
 
 
-def _analyze_fitness_performance(
-    workouts: List[MemberWorkout],
-    lookback_days: int = 14
-) -> PerformanceIndicator:
+# ============================================
+# Subjective Integration
+# ============================================
+
+def _integrate_subjective(
+    objective_score: float,
+    subjective_fatigue: Optional[int] = None,
+    pain_severity: Optional[int] = None,
+    pain_location: Optional[str] = None,
+    sleep_hours: Optional[float] = None,
+    sleep_quality: Optional[int] = None
+) -> Tuple[float, List[str]]:
     """
-    Analyze physical fitness based on recent workout data.
+    Integrate subjective inputs into readiness score.
 
-    Scoring based on:
-    - Workout consistency (are they training regularly?)
-    - Training load (appropriate volume)
-    - Performance quality (RPE, quality ratings)
-
-    Target: 3-5 workouts per week for active individuals
+    Subjective inputs can LOWER readiness but not artificially raise it.
     """
-    factors = []
-    score = 85  # Default if no data (assume maintaining)
-    confidence = 0.3
+    modifiers = []
 
-    if not workouts:
-        factors.append("No recent workout data")
-        return PerformanceIndicator(
-            name="Fitness Performance",
-            category="fitness",
-            value=score,
-            trend="insufficient_data",
-            explanation="No workout data available",
-            confidence=0.2,
-            contributing_factors=factors
-        )
+    if subjective_fatigue is not None:
+        if subjective_fatigue >= 7:
+            modifiers.append(("High subjective fatigue reported", -10))
+        elif subjective_fatigue >= 5:
+            modifiers.append(("Moderate fatigue reported", -5))
 
-    # Filter to lookback period
-    cutoff = datetime.utcnow() - timedelta(days=lookback_days)
-    recent_workouts = [w for w in workouts if w.workout_date and w.workout_date >= cutoff]
+    if pain_severity is not None:
+        if pain_severity >= 6:
+            loc = f": {pain_location}" if pain_location else ""
+            modifiers.append((f"Pain reported (severity {pain_severity}/10){loc}", -15))
+        elif pain_severity >= 3:
+            loc = f": {pain_location}" if pain_location else ""
+            modifiers.append((f"Minor pain reported{loc}", -5))
 
-    if not recent_workouts:
-        factors.append(f"No workouts in last {lookback_days} days")
-        return PerformanceIndicator(
-            name="Fitness Performance",
-            category="fitness",
-            value=70,  # Some penalty for inactivity
-            trend="declining",
-            explanation=f"No workouts logged in last {lookback_days} days",
-            confidence=0.4,
-            contributing_factors=factors
-        )
+    if sleep_hours is not None:
+        if sleep_hours < 5:
+            modifiers.append(("Severe sleep deficit (<5 hours)", -10))
+        elif sleep_hours < 6:
+            modifiers.append(("Sleep deficit (<6 hours)", -5))
 
-    # Calculate frequency
-    weeks = lookback_days / 7
-    workouts_per_week = len(recent_workouts) / weeks
-    confidence = 0.6
+    if sleep_quality is not None:
+        if sleep_quality <= 2:
+            modifiers.append(("Poor sleep quality reported", -5))
 
-    # Frequency scoring (target: 3-5/week for maintaining, 5+/week for improving)
-    if workouts_per_week >= 5:
-        freq_score = 100
-        factors.append(f"High training frequency: {workouts_per_week:.1f}/week")
-    elif workouts_per_week >= 3:
-        freq_score = 90
-        factors.append(f"Good training frequency: {workouts_per_week:.1f}/week")
-    elif workouts_per_week >= 2:
-        freq_score = 75
-        factors.append(f"Moderate training frequency: {workouts_per_week:.1f}/week")
-    elif workouts_per_week >= 1:
-        freq_score = 60
-        factors.append(f"Low training frequency: {workouts_per_week:.1f}/week")
-    else:
-        freq_score = 40
-        factors.append(f"Minimal training: {workouts_per_week:.1f}/week")
+    total_modifier = sum(m[1] for m in modifiers)
+    adjusted_score = max(0, objective_score + total_modifier)
 
-    # Check for workout variety (bonus for cross-training)
-    workout_types = set(w.workout_type for w in recent_workouts if w.workout_type)
-    cardio_types = {WorkoutType.RUN, WorkoutType.RUCK, WorkoutType.SWIM, WorkoutType.BIKE, WorkoutType.ROW}
-    strength_types = {WorkoutType.STRENGTH, WorkoutType.HIIT}
+    return adjusted_score, [m[0] for m in modifiers]
 
-    has_cardio = bool(workout_types & cardio_types)
-    has_strength = bool(workout_types & strength_types)
 
-    variety_bonus = 0
-    if has_cardio and has_strength:
-        variety_bonus = 5
-        factors.append("Good training variety (cardio + strength)")
-    elif len(workout_types) >= 3:
-        variety_bonus = 3
-        factors.append(f"Diverse training: {len(workout_types)} workout types")
-
-    # Check average RPE (should be sustainable 5-7 for most training)
-    rpe_workouts = [w for w in recent_workouts if w.rpe]
-    if rpe_workouts:
-        avg_rpe = sum(w.rpe for w in rpe_workouts) / len(rpe_workouts)
-        if avg_rpe >= 8.5:
-            # Overtraining risk
-            rpe_modifier = -10
-            factors.append(f"High average RPE ({avg_rpe:.1f}) - potential overtraining")
-        elif avg_rpe >= 7:
-            rpe_modifier = 0
-            factors.append(f"Challenging training load (RPE {avg_rpe:.1f})")
-        elif avg_rpe >= 5:
-            rpe_modifier = 5
-            factors.append(f"Sustainable training load (RPE {avg_rpe:.1f})")
-        else:
-            rpe_modifier = 0
-            factors.append(f"Light training intensity (RPE {avg_rpe:.1f})")
-    else:
-        rpe_modifier = 0
-
-    # Total duration check (minimum for fitness maintenance)
-    total_minutes = sum(w.duration_minutes or 0 for w in recent_workouts)
-    weekly_minutes = total_minutes / weeks
-
-    if weekly_minutes >= 200:
-        duration_bonus = 5
-    elif weekly_minutes >= 150:
-        duration_bonus = 3
-    elif weekly_minutes >= 75:
-        duration_bonus = 0
-    else:
-        duration_bonus = -5
-        factors.append(f"Low weekly volume: {weekly_minutes:.0f} min/week")
-
-    # Calculate final score
-    score = min(100, max(0, freq_score + variety_bonus + rpe_modifier + duration_bonus))
-    confidence = min(0.9, confidence + 0.1 * len(recent_workouts) / 10)
-
-    # Determine trend by comparing recent vs older
-    mid_point = datetime.utcnow() - timedelta(days=lookback_days // 2)
-    recent_half = [w for w in recent_workouts if w.workout_date >= mid_point]
-    older_half = [w for w in recent_workouts if w.workout_date < mid_point]
-
-    if len(recent_half) > len(older_half) * 1.3:
-        trend = "improving"
-    elif len(recent_half) < len(older_half) * 0.7:
-        trend = "declining"
-    else:
-        trend = "stable"
-
-    return PerformanceIndicator(
-        name="Fitness Performance",
-        category="fitness",
-        value=score,
-        trend=trend,
-        explanation=f"Based on {len(recent_workouts)} workouts over {lookback_days} days",
-        confidence=confidence,
-        contributing_factors=factors
-    )
-
+# ============================================
+# Risk Flag Generation
+# ============================================
 
 def _generate_risk_flags(
     indicators: List[PerformanceIndicator],
-    medical_status: ReadinessStatus
+    medical_safety: MedicalSafetyResult,
+    training_load: Optional[TrainingLoadAnalysis]
 ) -> List[RiskFlag]:
-    """Generate risk flags from indicators and medical status"""
+    """Generate risk flags from all analysis components"""
     flags = []
 
-    # Check each indicator for concerning values
+    # Medical safety flags
+    if medical_safety.status == "RED":
+        flags.append(RiskFlag(
+            code="medical_red",
+            severity="critical",
+            title="Medical Safety RED",
+            explanation="; ".join(medical_safety.flags),
+            recommendation=medical_safety.action,
+            source="medical"
+        ))
+    elif medical_safety.status == "AMBER":
+        flags.append(RiskFlag(
+            code="medical_amber",
+            severity="moderate",
+            title="Medical Safety AMBER",
+            explanation="; ".join(medical_safety.flags),
+            recommendation=medical_safety.action or "Monitor and follow up",
+            source="medical"
+        ))
+
+    # Indicator-based flags
     for ind in indicators:
         if ind.value < 60:
             severity = "high" if ind.value < 40 else "moderate"
@@ -633,39 +926,31 @@ def _generate_risk_flags(
                 code=f"low_{ind.category}",
                 severity=severity,
                 title=f"Low {ind.name} Score",
-                explanation="; ".join(ind.contributing_factors),
+                explanation="; ".join(ind.contributing_factors[:2]),
                 recommendation=_get_recommendation(ind.category, severity),
                 source="physical"
             ))
-        elif ind.value < 75 and ind.confidence >= 0.5:
+        elif ind.value < 75 and ind.confidence != "LOW":
             flags.append(RiskFlag(
                 code=f"borderline_{ind.category}",
                 severity="low",
                 title=f"Borderline {ind.name}",
-                explanation="; ".join(ind.contributing_factors),
+                explanation="; ".join(ind.contributing_factors[:2]),
                 recommendation=_get_recommendation(ind.category, "low"),
                 source="physical"
             ))
 
-    # Medical status flags
-    if medical_status == ReadinessStatus.RED:
-        flags.append(RiskFlag(
-            code="medical_red",
-            severity="critical",
-            title="Medical Readiness RED",
-            explanation="Member has critical medical status requiring attention",
-            recommendation="Address medical issues before full duty",
-            source="medical"
-        ))
-    elif medical_status == ReadinessStatus.AMBER:
-        flags.append(RiskFlag(
-            code="medical_amber",
-            severity="moderate",
-            title="Medical Readiness AMBER",
-            explanation="Member has medical concerns requiring monitoring",
-            recommendation="Monitor medical status and follow treatment plan",
-            source="medical"
-        ))
+    # Training load flags
+    if training_load:
+        if training_load.spike_detected:
+            flags.append(RiskFlag(
+                code="training_spike",
+                severity="moderate",
+                title="Training Load Spike",
+                explanation=f"ACWR {training_load.acwr:.2f} indicates elevated injury risk",
+                recommendation="Consider reduced intensity; prioritize recovery",
+                source="physical"
+            ))
 
     return flags
 
@@ -688,52 +973,39 @@ def _get_recommendation(category: str, severity: str) -> str:
             "moderate": "Rest and hydrate, monitor temperature",
             "high": "Rest required, consider medical evaluation"
         },
-        "body_composition": {
-            "low": "Review nutrition and exercise plan",
-            "moderate": "Implement body composition improvement plan",
-            "high": "Structured nutrition and training program recommended"
-        },
-        "fitness": {
-            "low": "Consider increasing training frequency",
-            "moderate": "Evaluate training consistency and recovery",
-            "high": "Review training program - potential detraining or overtraining"
+        "training_load": {
+            "low": "Review training plan",
+            "moderate": "Consider deload or recovery focus",
+            "high": "Reduce training intensity immediately"
         }
     }
     return recommendations.get(category, {}).get(severity, "Monitor and reassess")
 
 
-def _combine_readiness(physical: ReadinessStatus, medical: ReadinessStatus) -> ReadinessStatus:
-    """
-    Combine physical and medical readiness.
-    Overall = worst of both (conservative approach)
-    """
-    if physical == ReadinessStatus.RED or medical == ReadinessStatus.RED:
-        return ReadinessStatus.RED
-    if physical == ReadinessStatus.AMBER or medical == ReadinessStatus.AMBER:
-        return ReadinessStatus.AMBER
-    return ReadinessStatus.GREEN
-
-
-def _score_to_status(score: float) -> ReadinessStatus:
-    """Convert numeric score to readiness status"""
-    if score < 60:
-        return ReadinessStatus.RED
-    if score < 80:
-        return ReadinessStatus.AMBER
-    return ReadinessStatus.GREEN
-
+# ============================================
+# Main Analysis Entry Point
+# ============================================
 
 async def analyze_readiness(
     member_id: int,
     db: AsyncSession,
-    lookback_days: int = 30,
-    update_member: bool = True
+    lookback_days: int = 35,
+    update_member: bool = True,
+    subjective_fatigue: Optional[int] = None,
+    pain_severity: Optional[int] = None,
+    pain_location: Optional[str] = None,
+    sleep_hours: Optional[float] = None,
+    sleep_quality: Optional[int] = None,
+    context_factors: Optional[List[str]] = None
 ) -> ReadinessAnalysis:
     """
     Main entry point for readiness analysis.
 
-    Calculates physical readiness from vitals/training, combines with medical
-    readiness, and optionally updates member.overall_readiness.
+    Two-track system:
+    1. Medical Safety (hard gate) - RED medical = RED overall
+    2. Performance Readiness - autonomic, training load, illness patterns
+
+    Includes subjective input integration and full explainability.
     """
     # Fetch member
     result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
@@ -742,21 +1014,9 @@ async def analyze_readiness(
     if not member:
         raise ValueError(f"Member {member_id} not found")
 
-    # Fetch vitals within lookback period
-    cutoff = datetime.utcnow() - timedelta(days=lookback_days)
+    # Fetch all vitals for analysis
+    baseline_cutoff = datetime.utcnow() - timedelta(days=max(lookback_days, LONG_BASELINE_DAYS + 7))
     vitals_result = await db.execute(
-        select(MemberVitalsLog)
-        .where(and_(
-            MemberVitalsLog.member_id == member_id,
-            MemberVitalsLog.recorded_at >= cutoff
-        ))
-        .order_by(desc(MemberVitalsLog.recorded_at))
-    )
-    vitals = list(vitals_result.scalars().all())
-
-    # Fetch all vitals for baseline (longer period)
-    baseline_cutoff = datetime.utcnow() - timedelta(days=90)
-    all_vitals_result = await db.execute(
         select(MemberVitalsLog)
         .where(and_(
             MemberVitalsLog.member_id == member_id,
@@ -764,14 +1024,14 @@ async def analyze_readiness(
         ))
         .order_by(desc(MemberVitalsLog.recorded_at))
     )
-    all_vitals = list(all_vitals_result.scalars().all())
+    all_vitals = list(vitals_result.scalars().all())
 
-    # Recent vitals (7 days) for current assessment
+    # Recent vitals (7 days)
     recent_cutoff = datetime.utcnow() - timedelta(days=7)
-    recent_vitals = [v for v in vitals if v.recorded_at >= recent_cutoff]
+    recent_vitals = [v for v in all_vitals if v.recorded_at >= recent_cutoff]
 
-    # Fetch workouts for fitness analysis (last 30 days)
-    workout_cutoff = datetime.utcnow() - timedelta(days=30)
+    # Fetch workouts for training load
+    workout_cutoff = datetime.utcnow() - timedelta(days=28)
     workouts_result = await db.execute(
         select(MemberWorkout)
         .where(and_(
@@ -783,134 +1043,175 @@ async def analyze_readiness(
     )
     workouts = list(workouts_result.scalars().all())
 
+    # Track data sources used
+    data_sources = []
+    if recent_vitals:
+        vital_types = set(v.vital_type.value for v in recent_vitals)
+        data_sources.extend(vital_types)
+    if workouts:
+        data_sources.append("workouts")
+    if any([subjective_fatigue, pain_severity, sleep_hours]):
+        data_sources.append("subjective")
+
+    # ============================================
+    # TRACK 1: Medical Safety (Hard Gate)
+    # ============================================
+    medical_safety = _assess_medical_safety(recent_vitals, context_factors)
+
+    # ============================================
+    # TRACK 2: Performance Readiness
+    # ============================================
+
     # Analyze each component
     autonomic = _analyze_autonomic_recovery(recent_vitals, all_vitals)
     cardiovascular = _analyze_cardiovascular(recent_vitals)
-    illness = _analyze_illness_indicators(recent_vitals, all_vitals)
-    body_comp = _analyze_body_composition(member, vitals)
-    fitness = _analyze_fitness_performance(workouts, lookback_days=14)
+    illness = _detect_illness_pattern(recent_vitals, all_vitals)
 
-    # Calculate physical readiness score with weighting
-    # Autonomic: 40%, Illness: 20%, Cardiovascular: 20%, Body Comp: 10%, Fitness: 10%
-    physical_score = (
-        autonomic.value * 0.40 +
-        illness.value * 0.20 +
-        cardiovascular.value * 0.20 +
-        body_comp.value * 0.10 +
-        fitness.value * 0.10
+    # Training load analysis
+    training_load = None
+    if workouts:
+        training_load = _analyze_training_load(workouts)
+
+    indicators = [autonomic, cardiovascular, illness]
+
+    # Calculate performance score (weighted)
+    # Autonomic: 45%, Illness: 30%, Cardiovascular: 25%
+    performance_score = (
+        autonomic.value * 0.45 +
+        illness.value * 0.30 +
+        cardiovascular.value * 0.25
     )
 
-    # Calculate confidence (weighted average)
-    physical_confidence = (
-        autonomic.confidence * 0.40 +
-        illness.confidence * 0.20 +
-        cardiovascular.confidence * 0.20 +
-        body_comp.confidence * 0.10 +
-        fitness.confidence * 0.10
-    )
+    # Apply training load penalty if spike detected
+    training_penalty = 0
+    if training_load and training_load.spike_detected:
+        training_penalty = 10
+        performance_score = max(0, performance_score - training_penalty)
 
-    physical_status = _score_to_status(physical_score)
+    # Integrate subjective inputs
+    subjective_factors = []
+    if any([subjective_fatigue, pain_severity, sleep_hours, sleep_quality]):
+        performance_score, subjective_factors = _integrate_subjective(
+            performance_score,
+            subjective_fatigue=subjective_fatigue,
+            pain_severity=pain_severity,
+            pain_location=pain_location,
+            sleep_hours=sleep_hours,
+            sleep_quality=sleep_quality
+        )
 
-    # Get medical readiness (existing field)
-    medical_status = member.medical_readiness or ReadinessStatus.GREEN
-    medical_score = 100 if medical_status == ReadinessStatus.GREEN else (70 if medical_status == ReadinessStatus.AMBER else 40)
+    # ============================================
+    # Combine Medical Safety + Performance
+    # ============================================
 
-    # Combine for overall
-    overall_status = _combine_readiness(physical_status, medical_status)
-    overall_score = min(physical_score, medical_score)
+    # Medical Safety is a HARD GATE
+    if medical_safety.status == "RED":
+        overall_status = "RED"
+        overall_score = min(performance_score, 40)
+    elif medical_safety.status == "AMBER":
+        # Amber medical doesn't force overall amber, but caps score
+        overall_score = min(performance_score, 75)
+        overall_status = "RED" if overall_score < 60 else ("AMBER" if overall_score < 80 else "AMBER")
+    else:
+        overall_score = performance_score
+        if overall_score < 60:
+            overall_status = "RED"
+        elif overall_score < 80:
+            overall_status = "AMBER"
+        else:
+            overall_status = "GREEN"
 
-    # Build indicators list
-    indicators = [
-        PerformanceIndicator(
-            name="Physical Readiness",
-            category="physical",
-            value=physical_score,
-            trend="stable" if physical_score >= 70 else "declining",
-            explanation="Combined physical performance indicators",
-            confidence=physical_confidence,
-            contributing_factors=[f"Score: {physical_score:.0f}/100"]
-        ),
-        PerformanceIndicator(
-            name="Medical Readiness",
-            category="medical",
-            value=medical_score,
-            trend="stable",
-            explanation=member.medical_readiness_notes or "Medical status from manual assessment",
-            confidence=1.0,  # Manual entry is definitive
-            contributing_factors=[f"Status: {medical_status.value}"]
-        ),
-        autonomic,
-        cardiovascular,
-        illness,
-        body_comp,
-        fitness
-    ]
+    # ============================================
+    # Build Primary Drivers (Explainability)
+    # ============================================
 
-    # Generate risk flags
-    risk_flags = _generate_risk_flags([autonomic, cardiovascular, illness, body_comp, fitness], medical_status)
-
-    # Build primary drivers
     primary_drivers = []
-    if physical_status != ReadinessStatus.GREEN:
-        # Find lowest scoring physical indicator
-        physical_indicators = [autonomic, cardiovascular, illness, body_comp, fitness]
-        lowest = min(physical_indicators, key=lambda x: x.value)
-        if lowest.contributing_factors:
-            primary_drivers.append(f"Physical: {lowest.contributing_factors[0]}")
 
-    if medical_status != ReadinessStatus.GREEN:
-        primary_drivers.append(f"Medical: {medical_status.value} status")
+    # Medical flags always go first
+    if medical_safety.flags:
+        for flag in medical_safety.flags[:2]:
+            primary_drivers.append(f"Medical: {flag}")
+
+    # Add top contributing factors from lowest-scoring indicators
+    sorted_indicators = sorted(indicators, key=lambda x: x.value)
+    for ind in sorted_indicators[:2]:
+        if ind.value < 85 and ind.contributing_factors:
+            primary_drivers.append(ind.contributing_factors[0])
+
+    # Training load driver
+    if training_load and training_load.spike_detected:
+        primary_drivers.append(f"Training spike (ACWR: {training_load.acwr:.2f})")
+
+    # Subjective factors
+    for sf in subjective_factors[:2]:
+        primary_drivers.append(sf)
 
     if not primary_drivers:
         primary_drivers.append("All indicators within normal range")
 
-    # Data quality info
-    vital_types_available = list(set(v.vital_type.value for v in vitals))
-    all_vital_types = [vt.value for vt in VitalType]
-    vital_types_missing = [vt for vt in all_vital_types if vt not in vital_types_available]
+    # Limit to top 4 drivers
+    primary_drivers = primary_drivers[:4]
 
-    # Check if taping method is available
-    taping_available = (
-        member.height_inches is not None and
-        VitalType.WAIST.value in vital_types_available and
-        VitalType.NECK.value in vital_types_available
-    )
+    # ============================================
+    # Data Quality Assessment
+    # ============================================
+
+    total_datapoints = len(all_vitals)
+    days_with_data = len(set(v.recorded_at.date() for v in all_vitals)) if all_vitals else 0
+
+    overall_confidence = "LOW"
+    if total_datapoints >= MIN_DATAPOINTS_HIGH:
+        overall_confidence = "HIGH"
+    elif total_datapoints >= MIN_DATAPOINTS_MEDIUM:
+        overall_confidence = "MEDIUM"
+
+    data_quality_note = f"Based on {total_datapoints} datapoints over {days_with_data} days"
+    if overall_confidence == "LOW":
+        data_quality_note += " - limited data, conservative assessment"
 
     data_quality = {
-        "vitals_available": vital_types_available,
-        "vitals_missing": vital_types_missing,
-        "taping_available": taping_available,
-        "data_points_7d": len(recent_vitals),
-        "data_points_30d": len(vitals),
-        "workouts_30d": len(workouts)
+        "total_datapoints": total_datapoints,
+        "days_with_data": days_with_data,
+        "workouts_28d": len(workouts),
+        "confidence": overall_confidence
     }
 
-    # Build explanation
-    explanation = f"Physical readiness is {physical_status.value}"
-    if physical_status != ReadinessStatus.GREEN:
-        explanation += f" (score: {physical_score:.0f})"
-    explanation += f". Medical readiness is {medical_status.value}."
+    # ============================================
+    # Generate Risk Flags
+    # ============================================
 
-    if len(vitals) < 5:
-        explanation += " Limited data available - confidence is lower."
+    risk_flags = _generate_risk_flags(indicators, medical_safety, training_load)
 
-    # Update member if requested
+    # ============================================
+    # Update Member (if requested)
+    # ============================================
+
     member_updated = False
     if update_member:
-        member.overall_readiness = overall_status
-        member.readiness_notes = f"Auto-calculated: Physical={physical_status.value}, Medical={medical_status.value} (as of {datetime.utcnow().strftime('%Y-%m-%d %H:%M')})"
+        # Convert string to enum
+        if overall_status == "GREEN":
+            member.overall_readiness = ReadinessStatus.GREEN
+        elif overall_status == "AMBER":
+            member.overall_readiness = ReadinessStatus.AMBER
+        else:
+            member.overall_readiness = ReadinessStatus.RED
+
+        member.readiness_notes = f"Auto-calculated: {overall_status} (score: {overall_score:.0f}) as of {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
         await db.commit()
         member_updated = True
-        logger.info(f"Updated member {member_id} overall_readiness to {overall_status.value}")
+        logger.info(f"Updated member {member_id} overall_readiness to {overall_status}")
 
     return ReadinessAnalysis(
-        overall_status=overall_status.value,
-        physical_status=physical_status.value,
-        medical_status=medical_status.value,
-        score=overall_score,
-        confidence=physical_confidence,
-        explanation=explanation,
+        overall_status=overall_status,
+        score=round(overall_score, 1),
+        confidence=overall_confidence,
         primary_drivers=primary_drivers,
+        data_sources_used=list(set(data_sources)),
+        data_quality_note=data_quality_note,
+        medical_safety=medical_safety,
+        performance_readiness=round(performance_score, 1),
+        training_load=training_load,
+        subjective_factors=subjective_factors,
         indicators=indicators,
         risk_flags=risk_flags,
         data_quality=data_quality,

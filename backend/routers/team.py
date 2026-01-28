@@ -35,7 +35,9 @@ from models.team import (
     # Vitals tracking
     VitalType,
     # Fitness/Workout tracking
-    MemberWorkout, WorkoutType
+    MemberWorkout, WorkoutType,
+    # Subjective inputs
+    MemberSubjectiveInput
 )
 from models.supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from models.tasks import Task
@@ -226,6 +228,46 @@ class WorkoutUpdate(BaseModel):
     rpe: Optional[int] = Field(None, ge=1, le=10)
     quality_rating: Optional[int] = Field(None, ge=1, le=5)
     notes: Optional[str] = None
+
+
+# ============================================
+# Daily Check-in Schema
+# ============================================
+
+class DailyCheckinInput(BaseModel):
+    """
+    Comprehensive daily check-in form for all health metrics.
+    Only fields that are provided (non-null) will be recorded.
+    """
+    input_date: Optional[date] = None  # Defaults to today
+
+    # Vitals (all optional)
+    resting_heart_rate: Optional[int] = Field(None, ge=30, le=200)
+    hrv: Optional[int] = Field(None, ge=0, le=300)
+    blood_pressure_systolic: Optional[int] = Field(None, ge=60, le=250)
+    blood_pressure_diastolic: Optional[int] = Field(None, ge=40, le=150)
+    blood_oxygen: Optional[float] = Field(None, ge=70, le=100)
+    temperature: Optional[float] = Field(None, ge=90, le=110)
+    respiratory_rate: Optional[int] = Field(None, ge=5, le=50)
+
+    # Body measurements (all optional)
+    weight: Optional[float] = Field(None, ge=50, le=500)
+    waist: Optional[float] = Field(None, ge=15, le=80)
+    neck: Optional[float] = Field(None, ge=8, le=30)
+    hip: Optional[float] = Field(None, ge=20, le=80)
+
+    # Subjective (all optional)
+    energy_level: Optional[int] = Field(None, ge=0, le=10)  # 0=exhausted, 10=fresh
+    sleep_quality: Optional[int] = Field(None, ge=1, le=5)
+    sleep_hours: Optional[float] = Field(None, ge=0, le=24)
+    soreness: Optional[int] = Field(None, ge=0, le=10)
+    pain_severity: Optional[int] = Field(None, ge=0, le=10)
+    pain_location: Optional[str] = Field(None, max_length=100)
+    stress_level: Optional[int] = Field(None, ge=0, le=10)
+
+    # Context factors (JSON array of strings)
+    context_factors: Optional[List[str]] = None
+    notes: Optional[str] = Field(None, max_length=1000)
 
 
 class MedicalLogCreate(BaseModel):
@@ -1280,26 +1322,26 @@ async def calculate_body_fat(
 @router.get("/members/{member_id}/readiness-analysis/")
 async def get_readiness_analysis(
     member_id: int,
-    lookback_days: int = Query(default=30, ge=7, le=90),
+    lookback_days: int = Query(default=35, ge=7, le=90),
     update_member: bool = Query(default=True),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_auth)
 ):
     """
-    Analyze member's performance readiness combining physical and medical factors.
+    Evidence-based readiness analysis with dual-track system:
+    1. Medical Safety (hard gate) - BP, SpO2, temperature
+    2. Performance Readiness - autonomic recovery, training load, illness patterns
 
-    Physical readiness is calculated from vitals (RHR, HRV, BP, SpO2, temp, etc.)
-    and body composition (Marine Corps taping method - no BMI).
-
-    Medical readiness uses the existing manual medical_readiness field.
-
-    Overall readiness = worst of (physical, medical) - conservative approach.
+    Key features:
+    - Dual baselines (7-day short + 35-day long term)
+    - Persistence-based HRV/RHR decisions (2+ days required)
+    - ACC/AHA blood pressure categories
+    - Training load ACWR analysis
+    - Explainable results with primary drivers
 
     If update_member=true, updates member.overall_readiness with the result.
-    Also calculates and stores body fat if taping measurements are available.
     """
-    from services.readiness_analysis import analyze_readiness, ReadinessAnalysis
-    from dataclasses import asdict
+    from services.readiness_analysis import analyze_readiness
 
     try:
         # Calculate and store body fat from existing measurements
@@ -1312,16 +1354,41 @@ async def get_readiness_analysis(
             update_member=update_member
         )
 
+        # Build training load dict if present
+        training_load_dict = None
+        if analysis.training_load:
+            tl = analysis.training_load
+            training_load_dict = {
+                "acute_load": tl.acute_load,
+                "chronic_load": tl.chronic_load,
+                "acwr": tl.acwr,
+                "risk_level": tl.risk_level,
+                "spike_detected": tl.spike_detected,
+                "monotony": tl.monotony,
+                "notes": tl.notes
+            }
+
+        # Build medical safety dict
+        ms = analysis.medical_safety
+        medical_safety_dict = {
+            "status": ms.status,
+            "flags": ms.flags,
+            "action": ms.action
+        }
+
         # Convert dataclasses to dicts for JSON serialization
         result = {
             "member_id": member_id,
             "overall_status": analysis.overall_status,
-            "physical_status": analysis.physical_status,
-            "medical_status": analysis.medical_status,
             "score": round(analysis.score, 1),
-            "confidence": round(analysis.confidence, 2),
-            "explanation": analysis.explanation,
+            "confidence": analysis.confidence,
             "primary_drivers": analysis.primary_drivers,
+            "data_sources_used": analysis.data_sources_used,
+            "data_quality_note": analysis.data_quality_note,
+            "medical_safety": medical_safety_dict,
+            "performance_readiness": round(analysis.performance_readiness, 1),
+            "training_load": training_load_dict,
+            "subjective_factors": analysis.subjective_factors,
             "indicators": [
                 {
                     "name": ind.name,
@@ -1329,7 +1396,7 @@ async def get_readiness_analysis(
                     "value": round(ind.value, 1),
                     "trend": ind.trend,
                     "explanation": ind.explanation,
-                    "confidence": round(ind.confidence, 2),
+                    "confidence": ind.confidence,
                     "contributing_factors": ind.contributing_factors
                 }
                 for ind in analysis.indicators
@@ -1357,6 +1424,270 @@ async def get_readiness_analysis(
     except Exception as e:
         logger.error(f"Readiness analysis failed for member {member_id}: {e}")
         raise HTTPException(status_code=500, detail="Analysis failed")
+
+
+@router.post("/members/{member_id}/daily-checkin/")
+async def submit_daily_checkin(
+    member_id: int,
+    data: DailyCheckinInput,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """
+    Submit daily check-in with all health metrics in one form.
+    Only creates records for fields that are provided (non-null).
+
+    This is the recommended way to log daily health data - captures
+    vitals, measurements, and subjective readiness together.
+    """
+    # Verify member exists
+    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    created_records = []
+    input_date = data.input_date or date.today()
+    recorded_at = datetime.combine(input_date, datetime.min.time())
+
+    # Create vitals for each provided measurement
+    if data.resting_heart_rate is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.RESTING_HEART_RATE,
+            value=data.resting_heart_rate,
+            unit="bpm",
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("resting_heart_rate")
+
+    if data.hrv is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.HRV,
+            value=data.hrv,
+            unit="ms",
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("hrv")
+
+    if data.blood_pressure_systolic is not None and data.blood_pressure_diastolic is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.BLOOD_PRESSURE,
+            value=data.blood_pressure_systolic,
+            value_secondary=data.blood_pressure_diastolic,
+            unit="mmHg",
+            context_factors=data.context_factors,
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("blood_pressure")
+
+    if data.blood_oxygen is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.BLOOD_OXYGEN,
+            value=data.blood_oxygen,
+            unit="%",
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("blood_oxygen")
+
+    if data.temperature is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.TEMPERATURE,
+            value=data.temperature,
+            unit="°F",
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("temperature")
+
+    if data.respiratory_rate is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.RESPIRATORY_RATE,
+            value=data.respiratory_rate,
+            unit="br/min",
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("respiratory_rate")
+
+    # Body measurements
+    if data.waist is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.WAIST,
+            value=data.waist,
+            unit="in",
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("waist")
+
+    if data.neck is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.NECK,
+            value=data.neck,
+            unit="in",
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("neck")
+
+    if data.hip is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.HIP,
+            value=data.hip,
+            unit="in",
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("hip")
+
+    # Weight log
+    if data.weight is not None:
+        weight_log = MemberWeightLog(
+            member_id=member_id,
+            weight=data.weight,
+            recorded_at=recorded_at
+        )
+        db.add(weight_log)
+        created_records.append("weight")
+        # Update member's current weight
+        member.current_weight = data.weight
+
+    # Subjective readiness input
+    has_subjective = any([
+        data.energy_level is not None,
+        data.sleep_quality is not None,
+        data.sleep_hours is not None,
+        data.soreness is not None,
+        data.pain_severity is not None,
+        data.stress_level is not None
+    ])
+
+    if has_subjective:
+        subjective = MemberSubjectiveInput(
+            member_id=member_id,
+            input_date=recorded_at,
+            energy_level=data.energy_level,
+            sleep_hours=data.sleep_hours,
+            sleep_quality=data.sleep_quality,
+            soreness=data.soreness,
+            pain_severity=data.pain_severity,
+            pain_location=data.pain_location,
+            stress_level=data.stress_level,
+            context_factors=data.context_factors,
+            notes=data.notes
+        )
+        db.add(subjective)
+        created_records.append("subjective_readiness")
+
+    await db.commit()
+
+    # Auto-calculate body fat if all taping measurements available
+    if any(x in created_records for x in ["waist", "neck", "hip"]) and member.height_inches:
+        await _calculate_and_store_body_fat(member_id, db)
+
+    logger.info(f"Daily check-in for member {member_id}: created {len(created_records)} records")
+
+    return {
+        "success": True,
+        "member_id": member_id,
+        "date": input_date.isoformat(),
+        "created_records": created_records,
+        "count": len(created_records)
+    }
+
+
+@router.get("/members/{member_id}/fitness-profile/")
+async def get_fitness_profile(
+    member_id: int,
+    days_back: int = Query(30, ge=7, le=365),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """
+    Get fitness profile with 3-tier performance scores (Civilian/Marine/SF).
+
+    Scores workouts based on age/gender-normalized standards:
+    - CIVILIAN (0-69): Blue badge - general population fitness
+    - MARINE (70-89): Green badge - military-grade fitness
+    - SF (90-100): Gold badge - Special Forces / elite operator fitness
+
+    Run pace and ruck weight are normalized for age and gender.
+    """
+    from services.fitness_standards import get_fitness_profile, get_tier_thresholds
+
+    # Verify member exists
+    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Get age and gender
+    age = 30  # Default
+    if member.birth_date:
+        today = datetime.now()
+        age = today.year - member.birth_date.year
+        if (today.month, today.day) < (member.birth_date.month, member.birth_date.day):
+            age -= 1
+
+    is_female = member.gender == Gender.FEMALE if member.gender else False
+
+    # Fetch workouts
+    cutoff = datetime.utcnow() - timedelta(days=days_back)
+    workouts_result = await db.execute(
+        select(MemberWorkout)
+        .where(and_(
+            MemberWorkout.member_id == member_id,
+            MemberWorkout.is_active == True,
+            MemberWorkout.workout_date >= cutoff
+        ))
+        .order_by(desc(MemberWorkout.workout_date))
+    )
+    workouts = list(workouts_result.scalars().all())
+
+    # Convert to dicts for fitness_standards service
+    workout_dicts = [
+        {
+            "id": w.id,
+            "workout_type": w.workout_type.value if w.workout_type else "OTHER",
+            "workout_date": w.workout_date.isoformat() if w.workout_date else None,
+            "pace_seconds_per_mile": w.pace_seconds_per_mile,
+            "duration_minutes": w.duration_minutes,
+            "distance_miles": w.distance_miles,
+            "weight_carried_lbs": w.weight_carried_lbs,
+            "rpe": w.rpe,
+            "exercises": w.exercises
+        }
+        for w in workouts
+    ]
+
+    # Get fitness profile
+    profile = get_fitness_profile(
+        workouts=workout_dicts,
+        age=age,
+        is_female=is_female,
+        body_weight_lbs=member.current_weight
+    )
+
+    # Add member context
+    profile["member_id"] = member_id
+    profile["period_days"] = days_back
+    profile["total_workouts"] = len(workouts)
+    profile["tier_thresholds"] = get_tier_thresholds()
+
+    return profile
 
 
 @router.post("/members/{member_id}/vitals/")
