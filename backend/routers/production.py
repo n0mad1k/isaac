@@ -16,6 +16,7 @@ from models.production import (
     Customer, LivestockOrder, OrderPayment, ProductionAllocation, HarvestAllocation,
     OrderStatus, PaymentType, PaymentMethod, AllocationType, HarvestUseType, PortionType
 )
+from models.expense import FarmExpense, ExpenseCategory, ExpenseScope
 from models.livestock import Animal, AnimalExpense
 from models.plants import Plant
 
@@ -1308,6 +1309,143 @@ async def allocate_consumed(
     return allocation
 
 
+# ==================== Expense Schemas ====================
+
+class ExpenseCreate(BaseModel):
+    category: ExpenseCategory
+    scope: ExpenseScope = ExpenseScope.BUSINESS
+    amount: float = Field(..., ge=0, le=10000000)
+    expense_date: Optional[date] = None
+    description: str = Field(..., min_length=1, max_length=500)
+    vendor: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = None
+    business_split_pct: float = Field(100.0, ge=0, le=100)
+    is_recurring: bool = False
+    recurring_interval: Optional[str] = Field(None, max_length=20)
+
+
+class ExpenseUpdate(BaseModel):
+    category: Optional[ExpenseCategory] = None
+    scope: Optional[ExpenseScope] = None
+    amount: Optional[float] = Field(None, ge=0, le=10000000)
+    expense_date: Optional[date] = None
+    description: Optional[str] = Field(None, min_length=1, max_length=500)
+    vendor: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = None
+    business_split_pct: Optional[float] = Field(None, ge=0, le=100)
+    is_recurring: Optional[bool] = None
+    recurring_interval: Optional[str] = Field(None, max_length=20)
+
+
+class ExpenseResponse(BaseModel):
+    id: int
+    category: ExpenseCategory
+    scope: ExpenseScope
+    amount: float
+    expense_date: date
+    description: str
+    vendor: Optional[str]
+    notes: Optional[str]
+    business_split_pct: float
+    is_recurring: bool
+    recurring_interval: Optional[str]
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+# ==================== Expense Routes ====================
+
+@router.get("/expenses/", response_model=List[ExpenseResponse])
+async def list_expenses(
+    scope: Optional[ExpenseScope] = None,
+    category: Optional[ExpenseCategory] = None,
+    year: Optional[int] = None,
+    limit: int = Query(default=200, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    """List farm expenses with optional filters"""
+    query = select(FarmExpense)
+
+    if scope:
+        query = query.where(FarmExpense.scope == scope)
+    if category:
+        query = query.where(FarmExpense.category == category)
+    if year:
+        query = query.where(extract('year', FarmExpense.expense_date) == year)
+
+    query = query.order_by(FarmExpense.expense_date.desc()).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+@router.post("/expenses/", response_model=ExpenseResponse)
+async def create_expense(
+    data: ExpenseCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new farm expense"""
+    expense = FarmExpense(
+        category=data.category,
+        scope=data.scope,
+        amount=data.amount,
+        expense_date=data.expense_date or date.today(),
+        description=data.description,
+        vendor=data.vendor,
+        notes=data.notes,
+        business_split_pct=data.business_split_pct,
+        is_recurring=data.is_recurring,
+        recurring_interval=data.recurring_interval,
+    )
+    db.add(expense)
+    await db.commit()
+    await db.refresh(expense)
+    return expense
+
+
+@router.patch("/expenses/{expense_id}/", response_model=ExpenseResponse)
+async def update_expense(
+    expense_id: int,
+    updates: ExpenseUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a farm expense"""
+    result = await db.execute(
+        select(FarmExpense).where(FarmExpense.id == expense_id)
+    )
+    expense = result.scalar_one_or_none()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    for field, value in updates.model_dump(exclude_unset=True).items():
+        setattr(expense, field, value)
+
+    expense.updated_at = datetime.utcnow()
+    await db.commit()
+    await db.refresh(expense)
+    return expense
+
+
+@router.delete("/expenses/{expense_id}/")
+async def delete_expense(
+    expense_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a farm expense"""
+    result = await db.execute(
+        select(FarmExpense).where(FarmExpense.id == expense_id)
+    )
+    expense = result.scalar_one_or_none()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    await db.delete(expense)
+    await db.commit()
+    return {"message": "Expense deleted"}
+
+
 # ==================== Financial Summary Routes ====================
 
 @router.get("/financial-summary/")
@@ -1362,10 +1500,39 @@ async def get_financial_summary(
     harvest_count_result = await db.execute(harvest_count_query)
     harvests = harvest_count_result.scalars().all()
 
+    # Get standalone farm expenses
+    expense_query = select(FarmExpense)
+    if year:
+        expense_query = expense_query.where(
+            extract('year', FarmExpense.expense_date) == year
+        )
+    expense_result = await db.execute(expense_query)
+    farm_expenses = expense_result.scalars().all()
+
+    # Calculate standalone expense totals by scope
+    standalone_business = 0.0
+    standalone_homestead = 0.0
+    standalone_shared = 0.0
+    expenses_by_category = {}
+    for exp in farm_expenses:
+        cat_key = exp.category.value if hasattr(exp.category, 'value') else str(exp.category)
+        expenses_by_category[cat_key] = expenses_by_category.get(cat_key, 0) + exp.amount
+
+        if exp.scope == ExpenseScope.BUSINESS:
+            standalone_business += exp.amount
+        elif exp.scope == ExpenseScope.HOMESTEAD:
+            standalone_homestead += exp.amount
+        elif exp.scope == ExpenseScope.SHARED:
+            standalone_shared += exp.amount
+            biz_pct = (exp.business_split_pct or 100.0) / 100.0
+            standalone_business += exp.amount * biz_pct
+            standalone_homestead += exp.amount * (1 - biz_pct)
+
     # Calculate totals
-    total_expenses = sum((p.total_expenses or 0) + (p.processing_cost or 0) for p in livestock)
+    livestock_expenses = sum((p.total_expenses or 0) + (p.processing_cost or 0) for p in livestock)
+    total_expenses = livestock_expenses + standalone_business
     total_meat = sum(p.final_weight or 0 for p in livestock)
-    avg_cost_per_pound = total_expenses / total_meat if total_meat > 0 else 0
+    avg_cost_per_pound = livestock_expenses / total_meat if total_meat > 0 else 0
 
     # Calculate breakdown by animal type
     by_type = {}
@@ -1402,6 +1569,7 @@ async def get_financial_summary(
     sold_weight = sum(a.weight or 0 for a in allocations if a.allocation_type == AllocationType.SALE)
 
     total_revenue = order_revenue + direct_sales_revenue
+    homestead_costs = standalone_homestead
 
     # Harvest allocation breakdown
     harvest_consumed = len([a for a in harvest_allocations if a.use_type == HarvestUseType.CONSUMED])
@@ -1410,12 +1578,55 @@ async def get_financial_summary(
     harvest_gifted = len([a for a in harvest_allocations if a.use_type == HarvestUseType.GIFTED])
     harvest_spoiled = len([a for a in harvest_allocations if a.use_type == HarvestUseType.SPOILED])
 
+    # Build monthly trends from sales and expenses
+    monthly_trends = {}
+    for s in sales:
+        if s.sale_date:
+            month_key = s.sale_date.month if hasattr(s.sale_date, 'month') else None
+            if month_key:
+                if month_key not in monthly_trends:
+                    monthly_trends[month_key] = {"month": month_key, "revenue": 0, "expenses": 0}
+                monthly_trends[month_key]["revenue"] += s.total_price or 0
+
+    # Add order revenue to monthly trends
+    for o in orders:
+        if o.order_date and (o.total_paid or 0) > 0:
+            month_key = o.order_date.month if hasattr(o.order_date, 'month') else None
+            if month_key:
+                if month_key not in monthly_trends:
+                    monthly_trends[month_key] = {"month": month_key, "revenue": 0, "expenses": 0}
+                monthly_trends[month_key]["revenue"] += o.total_paid or 0
+
+    # Add livestock expenses to monthly trends
+    for p in livestock:
+        if p.slaughter_date:
+            month_key = p.slaughter_date.month if hasattr(p.slaughter_date, 'month') else None
+            if month_key:
+                if month_key not in monthly_trends:
+                    monthly_trends[month_key] = {"month": month_key, "revenue": 0, "expenses": 0}
+                monthly_trends[month_key]["expenses"] += (p.total_expenses or 0) + (p.processing_cost or 0)
+
+    # Add standalone expenses to monthly trends
+    for exp in farm_expenses:
+        if exp.expense_date:
+            month_key = exp.expense_date.month if hasattr(exp.expense_date, 'month') else None
+            if month_key and exp.scope != ExpenseScope.HOMESTEAD:
+                if month_key not in monthly_trends:
+                    monthly_trends[month_key] = {"month": month_key, "revenue": 0, "expenses": 0}
+                if exp.scope == ExpenseScope.BUSINESS:
+                    monthly_trends[month_key]["expenses"] += exp.amount
+                elif exp.scope == ExpenseScope.SHARED:
+                    monthly_trends[month_key]["expenses"] += exp.amount * ((exp.business_split_pct or 100.0) / 100.0)
+
+    # Sort monthly trends by month
+    monthly_trends_list = sorted(monthly_trends.values(), key=lambda x: x["month"])
+
     return {
         "year": year,
         "livestock": {
             "total_processed": len(livestock),
             "total_meat_lbs": total_meat,
-            "total_expenses": total_expenses,
+            "total_expenses": livestock_expenses,
             "avg_cost_per_pound": avg_cost_per_pound,
             "by_type": livestock_by_type,
         },
@@ -1443,11 +1654,19 @@ async def get_financial_summary(
             "total_sales": len(sales),
             "total_revenue": direct_sales_revenue,
         },
+        "standalone_expenses": {
+            "business": standalone_business,
+            "homestead": standalone_homestead,
+            "shared": standalone_shared,
+            "by_category": expenses_by_category,
+        },
+        "monthly_trends": monthly_trends_list,
         "summary": {
             "total_revenue": total_revenue,
             "total_expenses": total_expenses,
             "net_profit": total_revenue - total_expenses,
             "outstanding_payments": outstanding_balance,
+            "homestead_costs": homestead_costs,
         }
     }
 

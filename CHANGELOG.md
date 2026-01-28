@@ -2,6 +2,24 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.42.0] - 2026-01-28
+
+### Added
+- **Production page redesign** - Restructured from 5 tabs to 3 purpose-driven tabs: Overview, Business, Homestead
+- **Farm Expenses** - New standalone expense tracking with 14 categories (Feed, Vet, Processing, Seeds, Equipment, Utilities, Fuel, Supplies, Labor, Insurance, Taxes, Fencing, Bedding, Other)
+- **Expense scoping** - Expenses can be tagged as Business, Homestead, or Shared (with configurable business/homestead split percentage)
+- **Monthly Trends** table in Overview tab showing revenue/expenses/net by month
+- **Homestead Costs** card in Overview P&L summary
+- **Expense Breakdown** by category in Overview tab
+- **Collapsible sections** in Business and Homestead tabs for better organization
+- **Recurring expense** tracking with monthly/quarterly/annually intervals
+
+### Changed
+- **Overview tab** now shows full P&L: Revenue, Expenses, Net Profit, Outstanding, and Homestead Costs
+- **Business tab** consolidates Sales, Livestock Production, Orders & Payments, Customers, and Business Expenses
+- **Homestead tab** consolidates Harvests, Homestead Expenses, and Personal Use Summary
+- **Financial summary API** now includes standalone expenses in P&L calculations and monthly trends data
+
 ## [1.41.1] - 2026-01-28
 
 ### Added

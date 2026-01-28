@@ -22,6 +22,11 @@ import {
   Home as HomeIcon,
   Gift,
   AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  Briefcase,
+  Sprout,
+  Receipt,
 } from 'lucide-react'
 import MottoDisplay from '../components/MottoDisplay'
 import {
@@ -54,6 +59,10 @@ import {
   createHarvestAllocation,
   deleteHarvestAllocation,
   allocateConsumed,
+  getExpenses,
+  createExpense,
+  updateExpense,
+  deleteExpense,
 } from '../services/api'
 import { format } from 'date-fns'
 
@@ -110,6 +119,31 @@ const HARVEST_USE_TYPES = [
   { value: 'spoiled', label: 'Spoiled', icon: AlertTriangle, color: 'text-red-400' },
 ]
 
+const EXPENSE_CATEGORIES = [
+  { value: 'feed', label: 'Feed' },
+  { value: 'vet', label: 'Vet' },
+  { value: 'processing', label: 'Processing' },
+  { value: 'seeds', label: 'Seeds' },
+  { value: 'equipment', label: 'Equipment' },
+  { value: 'utilities', label: 'Utilities' },
+  { value: 'fuel', label: 'Fuel' },
+  { value: 'supplies', label: 'Supplies' },
+  { value: 'labor', label: 'Labor' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'taxes', label: 'Taxes' },
+  { value: 'fencing', label: 'Fencing' },
+  { value: 'bedding', label: 'Bedding' },
+  { value: 'other', label: 'Other' },
+]
+
+const EXPENSE_SCOPES = [
+  { value: 'business', label: 'Business' },
+  { value: 'homestead', label: 'Homestead' },
+  { value: 'shared', label: 'Shared' },
+]
+
+const MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 function FarmFinances() {
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(true)
@@ -123,6 +157,7 @@ function FarmFinances() {
   const [customers, setCustomers] = useState([])
   const [orders, setOrders] = useState([])
   const [outstandingPayments, setOutstandingPayments] = useState([])
+  const [expenses, setExpenses] = useState([])
 
   // Modal states
   const [showSaleModal, setShowSaleModal] = useState(false)
@@ -131,13 +166,18 @@ function FarmFinances() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showAllocationModal, setShowAllocationModal] = useState(false)
   const [showHarvestAllocationModal, setShowHarvestAllocationModal] = useState(false)
+  const [showExpenseModal, setShowExpenseModal] = useState(false)
 
   // Edit states
   const [editingCustomer, setEditingCustomer] = useState(null)
   const [editingOrder, setEditingOrder] = useState(null)
+  const [editingExpense, setEditingExpense] = useState(null)
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null)
   const [selectedProductionForAllocation, setSelectedProductionForAllocation] = useState(null)
   const [selectedHarvestForAllocation, setSelectedHarvestForAllocation] = useState(null)
+
+  // Expense scope filter for the modal (which tab opened it)
+  const [expenseModalDefaultScope, setExpenseModalDefaultScope] = useState('business')
 
   // Form states
   const [saleFormData, setSaleFormData] = useState({
@@ -195,13 +235,26 @@ function FarmFinances() {
     notes: '',
   })
 
+  const [expenseFormData, setExpenseFormData] = useState({
+    category: 'feed',
+    scope: 'business',
+    amount: '',
+    expense_date: format(new Date(), 'yyyy-MM-dd'),
+    description: '',
+    vendor: '',
+    notes: '',
+    business_split_pct: 50,
+    is_recurring: false,
+    recurring_interval: '',
+  })
+
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
 
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [summaryRes, livestockRes, harvestsRes, salesRes, customersRes, ordersRes, outstandingRes] = await Promise.all([
+      const [summaryRes, livestockRes, harvestsRes, salesRes, customersRes, ordersRes, outstandingRes, expensesRes] = await Promise.all([
         getFinancialSummary(selectedYear),
         getLivestockProductions({ year: selectedYear }),
         getPlantHarvests({ year: selectedYear }),
@@ -209,6 +262,7 @@ function FarmFinances() {
         getCustomers({ active_only: false }),
         getOrders(),
         getOutstandingPayments(),
+        getExpenses({ year: selectedYear }),
       ])
       setFinancialSummary(summaryRes.data)
       setLivestock(livestockRes.data)
@@ -217,6 +271,7 @@ function FarmFinances() {
       setCustomers(customersRes.data)
       setOrders(ordersRes.data)
       setOutstandingPayments(outstandingRes.data)
+      setExpenses(expensesRes.data)
     } catch (error) {
       console.error('Failed to fetch data:', error)
     } finally {
@@ -436,6 +491,41 @@ function FarmFinances() {
     }
   }
 
+  // Expense handlers
+  const handleExpenseSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const data = {
+        ...expenseFormData,
+        amount: parseFloat(expenseFormData.amount),
+        business_split_pct: expenseFormData.scope === 'shared' ? parseFloat(expenseFormData.business_split_pct) : 100,
+      }
+      if (editingExpense) {
+        await updateExpense(editingExpense.id, data)
+      } else {
+        await createExpense(data)
+      }
+      setShowExpenseModal(false)
+      setEditingExpense(null)
+      resetExpenseForm()
+      fetchData()
+    } catch (error) {
+      console.error('Failed to save expense:', error)
+      alert('Failed to save expense')
+    }
+  }
+
+  const handleDeleteExpense = async (id, description) => {
+    if (confirm(`Delete expense "${description}"?`)) {
+      try {
+        await deleteExpense(id)
+        fetchData()
+      } catch (error) {
+        console.error('Failed to delete expense:', error)
+      }
+    }
+  }
+
   const resetOrderForm = () => {
     setOrderFormData({
       customer_id: null,
@@ -451,6 +541,40 @@ function FarmFinances() {
       expected_ready_date: '',
       notes: '',
     })
+  }
+
+  const resetExpenseForm = () => {
+    setExpenseFormData({
+      category: 'feed',
+      scope: 'business',
+      amount: '',
+      expense_date: format(new Date(), 'yyyy-MM-dd'),
+      description: '',
+      vendor: '',
+      notes: '',
+      business_split_pct: 50,
+      is_recurring: false,
+      recurring_interval: '',
+    })
+  }
+
+  const openExpenseModal = (defaultScope = 'business') => {
+    setEditingExpense(null)
+    setExpenseModalDefaultScope(defaultScope)
+    setExpenseFormData({
+      ...expenseFormData,
+      category: 'feed',
+      scope: defaultScope,
+      amount: '',
+      expense_date: format(new Date(), 'yyyy-MM-dd'),
+      description: '',
+      vendor: '',
+      notes: '',
+      business_split_pct: 50,
+      is_recurring: false,
+      recurring_interval: '',
+    })
+    setShowExpenseModal(true)
   }
 
   const formatCurrency = (amount) => {
@@ -506,11 +630,13 @@ function FarmFinances() {
 
   const tabs = [
     { key: 'overview', label: 'Overview', icon: TrendingUp },
-    { key: 'livestock', label: 'Livestock', icon: Beef },
-    { key: 'harvests', label: 'Harvests', icon: Apple },
-    { key: 'orders', label: 'Orders', icon: ClipboardList },
-    { key: 'customers', label: 'Customers', icon: Users },
+    { key: 'business', label: 'Business', icon: Briefcase },
+    { key: 'homestead', label: 'Homestead', icon: Sprout },
   ]
+
+  // Filter expenses by scope for each tab
+  const businessExpenses = expenses.filter(e => e.scope === 'business' || e.scope === 'shared')
+  const homesteadExpenses = expenses.filter(e => e.scope === 'homestead' || e.scope === 'shared')
 
   return (
     <div className="space-y-6">
@@ -522,41 +648,6 @@ function FarmFinances() {
         </h1>
         <MottoDisplay />
         <div className="flex items-center gap-2 flex-shrink-0">
-          {activeTab === 'customers' && (
-            <button
-              onClick={() => {
-                setEditingCustomer(null)
-                setCustomerFormData({ name: '', email: '', phone: '', address: '', notes: '' })
-                setShowCustomerModal(true)
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Add Customer
-            </button>
-          )}
-          {activeTab === 'orders' && (
-            <button
-              onClick={() => {
-                setEditingOrder(null)
-                resetOrderForm()
-                setShowOrderModal(true)
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              New Order
-            </button>
-          )}
-          {activeTab === 'overview' && (
-            <button
-              onClick={() => setShowSaleModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Record Sale
-            </button>
-          )}
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
@@ -592,10 +683,7 @@ function FarmFinances() {
         <OverviewTab
           summary={financialSummary}
           outstandingPayments={outstandingPayments}
-          sales={sales}
           formatCurrency={formatCurrency}
-          getCategoryColor={getCategoryColor}
-          handleDeleteSale={handleDeleteSale}
           onAddPayment={(order) => {
             setSelectedOrderForPayment(order)
             setShowPaymentModal(true)
@@ -603,42 +691,49 @@ function FarmFinances() {
         />
       )}
 
-      {activeTab === 'livestock' && (
-        <LivestockTab
+      {activeTab === 'business' && (
+        <BusinessTab
+          sales={sales}
           livestock={livestock}
-          formatAnimalType={formatAnimalType}
-          formatCurrency={formatCurrency}
-          handleDeleteLivestock={handleDeleteLivestock}
-          onAllocate={(prod) => {
-            setSelectedProductionForAllocation(prod)
-            setAllocationFormData({ allocation_type: 'personal', percentage: '', notes: '' })
-            setShowAllocationModal(true)
-          }}
-        />
-      )}
-
-      {activeTab === 'harvests' && (
-        <HarvestsTab
-          harvests={harvests}
-          formatQuality={formatQuality}
-          handleDeleteHarvest={handleDeleteHarvest}
-          onAllocate={(harvest) => {
-            setSelectedHarvestForAllocation(harvest)
-            setHarvestAllocationFormData({ use_type: 'consumed', quantity: '', notes: '' })
-            setShowHarvestAllocationModal(true)
-          }}
-        />
-      )}
-
-      {activeTab === 'orders' && (
-        <OrdersTab
           orders={orders}
           customers={customers}
-          livestock={livestock}
+          expenses={businessExpenses}
           formatCurrency={formatCurrency}
+          formatAnimalType={formatAnimalType}
+          getCategoryColor={getCategoryColor}
           getStatusBadge={getStatusBadge}
           getPaymentProgress={getPaymentProgress}
-          onEdit={(order) => {
+          handleDeleteSale={handleDeleteSale}
+          handleDeleteLivestock={handleDeleteLivestock}
+          handleDeleteOrder={handleDeleteOrder}
+          handleCompleteOrder={handleCompleteOrder}
+          handleDeleteCustomer={handleDeleteCustomer}
+          handleDeleteExpense={handleDeleteExpense}
+          handleDeletePayment={handleDeletePayment}
+          onAddSale={() => setShowSaleModal(true)}
+          onAddOrder={() => {
+            setEditingOrder(null)
+            resetOrderForm()
+            setShowOrderModal(true)
+          }}
+          onAddCustomer={() => {
+            setEditingCustomer(null)
+            setCustomerFormData({ name: '', email: '', phone: '', address: '', notes: '' })
+            setShowCustomerModal(true)
+          }}
+          onAddExpense={() => openExpenseModal('business')}
+          onEditCustomer={(customer) => {
+            setEditingCustomer(customer)
+            setCustomerFormData({
+              name: customer.name,
+              email: customer.email || '',
+              phone: customer.phone || '',
+              address: customer.address || '',
+              notes: customer.notes || '',
+            })
+            setShowCustomerModal(true)
+          }}
+          onEditOrder={(order) => {
             setEditingOrder(order)
             setOrderFormData({
               customer_id: order.customer_id,
@@ -656,31 +751,65 @@ function FarmFinances() {
             })
             setShowOrderModal(true)
           }}
-          onDelete={handleDeleteOrder}
-          onComplete={handleCompleteOrder}
+          onEditExpense={(expense) => {
+            setEditingExpense(expense)
+            setExpenseFormData({
+              category: expense.category,
+              scope: expense.scope,
+              amount: expense.amount,
+              expense_date: expense.expense_date,
+              description: expense.description,
+              vendor: expense.vendor || '',
+              notes: expense.notes || '',
+              business_split_pct: expense.business_split_pct || 50,
+              is_recurring: expense.is_recurring || false,
+              recurring_interval: expense.recurring_interval || '',
+            })
+            setShowExpenseModal(true)
+          }}
           onAddPayment={(order) => {
             setSelectedOrderForPayment(order)
             setShowPaymentModal(true)
           }}
-          onDeletePayment={handleDeletePayment}
+          onAllocate={(prod) => {
+            setSelectedProductionForAllocation(prod)
+            setAllocationFormData({ allocation_type: 'personal', percentage: '', notes: '' })
+            setShowAllocationModal(true)
+          }}
         />
       )}
 
-      {activeTab === 'customers' && (
-        <CustomersTab
-          customers={customers}
-          onEdit={(customer) => {
-            setEditingCustomer(customer)
-            setCustomerFormData({
-              name: customer.name,
-              email: customer.email || '',
-              phone: customer.phone || '',
-              address: customer.address || '',
-              notes: customer.notes || '',
+      {activeTab === 'homestead' && (
+        <HomesteadTab
+          harvests={harvests}
+          expenses={homesteadExpenses}
+          summary={financialSummary}
+          formatCurrency={formatCurrency}
+          formatQuality={formatQuality}
+          handleDeleteHarvest={handleDeleteHarvest}
+          handleDeleteExpense={handleDeleteExpense}
+          onAddExpense={() => openExpenseModal('homestead')}
+          onEditExpense={(expense) => {
+            setEditingExpense(expense)
+            setExpenseFormData({
+              category: expense.category,
+              scope: expense.scope,
+              amount: expense.amount,
+              expense_date: expense.expense_date,
+              description: expense.description,
+              vendor: expense.vendor || '',
+              notes: expense.notes || '',
+              business_split_pct: expense.business_split_pct || 50,
+              is_recurring: expense.is_recurring || false,
+              recurring_interval: expense.recurring_interval || '',
             })
-            setShowCustomerModal(true)
+            setShowExpenseModal(true)
           }}
-          onDelete={handleDeleteCustomer}
+          onAllocate={(harvest) => {
+            setSelectedHarvestForAllocation(harvest)
+            setHarvestAllocationFormData({ use_type: 'consumed', quantity: '', notes: '' })
+            setShowHarvestAllocationModal(true)
+          }}
         />
       )}
 
@@ -770,18 +899,63 @@ function FarmFinances() {
           }}
         />
       )}
+
+      {/* Expense Modal */}
+      {showExpenseModal && (
+        <ExpenseModal
+          formData={expenseFormData}
+          setFormData={setExpenseFormData}
+          editing={editingExpense}
+          onSubmit={handleExpenseSubmit}
+          onClose={() => {
+            setShowExpenseModal(false)
+            setEditingExpense(null)
+          }}
+          formatCurrency={formatCurrency}
+        />
+      )}
+    </div>
+  )
+}
+
+// ==================== Collapsible Section ====================
+
+function CollapsibleSection({ title, icon: Icon, iconColor, count, children, defaultOpen = true, actions }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+
+  return (
+    <div className="bg-gray-800 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-700/50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {isOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+          {Icon && <Icon className={`w-5 h-5 ${iconColor || 'text-gray-400'}`} />}
+          <h3 className="text-lg font-semibold">{title}</h3>
+          {count !== undefined && (
+            <span className="text-xs px-2 py-0.5 bg-gray-700 rounded-full text-gray-400">{count}</span>
+          )}
+        </div>
+        {actions && (
+          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            {actions}
+          </div>
+        )}
+      </button>
+      {isOpen && <div className="px-4 pb-4">{children}</div>}
     </div>
   )
 }
 
 // ==================== Tab Components ====================
 
-function OverviewTab({ summary, outstandingPayments, sales, formatCurrency, getCategoryColor, handleDeleteSale, onAddPayment }) {
+function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPayment }) {
   if (!summary) return null
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
+      {/* Top P&L Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-gray-800 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-400 mb-1">
@@ -821,125 +995,84 @@ function OverviewTab({ summary, outstandingPayments, sales, formatCurrency, getC
         </div>
         <div className="bg-gray-800 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-400 mb-1">
-            <Scale className="w-4 h-4" />
-            <span className="text-sm">Cost/lb</span>
+            <HomeIcon className="w-4 h-4" />
+            <span className="text-sm">Homestead</span>
           </div>
-          <div className="text-2xl font-bold text-cyan-400">
-            {formatCurrency(summary.livestock?.avg_cost_per_pound)}
-          </div>
-        </div>
-      </div>
-
-      {/* Detailed Stats */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Livestock Stats */}
-        <div className="bg-gray-800 rounded-xl p-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
-            <Beef className="w-5 h-5 text-red-400" />
-            Meat Production
-          </h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Animals Processed</span>
-              <span>{summary.livestock?.total_processed || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Total Meat</span>
-              <span>{(summary.livestock?.total_meat_lbs || 0).toFixed(0)} lbs</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Expenses</span>
-              <span className="text-yellow-400">{formatCurrency(summary.livestock?.total_expenses)}</span>
-            </div>
-            {/* Cost per lb by animal type */}
-            {summary.livestock?.by_type && summary.livestock.by_type.length > 0 && (
-              <div className="pt-2 mt-2 border-t border-gray-700">
-                <div className="text-xs text-gray-500 mb-1">Cost per Pound:</div>
-                {summary.livestock.by_type.map((item) => (
-                  <div key={item.type} className="flex justify-between">
-                    <span className="text-gray-400 capitalize">{item.type.replace(/_/g, ' ')}</span>
-                    <span className="text-cyan-400">{formatCurrency(item.cost_per_pound)}/lb</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Harvests Stats */}
-        <div className="bg-gray-800 rounded-xl p-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
-            <Apple className="w-5 h-5 text-green-400" />
-            Harvests
-          </h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Total Harvests</span>
-              <span>{summary.harvests?.total_harvests || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Consumed</span>
-              <span className="text-blue-400">{summary.harvests?.consumed || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Sold</span>
-              <span className="text-green-400">{summary.harvests?.sold || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Preserved</span>
-              <span className="text-yellow-400">{summary.harvests?.preserved || 0}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Orders Stats */}
-        <div className="bg-gray-800 rounded-xl p-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
-            <ClipboardList className="w-5 h-5 text-blue-400" />
-            Orders
-          </h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Total Orders</span>
-              <span>{summary.orders?.total_orders || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Completed</span>
-              <span className="text-green-400">{summary.orders?.completed_orders || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Active</span>
-              <span className="text-blue-400">{summary.orders?.active_orders || 0}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Collected</span>
-              <span className="text-green-400">{formatCurrency(summary.orders?.total_collected)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Personal Use / Allocations */}
-        <div className="bg-gray-800 rounded-xl p-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3">
-            <HomeIcon className="w-5 h-5 text-purple-400" />
-            Personal Use
-          </h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Meat Kept</span>
-              <span>{(summary.allocations?.personal_weight || 0).toFixed(0)} lbs</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Meat Sold</span>
-              <span>{(summary.allocations?.sold_weight || 0).toFixed(0)} lbs</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Personal Value</span>
-              <span className="text-cyan-400">{formatCurrency(summary.allocations?.personal_cost)}</span>
-            </div>
+          <div className="text-2xl font-bold text-purple-400">
+            {formatCurrency(summary.summary?.homestead_costs)}
           </div>
         </div>
       </div>
+
+      {/* Quick Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-gray-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-gray-400 mb-1">
+            <Beef className="w-4 h-4 text-red-400" />
+            <span className="text-sm">Processed</span>
+          </div>
+          <div className="text-xl font-bold">{summary.livestock?.total_processed || 0}</div>
+          <div className="text-xs text-gray-500">{(summary.livestock?.total_meat_lbs || 0).toFixed(0)} lbs</div>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-gray-400 mb-1">
+            <Apple className="w-4 h-4 text-green-400" />
+            <span className="text-sm">Harvests</span>
+          </div>
+          <div className="text-xl font-bold">{summary.harvests?.total_harvests || 0}</div>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-gray-400 mb-1">
+            <ClipboardList className="w-4 h-4 text-blue-400" />
+            <span className="text-sm">Active Orders</span>
+          </div>
+          <div className="text-xl font-bold">{summary.orders?.active_orders || 0}</div>
+        </div>
+        <div className="bg-gray-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-gray-400 mb-1">
+            <Scale className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm">Avg Cost/lb</span>
+          </div>
+          <div className="text-xl font-bold text-cyan-400">{formatCurrency(summary.livestock?.avg_cost_per_pound)}</div>
+        </div>
+      </div>
+
+      {/* Monthly Trends */}
+      {summary.monthly_trends && summary.monthly_trends.length > 0 && (
+        <div className="bg-gray-800 rounded-xl p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <Calendar className="w-5 h-5 text-blue-400" />
+            Monthly Trends
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="text-left p-2 text-gray-400">Month</th>
+                  <th className="text-right p-2 text-gray-400">Revenue</th>
+                  <th className="text-right p-2 text-gray-400">Expenses</th>
+                  <th className="text-right p-2 text-gray-400">Net</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.monthly_trends.map((row) => {
+                  const net = row.revenue - row.expenses
+                  return (
+                    <tr key={row.month} className="border-b border-gray-700/50">
+                      <td className="p-2 font-medium">{MONTH_NAMES[row.month]}</td>
+                      <td className="p-2 text-right text-green-400">{formatCurrency(row.revenue)}</td>
+                      <td className="p-2 text-right text-yellow-400">{formatCurrency(row.expenses)}</td>
+                      <td className={`p-2 text-right font-medium ${net >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(net)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Outstanding Payments */}
       {outstandingPayments.length > 0 && (
@@ -973,487 +1106,449 @@ function OverviewTab({ summary, outstandingPayments, sales, formatCurrency, getC
         </div>
       )}
 
-      {/* Recent Sales */}
-      {sales.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-green-400" />
-            Recent Sales
+      {/* Expense Breakdown by Category */}
+      {summary.standalone_expenses && Object.keys(summary.standalone_expenses.by_category || {}).length > 0 && (
+        <div className="bg-gray-800 rounded-xl p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <Receipt className="w-5 h-5 text-yellow-400" />
+            Expense Breakdown
           </h3>
-          {sales.slice(0, 5).map((sale) => (
-            <div
-              key={sale.id}
-              className={`bg-gray-800 rounded-lg p-4 border-l-4 ${getCategoryColor(sale.category)}`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium">{sale.item_name}</h3>
-                    <span className="text-xs px-2 py-0.5 bg-gray-700 rounded capitalize">
-                      {sale.category}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 mt-2 text-sm">
-                    <span className="text-green-400 font-medium text-lg">
-                      {formatCurrency(sale.total_price)}
-                    </span>
-                    <span className="text-gray-400">
-                      {sale.quantity} {sale.unit} @ {formatCurrency(sale.unit_price)}/{sale.unit}
-                    </span>
-                    {sale.sale_date && (
-                      <span className="flex items-center gap-1 text-gray-400">
-                        <Calendar className="w-4 h-4" />
-                        {format(new Date(sale.sale_date), 'MMM d, yyyy')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDeleteSale(sale.id, sale.item_name)}
-                  className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {Object.entries(summary.standalone_expenses.by_category).sort((a, b) => b[1] - a[1]).map(([cat, amount]) => (
+              <div key={cat} className="bg-gray-700 rounded-lg p-3">
+                <div className="text-sm text-gray-400 capitalize">{cat}</div>
+                <div className="text-lg font-bold text-yellow-400">{formatCurrency(amount)}</div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
   )
 }
 
-function LivestockTab({ livestock, formatAnimalType, formatCurrency, handleDeleteLivestock, onAllocate }) {
-  if (livestock.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500 bg-gray-800 rounded-xl">
-        <Beef className="w-16 h-16 mx-auto mb-4 opacity-50" />
-        <p>No livestock production records</p>
-        <p className="text-sm mt-2">Archive livestock from the Animals page to track production</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      {livestock.map((record) => (
-        <div
-          key={record.id}
-          className="bg-gray-800 rounded-lg p-4 border-l-4 border-red-500"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-medium text-lg">{record.animal_name}</h3>
-                <span className="text-sm text-gray-400">
-                  {formatAnimalType(record.animal_type)}
-                </span>
-                {record.breed && (
-                  <span className="text-sm text-gray-500">- {record.breed}</span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                {record.slaughter_date && (
-                  <span className="flex items-center gap-1 text-gray-400">
-                    <Calendar className="w-4 h-4" />
-                    {format(new Date(record.slaughter_date), 'MMM d, yyyy')}
-                  </span>
-                )}
-                {record.processor && (
-                  <span className="text-gray-400">Processor: {record.processor}</span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                {record.live_weight && (
-                  <span className="text-gray-400">
-                    Live: <span className="text-white">{record.live_weight} lbs</span>
-                  </span>
-                )}
-                {record.hanging_weight && (
-                  <span className="text-gray-400">
-                    Hanging: <span className="text-white">{record.hanging_weight} lbs</span>
-                  </span>
-                )}
-                {record.final_weight && (
-                  <span className="text-gray-400">
-                    Final: <span className="text-green-400 font-medium">{record.final_weight} lbs</span>
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-4 mt-2 text-sm">
-                {record.total_expenses > 0 && (
-                  <span className="text-gray-400">
-                    Expenses: <span className="text-yellow-400">{formatCurrency(record.total_expenses)}</span>
-                  </span>
-                )}
-                {record.processing_cost > 0 && (
-                  <span className="text-gray-400">
-                    Processing: <span className="text-yellow-400">{formatCurrency(record.processing_cost)}</span>
-                  </span>
-                )}
-                {record.cost_per_pound > 0 && (
-                  <span className="text-gray-400">
-                    Cost/lb: <span className="text-cyan-400 font-medium">{formatCurrency(record.cost_per_pound)}</span>
-                  </span>
-                )}
-              </div>
-              {record.notes && (
-                <p className="text-sm text-gray-500 mt-2">{record.notes}</p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onAllocate(record)}
-                className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-700 rounded-lg transition-colors"
-                title="Allocate"
-              >
-                <Percent className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleDeleteLivestock(record.id, record.animal_name)}
-                className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded-lg transition-colors"
-                title="Delete"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function HarvestsTab({ harvests, formatQuality, handleDeleteHarvest, onAllocate }) {
-  if (harvests.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500 bg-gray-800 rounded-xl">
-        <Apple className="w-16 h-16 mx-auto mb-4 opacity-50" />
-        <p>No harvest records</p>
-        <p className="text-sm mt-2">Record harvests from the Plants page</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-3">
-      {harvests.map((record) => (
-        <div
-          key={record.id}
-          className="bg-gray-800 rounded-lg p-4 border-l-4 border-green-500"
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-medium">{record.plant_name}</h3>
-                {record.plant_variety && (
-                  <span className="text-sm text-gray-400">({record.plant_variety})</span>
-                )}
-                <span className={`text-xs px-2 py-0.5 rounded ${formatQuality(record.quality)}`}>
-                  {record.quality}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 mt-2 text-sm">
-                <span className="text-green-400 font-medium text-lg">
-                  {record.quantity} {record.unit}
-                </span>
-                {record.harvest_date && (
-                  <span className="flex items-center gap-1 text-gray-400">
-                    <Calendar className="w-4 h-4" />
-                    {format(new Date(record.harvest_date), 'MMM d, yyyy')}
-                  </span>
-                )}
-              </div>
-              {record.notes && (
-                <p className="text-sm text-gray-500 mt-2">{record.notes}</p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onAllocate(record)}
-                className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-700 rounded-lg transition-colors"
-                title="Track Usage"
-              >
-                <Percent className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleDeleteHarvest(record.id, record.plant_name)}
-                className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded-lg transition-colors"
-                title="Delete"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function OrdersTab({ orders, customers, livestock, formatCurrency, getStatusBadge, getPaymentProgress, onEdit, onDelete, onComplete, onAddPayment, onDeletePayment }) {
-  if (orders.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500 bg-gray-800 rounded-xl">
-        <ClipboardList className="w-16 h-16 mx-auto mb-4 opacity-50" />
-        <p>No orders yet</p>
-        <p className="text-sm mt-2">Create orders to track livestock sales with multiple payments</p>
-      </div>
-    )
-  }
-
+function BusinessTab({
+  sales, livestock, orders, customers, expenses,
+  formatCurrency, formatAnimalType, getCategoryColor, getStatusBadge, getPaymentProgress,
+  handleDeleteSale, handleDeleteLivestock, handleDeleteOrder, handleCompleteOrder,
+  handleDeleteCustomer, handleDeleteExpense, handleDeletePayment,
+  onAddSale, onAddOrder, onAddCustomer, onAddExpense,
+  onEditCustomer, onEditOrder, onEditExpense,
+  onAddPayment, onAllocate,
+}) {
   return (
     <div className="space-y-4">
-      {orders.map((order) => {
-        const statusBadge = getStatusBadge(order.status)
-        const progress = getPaymentProgress(order)
-        const total = order.final_total || order.estimated_total || 0
-
-        return (
-          <div key={order.id} className="bg-gray-800 rounded-xl p-4">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-medium text-lg">{order.customer_name || 'Unknown Customer'}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded ${statusBadge.color} text-white`}>
-                    {statusBadge.label}
-                  </span>
-                </div>
-                {order.description && (
-                  <p className="text-gray-400 text-sm mt-1">{order.description}</p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onEdit(order)}
-                  className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-700 rounded-lg transition-colors"
-                  title="Edit"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                {order.status !== 'completed' && order.status !== 'cancelled' && (
-                  <button
-                    onClick={() => onComplete(order.id)}
-                    className="p-2 text-gray-400 hover:text-green-400 hover:bg-gray-700 rounded-lg transition-colors"
-                    title="Complete"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                  </button>
-                )}
-                <button
-                  onClick={() => onDelete(order.id)}
-                  className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded-lg transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Order Details */}
-            <div className="grid md:grid-cols-3 gap-4 text-sm mb-4">
-              <div>
-                <span className="text-gray-400">Portion:</span>{' '}
-                <span className="capitalize">{order.portion_type}</span>
-                {order.portion_percentage !== 100 && ` (${order.portion_percentage}%)`}
-              </div>
-              {order.estimated_weight && (
-                <div>
-                  <span className="text-gray-400">Est. Weight:</span>{' '}
-                  {order.estimated_weight} lbs
-                </div>
-              )}
-              {order.actual_weight && (
-                <div>
-                  <span className="text-gray-400">Actual Weight:</span>{' '}
-                  <span className="text-green-400">{order.actual_weight} lbs</span>
-                </div>
-              )}
-              {order.price_per_pound && (
-                <div>
-                  <span className="text-gray-400">Price/lb:</span>{' '}
-                  {formatCurrency(order.price_per_pound)}
-                </div>
-              )}
-              {order.order_date && (
-                <div>
-                  <span className="text-gray-400">Order Date:</span>{' '}
-                  {format(new Date(order.order_date), 'MMM d, yyyy')}
-                </div>
-              )}
-              {order.expected_ready_date && (
-                <div>
-                  <span className="text-gray-400">Expected Ready:</span>{' '}
-                  {format(new Date(order.expected_ready_date), 'MMM d, yyyy')}
-                </div>
-              )}
-            </div>
-
-            {/* Payment Progress */}
-            <div className="mb-4">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-400">Payment Progress</span>
-                <span>
-                  <span className="text-green-400">{formatCurrency(order.total_paid)}</span>
-                  {' / '}
-                  <span>{formatCurrency(total)}</span>
-                </span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full ${progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              {order.balance_due > 0 && (
-                <div className="text-right text-sm mt-1">
-                  <span className="text-orange-400">{formatCurrency(order.balance_due)} remaining</span>
-                </div>
-              )}
-            </div>
-
-            {/* Payments List */}
-            {order.payments && order.payments.length > 0 && (
-              <div className="border-t border-gray-700 pt-3 mt-3">
-                <h4 className="text-sm font-medium text-gray-400 mb-2">Payments</h4>
-                <div className="space-y-2">
-                  {order.payments.map((payment) => (
-                    <div key={payment.id} className="flex items-center justify-between bg-gray-700 rounded-lg px-3 py-2 text-sm">
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="w-4 h-4 text-gray-400" />
-                        <span className="capitalize">{payment.payment_type}</span>
-                        <span className="text-gray-400">via {payment.payment_method}</span>
-                        {payment.reference && (
-                          <span className="text-gray-500">#{payment.reference}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={payment.payment_type === 'refund' ? 'text-red-400' : 'text-green-400'}>
-                          {payment.payment_type === 'refund' ? '-' : '+'}{formatCurrency(payment.amount)}
-                        </span>
-                        <span className="text-gray-500">{format(new Date(payment.payment_date), 'M/d/yy')}</span>
-                        <button
-                          onClick={() => onDeletePayment(order.id, payment.id)}
-                          className="text-gray-500 hover:text-red-400"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
+      {/* Sales Section */}
+      <CollapsibleSection
+        title="Sales"
+        icon={ShoppingCart}
+        iconColor="text-green-400"
+        count={sales.length}
+        actions={
+          <button onClick={onAddSale} className="flex items-center gap-1 px-3 py-1 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors text-sm">
+            <Plus className="w-4 h-4" /> Record Sale
+          </button>
+        }
+      >
+        {sales.length === 0 ? (
+          <p className="text-gray-500 text-sm py-4 text-center">No sales recorded yet</p>
+        ) : (
+          <div className="space-y-3">
+            {sales.map((sale) => (
+              <div key={sale.id} className={`bg-gray-700 rounded-lg p-3 border-l-4 ${getCategoryColor(sale.category)}`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{sale.item_name}</h4>
+                      <span className="text-xs px-2 py-0.5 bg-gray-600 rounded capitalize">{sale.category}</span>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-4 mt-1 text-sm">
+                      <span className="text-green-400 font-medium">{formatCurrency(sale.total_price)}</span>
+                      <span className="text-gray-400">{sale.quantity} {sale.unit} @ {formatCurrency(sale.unit_price)}/{sale.unit}</span>
+                      {sale.sale_date && (
+                        <span className="flex items-center gap-1 text-gray-400">
+                          <Calendar className="w-3 h-3" />
+                          {format(new Date(sale.sale_date), 'MMM d, yyyy')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button onClick={() => handleDeleteSale(sale.id, sale.item_name)} className="p-1 text-gray-400 hover:text-red-400">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-            )}
-
-            {/* Add Payment Button */}
-            {order.status !== 'completed' && order.status !== 'cancelled' && (
-              <button
-                onClick={() => onAddPayment(order)}
-                className="mt-3 text-sm text-farm-green hover:text-farm-green-light flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" />
-                Add Payment
-              </button>
-            )}
+            ))}
           </div>
-        )
-      })}
-    </div>
-  )
-}
+        )}
+      </CollapsibleSection>
 
-function CustomersTab({ customers, onEdit, onDelete }) {
-  const activeCustomers = customers.filter(c => c.is_active)
-  const inactiveCustomers = customers.filter(c => !c.is_active)
-
-  if (customers.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500 bg-gray-800 rounded-xl">
-        <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
-        <p>No customers yet</p>
-        <p className="text-sm mt-2">Add customers to track sales and orders</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Active Customers Table */}
-      <div className="bg-gray-800 rounded-xl overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-700">
-              <th className="text-left p-4 text-sm font-medium text-gray-400">Name</th>
-              <th className="text-left p-4 text-sm font-medium text-gray-400">Contact</th>
-              <th className="text-left p-4 text-sm font-medium text-gray-400 hidden md:table-cell">Address</th>
-              <th className="text-left p-4 text-sm font-medium text-gray-400 hidden lg:table-cell">Notes</th>
-              <th className="text-right p-4 text-sm font-medium text-gray-400">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {activeCustomers.map((customer) => (
-              <tr key={customer.id} className="border-b border-gray-700 last:border-0 hover:bg-gray-700/50">
-                <td className="p-4">
-                  <span className="font-medium">{customer.name}</span>
-                </td>
-                <td className="p-4">
-                  {customer.email && (
-                    <div className="text-sm text-gray-400">{customer.email}</div>
-                  )}
-                  {customer.phone && (
-                    <div className="text-sm text-gray-400">{customer.phone}</div>
-                  )}
-                </td>
-                <td className="p-4 hidden md:table-cell">
-                  {customer.address && (
-                    <span className="text-sm text-gray-400">{customer.address}</span>
-                  )}
-                </td>
-                <td className="p-4 hidden lg:table-cell">
-                  {customer.notes && (
-                    <span className="text-sm text-gray-500 italic">{customer.notes}</span>
-                  )}
-                </td>
-                <td className="p-4 text-right">
-                  <div className="flex justify-end gap-1">
-                    <button
-                      onClick={() => onEdit(customer)}
-                      className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-600 rounded-lg transition-colors"
-                    >
-                      <Edit className="w-4 h-4" />
+      {/* Livestock Production Section */}
+      <CollapsibleSection
+        title="Livestock Production"
+        icon={Beef}
+        iconColor="text-red-400"
+        count={livestock.length}
+      >
+        {livestock.length === 0 ? (
+          <p className="text-gray-500 text-sm py-4 text-center">No livestock production records. Archive livestock from the Animals page.</p>
+        ) : (
+          <div className="space-y-3">
+            {livestock.map((record) => (
+              <div key={record.id} className="bg-gray-700 rounded-lg p-3 border-l-4 border-red-500">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{record.animal_name}</h4>
+                      <span className="text-sm text-gray-400">{formatAnimalType(record.animal_type)}</span>
+                      {record.breed && <span className="text-sm text-gray-500">- {record.breed}</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-4 mt-1 text-sm">
+                      {record.slaughter_date && (
+                        <span className="flex items-center gap-1 text-gray-400">
+                          <Calendar className="w-3 h-3" />
+                          {format(new Date(record.slaughter_date), 'MMM d, yyyy')}
+                        </span>
+                      )}
+                      {record.final_weight && <span className="text-gray-400">Final: <span className="text-green-400 font-medium">{record.final_weight} lbs</span></span>}
+                      {record.cost_per_pound > 0 && <span className="text-gray-400">Cost/lb: <span className="text-cyan-400">{formatCurrency(record.cost_per_pound)}</span></span>}
+                      {record.total_expenses > 0 && <span className="text-gray-400">Expenses: <span className="text-yellow-400">{formatCurrency(record.total_expenses)}</span></span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => onAllocate(record)} className="p-1 text-gray-400 hover:text-blue-400" title="Allocate">
+                      <Percent className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => onDelete(customer.id, customer.name)}
-                      className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded-lg transition-colors"
-                    >
+                    <button onClick={() => handleDeleteLivestock(record.id, record.animal_name)} className="p-1 text-gray-400 hover:text-red-400" title="Delete">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        )}
+      </CollapsibleSection>
 
-      {/* Inactive Customers */}
-      {inactiveCustomers.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium text-gray-500 mb-3">Inactive Customers</h3>
-          <div className="bg-gray-800/50 rounded-xl overflow-hidden">
-            <table className="w-full">
+      {/* Orders & Payments Section */}
+      <CollapsibleSection
+        title="Orders & Payments"
+        icon={ClipboardList}
+        iconColor="text-blue-400"
+        count={orders.length}
+        actions={
+          <button onClick={onAddOrder} className="flex items-center gap-1 px-3 py-1 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors text-sm">
+            <Plus className="w-4 h-4" /> New Order
+          </button>
+        }
+      >
+        {orders.length === 0 ? (
+          <p className="text-gray-500 text-sm py-4 text-center">No orders yet</p>
+        ) : (
+          <div className="space-y-4">
+            {orders.map((order) => {
+              const statusBadge = getStatusBadge(order.status)
+              const progress = getPaymentProgress(order)
+              const total = order.final_total || order.estimated_total || 0
+
+              return (
+                <div key={order.id} className="bg-gray-700 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{order.customer_name || 'Unknown Customer'}</h4>
+                        <span className={`text-xs px-2 py-0.5 rounded ${statusBadge.color} text-white`}>{statusBadge.label}</span>
+                      </div>
+                      {order.description && <p className="text-gray-400 text-sm mt-1">{order.description}</p>}
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => onEditOrder(order)} className="p-1 text-gray-400 hover:text-blue-400" title="Edit"><Edit className="w-4 h-4" /></button>
+                      {order.status !== 'completed' && order.status !== 'cancelled' && (
+                        <button onClick={() => handleCompleteOrder(order.id)} className="p-1 text-gray-400 hover:text-green-400" title="Complete"><CheckCircle2 className="w-4 h-4" /></button>
+                      )}
+                      <button onClick={() => handleDeleteOrder(order.id)} className="p-1 text-gray-400 hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
+                    <div><span className="text-gray-400">Portion:</span> <span className="capitalize">{order.portion_type}</span></div>
+                    {order.estimated_weight && <div><span className="text-gray-400">Est:</span> {order.estimated_weight} lbs</div>}
+                    {order.price_per_pound && <div><span className="text-gray-400">Price/lb:</span> {formatCurrency(order.price_per_pound)}</div>}
+                    {order.order_date && <div><span className="text-gray-400">Date:</span> {format(new Date(order.order_date), 'MMM d, yyyy')}</div>}
+                  </div>
+
+                  {/* Payment Progress */}
+                  <div className="mb-2">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-400">Payment</span>
+                      <span><span className="text-green-400">{formatCurrency(order.total_paid)}</span> / {formatCurrency(total)}</span>
+                    </div>
+                    <div className="w-full bg-gray-600 rounded-full h-1.5">
+                      <div className={`h-1.5 rounded-full ${progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${progress}%` }} />
+                    </div>
+                    {order.balance_due > 0 && <div className="text-right text-xs mt-1 text-orange-400">{formatCurrency(order.balance_due)} remaining</div>}
+                  </div>
+
+                  {/* Payments */}
+                  {order.payments && order.payments.length > 0 && (
+                    <div className="border-t border-gray-600 pt-2 mt-2 space-y-1">
+                      {order.payments.map((payment) => (
+                        <div key={payment.id} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="w-3 h-3 text-gray-400" />
+                            <span className="capitalize">{payment.payment_type}</span>
+                            <span className="text-gray-500">via {payment.payment_method}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={payment.payment_type === 'refund' ? 'text-red-400' : 'text-green-400'}>
+                              {payment.payment_type === 'refund' ? '-' : '+'}{formatCurrency(payment.amount)}
+                            </span>
+                            <span className="text-gray-500">{format(new Date(payment.payment_date), 'M/d/yy')}</span>
+                            <button onClick={() => handleDeletePayment(order.id, payment.id)} className="text-gray-500 hover:text-red-400"><X className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {order.status !== 'completed' && order.status !== 'cancelled' && (
+                    <button onClick={() => onAddPayment(order)} className="mt-2 text-sm text-farm-green hover:text-farm-green-light flex items-center gap-1">
+                      <Plus className="w-3 h-3" /> Add Payment
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Customers Section */}
+      <CollapsibleSection
+        title="Customers"
+        icon={Users}
+        iconColor="text-purple-400"
+        count={customers.filter(c => c.is_active).length}
+        defaultOpen={false}
+        actions={
+          <button onClick={onAddCustomer} className="flex items-center gap-1 px-3 py-1 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors text-sm">
+            <Plus className="w-4 h-4" /> Add Customer
+          </button>
+        }
+      >
+        {customers.length === 0 ? (
+          <p className="text-gray-500 text-sm py-4 text-center">No customers yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-600">
+                  <th className="text-left p-2 text-gray-400">Name</th>
+                  <th className="text-left p-2 text-gray-400">Contact</th>
+                  <th className="text-left p-2 text-gray-400 hidden md:table-cell">Notes</th>
+                  <th className="text-right p-2 text-gray-400">Actions</th>
+                </tr>
+              </thead>
               <tbody>
-                {inactiveCustomers.map((customer) => (
-                  <tr key={customer.id} className="border-b border-gray-700 last:border-0 opacity-60">
-                    <td className="p-4 font-medium">{customer.name}</td>
-                    <td className="p-4 text-sm text-gray-400">{customer.email}</td>
+                {customers.filter(c => c.is_active).map((customer) => (
+                  <tr key={customer.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                    <td className="p-2 font-medium">{customer.name}</td>
+                    <td className="p-2 text-gray-400">
+                      {customer.phone && <div>{customer.phone}</div>}
+                      {customer.email && <div>{customer.email}</div>}
+                    </td>
+                    <td className="p-2 hidden md:table-cell text-gray-500 italic">{customer.notes}</td>
+                    <td className="p-2 text-right">
+                      <div className="flex justify-end gap-1">
+                        <button onClick={() => onEditCustomer(customer)} className="p-1 text-gray-400 hover:text-blue-400"><Edit className="w-4 h-4" /></button>
+                        <button onClick={() => handleDeleteCustomer(customer.id, customer.name)} className="p-1 text-gray-400 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Business Expenses Section */}
+      <CollapsibleSection
+        title="Business Expenses"
+        icon={Receipt}
+        iconColor="text-yellow-400"
+        count={expenses.length}
+        defaultOpen={false}
+        actions={
+          <button onClick={onAddExpense} className="flex items-center gap-1 px-3 py-1 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors text-sm">
+            <Plus className="w-4 h-4" /> Add Expense
+          </button>
+        }
+      >
+        <ExpenseList
+          expenses={expenses}
+          formatCurrency={formatCurrency}
+          onEdit={onEditExpense}
+          onDelete={handleDeleteExpense}
+        />
+      </CollapsibleSection>
+    </div>
+  )
+}
+
+function HomesteadTab({
+  harvests, expenses, summary,
+  formatCurrency, formatQuality,
+  handleDeleteHarvest, handleDeleteExpense,
+  onAddExpense, onEditExpense, onAllocate,
+}) {
+  return (
+    <div className="space-y-4">
+      {/* Harvests Section */}
+      <CollapsibleSection
+        title="Harvests"
+        icon={Apple}
+        iconColor="text-green-400"
+        count={harvests.length}
+      >
+        {harvests.length === 0 ? (
+          <p className="text-gray-500 text-sm py-4 text-center">No harvest records. Record harvests from the Plants page.</p>
+        ) : (
+          <div className="space-y-3">
+            {harvests.map((record) => (
+              <div key={record.id} className="bg-gray-700 rounded-lg p-3 border-l-4 border-green-500">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{record.plant_name}</h4>
+                      {record.plant_variety && <span className="text-sm text-gray-400">({record.plant_variety})</span>}
+                      <span className={`text-xs px-2 py-0.5 rounded ${formatQuality(record.quality)}`}>{record.quality}</span>
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-sm">
+                      <span className="text-green-400 font-medium">{record.quantity} {record.unit}</span>
+                      {record.harvest_date && (
+                        <span className="flex items-center gap-1 text-gray-400">
+                          <Calendar className="w-3 h-3" />
+                          {format(new Date(record.harvest_date), 'MMM d, yyyy')}
+                        </span>
+                      )}
+                    </div>
+                    {record.notes && <p className="text-sm text-gray-500 mt-1">{record.notes}</p>}
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => onAllocate(record)} className="p-1 text-gray-400 hover:text-blue-400" title="Track Usage"><Percent className="w-4 h-4" /></button>
+                    <button onClick={() => handleDeleteHarvest(record.id, record.plant_name)} className="p-1 text-gray-400 hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Homestead Expenses Section */}
+      <CollapsibleSection
+        title="Homestead Expenses"
+        icon={Receipt}
+        iconColor="text-yellow-400"
+        count={expenses.length}
+        defaultOpen={false}
+        actions={
+          <button onClick={onAddExpense} className="flex items-center gap-1 px-3 py-1 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors text-sm">
+            <Plus className="w-4 h-4" /> Add Expense
+          </button>
+        }
+      >
+        <ExpenseList
+          expenses={expenses}
+          formatCurrency={formatCurrency}
+          onEdit={onEditExpense}
+          onDelete={handleDeleteExpense}
+        />
+      </CollapsibleSection>
+
+      {/* Personal Use Summary */}
+      {summary && (
+        <CollapsibleSection
+          title="Personal Use Summary"
+          icon={HomeIcon}
+          iconColor="text-purple-400"
+        >
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="bg-gray-700 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Meat Kept</div>
+              <div className="text-xl font-bold">{(summary.allocations?.personal_weight || 0).toFixed(0)} lbs</div>
+            </div>
+            <div className="bg-gray-700 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Meat Sold</div>
+              <div className="text-xl font-bold">{(summary.allocations?.sold_weight || 0).toFixed(0)} lbs</div>
+            </div>
+            <div className="bg-gray-700 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Personal Value</div>
+              <div className="text-xl font-bold text-cyan-400">{formatCurrency(summary.allocations?.personal_cost)}</div>
+            </div>
+            <div className="bg-gray-700 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Harvests Consumed</div>
+              <div className="text-xl font-bold text-blue-400">{summary.harvests?.consumed || 0}</div>
+            </div>
+            <div className="bg-gray-700 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Preserved</div>
+              <div className="text-xl font-bold text-yellow-400">{summary.harvests?.preserved || 0}</div>
+            </div>
+            <div className="bg-gray-700 rounded-lg p-3">
+              <div className="text-sm text-gray-400">Gifted</div>
+              <div className="text-xl font-bold text-purple-400">{summary.harvests?.gifted || 0}</div>
+            </div>
+          </div>
+        </CollapsibleSection>
       )}
+    </div>
+  )
+}
+
+// ==================== Expense List Component ====================
+
+function ExpenseList({ expenses, formatCurrency, onEdit, onDelete }) {
+  if (expenses.length === 0) {
+    return <p className="text-gray-500 text-sm py-4 text-center">No expenses recorded</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      {expenses.map((expense) => (
+        <div key={expense.id} className="bg-gray-700 rounded-lg p-3 flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{expense.description}</span>
+              <span className="text-xs px-2 py-0.5 bg-gray-600 rounded capitalize">{expense.category}</span>
+              {expense.scope === 'shared' && (
+                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                  Shared ({expense.business_split_pct}% biz)
+                </span>
+              )}
+              {expense.is_recurring && (
+                <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded capitalize">
+                  {expense.recurring_interval || 'recurring'}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-4 mt-1 text-sm">
+              <span className="text-yellow-400 font-medium">{formatCurrency(expense.amount)}</span>
+              {expense.vendor && <span className="text-gray-400">{expense.vendor}</span>}
+              {expense.expense_date && (
+                <span className="flex items-center gap-1 text-gray-400">
+                  <Calendar className="w-3 h-3" />
+                  {format(new Date(expense.expense_date), 'MMM d, yyyy')}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <button onClick={() => onEdit(expense)} className="p-1 text-gray-400 hover:text-blue-400"><Edit className="w-4 h-4" /></button>
+            <button onClick={() => onDelete(expense.id, expense.description)} className="p-1 text-gray-400 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -1577,19 +1672,8 @@ function SaleModal({ formData, setFormData, customers, onSubmit, onClose, format
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
-            >
-              Record Sale
-            </button>
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Record Sale</button>
           </div>
         </form>
       </div>
@@ -1603,77 +1687,33 @@ function CustomerModal({ formData, setFormData, editing, onSubmit, onClose }) {
       <div className="bg-gray-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
           <h2 className="text-lg font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Name *</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
-
           <div>
             <label className="block text-sm text-gray-400 mb-1">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
-
           <div>
             <label className="block text-sm text-gray-400 mb-1">Phone</label>
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
-
           <div>
             <label className="block text-sm text-gray-400 mb-1">Address</label>
-            <textarea
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              rows={2}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} rows={2} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
-
           <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={2}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
-
           <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
-            >
-              {editing ? 'Save Changes' : 'Add Customer'}
-            </button>
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">{editing ? 'Save Changes' : 'Add Customer'}</button>
           </div>
         </form>
       </div>
@@ -1700,19 +1740,13 @@ function OrderModal({ formData, setFormData, customers, livestock, editing, onSu
       <div className="bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
           <h2 className="text-lg font-semibold">{editing ? 'Edit Order' : 'New Order'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Customer</label>
-            <select
-              value={formData.customer_id || ''}
-              onChange={(e) => setFormData({ ...formData, customer_id: e.target.value ? parseInt(e.target.value) : null })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            >
+            <select value={formData.customer_id || ''} onChange={(e) => setFormData({ ...formData, customer_id: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
               <option value="">-- Select Customer --</option>
               {customers.filter(c => c.is_active).map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -1723,22 +1757,13 @@ function OrderModal({ formData, setFormData, customers, livestock, editing, onSu
           {!formData.customer_id && (
             <div>
               <label className="block text-sm text-gray-400 mb-1">Customer Name (if not in list)</label>
-              <input
-                type="text"
-                value={formData.customer_name}
-                onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
+              <input type="text" value={formData.customer_name} onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
           )}
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Linked Livestock (Optional)</label>
-            <select
-              value={formData.livestock_production_id || ''}
-              onChange={(e) => setFormData({ ...formData, livestock_production_id: e.target.value ? parseInt(e.target.value) : null })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            >
+            <select value={formData.livestock_production_id || ''} onChange={(e) => setFormData({ ...formData, livestock_production_id: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
               <option value="">-- No Link --</option>
               {livestock.map(l => (
                 <option key={l.id} value={l.id}>{l.animal_name} ({l.animal_type})</option>
@@ -1748,39 +1773,20 @@ function OrderModal({ formData, setFormData, customers, livestock, editing, onSu
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Description</label>
-            <input
-              type="text"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="e.g., 1/2 Beef - Brody"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="e.g., 1/2 Beef - Brody" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Portion</label>
-              <select
-                value={formData.portion_type}
-                onChange={(e) => handlePortionChange(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              >
-                {PORTION_TYPES.map(p => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
-                ))}
+              <select value={formData.portion_type} onChange={(e) => handlePortionChange(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+                {PORTION_TYPES.map(p => (<option key={p.value} value={p.value}>{p.label}</option>))}
               </select>
             </div>
             {formData.portion_type === 'custom' && (
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Percentage</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.portion_percentage}
-                  onChange={(e) => setFormData({ ...formData, portion_percentage: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-                />
+                <input type="number" min="0" max="100" value={formData.portion_percentage} onChange={(e) => setFormData({ ...formData, portion_percentage: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
               </div>
             )}
           </div>
@@ -1788,95 +1794,47 @@ function OrderModal({ formData, setFormData, customers, livestock, editing, onSu
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Estimated Weight (lbs)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={formData.estimated_weight}
-                onChange={(e) => setFormData({ ...formData, estimated_weight: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
+              <input type="number" min="0" step="0.1" value={formData.estimated_weight} onChange={(e) => setFormData({ ...formData, estimated_weight: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Price per Pound</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.price_per_pound}
-                onChange={(e) => setFormData({ ...formData, price_per_pound: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
+              <input type="number" min="0" step="0.01" value={formData.price_per_pound} onChange={(e) => setFormData({ ...formData, price_per_pound: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
           </div>
 
           {estimatedTotal > 0 && (
             <div className="bg-gray-700 rounded-lg p-3 text-center">
               <span className="text-gray-400">Estimated Total:</span>
-              <span className="text-2xl font-bold text-green-400 ml-2">
-                {formatCurrency(estimatedTotal)}
-              </span>
+              <span className="text-2xl font-bold text-green-400 ml-2">{formatCurrency(estimatedTotal)}</span>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Order Date</label>
-              <input
-                type="date"
-                value={formData.order_date}
-                onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
+              <input type="date" value={formData.order_date} onChange={(e) => setFormData({ ...formData, order_date: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Expected Ready Date</label>
-              <input
-                type="date"
-                value={formData.expected_ready_date}
-                onChange={(e) => setFormData({ ...formData, expected_ready_date: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
+              <input type="date" value={formData.expected_ready_date} onChange={(e) => setFormData({ ...formData, expected_ready_date: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
           </div>
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Status</label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            >
-              {ORDER_STATUSES.map(s => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
+            <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+              {ORDER_STATUSES.map(s => (<option key={s.value} value={s.value}>{s.label}</option>))}
             </select>
           </div>
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={2}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
-            >
-              {editing ? 'Save Changes' : 'Create Order'}
-            </button>
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">{editing ? 'Save Changes' : 'Create Order'}</button>
           </div>
         </form>
       </div>
@@ -1892,106 +1850,54 @@ function PaymentModal({ order, formData, setFormData, onSubmit, onClose, formatC
       <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Add Payment</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="px-4 py-2 bg-gray-700/50">
           <div className="text-sm text-gray-400">Order: {order.customer_name}</div>
-          <div className="text-sm">
-            Balance: <span className="text-orange-400 font-medium">{formatCurrency(remaining)}</span>
-          </div>
+          <div className="text-sm">Balance: <span className="text-orange-400 font-medium">{formatCurrency(remaining)}</span></div>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Payment Type</label>
-              <select
-                value={formData.payment_type}
-                onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              >
-                {PAYMENT_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
+              <select value={formData.payment_type} onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+                {PAYMENT_TYPES.map(t => (<option key={t.value} value={t.value}>{t.label}</option>))}
               </select>
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Method</label>
-              <select
-                value={formData.payment_method}
-                onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              >
-                {PAYMENT_METHODS.map(m => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
+              <select value={formData.payment_method} onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+                {PAYMENT_METHODS.map(m => (<option key={m.value} value={m.value}>{m.label}</option>))}
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Amount *</label>
-            <input
-              type="number"
-              required
-              min="0"
-              step="0.01"
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              placeholder={`Remaining: ${formatCurrency(remaining)}`}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <input type="number" required min="0" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder={`Remaining: ${formatCurrency(remaining)}`} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Payment Date</label>
-              <input
-                type="date"
-                value={formData.payment_date}
-                onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
+              <input type="date" value={formData.payment_date} onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Reference #</label>
-              <input
-                type="text"
-                value={formData.reference}
-                onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                placeholder="Check #, ID, etc."
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
+              <input type="text" value={formData.reference} onChange={(e) => setFormData({ ...formData, reference: e.target.value })} placeholder="Check #, ID, etc." className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
           </div>
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>
-            <input
-              type="text"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
-            >
-              Add Payment
-            </button>
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Add Payment</button>
           </div>
         </form>
       </div>
@@ -2012,9 +1918,7 @@ function AllocationModal({ production, formData, setFormData, onSubmit, onClose,
       <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Allocate for Personal Use</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="px-4 py-2 bg-gray-700/50">
@@ -2030,17 +1934,7 @@ function AllocationModal({ production, formData, setFormData, onSubmit, onClose,
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Percentage to Keep *</label>
-            <input
-              type="number"
-              required
-              min="0"
-              max="100"
-              step="0.1"
-              value={formData.percentage}
-              onChange={(e) => setFormData({ ...formData, percentage: e.target.value })}
-              placeholder="e.g., 50 for half"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <input type="number" required min="0" max="100" step="0.1" value={formData.percentage} onChange={(e) => setFormData({ ...formData, percentage: e.target.value })} placeholder="e.g., 50 for half" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
           {calculatedWeight > 0 && (
@@ -2060,29 +1954,12 @@ function AllocationModal({ production, formData, setFormData, onSubmit, onClose,
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>
-            <input
-              type="text"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Optional notes"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-            />
+            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Optional notes" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
-            >
-              Allocate
-            </button>
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Allocate</button>
           </div>
         </form>
       </div>
@@ -2096,62 +1973,194 @@ function HarvestAllocationModal({ harvest, formData, setFormData, onSubmit, onCl
       <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Track Harvest Usage</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="px-4 py-2 bg-gray-700/50">
           <div className="text-sm text-gray-400">{harvest.plant_name}</div>
-          <div className="text-sm">
-            Total Harvest: <span className="font-medium">{harvest.quantity} {harvest.unit}</span>
-          </div>
+          <div className="text-sm">Total Harvest: <span className="font-medium">{harvest.quantity} {harvest.unit}</span></div>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Quantity Consumed *</label>
             <div className="flex gap-2">
-              <input
-                type="number"
-                required
-                min="0"
-                step="0.1"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
-              <span className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400">
-                {harvest.unit}
-              </span>
+              <input type="number" required min="0" step="0.1" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              <span className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400">{harvest.unit}</span>
             </div>
           </div>
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Optional notes" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-700">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Record Usage</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, formatCurrency }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+          <h2 className="text-lg font-semibold">{editing ? 'Edit Expense' : 'Add Expense'}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Category *</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            >
+              {EXPENSE_CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Scope *</label>
+            <div className="flex gap-2">
+              {EXPENSE_SCOPES.map(s => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, scope: s.value })}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    formData.scope === s.value
+                      ? 'bg-farm-green text-white'
+                      : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Amount *</label>
+            <input
+              type="number"
+              required
+              min="0"
+              step="0.01"
+              value={formData.amount}
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              placeholder="0.00"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Date *</label>
+            <input
+              type="date"
+              required
+              value={formData.expense_date}
+              onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Description *</label>
             <input
               type="text"
+              required
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="e.g., Monthly feed order, Vet visit"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Vendor</label>
+            <input
+              type="text"
+              value={formData.vendor}
+              onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+              placeholder="e.g., Tractor Supply, Local Vet"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          {formData.scope === 'shared' && (
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Business Split %</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={formData.business_split_pct}
+                  onChange={(e) => setFormData({ ...formData, business_split_pct: parseInt(e.target.value) })}
+                  className="flex-1"
+                />
+                <span className="text-sm w-16 text-right">{formData.business_split_pct}% biz</span>
+              </div>
+              {formData.amount && (
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Business: {formatCurrency(parseFloat(formData.amount) * formData.business_split_pct / 100)}</span>
+                  <span>Homestead: {formatCurrency(parseFloat(formData.amount) * (100 - formData.business_split_pct) / 100)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.is_recurring}
+                onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
+                className="rounded"
+              />
+              <span className="text-sm text-gray-400">Recurring expense</span>
+            </label>
+          </div>
+
+          {formData.is_recurring && (
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Interval</label>
+              <select
+                value={formData.recurring_interval}
+                onChange={(e) => setFormData({ ...formData, recurring_interval: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              >
+                <option value="">Select interval</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="annually">Annually</option>
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={2}
               placeholder="Optional notes"
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
-            >
-              Record Usage
-            </button>
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">{editing ? 'Save Changes' : 'Add Expense'}</button>
           </div>
         </form>
       </div>

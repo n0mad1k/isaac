@@ -363,6 +363,12 @@ export const deleteHarvestAllocation = (id) => api.delete(`/production/harvest-a
 export const allocateConsumed = (harvestId, quantity, notes) =>
   api.post(`/production/harvests/${harvestId}/allocate-consumed/`, null, { params: { quantity, notes } })
 
+// Farm Expenses
+export const getExpenses = (params) => api.get('/production/expenses/', { params })
+export const createExpense = (data) => api.post('/production/expenses/', data)
+export const updateExpense = (id, data) => api.patch(`/production/expenses/${id}/`, data)
+export const deleteExpense = (id) => api.delete(`/production/expenses/${id}/`)
+
 // Financial Summary
 export const getFinancialSummary = (year) =>
   api.get('/production/financial-summary/', { params: year ? { year } : {} })

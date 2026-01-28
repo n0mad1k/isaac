@@ -18,6 +18,7 @@ from .production import (
     Customer, LivestockOrder, OrderPayment, ProductionAllocation, HarvestAllocation,
     OrderStatus, PaymentType, PaymentMethod, AllocationType, HarvestUseType, PortionType
 )
+from .expense import FarmExpense, ExpenseCategory, ExpenseScope
 from .users import User, Session, UserRole, LoginAttempt, AuditLog, AuditAction
 from .dev_tracker import DevTrackerItem, ItemType, ItemPriority, ItemStatus
 from .workers import Worker
@@ -96,6 +97,9 @@ __all__ = [
     "AllocationType",
     "HarvestUseType",
     "PortionType",
+    "FarmExpense",
+    "ExpenseCategory",
+    "ExpenseScope",
     "User",
     "Session",
     "UserRole",
