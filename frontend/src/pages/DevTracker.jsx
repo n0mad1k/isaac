@@ -853,9 +853,9 @@ function DevTracker() {
                             <span className="text-xs px-1.5 py-0.5 bg-gray-600 text-gray-400 rounded font-mono shrink-0" title="Item ID">
                               #{item.id}
                             </span>
-                            {item.fail_note && (
-                              <span className="text-xs px-1.5 py-0.5 bg-red-500/30 text-red-300 rounded font-semibold shrink-0">
-                                FAILED
+                            {(item.fail_note || item.fail_count > 0) && (
+                              <span className="text-xs px-1.5 py-0.5 bg-red-500/30 text-red-300 rounded font-semibold shrink-0" title={item.fail_note || 'Previously failed'}>
+                                FAILED{item.fail_count > 1 ? ` x${item.fail_count}` : ''}
                               </span>
                             )}
                             {item.requires_collab && (
