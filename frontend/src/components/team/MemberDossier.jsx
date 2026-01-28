@@ -42,6 +42,29 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [workoutStats, setWorkoutStats] = useState(null)
   const [workoutTypes, setWorkoutTypes] = useState([])
 
+  // Readiness analysis (lifted from HealthDataTab so header badges can access it)
+  const [readinessAnalysis, setReadinessAnalysis] = useState(null)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [analysisError, setAnalysisError] = useState(null)
+
+  const fetchReadinessAnalysis = async (force = false) => {
+    setAnalysisLoading(true)
+    setAnalysisError(null)
+    try {
+      const res = await getReadinessAnalysis(member.id, 30, force)
+      setReadinessAnalysis(res.data)
+    } catch (err) {
+      setAnalysisError(err.userMessage || 'Failed to load readiness analysis')
+    } finally {
+      setAnalysisLoading(false)
+    }
+  }
+
+  // Fetch readiness analysis on mount (returns cache if data unchanged)
+  useEffect(() => {
+    fetchReadinessAnalysis()
+  }, [member.id])
+
   // Load tab-specific data
   useEffect(() => {
     const loadTabData = async () => {
@@ -712,6 +735,10 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 formatWeight={formatWeight}
                 formatHeight={formatHeight}
                 formatDate={formatDate}
+                readinessAnalysis={readinessAnalysis}
+                analysisLoading={analysisLoading}
+                analysisError={analysisError}
+                onRefreshAnalysis={fetchReadinessAnalysis}
                 onUpdate={async () => {
                   const [wRes, vRes, aRes] = await Promise.all([
                     getWeightHistory(member.id),
@@ -1062,17 +1089,14 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
 // Health Data Tab Component
 // ============================================
 
-function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsAverages, vitalTypes, formatWeight, formatHeight, formatDate, onUpdate }) {
+function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsAverages, vitalTypes, formatWeight, formatHeight, formatDate, readinessAnalysis, analysisLoading, analysisError, onRefreshAnalysis, onUpdate }) {
   const [showAddVital, setShowAddVital] = useState(false)
   const [showAddWeight, setShowAddWeight] = useState(false)
   const [selectedType, setSelectedType] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
-  // Readiness Analysis state
-  const [readinessAnalysis, setReadinessAnalysis] = useState(null)
-  const [analysisLoading, setAnalysisLoading] = useState(false)
-  const [analysisError, setAnalysisError] = useState(null)
+  // Readiness Analysis UI state (data comes from parent)
   const [showAnalysisDetails, setShowAnalysisDetails] = useState(false)
   const [calculatingBodyFat, setCalculatingBodyFat] = useState(false)
 
@@ -1082,12 +1106,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     try {
       await calculateBodyFat(member.id)
       // Refresh vitals to show new body fat
-      const [vRes, aRes] = await Promise.all([
-        getVitalsHistory(member.id),
-        getVitalsAverages(member.id)
-      ])
-      setVitalsHistory(vRes.data)
-      setVitalsAverages(aRes.data)
+      onUpdate()
     } catch (err) {
       setError(err.response?.data?.detail || err.userMessage || 'Failed to calculate body fat')
     } finally {
@@ -1095,28 +1114,8 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     }
   }
 
-  // Fetch readiness analysis (hash-based caching - only re-analyzes when data changes)
-  const fetchReadinessAnalysis = async (force = false) => {
-    setAnalysisLoading(true)
-    setAnalysisError(null)
-    try {
-      const res = await getReadinessAnalysis(member.id, 30, force)
-      setReadinessAnalysis(res.data)
-      // Refresh member data if fresh analysis ran (updates stored scores)
-      if (!res.data.from_cache) {
-        onUpdate()
-      }
-    } catch (err) {
-      setAnalysisError(err.userMessage || 'Failed to load readiness analysis')
-    } finally {
-      setAnalysisLoading(false)
-    }
-  }
-
-  // Load analysis on mount (returns cache if data unchanged)
-  useEffect(() => {
-    fetchReadinessAnalysis()
-  }, [member.id])
+  // Use onRefreshAnalysis from parent to trigger analysis refresh
+  const fetchReadinessAnalysis = onRefreshAnalysis
 
   // Available context factors for vitals
   const CONTEXT_FACTORS = [
@@ -1256,14 +1255,8 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       setVitalForm({ vital_type: '', value: '', value_secondary: '', context_factors: [], notes: '' })
       setShowAddVital(false)
       // Auto-refresh vitals, averages, and readiness analysis
-      const [vRes, aRes] = await Promise.all([
-        getVitalsHistory(member.id),
-        getVitalsAverages(member.id)
-      ])
-      setVitalsHistory(vRes.data)
-      setVitalsAverages(aRes.data)
-      fetchReadinessAnalysis(true)  // Update readiness with new data
-      onUpdate()
+      await onUpdate()
+      fetchReadinessAnalysis(true)
     } catch (err) {
       setError(err.userMessage || 'Failed to add vital')
     } finally {
@@ -1912,14 +1905,8 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                   setVitalForm({ vital_type: '', value: '', value_secondary: '', context_factors: [], notes: '' })
                   setShowAddVital(false)
                   // Auto-refresh vitals and analysis
-                  const [vRes, aRes] = await Promise.all([
-                    getVitalsHistory(member.id),
-                    getVitalsAverages(member.id)
-                  ])
-                  setVitalsHistory(vRes.data)
-                  setVitalsAverages(aRes.data)
+                  await onUpdate()
                   fetchReadinessAnalysis(true)
-                  onUpdate()
                 } catch (err) {
                   setError(err.userMessage || 'Failed to add weight')
                 } finally {

@@ -503,9 +503,9 @@ def _analyze_autonomic_recovery(
         score = 65
         factors.append("RHR elevated (persistent pattern)")
     elif total_datapoints < MIN_DATAPOINTS_MEDIUM:
-        # Insufficient data - don't assume good recovery
-        score = 65
-        factors.append("Insufficient autonomic data for reliable assessment")
+        # Insufficient data - assume neutral, don't penalize for missing data
+        score = 85
+        factors.append("Limited autonomic data - using available readings")
         confidence = "LOW"
     else:
         # Check for positive signals
@@ -596,12 +596,12 @@ def _analyze_cardiovascular(vitals: List[MemberVitalsLog]) -> PerformanceIndicat
             factors.append(f"SpO2 normal: {spo2:.0f}%")
         datapoints += 1
 
-    final_score = min(bp_score, spo2_score) if datapoints > 0 else 65
+    final_score = min(bp_score, spo2_score) if datapoints > 0 else 85
     confidence = _get_confidence_level(datapoints * 5)
 
     if not factors:
         factors.append("No cardiovascular data available")
-        final_score = 65
+        final_score = 85
         confidence = "LOW"
 
     trend = "stable" if final_score >= 70 else "declining"
@@ -1134,6 +1134,7 @@ async def analyze_readiness(
             overall_status = "AMBER"
         else:
             overall_status = "GREEN"
+
 
     # ============================================
     # Build Primary Drivers (Explainability)
