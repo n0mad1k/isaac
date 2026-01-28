@@ -1444,8 +1444,8 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
 
       {/* Baseline Summary - shows averages and flags abnormalities */}
       {Object.keys(vitalsAverages).length > 0 && (
-        <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-700/50 rounded-lg p-4">
-          <h3 className="font-semibold mb-3 text-cyan-300">Baseline Averages</h3>
+        <div className="bg-gray-700 rounded-lg p-4">
+          <h3 className="font-semibold mb-3">Baseline Averages</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {Object.entries(vitalsAverages).map(([vitalType, data]) => {
               const latest = getLatestVital(vitalType)
@@ -1468,9 +1468,9 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
               }
 
               return (
-                <div key={vitalType} className={`bg-gray-800/50 rounded p-2 ${isAbnormal ? 'ring-2 ring-yellow-500/50' : ''}`}>
+                <div key={vitalType} className={`bg-gray-800 rounded p-2 ${isAbnormal ? 'ring-2 ring-yellow-500/50' : ''}`}>
                   <div className="text-xs text-gray-400">{typeInfo?.label || vitalType.replace(/_/g, ' ')}</div>
-                  <div className="font-semibold text-cyan-300">
+                  <div className="font-semibold text-white">
                     {vitalType === 'blood_pressure' && data.average_secondary
                       ? `${data.average}/${data.average_secondary}`
                       : data.average} <span className="text-xs font-normal text-gray-400">{data.unit}</span>
