@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   Users, Plus, RefreshCw, Shield, AlertCircle, User, ChevronLeft, ChevronRight,
-  ChevronDown, UserPlus, MessageSquare, Calendar, ThumbsUp, ThumbsDown, Settings
+  ChevronDown, UserPlus, MessageSquare, Calendar, ThumbsUp, ThumbsDown, Settings,
+  ClipboardCheck, Dumbbell, Heart, Scale
 } from 'lucide-react'
 import {
   getTeamSettings, getTeamOverview, getTeamMembers, createTeamMember,
@@ -14,7 +15,6 @@ import WeeklyAARView from '../components/team/WeeklyAARView'
 import MemberForm from '../components/team/MemberForm'
 import TeamGearTab from '../components/team/TeamGearTab'
 import TeamSupplyRequestsTab from '../components/team/TeamSupplyRequestsTab'
-import FloatingActionButton from '../components/team/FloatingActionButton'
 import DailyCheckinModal from '../components/team/DailyCheckinModal'
 import QuickAddWorkout from '../components/team/QuickAddWorkout'
 import QuickAddVital from '../components/team/QuickAddVital'
@@ -366,14 +366,59 @@ function Team() {
                   className="fixed inset-0 z-40"
                   onClick={() => setShowAddMenu(false)}
                 />
-                <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                  {/* Health Data Entry */}
+                  <div className="px-3 py-2 text-xs text-gray-500 uppercase border-b border-gray-700">Health Data</div>
+                  <button
+                    onClick={() => {
+                      setShowAddMenu(false)
+                      setShowDailyCheckin(true)
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                  >
+                    <ClipboardCheck className="w-4 h-4 text-blue-400" />
+                    Daily Check-in
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAddMenu(false)
+                      setShowQuickWorkout(true)
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                  >
+                    <Dumbbell className="w-4 h-4 text-green-400" />
+                    Log Workout
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAddMenu(false)
+                      setShowQuickVital(true)
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                  >
+                    <Heart className="w-4 h-4 text-red-400" />
+                    Log Vital
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAddMenu(false)
+                      setShowQuickWeight(true)
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                  >
+                    <Scale className="w-4 h-4 text-purple-400" />
+                    Log Weight
+                  </button>
+
+                  {/* Team Management */}
+                  <div className="px-3 py-2 text-xs text-gray-500 uppercase border-b border-t border-gray-700 mt-1">Team</div>
                   <button
                     onClick={() => {
                       setShowAddMenu(false)
                       setEditingMember(null)
                       setShowMemberForm(true)
                     }}
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
                   >
                     <UserPlus className="w-4 h-4 text-farm-green" />
                     Add Member
@@ -383,7 +428,7 @@ function Team() {
                       setShowAddMenu(false)
                       setShowObservationModal(true)
                     }}
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
                   >
                     <MessageSquare className="w-4 h-4 text-blue-400" />
                     Add Observation
@@ -393,7 +438,7 @@ function Team() {
                       setShowAddMenu(false)
                       setShowSessionModal(true)
                     }}
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
                   >
                     <Calendar className="w-4 h-4 text-purple-400" />
                     Add Session
@@ -725,15 +770,6 @@ function Team() {
         />
       )}
 
-      {/* Floating Action Button - only show when NOT in a member dossier */}
-      {activeTab !== 'member' && (
-        <FloatingActionButton
-          onDailyCheckin={() => setShowDailyCheckin(true)}
-          onLogWorkout={() => setShowQuickWorkout(true)}
-          onLogVital={() => setShowQuickVital(true)}
-          onLogWeight={() => setShowQuickWeight(true)}
-        />
-      )}
     </div>
   )
 }
