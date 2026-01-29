@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Pencil, RefreshCw, Clock, CheckSquare, MapPin, Wrench, User } from 'lucide-react'
-import { getCalendarMonth, getCalendarWeek, createTask, updateTask, deleteTask, completeTask, uncompleteTask, syncCalendar } from '../services/api'
-import EventModal from '../components/EventModal'
+import { getCalendarMonth, getCalendarWeek, createTask, updateTask, deleteTask, deleteTaskOccurrence, completeTask, uncompleteTask, syncCalendar } from '../services/api'
+import EventModal, { RecurrenceChoiceModal } from '../components/EventModal'
 import MottoDisplay from '../components/MottoDisplay'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, addDays, subDays, startOfWeek, addWeeks, subWeeks, isSameDay } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
@@ -32,6 +32,7 @@ function CalendarPage() {
   const [selectedDayEvents, setSelectedDayEvents] = useState([])
   const scrollRef = useRef(null)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [recurringDeleteEvent, setRecurringDeleteEvent] = useState(null) // Event awaiting recurrence delete choice
 
   // Update current time every minute for the time indicator
   useEffect(() => {
@@ -138,7 +139,17 @@ function CalendarPage() {
     setShowEventModal(true)
   }
 
-  const handleDeleteEvent = async (eventId) => {
+  const handleDeleteEvent = async (eventOrId) => {
+    // Accept either an event object or just an ID for backwards compatibility
+    const eventObj = typeof eventOrId === 'object' ? eventOrId : null
+    const eventId = eventObj ? eventObj.id : eventOrId
+
+    // Check if this is a recurring event
+    if (eventObj && eventObj.is_recurring && eventObj.recurrence && eventObj.recurrence !== 'once') {
+      setRecurringDeleteEvent(eventObj)
+      return
+    }
+
     if (!window.confirm('Delete this event?')) return
     try {
       await deleteTask(eventId)
@@ -150,6 +161,30 @@ function CalendarPage() {
     } catch (error) {
       console.error('Failed to delete event:', error)
       window.alert('Failed to delete event: ' + (error.response?.data?.detail || error.message))
+    }
+  }
+
+  const handleRecurringDeleteChoice = async (choice) => {
+    if (!recurringDeleteEvent) return
+    const eventId = recurringDeleteEvent.id
+    const occurrenceDate = recurringDeleteEvent.due_date
+
+    try {
+      if (choice === 'this') {
+        await deleteTaskOccurrence(eventId, occurrenceDate)
+      } else {
+        await deleteTask(eventId)
+      }
+      await fetchCalendarData()
+      if (selectedDate) {
+        const updatedEvents = selectedDayEvents.filter(e => e.id !== eventId)
+        setSelectedDayEvents(updatedEvents)
+      }
+    } catch (error) {
+      console.error('Failed to delete event:', error)
+      window.alert('Failed to delete event: ' + (error.response?.data?.detail || error.message))
+    } finally {
+      setRecurringDeleteEvent(null)
     }
   }
 
@@ -332,11 +367,21 @@ function CalendarPage() {
         />
       )}
 
+      {/* Recurrence Delete Choice Modal */}
+      {recurringDeleteEvent && (
+        <RecurrenceChoiceModal
+          action="delete"
+          onChoice={handleRecurringDeleteChoice}
+          onCancel={() => setRecurringDeleteEvent(null)}
+        />
+      )}
+
       {/* Event Modal */}
       {showEventModal && (
         <EventModal
           event={editingEvent}
           defaultDate={selectedDate}
+          projectedDate={editingEvent?.due_date}
           onClose={() => { setShowEventModal(false); setEditingEvent(null) }}
           onSaved={() => {
             fetchCalendarData()
@@ -982,7 +1027,7 @@ function DayDetailPanel({ selectedDate, events, onAddEvent, onEditEvent, onDelet
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => onDeleteEvent(event.id)}
+                    onClick={() => onDeleteEvent(event)}
                     className="p-1.5 rounded transition-colors"
                     style={{ backgroundColor: 'var(--color-error-bg)', color: 'var(--color-error-600)' }}
                     title="Delete"

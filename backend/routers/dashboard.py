@@ -801,7 +801,8 @@ async def get_calendar_month(
     current_date = start_date
     while current_date <= end_date:
         for task in recurring_tasks:
-            if current_date != task.due_date and get_recurring_date_in_range(task, current_date):
+            exception_set = set(task.exception_dates.split(',')) if task.exception_dates else set()
+            if current_date != task.due_date and current_date.isoformat() not in exception_set and get_recurring_date_in_range(task, current_date):
                 projected_tasks.append((task, current_date))
         current_date += timedelta(days=1)
 
@@ -811,12 +812,18 @@ async def get_calendar_month(
         task_start = task.due_date
         task_end = task.end_date or task.due_date  # Default to single day
         is_multi_day = task.end_date is not None and task.end_date > task.due_date
+        is_recurring = task.recurrence is not None and task.recurrence != TaskRecurrence.ONCE
+        exception_set = set(task.exception_dates.split(',')) if task.exception_dates else set()
 
         # Add to each day the task spans within the view range
         current = max(task_start, start_date)
         last_day = min(task_end, end_date)
 
         while current <= last_day:
+            # Skip exception dates for recurring tasks
+            if is_recurring and current.isoformat() in exception_set:
+                current += timedelta(days=1)
+                continue
             date_str = current.isoformat()
             if date_str not in calendar:
                 calendar[date_str] = []
@@ -838,6 +845,8 @@ async def get_calendar_month(
                 "is_multi_day": is_multi_day,
                 "is_span_start": current == task_start,
                 "is_span_end": current == task_end,
+                "is_recurring": is_recurring,
+                "recurrence": task.recurrence.value if task.recurrence else None,
             })
             current += timedelta(days=1)
 
@@ -1022,8 +1031,9 @@ async def get_calendar_week(
     current_date = start_date
     while current_date <= end_date:
         for task in recurring_tasks:
+            exception_set = set(task.exception_dates.split(',')) if task.exception_dates else set()
             # Skip original due_date to avoid duplicates (it's already in the main query)
-            if current_date != task.due_date and get_recurring_date_in_range(task, current_date):
+            if current_date != task.due_date and current_date.isoformat() not in exception_set and get_recurring_date_in_range(task, current_date):
                 # Create a "virtual" instance for this date
                 projected_tasks.append((task, current_date))
         current_date += timedelta(days=1)
@@ -1034,12 +1044,18 @@ async def get_calendar_week(
         task_start = task.due_date
         task_end = task.end_date or task.due_date  # Default to single day
         is_multi_day = task.end_date is not None and task.end_date > task.due_date
+        is_recurring = task.recurrence is not None and task.recurrence != TaskRecurrence.ONCE
+        exception_set = set(task.exception_dates.split(',')) if task.exception_dates else set()
 
         # Add to each day the task spans within the view range
         current = max(task_start, start_date)
         last_day = min(task_end, end_date)
 
         while current <= last_day:
+            # Skip exception dates for recurring tasks
+            if is_recurring and current.isoformat() in exception_set:
+                current += timedelta(days=1)
+                continue
             date_str = current.isoformat()
             if date_str not in calendar:
                 calendar[date_str] = []
@@ -1061,6 +1077,8 @@ async def get_calendar_week(
                 "is_multi_day": is_multi_day,
                 "is_span_start": current == task_start,
                 "is_span_end": current == task_end,
+                "is_recurring": is_recurring,
+                "recurrence": task.recurrence.value if task.recurrence else None,
             })
             current += timedelta(days=1)
 

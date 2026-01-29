@@ -463,6 +463,8 @@ class TaskUpdate(BaseModel):
     due_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
     end_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
     location: Optional[str] = Field(None, max_length=200)
+    recurrence: Optional[TaskRecurrence] = None
+    recurrence_interval: Optional[int] = Field(None, ge=1, le=365)
     priority: Optional[int] = Field(None, ge=1, le=3)
     is_completed: Optional[bool] = None
     notify_email: Optional[bool] = None
@@ -473,6 +475,24 @@ class TaskUpdate(BaseModel):
     assigned_to_member_id: Optional[int] = Field(None, ge=1)  # Legacy single assignment
     assigned_member_ids: Optional[List[int]] = None  # Multiple team member assignment
     visible_to_farmhands: Optional[bool] = None
+
+
+class OccurrenceDate(BaseModel):
+    """Schema for acting on a single occurrence of a recurring task"""
+    date: date  # The occurrence date to act on
+
+
+class OccurrenceEdit(BaseModel):
+    """Schema for editing a single occurrence of a recurring task"""
+    date: date  # The occurrence date being edited
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=5000)
+    task_type: Optional[TaskType] = None
+    category: Optional[TaskCategory] = None
+    due_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+    end_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
+    location: Optional[str] = Field(None, max_length=200)
+    priority: Optional[int] = Field(None, ge=1, le=3)
 
 
 class TaskResponse(BaseModel):
@@ -1073,6 +1093,101 @@ async def delete_task(
         task.updated_at = datetime.utcnow()
         await db.commit()
         return {"message": "Task deactivated"}
+
+
+def _add_exception_date(task, exc_date: date):
+    """Add a date to the task's exception_dates list"""
+    existing = task.exception_dates.split(',') if task.exception_dates else []
+    date_str = exc_date.isoformat()
+    if date_str not in existing:
+        existing.append(date_str)
+    task.exception_dates = ','.join(existing)
+
+
+@router.post("/{task_id}/delete-occurrence/")
+async def delete_task_occurrence(
+    task_id: int,
+    data: OccurrenceDate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("tasks"))
+):
+    """Delete a single occurrence of a recurring task by adding it to exception_dates"""
+    result = await db.execute(select(Task).where(Task.id == task_id))
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if not task.recurrence or task.recurrence == TaskRecurrence.ONCE:
+        raise HTTPException(status_code=400, detail="Task is not recurring")
+
+    _add_exception_date(task, data.date)
+    task.updated_at = datetime.utcnow()
+    await db.commit()
+
+    return {"message": f"Occurrence on {data.date.isoformat()} removed from series"}
+
+
+@router.post("/{task_id}/edit-occurrence/")
+async def edit_task_occurrence(
+    task_id: int,
+    data: OccurrenceEdit,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("tasks"))
+):
+    """Edit a single occurrence of a recurring task.
+    Adds the date to exception_dates on the parent, then creates a new one-off task for that date.
+    """
+    result = await db.execute(select(Task).where(Task.id == task_id))
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if not task.recurrence or task.recurrence == TaskRecurrence.ONCE:
+        raise HTTPException(status_code=400, detail="Task is not recurring")
+
+    # Add the date as an exception on the parent task
+    _add_exception_date(task, data.date)
+    task.updated_at = datetime.utcnow()
+
+    # Create a new one-off task for this date, copying fields from parent
+    new_task = Task(
+        title=data.title or task.title,
+        description=data.description if data.description is not None else task.description,
+        task_type=data.task_type or task.task_type,
+        category=data.category or task.category,
+        due_date=data.date,
+        due_time=data.due_time if data.due_time is not None else task.due_time,
+        end_time=data.end_time if data.end_time is not None else task.end_time,
+        location=data.location if data.location is not None else task.location,
+        priority=data.priority if data.priority is not None else task.priority,
+        recurrence=TaskRecurrence.ONCE,
+        plant_id=task.plant_id,
+        animal_id=task.animal_id,
+        vehicle_id=task.vehicle_id,
+        equipment_id=task.equipment_id,
+        farm_area_id=task.farm_area_id,
+        weather_dependent=task.weather_dependent,
+        skip_if_rain=task.skip_if_rain,
+        notify_email=task.notify_email,
+        reminder_alerts=task.reminder_alerts,
+        visible_to_farmhands=task.visible_to_farmhands,
+        assigned_to_worker_id=task.assigned_to_worker_id,
+        assigned_to_user_id=task.assigned_to_user_id,
+        assigned_to_member_id=task.assigned_to_member_id,
+    )
+    db.add(new_task)
+    await db.commit()
+    await db.refresh(new_task)
+
+    # Sync the new task to calendar if enabled
+    calendar_service = await get_calendar_service(db)
+    if calendar_service:
+        await calendar_service.sync_task_to_calendar(new_task, db)
+
+    return {
+        "message": f"Created one-off task for {data.date.isoformat()}",
+        "new_task_id": new_task.id,
+    }
 
 
 @router.post("/setup-maintenance/")

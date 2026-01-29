@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar as CalendarIcon, CheckSquare, X, User, Trash2, Users, ChevronDown, Check } from 'lucide-react'
+import { Calendar as CalendarIcon, CheckSquare, X, User, Trash2, Users, ChevronDown, Check, Repeat } from 'lucide-react'
 import { format } from 'date-fns'
-import { createTask, updateTask, deleteTask, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas, getWorkers, getUsers, getTeamMembers } from '../services/api'
+import { createTask, updateTask, deleteTask, deleteTaskOccurrence, editTaskOccurrence, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas, getWorkers, getUsers, getTeamMembers } from '../services/api'
 
 const TASK_CATEGORIES = [
   { value: 'plant_care', label: 'Plant Care' },
@@ -38,7 +38,52 @@ const RECURRENCE_OPTIONS = [
   { value: 'custom', label: 'Custom (every X days)' },
 ]
 
-function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, forWorkerTask, onClose, onSaved, onDeleted }) {
+/**
+ * Choice modal for recurring events: "This occurrence only" vs "All occurrences"
+ */
+export function RecurrenceChoiceModal({ action, onChoice, onCancel }) {
+  const isDelete = action === 'delete'
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4" onClick={onCancel}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-4">
+          <Repeat className="w-5 h-5 text-cyan-400" />
+          <h3 className="text-lg font-semibold text-white">
+            {isDelete ? 'Delete Recurring Event' : 'Edit Recurring Event'}
+          </h3>
+        </div>
+        <p className="text-sm text-gray-300 mb-5">
+          This is a recurring event. What would you like to {isDelete ? 'delete' : 'edit'}?
+        </p>
+        <div className="space-y-2">
+          <button
+            onClick={() => onChoice('this')}
+            className="w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
+          >
+            <div className="font-medium text-white">This occurrence only</div>
+            <div className="text-xs text-gray-400 mt-0.5">Only affects the selected date</div>
+          </button>
+          <button
+            onClick={() => onChoice('all')}
+            className="w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
+          >
+            <div className="font-medium text-white">All occurrences</div>
+            <div className="text-xs text-gray-400 mt-0.5">{isDelete ? 'Deletes the entire series' : 'Edits every occurrence'}</div>
+          </button>
+          <button
+            onClick={onCancel}
+            className="w-full px-4 py-2 text-gray-400 hover:text-white text-sm transition-colors mt-2"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defaultWorkerId, forWorkerTask, onClose, onSaved, onDeleted }) {
   const [formData, setFormData] = useState({
     title: event?.title || '',
     description: event?.description || '',
@@ -73,6 +118,8 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
   const [entities, setEntities] = useState({ animals: [], plants: [], vehicles: [], equipment: [], farmAreas: [], workers: [], users: [], members: [] })
   const [entitiesLoading, setEntitiesLoading] = useState(true)
   const [showMemberDropdown, setShowMemberDropdown] = useState(false)
+  const [recurrenceAction, setRecurrenceAction] = useState(null) // 'edit' or 'delete' — shows RecurrenceChoiceModal
+  const [pendingSaveData, setPendingSaveData] = useState(null) // Holds data while waiting for recurrence choice
   const [linkType, setLinkType] = useState(
     preselectedEntity?.type ||
     (event?.animal_id ? 'animal' :
@@ -141,13 +188,32 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
     fetchEntities()
   }, [preselectedEntity, forWorkerTask])
 
+  const isRecurring = event && event.recurrence && event.recurrence !== 'once'
+
   const handleDelete = async () => {
     if (!event?.id) return
-    if (!window.confirm('Delete this event?')) return
 
+    // For recurring events, show choice modal instead of confirm
+    if (isRecurring) {
+      setRecurrenceAction('delete')
+      return
+    }
+
+    if (!window.confirm('Delete this event?')) return
+    await executeDelete('all')
+  }
+
+  const executeDelete = async (choice) => {
     setDeleting(true)
     try {
-      await deleteTask(event.id)
+      if (choice === 'this') {
+        // Delete only this occurrence
+        const occurrenceDate = projectedDate || event.due_date
+        await deleteTaskOccurrence(event.id, occurrenceDate)
+      } else {
+        // Delete entire series
+        await deleteTask(event.id)
+      }
       if (onDeleted) onDeleted(event.id)
       onClose()
     } catch (error) {
@@ -157,6 +223,35 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
       }
     } finally {
       setDeleting(false)
+      setRecurrenceAction(null)
+    }
+  }
+
+  const buildSaveData = () => {
+    return {
+      ...formData,
+      due_date: hasDate ? formData.due_date || null : null,
+      // Only include end_date if multi-day is enabled and has a value
+      end_date: (hasDate && isMultiDay && formData.end_date) ? formData.end_date : null,
+      due_time: (hasDate && !isAllDay) ? formData.due_time || null : null,
+      end_time: (hasDate && !isAllDay) ? formData.end_time || null : null,
+      is_backlog: formData.task_type === 'todo' ? formData.is_backlog : false,
+      visible_to_farmhands: formData.visible_to_farmhands,
+      reminder_alerts: formData.reminder_alerts || null,
+      // Recurrence
+      recurrence: formData.recurrence || 'once',
+      recurrence_interval: formData.recurrence === 'custom' && formData.recurrence_interval ? parseInt(formData.recurrence_interval) : null,
+      // Clear all entity links except the selected type
+      animal_id: linkType === 'animal' ? formData.animal_id : null,
+      plant_id: linkType === 'plant' ? formData.plant_id : null,
+      vehicle_id: linkType === 'vehicle' ? formData.vehicle_id : null,
+      equipment_id: linkType === 'equipment' ? formData.equipment_id : null,
+      farm_area_id: linkType === 'farm_area' ? formData.farm_area_id : null,
+      // Assignment
+      assigned_to_worker_id: formData.assigned_to_worker_id || null,
+      assigned_to_user_id: formData.assigned_to_user_id || null,
+      assigned_to_member_id: formData.assigned_to_member_id || null,
+      assigned_member_ids: formData.assigned_member_ids?.length > 0 ? formData.assigned_member_ids : null,
     }
   }
 
@@ -170,35 +265,37 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
       return
     }
 
+    const dataToSave = buildSaveData()
+
+    // For existing recurring events, show choice modal
+    if (event && isRecurring) {
+      setPendingSaveData(dataToSave)
+      setRecurrenceAction('edit')
+      return
+    }
+
+    await executeSave(dataToSave, 'all')
+  }
+
+  const executeSave = async (dataToSave, choice) => {
     setSaving(true)
     try {
-      const dataToSave = {
-        ...formData,
-        due_date: hasDate ? formData.due_date || null : null,
-        // Only include end_date if multi-day is enabled and has a value
-        end_date: (hasDate && isMultiDay && formData.end_date) ? formData.end_date : null,
-        due_time: (hasDate && !isAllDay) ? formData.due_time || null : null,
-        end_time: (hasDate && !isAllDay) ? formData.end_time || null : null,
-        is_backlog: formData.task_type === 'todo' ? formData.is_backlog : false,
-        visible_to_farmhands: formData.visible_to_farmhands,
-        reminder_alerts: formData.reminder_alerts || null,
-        // Recurrence
-        recurrence: formData.recurrence || 'once',
-        recurrence_interval: formData.recurrence === 'custom' && formData.recurrence_interval ? parseInt(formData.recurrence_interval) : null,
-        // Clear all entity links except the selected type
-        animal_id: linkType === 'animal' ? formData.animal_id : null,
-        plant_id: linkType === 'plant' ? formData.plant_id : null,
-        vehicle_id: linkType === 'vehicle' ? formData.vehicle_id : null,
-        equipment_id: linkType === 'equipment' ? formData.equipment_id : null,
-        farm_area_id: linkType === 'farm_area' ? formData.farm_area_id : null,
-        // Assignment
-        assigned_to_worker_id: formData.assigned_to_worker_id || null,
-        assigned_to_user_id: formData.assigned_to_user_id || null,
-        assigned_to_member_id: formData.assigned_to_member_id || null,
-        assigned_member_ids: formData.assigned_member_ids?.length > 0 ? formData.assigned_member_ids : null,
-      }
-
-      if (event) {
+      if (choice === 'this' && event) {
+        // Edit only this occurrence - create a one-off task with overrides
+        const occurrenceDate = projectedDate || event.due_date
+        await editTaskOccurrence(event.id, {
+          date: occurrenceDate,
+          title: dataToSave.title,
+          description: dataToSave.description,
+          task_type: dataToSave.task_type,
+          category: dataToSave.category,
+          due_time: dataToSave.due_time,
+          end_time: dataToSave.end_time,
+          location: dataToSave.location,
+          priority: dataToSave.priority,
+        })
+      } else if (event) {
+        // Update all occurrences (existing behavior)
         await updateTask(event.id, dataToSave)
       } else {
         await createTask(dataToSave)
@@ -214,10 +311,28 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
       }
     } finally {
       setSaving(false)
+      setRecurrenceAction(null)
+      setPendingSaveData(null)
+    }
+  }
+
+  const handleRecurrenceChoice = (choice) => {
+    if (recurrenceAction === 'delete') {
+      executeDelete(choice)
+    } else if (recurrenceAction === 'edit' && pendingSaveData) {
+      executeSave(pendingSaveData, choice)
     }
   }
 
   return (
+    <>
+    {recurrenceAction && (
+      <RecurrenceChoiceModal
+        action={recurrenceAction}
+        onChoice={handleRecurrenceChoice}
+        onCancel={() => { setRecurrenceAction(null); setPendingSaveData(null) }}
+      />
+    )}
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-gray-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
@@ -755,6 +870,7 @@ function EventModal({ event, defaultDate, preselectedEntity, defaultWorkerId, fo
         </form>
       </div>
     </div>
+    </>
   )
 }
 

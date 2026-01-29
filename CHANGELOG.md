@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.45.0] - 2026-01-28
+
+### Added
+- **Recurring event single-occurrence edit/delete** - When editing or deleting a recurring event, a choice dialog now appears:
+  - "This occurrence only" — affects just the selected date (creates exception + one-off task for edits)
+  - "All occurrences" — affects the entire series (existing behavior)
+  - Works in month, week, and day calendar views
+  - DayDetailPanel delete button also supports the recurring choice
+
 ## [1.44.1] - 2026-01-28
 
 ### Added

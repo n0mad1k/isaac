@@ -108,6 +108,7 @@ class Task(Base):
     is_backlog = Column(Boolean, default=False)  # True = in backlog, not due today
     visible_to_farmhands = Column(Boolean, default=False)  # True = farm hand accounts can see this task
     notes = Column(Text)
+    exception_dates = Column(Text, nullable=True)  # Comma-separated ISO dates excluded from recurrence: "2026-01-29,2026-02-15"
 
     # Worker/Member assignment
     assigned_to_worker_id = Column(Integer, ForeignKey('workers.id'), nullable=True)
