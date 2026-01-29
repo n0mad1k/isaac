@@ -1426,6 +1426,44 @@ class PlantImportService:
             return "spring:365,summer:0,fall:0,winter:0"
         return None
 
+    def _parse_water_frequency_from_text(self, text: str) -> Optional[str]:
+        """Extract watering frequency from descriptive text and convert to schedule format.
+        Looks for patterns like 'twice a week', 'every 2-3 days', 'once a week', etc.
+        """
+        if not text:
+            return None
+        text_lower = text.lower()
+
+        # Match "every X days" or "every X-Y days"
+        match = re.search(r'every\s+(\d+)(?:\s*[-–]\s*(\d+))?\s+days?', text_lower)
+        if match:
+            low = int(match.group(1))
+            high = int(match.group(2)) if match.group(2) else low
+            avg = int((low + high) / 2)
+            return f"summer:{max(1,avg-1)},winter:{avg*2},spring:{avg},fall:{avg}"
+
+        # "twice a week" = every 3-4 days
+        if 'twice a week' in text_lower or 'two times a week' in text_lower:
+            return "summer:3,winter:7,spring:4,fall:4"
+
+        # "once a week" or "weekly"
+        if 'once a week' in text_lower or re.search(r'\bweekly\b', text_lower):
+            return "summer:5,winter:10,spring:7,fall:7"
+
+        # Match "every X weeks" or "every X-Y weeks"
+        match = re.search(r'every\s+(\d+)(?:\s*[-–]\s*(\d+))?\s+weeks?', text_lower)
+        if match:
+            low = int(match.group(1))
+            high = int(match.group(2)) if match.group(2) else low
+            avg_days = int((low + high) / 2 * 7)
+            return f"summer:{max(1,avg_days-2)},winter:{avg_days*2},spring:{avg_days},fall:{avg_days}"
+
+        # "daily" or "every day"
+        if 'daily' in text_lower or 'every day' in text_lower:
+            return "summer:1,winter:3,spring:2,fall:2"
+
+        return None
+
     def _parse_fertilize_frequency_from_text(self, text: str) -> Optional[str]:
         """Extract fertilizing frequency from descriptive text and convert to schedule format.
         Looks for patterns like 'every 2-4 weeks', 'monthly', 'every 4-6 weeks', etc.
@@ -1767,6 +1805,12 @@ class PlantImportService:
                 schedule = self._water_label_to_schedule(wl)
                 if schedule:
                     result["water_schedule"] = schedule
+
+        # Parse watering frequency from water_notes text if no schedule yet
+        if "water_notes" in data and "water_schedule" not in result:
+            schedule = self._parse_water_frequency_from_text(data["water_notes"])
+            if schedule:
+                result["water_schedule"] = schedule
 
         # Map water_details to cultivation_details
         if "water_details" in data and data["water_details"]:
