@@ -819,6 +819,16 @@ class PlantImportService:
 
         # Clean up the value
         value = re.sub(r'\s+', ' ', value).strip()
+        # Strip leading asterisks (bold tag artifacts)
+        value = value.lstrip("*").strip()
+        # Remove figure references like "Fig. 7Fig. 8" and "Fig. 7. Caption text"
+        value = re.sub(r'Fig\.\s*\d+(?:Fig\.\s*\d+)*', '', value)
+        value = re.sub(r'Fig\.\s*\d+\.\s*[^.;]*(?:[.;]|$)', '', value)
+        value = re.sub(r'\s+', ' ', value).strip()
+
+        # Skip garbage values (single punctuation, colons, etc.)
+        if len(value) <= 2 and not value.isalnum():
+            return
 
         # --- Identity ---
         if "scientific name" in label or label == "scientific":
@@ -876,7 +886,7 @@ class PlantImportService:
         elif "drought tolerance" in label or "drought" in label:
             lower = value.lower()
             data["drought_tolerance_notes"] = value
-            if "poor" in lower or "low" in lower or "no " in lower:
+            if "poor" in lower or "low" in lower or "no " in lower or "cannot" in lower or "not " in lower:
                 data["drought_tolerant"] = False
             else:
                 data["drought_tolerant"] = True
