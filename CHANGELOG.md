@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.48.3] - 2026-01-29
+
+### Fixed
+- **Plant photo import fix** - Fixed PictureThis image URL extraction (mainImage.imageUrl instead of mainImageUrl) so photos now import correctly during plant import and enrichment
+- **Plant data enrichment** - Re-ran enrichment on all 67 active plants in production with expanded field coverage
+  - Water schedules: 14% -> 90% filled
+  - Fertilize schedules: 11% -> 60% filled
+  - Prune frequency: 14% -> 90% filled
+  - Photos: 0% -> 87% filled (58 plants now have photos)
+  - Added backup/dry-run/single-plant modes to enrichment script for safety
+
 ## [1.48.2] - 2026-01-29
 
 ### Changed
