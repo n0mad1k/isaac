@@ -724,7 +724,7 @@ class PlantImportService:
     async def import_from_growables(self, url: str) -> Dict[str, Any]:
         """
         Scrape plant data from Growables.org
-        Uses HTML tables with bold labels for field names
+        Uses HTML with bold-styled spans as field labels, values follow as sibling text.
         """
         async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
             response = await client.get(url, headers=self.headers)
@@ -734,67 +734,77 @@ class PlantImportService:
         soup = BeautifulSoup(response.text, "lxml")
         data = {}
 
-        # Extract title for name
+        # Extract title for name and latin name
         title = soup.find("title")
         if title:
             title_text = title.get_text(strip=True)
-            # Format: "Papaya, Carica papaya" or "Plant Name - Scientific"
+            # Format: "Pitaya, Dragon Fruit - Hylocereus undatus"
             if "," in title_text:
                 parts = title_text.split(",", 1)
                 data["name"] = parts[0].strip()
+            elif " - " in title_text:
+                parts = title_text.split(" - ", 1)
+                data["name"] = parts[0].strip()
 
-        # Find all bold text labels and their following text
-        # Growables uses <span style="font-weight: bold;">Label</span> followed by value
+        # Extract from the main title row (th.tableborderbbgb)
+        title_row = soup.find("th", class_="tableborderbbgb")
+        if title_row:
+            title_text = title_row.get_text(strip=True)
+            if " - " in title_text:
+                parts = title_text.split(" - ", 1)
+                if not data.get("name"):
+                    data["name"] = parts[0].strip()
+            # Extract latin name from italicized text in title
+            em = title_row.find(["em", "i"])
+            if em:
+                data["latin_name"] = em.get_text(strip=True)
+
+        # Find all bold text labels and collect ALL text until the next bold label.
+        # Growables uses <span style="font-weight: bold;">Label</span><br>Value text...
+        # Values can span multiple lines/nodes between bold labels.
         for bold in soup.find_all(["b", "strong", "span"]):
             style = bold.get("style", "")
             if "font-weight" not in style and bold.name not in ["b", "strong"]:
                 continue
 
-            label = bold.get_text(strip=True).lower().rstrip(":")
+            label = bold.get_text(strip=True).lower().rstrip(":").rstrip("*")
+            if not label or len(label) > 80:
+                continue
 
-            # Get the next sibling text or the parent's text after the bold
-            value = ""
-            next_sib = bold.next_sibling
-            if next_sib:
-                if hasattr(next_sib, 'get_text'):
-                    value = next_sib.get_text(strip=True)
-                else:
-                    value = str(next_sib).strip()
+            # Collect all text between this bold label and the next bold/section break
+            value_parts = []
+            sibling = bold.next_sibling
+            while sibling:
+                # Stop at the next bold label
+                if hasattr(sibling, 'name'):
+                    if sibling.name in ['b', 'strong']:
+                        break
+                    if sibling.name == 'span' and 'font-weight' in sibling.get('style', ''):
+                        break
+                    if sibling.name == 'hr':
+                        break  # Section divider
+                    # Skip <br> tags, images, and sup (footnotes)
+                    if sibling.name in ['br', 'img', 'sup']:
+                        sibling = sibling.next_sibling
+                        continue
+                    # Get text from other elements (a, em, span, etc.)
+                    text = sibling.get_text(strip=True)
+                    if text:
+                        value_parts.append(text)
+                elif isinstance(sibling, str):
+                    text = sibling.strip()
+                    if text:
+                        value_parts.append(text)
+                sibling = sibling.next_sibling
 
-            # Also check if the value is in a <br> separated format
-            if not value:
-                parent = bold.parent
-                if parent:
-                    parent_text = parent.get_text(separator="\n")
-                    lines = parent_text.split("\n")
-                    for i, line in enumerate(lines):
-                        if label in line.lower():
-                            # Get the next non-empty line
-                            for j in range(i + 1, min(i + 3, len(lines))):
-                                if lines[j].strip() and lines[j].strip() != label:
-                                    value = lines[j].strip()
-                                    break
-                            break
+            value = " ".join(value_parts).strip()
 
-            if not value or len(value) > 500:
+            # Skip empty or excessively long values
+            if not value or len(value) > 2000:
                 continue
 
             # Parse the field based on label
             self._parse_growables_field(data, label, value)
-
-        # Also extract from the main title row if present
-        title_row = soup.find("th", class_="tableborderbbgb")
-        if title_row:
-            title_text = title_row.get_text(strip=True)
-            # Format: "Papaya - Carica papaya"
-            if " - " in title_text:
-                parts = title_text.split(" - ", 1)
-                if not data.get("name"):
-                    data["name"] = parts[0].strip()
-                # Extract latin name from italicized text
-                em = title_row.find("em")
-                if em:
-                    data["latin_name"] = em.get_text(strip=True)
 
         # Add source reference
         data["references"] = f"Source: {url}"
@@ -810,66 +820,159 @@ class PlantImportService:
         # Clean up the value
         value = re.sub(r'\s+', ' ', value).strip()
 
-        if "scientific name" in label:
-            # Extract latin name, often has L. or author suffix
+        # --- Identity ---
+        if "scientific name" in label or label == "scientific":
             match = re.match(r"([A-Z][a-z]+ [a-z]+)", value)
             if match:
                 data["latin_name"] = match.group(1)
+        elif "common name" in label:
+            names = value.split(",")
+            if names and not data.get("name"):
+                data["name"] = names[0].strip()
+        elif label == "family":
+            match = re.match(r"(\w+)", value)
+            if match:
+                data["family"] = match.group(1)
+
+        # --- Hardiness & Zones ---
         elif "usda hardiness" in label or "hardiness zone" in label:
-            # Format: "9b-11a" or "9-11"
             zone_match = re.search(r"(\d+[ab]?)\s*[-–]\s*(\d+[ab]?)", value)
             if zone_match:
                 data["grow_zones"] = f"{zone_match.group(1)}-{zone_match.group(2)}"
             else:
                 data["grow_zones"] = value
-        elif "family" in label:
-            # Format: "Caricaceae (papaya family)"
-            match = re.match(r"(\w+)", value)
-            if match:
-                data["family"] = match.group(1)
-        elif "height" in label:
+
+        # --- Size ---
+        elif label == "height" or label.startswith("height"):
             data["height"] = convert_metric_measurements(value)
         elif "spread" in label or "width" in label:
             data["width"] = convert_metric_measurements(value)
-        elif "light requirement" in label or "sun" in label:
+
+        # --- Light ---
+        elif "light requirement" in label or "insolation" in label or label == "sun":
             lower = value.lower()
-            if "full sun" in lower:
+            if "full sun" in lower and "shade" not in lower:
                 data["sun_requirement"] = "full_sun"
-            elif "partial" in lower or "semi" in lower:
+            elif "partial" in lower or "semi" in lower or ("sun" in lower and "shade" in lower):
                 data["sun_requirement"] = "partial_sun"
+            elif "full shade" in lower:
+                data["sun_requirement"] = "full_shade"
             elif "shade" in lower:
                 data["sun_requirement"] = "partial_shade"
+            else:
+                data["sun_requirement"] = "full_sun"
+
+        # --- Soil ---
         elif "soil tolerance" in label or "soil type" in label:
             data["soil_requirements"] = value
-        elif "ph" in label:
+        elif "ph" in label and "pest" not in label:
             data["soil_ph"] = value
-        elif "drought tolerance" in label:
-            if "poor" not in value.lower():
+        elif "soil salt" in label or "salt tolerance" in label:
+            lower = value.lower()
+            if "poor" not in lower and "none" not in lower:
+                data["salt_tolerant"] = True
+
+        # --- Water & Moisture ---
+        elif "drought tolerance" in label or "drought" in label:
+            lower = value.lower()
+            data["drought_tolerance_notes"] = value
+            if "poor" in lower or "low" in lower or "no " in lower:
+                data["drought_tolerant"] = False
+            else:
                 data["drought_tolerant"] = True
-        elif "cold tolerance" in label:
-            # Extract temperature from text like "killed below 31°F"
+        elif "irrigation" in label or "watering" in label or "water requirement" in label:
+            data["water_notes"] = value
+            # Extract moisture preference from irrigation text
+            lower = value.lower()
+            if "high water" in lower or "frequent" in lower or "regular" in lower:
+                if not data.get("moisture_preference"):
+                    data["moisture_preference"] = "moist"
+            elif "low water" in lower or "minimal" in lower:
+                if not data.get("moisture_preference"):
+                    data["moisture_preference"] = "dry_moist"
+
+        # --- Temperature ---
+        elif "cold tolerance" in label or "cold hardiness" in label:
             temp_match = re.search(r"(-?\d+)\s*°?\s*[fF]", value)
             if temp_match:
                 data["min_temp"] = float(temp_match.group(1))
-            elif "frost" in value.lower() or "freeze" in value.lower():
+            if "frost" in value.lower() or "freeze" in value.lower():
                 data["frost_sensitive"] = True
+
+        # --- Growth ---
         elif "growth rate" in label:
             lower = value.lower()
-            if "rapid" in lower or "fast" in lower:
+            if "rapid" in lower or "fast" in lower or "vigorous" in lower:
                 data["growth_rate"] = "fast"
             elif "slow" in lower:
                 data["growth_rate"] = "slow"
             else:
                 data["growth_rate"] = "moderate"
+        elif label == "plant habit" or label == "habit":
+            data["plant_habit"] = value
+
+        # --- Spacing ---
+        elif "plant spacing" in label or "spacing" in label:
+            data["plant_spacing"] = convert_metric_measurements(value)
+
+        # --- Description ---
+        elif label == "description":
+            data["description"] = value[:1000]
+
+        # --- Uses ---
+        elif label == "uses" or label == "use":
+            data["other_uses"] = value
+        elif "edible" in label or "food" in label or "culinary" in label:
+            data["edible_uses"] = value
+        elif "medicinal" in label:
+            data["medicinal_uses"] = value
+
+        # --- Cultivation ---
+        elif "pruning" in label:
+            existing = data.get("cultivation", "")
+            data["cultivation"] = f"{existing} Pruning: {value}".strip()
+        elif "planting" in label and "spacing" not in label:
+            existing = data.get("cultivation", "")
+            data["cultivation"] = f"{existing} Planting: {value}".strip()
+
+        # --- Propagation ---
+        elif "propagation" in label:
+            data["propagation_methods"] = value
+
+        # --- Harvest ---
+        elif "harvesting" in label or "harvest" in label:
+            data["how_to_harvest"] = value
+        elif label == "season" or "fruiting season" in label:
+            data["produces_months"] = value
+
+        # --- Hazards & Pests ---
+        elif "known hazard" in label or "hazard" in label:
+            data["known_hazards"] = value
+        elif "pest" in label or "disease" in label:
+            existing = data.get("pest_disease_notes", "")
+            data["pest_disease_notes"] = f"{existing} {value}".strip()
+        elif "invasive" in label:
+            data["invasive_notes"] = value
+
+        # --- Other ---
         elif "origin" in label:
             data["native_range"] = value
-        elif "uses" in label and "edible" not in label:
-            data["other_uses"] = value
-        elif "common name" in label:
-            # Take the first common name
-            names = value.split(",")
-            if names and not data.get("name"):
-                data["name"] = names[0].strip()
+        elif "wind tolerance" in label:
+            data["wind_tolerance"] = value
+        elif "pollination" in label:
+            existing = data.get("cultivation", "")
+            data["cultivation"] = f"{existing} Pollination: {value}".strip()
+        elif label == "longevity":
+            existing = data.get("description", "")
+            data["description"] = f"{existing} Longevity: {value}".strip()
+        elif label == "flowers" or label == "fruit":
+            # These are descriptive sections - append to description
+            existing = data.get("description", "")
+            section = label.capitalize()
+            data["description"] = f"{existing} {section}: {value}".strip()
+        elif "root" in label:
+            existing = data.get("cultivation", "")
+            data["cultivation"] = f"{existing} Roots: {value}".strip()
 
     def _extract_moisture_preference(self, text: str) -> Optional[str]:
         """
@@ -1049,17 +1152,19 @@ class PlantImportService:
         # Direct mappings (no conversion needed)
         direct_fields = [
             "name", "latin_name", "variety", "grow_zones", "growth_rate",
-            "frost_sensitive", "propagation_methods", "references"
+            "frost_sensitive", "drought_tolerant", "salt_tolerant",
+            "propagation_methods", "references", "plant_spacing",
+            "produces_months",
         ]
 
         for field in direct_fields:
-            if field in data and data[field]:
+            if field in data and data[field] is not None:
                 result[field] = data[field]
 
         # Text fields that may contain metric measurements - convert to imperial
         text_fields_to_convert = [
             "description", "soil_requirements", "size_full_grown",
-            "uses", "known_hazards"
+            "uses", "known_hazards", "how_to_harvest",
         ]
 
         for field in text_fields_to_convert:
@@ -1101,6 +1206,57 @@ class PlantImportService:
         # Map cultivation -> cultivation_details (with metric conversion)
         if "cultivation" in data and data["cultivation"]:
             result["cultivation_details"] = convert_metric_measurements(data["cultivation"])
+
+        # Map edible_uses (Growables: food/culinary sections)
+        if "edible_uses" in data and data["edible_uses"]:
+            result["uses"] = data["edible_uses"]
+
+        # Map medicinal_uses -> append to uses
+        if "medicinal_uses" in data and data["medicinal_uses"]:
+            existing = result.get("uses", "")
+            if existing:
+                result["uses"] = f"{existing}; Medicinal: {data['medicinal_uses']}"
+            else:
+                result["uses"] = f"Medicinal: {data['medicinal_uses']}"
+
+        # Map other_uses -> append to uses
+        if "other_uses" in data and data["other_uses"]:
+            existing = result.get("uses", "")
+            if existing:
+                result["uses"] = f"{existing}; {data['other_uses']}"
+            else:
+                result["uses"] = data["other_uses"]
+
+        # Map pest/disease notes -> special_considerations or known_hazards
+        if "pest_disease_notes" in data and data["pest_disease_notes"]:
+            existing = result.get("known_hazards", "")
+            if existing:
+                result["known_hazards"] = f"{existing}; Pests/Diseases: {data['pest_disease_notes']}"
+            else:
+                result["known_hazards"] = f"Pests/Diseases: {data['pest_disease_notes']}"
+
+        # Build size_full_grown from height + width if not already set
+        if "size_full_grown" not in result:
+            parts = []
+            if "height" in data and data["height"]:
+                parts.append(f"Height: {data['height']}")
+            if "width" in data and data["width"]:
+                parts.append(f"Spread: {data['width']}")
+            if parts:
+                result["size_full_grown"] = "; ".join(parts)
+
+        # Map water notes to cultivation_details if no moisture_preference found
+        if "water_notes" in data and data["water_notes"]:
+            if "moisture_preference" not in result:
+                moisture = self._extract_moisture_preference(data["water_notes"])
+                if moisture:
+                    result["moisture_preference"] = moisture
+            # Also append watering info to cultivation_details
+            existing = result.get("cultivation_details", "")
+            if existing:
+                result["cultivation_details"] = f"{existing}; Watering: {data['water_notes']}"
+            else:
+                result["cultivation_details"] = f"Watering: {data['water_notes']}"
 
         logger.debug(f"Mapped plant data: {result}")
         return result
