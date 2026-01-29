@@ -1,5 +1,31 @@
 # Claude Code Instructions for Isaac/Levi Project
 
+## ⛔ #1 RULE — NEVER STOP WORKING
+
+**THIS IS THE MOST IMPORTANT RULE. VIOLATION OF THIS RULE IS UNACCEPTABLE.**
+
+After completing ANY action — finishing a task, answering a question, deploying, or ANY interaction — you MUST immediately:
+
+```bash
+/home/n0mad1k/Tools/levi/scripts/dev-tracker.sh list
+```
+
+Then pick the next highest-priority pending item (skip `[COLLAB]`) and work on it.
+
+**There is NO scenario where you stop and wait.** The ONLY reasons to stop are:
+1. All pending items are done or `[COLLAB]`
+2. The user explicitly tells you to stop
+
+**This applies to:**
+- After finishing a dev tracker item ➜ pull list, keep working
+- After answering a user question ➜ pull list, keep working
+- After deploying ➜ pull list, keep working
+- After ANY interaction that doesn't give you new direct work ➜ pull list, keep working
+
+**NEVER** end a response without either (a) actively working on a task, or (b) confirming zero non-COLLAB items remain.
+
+---
+
 ## CRITICAL: Task Tracking Rules
 
 **ALWAYS use TodoWrite to track your work:**
@@ -80,6 +106,10 @@
 ## Session Log (Clear at midnight daily)
 
 **2026-01-29:**
+- #255: Plant & seed photo support (v1.48.0) - upload/display/delete photos, auto-import from PictureThis
+- #253: PictureThis import missing fields (v1.48.1) - water/fertilize/prune/harvest schedules from howTos and careGuide text
+- #257: Clarified grow zones vs plant zone labels (v1.48.2)
+- Updated CLAUDE.md with unmissable #1 rule for continuous work loop
 - Security audit fixes (v1.45.1): Added auth to workers/supply-requests/weather/dashboard/settings routers, hardened CORS, added CSP header, fixed exception detail leaks, fixed cookie inconsistency, fixed hardcoded timezone
 
 **2026-01-28:**
@@ -108,17 +138,19 @@
 
 ## Dev Tracker Workflow
 
-**EVERY TIME you finish a task, you MUST run this command to get a FRESH list:**
+**⛔ See "#1 RULE — NEVER STOP WORKING" at the top of this file. This section provides details.**
+
+**EVERY TIME you finish ANYTHING (task, question, deploy, etc.), you MUST run this command to get a FRESH list:**
 ```bash
 /home/n0mad1k/Tools/levi/scripts/dev-tracker.sh list
 ```
 Do NOT rely on a cached/previous list. ALWAYS pull fresh. New items may have been added since you last checked.
 
-**Continuous work loop:** After finishing a task:
+**Continuous work loop — THIS NEVER ENDS until items run out:**
 1. Run `dev-tracker.sh list` (EVERY time — no exceptions)
 2. Pick the highest priority pending item that is NOT `[COLLAB]`
 3. Work on it, deploy, move to testing
-4. Go back to step 1
+4. **Go back to step 1 IMMEDIATELY — do NOT stop here**
 
 Keep going until:
 - No pending items remain, OR

@@ -1117,8 +1117,13 @@ class PlantImportService:
     def _parse_picturethis_wiki(self, data: Dict, wiki: Dict):
         """Parse PictureThis wiki page JSON data."""
         # Main image
-        if wiki.get('mainImageUrl'):
-            data['image_url'] = wiki['mainImageUrl']
+        main_image = wiki.get('mainImage', {})
+        if isinstance(main_image, dict) and main_image.get('imageUrl'):
+            img_path = main_image['imageUrl']
+            if img_path.startswith('/'):
+                data['image_url'] = f"https://www.picturethisai.com{img_path}"
+            else:
+                data['image_url'] = img_path
 
         # Common name
         if wiki.get('displayName'):
