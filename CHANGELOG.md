@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.48.4] - 2026-01-29
+
+### Fixed
+- **Plant photos now import during PictureThis import** - Photos are downloaded when creating a plant via the import flow (previously only worked via the direct import endpoint)
+
+### Added
+- **Paste photos from clipboard** - Plants and seeds now have a "Paste" button alongside "Upload Photo" to paste images directly from clipboard
+
 ## [1.48.3] - 2026-01-29
 
 ### Fixed

@@ -103,6 +103,7 @@ class PlantCreate(BaseModel):
     notes: Optional[str] = Field(None, max_length=5000)
     references: Optional[str] = Field(None, max_length=10000)
     tag_ids: Optional[List[int]] = None
+    image_url: Optional[str] = Field(None, max_length=500)
 
 
 class PlantUpdate(BaseModel):
@@ -370,7 +371,7 @@ async def create_plant(
     user: User = Depends(require_create("plants"))
 ):
     """Add a new plant to the catalog"""
-    data = plant.model_dump(exclude={'tag_ids'})
+    data = plant.model_dump(exclude={'tag_ids', 'image_url'})
     db_plant = Plant(**data)
 
     # Add tags if specified
@@ -382,6 +383,30 @@ async def create_plant(
     db.add(db_plant)
     await db.commit()
     await db.refresh(db_plant)
+
+    # Download image if URL provided (from import flow)
+    if plant.image_url:
+        try:
+            import httpx as dl_httpx
+            async with dl_httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+                img_response = await client.get(plant.image_url, headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                })
+                img_response.raise_for_status()
+                content_type = img_response.headers.get("content-type", "")
+                if content_type.startswith("image/"):
+                    ext_map = {"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
+                    ext = ext_map.get(content_type.split(";")[0].strip(), "jpg")
+                    os.makedirs(PLANT_PHOTO_DIR, exist_ok=True)
+                    filename = f"{db_plant.id}_{uuid.uuid4().hex[:8]}.{ext}"
+                    filepath = os.path.join(PLANT_PHOTO_DIR, filename)
+                    with open(filepath, "wb") as f:
+                        f.write(img_response.content)
+                    db_plant.photo_path = filepath
+                    await db.commit()
+                    logger.info(f"Downloaded photo for new plant '{db_plant.name}'")
+        except Exception as e:
+            logger.warning(f"Failed to download image for plant '{db_plant.name}': {e}")
 
     # Sync care reminders to calendar
     await sync_plant_reminders(db, db_plant)

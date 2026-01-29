@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil, AlertTriangle, Camera, Trash2 } from 'lucide-react'
+import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil, AlertTriangle, Camera, Trash2, Clipboard } from 'lucide-react'
 import { getSeeds, createSeed, updateSeed, deleteSeed, getSeedStats, getSeedCategories, uploadSeedPhoto, deleteSeedPhoto, getSeedPhotoUrl } from '../services/api'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -332,25 +332,54 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
                   )}
                 </div>
               ) : isEditing && (
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-green-500 transition-colors">
-                  <Camera className="w-8 h-8 text-gray-500 mb-2" />
-                  <span className="text-sm text-gray-500">Add Photo</span>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files[0]
-                      if (!file) return
-                      const formData = new FormData()
-                      formData.append('file', file)
+                <div className="flex gap-2">
+                  <label className="flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-green-500 transition-colors">
+                    <Camera className="w-8 h-8 text-gray-500 mb-2" />
+                    <span className="text-sm text-gray-500">Upload Photo</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files[0]
+                        if (!file) return
+                        const formData = new FormData()
+                        formData.append('file', file)
+                        try {
+                          await uploadSeedPhoto(seed.id, formData)
+                          onRefresh()
+                        } catch (err) { console.error('Failed to upload photo:', err) }
+                      }}
+                    />
+                  </label>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation()
                       try {
-                        await uploadSeedPhoto(seed.id, formData)
-                        onRefresh()
-                      } catch (err) { console.error('Failed to upload photo:', err) }
+                        const clipboardItems = await navigator.clipboard.read()
+                        for (const item of clipboardItems) {
+                          for (const type of item.types) {
+                            if (type.startsWith('image/')) {
+                              const blob = await item.getType(type)
+                              const ext = type.split('/')[1] || 'png'
+                              const file = new File([blob], `pasted-image.${ext}`, { type })
+                              const formData = new FormData()
+                              formData.append('file', file)
+                              await uploadSeedPhoto(seed.id, formData)
+                              onRefresh()
+                              return
+                            }
+                          }
+                        }
+                      } catch (err) { console.error('Failed to paste image:', err) }
                     }}
-                  />
-                </label>
+                    className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-600 rounded-lg hover:border-blue-500 transition-colors"
+                    title="Paste image from clipboard"
+                  >
+                    <Clipboard className="w-8 h-8 text-gray-500 mb-2" />
+                    <span className="text-sm text-gray-500">Paste</span>
+                  </button>
+                </div>
               )}
             </div>
           )}
