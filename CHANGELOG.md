@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.45.2] - 2026-01-29
+
+### Fixed
+- **Recurring events disappearing from calendar** - CalDAV sync was incorrectly deactivating newly created tasks that hadn't been pushed to the calendar yet; now only deactivates tasks that were previously synced and then removed from phone
+- **CalDAV sync now marks individual task syncs** - Tasks synced individually (on create/update) now get `calendar_synced_at` set immediately, preventing false "deleted on phone" detection
+
 ## [1.45.1] - 2026-01-29
 
 ### Fixed

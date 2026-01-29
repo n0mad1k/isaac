@@ -512,9 +512,11 @@ class CalendarSyncService:
                     calendar.save_todo(ical_data)
                     logger.debug(f"Created calendar todo for task {task.id}")
 
-            # Save the calendar_uid back to the task if we have a db session
-            if db and not task.calendar_uid:
-                task.calendar_uid = uid
+            # Save the calendar_uid and sync timestamp back to the task
+            if db:
+                if not task.calendar_uid:
+                    task.calendar_uid = uid
+                task.calendar_synced_at = datetime.utcnow()
                 await db.commit()
 
             return True
@@ -597,12 +599,18 @@ class CalendarSyncService:
                 continue
 
             # Check if this task was deleted on the phone
+            # Only consider "deleted on phone" if the task was previously synced successfully.
+            # Tasks that haven't been synced yet (calendar_synced_at is None) should not be
+            # deactivated - they just haven't been pushed to the calendar server yet.
             if calendar_uids is not None and task.calendar_uid:
                 if is_app_uid and task.calendar_uid not in calendar_uids:
-                    task.is_active = False
-                    deleted_by_phone += 1
-                    logger.info(f"Task '{task.title}' was deleted on phone, marking inactive")
-                    continue
+                    if task.calendar_synced_at is not None:
+                        task.is_active = False
+                        deleted_by_phone += 1
+                        logger.info(f"Task '{task.title}' was deleted on phone, marking inactive")
+                        continue
+                    else:
+                        logger.debug(f"Task '{task.title}' not in calendar but never synced - will push instead of deactivating")
 
             # Hash-based change detection - skip if content unchanged
             current_hash = compute_task_sync_hash(task)

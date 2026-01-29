@@ -31,7 +31,55 @@
 4. Do NOT include "Claude" or AI references in commit messages
 5. Deploy scripts auto-commit if there are uncommitted changes (safety net)
 
+## Secure by Design
+
+**Every change MUST follow a security-first mindset. Apply these principles to ALL code:**
+
+### Authentication & Authorization
+- **Every new endpoint MUST have auth** - No endpoint should be accessible without authentication
+  - Read endpoints: `user: User = Depends(require_view("category"))` or `Depends(require_auth)`
+  - Create endpoints: `user: User = Depends(require_create("category"))`
+  - Update endpoints: `user: User = Depends(require_edit("category"))`
+  - Delete endpoints: `user: User = Depends(require_delete("category"))`
+  - State-change endpoints: `user: User = Depends(require_interact("category"))`
+  - Admin/destructive endpoints: `user: User = Depends(require_admin)`
+- **Check existing router patterns** before adding endpoints to match the auth style used
+
+### Error Handling
+- **NEVER expose internal error details to users** - Use generic messages like "An internal error occurred"
+- **ALWAYS log the real error server-side** - `logger.error(f"Context: {e}")` before raising HTTPException
+- **NEVER use `str(e)` in HTTPException detail** - This leaks stack traces, file paths, and internal state
+- Pattern: `except Exception as e: logger.error(f"...: {e}"); raise HTTPException(status_code=500, detail="An internal error occurred")`
+
+### Input Validation
+- **Validate and sanitize all user input** at API boundaries
+- **Use Pydantic models** with Field constraints (min_length, max_length, pattern, ge, le)
+- **Never trust client-side validation alone** - always validate server-side
+- **File uploads**: Validate MIME types, reject SVG/HTML that could contain XSS
+- **Path parameters**: Never construct file paths from user input; use hardcoded paths
+
+### Data Protection
+- **Session cookies**: Use HttpOnly, Secure, SameSite=Lax flags
+- **Cookie name**: Always `session_token` (never `auth_token`)
+- **Sensitive settings**: Mask values in API responses (passwords, API keys, tokens)
+- **CORS**: Use explicit allowed origins, never wildcard `*` with credentials
+
+### Headers & Transport
+- **Security headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, Content-Security-Policy are set in SecurityHeadersMiddleware
+- **CSP policy**: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'`
+
+### Code Review Checklist (Apply to every change)
+1. Does every new endpoint have authentication?
+2. Are error messages generic (no `str(e)` in responses)?
+3. Is user input validated with Pydantic constraints?
+4. Are file paths hardcoded (not from user input)?
+5. Are sensitive values masked in responses?
+6. Would this change introduce any OWASP Top 10 vulnerability?
+
 ## Session Log (Clear at midnight daily)
+
+**2026-01-29:**
+- Security audit fixes (v1.45.1): Added auth to workers/supply-requests/weather/dashboard/settings routers, hardened CORS, added CSP header, fixed exception detail leaks, fixed cookie inconsistency, fixed hardcoded timezone
 
 **2026-01-28:**
 - #230: Standardized all date formats to MM/DD/YYYY across frontend and backend
