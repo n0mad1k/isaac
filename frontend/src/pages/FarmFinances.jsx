@@ -208,6 +208,7 @@ function FarmFinances() {
     portion_percentage: 100,
     estimated_weight: '',
     price_per_pound: '',
+    estimated_total: '',
     status: 'reserved',
     order_date: format(new Date(), 'yyyy-MM-dd'),
     expected_ready_date: '',
@@ -321,6 +322,7 @@ function FarmFinances() {
         ...orderFormData,
         estimated_weight: orderFormData.estimated_weight ? parseFloat(orderFormData.estimated_weight) : null,
         price_per_pound: orderFormData.price_per_pound ? parseFloat(orderFormData.price_per_pound) : null,
+        estimated_total: orderFormData.estimated_total ? parseFloat(orderFormData.estimated_total) : null,
         customer_id: orderFormData.customer_id || null,
         livestock_production_id: orderFormData.livestock_production_id || null,
       }
@@ -536,6 +538,7 @@ function FarmFinances() {
       portion_percentage: 100,
       estimated_weight: '',
       price_per_pound: '',
+      estimated_total: '',
       status: 'reserved',
       order_date: format(new Date(), 'yyyy-MM-dd'),
       expected_ready_date: '',
@@ -744,6 +747,7 @@ function FarmFinances() {
               portion_percentage: order.portion_percentage,
               estimated_weight: order.estimated_weight || '',
               price_per_pound: order.price_per_pound || '',
+              estimated_total: order.estimated_total || order.final_total || '',
               status: order.status,
               order_date: order.order_date,
               expected_ready_date: order.expected_ready_date || '',
@@ -1272,8 +1276,8 @@ function BusinessTab({
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
                     <div><span className="text-gray-400">Portion:</span> <span className="capitalize">{order.portion_type}</span></div>
+                    {total > 0 && <div><span className="text-gray-400">Total:</span> <span className="text-green-400 font-medium">{formatCurrency(total)}</span></div>}
                     {order.estimated_weight && <div><span className="text-gray-400">Est:</span> {order.estimated_weight} lbs</div>}
-                    {order.price_per_pound && <div><span className="text-gray-400">Price/lb:</span> {formatCurrency(order.price_per_pound)}</div>}
                     {order.order_date && <div><span className="text-gray-400">Date:</span> {format(new Date(order.order_date), 'MM/dd/yyyy')}</div>}
                   </div>
 
@@ -1722,9 +1726,9 @@ function CustomerModal({ formData, setFormData, editing, onSubmit, onClose }) {
 }
 
 function OrderModal({ formData, setFormData, customers, livestock, editing, onSubmit, onClose, formatCurrency }) {
-  const estimatedTotal = (formData.estimated_weight && formData.price_per_pound)
-    ? parseFloat(formData.estimated_weight) * parseFloat(formData.price_per_pound)
-    : 0
+  const [showWeightDetails, setShowWeightDetails] = useState(
+    !!(formData.estimated_weight || formData.price_per_pound)
+  )
 
   const handlePortionChange = (portionType) => {
     const portion = PORTION_TYPES.find(p => p.value === portionType)
@@ -1791,21 +1795,25 @@ function OrderModal({ formData, setFormData, customers, livestock, editing, onSu
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Estimated Weight (lbs)</label>
-              <input type="number" min="0" step="0.1" value={formData.estimated_weight} onChange={(e) => setFormData({ ...formData, estimated_weight: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Price per Pound</label>
-              <input type="number" min="0" step="0.01" value={formData.price_per_pound} onChange={(e) => setFormData({ ...formData, price_per_pound: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
-            </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Order Total ($)</label>
+            <input type="number" min="0" step="0.01" value={formData.estimated_total || ''} onChange={(e) => setFormData({ ...formData, estimated_total: e.target.value })} placeholder="Total price for this order" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-lg" />
           </div>
 
-          {estimatedTotal > 0 && (
-            <div className="bg-gray-700 rounded-lg p-3 text-center">
-              <span className="text-gray-400">Estimated Total:</span>
-              <span className="text-2xl font-bold text-green-400 ml-2">{formatCurrency(estimatedTotal)}</span>
+          <button type="button" onClick={() => setShowWeightDetails(!showWeightDetails)} className="text-sm text-gray-400 hover:text-gray-300 flex items-center gap-1">
+            {showWeightDetails ? '▾' : '▸'} Weight & Price/lb Details (optional)
+          </button>
+
+          {showWeightDetails && (
+            <div className="grid grid-cols-2 gap-4 pl-3 border-l-2 border-gray-600">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Estimated Weight (lbs)</label>
+                <input type="number" min="0" step="0.1" value={formData.estimated_weight} onChange={(e) => setFormData({ ...formData, estimated_weight: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Price per Pound</label>
+                <input type="number" min="0" step="0.01" value={formData.price_per_pound} onChange={(e) => setFormData({ ...formData, price_per_pound: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              </div>
             </div>
           )}
 

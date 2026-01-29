@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.43.3] - 2026-01-28
+
+### Changed
+- **Order pricing redesigned** - Order Total is now the primary field instead of price per pound
+  - Direct "Order Total ($)" input at the top of the form for setting flat prices
+  - Weight and Price/lb moved to collapsible "optional details" section
+  - Order list now shows the total price prominently
+  - Backend already supported direct totals, this is a frontend-only change
+
 ## [1.43.2] - 2026-01-28
 
 ### Fixed
