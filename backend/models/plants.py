@@ -137,6 +137,9 @@ class Plant(Base):
     known_hazards = Column(Text)  # e.g., "Thorns, toxic to pets"
     special_considerations = Column(Text)  # e.g., "Needs hand pollination"
 
+    # Photo
+    photo_path = Column(String(255))
+
     # Status
     is_active = Column(Boolean, default=True)
     notes = Column(Text)

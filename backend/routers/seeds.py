@@ -2,20 +2,27 @@
 Seed Catalog API Routes
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
+import os
+import uuid
+import shutil
 
 from models.database import get_db
 from models.seeds import Seed, SeedCategory, SunRequirement, WaterRequirement
 from models.users import User
 from services.permissions import require_view, require_create, require_edit, require_delete
+from loguru import logger
 
 
 router = APIRouter(prefix="/seeds", tags=["Seeds"])
+
+SEED_PHOTO_DIR = "data/seed_photos"
 
 
 # Pydantic Schemas
@@ -150,11 +157,109 @@ class SeedResponse(BaseModel):
     harvest_notes: Optional[str]
     medicinal_notes: Optional[str]
     notes: Optional[str]
+    photo_path: Optional[str] = None
     is_active: bool
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+# ============================================
+# Seed Photos
+# ============================================
+
+@router.get("/photos/{filename}")
+async def get_seed_photo(filename: str):
+    """Serve a seed photo file"""
+    filepath = os.path.join(SEED_PHOTO_DIR, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    # Security: ensure the file is within the upload directory
+    abs_upload_dir = os.path.abspath(SEED_PHOTO_DIR)
+    abs_filepath = os.path.abspath(filepath)
+    if not abs_filepath.startswith(abs_upload_dir):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return FileResponse(
+        filepath,
+        headers={"Content-Security-Policy": "script-src 'none'; object-src 'none'"}
+    )
+
+
+@router.post("/{seed_id}/photo/")
+async def upload_seed_photo(
+    seed_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_edit("seeds"))
+):
+    """Upload a photo for a seed"""
+    result = await db.execute(
+        select(Seed).where(Seed.id == seed_id)
+    )
+    seed = result.scalar_one_or_none()
+    if not seed:
+        raise HTTPException(status_code=404, detail="Seed not found")
+
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, GIF, WebP")
+
+    # Create upload directory if not exists
+    os.makedirs(SEED_PHOTO_DIR, exist_ok=True)
+
+    # Generate unique filename
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"{seed_id}_{uuid.uuid4().hex[:8]}.{ext}"
+    filepath = os.path.join(SEED_PHOTO_DIR, filename)
+
+    # Delete old photo if exists
+    if seed.photo_path and os.path.exists(seed.photo_path):
+        try:
+            os.remove(seed.photo_path)
+        except OSError:
+            pass
+
+    # Save new photo
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Update seed record
+    seed.photo_path = filepath
+    seed.updated_at = datetime.utcnow()
+    await db.commit()
+
+    return {"photo_path": filepath}
+
+
+@router.delete("/{seed_id}/photo/")
+async def delete_seed_photo(
+    seed_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_edit("seeds"))
+):
+    """Delete a seed's photo"""
+    result = await db.execute(
+        select(Seed).where(Seed.id == seed_id)
+    )
+    seed = result.scalar_one_or_none()
+    if not seed:
+        raise HTTPException(status_code=404, detail="Seed not found")
+
+    if seed.photo_path and os.path.exists(seed.photo_path):
+        try:
+            os.remove(seed.photo_path)
+        except OSError:
+            pass
+
+    seed.photo_path = None
+    seed.updated_at = datetime.utcnow()
+    await db.commit()
+
+    return {"message": "Photo deleted"}
 
 
 # Routes

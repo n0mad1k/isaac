@@ -20,16 +20,23 @@ from services.plant_import import plant_import_service
 
 # Map of plant ID -> PictureThis latin name override (for plants with non-standard names)
 LATIN_NAME_OVERRIDES = {
-    11: "Musa acuminata",          # Banana (Musa spp. -> specific species)
-    12: "Bambusa malingensis",     # Seabreeze Bamboo
-    13: "Bambusa oldhamii",        # Giant Timber Bamboo
-    20: "Aloe vera",               # Aloe Vera (barbadensis miller -> vera)
-    30: "Psidium guajava",         # Yellow Guava (same species as Pink)
-    38: "Rubus niveus",            # Mysore Raspberry
-    55: "Colocasia gigantea",      # Giant Elephant Ear (has HTML entities)
-    56: "Alocasia macrorrhizos",   # Elephant Ear Portora
-    62: "Plumeria rubra",          # Frangipani (has HTML entities)
-    64: "Agave americana",         # Variegated American Aloe
+    2: "Citrus limon",              # Meyer Lemon (Citrus × meyeri -> Citrus limon)
+    3: "Citrus sinensis",           # Orange (search returns cultivar, use base species)
+    5: "Rubus fruticosus",          # Blackberry (search returns cultivar)
+    11: "Musa acuminata",           # Banana (Musa spp. -> specific species)
+    12: "Bambusa textilis",         # Seabreeze Bamboo (malingensis not in PT, textilis similar)
+    13: "Bambusa oldhamii",         # Giant Timber Bamboo
+    20: "Aloe vera",                # Aloe Vera (barbadensis miller -> vera)
+    21: "Coleus amboinicus",        # Cuban Oregano (Plectranthus -> Coleus)
+    30: "Psidium guajava",          # Yellow Guava (same species as Pink)
+    31: "Eriobotrya japonica",      # Loquat (direct URL works)
+    34: "Citrus maxima",            # Pomelo (search returns nothing, try direct)
+    38: "Rubus niveus",             # Mysore Raspberry
+    54: "Strelitzia nicolai",       # White Bird of Paradise (alba -> nicolai)
+    55: "Colocasia gigantea",       # Giant Elephant Ear (has HTML entities)
+    56: "Alocasia macrorrhizos",    # Elephant Ear Portora
+    62: "Plumeria rubra",           # Frangipani (has HTML entities)
+    64: "Agave americana",          # Variegated American Aloe
 }
 
 # Plants to skip (already at 80%+ or have special cases)
@@ -127,8 +134,8 @@ async def enrich_plant(plant_id, name, latin_name, db_path):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
-    # Get current values
-    cols = ", ".join(ENRICHABLE_FIELDS)
+    # Get current values (quote column names to handle SQL reserved words like 'references')
+    cols = ", ".join(f'"{f}"' for f in ENRICHABLE_FIELDS)
     c.execute(f"SELECT {cols} FROM plants WHERE id = ?", (plant_id,))
     current = c.fetchone()
     if not current:
@@ -156,7 +163,7 @@ async def enrich_plant(plant_id, name, latin_name, db_path):
                 updates[field] = str(new_val) if new_val is not None else None
 
     if updates:
-        set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
+        set_clause = ", ".join(f'"{k}" = ?' for k in updates.keys())
         values = list(updates.values()) + [plant_id]
         c.execute(f"UPDATE plants SET {set_clause} WHERE id = ?", values)
         conn.commit()

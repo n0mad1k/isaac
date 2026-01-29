@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.48.0] - 2026-01-29
+
+### Added
+- **Plant & seed photo support** - Upload, view, and delete photos for plants and seeds
+  - Thumbnail shown next to plant/seed name in card list view
+  - Full-size photo displayed in expanded detail view
+  - Upload via dashed drop area in edit mode, delete with hover overlay button
+  - Photos auto-imported from PictureThis during plant import
+  - Imported photo preview shown in import modal before confirming
+
 ## [1.47.0] - 2026-01-29
 
 ### Added

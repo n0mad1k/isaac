@@ -100,6 +100,9 @@ class Seed(Base):
     medicinal_notes = Column(Text)
     notes = Column(Text)
 
+    # Photo
+    photo_path = Column(String(255))
+
     # Metadata
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)

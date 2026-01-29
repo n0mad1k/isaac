@@ -1116,6 +1116,10 @@ class PlantImportService:
 
     def _parse_picturethis_wiki(self, data: Dict, wiki: Dict):
         """Parse PictureThis wiki page JSON data."""
+        # Main image
+        if wiki.get('mainImageUrl'):
+            data['image_url'] = wiki['mainImageUrl']
+
         # Common name
         if wiki.get('displayName'):
             data['name'] = wiki['displayName']
@@ -1666,6 +1670,10 @@ class PlantImportService:
                 result["cultivation_details"] = f"{planting_info}\n\n{existing}"
             else:
                 result["cultivation_details"] = planting_info
+
+        # Pass through image_url for import download
+        if "image_url" in data and data["image_url"]:
+            result["image_url"] = data["image_url"]
 
         logger.debug(f"Mapped plant data: {result}")
         return result

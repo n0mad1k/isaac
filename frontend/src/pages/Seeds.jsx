@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil, AlertTriangle } from 'lucide-react'
-import { getSeeds, createSeed, updateSeed, deleteSeed, getSeedStats, getSeedCategories } from '../services/api'
+import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil, AlertTriangle, Camera, Trash2 } from 'lucide-react'
+import { getSeeds, createSeed, updateSeed, deleteSeed, getSeedStats, getSeedCategories, uploadSeedPhoto, deleteSeedPhoto, getSeedPhotoUrl } from '../services/api'
 import MottoDisplay from '../components/MottoDisplay'
 
 // Reusable inline editable field component
@@ -112,7 +112,7 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
 }
 
 // Seed Card component with inline editing
-function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) {
+function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, onRefresh }) {
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -212,6 +212,17 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {seed.photo_path ? (
+              <img
+                src={getSeedPhotoUrl(seed.photo_path)}
+                alt={seed.name}
+                className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <Sprout className="w-5 h-5 text-gray-500" />
+              </div>
+            )}
             <h3 className="font-semibold text-lg">{seed.name}</h3>
             <span className={`px-2 py-1 rounded-full text-xs ${getCategoryColor(seed.category)}`}>
               {seed.category?.replace('_', ' ')}
@@ -293,6 +304,56 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete }) 
               <X className="w-3 h-3" /> Delete
             </button>
           </div>
+
+          {/* Seed Photo */}
+          {(seed.photo_path || isEditing) && (
+            <div className="relative">
+              {seed.photo_path ? (
+                <div className="relative group">
+                  <img
+                    src={getSeedPhotoUrl(seed.photo_path)}
+                    alt={seed.name}
+                    className="w-full max-h-64 object-cover rounded-lg"
+                  />
+                  {isEditing && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        try {
+                          await deleteSeedPhoto(seed.id)
+                          onRefresh()
+                        } catch (err) { console.error('Failed to delete photo:', err) }
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-red-600/80 hover:bg-red-600 rounded-lg text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove photo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ) : isEditing && (
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-green-500 transition-colors">
+                  <Camera className="w-8 h-8 text-gray-500 mb-2" />
+                  <span className="text-sm text-gray-500">Add Photo</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files[0]
+                      if (!file) return
+                      const formData = new FormData()
+                      formData.append('file', file)
+                      try {
+                        await uploadSeedPhoto(seed.id, formData)
+                        onRefresh()
+                      } catch (err) { console.error('Failed to upload photo:', err) }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+          )}
 
           {/* Basic Info */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -828,6 +889,7 @@ function Seeds() {
               onToggle={() => setExpandedSeed(expandedSeed === seed.id ? null : seed.id)}
               onSave={handleSave}
               onDelete={handleDelete}
+              onRefresh={fetchSeeds}
             />
           ))}
         </div>

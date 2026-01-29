@@ -2,13 +2,17 @@
 Plant and Tree API Routes
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, desc
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel, Field
+import os
+import uuid
+import shutil
 
 from models.database import get_db
 from models.plants import Plant, PlantCareLog, Tag, GrowthRate, SunRequirement, MoisturePreference
@@ -21,6 +25,8 @@ from loguru import logger
 
 
 router = APIRouter(prefix="/plants", tags=["Plants"])
+
+PLANT_PHOTO_DIR = "data/plant_photos"
 
 
 # Pydantic Schemas
@@ -206,6 +212,8 @@ class PlantResponse(BaseModel):
     known_hazards: Optional[str]
     special_considerations: Optional[str]
 
+    photo_path: Optional[str] = None
+
     is_active: bool
     notes: Optional[str]
     references: Optional[str]
@@ -302,6 +310,7 @@ def plant_to_response(plant: Plant) -> dict:
         "cultivation_details": plant.cultivation_details,
         "known_hazards": plant.known_hazards,
         "special_considerations": plant.special_considerations,
+        "photo_path": plant.photo_path,
         "is_active": plant.is_active,
         "notes": plant.notes,
         "references": plant.references,
@@ -569,8 +578,129 @@ async def import_plant(
     await db.commit()
     await db.refresh(plant)
 
+    # Download image if available from import data
+    if data.get("image_url"):
+        try:
+            import httpx as dl_httpx
+            async with dl_httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+                img_response = await client.get(data["image_url"], headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                })
+                img_response.raise_for_status()
+                content_type = img_response.headers.get("content-type", "")
+                if content_type.startswith("image/"):
+                    ext_map = {"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
+                    ext = ext_map.get(content_type.split(";")[0].strip(), "jpg")
+                    os.makedirs(PLANT_PHOTO_DIR, exist_ok=True)
+                    filename = f"{plant.id}_{uuid.uuid4().hex[:8]}.{ext}"
+                    filepath = os.path.join(PLANT_PHOTO_DIR, filename)
+                    with open(filepath, "wb") as f:
+                        f.write(img_response.content)
+                    plant.photo_path = filepath
+                    await db.commit()
+                    logger.info(f"Downloaded photo for plant '{plant.name}'")
+        except Exception as e:
+            logger.warning(f"Failed to download image for plant '{plant.name}': {e}")
+
     logger.info(f"Imported plant '{plant.name}' from {request.url}")
     return plant_to_response(plant)
+
+
+# ============================================
+# Plant Photos
+# ============================================
+
+@router.get("/photos/{filename}")
+async def get_plant_photo(filename: str):
+    """Serve a plant photo file"""
+    filepath = os.path.join(PLANT_PHOTO_DIR, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    # Security: ensure the file is within the upload directory
+    abs_upload_dir = os.path.abspath(PLANT_PHOTO_DIR)
+    abs_filepath = os.path.abspath(filepath)
+    if not abs_filepath.startswith(abs_upload_dir):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return FileResponse(
+        filepath,
+        headers={"Content-Security-Policy": "script-src 'none'; object-src 'none'"}
+    )
+
+
+@router.post("/{plant_id}/photo/")
+async def upload_plant_photo(
+    plant_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_edit("plants"))
+):
+    """Upload a photo for a plant"""
+    result = await db.execute(
+        select(Plant).where(Plant.id == plant_id)
+    )
+    plant = result.scalar_one_or_none()
+    if not plant:
+        raise HTTPException(status_code=404, detail="Plant not found")
+
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, GIF, WebP")
+
+    # Create upload directory if not exists
+    os.makedirs(PLANT_PHOTO_DIR, exist_ok=True)
+
+    # Generate unique filename
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"{plant_id}_{uuid.uuid4().hex[:8]}.{ext}"
+    filepath = os.path.join(PLANT_PHOTO_DIR, filename)
+
+    # Delete old photo if exists
+    if plant.photo_path and os.path.exists(plant.photo_path):
+        try:
+            os.remove(plant.photo_path)
+        except OSError:
+            pass
+
+    # Save new photo
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Update plant record
+    plant.photo_path = filepath
+    plant.updated_at = datetime.utcnow()
+    await db.commit()
+
+    return {"photo_path": filepath}
+
+
+@router.delete("/{plant_id}/photo/")
+async def delete_plant_photo(
+    plant_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_edit("plants"))
+):
+    """Delete a plant's photo"""
+    result = await db.execute(
+        select(Plant).where(Plant.id == plant_id)
+    )
+    plant = result.scalar_one_or_none()
+    if not plant:
+        raise HTTPException(status_code=404, detail="Plant not found")
+
+    if plant.photo_path and os.path.exists(plant.photo_path):
+        try:
+            os.remove(plant.photo_path)
+        except OSError:
+            pass
+
+    plant.photo_path = None
+    plant.updated_at = datetime.utcnow()
+    await db.commit()
+
+    return {"message": "Photo deleted"}
 
 
 @router.get("/water-overview/")

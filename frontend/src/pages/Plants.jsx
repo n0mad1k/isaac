@@ -7,9 +7,10 @@ import {
 } from 'lucide-react'
 import {
   getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag,
-  recordPlantHarvest, searchPlantImport, previewPlantImport, importPlant, getFarmAreas, getWaterOverview
+  recordPlantHarvest, searchPlantImport, previewPlantImport, importPlant, getFarmAreas, getWaterOverview,
+  uploadPlantPhoto, deletePlantPhoto, getPlantPhotoUrl
 } from '../services/api'
-import { Download, ExternalLink, Loader2 } from 'lucide-react'
+import { Download, ExternalLink, Loader2, Camera, Trash2, Upload } from 'lucide-react'
 import EventModal from '../components/EventModal'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -798,6 +799,7 @@ function Plants() {
                       formatRelativeDate={formatRelativeDate}
                       getSunLabel={getSunLabel}
                       getGrowthRateLabel={getGrowthRateLabel}
+                      onRefresh={fetchData}
                     />
                   ))}
                 </div>
@@ -829,6 +831,7 @@ function Plants() {
               formatRelativeDate={formatRelativeDate}
               getSunLabel={getSunLabel}
               getGrowthRateLabel={getGrowthRateLabel}
+              onRefresh={fetchData}
             />
           ))}
         </div>
@@ -901,7 +904,7 @@ function Plants() {
 // Plant Card Component with inline editing
 function PlantCard({
   plant, tags, farmAreas, expanded, onToggle, onLogCare, onEditDate, onDelete, onSave, onHarvest, onImport, onDuplicate, onAddReminder,
-  getTagColor, formatDate, formatRelativeDate, getSunLabel, getGrowthRateLabel
+  getTagColor, formatDate, formatRelativeDate, getSunLabel, getGrowthRateLabel, onRefresh
 }) {
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -1064,6 +1067,17 @@ function PlantCard({
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
+            {plant.photo_path ? (
+              <img
+                src={getPlantPhotoUrl(plant.photo_path)}
+                alt={plant.name}
+                className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <Leaf className="w-5 h-5 text-gray-500" />
+              </div>
+            )}
             <h3 className="font-semibold text-lg">{plant.name}</h3>
             {plant.tags && plant.tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -1208,6 +1222,56 @@ function PlantCard({
               <X className="w-3 h-3" /> Delete
             </button>
           </div>
+
+          {/* Plant Photo */}
+          {(plant.photo_path || isEditing) && (
+            <div className="relative">
+              {plant.photo_path ? (
+                <div className="relative group">
+                  <img
+                    src={getPlantPhotoUrl(plant.photo_path)}
+                    alt={plant.name}
+                    className="w-full max-h-64 object-cover rounded-lg"
+                  />
+                  {isEditing && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        try {
+                          await deletePlantPhoto(plant.id)
+                          onRefresh()
+                        } catch (err) { console.error('Failed to delete photo:', err) }
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-red-600/80 hover:bg-red-600 rounded-lg text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove photo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ) : isEditing && (
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-green-500 transition-colors">
+                  <Camera className="w-8 h-8 text-gray-500 mb-2" />
+                  <span className="text-sm text-gray-500">Add Photo</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files[0]
+                      if (!file) return
+                      const formData = new FormData()
+                      formData.append('file', file)
+                      try {
+                        await uploadPlantPhoto(plant.id, formData)
+                        onRefresh()
+                      } catch (err) { console.error('Failed to upload photo:', err) }
+                    }}
+                  />
+                </label>
+              )}
+            </div>
+          )}
 
           {/* Basic Info - Editable */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -2788,6 +2852,18 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {error && (
             <div className="p-3 bg-red-900/30 border border-red-800 rounded-lg text-red-300 text-sm">
               {error}
+            </div>
+          )}
+
+          {/* Imported Photo Preview */}
+          {importedData?.image_url && (
+            <div className="bg-gray-900/50 rounded-lg p-4">
+              <p className="text-sm text-gray-400 mb-2">Photo (will be imported)</p>
+              <img
+                src={importedData.image_url}
+                alt={importedData.name || 'Plant'}
+                className="w-full max-h-48 object-cover rounded-lg"
+              />
             </div>
           )}
 

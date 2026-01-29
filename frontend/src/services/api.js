@@ -97,6 +97,13 @@ export const skipWatering = (plantId, reason, notes = null) =>
   api.post(`/plants/${plantId}/skip-watering/`, { reason, notes })
 export const getWateringHistory = (plantId) =>
   api.get(`/plants/${plantId}/watering-history/`)
+export const uploadPlantPhoto = (id, formData) =>
+  api.post(`/plants/${id}/photo/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+export const deletePlantPhoto = (id) => api.delete(`/plants/${id}/photo/`)
+export const getPlantPhotoUrl = (path) =>
+  path ? `${api.defaults.baseURL}/plants/photos/${path.split('/').pop()}` : null
 
 // Animals
 export const getAnimals = (params) => api.get('/animals/', { params })
@@ -194,6 +201,13 @@ export const updateSeed = (id, data) => api.patch(`/seeds/${id}/`, data)
 export const deleteSeed = (id) => api.delete(`/seeds/${id}/`)
 export const getSeedStats = () => api.get('/seeds/stats/')
 export const getSeedCategories = () => api.get('/seeds/categories/')
+export const uploadSeedPhoto = (id, formData) =>
+  api.post(`/seeds/${id}/photo/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+export const deleteSeedPhoto = (id) => api.delete(`/seeds/${id}/photo/`)
+export const getSeedPhotoUrl = (path) =>
+  path ? `${api.defaults.baseURL}/seeds/photos/${path.split('/').pop()}` : null
 
 // Settings
 export const getSettings = () => api.get('/settings/')
