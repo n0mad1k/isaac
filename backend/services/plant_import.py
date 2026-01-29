@@ -1263,6 +1263,7 @@ class PlantImportService:
         for howto in care.get('howTos', []):
             title = howto.get('title', '').lower()
             labels = {l.get('title', ''): l.get('value', '') for l in howto.get('labels', []) if l.get('value')}
+            logger.debug(f"PictureThis howTo '{howto.get('title', '')}': labels={list(labels.keys())}")
             # Also capture the how-to description text
             howto_desc = howto.get('description', '')
             if isinstance(howto_desc, str) and '<' in howto_desc:
