@@ -8,9 +8,9 @@ import {
 import {
   getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag,
   recordPlantHarvest, searchPlantImport, previewPlantImport, importPlant, getFarmAreas, getWaterOverview,
-  uploadPlantPhoto, deletePlantPhoto, getPlantPhotoUrl
+  uploadPlantPhoto, deletePlantPhoto, getPlantPhotoUrl, createSale
 } from '../services/api'
-import { Download, ExternalLink, Loader2, Camera, Trash2, Upload, Clipboard } from 'lucide-react'
+import { Download, ExternalLink, Loader2, Camera, Trash2, Upload, Clipboard, DollarSign } from 'lucide-react'
 import EventModal from '../components/EventModal'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -277,6 +277,7 @@ function Plants() {
   const [collapsedLocations, setCollapsedLocations] = useState({})
   const [editDateModal, setEditDateModal] = useState(null)
   const [showHarvestForm, setShowHarvestForm] = useState(null) // plant object or null
+  const [showSellForm, setShowSellForm] = useState(null) // plant object or null
   const [showImportModal, setShowImportModal] = useState(false)
   const [showReminderFor, setShowReminderFor] = useState(null) // plant object for reminder modal
   const [waterOverview, setWaterOverview] = useState(null)
@@ -414,6 +415,17 @@ function Plants() {
     } catch (error) {
       console.error('Failed to record harvest:', error)
       alert('Failed to record harvest')
+    }
+  }
+
+  const handleSellPlant = async (data) => {
+    try {
+      await createSale(data)
+      setShowSellForm(null)
+      fetchData()
+    } catch (error) {
+      console.error('Failed to record sale:', error)
+      alert('Failed to record sale')
     }
   }
 
@@ -791,6 +803,7 @@ function Plants() {
                       onDelete={() => handleDelete(plant.id, plant.name)}
                       onSave={fetchData}
                       onHarvest={(plant) => setShowHarvestForm(plant)}
+                      onSellPlant={(plant) => setShowSellForm(plant)}
                       onImport={(plant) => setShowImportModal(plant)}
                       onDuplicate={(plant) => setDuplicatePlant(plant)}
                       onAddReminder={(plant) => setShowReminderFor(plant)}
@@ -823,6 +836,7 @@ function Plants() {
               onDelete={() => handleDelete(plant.id, plant.name)}
               onSave={fetchData}
               onHarvest={(plant) => setShowHarvestForm(plant)}
+              onSellPlant={(plant) => setShowSellForm(plant)}
               onImport={(plant) => setShowImportModal(plant)}
               onDuplicate={(plant) => setDuplicatePlant(plant)}
               onAddReminder={(plant) => setShowReminderFor(plant)}
@@ -877,6 +891,15 @@ function Plants() {
         />
       )}
 
+      {/* Sell Plant Modal */}
+      {showSellForm && (
+        <SellPlantModal
+          plant={showSellForm}
+          onClose={() => setShowSellForm(null)}
+          onSave={handleSellPlant}
+        />
+      )}
+
       {/* Import Modal */}
       {showImportModal && (
         <ImportModal
@@ -903,7 +926,7 @@ function Plants() {
 
 // Plant Card Component with inline editing
 function PlantCard({
-  plant, tags, farmAreas, expanded, onToggle, onLogCare, onEditDate, onDelete, onSave, onHarvest, onImport, onDuplicate, onAddReminder,
+  plant, tags, farmAreas, expanded, onToggle, onLogCare, onEditDate, onDelete, onSave, onHarvest, onSellPlant, onImport, onDuplicate, onAddReminder,
   getTagColor, formatDate, formatRelativeDate, getSunLabel, getGrowthRateLabel, onRefresh
 }) {
   const [editData, setEditData] = useState(null)
@@ -1192,10 +1215,16 @@ function PlantCard({
               <Scissors className="w-3 h-3" /> Prune
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); onLogCare(plant.id, 'harvested') }}
+              onClick={(e) => { e.stopPropagation(); onHarvest(plant) }}
               className="px-3 py-1.5 bg-purple-900/50 hover:bg-purple-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
             >
               <Apple className="w-3 h-3" /> Harvest
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onSellPlant(plant) }}
+              className="px-3 py-1.5 bg-emerald-900/50 hover:bg-emerald-800/50 rounded text-sm text-white transition-colors flex items-center gap-1"
+            >
+              <DollarSign className="w-3 h-3" /> Sell
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onImport(plant) }}
@@ -2454,6 +2483,137 @@ function HarvestFormModal({ plant, onClose, onSave }) {
               className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Record Harvest'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// Sell Plant Modal - record selling a whole plant or tree
+function SellPlantModal({ plant, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    category: 'plant',
+    item_name: plant.name + (plant.variety ? ` (${plant.variety})` : ''),
+    description: '',
+    quantity: '1',
+    unit: 'each',
+    unit_price: '',
+    sale_date: new Date().toISOString().split('T')[0],
+    plant_id: plant.id,
+  })
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!formData.unit_price) {
+      alert('Please enter a price')
+      return
+    }
+    setSaving(true)
+    try {
+      await onSave({
+        ...formData,
+        quantity: parseFloat(formData.quantity),
+        unit_price: parseFloat(formData.unit_price),
+      })
+    } catch (error) {
+      console.error('Failed to record sale:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-green-500" />
+              Sell Plant
+            </h2>
+            <p className="text-sm text-gray-400">{plant.name} {plant.variety && `(${plant.variety})`}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Item Name</label>
+            <input
+              type="text"
+              value={formData.item_name}
+              onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Sale Date</label>
+            <input
+              type="date"
+              value={formData.sale_date}
+              onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Quantity</label>
+              <input
+                type="number"
+                step="1"
+                min="1"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Price Each *</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                value={formData.unit_price}
+                onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
+                placeholder="$0.00"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={2}
+              placeholder="Buyer name, details, etc."
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Record Sale'}
             </button>
           </div>
         </form>
