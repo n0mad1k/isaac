@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime, date, timedelta
 import json
 import os
+import re
 import uuid
 import shutil
 from loguru import logger
@@ -929,7 +930,10 @@ async def get_member_photo(filename: str):
     if not abs_filepath.startswith(abs_upload_dir):
         raise HTTPException(status_code=403, detail="Access denied")
 
-    return FileResponse(filepath)
+    return FileResponse(
+        filepath,
+        headers={"Content-Security-Policy": "script-src 'none'; object-src 'none'"}
+    )
 
 
 @router.post("/members/{member_id}/photo/")
@@ -1026,7 +1030,10 @@ async def get_team_logo(filename: str):
     if not abs_filepath.startswith(abs_logo_dir):
         raise HTTPException(status_code=403, detail="Access denied")
 
-    return FileResponse(filepath)
+    return FileResponse(
+        filepath,
+        headers={"Content-Security-Policy": "script-src 'none'; object-src 'none'"}
+    )
 
 
 @router.post("/logo/")
@@ -1056,9 +1063,21 @@ async def upload_team_logo(
     filename = f"team_logo_{uuid.uuid4().hex[:8]}.{ext}"
     filepath = os.path.join(LOGO_DIR, filename)
 
-    # Save logo
-    with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Save logo (sanitize SVGs to prevent stored XSS)
+    if file.content_type == "image/svg+xml":
+        content = await file.read()
+        text = content.decode("utf-8", errors="replace")
+        # Strip script tags, event handlers, and javascript: URLs
+        text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'<script[^>]*/>', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\s+on\w+\s*=\s*"[^"]*"', '', text, flags=re.IGNORECASE)
+        text = re.sub(r"\s+on\w+\s*=\s*'[^']*'", '', text, flags=re.IGNORECASE)
+        text = re.sub(r'javascript\s*:', '', text, flags=re.IGNORECASE)
+        with open(filepath, "w", encoding="utf-8") as buffer:
+            buffer.write(text)
+    else:
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
     # Update team_logo setting
     result = await db.execute(

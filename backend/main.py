@@ -4,9 +4,11 @@ Main FastAPI Application
 """
 
 from contextlib import asynccontextmanager
+from collections import defaultdict
+import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from loguru import logger
 import sys
@@ -83,6 +85,71 @@ class LocalNetworkOnlyMiddleware(BaseHTTPMiddleware):
                 )
 
         return await call_next(request)
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Simple in-memory rate limiter per client IP.
+
+    Limits:
+    - 200 total requests per minute per IP (GET + write)
+    - 60 write requests (POST/PUT/DELETE/PATCH) per minute per IP
+    - Auth endpoints excluded (handled by account lockout in auth.py)
+    """
+    GLOBAL_LIMIT = 200   # total requests per window
+    WRITE_LIMIT = 60     # write requests per window
+    WINDOW = 60          # seconds
+
+    def __init__(self, app):
+        super().__init__(app)
+        self._requests = defaultdict(list)
+        self._writes = defaultdict(list)
+        self._last_cleanup = time.monotonic()
+
+    async def dispatch(self, request: Request, call_next):
+        # Skip rate limiting for auth endpoints (handled by account lockout)
+        if request.url.path.startswith("/api/auth/"):
+            return await call_next(request)
+
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.monotonic()
+        cutoff = now - self.WINDOW
+
+        # Periodic cleanup of stale IPs (every 5 minutes)
+        if now - self._last_cleanup > 300:
+            stale = [ip for ip, ts in self._requests.items() if not ts or ts[-1] < cutoff]
+            for ip in stale:
+                self._requests.pop(ip, None)
+                self._writes.pop(ip, None)
+            self._last_cleanup = now
+
+        # Clean old entries for this IP
+        reqs = self._requests[client_ip]
+        self._requests[client_ip] = [t for t in reqs if t > cutoff]
+
+        # Check global limit
+        if len(self._requests[client_ip]) >= self.GLOBAL_LIMIT:
+            logger.warning(f"Rate limit exceeded for {client_ip}: {len(self._requests[client_ip])} requests/min")
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests. Please try again later."},
+                headers={"Retry-After": str(self.WINDOW)}
+            )
+
+        # Check write limit
+        if request.method in ("POST", "PUT", "DELETE", "PATCH"):
+            writes = self._writes[client_ip]
+            self._writes[client_ip] = [t for t in writes if t > cutoff]
+            if len(self._writes[client_ip]) >= self.WRITE_LIMIT:
+                logger.warning(f"Write rate limit exceeded for {client_ip}: {len(self._writes[client_ip])} writes/min")
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Too many write requests. Please try again later."},
+                    headers={"Retry-After": str(self.WINDOW)}
+                )
+            self._writes[client_ip].append(now)
+
+        self._requests[client_ip].append(now)
+        return await call_next(request)
+
 
 from config import settings
 from models.database import init_db
@@ -162,6 +229,9 @@ app = FastAPI(
 
 # Security headers - add protective headers to all responses
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Rate limiting - prevent API abuse (200 req/min global, 60 writes/min)
+app.add_middleware(RateLimitMiddleware)
 
 # Security - restrict to local network only
 app.add_middleware(LocalNetworkOnlyMiddleware)

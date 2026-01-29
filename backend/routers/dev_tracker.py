@@ -21,7 +21,7 @@ from config import settings
 IMAGES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "dev_tracker_images")
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
-ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"}
+ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp"}
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
@@ -500,7 +500,11 @@ async def serve_image(filename: str):
     if not real_path.startswith(os.path.realpath(IMAGES_DIR)):
         raise HTTPException(status_code=403, detail="Access denied")
 
-    return FileResponse(file_path)
+    # Serve with restrictive CSP to prevent any script execution in uploaded files
+    return FileResponse(
+        file_path,
+        headers={"Content-Security-Policy": "script-src 'none'; object-src 'none'"}
+    )
 
 
 @router.delete("/{item_id}/images/{image_id}")

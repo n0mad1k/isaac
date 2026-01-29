@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.45.4] - 2026-01-29
+
+### Fixed
+- **Security: SVG upload XSS risk** - Removed SVG from dev tracker allowed image types; added SVG sanitization for team logo uploads (strips scripts, event handlers, javascript: URLs); all image serve endpoints now include `Content-Security-Policy: script-src 'none'` header
+
+### Added
+- **Security: API rate limiting** - All endpoints now rate-limited to 200 requests/min and 60 write requests/min per IP; returns HTTP 429 with Retry-After header when exceeded; auth endpoints excluded (handled by existing account lockout)
+
 ## [1.45.3] - 2026-01-29
 
 ### Fixed
