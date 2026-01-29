@@ -418,6 +418,48 @@ class PlantImportPreview(BaseModel):
     source_url: str
 
 
+@router.get("/import/search/")
+async def search_plant_import(q: str = Query(..., min_length=2, description="Plant name to search for")):
+    """
+    Search for plants on PictureThis to get importable URLs.
+    Returns a list of matching plants with their wiki URLs.
+    """
+    import httpx as search_httpx
+
+    try:
+        async with search_httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                "https://cms-fullsearch-service.picturethisai.com/api/v1/cmsfullsearch/cms_full_search",
+                params={"searchText": q, "languageCode": "0", "countryCode": "Other"},
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Accept": "application/json",
+                    "Referer": "https://www.picturethisai.com/",
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        results = []
+        index_models = data.get("response", {}).get("indexModels", [])
+        for item in index_models[:10]:
+            latin_name = item.get("latinName", "")
+            common_names = item.get("commonNames", [])
+            slug = latin_name.replace(" ", "_").replace("'", "")
+            results.append({
+                "latin_name": latin_name,
+                "common_name": common_names[0] if common_names else latin_name,
+                "url": f"https://www.picturethisai.com/wiki/{slug}.html",
+                "image_url": item.get("mainImageUrl", ""),
+            })
+
+        return {"results": results}
+
+    except Exception as e:
+        logger.warning(f"Plant search failed: {e}")
+        raise HTTPException(status_code=502, detail="Search service unavailable")
+
+
 @router.post("/import/preview/")
 async def preview_plant_import(request: PlantImportRequest):
     """

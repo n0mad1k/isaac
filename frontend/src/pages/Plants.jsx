@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import {
   getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag,
-  recordPlantHarvest, previewPlantImport, importPlant, getFarmAreas, getWaterOverview
+  recordPlantHarvest, searchPlantImport, previewPlantImport, importPlant, getFarmAreas, getWaterOverview
 } from '../services/api'
 import { Download, ExternalLink, Loader2 } from 'lucide-react'
 import EventModal from '../components/EventModal'
@@ -2373,6 +2373,8 @@ function HarvestFormModal({ plant, onClose, onSave }) {
 function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null }) {
   const [url, setUrl] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searching, setSearching] = useState(false)
   const [fetching, setFetching] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -2476,16 +2478,29 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
     }
   }, [existingPlant])
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchQuery.trim()) return
-    const pfafSearchUrl = `https://pfaf.org/user/DatabaseSearhResult.aspx?CName=${encodeURIComponent(searchQuery.trim())}%`
-    window.open(pfafSearchUrl, '_blank', 'noopener,noreferrer')
+    setSearching(true)
+    setSearchResults([])
+    try {
+      const response = await searchPlantImport(searchQuery.trim())
+      setSearchResults(response.data.results || [])
+    } catch (err) {
+      setSearchResults([])
+    } finally {
+      setSearching(false)
+    }
   }
 
   const handleSearchKeyDown = (e) => {
     if (e.key === 'Enter') {
       handleSearch()
     }
+  }
+
+  const handleSearchResultClick = (result) => {
+    setUrl(result.url)
+    setSearchResults([])
   }
 
   const handleFetch = async () => {
@@ -2629,6 +2644,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
               </h2>
               <p className="text-sm text-gray-400 mt-1">
                 Import from{' '}
+                <a href="https://www.picturethisai.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">picturethisai.com</a>,{' '}
                 <a href="https://pfaf.org" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">pfaf.org</a>,{' '}
                 <a href="https://gardenia.net" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">gardenia.net</a>, or{' '}
                 <a href="https://growables.org" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">growables.org</a>
@@ -2640,9 +2656,9 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           </div>
 
           <div className="p-4 space-y-4">
-            {/* Search PFAF */}
+            {/* Search Plants */}
             <div className="bg-gray-900/50 rounded-lg p-3">
-              <label className="block text-sm text-gray-400 mb-2">Search PFAF Database</label>
+              <label className="block text-sm text-gray-400 mb-2">Search Plants</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -2654,16 +2670,36 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 />
                 <button
                   onClick={handleSearch}
-                  disabled={!searchQuery.trim()}
+                  disabled={!searchQuery.trim() || searching}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
-                  <ExternalLink className="w-4 h-4" />
+                  {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                   Search
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Opens PFAF in a new tab. Find your plant, then copy the URL.
-              </p>
+              {/* Search Results */}
+              {searchResults.length > 0 && (
+                <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
+                  {searchResults.map((result, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSearchResultClick(result)}
+                      className="w-full text-left px-3 py-2 bg-gray-700/50 hover:bg-gray-600 rounded-lg flex items-center gap-3 transition-colors"
+                    >
+                      {result.image_url && (
+                        <img src={result.image_url + '?x-oss-process=image/resize,l_40'} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <div className="text-sm text-white truncate">{result.common_name}</div>
+                        <div className="text-xs text-gray-400 italic truncate">{result.latin_name}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {searching && (
+                <p className="text-xs text-gray-500 mt-2">Searching...</p>
+              )}
             </div>
 
             {/* URL Input */}
@@ -2673,7 +2709,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://pfaf.org/... or https://gardenia.net/... or https://growables.org/..."
+                placeholder="https://picturethisai.com/wiki/... or https://pfaf.org/... or https://gardenia.net/..."
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>

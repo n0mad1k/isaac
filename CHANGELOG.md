@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.47.0] - 2026-01-29
+
+### Added
+- **Plant import search** - Replaced external PFAF search link with an integrated search powered by PictureThis database. Type a plant name and get instant results with thumbnails, common names, and latin names. Click a result to auto-fill the import URL
+- **PictureThis shown as import source** - Import modal now lists PictureThis as the primary import source alongside PFAF, Gardenia, and Growables
+
 ## [1.46.1] - 2026-01-29
 
 ### Fixed
