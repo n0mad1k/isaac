@@ -36,6 +36,7 @@
 **2026-01-28:**
 - #230: Standardized all date formats to MM/DD/YYYY across frontend and backend
 - #178: Added water overview to plants page
+- Recurring event single-occurrence edit/delete (v1.45.0): RecurrenceChoiceModal, exception_dates column, delete-occurrence/edit-occurrence endpoints
 
 **2026-01-27:**
 - #182: Added custom gear categories + removed "Pool" label for unassigned gear

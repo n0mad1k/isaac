@@ -1161,6 +1161,7 @@ async def edit_task_occurrence(
         location=data.location if data.location is not None else task.location,
         priority=data.priority if data.priority is not None else task.priority,
         recurrence=TaskRecurrence.ONCE,
+        notes=task.notes,
         plant_id=task.plant_id,
         animal_id=task.animal_id,
         vehicle_id=task.vehicle_id,
