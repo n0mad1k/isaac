@@ -1297,8 +1297,8 @@ function PlantCard({
           <div className="bg-gray-900/50 rounded-lg p-3">
             <h4 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <EditableField label="Grow Zones" value={editData.grow_zones} field="grow_zones" onChange={handleFieldChange} placeholder="e.g., 9-11" editing={isEditing} />
-              <EditableField label="Plant Zone" value={editData.plant_zone} field="plant_zone" type="select" options={[{value: '', label: 'Use global zone'}, ...['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b','6a','6b','7a','7b','8a','8b','9a','9b','10a','10b','11a','11b','12a','12b','13a','13b'].map(z => ({value: z, label: `Zone ${z}`}))]} onChange={handleFieldChange} editing={isEditing} />
+              <EditableField label="Hardiness Zones (species)" value={editData.grow_zones} field="grow_zones" onChange={handleFieldChange} placeholder="e.g., 9-11" editing={isEditing} />
+              <EditableField label="This Plant's Zone (override)" value={editData.plant_zone} field="plant_zone" type="select" options={[{value: '', label: 'Use global zone'}, ...['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b','6a','6b','7a','7b','8a','8b','9a','9b','10a','10b','11a','11b','12a','12b','13a','13b'].map(z => ({value: z, label: `Zone ${z}`}))]} onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Sun Requirement" value={editData.sun_requirement} field="sun_requirement" type="select" options={SUN_OPTIONS} onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Growth Rate" value={editData.growth_rate} field="growth_rate" type="select" options={GROWTH_RATE_OPTIONS} onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Soil Requirements" value={editData.soil_requirements} field="soil_requirements" onChange={handleFieldChange} placeholder="e.g., Well-drained" editing={isEditing} />
@@ -1752,7 +1752,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
             <h3 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Grow Zones</label>
+                <label className="block text-sm text-gray-400 mb-1">Hardiness Zones (species)</label>
                 <input
                   type="text"
                   value={formData.grow_zones}
@@ -1762,7 +1762,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Plant Zone</label>
+                <label className="block text-sm text-gray-400 mb-1">This Plant's Zone (override)</label>
                 <select
                   value={formData.plant_zone}
                   onChange={(e) => setFormData({ ...formData, plant_zone: e.target.value })}
@@ -2973,7 +2973,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
             <h3 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Grow Zones</label>
+                <label className="block text-sm text-gray-400 mb-1">Hardiness Zones (species)</label>
                 <input
                   type="text"
                   value={formData.grow_zones}
@@ -2983,7 +2983,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Plant Zone</label>
+                <label className="block text-sm text-gray-400 mb-1">This Plant's Zone (override)</label>
                 <select
                   value={formData.plant_zone}
                   onChange={(e) => setFormData({ ...formData, plant_zone: e.target.value })}

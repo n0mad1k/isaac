@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.48.2] - 2026-01-29
+
+### Changed
+- **Clarified zone field labels** - Renamed "Grow Zones" to "Hardiness Zones (species)" and "Plant Zone" to "This Plant's Zone (override)" to make the difference clear. Hardiness Zones is the species' natural range (informational), while Plant Zone overrides the global zone for watering calculations
+
 ## [1.48.1] - 2026-01-29
 
 ### Fixed
