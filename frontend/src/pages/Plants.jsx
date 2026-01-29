@@ -564,10 +564,14 @@ function Plants() {
                 <div className="text-xs text-gray-400">Total Rain</div>
               </div>
               <div className="bg-gray-700/50 rounded-lg p-3 text-center">
-                <div className="text-xl font-bold text-cyan-300">
-                  {waterOverview.rain?.rain_days || 0} / {waterOverview.rain?.dry_days || 0}
+                <div className="text-xl font-bold flex items-center justify-center gap-1">
+                  <span className="text-cyan-400">{waterOverview.rain?.rain_days || 0}</span>
+                  <span className="text-gray-500 text-sm">rain</span>
+                  <span className="text-gray-600 mx-0.5">/</span>
+                  <span className="text-amber-400">{waterOverview.rain?.dry_days || 0}</span>
+                  <span className="text-gray-500 text-sm">dry</span>
                 </div>
-                <div className="text-xs text-gray-400">Rain / Dry Days</div>
+                <div className="text-xs text-gray-400">Days ({waterOverviewDays}d period)</div>
               </div>
               <div className="bg-gray-700/50 rounded-lg p-3 text-center">
                 <div className="text-xl font-bold text-green-400">{waterOverview.watering_activity?.total_watered || 0}</div>
@@ -661,10 +665,10 @@ function Plants() {
                         key={i}
                         className="flex-1 bg-cyan-500 rounded-t opacity-80 hover:opacity-100 transition-opacity relative group"
                         style={{ height: `${height}%` }}
-                        title={`${day.date}: ${day.rain_inches}"`}
+                        title={`${formatDate(day.date)}: ${day.rain_inches}"`}
                       >
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-gray-900 text-xs text-gray-300 px-1.5 py-0.5 rounded whitespace-nowrap z-10">
-                          {day.date.slice(5)}: {day.rain_inches}"
+                          {formatDate(day.date)}: {day.rain_inches}"
                         </div>
                       </div>
                     )

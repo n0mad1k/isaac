@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.43.7] - 2026-01-28
+
+### Fixed
+- **Rain/Dry Days display improved for readability** - Rain days shown in cyan, dry days in amber with explicit labels
+  - Format changed from "3 / 4" to "3 rain / 4 dry" with color-coded values
+  - Period length now shown in the card subtitle
+  - Daily rain chart tooltips now use MM/DD/YYYY date format
+
 ## [1.43.6] - 2026-01-28
 
 ### Fixed
