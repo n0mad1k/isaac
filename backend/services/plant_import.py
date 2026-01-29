@@ -1201,9 +1201,18 @@ class PlantImportService:
             elif title == 'Fertilize':
                 existing = data.get('cultivation', '')
                 data['cultivation'] = f"{existing}\n\nFertilizing: {value[:500]}".strip()
+                # Extract fertilizing frequency from text
+                data['fertilize_text'] = value[:500]
             elif title == 'Pruning':
                 existing = data.get('cultivation', '')
                 data['cultivation'] = f"{existing}\n\nPruning: {value[:500]}".strip()
+                # Store pruning text for prune_frequency extraction
+                if 'prune_frequency_text' not in data:
+                    data['prune_frequency_text'] = value[:300]
+            elif title == 'Harvesting':
+                # Store harvest text
+                if 'how_to_harvest' not in data:
+                    data['how_to_harvest'] = value[:500]
             elif title == 'Propagation':
                 data['propagation_text'] = value[:500]
 
@@ -1263,7 +1272,7 @@ class PlantImportService:
         for howto in care.get('howTos', []):
             title = howto.get('title', '').lower()
             labels = {l.get('title', ''): l.get('value', '') for l in howto.get('labels', []) if l.get('value')}
-            logger.info(f"PictureThis howTo '{howto.get('title', '')}': labels={list(labels.keys())}")
+            logger.debug(f"PictureThis howTo '{howto.get('title', '')}': labels={list(labels.keys())}")
             # Also capture the how-to description text
             howto_desc = howto.get('description', '')
             if isinstance(howto_desc, str) and '<' in howto_desc:
@@ -1415,6 +1424,45 @@ class PlantImportService:
             return "spring:60,summer:60,fall:90,winter:0"
         elif "once" in label or "once a year" in label or "annually" in label:
             return "spring:365,summer:0,fall:0,winter:0"
+        return None
+
+    def _parse_fertilize_frequency_from_text(self, text: str) -> Optional[str]:
+        """Extract fertilizing frequency from descriptive text and convert to schedule format.
+        Looks for patterns like 'every 2-4 weeks', 'monthly', 'every 4-6 weeks', etc.
+        """
+        if not text:
+            return None
+        text_lower = text.lower()
+
+        # Match "every X weeks" or "every X-Y weeks"
+        match = re.search(r'every\s+(\d+)(?:\s*[-–]\s*(\d+))?\s+weeks?', text_lower)
+        if match:
+            low = int(match.group(1))
+            high = int(match.group(2)) if match.group(2) else low
+            avg_days = int((low + high) / 2 * 7)
+            # Reduce frequency in winter
+            return f"spring:{avg_days},summer:{avg_days},fall:{int(avg_days * 1.5)},winter:0"
+
+        # Match "every X days" or "every X-Y days"
+        match = re.search(r'every\s+(\d+)(?:\s*[-–]\s*(\d+))?\s+days?', text_lower)
+        if match:
+            low = int(match.group(1))
+            high = int(match.group(2)) if match.group(2) else low
+            avg_days = int((low + high) / 2)
+            return f"spring:{avg_days},summer:{avg_days},fall:{int(avg_days * 1.5)},winter:0"
+
+        # Match "monthly" or "once a month"
+        if 'monthly' in text_lower or 'once a month' in text_lower:
+            return "spring:30,summer:30,fall:45,winter:0"
+
+        # Match "twice a month" or "biweekly"
+        if 'twice a month' in text_lower or 'biweekly' in text_lower:
+            return "spring:14,summer:14,fall:21,winter:0"
+
+        # Match "weekly"
+        if 'weekly' in text_lower:
+            return "spring:7,summer:7,fall:14,winter:0"
+
         return None
 
     def _extract_moisture_preference(self, text: str) -> Optional[str]:
@@ -1733,6 +1781,12 @@ class PlantImportService:
         if "fertilize_frequency_label" in data:
             fl = data["fertilize_frequency_label"].lower()
             schedule = self._fertilize_label_to_schedule(fl)
+            if schedule:
+                result["fertilize_schedule"] = schedule
+
+        # Parse fertilize frequency from text if no schedule yet (PictureThis wiki summary)
+        if "fertilize_text" in data and "fertilize_schedule" not in result:
+            schedule = self._parse_fertilize_frequency_from_text(data["fertilize_text"])
             if schedule:
                 result["fertilize_schedule"] = schedule
 
