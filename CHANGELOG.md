@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.43.2] - 2026-01-28
+
+### Fixed
+- **Recurring CalDAV events now sync correctly** - Daily, weekly, monthly, and yearly recurring events from Proton Calendar are recognized and displayed on every occurrence
+  - Parses RRULE property from CalDAV events and maps to task recurrence fields
+  - Existing synced events will update on next sync cycle
+  - Supports DAILY, WEEKLY, BIWEEKLY, MONTHLY, and ANNUALLY frequencies
+
 ## [1.43.1] - 2026-01-28
 
 ### Fixed

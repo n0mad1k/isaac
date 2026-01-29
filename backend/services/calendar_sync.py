@@ -39,7 +39,7 @@ def compute_task_sync_hash(task) -> str:
     content = '|'.join(parts)
     return hashlib.sha256(content.encode()).hexdigest()[:32]
 
-from models.tasks import Task, TaskCategory, TaskType
+from models.tasks import Task, TaskCategory, TaskType, TaskRecurrence
 from models.settings import AppSetting
 
 
@@ -389,6 +389,31 @@ class CalendarSyncService:
         levi_task_id = component.get('x-isaac-task-id')
         if levi_task_id:
             task_dict['levi_task_id'] = int(str(levi_task_id))
+
+        # Parse RRULE for recurring events
+        rrule = component.get('rrule')
+        if rrule:
+            try:
+                freq = rrule.get('FREQ', [None])[0]
+                interval = rrule.get('INTERVAL', [1])[0]
+                if freq:
+                    freq_upper = str(freq).upper()
+                    if freq_upper == 'DAILY':
+                        task_dict['recurrence'] = TaskRecurrence.DAILY
+                    elif freq_upper == 'WEEKLY':
+                        if interval and int(interval) == 2:
+                            task_dict['recurrence'] = TaskRecurrence.BIWEEKLY
+                        else:
+                            task_dict['recurrence'] = TaskRecurrence.WEEKLY
+                    elif freq_upper == 'MONTHLY':
+                        task_dict['recurrence'] = TaskRecurrence.MONTHLY
+                    elif freq_upper == 'YEARLY':
+                        task_dict['recurrence'] = TaskRecurrence.ANNUALLY
+                    if interval and int(interval) > 1 and freq_upper not in ('WEEKLY',):
+                        task_dict['recurrence_interval'] = int(interval)
+                    logger.info(f"Parsed RRULE: FREQ={freq}, INTERVAL={interval} -> {task_dict.get('recurrence')}")
+            except Exception as e:
+                logger.warning(f"Failed to parse RRULE: {e}")
 
         # Extract last-modified for timestamp comparison
         last_modified = component.get('last-modified')
@@ -905,6 +930,12 @@ class CalendarSyncService:
                 if event_dict.get('location') and existing_task.location != event_dict.get('location'):
                     existing_task.location = event_dict['location']
                     changed = True
+                if event_dict.get('recurrence') and existing_task.recurrence != event_dict.get('recurrence'):
+                    existing_task.recurrence = event_dict['recurrence']
+                    changed = True
+                if event_dict.get('recurrence_interval') and existing_task.recurrence_interval != event_dict.get('recurrence_interval'):
+                    existing_task.recurrence_interval = event_dict['recurrence_interval']
+                    changed = True
                 if event_dict.get('is_completed') is not None and existing_task.is_completed != event_dict['is_completed']:
                     existing_task.is_completed = event_dict['is_completed']
                     changed = True
@@ -924,6 +955,8 @@ class CalendarSyncService:
                     priority=event_dict.get('priority', 3),
                     is_completed=event_dict.get('is_completed', False),
                     calendar_uid=calendar_uid,
+                    recurrence=event_dict.get('recurrence', TaskRecurrence.ONCE),
+                    recurrence_interval=event_dict.get('recurrence_interval'),
                     is_active=True,
                 )
                 db.add(new_task)
