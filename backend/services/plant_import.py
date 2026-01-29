@@ -821,9 +821,12 @@ class PlantImportService:
         value = re.sub(r'\s+', ' ', value).strip()
         # Strip leading asterisks (bold tag artifacts)
         value = value.lstrip("*").strip()
-        # Remove figure references like "Fig. 7Fig. 8" and "Fig. 7. Caption text"
-        value = re.sub(r'Fig\.\s*\d+(?:Fig\.\s*\d+)*', '', value)
-        value = re.sub(r'Fig\.\s*\d+\.\s*[^.;]*(?:[.;]|$)', '', value)
+        # Remove figure references: "Fig. 7. Caption text" first (with captions),
+        # then bare "Fig. 7Fig. 8" references (no captions)
+        value = re.sub(r'Fig\.\s*\d+\.\s*[^.;]*(?:[.;]|$)', ' ', value)
+        value = re.sub(r'Fig\.\s*\d+', '', value)
+        # Clean up orphaned periods from stripped figure refs
+        value = re.sub(r'(?<!\w)\.\s*(?=[A-Z]|\s|$)', ' ', value)
         value = re.sub(r'\s+', ' ', value).strip()
 
         # Skip garbage values (single punctuation, colons, etc.)
