@@ -677,13 +677,25 @@ class SchedulerService:
                 try:
                     forecasts = await self.forecast_service.get_forecast_simple()
                     if forecasts and len(forecasts) > 0:
-                        # First entry is current period (Today/This Afternoon/Tonight)
-                        f = forecasts[0]
+                        # When digest runs early morning, the first period may be
+                        # nighttime (Tonight/Overnight) with high=None. Check the
+                        # first two entries to find both high and low for today.
+                        high = None
+                        low = None
+                        conditions = ""
+                        rain_chance = 0
+                        for f in forecasts[:2]:
+                            if f.get("high") is not None and high is None:
+                                high = f["high"]
+                                conditions = f.get("forecast", conditions)
+                            if f.get("low") is not None and low is None:
+                                low = f["low"]
+                            rain_chance = max(rain_chance, f.get("rain_chance", 0))
                         weather = {
-                            "high": f.get("high"),
-                            "low": f.get("low"),
-                            "conditions": f.get("forecast", ""),
-                            "rain_chance": f.get("rain_chance", 0),
+                            "high": high,
+                            "low": low,
+                            "conditions": conditions or forecasts[0].get("forecast", ""),
+                            "rain_chance": rain_chance,
                         }
                 except Exception as e:
                     logger.warning(f"Failed to fetch forecast: {e}")

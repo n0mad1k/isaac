@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.46.1] - 2026-01-29
+
+### Fixed
+- **Daily digest missing high temperature** - When digest runs early morning and NWS forecast starts with a nighttime period, the high temp was showing as "--". Now checks the first two forecast entries to find both high and low for today
+
 ## [1.46.0] - 2026-01-29
 
 ### Added
