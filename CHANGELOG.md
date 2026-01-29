@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.44.1] - 2026-01-28
+
+### Added
+- **Customer receipt emails** - Send order receipts directly to customers via email
+  - Receipt button (receipt icon) on each order in the Business tab
+  - Professional HTML receipt with order details, payment history, and balance
+  - Requires customer to have an email address on file
+  - Uses the "Farm Name" setting (configurable in Settings) for the receipt header
+- **Farm Name setting** - New setting for farm/business name used in receipts and customer communications
+
 ## [1.44.0] - 2026-01-28
 
 ### Added

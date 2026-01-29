@@ -460,3 +460,150 @@ class EmailService:
         """
 
         return await self.send_email(subject, html, to=recipients, html=True)
+
+    async def send_order_receipt(
+        self,
+        to: str,
+        order: dict,
+        farm_name: str = "Isaac Farm",
+    ) -> bool:
+        """Send a receipt email for an order.
+
+        Args:
+            to: Customer email address
+            order: Dict with order details including payments
+            farm_name: Farm/business name for the receipt header
+        """
+        subject = f"Receipt - Order #{order['id']}"
+
+        # Build payment rows
+        payment_rows = ""
+        for p in order.get("payments", []):
+            ptype = _escape_html(p.get("payment_type", ""))
+            method = _escape_html(p.get("payment_method", ""))
+            pdate = _escape_html(p.get("payment_date", ""))
+            ref = _escape_html(p.get("reference", "")) or "-"
+            amount = p.get("amount", 0)
+            sign = "-" if ptype.lower() == "refund" else ""
+            payment_rows += f"""
+            <tr>
+                <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{pdate}</td>
+                <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{ptype.title()}</td>
+                <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{method.replace('_', ' ').title()}</td>
+                <td style="padding: 6px 12px; border-bottom: 1px solid #eee;">{ref}</td>
+                <td style="padding: 6px 12px; border-bottom: 1px solid #eee; text-align: right;">{sign}${amount:,.2f}</td>
+            </tr>"""
+
+        if not payment_rows:
+            payment_rows = '<tr><td colspan="5" style="padding: 6px 12px; color: #999;">No payments recorded</td></tr>'
+
+        # Build totals
+        total = order.get("final_total") or order.get("estimated_total") or 0
+        total_paid = order.get("total_paid", 0)
+        balance = order.get("balance_due", 0)
+
+        # Order details
+        desc = _escape_html(order.get("description", ""))
+        customer_name = _escape_html(order.get("customer_name", ""))
+        order_date = _escape_html(order.get("order_date", ""))
+        completed_date = _escape_html(order.get("completed_date", ""))
+        status = _escape_html(order.get("status", "")).replace("_", " ").title()
+        portion = _escape_html(order.get("portion_type", "")).title()
+        notes = _escape_html(order.get("notes", ""))
+
+        # Optional weight/price details
+        weight_section = ""
+        actual_weight = order.get("actual_weight")
+        estimated_weight = order.get("estimated_weight")
+        price_per_pound = order.get("price_per_pound")
+        if actual_weight or estimated_weight or price_per_pound:
+            weight_rows = ""
+            if estimated_weight:
+                weight_rows += f'<div><span style="color: #666;">Est. Weight:</span> {estimated_weight} lbs</div>'
+            if actual_weight:
+                weight_rows += f'<div><span style="color: #666;">Actual Weight:</span> {actual_weight} lbs</div>'
+            if price_per_pound:
+                weight_rows += f'<div><span style="color: #666;">Price/lb:</span> ${price_per_pound:,.2f}</div>'
+            weight_section = f'<div style="margin-top: 8px; font-size: 13px;">{weight_rows}</div>'
+
+        date_line = f"Order Date: {order_date}"
+        if completed_date:
+            date_line += f" &nbsp;|&nbsp; Completed: {completed_date}"
+
+        balance_color = "#c0392b" if balance > 0 else "#27ae60"
+        balance_label = f"Balance Due: ${balance:,.2f}" if balance > 0 else "PAID IN FULL"
+
+        body = f"""
+        <html>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <!-- Header -->
+                <div style="background: #2c3e50; color: white; padding: 20px 24px;">
+                    <h1 style="margin: 0; font-size: 20px;">{_escape_html(farm_name)}</h1>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">Receipt - Order #{order['id']}</p>
+                </div>
+
+                <!-- Customer & Order Info -->
+                <div style="padding: 20px 24px; border-bottom: 1px solid #eee;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 15px;">{customer_name}</div>
+                            <div style="color: #666; font-size: 13px; margin-top: 4px;">{date_line}</div>
+                            <div style="color: #666; font-size: 13px;">Status: {status}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Details -->
+                <div style="padding: 16px 24px; border-bottom: 1px solid #eee;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #333;">Order Details</h3>
+                    <div style="font-size: 14px;">
+                        <div><strong>{desc}</strong></div>
+                        {f'<div style="color: #666; font-size: 13px;">Portion: {portion}</div>' if portion and portion != 'None' else ''}
+                        {weight_section}
+                        {f'<div style="color: #666; font-size: 13px; margin-top: 4px;">Notes: {notes}</div>' if notes else ''}
+                    </div>
+                </div>
+
+                <!-- Payment History -->
+                <div style="padding: 16px 24px; border-bottom: 1px solid #eee;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #333;">Payment History</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 6px 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Date</th>
+                                <th style="padding: 6px 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Type</th>
+                                <th style="padding: 6px 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Method</th>
+                                <th style="padding: 6px 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Ref</th>
+                                <th style="padding: 6px 12px; text-align: right; border-bottom: 2px solid #dee2e6;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {payment_rows}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Totals -->
+                <div style="padding: 16px 24px;">
+                    <div style="display: flex; justify-content: flex-end;">
+                        <div style="text-align: right; font-size: 14px;">
+                            <div style="margin-bottom: 4px;"><span style="color: #666;">Order Total:</span> <strong>${total:,.2f}</strong></div>
+                            <div style="margin-bottom: 4px;"><span style="color: #666;">Total Paid:</span> <strong>${total_paid:,.2f}</strong></div>
+                            <div style="font-size: 16px; font-weight: 700; color: {balance_color}; border-top: 2px solid #333; padding-top: 6px; margin-top: 4px;">
+                                {balance_label}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div style="background: #f8f9fa; padding: 12px 24px; text-align: center; font-size: 11px; color: #999;">
+                    Receipt generated on {datetime.now().strftime('%m/%d/%Y at %I:%M %p')}
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        return await self.send_email(subject, body, to=to, html=True)

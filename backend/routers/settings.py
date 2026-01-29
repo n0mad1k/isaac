@@ -260,6 +260,12 @@ DEFAULT_SETTINGS = {
         "description": "Soil moisture percentage above which to skip watering (0-100)"
     },
 
+    # === Farm/Business Settings ===
+    "farm_name": {
+        "value": "",
+        "description": "Farm or business name (used in receipts and customer communications)"
+    },
+
     # === Email Server Settings ===
     "smtp_host": {
         "value": "smtp.gmail.com",

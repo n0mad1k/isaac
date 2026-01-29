@@ -49,6 +49,7 @@ import {
   addOrderPayment,
   deleteOrderPayment,
   completeOrder,
+  sendOrderReceipt,
   getFinancialSummary,
   getOutstandingPayments,
   getLivestockAllocations,
@@ -360,6 +361,16 @@ function FarmFinances() {
       } catch (error) {
         console.error('Failed to complete order:', error)
       }
+    }
+  }
+
+  const handleSendReceipt = async (id) => {
+    try {
+      const res = await sendOrderReceipt(id)
+      alert(res.data.message || 'Receipt sent!')
+    } catch (error) {
+      const msg = error.response?.data?.detail || 'Failed to send receipt'
+      alert(msg)
     }
   }
 
@@ -710,6 +721,7 @@ function FarmFinances() {
           handleDeleteLivestock={handleDeleteLivestock}
           handleDeleteOrder={handleDeleteOrder}
           handleCompleteOrder={handleCompleteOrder}
+          handleSendReceipt={handleSendReceipt}
           handleDeleteCustomer={handleDeleteCustomer}
           handleDeleteExpense={handleDeleteExpense}
           handleDeletePayment={handleDeletePayment}
@@ -1134,7 +1146,7 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
 function BusinessTab({
   sales, livestock, orders, customers, expenses,
   formatCurrency, formatAnimalType, getCategoryColor, getStatusBadge, getPaymentProgress,
-  handleDeleteSale, handleDeleteLivestock, handleDeleteOrder, handleCompleteOrder,
+  handleDeleteSale, handleDeleteLivestock, handleDeleteOrder, handleCompleteOrder, handleSendReceipt,
   handleDeleteCustomer, handleDeleteExpense, handleDeletePayment,
   onAddSale, onAddOrder, onAddCustomer, onAddExpense,
   onEditCustomer, onEditOrder, onEditExpense,
@@ -1267,6 +1279,7 @@ function BusinessTab({
                     </div>
                     <div className="flex gap-1">
                       <button onClick={() => onEditOrder(order)} className="p-1 text-gray-400 hover:text-blue-400" title="Edit"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleSendReceipt(order.id)} className="p-1 text-gray-400 hover:text-amber-400" title="Email Receipt"><Receipt className="w-4 h-4" /></button>
                       {order.status !== 'completed' && order.status !== 'cancelled' && (
                         <button onClick={() => handleCompleteOrder(order.id)} className="p-1 text-gray-400 hover:text-green-400" title="Complete"><CheckCircle2 className="w-4 h-4" /></button>
                       )}

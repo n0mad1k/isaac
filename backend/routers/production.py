@@ -1110,6 +1110,91 @@ async def complete_order(
     return {"message": "Order completed"}
 
 
+@router.post("/orders/{order_id}/send-receipt/")
+async def send_order_receipt(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Send a receipt email for an order to the customer"""
+    from services.email import EmailService
+    from models.settings import AppSetting
+
+    result = await db.execute(
+        select(LivestockOrder).where(LivestockOrder.id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Get customer email
+    customer_email = None
+    if order.customer_id:
+        cust_result = await db.execute(select(Customer).where(Customer.id == order.customer_id))
+        customer = cust_result.scalar_one_or_none()
+        if customer and customer.email:
+            customer_email = customer.email
+
+    if not customer_email:
+        raise HTTPException(status_code=400, detail="Customer has no email address on file")
+
+    # Get payments
+    pay_result = await db.execute(
+        select(OrderPayment)
+        .where(OrderPayment.order_id == order_id)
+        .order_by(OrderPayment.payment_date)
+    )
+    payments = pay_result.scalars().all()
+
+    # Get farm name from settings
+    farm_name_setting = await db.execute(
+        select(AppSetting).where(AppSetting.key == "farm_name")
+    )
+    farm_name_row = farm_name_setting.scalar_one_or_none()
+    farm_name = farm_name_row.value if farm_name_row and farm_name_row.value else "Isaac Farm"
+
+    # Build order dict for email template
+    order_dict = {
+        "id": order.id,
+        "customer_name": order.customer_name or "",
+        "description": order.description or "",
+        "portion_type": order.portion_type.value if order.portion_type else None,
+        "order_date": order.order_date.strftime("%m/%d/%Y") if order.order_date else "",
+        "completed_date": order.completed_date.strftime("%m/%d/%Y") if order.completed_date else "",
+        "status": order.status.value if order.status else "",
+        "estimated_weight": order.estimated_weight,
+        "actual_weight": order.actual_weight,
+        "price_per_pound": order.price_per_pound,
+        "estimated_total": order.estimated_total,
+        "final_total": order.final_total,
+        "total_paid": order.total_paid or 0,
+        "balance_due": order.balance_due or 0,
+        "notes": order.notes or "",
+        "payments": [
+            {
+                "payment_type": p.payment_type.value if p.payment_type else "",
+                "payment_method": p.payment_method.value if p.payment_method else "",
+                "amount": p.amount or 0,
+                "payment_date": p.payment_date.strftime("%m/%d/%Y") if p.payment_date else "",
+                "reference": p.reference or "",
+            }
+            for p in payments
+        ],
+    }
+
+    # Send receipt
+    email_service = await EmailService.get_configured_service(db)
+    success = await email_service.send_order_receipt(
+        to=customer_email,
+        order=order_dict,
+        farm_name=farm_name,
+    )
+
+    if success:
+        return {"message": f"Receipt sent to {customer_email}"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send receipt email. Check email configuration.")
+
+
 # ==================== Production Allocation Routes ====================
 
 @router.get("/livestock/{production_id}/allocations/", response_model=List[ProductionAllocationResponse])
