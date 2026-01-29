@@ -1231,7 +1231,7 @@ function PlantCard({
                   <img
                     src={getPlantPhotoUrl(plant.photo_path)}
                     alt={plant.name}
-                    className="w-full max-h-64 object-cover rounded-lg"
+                    className="w-full max-h-48 object-contain rounded-lg bg-gray-800"
                   />
                   {isEditing && (
                     <button

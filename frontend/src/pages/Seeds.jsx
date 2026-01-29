@@ -313,7 +313,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
                   <img
                     src={getSeedPhotoUrl(seed.photo_path)}
                     alt={seed.name}
-                    className="w-full max-h-64 object-cover rounded-lg"
+                    className="w-full max-h-48 object-contain rounded-lg bg-gray-800"
                   />
                   {isEditing && (
                     <button
