@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.45.5] - 2026-01-29
+
+### Fixed
+- **Growables.org plant import** - Completely rewrote scraper to extract 15+ fields (was ~5-7); now captures description, uses, cultivation details, harvesting, propagation, spacing, drought/salt tolerance, pest/disease notes, and more
+  - Fixed multi-line value extraction (walks all sibling nodes instead of just next_sibling)
+  - Added 30+ label pattern matchers organized by category
+  - Fixed drought tolerance detection ("cannot tolerate" now correctly sets drought_tolerant=false)
+  - Cleaned up figure reference artifacts from extracted text
+  - Fixed plant import endpoint field name mismatch (cultivation vs cultivation_details)
+  - Added missing fields to import: drought_tolerant, salt_tolerant, plant_spacing, produces_months, how_to_harvest
+
 ## [1.45.4] - 2026-01-29
 
 ### Fixed
