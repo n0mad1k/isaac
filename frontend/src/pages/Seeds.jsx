@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil, AlertTriangle, Camera, Trash2, Clipboard } from 'lucide-react'
-import { getSeeds, createSeed, updateSeed, deleteSeed, getSeedStats, getSeedCategories, uploadSeedPhoto, deleteSeedPhoto, getSeedPhotoUrl } from '../services/api'
+import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil, AlertTriangle, Camera, Trash2, Clipboard, Leaf } from 'lucide-react'
+import { getSeeds, createSeed, updateSeed, deleteSeed, getSeedStats, getSeedCategories, uploadSeedPhoto, deleteSeedPhoto, getSeedPhotoUrl, startFromSeed } from '../services/api'
 import MottoDisplay from '../components/MottoDisplay'
 
 // Reusable inline editable field component
@@ -116,6 +116,9 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [showPlantForm, setShowPlantForm] = useState(false)
+  const [plantForm, setPlantForm] = useState({ date_sown: '', location: '', notes: '' })
+  const [planting, setPlanting] = useState(false)
 
   // Track seed updates to reset editData
   const [lastSeedUpdate, setLastSeedUpdate] = useState(seed.updated_at)
@@ -295,6 +298,14 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
                 className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-sm text-white transition-colors flex items-center gap-1"
               >
                 <Pencil className="w-3 h-3" /> Edit
+              </button>
+            )}
+            {!isEditing && seed.is_active && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowPlantForm(true) }}
+                className="px-3 py-1.5 bg-green-700/60 hover:bg-green-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+              >
+                <Leaf className="w-3 h-3" /> Plant This Seed
               </button>
             )}
             <button
@@ -689,6 +700,81 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
             editing={isEditing}
           />
 
+        </div>
+      )}
+
+      {/* Plant This Seed Modal */}
+      {showPlantForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPlantForm(false)}>
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-white mb-1">Plant This Seed</h3>
+            <p className="text-sm text-gray-400 mb-4">Create a new plant from <span className="text-green-400">{seed.name}</span></p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">Date Sown</label>
+                <input
+                  type="date"
+                  value={plantForm.date_sown}
+                  onChange={(e) => setPlantForm({ ...plantForm, date_sown: e.target.value })}
+                  className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={plantForm.location}
+                  onChange={(e) => setPlantForm({ ...plantForm, location: e.target.value })}
+                  className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+                  placeholder="e.g., Garden bed A, Greenhouse"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-300 mb-1">Notes</label>
+                <textarea
+                  value={plantForm.notes}
+                  onChange={(e) => setPlantForm({ ...plantForm, notes: e.target.value })}
+                  className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+                  rows={2}
+                  placeholder="Optional notes..."
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={async () => {
+                  setPlanting(true)
+                  try {
+                    await startFromSeed({
+                      seed_id: seed.id,
+                      date_sown: plantForm.date_sown || null,
+                      location: plantForm.location || null,
+                      notes: plantForm.notes || null,
+                    })
+                    setShowPlantForm(false)
+                    setPlantForm({ date_sown: '', location: '', notes: '' })
+                    alert(`Plant created from ${seed.name}! Switch to the Plants tab to see it.`)
+                  } catch (err) {
+                    console.error('Failed to start from seed:', err)
+                    alert('Failed to create plant from seed')
+                  } finally {
+                    setPlanting(false)
+                  }
+                }}
+                disabled={planting}
+                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded font-medium flex items-center justify-center gap-2"
+              >
+                <Leaf className="w-4 h-4" />
+                {planting ? 'Creating...' : 'Create Plant'}
+              </button>
+              <button
+                onClick={() => setShowPlantForm(false)}
+                className="px-4 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

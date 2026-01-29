@@ -262,6 +262,17 @@ const MOISTURE_OPTIONS = [
   { value: 'wet', label: 'Bog/Aquatic' },
 ]
 
+const GROWTH_STAGES = [
+  { value: 'seed', label: 'Seed', color: 'bg-blue-600', icon: '🌰' },
+  { value: 'seedling', label: 'Seedling', color: 'bg-emerald-600', icon: '🌱' },
+  { value: 'transplanted', label: 'Transplanted', color: 'bg-yellow-600', icon: '🪴' },
+  { value: 'vegetative', label: 'Vegetative', color: 'bg-green-600', icon: '🌿' },
+  { value: 'flowering', label: 'Flowering', color: 'bg-pink-600', icon: '🌸' },
+  { value: 'fruiting', label: 'Fruiting', color: 'bg-orange-600', icon: '🍅' },
+  { value: 'harvesting', label: 'Harvesting', color: 'bg-red-600', icon: '🧺' },
+  { value: 'dormant', label: 'Dormant', color: 'bg-gray-600', icon: '💤' },
+]
+
 function Plants() {
   const [plants, setPlants] = useState([])
   const [tags, setTags] = useState([])
@@ -995,6 +1006,11 @@ function PlantCard({
         notes: plant.notes || '',
         references: plant.references || '',
         tag_ids: plant.tags?.map(t => t.id) || [],
+        growth_stage: plant.growth_stage || '',
+        seed_id: plant.seed_id || null,
+        date_sown: plant.date_sown || '',
+        date_germinated: plant.date_germinated || '',
+        date_transplanted: plant.date_transplanted || '',
       })
     }
   }, [expanded, plant])
@@ -1034,6 +1050,22 @@ function PlantCard({
       alert('Failed to save changes')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleAdvanceStage = async (newStage) => {
+    try {
+      const stageData = { growth_stage: newStage }
+      // Set lifecycle dates based on stage transition
+      const now = new Date().toISOString()
+      if (newStage === 'seed' && !plant.date_sown) stageData.date_sown = now
+      if (newStage === 'seedling' && !plant.date_germinated) stageData.date_germinated = now
+      if (newStage === 'transplanted' && !plant.date_transplanted) stageData.date_transplanted = now
+      await updatePlant(plant.id, stageData)
+      setEditData(prev => ({ ...prev, growth_stage: newStage }))
+      if (onSave) onSave()
+    } catch (error) {
+      console.error('Failed to update stage:', error)
     }
   }
 
@@ -1077,6 +1109,11 @@ function PlantCard({
       notes: plant.notes || '',
       references: plant.references || '',
       tag_ids: plant.tags?.map(t => t.id) || [],
+      growth_stage: plant.growth_stage || '',
+      seed_id: plant.seed_id || null,
+      date_sown: plant.date_sown || '',
+      date_germinated: plant.date_germinated || '',
+      date_transplanted: plant.date_transplanted || '',
     })
     setIsEditing(false)
   }
@@ -1102,6 +1139,16 @@ function PlantCard({
               </div>
             )}
             <h3 className="font-semibold text-lg">{plant.name}</h3>
+            {plant.growth_stage && (
+              <span className={`text-xs px-2 py-0.5 rounded-full text-white ${
+                { seed: 'bg-blue-600', seedling: 'bg-emerald-600', transplanted: 'bg-yellow-600', vegetative: 'bg-green-600', flowering: 'bg-pink-600', fruiting: 'bg-orange-600', harvesting: 'bg-red-600', dormant: 'bg-gray-600' }[plant.growth_stage] || 'bg-gray-600'
+              }`}>
+                {plant.growth_stage}
+              </span>
+            )}
+            {plant.seed_name && (
+              <span className="text-xs text-gray-500">from: {plant.seed_name}</span>
+            )}
             {plant.tags && plant.tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {plant.tags.slice(0, 3).map(tag => (
@@ -1244,6 +1291,20 @@ function PlantCard({
             >
               <CalendarPlus className="w-3 h-3" /> Add Reminder
             </button>
+            {!isEditing && (
+              <select
+                value={editData?.growth_stage || plant.growth_stage || ''}
+                onChange={(e) => { e.stopPropagation(); if (e.target.value) handleAdvanceStage(e.target.value) }}
+                onClick={(e) => e.stopPropagation()}
+                className="px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                title="Set growth stage"
+              >
+                <option value="">Stage...</option>
+                {GROWTH_STAGES.map(s => (
+                  <option key={s.value} value={s.value}>{s.icon} {s.label}</option>
+                ))}
+              </select>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); onDelete() }}
               className="px-3 py-1.5 bg-red-600/50 hover:bg-red-600 rounded text-sm text-white transition-colors flex items-center gap-1 ml-auto"
@@ -1350,6 +1411,52 @@ function PlantCard({
             <EditableField label="Description" value={editData.description} field="description" type="textarea" onChange={handleFieldChange} editing={isEditing} />
             <EditableField label="Source" value={editData.source} field="source" onChange={handleFieldChange} placeholder="Where purchased" editing={isEditing} />
           </div>
+
+          {/* Lifecycle Progress */}
+          {(plant.growth_stage || plant.seed_id) && (
+            <div className="bg-gray-900/50 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-400">Growth Lifecycle</h4>
+                {plant.seed_name && (
+                  <span className="text-xs text-gray-500">Seed: {plant.seed_name}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-0.5 overflow-x-auto pb-1">
+                {GROWTH_STAGES.map((stage, idx) => {
+                  const currentIdx = GROWTH_STAGES.findIndex(s => s.value === (editData.growth_stage || plant.growth_stage))
+                  const isActive = stage.value === (editData.growth_stage || plant.growth_stage)
+                  const isPast = currentIdx >= 0 && idx < currentIdx
+                  const isFuture = currentIdx >= 0 && idx > currentIdx
+                  return (
+                    <div key={stage.value} className="flex items-center flex-shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); if (!isEditing) handleAdvanceStage(stage.value) }}
+                        disabled={isEditing}
+                        className={`flex flex-col items-center px-2 py-1.5 rounded transition-all ${
+                          isActive ? `${stage.color} text-white ring-2 ring-white/30` :
+                          isPast ? 'bg-gray-700 text-gray-300' :
+                          'bg-gray-800 text-gray-600'
+                        } ${!isEditing ? 'hover:ring-1 hover:ring-gray-400 cursor-pointer' : 'cursor-default'}`}
+                        title={isEditing ? 'Save or cancel edit first' : `Set stage: ${stage.label}`}
+                      >
+                        <span className="text-sm">{stage.icon}</span>
+                        <span className="text-[10px] mt-0.5 whitespace-nowrap">{stage.label}</span>
+                      </button>
+                      {idx < GROWTH_STAGES.length - 1 && (
+                        <div className={`w-3 h-0.5 ${isPast ? 'bg-gray-500' : 'bg-gray-800'}`} />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              {/* Lifecycle dates */}
+              <div className="flex gap-4 mt-2 text-xs text-gray-500 flex-wrap">
+                {plant.date_sown && <span>Sown: {formatDate(plant.date_sown)}</span>}
+                {plant.date_germinated && <span>Germinated: {formatDate(plant.date_germinated)}</span>}
+                {plant.date_transplanted && <span>Transplanted: {formatDate(plant.date_transplanted)}</span>}
+              </div>
+            </div>
+          )}
 
           {/* Growing Requirements */}
           <div className="bg-gray-900/50 rounded-lg p-3">

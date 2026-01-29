@@ -20,6 +20,7 @@ from .workers import router as workers_router
 from .supply_requests import router as supply_requests_router
 from .customer_feedback import router as customer_feedback_router
 from .team import router as team_router
+from .garden import router as garden_router
 
 __all__ = [
     "plants_router",
@@ -40,4 +41,5 @@ __all__ = [
     "supply_requests_router",
     "customer_feedback_router",
     "team_router",
+    "garden_router",
 ]

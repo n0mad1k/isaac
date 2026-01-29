@@ -2,10 +2,26 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.50.0] - 2026-01-29
+
+### Added
+- **Garden planting calendar** - Auto-generated 12-month planting calendar based on seed data, frost dates, and USDA zone. Shows when to start indoors, direct sow, transplant, and harvest for each seed variety
+- **Frost date configuration** - Configurable last frost and first frost dates (defaults to Zone 9b Oxford FL). Calendar and overview automatically adjust planting recommendations
+- **Garden overview dashboard** - New default landing tab showing this month's planting activities, plants needing attention (water/fertilizer/frost), quick stats with growing season progress bar, active plant lifecycle tracking, and recent care activity
+- **Planting events** - Create, edit, complete, and delete custom planting events on the calendar. Events overlay on the auto-generated schedule with distinct styling
+- **Seed-to-plant lifecycle** - "Plant This Seed" button on seed cards creates a linked plant with growth_stage tracking. Plants show their source seed and lifecycle dates
+- **Growth stage tracking** - Plants now track lifecycle stages (seed, seedling, transplanted, vegetative, flowering, fruiting, harvesting, dormant) with color-coded badges, interactive progress bar, and quick stage advance dropdown
+- **Lifecycle dates** - Automatic date stamping when plants transition to seed (date_sown), seedling (date_germinated), and transplanted (date_transplanted) stages
+
 ## [1.49.0] - 2026-01-29
 
 ### Added
 - **Garden page** - Merged Plants and Seeds into a single "Garden" page with tab navigation. One nav icon, switch between Plants and Seeds with tabs at the top. Old `/plants` and `/seeds` URLs redirect to `/garden`
+- **Sell plants/trees** - New "Sell" button on plant cards to record sales of whole plants or trees (not just produce). Records to the Production/Sales system with plant linkage
+
+### Fixed
+- **Harvest button** - The Harvest button on plant cards now opens the proper harvest recording form instead of just logging a quick care event
+- **Plant photos too large** - Expanded plant/seed photos now display properly with contained sizing instead of being cropped
 
 ## [1.48.4] - 2026-01-29
 

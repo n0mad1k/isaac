@@ -105,6 +105,13 @@ class PlantCreate(BaseModel):
     tag_ids: Optional[List[int]] = None
     image_url: Optional[str] = Field(None, max_length=500)
 
+    # Seed linkage & lifecycle
+    seed_id: Optional[int] = None
+    date_sown: Optional[datetime] = None
+    date_germinated: Optional[datetime] = None
+    date_transplanted: Optional[datetime] = None
+    growth_stage: Optional[str] = Field(None, max_length=30)
+
 
 class PlantUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -157,6 +164,13 @@ class PlantUpdate(BaseModel):
     notes: Optional[str] = Field(None, max_length=5000)
     references: Optional[str] = Field(None, max_length=10000)
     tag_ids: Optional[List[int]] = None
+
+    # Seed linkage & lifecycle
+    seed_id: Optional[int] = None
+    date_sown: Optional[datetime] = None
+    date_germinated: Optional[datetime] = None
+    date_transplanted: Optional[datetime] = None
+    growth_stage: Optional[str] = Field(None, max_length=30)
 
 
 class PlantResponse(BaseModel):
@@ -214,6 +228,14 @@ class PlantResponse(BaseModel):
     special_considerations: Optional[str]
 
     photo_path: Optional[str] = None
+
+    # Seed linkage & lifecycle
+    seed_id: Optional[int] = None
+    seed_name: Optional[str] = None
+    date_sown: Optional[datetime] = None
+    date_germinated: Optional[datetime] = None
+    date_transplanted: Optional[datetime] = None
+    growth_stage: Optional[str] = None
 
     is_active: bool
     notes: Optional[str]
@@ -312,6 +334,12 @@ def plant_to_response(plant: Plant) -> dict:
         "known_hazards": plant.known_hazards,
         "special_considerations": plant.special_considerations,
         "photo_path": plant.photo_path,
+        "seed_id": plant.seed_id,
+        "seed_name": plant.seed.name if plant.seed else None,
+        "date_sown": plant.date_sown,
+        "date_germinated": plant.date_germinated,
+        "date_transplanted": plant.date_transplanted,
+        "growth_stage": plant.growth_stage,
         "is_active": plant.is_active,
         "notes": plant.notes,
         "references": plant.references,
@@ -633,6 +661,73 @@ async def import_plant(
             logger.warning(f"Failed to download image for plant '{plant.name}': {e}")
 
     logger.info(f"Imported plant '{plant.name}' from {request.url}")
+    return plant_to_response(plant)
+
+
+# ============================================
+# Start from Seed
+# ============================================
+
+class StartFromSeedRequest(BaseModel):
+    seed_id: int
+    date_sown: Optional[str] = None  # YYYY-MM-DD
+    location: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = Field(None, max_length=5000)
+
+
+@router.post("/start-from-seed/", response_model=PlantResponse)
+async def start_from_seed(
+    request: StartFromSeedRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("plants")),
+):
+    """Create a new plant from a seed, linking them and starting lifecycle tracking."""
+    from models.seeds import Seed as SeedModel
+
+    result = await db.execute(select(SeedModel).where(SeedModel.id == request.seed_id))
+    seed = result.scalar_one_or_none()
+    if not seed:
+        raise HTTPException(status_code=404, detail="Seed not found")
+
+    # Parse sow date
+    sow_date = None
+    if request.date_sown:
+        try:
+            sow_date = datetime.fromisoformat(request.date_sown)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+
+    # Map seed sun_requirement to plant enum
+    sun_req = SunRequirement.FULL_SUN
+    if seed.sun_requirement:
+        sun_map = {
+            "FULL_SUN": SunRequirement.FULL_SUN,
+            "PARTIAL_SUN": SunRequirement.PARTIAL_SUN,
+            "PARTIAL_SHADE": SunRequirement.PARTIAL_SHADE,
+            "FULL_SHADE": SunRequirement.FULL_SHADE,
+        }
+        sun_req = sun_map.get(str(seed.sun_requirement).upper(), SunRequirement.FULL_SUN)
+
+    plant = Plant(
+        name=seed.name,
+        variety=seed.variety,
+        description=seed.description,
+        location=request.location,
+        seed_id=seed.id,
+        date_sown=sow_date,
+        date_planted=sow_date,
+        growth_stage="seed",
+        grow_zones=seed.grow_zones,
+        sun_requirement=sun_req,
+        frost_sensitive=seed.frost_sensitive if seed.frost_sensitive else False,
+        notes=request.notes or f"Started from seed: {seed.name}",
+    )
+
+    db.add(plant)
+    await db.commit()
+    await db.refresh(plant)
+
+    logger.info(f"Created plant '{plant.name}' from seed #{seed.id}")
     return plant_to_response(plant)
 
 

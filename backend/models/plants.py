@@ -137,6 +137,13 @@ class Plant(Base):
     known_hazards = Column(Text)  # e.g., "Thorns, toxic to pets"
     special_considerations = Column(Text)  # e.g., "Needs hand pollination"
 
+    # Seed linkage & lifecycle
+    seed_id = Column(Integer, ForeignKey("seeds.id"), nullable=True)
+    date_sown = Column(DateTime)           # When seed was planted
+    date_germinated = Column(DateTime)     # When seedling emerged
+    date_transplanted = Column(DateTime)   # When moved to final location
+    growth_stage = Column(String(30))      # seed, seedling, transplanted, vegetative, flowering, fruiting, harvesting, dormant
+
     # Photo
     photo_path = Column(String(255))
 
@@ -153,6 +160,7 @@ class Plant(Base):
     care_logs = relationship("PlantCareLog", back_populates="plant", cascade="all, delete-orphan")
     tags = relationship("Tag", secondary=plant_tags, back_populates="plants")
     farm_area = relationship("FarmArea", back_populates="plants")
+    seed = relationship("Seed", foreign_keys=[seed_id], lazy="selectin")
 
     @property
     def age_years(self):

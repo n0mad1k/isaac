@@ -209,6 +209,18 @@ export const deleteSeedPhoto = (id) => api.delete(`/seeds/${id}/photo/`)
 export const getSeedPhotoUrl = (path) =>
   path ? `${api.defaults.baseURL}/seeds/photos/${path.split('/').pop()}` : null
 
+// Garden Planner
+export const getFrostDates = () => api.get('/garden/frost-dates/')
+export const updateFrostDates = (data) => api.put('/garden/frost-dates/', data)
+export const getPlantingSchedule = (year) => api.get('/garden/planting-schedule/', { params: year ? { year } : {} })
+export const getGardenOverview = () => api.get('/garden/overview/')
+export const getPlantingEvents = (year) => api.get('/garden/events/', { params: year ? { year } : {} })
+export const createPlantingEvent = (data) => api.post('/garden/events/', data)
+export const updatePlantingEvent = (id, data) => api.patch(`/garden/events/${id}/`, data)
+export const deletePlantingEvent = (id) => api.delete(`/garden/events/${id}/`)
+export const completePlantingEvent = (id) => api.post(`/garden/events/${id}/complete/`)
+export const startFromSeed = (data) => api.post('/plants/start-from-seed/', data)
+
 // Settings
 export const getSettings = () => api.get('/settings/')
 export const getSetting = (key) => api.get(`/settings/${key}/`)
