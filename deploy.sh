@@ -145,6 +145,8 @@ ssh -i $SSH_KEY $REMOTE "
   sed -i '/dev-tracker/d' $REMOTE_PATH/frontend/src/App.jsx 2>/dev/null || true
 
   # Remove dev-tracker API calls from api.js
+  # Use range pattern to remove multi-line functions (uploadDevTrackerImage block)
+  sed -i '/\/\/ Dev Tracker/,/^$/d' $REMOTE_PATH/frontend/src/services/api.js 2>/dev/null || true
   sed -i '/dev-tracker/d' $REMOTE_PATH/frontend/src/services/api.js 2>/dev/null || true
 "
 
