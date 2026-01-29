@@ -221,6 +221,35 @@ export const deletePlantingEvent = (id) => api.delete(`/garden/events/${id}/`)
 export const completePlantingEvent = (id) => api.post(`/garden/events/${id}/complete/`)
 export const startFromSeed = (data) => api.post('/plants/start-from-seed/', data)
 
+// Succession Planting
+export const createSuccessionPlanting = (data) => api.post('/garden/events/succession/', data)
+export const deleteSuccessionGroup = (groupId) => api.delete(`/garden/events/succession/${groupId}/`)
+
+// Garden Journal
+export const getJournalEntries = (params) => api.get('/garden/journal/', { params })
+export const createJournalEntry = (data) => api.post('/garden/journal/', data)
+export const updateJournalEntry = (id, data) => api.patch(`/garden/journal/${id}/`, data)
+export const deleteJournalEntry = (id) => api.delete(`/garden/journal/${id}/`)
+export const uploadJournalPhoto = (id, formData) =>
+  api.post(`/garden/journal/${id}/photo/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+export const getJournalPhotoUrl = (path) =>
+  path ? `${api.defaults.baseURL}/garden/journal/photos/${path.split('/').pop()}` : null
+
+// Companion Planting
+export const getCompanionChart = () => api.get('/garden/companions/')
+export const getCompanions = (plantName) => api.get(`/garden/companions/${encodeURIComponent(plantName)}`)
+
+// Garden Beds
+export const getGardenBeds = () => api.get('/garden/beds/')
+export const createGardenBed = (data) => api.post('/garden/beds/', data)
+export const updateGardenBed = (id, data) => api.patch(`/garden/beds/${id}/`, data)
+export const deleteGardenBed = (id) => api.delete(`/garden/beds/${id}/`)
+export const addBedPlanting = (bedId, data) => api.post(`/garden/beds/${bedId}/plantings/`, data)
+export const removeBedPlanting = (bedId, plantingId) => api.delete(`/garden/beds/${bedId}/plantings/${plantingId}/`)
+export const moveBedPlanting = (bedId, plantingId, data) => api.patch(`/garden/beds/${bedId}/plantings/${plantingId}/`, data)
+
 // Settings
 export const getSettings = () => api.get('/settings/')
 export const getSetting = (key) => api.get(`/settings/${key}/`)

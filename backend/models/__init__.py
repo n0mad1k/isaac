@@ -25,7 +25,7 @@ from .workers import Worker
 from .supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from .customer_feedback import CustomerFeedback, FeedbackType, FeedbackStatus
 from .translation import TranslationCache
-from .garden import PlantingEvent
+from .garden import PlantingEvent, JournalEntry, GardenBed, BedPlanting
 from .team import (
     TeamMember, MemberWeightLog, MemberVitalsLog, MemberMedicalLog, MentoringSession,
     ValuesAssessmentHistory, WeeklyObservation, WeeklyAAR,
@@ -153,4 +153,7 @@ __all__ = [
     "AppointmentType",
     # Garden planning
     "PlantingEvent",
+    "JournalEntry",
+    "GardenBed",
+    "BedPlanting",
 ]

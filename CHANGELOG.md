@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.51.0] - 2026-01-29
+
+### Added
+- **Succession planting** - Schedule repeated plantings at regular intervals. Set interval (weeks) and number of plantings to auto-generate a series of connected planting events with preview dates
+- **Timeline view** - Horizontal Gantt-style chart showing all crop schedules across the year. Toggle between Calendar and Timeline views in the Planner tab. Frost dates shown as vertical marker lines
+- **Garden journal** - Photo-linked journal entries for tracking garden observations, progress, and notes. Filter by plant, seed, date range, or tags. Full CRUD with photo upload support
+- **Companion planting guide** - Searchable database of 40 common garden plants with companion and antagonist relationships. Green indicators for beneficial pairings, red for plants to keep apart, with explanatory notes
+- **Garden bed layout designer** - Create and manage garden beds (raised bed, in-ground, container, row, greenhouse). Visual grid layout showing plant placement with click-to-plant functionality
+- **Bed planting management** - Place seeds/plants in specific grid positions within garden beds. Shows companion planting compatibility when adding plants near each other
+
 ## [1.50.0] - 2026-01-29
 
 ### Added
