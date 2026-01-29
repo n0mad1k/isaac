@@ -14,6 +14,8 @@ from models.database import get_db
 from models.workers import Worker
 from models.tasks import Task
 from services.translation import translate_task
+from models.users import User
+from services.permissions import require_view, require_create, require_interact, require_edit, require_delete
 
 router = APIRouter(prefix="/workers", tags=["Workers"])
 
@@ -76,6 +78,7 @@ class TaskResponse(BaseModel):
 @router.get("/")
 async def get_workers(
     include_inactive: bool = False,
+    user: User = Depends(require_view("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Get all workers with task counts"""
@@ -120,6 +123,7 @@ async def get_workers(
 @router.post("/")
 async def create_worker(
     data: WorkerCreate,
+    user: User = Depends(require_create("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new worker"""
@@ -151,6 +155,7 @@ async def create_worker(
 
 @router.get("/assignable-tasks/")
 async def get_assignable_tasks(
+    user: User = Depends(require_view("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Get all unassigned, incomplete tasks that can be assigned to a worker"""
@@ -183,6 +188,7 @@ async def get_assignable_tasks(
 @router.get("/{worker_id}/")
 async def get_worker(
     worker_id: int,
+    user: User = Depends(require_view("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Get a single worker by ID"""
@@ -221,6 +227,7 @@ async def get_worker(
 async def update_worker(
     worker_id: int,
     data: WorkerUpdate,
+    user: User = Depends(require_edit("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Update a worker"""
@@ -254,6 +261,7 @@ async def update_worker(
 @router.delete("/{worker_id}/")
 async def delete_worker(
     worker_id: int,
+    user: User = Depends(require_delete("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Soft delete a worker (set is_active=False)"""
@@ -274,6 +282,7 @@ async def delete_worker(
 async def get_worker_tasks(
     worker_id: int,
     include_completed: bool = False,
+    user: User = Depends(require_view("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Get all tasks assigned to a worker (translated if worker language is not English)"""
@@ -335,6 +344,7 @@ async def update_worker_note(
     worker_id: int,
     task_id: int,
     note: str = "",
+    user: User = Depends(require_interact("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Add or update a worker's note on a task"""
@@ -361,6 +371,7 @@ async def update_worker_note(
 async def start_worker_task(
     worker_id: int,
     task_id: int,
+    user: User = Depends(require_interact("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Mark a task as in-progress"""
@@ -389,6 +400,7 @@ async def start_worker_task(
 async def stop_worker_task(
     worker_id: int,
     task_id: int,
+    user: User = Depends(require_interact("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Mark a task as no longer in-progress (paused)"""
@@ -416,6 +428,7 @@ async def complete_worker_task(
     worker_id: int,
     task_id: int,
     note: Optional[str] = None,
+    user: User = Depends(require_interact("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Mark a task as completed by worker, with optional note"""
@@ -449,6 +462,7 @@ async def complete_worker_task(
 async def uncomplete_worker_task(
     worker_id: int,
     task_id: int,
+    user: User = Depends(require_interact("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Revert a completed task back to incomplete"""
@@ -479,6 +493,7 @@ async def block_worker_task(
     worker_id: int,
     task_id: int,
     reason: str,
+    user: User = Depends(require_interact("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Mark a task as blocked (cannot complete), with required reason"""
@@ -510,6 +525,7 @@ async def block_worker_task(
 async def unblock_worker_task(
     worker_id: int,
     task_id: int,
+    user: User = Depends(require_interact("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Clear blocked status from a task"""
@@ -538,6 +554,7 @@ async def unblock_worker_task(
 async def assign_task_to_worker(
     worker_id: int,
     task_id: int,
+    user: User = Depends(require_edit("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Assign an existing task to a worker"""
@@ -564,6 +581,7 @@ async def assign_task_to_worker(
 async def unassign_task_from_worker(
     worker_id: int,
     task_id: int,
+    user: User = Depends(require_edit("workers")),
     db: AsyncSession = Depends(get_db)
 ):
     """Remove a task from a worker (unassign)"""

@@ -1396,13 +1396,14 @@ async def invite_user(
         # Delete the user since we couldn't send the email
         await db.delete(new_user)
         await db.commit()
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Invitation error: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
     except Exception as e:
         # Delete the user since we couldn't send the email
         await db.delete(new_user)
         await db.commit()
         logger.error(f"Failed to send invitation email: {e}")
-        raise HTTPException(status_code=500, detail="Failed to send invitation email")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
     return {"message": f"Invitation sent to {invite_request.email}", "user_id": new_user.id}
 
@@ -1489,10 +1490,11 @@ async def resend_invite(
         logger.info(f"Invitation resent to {pending_user.email} by {admin.username}")
 
     except ConfigurationError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Invitation acceptance error: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
     except Exception as e:
         logger.error(f"Failed to resend invitation email: {e}")
-        raise HTTPException(status_code=500, detail="Failed to send invitation email")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
     return {"message": f"Invitation resent to {pending_user.email}"}
 
@@ -1587,9 +1589,9 @@ async def accept_invitation(
     db.add(session)
     await db.commit()
 
-    # Set cookie
+    # Set cookie (must be "session_token" to match get_current_user cookie name)
     response.set_cookie(
-        key="auth_token",
+        key="session_token",
         value=session_token,
         httponly=True,
         secure=True,

@@ -13,6 +13,8 @@ from datetime import datetime
 from models.database import get_db
 from models.supply_requests import SupplyRequest, RequestStatus
 from models.workers import Worker
+from routers.auth import require_auth
+from models.users import User
 
 router = APIRouter(prefix="/supply-requests", tags=["Supply Requests"])
 
@@ -53,6 +55,7 @@ class SupplyRequestResponse(BaseModel):
 async def get_all_requests(
     worker_id: Optional[int] = None,
     status: Optional[RequestStatus] = None,
+    user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db)
 ):
     """Get all supply requests, optionally filtered by worker or status"""
@@ -94,6 +97,7 @@ async def get_all_requests(
 async def get_worker_requests(
     worker_id: int,
     include_completed: bool = False,
+    user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db)
 ):
     """Get all supply requests for a specific worker"""
@@ -134,7 +138,7 @@ async def get_worker_requests(
 
 
 @router.get("/pending/")
-async def get_pending_requests(db: AsyncSession = Depends(get_db)):
+async def get_pending_requests(user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     """Get all pending supply requests (for admin review)"""
     query = select(SupplyRequest).where(
         SupplyRequest.status == RequestStatus.PENDING
@@ -167,6 +171,7 @@ async def get_pending_requests(db: AsyncSession = Depends(get_db)):
 @router.post("/")
 async def create_request(
     data: SupplyRequestCreate,
+    user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new supply request"""
@@ -205,6 +210,7 @@ async def create_request(
 async def update_request(
     request_id: int,
     data: SupplyRequestUpdate,
+    user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db)
 ):
     """Update a supply request (status, admin notes, etc.)"""
@@ -243,6 +249,7 @@ async def update_request(
 @router.delete("/{request_id}/")
 async def delete_request(
     request_id: int,
+    user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db)
 ):
     """Delete a supply request"""

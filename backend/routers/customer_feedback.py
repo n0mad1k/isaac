@@ -16,6 +16,7 @@ from routers.settings import get_setting
 from routers.auth import require_admin, get_current_user
 from models.users import User
 from config import settings as app_settings
+from loguru import logger
 
 # Only import dev tracker on dev instance (not available on prod)
 if app_settings.is_dev_instance:
@@ -350,7 +351,8 @@ async def review_feedback(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Feedback review error: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.post("/pull-from-prod/")
@@ -444,9 +446,10 @@ async def pull_feedback_from_prod(
         }
 
     except Exception as e:
+        logger.error(f"Failed to pull from production: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to pull from production: {str(e)}"
+            detail="An internal error occurred"
         )
 
 
@@ -763,7 +766,8 @@ async def get_prod_feedback_status(
         return {"enabled": enabled}
 
     except Exception as e:
-        return {"enabled": False, "error": str(e)}
+        logger.error(f"Error checking feedback enabled: {e}")
+        return {"enabled": False, "error": "An internal error occurred"}
 
 
 @router.delete("/prod/{feedback_id}/")
@@ -807,7 +811,8 @@ async def delete_prod_feedback(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Feedback submission error: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.post("/toggle-on-prod/")
@@ -871,7 +876,8 @@ async def toggle_feedback_on_prod(
         }
 
     except Exception as e:
+        logger.error(f"Failed to toggle setting on production: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to toggle setting on production: {str(e)}"
+            detail="An internal error occurred"
         )

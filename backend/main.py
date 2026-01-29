@@ -26,6 +26,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         # Permissions policy (restrict powerful features)
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        # Content Security Policy - defense-in-depth against XSS
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'"
         return response
 
 
@@ -167,12 +169,22 @@ app.add_middleware(LocalNetworkOnlyMiddleware)
 # Trailing slash middleware - normalize URLs
 app.add_middleware(TrailingSlashMiddleware)
 
-# CORS middleware - allow frontend access
-# Security is handled by LocalNetworkOnlyMiddleware which restricts to local IPs
-# CORS allows access from any origin on local network since the middleware already filters
+# CORS middleware - allow frontend access from known local origins
+# Using explicit origins instead of "*" to safely allow credentials
+_cors_origins = [
+    "https://levi.local",
+    "https://isaac.local",
+    "https://192.168.5.56",
+    "https://192.168.5.56:8000",
+    "https://192.168.5.56:8443",
+    "http://localhost",
+    "http://localhost:5173",   # Vite dev server
+    "http://localhost:3000",
+    "https://localhost",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # LocalNetworkOnlyMiddleware handles network-level security
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],

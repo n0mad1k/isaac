@@ -429,10 +429,11 @@ async def preview_plant_import(request: PlantImportRequest):
         data = await plant_import_service.import_from_url(request.url)
         return PlantImportPreview(data=data, source_url=request.url)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Plant import preview error: {e}")
+        raise HTTPException(status_code=400, detail="An internal error occurred")
     except Exception as e:
         logger.error(f"Failed to import plant from {request.url}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch plant data: {str(e)}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.post("/import/", response_model=PlantResponse)
@@ -448,10 +449,11 @@ async def import_plant(
     try:
         data = await plant_import_service.import_from_url(request.url)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Plant import error: {e}")
+        raise HTTPException(status_code=400, detail="An internal error occurred")
     except Exception as e:
         logger.error(f"Failed to import plant from {request.url}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch plant data: {str(e)}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
     if not data.get("name"):
         raise HTTPException(status_code=400, detail="Could not extract plant name from URL")

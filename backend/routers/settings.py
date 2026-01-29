@@ -16,6 +16,7 @@ from models.settings import AppSetting
 from models.users import User
 from routers.auth import require_admin, require_auth
 from services.encryption import encrypt_value, decrypt_value, should_encrypt, ENCRYPTED_SETTINGS
+from loguru import logger
 
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
@@ -494,7 +495,7 @@ async def get_all_settings(
 # ============================================
 
 @router.post("/keyboard/toggle/")
-async def toggle_keyboard():
+async def toggle_keyboard(admin: User = Depends(require_admin)):
     """Toggle the on-screen keyboard (onboard) via D-Bus"""
     import subprocess
     import os
@@ -535,7 +536,8 @@ async def toggle_keyboard():
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=500, detail="Keyboard toggle timed out")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to toggle keyboard: {str(e)}")
+        logger.error(f"Failed to toggle keyboard: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # ============================================
@@ -543,7 +545,7 @@ async def toggle_keyboard():
 # ============================================
 
 @router.get("/version/")
-async def get_version_info():
+async def get_version_info(user: User = Depends(require_auth)):
     """Get current version, changelog, and update status"""
     import subprocess
     import os
@@ -1031,7 +1033,7 @@ async def pull_from_production(admin: User = Depends(require_admin)):
 
 
 @router.get("/recent-commits/")
-async def get_recent_commits():
+async def get_recent_commits(user: User = Depends(require_auth)):
     """Get recent git commits"""
     import subprocess
     import os
@@ -1071,7 +1073,7 @@ def strip_ansi_codes(text: str) -> str:
 
 
 @router.get("/admin-logs/files/")
-async def get_log_files():
+async def get_log_files(user: User = Depends(require_auth)):
     """Get list of available log files"""
     from pathlib import Path
     import os
@@ -1116,7 +1118,8 @@ async def get_admin_logs(
     lines: int = 100,
     level: Optional[str] = None,
     search: Optional[str] = None,
-    log_file: Optional[str] = "app"
+    log_file: Optional[str] = "app",
+    user: User = Depends(require_auth)
 ):
     """
     Get recent application logs for admin review.
@@ -1214,11 +1217,12 @@ async def get_admin_logs(
             "returned_lines": len(parsed_logs)
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read logs: {str(e)}")
+        logger.error(f"Failed to read logs: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.post("/admin-logs/clear/")
-async def clear_admin_logs():
+async def clear_admin_logs(admin: User = Depends(require_admin)):
     """Clear the application log file"""
     import os
     from pathlib import Path
@@ -1232,7 +1236,8 @@ async def clear_admin_logs():
                 f.write("")
             return {"message": "Logs cleared successfully"}
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to clear logs: {str(e)}")
+            logger.error(f"Failed to clear logs: {e}")
+            raise HTTPException(status_code=500, detail="An internal error occurred")
 
     return {"message": "No log file to clear"}
 
@@ -1242,10 +1247,9 @@ async def clear_admin_logs():
 # ============================================
 
 @router.get("/health-check/")
-async def run_health_check(db: AsyncSession = Depends(get_db)):
+async def run_health_check(db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Run health checks and return current status"""
     from services.health_monitor import health_monitor, log_health_check
-    from loguru import logger
 
     try:
         # Run all health checks
@@ -1263,14 +1267,15 @@ async def run_health_check(db: AsyncSession = Depends(get_db)):
         }
     except Exception as e:
         logger.error(f"Health check failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.get("/health-logs/")
 async def get_health_logs(
     limit: int = 100,
     status: Optional[str] = None,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth)
 ):
     """Get health check history"""
     from models.settings import HealthLog
@@ -1293,7 +1298,7 @@ async def get_health_logs(
 
 
 @router.get("/health-summary/")
-async def get_health_summary(db: AsyncSession = Depends(get_db)):
+async def get_health_summary(db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Get health summary statistics"""
     from models.settings import HealthLog
     from sqlalchemy import desc, func
@@ -1352,7 +1357,7 @@ async def clear_health_logs(
 
 
 @router.get("/{key}/")
-async def get_setting_by_key(key: str, db: AsyncSession = Depends(get_db)):
+async def get_setting_by_key(key: str, db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Get a specific setting"""
     value = await get_setting(db, key)
     if value is None:
@@ -1394,7 +1399,7 @@ def validate_email_list(value: str) -> bool:
 
 
 @router.put("/{key}/")
-async def update_setting(key: str, data: SettingUpdate, db: AsyncSession = Depends(get_db)):
+async def update_setting(key: str, data: SettingUpdate, db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Update a setting value"""
     # Validate email format for email settings
     if key in EMAIL_SETTINGS and data.value:
@@ -1446,7 +1451,7 @@ async def update_setting(key: str, data: SettingUpdate, db: AsyncSession = Depen
 
 
 @router.post("/reset/{key}/")
-async def reset_setting(key: str, db: AsyncSession = Depends(get_db)):
+async def reset_setting(key: str, db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Reset a setting to its default value"""
     if key not in DEFAULT_SETTINGS:
         raise HTTPException(status_code=404, detail=f"No default for setting '{key}'")
@@ -1469,7 +1474,7 @@ async def reset_setting(key: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/reset-all/")
-async def reset_all_settings(db: AsyncSession = Depends(get_db)):
+async def reset_all_settings(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Reset all settings to defaults"""
     result = await db.execute(select(AppSetting))
     settings = result.scalars().all()
@@ -1482,7 +1487,7 @@ async def reset_all_settings(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/test-cold-protection-email/")
-async def test_cold_protection_email(db: AsyncSession = Depends(get_db)):
+async def test_cold_protection_email(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Send a test cold protection email with plants needing protection"""
     from models.plants import Plant
     from services.email import EmailService
@@ -1538,7 +1543,8 @@ async def test_cold_protection_email(db: AsyncSession = Depends(get_db)):
     try:
         email_service = await EmailService.get_configured_service(db)
     except ConfigurationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Email configuration error: {e}")
+        raise HTTPException(status_code=400, detail="Email service not properly configured")
 
     plant_dicts = [
         {
@@ -1561,7 +1567,8 @@ async def test_cold_protection_email(db: AsyncSession = Depends(get_db)):
             recipients=recipients,
         )
     except ConfigurationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Email send configuration error: {e}")
+        raise HTTPException(status_code=400, detail="Email service not properly configured")
 
     if success:
         return {
@@ -1575,7 +1582,7 @@ async def test_cold_protection_email(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/test-calendar-sync/")
-async def test_calendar_sync(db: AsyncSession = Depends(get_db)):
+async def test_calendar_sync(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Test calendar connection and sync"""
     from services.calendar_sync import get_calendar_service
 
@@ -1619,7 +1626,7 @@ async def test_calendar_sync(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/sync-calendar/")
-async def sync_calendar(db: AsyncSession = Depends(get_db)):
+async def sync_calendar(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Perform a full bi-directional calendar sync"""
     from services.calendar_sync import get_calendar_service
 

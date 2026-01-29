@@ -1451,10 +1451,11 @@ async def get_readiness_analysis(
         return result
 
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.error(f"Team error: {e}")
+        raise HTTPException(status_code=404, detail="An internal error occurred")
     except Exception as e:
         logger.error(f"Readiness analysis failed for member {member_id}: {e}")
-        raise HTTPException(status_code=500, detail="Analysis failed")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 def _build_analysis_result(member_id: int, analysis) -> dict:
@@ -2886,8 +2887,8 @@ async def create_pool_gear(
         return serialize_gear(gear)
     except Exception as e:
         await db.rollback()
-        logger.error(f"Error creating pool gear: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Photo upload error: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.patch("/gear/{gear_id}/assign")
@@ -4087,7 +4088,7 @@ async def create_member_supply_request(
         raise
     except Exception as e:
         logger.error(f"Failed to create supply request for member {member_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create supply request: {str(e)}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 @router.patch("/supply-requests/{request_id}/")

@@ -2,6 +2,18 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.45.1] - 2026-01-29
+
+### Fixed
+- **Security: Authentication added to unauthenticated routers** - Workers, Supply Requests, and Weather routers now require authentication on all endpoints
+- **Security: Dashboard endpoints authenticated** - All dashboard endpoints (calendar, stats, cold protection, freeze warning, storage, verse) now require auth; clear-logs requires admin
+- **Security: Settings endpoints authenticated** - All settings read endpoints require auth; write/reset/sync/test endpoints require admin
+- **Security: CORS hardened** - Replaced wildcard origin with explicit allowed local origins
+- **Security: CSP header added** - Content-Security-Policy header now set on all responses
+- **Security: Exception details no longer leaked** - Internal error messages replaced with generic responses; details logged server-side only
+- **Security: Session cookie name consistency** - Invitation acceptance now uses correct `session_token` cookie name
+- **Security: Dynamic timezone** - Dashboard no longer hardcodes Eastern timezone; reads from app settings
+
 ## [1.45.0] - 2026-01-28
 
 ### Added

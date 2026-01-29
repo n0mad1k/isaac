@@ -26,7 +26,7 @@ from models.settings import AppSetting
 from models.team import TeamMember
 from services.weather import WeatherService, NWSForecastService
 from services.scheduler import get_sun_moon_data
-from routers.auth import get_current_user
+from routers.auth import get_current_user, require_auth, require_admin
 
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -276,16 +276,29 @@ async def get_dashboard(
     # Get today's tasks (items due today OR overdue todos - not overdue events)
     # Also include today's completed tasks even if deactivated (auto-reminders)
     import pytz
-    eastern = pytz.timezone('America/New_York')
-    now_eastern = datetime.now(eastern)
-    today = now_eastern.date()
-    current_time_str = now_eastern.strftime('%H:%M')
+
+    # Read timezone from app_settings (dynamic, not hardcoded)
+    tz_name = "America/New_York"
+    tz_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "timezone")
+    )
+    tz_setting = tz_result.scalar_one_or_none()
+    if tz_setting and tz_setting.value:
+        tz_name = tz_setting.value
+    try:
+        app_tz = pytz.timezone(tz_name)
+    except Exception:
+        app_tz = pytz.timezone("America/New_York")
+
+    now_local = datetime.now(app_tz)
+    today = now_local.date()
+    current_time_str = now_local.strftime('%H:%M')
 
     # Today's bounds in UTC for completed_at comparison
-    today_start_eastern = eastern.localize(datetime.combine(today, datetime.min.time()))
-    today_end_eastern = eastern.localize(datetime.combine(today, datetime.max.time()))
-    today_start_utc = today_start_eastern.astimezone(pytz.UTC).replace(tzinfo=None)
-    today_end_utc = today_end_eastern.astimezone(pytz.UTC).replace(tzinfo=None)
+    today_start_local = app_tz.localize(datetime.combine(today, datetime.min.time()))
+    today_end_local = app_tz.localize(datetime.combine(today, datetime.max.time()))
+    today_start_utc = today_start_local.astimezone(pytz.UTC).replace(tzinfo=None)
+    today_end_utc = today_end_local.astimezone(pytz.UTC).replace(tzinfo=None)
 
     result = await db.execute(
         select(Task)
@@ -618,7 +631,7 @@ async def get_dashboard(
 
 
 @router.get("/quick-stats")
-async def get_quick_stats(db: AsyncSession = Depends(get_db)):
+async def get_quick_stats(db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Get quick statistics for status bar"""
     today = date.today()
 
@@ -672,6 +685,7 @@ async def get_calendar_month(
     year: int,
     month: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth),
 ):
     """Get calendar events and todos for a specific month"""
     start_date = date(year, month, 1)
@@ -896,6 +910,7 @@ async def get_calendar_week(
     month: int,
     day: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth),
 ):
     """Get calendar events and todos for a 7-day period starting from given date"""
     start_date = date(year, month, day)
@@ -1124,7 +1139,7 @@ async def get_calendar_week(
 
 
 @router.get("/cold-protection/")
-async def get_cold_protection_needed(db: AsyncSession = Depends(get_db)):
+async def get_cold_protection_needed(db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """
     Get plants that need cold protection based on today's forecast low temperature.
     Only returns data if there are plants that need protection.
@@ -1242,7 +1257,7 @@ async def get_cold_protection_needed(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/freeze-warning/")
-async def get_freeze_warning(db: AsyncSession = Depends(get_db)):
+async def get_freeze_warning(db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """
     Check if freeze is forecasted and return irrigation/pipe protection reminder.
     Returns warning if forecast low is at or below 32°F (with buffer).
@@ -1369,7 +1384,7 @@ def _safe_dir_size(dir_path: Path) -> int:
 
 
 @router.get("/storage/", response_model=StorageStats)
-async def get_storage_stats(db: AsyncSession = Depends(get_db)):
+async def get_storage_stats(db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """
     Get storage statistics for disk and Isaac app components.
     SECURITY: All paths are hardcoded - no user input accepted.
@@ -1418,7 +1433,7 @@ async def get_storage_stats(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/storage/clear-logs/")
-async def clear_logs():
+async def clear_logs(user: User = Depends(require_admin)):
     """
     Clear log files to free up space.
     SECURITY: Only deletes regular files from hardcoded ISAAC_LOGS_DIR.
@@ -1457,7 +1472,7 @@ async def clear_logs():
 
 
 @router.get("/verse-of-the-day")
-async def get_verse_of_the_day():
+async def get_verse_of_the_day(user: User = Depends(require_auth)):
     """
     Fetch verse of the day from bible.com
     """
