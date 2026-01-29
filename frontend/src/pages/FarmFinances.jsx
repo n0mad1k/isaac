@@ -1129,7 +1129,7 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
             <Receipt className="w-5 h-5 text-yellow-400" />
             Expense Breakdown
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(summary.standalone_expenses.by_category).sort((a, b) => b[1] - a[1]).map(([cat, amount]) => (
               <div key={cat} className="bg-gray-700 rounded-lg p-3">
                 <div className="text-sm text-gray-400 capitalize">{cat}</div>
@@ -1287,7 +1287,7 @@ function BusinessTab({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
                     <div><span className="text-gray-400">Portion:</span> <span className="capitalize">{order.portion_type}</span></div>
                     {total > 0 && <div><span className="text-gray-400">Total:</span> <span className="text-green-400 font-medium">{formatCurrency(total)}</span></div>}
                     {order.estimated_weight && <div><span className="text-gray-400">Est:</span> {order.estimated_weight} lbs</div>}
@@ -1575,7 +1575,7 @@ function ExpenseList({ expenses, formatCurrency, onEdit, onDelete }) {
 function SaleModal({ formData, setFormData, customers, onSubmit, onClose, formatCurrency }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
           <h2 className="text-lg font-semibold">Record Sale</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -1701,7 +1701,7 @@ function SaleModal({ formData, setFormData, customers, onSubmit, onClose, format
 function CustomerModal({ formData, setFormData, editing, onSubmit, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
           <h2 className="text-lg font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
@@ -1754,7 +1754,7 @@ function OrderModal({ formData, setFormData, customers, livestock, editing, onSu
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
           <h2 className="text-lg font-semibold">{editing ? 'Edit Order' : 'New Order'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
@@ -1868,7 +1868,7 @@ function PaymentModal({ order, formData, setFormData, onSubmit, onClose, formatC
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Add Payment</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
@@ -1936,7 +1936,7 @@ function AllocationModal({ production, formData, setFormData, onSubmit, onClose,
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Allocate for Personal Use</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
@@ -1991,7 +1991,7 @@ function AllocationModal({ production, formData, setFormData, onSubmit, onClose,
 function HarvestAllocationModal({ harvest, formData, setFormData, onSubmit, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Track Harvest Usage</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
@@ -2029,7 +2029,7 @@ function HarvestAllocationModal({ harvest, formData, setFormData, onSubmit, onCl
 function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, formatCurrency }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
           <h2 className="text-lg font-semibold">{editing ? 'Edit Expense' : 'Add Expense'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>

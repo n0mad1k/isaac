@@ -118,7 +118,7 @@ function OverviewTab({ onSwitchTab }) {
           </button>
         </div>
         {hasActivities ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(this_month.activities).map(([type, items]) => {
               if (items.length === 0) return null
               const colors = ACTIVITY_COLORS[type] || ACTIVITY_COLORS.other
@@ -447,7 +447,7 @@ function PlannerTab() {
 
       {/* Calendar View */}
       {viewMode === 'calendar' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {schedule?.months?.map((month) => {
             const isFrostMonth = month.month <= lastFrostMonth || month.month >= firstFrostMonth
             const isCurrent = month.month === currentMonth
@@ -575,7 +575,7 @@ function PlannerTab() {
       {/* Add Event Modal */}
       {showAddEvent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => { setShowAddEvent(null); setSuccessionMode(false) }}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">Add Planting Event</h3>
             <div className="space-y-3">
               <div>
@@ -832,7 +832,7 @@ function JournalTab() {
       {/* Add/Edit Entry Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-lg" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">{editingId ? 'Edit Entry' : 'New Journal Entry'}</h3>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -1263,7 +1263,7 @@ function LayoutTab() {
       {/* Add Bed Modal */}
       {showAddBed && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddBed(false)}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">New Garden Bed</h3>
             <div className="space-y-3">
               <div>
@@ -1298,7 +1298,7 @@ function LayoutTab() {
       {/* Add Planting Modal */}
       {showAddPlanting && selectedBed && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddPlanting(false)}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">Add Plant to {selectedBed.name}</h3>
             <div className="space-y-3">
               <div>

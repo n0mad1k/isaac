@@ -729,7 +729,7 @@ function Plants() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
@@ -1393,7 +1393,7 @@ function PlantCard({
           )}
 
           {/* Basic Info - Editable */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField label="Name" value={editData.name} field="name" onChange={handleFieldChange} editing={isEditing} />
             <EditableField label="Latin Name" value={editData.latin_name} field="latin_name" onChange={handleFieldChange} placeholder="Genus species" editing={isEditing} />
             <EditableField label="Variety" value={editData.variety} field="variety" onChange={handleFieldChange} editing={isEditing} />
@@ -1407,7 +1407,7 @@ function PlantCard({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <EditableField label="Description" value={editData.description} field="description" type="textarea" onChange={handleFieldChange} editing={isEditing} />
             <EditableField label="Source" value={editData.source} field="source" onChange={handleFieldChange} placeholder="Where purchased" editing={isEditing} />
           </div>
@@ -1461,7 +1461,7 @@ function PlantCard({
           {/* Growing Requirements */}
           <div className="bg-gray-900/50 rounded-lg p-3">
             <h4 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <EditableField label="Hardiness Zones (species)" value={editData.grow_zones} field="grow_zones" onChange={handleFieldChange} placeholder="e.g., 9-11" editing={isEditing} />
               <EditableField label="This Plant's Zone (override)" value={editData.plant_zone} field="plant_zone" type="select" options={[{value: '', label: 'Use global zone'}, ...['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b','6a','6b','7a','7b','8a','8b','9a','9b','10a','10b','11a','11b','12a','12b','13a','13b'].map(z => ({value: z, label: `Zone ${z}`}))]} onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Sun Requirement" value={editData.sun_requirement} field="sun_requirement" type="select" options={SUN_OPTIONS} onChange={handleFieldChange} editing={isEditing} />
@@ -1475,12 +1475,12 @@ function PlantCard({
           {/* Temperature & Tolerance */}
           <div className="bg-gray-900/50 rounded-lg p-3">
             <h4 className="text-sm font-medium text-gray-400 mb-3">Temperature & Tolerance</h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <EditableField label="Min Temp (°F)" value={editData.min_temp} field="min_temp" type="number" onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Cover Below (°F)" value={editData.needs_cover_below_temp} field="needs_cover_below_temp" type="number" onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Shade Above (°F)" value={editData.needs_shade_above_temp} field="needs_shade_above_temp" type="number" onChange={handleFieldChange} editing={isEditing} />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-3">
               <EditableField label="Frost Sensitive" value={editData.frost_sensitive} field="frost_sensitive" type="checkbox" onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Heat Tolerant" value={editData.heat_tolerant} field="heat_tolerant" type="checkbox" onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Drought Tolerant" value={editData.drought_tolerant} field="drought_tolerant" type="checkbox" onChange={handleFieldChange} editing={isEditing} />
@@ -1491,7 +1491,7 @@ function PlantCard({
           {/* Care Schedule */}
           <div className="bg-gray-900/50 rounded-lg p-3">
             <h4 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h4>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <EditableField
                   label="Moisture Preference"
@@ -1530,7 +1530,7 @@ function PlantCard({
                   <Droplets className="w-3 h-3" />
                   Automatic Watering
                 </h5>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -1666,7 +1666,7 @@ function PlantCard({
                 Record Harvest
               </button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <EditableField label="Produces Months" value={editData.produces_months} field="produces_months" onChange={handleFieldChange} placeholder="e.g., Jun-Aug" editing={isEditing} />
               <EditableField label="Harvest Frequency" value={editData.harvest_frequency} field="harvest_frequency" onChange={handleFieldChange} placeholder="e.g., Weekly" editing={isEditing} />
               <EditableField label="How to Harvest" value={editData.how_to_harvest} field="how_to_harvest" type="textarea" onChange={handleFieldChange} editing={isEditing} />
@@ -1686,7 +1686,7 @@ function PlantCard({
               <AlertTriangle className="w-4 h-4" />
               Warnings & Considerations
             </h4>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <EditableField label="Known Hazards" value={editData.known_hazards} field="known_hazards" type="textarea" onChange={handleFieldChange} placeholder="e.g., Thorns, toxic to pets" editing={isEditing} />
               <EditableField label="Special Considerations" value={editData.special_considerations} field="special_considerations" type="textarea" onChange={handleFieldChange} placeholder="e.g., Needs hand pollination" editing={isEditing} />
             </div>
@@ -1848,7 +1848,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           {/* Basic Info */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Basic Information</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Name *</label>
                 <input
@@ -1915,7 +1915,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           {/* Growing Requirements */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Hardiness Zones (species)</label>
                 <input
@@ -2028,7 +2028,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-3">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -2071,7 +2071,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           {/* Care Schedule */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Moisture Preference</label>
                 <select
@@ -2130,7 +2130,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           {/* Auto Watering */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Automatic Watering</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="flex items-center gap-2">
                   <input
@@ -2184,7 +2184,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           {/* Production & Harvest */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Production & Harvest</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Produces Months</label>
                 <input
@@ -2205,7 +2205,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
-              <div className="col-span-2 md:col-span-1">
+              <div className="sm:col-span-2 md:col-span-1">
                 <label className="block text-sm text-gray-400 mb-1">How to Harvest</label>
                 <textarea
                   value={formData.how_to_harvest}
@@ -2220,7 +2220,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           {/* Uses & Info */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Uses & Information</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Uses</label>
                 <textarea
@@ -2241,7 +2241,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="block text-sm text-gray-400 mb-1">Cultivation Details</label>
                 <textarea
                   value={formData.cultivation_details}
@@ -2257,7 +2257,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           {/* Warnings */}
           <div>
             <h3 className="text-sm font-medium text-red-400 mb-3">Warnings & Considerations</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Known Hazards</label>
                 <textarea
@@ -2284,7 +2284,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           {/* Notes & References */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Notes & References</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Notes</label>
                 <textarea
@@ -2518,7 +2518,7 @@ function HarvestFormModal({ plant, onClose, onSave }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Quantity *</label>
               <input
@@ -2669,7 +2669,7 @@ function SellPlantModal({ plant, onClose, onSave }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Quantity</label>
               <input
@@ -3204,7 +3204,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {/* Basic Info */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Basic Information</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Name *</label>
                 <input
@@ -3271,7 +3271,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {/* Growing Requirements */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Hardiness Zones (species)</label>
                 <input
@@ -3384,7 +3384,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-3">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -3422,7 +3422,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 <span className="text-sm">Salt Tolerant</span>
               </label>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Moisture Preference</label>
                 <select
@@ -3441,7 +3441,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {/* Care Schedule */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Water Schedule</label>
                 <input
@@ -3488,7 +3488,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {/* Auto Watering */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Auto Watering</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -3533,7 +3533,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {/* Production & Harvest */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Production & Harvest</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Produces Months</label>
                 <input
@@ -3554,7 +3554,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
-              <div className="col-span-2 md:col-span-1">
+              <div className="sm:col-span-2 md:col-span-1">
                 <label className="block text-sm text-gray-400 mb-1">How to Harvest</label>
                 <input
                   type="text"
@@ -3570,7 +3570,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {/* Uses & Info */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Uses & Information</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Uses</label>
                 <textarea
@@ -3591,7 +3591,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="block text-sm text-gray-400 mb-1">Cultivation Details</label>
                 <textarea
                   value={formData.cultivation_details}
@@ -3607,7 +3607,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {/* Warnings */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Warnings</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Known Hazards</label>
                 <textarea
@@ -3634,7 +3634,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {/* Notes & References */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Notes & References</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Notes</label>
                 <textarea

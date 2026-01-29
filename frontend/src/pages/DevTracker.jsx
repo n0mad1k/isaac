@@ -1309,7 +1309,7 @@ function DevTracker() {
             <TrendingUp className="w-5 h-5 text-farm-green" />
             <h2 className="text-lg font-semibold text-white">Productivity Metrics</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-700/50 rounded-lg p-3 text-center">
               <div className="text-2xl font-bold text-green-400">{metrics.completed_today}</div>
               <div className="text-xs text-gray-400">Completed Today</div>
@@ -1434,7 +1434,7 @@ function DevTracker() {
       {/* Fail Modal */}
       {failModalItem && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-sm sm:max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-white mb-2">Mark as Failed</h3>
             <p className="text-gray-400 text-sm mb-4">
               This will move the item back to implement with your failure comment appended.

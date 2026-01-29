@@ -642,7 +642,7 @@ function GearFormModal({ gear, onClose, onSave, existingCategories = [] }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">
           {gear ? 'Edit Gear' : 'Add Gear'}
         </h3>
@@ -727,7 +727,7 @@ function AssignGearModal({ gear, members, onClose, onAssign }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md">
         <h3 className="text-lg font-semibold mb-4">{gear.member_id ? 'Reassign Gear' : 'Assign Gear'}</h3>
         <div className="mb-4">
           <div className="text-sm text-gray-400 mb-2">Gear Item:</div>
@@ -835,7 +835,7 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">{content ? 'Edit Content' : 'Add Content'}</h3>
         {error && <div className="bg-red-900/30 border border-red-700 rounded p-2 text-red-200 text-sm mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">

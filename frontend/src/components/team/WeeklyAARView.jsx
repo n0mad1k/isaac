@@ -514,7 +514,7 @@ function WeeklyAARView({ settings, members }) {
       {/* Quick Add Observation Modal */}
       {showQuickAdd && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md">
             <h3 className="text-lg font-semibold mb-4">Add Observation</h3>
 
             {/* Type Selection */}

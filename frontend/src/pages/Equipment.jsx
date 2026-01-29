@@ -634,7 +634,7 @@ function Equipment() {
       {/* Add/Edit Equipment Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingEquipment ? 'Edit Equipment' : 'Add Equipment'}
             </h2>
@@ -745,7 +745,7 @@ function Equipment() {
       {/* Add/Edit Maintenance Modal */}
       {showAddMaintenance && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md">
             <h2 className="text-xl font-bold mb-4">
               {editingMaintenance ? 'Edit Maintenance Task' : 'Add Maintenance Task'}
             </h2>
@@ -877,7 +877,7 @@ function Equipment() {
       {/* Complete Modal */}
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md">
             <h2 className="text-xl font-bold mb-4">Complete: {completeModal.name}</h2>
             <div className="space-y-4">
               <div>

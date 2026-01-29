@@ -396,7 +396,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
           )}
 
           {/* Basic Info */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField
               label="Name"
               value={editData.name}
@@ -439,7 +439,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
 
           {/* Germination & Growth */}
           <h4 className="text-sm font-medium text-gray-400 pt-2">Germination & Growth</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField
               label="Germination Days"
               value={editData.days_to_germination}
@@ -489,7 +489,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
 
           {/* Planting Requirements */}
           <h4 className="text-sm font-medium text-gray-400 pt-2">Planting Requirements</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField
               label="Sow Depth"
               value={editData.planting_depth}
@@ -522,7 +522,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
 
           {/* Growing Conditions */}
           <h4 className="text-sm font-medium text-gray-400 pt-2">Growing Conditions</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField
               label="Sun Requirement"
               value={editData.sun_requirement}
@@ -557,7 +557,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
 
           {/* Sowing & Harvest Calendar */}
           <h4 className="text-sm font-medium text-gray-400 pt-2">Sowing & Harvest</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField
               label="When to Sow"
               value={editData.sow_months}
@@ -590,7 +590,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
 
           {/* Characteristics Flags */}
           <h4 className="text-sm font-medium text-gray-400 pt-2">Characteristics</h4>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
             <EditableField
               label="Perennial"
               value={editData.is_perennial}
@@ -706,7 +706,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
       {/* Plant This Seed Modal */}
       {showPlantForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPlantForm(false)}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-1">Plant This Seed</h3>
             <p className="text-sm text-gray-400 mb-4">Create a new plant from <span className="text-green-400">{seed.name}</span></p>
             <div className="space-y-3">
@@ -965,7 +965,7 @@ function Seeds() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
@@ -1017,7 +1017,7 @@ function Seeds() {
             <h2 className="text-xl font-semibold mb-4">Add New Seed</h2>
             <form onSubmit={handleAddNew} className="space-y-4">
               {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Name *</label>
                   <input
@@ -1038,7 +1038,7 @@ function Seeds() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Category</label>
                   <select
@@ -1083,7 +1083,7 @@ function Seeds() {
 
               {/* Growing Conditions */}
               <h3 className="text-lg font-medium pt-2 border-t border-gray-700">Growing Conditions</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Sun</label>
                   <select
@@ -1113,7 +1113,7 @@ function Seeds() {
 
               {/* Flags */}
               <h3 className="text-lg font-medium pt-2 border-t border-gray-700">Characteristics</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <label className="flex items-center gap-2">
                   <input type="checkbox" name="is_perennial" className="w-4 h-4" />
                   <span className="text-sm">Perennial</span>

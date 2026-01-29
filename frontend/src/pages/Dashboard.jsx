@@ -180,7 +180,7 @@ function Dashboard() {
   }
 
   return (
-    <div ref={containerRef} className="flex flex-col gap-2 md:gap-3 h-full md:h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] overflow-hidden">
+    <div ref={containerRef} className="flex flex-col gap-2 md:gap-3 min-h-0 md:h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] overflow-auto md:overflow-hidden">
       {/* Header Row: Date/Time and Motto */}
       <div className="flex items-start justify-between gap-4 flex-shrink-0">
         {/* Left - Date/Time */}

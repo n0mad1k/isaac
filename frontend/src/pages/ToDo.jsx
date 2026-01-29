@@ -403,7 +403,7 @@ function ToDo() {
         ) : metrics ? (
           <div className="space-y-4">
             {/* Key Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-gray-800 rounded-lg p-4 text-center">
                 <Target className="w-8 h-8 mx-auto mb-2 text-green-400" />
                 <div className="text-3xl font-bold text-green-400">{metrics.completed_today}</div>
@@ -646,7 +646,7 @@ function ToDo() {
       {/* Add/Edit To Do Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">
                 {editingTodo ? 'Edit To Do' : 'Add New To Do'}

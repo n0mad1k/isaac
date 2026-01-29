@@ -604,7 +604,7 @@ function GearModal({ gear, memberId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h3 className="font-semibold">{gear ? 'Edit Gear' : 'Add Gear'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -805,7 +805,7 @@ function MaintenanceModal({ memberId, gearId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-md">
+      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h3 className="font-semibold">Add Maintenance Schedule</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -994,7 +994,7 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-md">
+      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h3 className="font-semibold">Edit Content Item</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -1281,7 +1281,7 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h3 className="font-semibold">Add Content Item</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">

@@ -334,7 +334,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
       />
     )}
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
           <h2 className="text-lg font-semibold">
             {event ? 'Edit' : 'Add'} {formData.task_type === 'event' ? 'Event' : 'Reminder'}

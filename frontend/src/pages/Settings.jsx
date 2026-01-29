@@ -1305,7 +1305,7 @@ function Settings() {
           {/* Password Reset Modal */}
           {resetPasswordUser && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+              <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm sm:max-w-md mx-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Key className="w-5 h-5 text-yellow-400" />
                   Reset Password for {resetPasswordUser.username}
@@ -1627,9 +1627,9 @@ function Settings() {
               ) : permissionCategories && (
                 <div className="space-y-6">
                   {roles.map((role) => (
-                    <div key={role.id} className="bg-gray-700/30 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
+                    <div key={role.id} className="bg-gray-700/30 rounded-lg p-3 sm:p-4 min-w-0">
+                      <div className="flex items-center justify-between mb-3 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           <div
                             className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: role.color }}
@@ -1653,28 +1653,28 @@ function Settings() {
                         <p className="text-sm text-gray-400 mb-3">{role.description}</p>
                       )}
 
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                        <table className="w-full text-xs sm:text-sm">
                           <thead>
                             <tr className="text-gray-400 border-b border-gray-600">
-                              <th className="text-left py-2 px-2 font-medium">Category</th>
+                              <th className="text-left py-2 px-1 sm:px-2 font-medium">Category</th>
                               {['view', 'create', 'interact', 'edit', 'delete'].map(action => (
-                                <th key={action} className="text-center py-2 px-2 font-medium capitalize">{action}</th>
+                                <th key={action} className="text-center py-2 px-1 sm:px-2 font-medium capitalize">{action}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
                             {Object.entries(permissionCategories.categories).map(([catKey, catInfo]) => (
                               <tr key={catKey} className="border-b border-gray-700/50">
-                                <td className="py-2 px-2 text-gray-300">{catInfo.label}</td>
+                                <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-gray-300 whitespace-nowrap">{catInfo.label}</td>
                                 {['view', 'create', 'interact', 'edit', 'delete'].map(action => (
-                                  <td key={action} className="text-center py-2 px-2">
+                                  <td key={action} className="text-center py-1.5 sm:py-2 px-1 sm:px-2">
                                     {catInfo.actions.includes(action) ? (
                                       <input
                                         type="checkbox"
                                         checked={role.permissions?.[catKey]?.[action] || false}
                                         onChange={(e) => handleUpdateRolePermission(role.id, catKey, action, e.target.checked)}
-                                        className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
+                                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
                                         disabled={role.name === 'admin' && catKey === 'users'}
                                       />
                                     ) : (
@@ -2631,7 +2631,7 @@ function Settings() {
                               {healthSummary.latest.overall_status?.toUpperCase()}
                             </span>
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                             {['api', 'database', 'caldav', 'memory', 'disk', 'cpu'].map(check => {
                               const data = healthSummary.latest[check]
                               if (!data) return null

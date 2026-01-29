@@ -455,7 +455,7 @@ function HomeMaintenance() {
       {/* Add/Edit Form Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+          <div className="rounded-lg p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
             <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>
               {editingTask ? 'Edit Task' : 'Add Maintenance Task'}
             </h2>
@@ -691,7 +691,7 @@ function HomeMaintenance() {
       {/* Complete Modal */}
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="rounded-lg p-6 w-full max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+          <div className="rounded-lg p-6 w-full max-w-sm sm:max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
             <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>Complete: {completeModal.name}</h2>
             <div className="space-y-4">
               <div>

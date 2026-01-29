@@ -956,7 +956,7 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h3 className="font-semibold">{appointment ? 'Edit Appointment' : 'Add Appointment Type'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -1882,7 +1882,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       {/* Add Recording Modal - unified for all vitals including weight */}
       {showAddVital && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md">
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
               <h3 className="font-semibold">Add Recording</h3>
               <button onClick={() => { setShowAddVital(false); setVitalForm({ vital_type: '', value: '', value_secondary: '', notes: '' }) }} className="text-gray-400 hover:text-white">
@@ -2063,7 +2063,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       {/* Edit Vital Modal */}
       {editingVital && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md">
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
               <h3 className="font-semibold">Edit {vitalTypes.find(t => t.value === editingVital.vital_type)?.label || editingVital.vital_type}</h3>
               <button onClick={() => { setEditingVital(null); setEditForm({ value: '', value_secondary: '', context_factors: [], notes: '' }); setError(null) }} className="text-gray-400 hover:text-white">
@@ -2986,7 +2986,7 @@ function FitnessTab({ member, settings, formatDate }) {
       {/* Add/Edit Workout Modal */}
       {showAddWorkout && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">{editingWorkout ? 'Edit Workout' : 'Log Workout'}</h3>
 
             <form onSubmit={editingWorkout ? handleSaveEdit : handleSubmit} className="space-y-4">

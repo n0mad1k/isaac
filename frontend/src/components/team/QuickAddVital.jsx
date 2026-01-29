@@ -71,7 +71,7 @@ function QuickAddVital({ members, onClose, onSuccess, defaultMemberId }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg w-full max-w-md">
+      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-2">

@@ -359,7 +359,7 @@ function TrainingModal({ training, memberId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-md">
+      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h3 className="font-semibold">{training ? 'Edit Training' : 'Add Training'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -475,7 +475,7 @@ function LogSessionModal({ training, memberId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-md">
+      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h3 className="font-semibold">Log Training Session</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">

@@ -368,6 +368,7 @@ function Layout() {
         showHardRefresh={showHardRefreshButton}
         isDevInstance={isDevInstance}
         workerTasksEnabled={workerTasksEnabled}
+        navItems={navItems}
       />
     </div>
   )

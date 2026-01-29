@@ -691,7 +691,7 @@ function Animals() {
         </div>
 
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />
           <input
             type="text"
@@ -1497,7 +1497,7 @@ function AnimalCard({
           {/* Inline Editable Details */}
           <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <h4 className="text-sm font-medium mb-3" style={{ color: 'var(--color-text-muted)' }}>Details</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <EditableField
                 label="Name"
                 value={editData.name}
@@ -1628,7 +1628,7 @@ function AnimalCard({
           {isLivestock && (
             <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
               <h4 className="text-sm font-medium text-gray-400 mb-3">Livestock Details</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <EditableField
                   label="Target Weight (lbs)"
                   value={editData.target_weight}
@@ -1659,7 +1659,7 @@ function AnimalCard({
 
               {/* Slaughter Event */}
               <h5 className="text-xs font-medium text-gray-500 mt-4 mb-2">Slaughter Event</h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <EditableField
                   label="Slaughter Date"
                   value={editData.slaughter_date}
@@ -1699,7 +1699,7 @@ function AnimalCard({
 
               {/* Pickup Event */}
               <h5 className="text-xs font-medium text-gray-500 mt-4 mb-2">Pickup Event</h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <EditableField
                   label="Pickup Date"
                   value={editData.pickup_date}
@@ -1742,7 +1742,7 @@ function AnimalCard({
           {/* Care Frequency Settings */}
           <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <h4 className="text-sm font-medium text-gray-400 mb-3">Care Frequency (days)</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <EditableField
                 label="Worming"
                 value={editData.worming_frequency_days}
@@ -1785,7 +1785,7 @@ function AnimalCard({
           {/* Cold Sensitivity */}
           <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <h4 className="text-sm font-medium text-gray-400 mb-3">Cold Sensitivity</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-end">
               <EditableField
                 label="Cold Sensitive"
                 value={editData.cold_sensitive}
@@ -1884,7 +1884,7 @@ function AnimalCard({
               </button>
             </div>
             {animal.care_schedules && animal.care_schedules.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {animal.care_schedules.map(schedule => (
                   <DynamicCareCard
                     key={schedule.id}
@@ -3139,7 +3139,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
           {isPet && (
             <div className="border-t border-gray-700 pt-4">
               <h3 className="text-sm font-medium text-pink-400 mb-3">Care Schedule (frequency in days)</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Worming</label>
                   <input

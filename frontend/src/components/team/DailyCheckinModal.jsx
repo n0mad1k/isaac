@@ -153,7 +153,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-2">

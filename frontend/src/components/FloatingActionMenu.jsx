@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Menu, MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus, Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Bug, ClipboardList, LayoutDashboard, LogOut, Users } from 'lucide-react'
+import { Menu, MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus, Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Bug, ClipboardList, LayoutDashboard, LogOut, Users, DollarSign, UsersRound, Wheat } from 'lucide-react'
 import { checkFeedbackEnabled, submitFeedback, toggleKeyboard as toggleKeyboardApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import EventModal from './EventModal'
@@ -369,9 +369,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
 
       {/* Feedback Modal */}
       {feedbackModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/50">
           <div
-            className="relative w-full max-w-md rounded-xl shadow-2xl p-6"
+            className="relative w-full max-w-sm sm:max-w-md rounded-xl shadow-2xl p-4 sm:p-6"
             style={{ backgroundColor: 'var(--color-bg-surface)' }}
           >
             <button

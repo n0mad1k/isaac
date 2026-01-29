@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.51.1] - 2026-01-29
+
+### Fixed
+- **Mobile layout overhaul** - Fixed navigation, grids, modals, and tables across all pages for proper mobile display
+  - Mobile nav menu now matches desktop sidebar routes (Garden instead of separate Plants/Seeds, includes Team)
+  - Dashboard now scrolls properly on mobile instead of cutting off content
+  - All detail grids stack to single column on small phones (320px), 2 columns at 640px+
+  - All modals narrower on mobile to prevent overflow
+  - Settings permissions table compact on mobile with smaller text and checkboxes
+  - Added bottom safe area support for notched devices (iPhone home indicator)
+
 ## [1.51.0] - 2026-01-29
 
 ### Added
