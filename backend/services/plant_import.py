@@ -1263,10 +1263,21 @@ class PlantImportService:
         for howto in care.get('howTos', []):
             title = howto.get('title', '').lower()
             labels = {l.get('title', ''): l.get('value', '') for l in howto.get('labels', []) if l.get('value')}
+            # Also capture the how-to description text
+            howto_desc = howto.get('description', '')
+            if isinstance(howto_desc, str) and '<' in howto_desc:
+                howto_desc = self._strip_html(howto_desc)
 
             if 'water' in title:
                 if 'Watering schedule' in labels and 'water_label' not in data:
                     data['water_label'] = labels['Watering schedule']
+                # Extract all watering details for cultivation_details
+                water_details = []
+                for key in ['Watering Amount', 'Best Time to Water', 'Tips']:
+                    if key in labels:
+                        water_details.append(f"{key}: {labels[key]}")
+                if water_details:
+                    data['water_details'] = '; '.join(water_details)
             elif 'sunlight' in title:
                 if 'Sunlight Requirements' in labels and 'sun_requirement' not in data:
                     self._parse_picturethis_sunlight(data, labels['Sunlight Requirements'])
@@ -1280,9 +1291,44 @@ class PlantImportService:
                     data['soil_type'] = labels['Soil Composition']
                 if 'Soil pH' in labels and 'soil_ph' not in data:
                     data['soil_ph'] = labels['Soil pH']
+            elif 'fertiliz' in title:
+                # Extract fertilizing schedule details
+                fert_details = []
+                for key in ['Fertilizing Frequency', 'Fertilizer Type', 'Fertilizing Period', 'Tips']:
+                    if key in labels:
+                        fert_details.append(f"{key}: {labels[key]}")
+                if fert_details:
+                    data['fertilize_details'] = '; '.join(fert_details)
+                if 'Fertilizing Frequency' in labels:
+                    data['fertilize_frequency_label'] = labels['Fertilizing Frequency']
+                if 'Fertilizer Type' in labels:
+                    data['fertilizer_type'] = labels['Fertilizer Type']
             elif 'prune' in title or 'pruning' in title:
                 if 'Pruning Time' in labels:
                     data['prune_months'] = labels['Pruning Time']
+                # Extract pruning technique/frequency details
+                prune_details = []
+                for key in ['Pruning Techniques', 'Pruning Steps', 'Tips']:
+                    if key in labels:
+                        prune_details.append(f"{key}: {labels[key]}")
+                if prune_details:
+                    data['prune_details'] = '; '.join(prune_details)
+                if howto_desc and 'prune_frequency_text' not in data:
+                    data['prune_frequency_text'] = howto_desc[:300]
+            elif 'harvest' in title:
+                # Extract harvest details
+                harvest_details = []
+                for key in ['Harvest Time', 'Harvest Frequency', 'Harvesting Techniques', 'Tips']:
+                    if key in labels:
+                        harvest_details.append(f"{key}: {labels[key]}")
+                if 'Harvest Time' in labels and 'produces_months' not in data:
+                    data['produces_months'] = labels['Harvest Time']
+                if 'Harvest Frequency' in labels:
+                    data['harvest_frequency_label'] = labels['Harvest Frequency']
+                if howto_desc and 'how_to_harvest' not in data:
+                    data['how_to_harvest'] = howto_desc[:500]
+                if harvest_details:
+                    data['harvest_details'] = '; '.join(harvest_details)
             elif 'propagat' in title:
                 if 'Propagation Type' in labels:
                     data['propagation_methods'] = labels['Propagation Type']
@@ -1327,6 +1373,48 @@ class PlantImportService:
                 data['frost_sensitive'] = True
             else:
                 data['frost_sensitive'] = False
+
+    def _water_label_to_schedule(self, label: str) -> Optional[str]:
+        """Convert a watering frequency label to seasonal schedule format.
+        Returns format: 'summer:X,winter:Y,spring:Z,fall:W' (days between watering)
+        """
+        label = label.lower()
+        if "daily" in label or "every day" in label:
+            return "summer:1,winter:3,spring:2,fall:2"
+        elif "every 2-3 days" in label or "2-3 days" in label:
+            return "summer:2,winter:5,spring:3,fall:4"
+        elif "twice a week" in label or "every 3-4 days" in label:
+            return "summer:3,winter:7,spring:4,fall:5"
+        elif "once a week" in label or "weekly" in label or "every week" in label:
+            return "summer:5,winter:10,spring:7,fall:7"
+        elif "1-2 weeks" in label or "every 1-2 weeks" in label:
+            return "summer:7,winter:14,spring:10,fall:10"
+        elif "every 2 weeks" in label or "2-3 weeks" in label:
+            return "summer:10,winter:21,spring:14,fall:14"
+        elif "every 3 weeks" in label or "3-4 weeks" in label:
+            return "summer:14,winter:28,spring:21,fall:21"
+        elif "monthly" in label or "once a month" in label:
+            return "summer:21,winter:30,spring:28,fall:28"
+        return None
+
+    def _fertilize_label_to_schedule(self, label: str) -> Optional[str]:
+        """Convert a fertilizing frequency label to seasonal schedule format.
+        Returns format: 'spring:X,summer:Y,fall:Z,winter:0' (days between, 0=none)
+        """
+        label = label.lower()
+        if "weekly" in label or "every week" in label:
+            return "spring:7,summer:7,fall:14,winter:0"
+        elif "every 2 weeks" in label or "biweekly" in label or "twice a month" in label:
+            return "spring:14,summer:14,fall:21,winter:0"
+        elif "monthly" in label or "once a month" in label:
+            return "spring:30,summer:30,fall:45,winter:0"
+        elif "every 2 months" in label or "every 6-8 weeks" in label:
+            return "spring:45,summer:45,fall:60,winter:0"
+        elif "every 3 months" in label or "quarterly" in label:
+            return "spring:60,summer:60,fall:90,winter:0"
+        elif "once" in label or "once a year" in label or "annually" in label:
+            return "spring:365,summer:0,fall:0,winter:0"
+        return None
 
     def _extract_moisture_preference(self, text: str) -> Optional[str]:
         """
@@ -1612,17 +1700,66 @@ class PlantImportService:
             else:
                 result["cultivation_details"] = f"Watering: {data['water_notes']}"
 
-        # Map water_label to moisture_preference if not already set (PictureThis)
-        if "water_label" in data and "moisture_preference" not in result:
+        # Map water_label to moisture_preference and water_schedule (PictureThis)
+        if "water_label" in data:
             wl = data["water_label"].lower()
-            if "daily" in wl or "every day" in wl or "every 2-3 days" in wl:
-                result["moisture_preference"] = "moist_wet"
-            elif "1-2 weeks" in wl or "once a week" in wl or "weekly" in wl or "every week" in wl:
-                result["moisture_preference"] = "moist"
-            elif "2-3 weeks" in wl or "infrequent" in wl or "every 2 weeks" in wl:
-                result["moisture_preference"] = "dry_moist"
-            elif "3-4 weeks" in wl or "rarely" in wl or "every 3 weeks" in wl or "monthly" in wl:
-                result["moisture_preference"] = "dry"
+            if "moisture_preference" not in result:
+                if "daily" in wl or "every day" in wl or "every 2-3 days" in wl:
+                    result["moisture_preference"] = "moist_wet"
+                elif "1-2 weeks" in wl or "once a week" in wl or "weekly" in wl or "every week" in wl:
+                    result["moisture_preference"] = "moist"
+                elif "2-3 weeks" in wl or "infrequent" in wl or "every 2 weeks" in wl:
+                    result["moisture_preference"] = "dry_moist"
+                elif "3-4 weeks" in wl or "rarely" in wl or "every 3 weeks" in wl or "monthly" in wl:
+                    result["moisture_preference"] = "dry"
+
+            # Generate water_schedule from water_label
+            if "water_schedule" not in result:
+                schedule = self._water_label_to_schedule(wl)
+                if schedule:
+                    result["water_schedule"] = schedule
+
+        # Map water_details to cultivation_details
+        if "water_details" in data and data["water_details"]:
+            existing = result.get("cultivation_details", "")
+            water_info = f"Watering details: {data['water_details']}"
+            if existing:
+                result["cultivation_details"] = f"{existing}\n\n{water_info}"
+            else:
+                result["cultivation_details"] = water_info
+
+        # Map fertilize_frequency_label to fertilize_schedule (PictureThis)
+        if "fertilize_frequency_label" in data:
+            fl = data["fertilize_frequency_label"].lower()
+            schedule = self._fertilize_label_to_schedule(fl)
+            if schedule:
+                result["fertilize_schedule"] = schedule
+
+        # Map fertilize_details to cultivation_details
+        if "fertilize_details" in data and data["fertilize_details"]:
+            existing = result.get("cultivation_details", "")
+            fert_info = f"Fertilizing: {data['fertilize_details']}"
+            if existing:
+                result["cultivation_details"] = f"{existing}\n\n{fert_info}"
+            else:
+                result["cultivation_details"] = fert_info
+
+        # Map prune_frequency_text and prune_details (PictureThis)
+        if "prune_frequency_text" in data and data["prune_frequency_text"]:
+            result["prune_frequency"] = data["prune_frequency_text"][:100]
+        if "prune_details" in data and data["prune_details"]:
+            existing = result.get("cultivation_details", "")
+            prune_info = f"Pruning: {data['prune_details']}"
+            if existing:
+                result["cultivation_details"] = f"{existing}\n\n{prune_info}"
+            else:
+                result["cultivation_details"] = prune_info
+
+        # Map harvest_frequency_label and harvest_details (PictureThis)
+        if "harvest_frequency_label" in data and data["harvest_frequency_label"]:
+            result["harvest_frequency"] = data["harvest_frequency_label"]
+        if "how_to_harvest" in data and data["how_to_harvest"] and "how_to_harvest" not in result:
+            result["how_to_harvest"] = convert_metric_measurements(data["how_to_harvest"])
 
         # Map soil_type to soil_requirements (PictureThis)
         if "soil_type" in data and data["soil_type"]:

@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.48.1] - 2026-01-29
+
+### Fixed
+- **PictureThis import missing care schedules** - Import now extracts watering schedules, fertilizing schedules, pruning frequency/techniques, and harvest frequency/details from PictureThis care pages
+  - Watering frequency labels (e.g., "Every 2-3 days") now generate seasonal water_schedule values
+  - Fertilizing frequency labels now generate seasonal fertilize_schedule values
+  - Pruning techniques and descriptions now populate prune_frequency field
+  - Harvest frequency and how-to-harvest instructions now populate their respective fields
+  - All care details also appended to cultivation_details for reference
+
 ## [1.48.0] - 2026-01-29
 
 ### Added
