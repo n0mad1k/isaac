@@ -135,6 +135,8 @@ function CalendarPage() {
   }
 
   const handleEditEvent = (event) => {
+    // Care projections are virtual entries - can't edit them
+    if (event.is_care_projection) return
     setEditingEvent(event)
     setShowEventModal(true)
   }
@@ -143,6 +145,9 @@ function CalendarPage() {
     // Accept either an event object or just an ID for backwards compatibility
     const eventObj = typeof eventOrId === 'object' ? eventOrId : null
     const eventId = eventObj ? eventObj.id : eventOrId
+
+    // Care projections are virtual entries - can't delete them
+    if (eventObj && eventObj.is_care_projection) return
 
     // Check if this is a recurring event
     if (eventObj && eventObj.is_recurring && eventObj.recurrence && eventObj.recurrence !== 'once') {
@@ -189,6 +194,8 @@ function CalendarPage() {
   }
 
   const handleToggleComplete = async (event) => {
+    // Care projections are virtual entries - can't toggle them
+    if (event.is_care_projection) return
     try {
       if (event.is_completed) {
         await uncompleteTask(event.id)

@@ -606,6 +606,9 @@ class CalendarSyncService:
                 if is_app_uid and task.calendar_uid not in calendar_uids:
                     if task.calendar_synced_at is not None:
                         task.is_active = False
+                        # Clear sync metadata so re-activation won't trigger false deletion detection
+                        task.calendar_synced_at = None
+                        task.calendar_uid = None
                         deleted_by_phone += 1
                         logger.info(f"Task '{task.title}' was deleted on phone, marking inactive")
                         continue

@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.45.3] - 2026-01-29
+
+### Fixed
+- **CalDAV sync re-deactivating tasks** - When sync marks a task as "deleted on phone", it now clears sync metadata (calendar_uid and calendar_synced_at) so re-activated tasks won't be falsely deactivated again on the next sync cycle
+- **Date format consistency** - Fixed 3 instances of unformatted toLocaleString() in MemberDossier and Settings pages to use MM/DD/YYYY format
+
+### Added
+- **Care schedule calendar projection** - Animal care tasks (e.g., "Feed Animals") now appear on future calendar dates in both month and week views, projected from care schedule frequency settings
+
 ## [1.45.2] - 2026-01-29
 
 ### Fixed

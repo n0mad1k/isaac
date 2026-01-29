@@ -1646,7 +1646,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 </div>
 
                 <div className="text-xs text-gray-500 text-right">
-                  Analyzed: {new Date(readinessAnalysis.analyzed_at).toLocaleString()}
+                  Analyzed: {new Date(readinessAnalysis.analyzed_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
             )}

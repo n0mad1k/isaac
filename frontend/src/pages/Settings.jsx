@@ -2654,7 +2654,7 @@ function Settings() {
                             })}
                           </div>
                           <p className="text-xs text-gray-500 mt-2">
-                            Last check: {new Date(healthSummary.latest.checked_at).toLocaleString()}
+                            Last check: {new Date(healthSummary.latest.checked_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       )}
@@ -2737,7 +2737,7 @@ function Settings() {
                             'bg-gray-800/50'
                           }`}>
                             <span className="text-gray-400 text-xs">
-                              {new Date(log.checked_at).toLocaleString()}
+                              {new Date(log.checked_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </span>
                             <span className={`font-medium ${
                               log.overall_status === 'healthy' ? 'text-green-400' :

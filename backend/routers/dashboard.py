@@ -893,6 +893,124 @@ async def get_calendar_month(
                 "recurrence": task.recurrence.value if task.recurrence else None,
             })
 
+    # Project care schedules into future calendar dates
+    # Care tasks (e.g., "Feed Animals") are generated daily by auto_reminders as ONCE tasks.
+    # This projection shows them on future dates where no task has been created yet.
+    animals_dict = {a.id: a for a in animals_list}
+    care_groups = {}
+    for schedule in care_schedules:
+        if not schedule.frequency_days:
+            continue
+        norm_name = schedule.name.lower().strip()
+        if norm_name not in care_groups:
+            care_groups[norm_name] = {
+                "schedules": [],
+                "display_name": schedule.name,
+                "due_time": None,
+                "frequency_days": schedule.frequency_days,
+            }
+        care_groups[norm_name]["schedules"].append(schedule)
+        if schedule.due_time and not care_groups[norm_name]["due_time"]:
+            care_groups[norm_name]["due_time"] = schedule.due_time
+
+    # Build set of existing care_group task dates to avoid duplicates
+    existing_care_dates = set()
+    for task in tasks:
+        if task.notes and "auto:care_group:" in task.notes:
+            match = re.search(r'auto:care_group:(\d{4}-\d{2}-\d{2})_(.+)', task.notes)
+            if match:
+                existing_care_dates.add(f"{match.group(1)}_{match.group(2).lower().strip()}")
+
+    care_proj_id = -10000
+    for care_name, group in care_groups.items():
+        schedules = group["schedules"]
+        freq = group["frequency_days"]
+
+        # Build title (same logic as auto_reminders)
+        animal_names = []
+        for s in schedules:
+            animal = animals_dict.get(s.animal_id)
+            if animal:
+                animal_names.append(animal.name)
+        if len(animal_names) == 1:
+            title = f"{animal_names[0]}: {group['display_name']}"
+        elif len(animal_names) > 1:
+            title = f"{group['display_name']}: {len(animal_names)} animals"
+        else:
+            title = group["display_name"]
+
+        # Compute linked location from animals' farm areas
+        loc_names = []
+        seen_areas = set()
+        for s in schedules:
+            animal = animals_dict.get(s.animal_id)
+            if animal and animal.farm_area_id and animal.farm_area_id not in seen_areas:
+                seen_areas.add(animal.farm_area_id)
+                if animal.farm_area_id in farm_areas:
+                    loc_names.append(farm_areas[animal.farm_area_id])
+        linked_location = ", ".join(loc_names) if loc_names else None
+
+        # Use earliest due_date from the group as projection base
+        base_due_date = None
+        for s in schedules:
+            s_due = s.due_date
+            if s_due and (base_due_date is None or s_due < base_due_date):
+                base_due_date = s_due
+        if not base_due_date:
+            continue
+
+        # Compute projection dates within range
+        proj_dates = []
+        if freq == 1:
+            current = max(base_due_date, start_date)
+            while current <= end_date:
+                proj_dates.append(current)
+                current += timedelta(days=1)
+        else:
+            if base_due_date >= start_date:
+                first = base_due_date
+            else:
+                days_behind = (start_date - base_due_date).days
+                intervals = (days_behind + freq - 1) // freq
+                first = base_due_date + timedelta(days=intervals * freq)
+            current = first
+            while current <= end_date:
+                proj_dates.append(current)
+                current += timedelta(days=freq)
+
+        description = ", ".join(animal_names) if len(animal_names) > 1 else None
+
+        for proj_date in proj_dates:
+            key = f"{proj_date.isoformat()}_{care_name}"
+            if key in existing_care_dates:
+                continue
+            date_str = proj_date.isoformat()
+            if date_str not in calendar:
+                calendar[date_str] = []
+            calendar[date_str].append({
+                "id": care_proj_id,
+                "title": title,
+                "task_type": "todo",
+                "category": "animal_care",
+                "priority": 2,
+                "is_completed": False,
+                "due_date": date_str,
+                "end_date": None,
+                "due_time": group["due_time"],
+                "end_time": None,
+                "location": None,
+                "description": description,
+                "linked_location": linked_location,
+                "linked_entity": None,
+                "is_multi_day": False,
+                "is_span_start": True,
+                "is_span_end": True,
+                "is_recurring": True,
+                "recurrence": "daily" if freq == 1 else None,
+                "is_care_projection": True,
+            })
+            care_proj_id -= 1
+
     # Sort each day's events by time
     for date_str in calendar:
         calendar[date_str].sort(key=lambda x: (x.get("due_time") or "99:99", x.get("priority", 2)))
@@ -1126,6 +1244,117 @@ async def get_calendar_week(
                 "is_recurring": True,  # Mark as recurring projection
                 "recurrence": task.recurrence.value if task.recurrence else None,
             })
+
+    # Project care schedules into future calendar dates
+    animals_dict = {a.id: a for a in animals_list}
+    care_groups = {}
+    for schedule in care_schedules:
+        if not schedule.frequency_days:
+            continue
+        norm_name = schedule.name.lower().strip()
+        if norm_name not in care_groups:
+            care_groups[norm_name] = {
+                "schedules": [],
+                "display_name": schedule.name,
+                "due_time": None,
+                "frequency_days": schedule.frequency_days,
+            }
+        care_groups[norm_name]["schedules"].append(schedule)
+        if schedule.due_time and not care_groups[norm_name]["due_time"]:
+            care_groups[norm_name]["due_time"] = schedule.due_time
+
+    existing_care_dates = set()
+    for task in tasks:
+        if task.notes and "auto:care_group:" in task.notes:
+            match = re.search(r'auto:care_group:(\d{4}-\d{2}-\d{2})_(.+)', task.notes)
+            if match:
+                existing_care_dates.add(f"{match.group(1)}_{match.group(2).lower().strip()}")
+
+    care_proj_id = -10000
+    for care_name, group in care_groups.items():
+        schedules = group["schedules"]
+        freq = group["frequency_days"]
+
+        animal_names = []
+        for s in schedules:
+            animal = animals_dict.get(s.animal_id)
+            if animal:
+                animal_names.append(animal.name)
+        if len(animal_names) == 1:
+            title = f"{animal_names[0]}: {group['display_name']}"
+        elif len(animal_names) > 1:
+            title = f"{group['display_name']}: {len(animal_names)} animals"
+        else:
+            title = group["display_name"]
+
+        loc_names = []
+        seen_areas = set()
+        for s in schedules:
+            animal = animals_dict.get(s.animal_id)
+            if animal and animal.farm_area_id and animal.farm_area_id not in seen_areas:
+                seen_areas.add(animal.farm_area_id)
+                if animal.farm_area_id in farm_areas:
+                    loc_names.append(farm_areas[animal.farm_area_id])
+        linked_location = ", ".join(loc_names) if loc_names else None
+
+        base_due_date = None
+        for s in schedules:
+            s_due = s.due_date
+            if s_due and (base_due_date is None or s_due < base_due_date):
+                base_due_date = s_due
+        if not base_due_date:
+            continue
+
+        proj_dates = []
+        if freq == 1:
+            current = max(base_due_date, start_date)
+            while current <= end_date:
+                proj_dates.append(current)
+                current += timedelta(days=1)
+        else:
+            if base_due_date >= start_date:
+                first = base_due_date
+            else:
+                days_behind = (start_date - base_due_date).days
+                intervals = (days_behind + freq - 1) // freq
+                first = base_due_date + timedelta(days=intervals * freq)
+            current = first
+            while current <= end_date:
+                proj_dates.append(current)
+                current += timedelta(days=freq)
+
+        description = ", ".join(animal_names) if len(animal_names) > 1 else None
+
+        for proj_date in proj_dates:
+            key = f"{proj_date.isoformat()}_{care_name}"
+            if key in existing_care_dates:
+                continue
+            date_str = proj_date.isoformat()
+            if date_str not in calendar:
+                calendar[date_str] = []
+            calendar[date_str].append({
+                "id": care_proj_id,
+                "title": title,
+                "task_type": "todo",
+                "category": "animal_care",
+                "priority": 2,
+                "is_completed": False,
+                "due_date": date_str,
+                "end_date": None,
+                "due_time": group["due_time"],
+                "end_time": None,
+                "location": None,
+                "description": description,
+                "linked_location": linked_location,
+                "linked_entity": None,
+                "is_multi_day": False,
+                "is_span_start": True,
+                "is_span_end": True,
+                "is_recurring": True,
+                "recurrence": "daily" if freq == 1 else None,
+                "is_care_projection": True,
+            })
+            care_proj_id -= 1
 
     # Sort each day's events by time
     for date_str in calendar:
