@@ -171,8 +171,10 @@ class PlantImportService:
             return await self.import_from_gardenia(url)
         elif self._is_allowed_domain(domain, "growables.org"):
             return await self.import_from_growables(url)
+        elif self._is_allowed_domain(domain, "picturethisai.com"):
+            return await self.import_from_picturethis(url)
         else:
-            raise ValueError(f"Unsupported source: {domain}. Supported: pfaf.org, gardenia.net, growables.org")
+            raise ValueError(f"Unsupported source: {domain}. Supported: pfaf.org, gardenia.net, growables.org, picturethisai.com")
 
     async def _fetch_pfaf_references(self, client: httpx.AsyncClient) -> Dict[str, str]:
         """Fetch and parse PFAF reference page, with caching"""
@@ -987,6 +989,341 @@ class PlantImportService:
             existing = data.get("cultivation", "")
             data["cultivation"] = f"{existing} Roots: {value}".strip()
 
+    def _unescape_js_string(self, html: str, var_name: str) -> Optional[str]:
+        """
+        Extract and unescape a JavaScript string variable from HTML.
+        Handles: window.detail = "..." or window.careDetails = "..."
+        Properly unescapes \\", \\\\, \\n, \\t, \\uXXXX, etc.
+        """
+        pattern = var_name.replace('.', r'\.') + r'\s*=\s*"'
+        start_match = re.search(pattern, html)
+        if not start_match:
+            return None
+        pos = start_match.end()
+        result = []
+        while pos < len(html):
+            c = html[pos]
+            if c == '\\':
+                pos += 1
+                if pos >= len(html):
+                    break
+                next_c = html[pos]
+                if next_c == '"':
+                    result.append('"')
+                elif next_c == '\\':
+                    result.append('\\')
+                elif next_c == '/':
+                    result.append('/')
+                elif next_c == "'":
+                    result.append("'")
+                elif next_c == 'n':
+                    result.append('\n')
+                elif next_c == 't':
+                    result.append('\t')
+                elif next_c == 'r':
+                    result.append('\r')
+                elif next_c == 'b':
+                    result.append('\b')
+                elif next_c == 'f':
+                    result.append('\f')
+                elif next_c == 'u':
+                    hex_str = html[pos+1:pos+5]
+                    if len(hex_str) == 4:
+                        try:
+                            result.append(chr(int(hex_str, 16)))
+                            pos += 4
+                        except ValueError:
+                            result.append('\\u')
+                    else:
+                        result.append('\\u')
+                else:
+                    result.append('\\')
+                    result.append(next_c)
+            elif c == '"':
+                break  # End of string
+            else:
+                result.append(c)
+            pos += 1
+        return ''.join(result)
+
+    def _strip_html(self, html_str: str) -> str:
+        """Strip HTML tags and return plain text."""
+        if not html_str:
+            return ""
+        soup = BeautifulSoup(html_str, "lxml")
+        text = soup.get_text(separator=' ')
+        return re.sub(r'\s+', ' ', text).strip()
+
+    async def import_from_picturethis(self, url: str) -> Dict[str, Any]:
+        """
+        Scrape plant data from PictureThis AI (picturethisai.com).
+        Supports /wiki/ and /care/ URLs. If given a /wiki/ URL, also fetches /care/ for extra data.
+        Data is embedded as double-encoded JSON in window.detail and window.careDetails.
+        """
+        parsed = urlparse(url)
+        path = parsed.path.rstrip('/')
+
+        # Normalize to get the latin name slug from any URL pattern
+        # /wiki/Citrus_limon.html, /care/Citrus_limon.html, /care/propagate/Citrus_limon.html
+        latin_slug = path.split('/')[-1].replace('.html', '')
+        wiki_url = f"https://www.picturethisai.com/wiki/{latin_slug}.html"
+        care_url = f"https://www.picturethisai.com/care/{latin_slug}.html"
+
+        pt_headers = {
+            **self.headers,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
+
+        data = {}
+        data["latin_name"] = latin_slug.replace('_', ' ')
+
+        async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+            # Fetch wiki page (primary data)
+            wiki_response = await client.get(wiki_url, headers=pt_headers)
+            wiki_response.raise_for_status()
+            self._validate_response_url(wiki_response, "picturethisai.com")
+
+            wiki_json = self._unescape_js_string(wiki_response.text, 'window.detail')
+            if wiki_json:
+                try:
+                    wiki_data = json.loads(wiki_json)
+                    self._parse_picturethis_wiki(data, wiki_data)
+                except json.JSONDecodeError as e:
+                    logger.warning(f"PictureThis wiki JSON parse error: {e}")
+
+            # Fetch care page (supplementary data)
+            try:
+                care_response = await client.get(care_url, headers=pt_headers)
+                care_response.raise_for_status()
+                self._validate_response_url(care_response, "picturethisai.com")
+
+                care_json = self._unescape_js_string(care_response.text, 'window.careDetails')
+                if care_json:
+                    try:
+                        care_data = json.loads(care_json)
+                        self._parse_picturethis_care(data, care_data)
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"PictureThis care JSON parse error: {e}")
+            except Exception as e:
+                logger.warning(f"PictureThis care page fetch failed: {e}")
+
+        # Add source reference
+        data["references"] = f"Source: {wiki_url}"
+
+        logger.debug(f"PictureThis parsed data: {data}")
+        return self._map_to_plant_model(data, wiki_url)
+
+    def _parse_picturethis_wiki(self, data: Dict, wiki: Dict):
+        """Parse PictureThis wiki page JSON data."""
+        # Common name
+        if wiki.get('displayName'):
+            data['name'] = wiki['displayName']
+
+        # Description
+        basic_info = wiki.get('basicInfo', {})
+        if basic_info.get('descriptionValue'):
+            data['description'] = basic_info['descriptionValue']
+
+        # Family from taxonomy
+        for entry in basic_info.get('taxonomyList', []):
+            if entry.get('type') == 'Family':
+                # Name might be common family name like "Rue", extract from link
+                link = entry.get('link', '')
+                if link:
+                    # /wiki/Rutaceae.html -> Rutaceae
+                    family = link.split('/')[-1].replace('.html', '')
+                    data['family'] = family
+                elif entry.get('name'):
+                    data['family'] = entry['name']
+
+        # Key facts
+        for kf in basic_info.get('keyFactsConfigs', []):
+            name = kf.get('name', '')
+            title = kf.get('title', '')
+            value = kf.get('value')
+            if value is None or value == '?':
+                continue
+
+            # Strip HTML if value contains tags
+            if isinstance(value, str) and '<' in value:
+                value = self._strip_html(value)
+            if not value:
+                continue
+
+            if 'PlantHeight' in name or title == 'Plant Height':
+                data['height'] = value
+            elif 'CrownDiameter' in name or title == 'Spread':
+                data['width'] = value
+            elif 'HarvestTime' in name or title == 'Harvest Time':
+                data['produces_months'] = value
+            elif 'PreferredTemperature' in name or title == 'Ideal Temperature':
+                self._parse_picturethis_temperature(data, value)
+            elif 'PlantEvergreen' in name or title == 'Leaf type':
+                if 'evergreen' in value.lower():
+                    data['evergreen'] = True
+            elif title == 'Toxicity':
+                if 'toxic' in value.lower():
+                    data['toxicity_note'] = value
+            elif title == 'Plant Type':
+                data['plant_type'] = value
+            elif title == 'Lifespan':
+                data['lifespan'] = value
+
+        # Care guide labels (quick reference)
+        care_guide = wiki.get('careGuide', {})
+        for label in care_guide.get('labels', []):
+            title = label.get('title', '')
+            value = label.get('value', '')
+            if not value:
+                continue
+
+            if title == 'Water':
+                data['water_label'] = value
+            elif title == 'Sunlight':
+                self._parse_picturethis_sunlight(data, value)
+            elif title == 'Ideal Temperature' and 'min_temp' not in data:
+                self._parse_picturethis_temperature(data, value)
+
+        # Care guide summaries (detailed text)
+        for summary in care_guide.get('summarys', []):
+            title = summary.get('title', '')
+            value = self._strip_html(summary.get('value', ''))
+            if not value:
+                continue
+
+            if title == 'Water':
+                data['water_notes'] = value[:500]
+            elif title == 'Fertilize':
+                existing = data.get('cultivation', '')
+                data['cultivation'] = f"{existing}\n\nFertilizing: {value[:500]}".strip()
+            elif title == 'Pruning':
+                existing = data.get('cultivation', '')
+                data['cultivation'] = f"{existing}\n\nPruning: {value[:500]}".strip()
+            elif title == 'Propagation':
+                data['propagation_text'] = value[:500]
+
+        # Distribution
+        dist = wiki.get('distribution', {})
+        if dist.get('habitat'):
+            data['habitat'] = dist['habitat']
+        if dist.get('nativeRange'):
+            data['native_range'] = dist['nativeRange']
+
+        # Toxicity
+        toxic = wiki.get('toxic', {})
+        if toxic.get('summary'):
+            toxicity_text = self._strip_html(toxic['summary'])
+            if toxicity_text:
+                data['known_hazards'] = toxicity_text
+
+        # Culture info (uses)
+        culture = wiki.get('cultureInfo', {})
+        uses_parts = []
+        for item in culture.get('list', []):
+            title = item.get('title', '')
+            value = item.get('value', '')
+            if not value or title in ['Symbolism', 'Interesting Facts']:
+                continue
+            if isinstance(value, str) and '<' in value:
+                value = self._strip_html(value)
+            if value:
+                uses_parts.append(f"{title}: {value}")
+        if uses_parts:
+            data['culture_uses'] = '; '.join(uses_parts)
+
+    def _parse_picturethis_care(self, data: Dict, care: Dict):
+        """Parse PictureThis care page JSON data."""
+        # Essential care tips
+        essential = care.get('essentialCareTips', {})
+        for item in essential.get('list', []):
+            title = item.get('title', '')
+            value = item.get('value', '')
+            if not value or value == '?':
+                continue
+            # Strip HTML if present
+            if isinstance(value, str) and '<' in value:
+                value = self._strip_html(value)
+
+            if title == 'Hardiness Zones':
+                data['grow_zones'] = value
+            elif title == 'Soil pH' and 'soil_ph' not in data:
+                data['soil_ph'] = value
+            elif title == 'Planting Time':
+                data['planting_time'] = value
+            elif title == 'Toughness':
+                if value.lower() == 'high':
+                    data['drought_tolerant'] = True
+
+        # How-tos: extract labels for structured data
+        for howto in care.get('howTos', []):
+            title = howto.get('title', '').lower()
+            labels = {l.get('title', ''): l.get('value', '') for l in howto.get('labels', []) if l.get('value')}
+
+            if 'water' in title:
+                if 'Watering schedule' in labels and 'water_label' not in data:
+                    data['water_label'] = labels['Watering schedule']
+            elif 'sunlight' in title:
+                if 'Sunlight Requirements' in labels and 'sun_requirement' not in data:
+                    self._parse_picturethis_sunlight(data, labels['Sunlight Requirements'])
+            elif 'temperature' in title:
+                if 'Temperature Tolerance' in labels:
+                    self._parse_picturethis_temp_tolerance(data, labels['Temperature Tolerance'])
+                if 'Ideal Temperature' in labels and 'ideal_temp' not in data:
+                    self._parse_picturethis_temperature(data, labels['Ideal Temperature'])
+            elif 'soil' in title:
+                if 'Soil Composition' in labels:
+                    data['soil_type'] = labels['Soil Composition']
+                if 'Soil pH' in labels and 'soil_ph' not in data:
+                    data['soil_ph'] = labels['Soil pH']
+            elif 'prune' in title or 'pruning' in title:
+                if 'Pruning Time' in labels:
+                    data['prune_months'] = labels['Pruning Time']
+            elif 'propagat' in title:
+                if 'Propagation Type' in labels:
+                    data['propagation_methods'] = labels['Propagation Type']
+                if 'Propagation Time' in labels:
+                    existing = data.get('propagation_text', '')
+                    if existing:
+                        data['propagation_text'] = f"{existing} Best time: {labels['Propagation Time']}."
+            elif 'plant' in title and 'transplant' not in title and 'repot' not in title:
+                if 'Planting Time' in labels and 'planting_time' not in data:
+                    data['planting_time'] = labels['Planting Time']
+
+    def _parse_picturethis_sunlight(self, data: Dict, value: str):
+        """Parse sunlight requirement from PictureThis."""
+        lower = value.lower()
+        if 'full sun' in lower and 'partial' not in lower:
+            data['sun_requirement'] = 'full_sun'
+        elif 'partial sun' in lower or ('full sun' in lower and 'partial' in lower):
+            data['sun_requirement'] = 'partial_sun'
+        elif 'partial shade' in lower:
+            data['sun_requirement'] = 'partial_shade'
+        elif 'full shade' in lower:
+            data['sun_requirement'] = 'full_shade'
+
+    def _parse_picturethis_temperature(self, data: Dict, value: str):
+        """Parse temperature range from PictureThis (e.g., '20 - 38 ℃')."""
+        # Match patterns like "20 - 38 ℃" or "20-38℃"
+        match = re.search(r'(-?\d+)\s*[-–]\s*(-?\d+)\s*℃', value)
+        if match:
+            low_c = int(match.group(1))
+            high_c = int(match.group(2))
+            data['ideal_temp'] = f"{celsius_to_fahrenheit(low_c)}-{celsius_to_fahrenheit(high_c)}°F"
+
+    def _parse_picturethis_temp_tolerance(self, data: Dict, value: str):
+        """Parse temperature tolerance from PictureThis care page (e.g., '0 - 43 ℃')."""
+        match = re.search(r'(-?\d+)\s*[-–]\s*(-?\d+)\s*℃', value)
+        if match:
+            low_c = int(match.group(1))
+            high_c = int(match.group(2))
+            data['min_temp'] = celsius_to_fahrenheit(low_c)
+            # If can't survive below freezing, it's frost sensitive
+            if low_c >= 0:
+                data['frost_sensitive'] = True
+            else:
+                data['frost_sensitive'] = False
+
     def _extract_moisture_preference(self, text: str) -> Optional[str]:
         """
         Extract moisture preference from text.
@@ -1252,9 +1589,9 @@ class PlantImportService:
         if "size_full_grown" not in result:
             parts = []
             if "height" in data and data["height"]:
-                parts.append(f"Height: {data['height']}")
+                parts.append(f"Height: {convert_metric_measurements(data['height'])}")
             if "width" in data and data["width"]:
-                parts.append(f"Spread: {data['width']}")
+                parts.append(f"Spread: {convert_metric_measurements(data['width'])}")
             if parts:
                 result["size_full_grown"] = "; ".join(parts)
 
@@ -1267,9 +1604,68 @@ class PlantImportService:
             # Also append watering info to cultivation_details
             existing = result.get("cultivation_details", "")
             if existing:
-                result["cultivation_details"] = f"{existing}; Watering: {data['water_notes']}"
+                result["cultivation_details"] = f"{existing}\n\nWatering: {data['water_notes']}"
             else:
                 result["cultivation_details"] = f"Watering: {data['water_notes']}"
+
+        # Map water_label to moisture_preference if not already set (PictureThis)
+        if "water_label" in data and "moisture_preference" not in result:
+            wl = data["water_label"].lower()
+            if "daily" in wl or "every day" in wl or "every 2-3 days" in wl:
+                result["moisture_preference"] = "moist_wet"
+            elif "1-2 weeks" in wl or "once a week" in wl or "weekly" in wl or "every week" in wl:
+                result["moisture_preference"] = "moist"
+            elif "2-3 weeks" in wl or "infrequent" in wl or "every 2 weeks" in wl:
+                result["moisture_preference"] = "dry_moist"
+            elif "3-4 weeks" in wl or "rarely" in wl or "every 3 weeks" in wl or "monthly" in wl:
+                result["moisture_preference"] = "dry"
+
+        # Map soil_type to soil_requirements (PictureThis)
+        if "soil_type" in data and data["soil_type"]:
+            existing = result.get("soil_requirements", "")
+            soil_info = f"Soil: {data['soil_type']}"
+            if existing:
+                result["soil_requirements"] = f"{soil_info}; {existing}"
+            else:
+                result["soil_requirements"] = soil_info
+
+        # Map prune_months (PictureThis care page)
+        if "prune_months" in data and data["prune_months"]:
+            result["prune_months"] = data["prune_months"]
+
+        # Map propagation_text to propagation_methods if not already set
+        if "propagation_text" in data and "propagation_methods" not in result:
+            prop_text = data["propagation_text"].lower()
+            methods = []
+            if "seed" in prop_text or "sowing" in prop_text:
+                methods.append("seed")
+            if "cutting" in prop_text:
+                methods.append("cuttings")
+            if "layer" in prop_text:
+                methods.append("layering")
+            if "graft" in prop_text:
+                methods.append("grafting")
+            if "division" in prop_text:
+                methods.append("division")
+            if methods:
+                result["propagation_methods"] = ", ".join(methods)
+
+        # Map culture_uses to uses (PictureThis)
+        if "culture_uses" in data and data["culture_uses"]:
+            existing = result.get("uses", "")
+            if existing:
+                result["uses"] = f"{existing}; {data['culture_uses']}"
+            else:
+                result["uses"] = data["culture_uses"]
+
+        # Map planting_time to cultivation_details (PictureThis)
+        if "planting_time" in data and data["planting_time"]:
+            existing = result.get("cultivation_details", "")
+            planting_info = f"Planting time: {data['planting_time']}"
+            if existing:
+                result["cultivation_details"] = f"{planting_info}\n\n{existing}"
+            else:
+                result["cultivation_details"] = planting_info
 
         logger.debug(f"Mapped plant data: {result}")
         return result

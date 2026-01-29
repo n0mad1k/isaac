@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.46.0] - 2026-01-29
+
+### Added
+- **PictureThis.ai plant import** - New import source at picturethisai.com, extracting 16-18 fields per plant including description, growing zones, sun/moisture requirements, soil composition & pH, temperature tolerance, frost sensitivity, propagation methods, pruning time, harvest season, toxicity warnings, and uses
+  - Supports all URL patterns: /wiki/, /care/, /care/propagate/, /care/pruning/
+  - Combines data from both wiki page and care page for maximum field coverage
+  - Proper JavaScript string unescaping for embedded JSON data extraction
+  - Metric-to-imperial conversion for all height/spread/temperature values
+
 ## [1.45.5] - 2026-01-29
 
 ### Fixed

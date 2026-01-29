@@ -7,7 +7,8 @@
 2. Read the FULL item description before starting - items often have multiple requirements
 3. Mark each sub-task as you complete it
 4. Do NOT move items to testing until ALL sub-tasks are done
-5. If an item has a fail_count > 0 or [COLLAB] flag, ASK the user before proceeding
+5. If an item has a [COLLAB] flag, ASK the user before proceeding
+6. If an item has fail_count > 0, read the fail_note and fix it autonomously
 
 ## Autonomous/Overnight Mode
 
@@ -107,10 +108,21 @@
 
 ## Dev Tracker Workflow
 
-**After completing each task, check the dev tracker for new items:**
+**EVERY TIME you finish a task, you MUST run this command to get a FRESH list:**
 ```bash
 /home/n0mad1k/Tools/levi/scripts/dev-tracker.sh list
 ```
+Do NOT rely on a cached/previous list. ALWAYS pull fresh. New items may have been added since you last checked.
+
+**Continuous work loop:** After finishing a task:
+1. Run `dev-tracker.sh list` (EVERY time — no exceptions)
+2. Pick the highest priority pending item that is NOT `[COLLAB]`
+3. Work on it, deploy, move to testing
+4. Go back to step 1
+
+Keep going until:
+- No pending items remain, OR
+- All remaining items are `[COLLAB]` (which need user)
 
 The dev tracker is the source of truth for pending features, bugs, and improvements. Items are prioritized as: critical > high > medium > low. Work on items in priority order.
 
@@ -128,8 +140,9 @@ When the user asks you to work on something that's NOT already in the dev tracke
 - Items with `fail_count > 0` mean a PREVIOUS ATTEMPT FAILED - they are NOT fixed
 - NEVER assume a failed item is "already done" or "already fixed"
 - You MUST actually implement the fix and test it before moving to testing
-- The fail_note explains what went wrong in the previous attempt
+- The fail_note explains what went wrong in the previous attempt — use it to guide your fix
 - Do not say "this should already be fixed" for failed items - it clearly wasn't
+- Failed items with fail notes do NOT need user involvement — read the notes and fix autonomously
 
 **[COLLAB] Flag - IMPORTANT:**
 Items marked `[COLLAB]` require interactive step-by-step fixing WITH the user. Do NOT attempt to fix these autonomously.
