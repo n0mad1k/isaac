@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.43.5] - 2026-01-28
+
+### Fixed
+- **Recurring events now display on all occurrences in calendar views** - Fixed both month and week views
+  - Recurring tasks starting within the view range (not just before it) are now projected correctly
+  - Tasks with future start dates no longer project backwards before their start date
+  - Original due date no longer duplicated alongside projected occurrences
+
 ## [1.43.4] - 2026-01-28
 
 ### Fixed

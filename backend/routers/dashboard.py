@@ -759,12 +759,13 @@ async def get_calendar_month(
     tasks = result.scalars().all()
 
     # Also fetch recurring tasks that might project into this date range
+    # Include tasks starting before OR within the range (they project forward from due_date)
     result = await db.execute(
         select(Task)
         .where(Task.recurrence != TaskRecurrence.ONCE)
         .where(Task.is_active == True)
         .where(Task.assigned_to_worker_id.is_(None))
-        .where(Task.due_date < start_date)  # Only past recurring events
+        .where(Task.due_date <= end_date)
     )
     recurring_tasks = result.scalars().all()
 
@@ -772,6 +773,9 @@ async def get_calendar_month(
     import calendar as cal
     def get_recurring_date_in_range(task, target_date):
         if not task.due_date or not task.recurrence:
+            return None
+        # Don't project before the task's start date
+        if target_date < task.due_date:
             return None
         original_weekday = task.due_date.weekday()
         original_day = task.due_date.day
@@ -792,12 +796,12 @@ async def get_calendar_month(
             return target_date
         return None
 
-    # Project recurring tasks into the date range
+    # Project recurring tasks into the date range (skip the original due_date since it's in the main query)
     projected_tasks = []
     current_date = start_date
     while current_date <= end_date:
         for task in recurring_tasks:
-            if get_recurring_date_in_range(task, current_date):
+            if current_date != task.due_date and get_recurring_date_in_range(task, current_date):
                 projected_tasks.append((task, current_date))
         current_date += timedelta(days=1)
 
@@ -972,7 +976,7 @@ async def get_calendar_week(
         .where(Task.recurrence != TaskRecurrence.ONCE)
         .where(Task.is_active == True)
         .where(Task.assigned_to_worker_id.is_(None))
-        .where(Task.due_date < start_date)  # Only past recurring events
+        .where(Task.due_date <= end_date)  # Past recurring AND those starting within range
     )
     recurring_tasks = result.scalars().all()
 
@@ -980,6 +984,10 @@ async def get_calendar_week(
     def get_recurring_date_in_range(task, target_date):
         """Check if this recurring task should appear on target_date"""
         if not task.due_date or not task.recurrence:
+            return None
+
+        # Don't project before the task's start date
+        if target_date < task.due_date:
             return None
 
         original_weekday = task.due_date.weekday()
@@ -1014,7 +1022,8 @@ async def get_calendar_week(
     current_date = start_date
     while current_date <= end_date:
         for task in recurring_tasks:
-            if get_recurring_date_in_range(task, current_date):
+            # Skip original due_date to avoid duplicates (it's already in the main query)
+            if current_date != task.due_date and get_recurring_date_in_range(task, current_date):
                 # Create a "virtual" instance for this date
                 projected_tasks.append((task, current_date))
         current_date += timedelta(days=1)
