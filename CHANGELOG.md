@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.43.6] - 2026-01-28
+
+### Fixed
+- **Sprinkler plants now reliably marked as watered on schedule days**
+  - Decoupled sprinkler watering check from weather station fetch — sprinklers now run even when weather data is unavailable
+  - Fixed timezone handling to use app-configured timezone instead of system time for schedule evaluation
+
 ## [1.43.5] - 2026-01-28
 
 ### Fixed

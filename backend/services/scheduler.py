@@ -490,7 +490,7 @@ class SchedulerService:
         logger.info("Scheduler stopped")
 
     async def poll_weather(self):
-        """Fetch and store current weather, check for alerts"""
+        """Fetch and store current weather, check for alerts, and run auto-watering"""
         logger.debug("Polling weather station...")
         try:
             data = await self.weather_service.fetch_current_weather()
@@ -499,14 +499,19 @@ class SchedulerService:
                     reading = await self.weather_service.save_reading(db, data)
                     # Check for alerts (creates dashboard alerts, email handled by sunset scheduler)
                     await self.weather_service.check_alerts(db, reading)
-
-                    # Check for rain-based auto watering
-                    from services.auto_watering import run_auto_watering_check
-                    watering_stats = await run_auto_watering_check(db)
-                    if watering_stats.get("rain_watered") or watering_stats.get("sprinkler_watered"):
-                        logger.info(f"Auto watering: {watering_stats}")
         except Exception as e:
             logger.error(f"Error polling weather: {e}")
+
+        # Auto-watering runs independently of weather fetch success
+        # Sprinkler schedules must be checked even if weather station is offline
+        try:
+            from services.auto_watering import run_auto_watering_check
+            async with async_session() as db:
+                watering_stats = await run_auto_watering_check(db)
+                if watering_stats.get("rain_watered") or watering_stats.get("sprinkler_watered"):
+                    logger.info(f"Auto watering: {watering_stats}")
+        except Exception as e:
+            logger.error(f"Error in auto-watering check: {e}")
 
     async def send_daily_digest(self):
         """Send daily digest email with verse of the day, tasks and weather"""

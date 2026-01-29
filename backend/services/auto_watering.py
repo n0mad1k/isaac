@@ -11,12 +11,14 @@ immediately on any rainy day.
 """
 
 import logging
+import pytz
 from datetime import datetime, date, timedelta
 from typing import Dict, Optional, List, Tuple
 
 from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings
 from models.plants import Plant
 from models.weather import WeatherReading
 from models.settings import AppSetting
@@ -321,7 +323,8 @@ async def check_sprinkler_watering(db: AsyncSession) -> Dict[str, int]:
     )
     sprinkler_plants = result.scalars().all()
 
-    now = datetime.now()
+    tz = pytz.timezone(settings.timezone)
+    now = datetime.now(tz)
     today = now.date()
     current_weekday = now.weekday()  # Monday=0, Sunday=6
     current_time = now.strftime("%H:%M")
@@ -354,9 +357,10 @@ async def check_sprinkler_watering(db: AsyncSession) -> Dict[str, int]:
             stats["skipped"] += 1
             continue
 
-        # Mark as watered (update both last_watered and last_watering_decision for consistency)
-        plant.last_watered = now
-        plant.last_watering_decision = now
+        # Mark as watered (store as naive datetime for DB consistency)
+        naive_now = now.replace(tzinfo=None)
+        plant.last_watered = naive_now
+        plant.last_watering_decision = naive_now
         stats["sprinkler_watered"] += 1
         logger.info(f"Sprinkler watered: {plant.name} (schedule: {plant.sprinkler_schedule})")
 
