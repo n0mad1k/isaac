@@ -38,7 +38,7 @@ GARDEN_PHOTO_DIR = "data/garden_photos"
 # Load companion planting data at module level
 try:
     COMPANION_DATA = json.loads(
-        (Path(__file__).parent.parent / "data" / "companion_planting.json").read_text()
+        (Path(__file__).parent.parent / "services" / "companion_planting.json").read_text()
     )
 except Exception as e:
     logger.warning(f"Failed to load companion planting data: {e}")
