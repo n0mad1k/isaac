@@ -234,7 +234,7 @@ async def enrich_plant(plant_id, name, latin_name, db_path, dry_run=False, downl
         if new_val is not None and (current_val is None or current_val == ""):
             # Handle enum fields that need string conversion
             if field in ("sun_requirement", "moisture_preference", "growth_rate"):
-                updates[field] = str(new_val) if new_val else None
+                updates[field] = str(new_val).upper() if new_val else None
             elif field in ("frost_sensitive", "drought_tolerant"):
                 updates[field] = 1 if new_val else 0
             elif field == "min_temp":

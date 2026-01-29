@@ -1,11 +1,9 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
-import Plants from './pages/Plants'
+import Garden from './pages/Garden'
 import Animals from './pages/Animals'
-import ToDo from './pages/ToDo'
-import Seeds from './pages/Seeds'
-import CalendarPage from './pages/CalendarPage'
+import ToDo from './pages/ToDo'import CalendarPage from './pages/CalendarPage'
 import Settings from './pages/Settings'
 import HomeMaintenance from './pages/HomeMaintenance'
 import Vehicles from './pages/Vehicles'
@@ -58,8 +56,9 @@ function ProtectedRoutes() {
             <Route index element={<Dashboard />} />
             <Route path="todo" element={<ToDo />} />
             <Route path="calendar" element={<CalendarPage />} />
-            <Route path="plants" element={<Plants />} />
-            <Route path="seeds" element={<Seeds />} />
+            <Route path="garden" element={<Garden />} />
+            <Route path="plants" element={<Navigate to="/garden" replace />} />
+            <Route path="seeds" element={<Navigate to="/garden" replace />} />
             <Route path="animals" element={<Animals />} />
             <Route path="home-maintenance" element={<HomeMaintenance />} />
             <Route path="vehicles" element={<Vehicles />} />

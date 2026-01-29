@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.49.0] - 2026-01-29
+
+### Added
+- **Garden page** - Merged Plants and Seeds into a single "Garden" page with tab navigation. One nav icon, switch between Plants and Seeds with tabs at the top. Old `/plants` and `/seeds` URLs redirect to `/garden`
+
 ## [1.48.4] - 2026-01-29
 
 ### Fixed
