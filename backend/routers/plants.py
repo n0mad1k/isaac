@@ -627,7 +627,8 @@ async def get_water_overview(
 
     for p in all_plants:
         next_water = p.next_watering
-        if next_water and next_water <= now:
+        # Sprinkler plants are handled automatically - don't show as "needs water"
+        if next_water and next_water <= now and not p.sprinkler_enabled:
             needs_water.append({
                 "id": p.id,
                 "name": p.name,

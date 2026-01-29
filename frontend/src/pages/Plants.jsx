@@ -325,7 +325,7 @@ function Plants() {
     let matchesSpecial = filterSpecial === 'all'
     if (filterSpecial === 'frost_sensitive') matchesSpecial = plant.frost_sensitive
     if (filterSpecial === 'drought_tolerant') matchesSpecial = plant.drought_tolerant
-    if (filterSpecial === 'needs_water') matchesSpecial = plant.next_watering && new Date(plant.next_watering) <= new Date()
+    if (filterSpecial === 'needs_water') matchesSpecial = plant.next_watering && new Date(plant.next_watering) <= new Date() && !plant.sprinkler_enabled
     if (filterSpecial === 'needs_fertilizer') matchesSpecial = plant.next_fertilizing && new Date(plant.next_fertilizing) <= new Date()
 
     return matchesSearch && matchesTag && matchesSpecial
@@ -458,7 +458,7 @@ function Plants() {
   const stats = {
     total: plants.length,
     frostSensitive: plants.filter(p => p.frost_sensitive).length,
-    needsWater: plants.filter(p => p.next_watering && new Date(p.next_watering) <= new Date()).length,
+    needsWater: plants.filter(p => p.next_watering && new Date(p.next_watering) <= new Date() && !p.sprinkler_enabled).length,
     needsFertilizer: plants.filter(p => p.next_fertilizing && new Date(p.next_fertilizing) <= new Date()).length,
   }
 
@@ -1105,7 +1105,7 @@ function PlantCard({
                 <Thermometer className="w-4 h-4" />
               </span>
             )}
-            {plant.next_watering && new Date(plant.next_watering) <= new Date() && (
+            {plant.next_watering && new Date(plant.next_watering) <= new Date() && !plant.sprinkler_enabled && (
               <span title="Needs Water" className="text-cyan-400">
                 <Droplets className="w-4 h-4" />
               </span>

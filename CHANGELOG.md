@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.43.4] - 2026-01-28
+
+### Fixed
+- **Sprinkler plants no longer show as "needs water"** - Plants with sprinkler enabled are handled automatically and excluded from:
+  - Water overview "Needs Water Now" list
+  - "Needs Water Today" filter on Plants page
+  - Needs-water stat counter on Plants page
+  - Water droplet icon on individual plant cards
+  - Auto-generated watering reminders/tasks
+
 ## [1.43.3] - 2026-01-28
 
 ### Changed

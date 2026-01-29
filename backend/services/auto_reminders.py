@@ -880,8 +880,8 @@ async def sync_all_plant_reminders(db: AsyncSession) -> Dict[str, int]:
     for plant in plants:
         location = plant.location or "Unknown Location"
 
-        # Group watering
-        if plant.next_watering:
+        # Group watering (skip sprinkler plants - they're handled automatically)
+        if plant.next_watering and not plant.sprinkler_enabled:
             next_water_date = plant.next_watering.date() if isinstance(plant.next_watering, datetime) else plant.next_watering
             key = (next_water_date, location)
             watering_groups[key].append(plant)
