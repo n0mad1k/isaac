@@ -75,6 +75,7 @@ class Plant(Base):
 
     # Growing requirements
     grow_zones = Column(String(50))  # e.g., "9-11"
+    plant_zone = Column(String(10))  # Per-plant USDA zone override (e.g., "9b" for greenhouse plants)
     sun_requirement = Column(Enum(SunRequirement), default=SunRequirement.FULL_SUN)
     soil_requirements = Column(String(200))  # e.g., "Well-drained, acidic pH 5.5-6.5"
     plant_spacing = Column(String(100))  # e.g., "15-20 feet apart"
@@ -188,9 +189,11 @@ class Plant(Base):
         # 2. Calculate from moisture preference
         if self.moisture_preference:
             from services.watering_calculator import calculate_watering_interval
+            # Per-plant zone overrides global zone
+            effective_zone = self.plant_zone or usda_zone or "7a"
             return calculate_watering_interval(
                 self.moisture_preference.value,
-                usda_zone or "7a",
+                effective_zone,
                 season
             )
 

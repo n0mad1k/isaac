@@ -936,6 +936,7 @@ function PlantCard({
         sub_location: plant.sub_location || '',
         source: plant.source || '',
         grow_zones: plant.grow_zones || '',
+        plant_zone: plant.plant_zone || '',
         sun_requirement: plant.sun_requirement || 'full_sun',
         soil_requirements: plant.soil_requirements || '',
         plant_spacing: plant.plant_spacing || '',
@@ -1021,6 +1022,7 @@ function PlantCard({
       sub_location: plant.sub_location || '',
       source: plant.source || '',
       grow_zones: plant.grow_zones || '',
+      plant_zone: plant.plant_zone || '',
       sun_requirement: plant.sun_requirement || 'full_sun',
       soil_requirements: plant.soil_requirements || '',
       plant_spacing: plant.plant_spacing || '',
@@ -1232,6 +1234,7 @@ function PlantCard({
             <h4 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <EditableField label="Grow Zones" value={editData.grow_zones} field="grow_zones" onChange={handleFieldChange} placeholder="e.g., 9-11" editing={isEditing} />
+              <EditableField label="Plant Zone" value={editData.plant_zone} field="plant_zone" type="select" options={[{value: '', label: 'Use global zone'}, ...['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b','6a','6b','7a','7b','8a','8b','9a','9b','10a','10b','11a','11b','12a','12b','13a','13b'].map(z => ({value: z, label: `Zone ${z}`}))]} onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Sun Requirement" value={editData.sun_requirement} field="sun_requirement" type="select" options={SUN_OPTIONS} onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Growth Rate" value={editData.growth_rate} field="growth_rate" type="select" options={GROWTH_RATE_OPTIONS} onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Soil Requirements" value={editData.soil_requirements} field="soil_requirements" onChange={handleFieldChange} placeholder="e.g., Well-drained" editing={isEditing} />
@@ -1518,6 +1521,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
     sub_location: initialData?.sub_location || '',
     source: initialData?.source || '',
     grow_zones: initialData?.grow_zones || '',
+    plant_zone: initialData?.plant_zone || '',
     sun_requirement: initialData?.sun_requirement || 'full_sun',
     soil_requirements: initialData?.soil_requirements || '',
     plant_spacing: initialData?.plant_spacing || '',
@@ -1692,6 +1696,19 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                   placeholder="e.g., 9-11"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Plant Zone</label>
+                <select
+                  value={formData.plant_zone}
+                  onChange={(e) => setFormData({ ...formData, plant_zone: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  <option value="">Use global zone</option>
+                  {['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b','6a','6b','7a','7b','8a','8b','9a','9b','10a','10b','11a','11b','12a','12b','13a','13b'].map(z => (
+                    <option key={z} value={z}>Zone {z}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Sun Requirement</label>
@@ -2375,6 +2392,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
     sub_location: '',
     source: '',
     grow_zones: '',
+    plant_zone: '',
     sun_requirement: 'full_sun',
     soil_requirements: '',
     plant_spacing: '',
@@ -2421,6 +2439,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
         sub_location: existingPlant.sub_location || '',
         source: existingPlant.source || '',
         grow_zones: existingPlant.grow_zones || '',
+        plant_zone: existingPlant.plant_zone || '',
         sun_requirement: existingPlant.sun_requirement || 'full_sun',
         soil_requirements: existingPlant.soil_requirements || '',
         plant_spacing: existingPlant.plant_spacing || '',
@@ -2850,6 +2869,19 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                   placeholder="e.g., 9-11"
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Plant Zone</label>
+                <select
+                  value={formData.plant_zone}
+                  onChange={(e) => setFormData({ ...formData, plant_zone: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  <option value="">Use global zone</option>
+                  {['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b','6a','6b','7a','7b','8a','8b','9a','9b','10a','10b','11a','11b','12a','12b','13a','13b'].map(z => (
+                    <option key={z} value={z}>Zone {z}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Sun Requirement</label>

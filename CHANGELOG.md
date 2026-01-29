@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.44.0] - 2026-01-28
+
+### Added
+- **Per-plant USDA zone override** - Each plant can now have its own zone for watering calculations
+  - New "Plant Zone" dropdown in plant forms and detail view
+  - Select a zone (1a through 13b) or leave as "Use global zone" for the farm's default
+  - Plants in different microclimates (greenhouse, shade structure) get zone-appropriate watering intervals
+  - Smart watering decisions use per-plant zone when set, falling back to global setting
+
 ## [1.43.7] - 2026-01-28
 
 ### Fixed

@@ -45,6 +45,7 @@ class PlantCreate(BaseModel):
 
     # Growing requirements
     grow_zones: Optional[str] = Field(None, max_length=50)
+    plant_zone: Optional[str] = Field(None, max_length=10)  # Per-plant USDA zone override
     sun_requirement: SunRequirement = SunRequirement.FULL_SUN
     soil_requirements: Optional[str] = Field(None, max_length=500)
     plant_spacing: Optional[str] = Field(None, max_length=100)
@@ -108,6 +109,7 @@ class PlantUpdate(BaseModel):
     date_planted: Optional[datetime] = None
 
     grow_zones: Optional[str] = Field(None, max_length=50)
+    plant_zone: Optional[str] = Field(None, max_length=10)  # Per-plant USDA zone override
     sun_requirement: Optional[SunRequirement] = None
     soil_requirements: Optional[str] = Field(None, max_length=500)
     plant_spacing: Optional[str] = Field(None, max_length=100)
@@ -162,6 +164,7 @@ class PlantResponse(BaseModel):
     source: Optional[str]
 
     grow_zones: Optional[str]
+    plant_zone: Optional[str]
     sun_requirement: Optional[SunRequirement]
     soil_requirements: Optional[str]
     plant_spacing: Optional[str]
