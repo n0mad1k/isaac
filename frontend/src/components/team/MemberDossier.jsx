@@ -2459,10 +2459,38 @@ function FitnessTab({ member, settings, formatDate }) {
                   <div className="text-xs text-gray-400">FITNESS SCORE</div>
                 </div>
               </div>
+              {/* Overall Score Bar */}
+              <div className="mt-3">
+                <div className="w-full bg-gray-700 rounded-full h-3 relative">
+                  <div
+                    className={`h-3 rounded-full transition-all ${
+                      (fitnessProfile.overall_score || 0) >= 90 ? 'bg-yellow-500' :
+                      (fitnessProfile.overall_score || 0) >= 70 ? 'bg-green-500' :
+                      (fitnessProfile.overall_score || 0) >= 40 ? 'bg-blue-500' :
+                      'bg-gray-500'
+                    }`}
+                    style={{ width: `${Math.min(100, fitnessProfile.overall_score || 0)}%` }}
+                  />
+                  {/* Tier boundary lines on the bar */}
+                  <div className="absolute top-0 bottom-0 border-l-2 border-blue-400/50" style={{ left: '40%' }} />
+                  <div className="absolute top-0 bottom-0 border-l-2 border-green-400/50" style={{ left: '70%' }} />
+                  <div className="absolute top-0 bottom-0 border-l-2 border-yellow-400/50" style={{ left: '90%' }} />
+                </div>
+                <div className="relative text-[10px] text-gray-600 mt-0.5 h-3">
+                  <span className="absolute left-0">0</span>
+                  <span className="absolute text-blue-500" style={{ left: '40%', transform: 'translateX(-50%)' }}>40 CIV</span>
+                  <span className="absolute text-green-500" style={{ left: '70%', transform: 'translateX(-50%)' }}>70 MAR</span>
+                  <span className="absolute text-yellow-500" style={{ left: '90%', transform: 'translateX(-50%)' }}>90 SF</span>
+                  <span className="absolute right-0">100</span>
+                </div>
+                <div className="text-[10px] text-gray-500 mt-1">
+                  Overall = average of your best score in each workout type
+                </div>
+              </div>
               {/* Score Explanation - Detailed Breakdown */}
               {fitnessProfile.by_type && Object.keys(fitnessProfile.by_type).length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-600">
-                  <div className="text-xs text-gray-400 mb-3">SCORE BREAKDOWN <span className="text-gray-500">(tap type to expand details)</span></div>
+                  <div className="text-xs text-gray-400 mb-3">SCORE BY WORKOUT TYPE <span className="text-gray-500">(each type scored independently - tap to expand)</span></div>
                   <div className="space-y-2">
                     {Object.entries(fitnessProfile.by_type)
                       .sort((a, b) => (b[1].best_score || b[1].score || 0) - (a[1].best_score || a[1].score || 0))

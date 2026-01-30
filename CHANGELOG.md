@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.65.3] - 2026-01-30
+
+### Fixed
+- **Fitness score bar clarity** - Added overall score progress bar with tier boundary markers to the main fitness card
+  - Bar shows score position relative to CIV (40), MAR (70), and SF (90) thresholds
+  - Added explanation that overall score = average of best per workout type
+  - Per-type breakdown header clarified to show each type is scored independently
+  - Prevents confusion when one workout type score is higher than overall tier
+
 ## [1.65.2] - 2026-01-30
 
 ### Fixed
