@@ -182,6 +182,45 @@ async def _migrate_session_tokens():
             await session.rollback()
 
 
+async def _migrate_role_permissions():
+    """Sync new permission categories from DEFAULT_PERMISSIONS to existing roles"""
+    from models.users import DEFAULT_PERMISSIONS, Role
+    import json
+
+    async with async_session() as session:
+        try:
+            result = await session.execute(text("SELECT id, name, permissions FROM roles"))
+            roles = result.fetchall()
+
+            updated = 0
+            for role_id, role_name, perms_json in roles:
+                current_perms = json.loads(perms_json) if perms_json else {}
+                default_perms = DEFAULT_PERMISSIONS.get(role_name, {})
+
+                # Add any missing permission categories from defaults
+                added_cats = []
+                for category, category_perms in default_perms.items():
+                    if category not in current_perms:
+                        current_perms[category] = category_perms
+                        added_cats.append(category)
+
+                if added_cats:
+                    await session.execute(
+                        text("UPDATE roles SET permissions = :perms WHERE id = :id"),
+                        {"perms": json.dumps(current_perms), "id": role_id}
+                    )
+                    updated += 1
+                    logger.info(f"Added permission categories {added_cats} to role '{role_name}'")
+
+            if updated > 0:
+                await session.commit()
+                logger.info(f"Updated {updated} roles with new permission categories")
+
+        except Exception as e:
+            logger.warning(f"Could not migrate role permissions: {e}")
+            await session.rollback()
+
+
 async def init_db():
     """Initialize database tables and migrate schema"""
     async with engine.begin() as conn:
@@ -195,6 +234,9 @@ async def init_db():
 
     # Hash any existing plaintext session tokens
     await _migrate_session_tokens()
+
+    # Sync new permission categories to existing roles
+    await _migrate_role_permissions()
 
 
 async def get_db() -> AsyncSession:
