@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Check, X, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Check, X, Trash2, Pencil } from 'lucide-react'
 import {
   getBudgetPayPeriods, getBudgetCategories, getBudgetAccounts,
   getBudgetIncome, updateBudgetCategory, updateBudgetIncome,
   createBudgetCategory, deleteBudgetCategory, createBudgetIncome,
   deleteBudgetIncome, getBudgetPeriodSummary
 } from '../../services/api'
+import BudgetEditModal from './BudgetEditModal'
 
 function MonthlyBudget() {
   const [loading, setLoading] = useState(true)
@@ -18,6 +19,7 @@ function MonthlyBudget() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
 
+  const [editModal, setEditModal] = useState(null) // { item, type: 'income'|'category' }
   const [editingLine, setEditingLine] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
@@ -196,6 +198,15 @@ function MonthlyBudget() {
     }
   }
 
+  const handleModalSave = async (id, data) => {
+    if (editModal?.type === 'income') {
+      await updateBudgetIncome(id, data)
+    } else {
+      await updateBudgetCategory(id, data)
+    }
+    fetchData()
+  }
+
   if (loading && categories.length === 0) {
     return (
       <div className="space-y-4">
@@ -301,17 +312,34 @@ function MonthlyBudget() {
   const lineRow = (type, id, day, name, amount, accountName, isIncome = false, canDelete = true) => {
     const displayAmt = isIncome ? fmt(amount) : `-${fmt(Math.abs(amount))}`
     const amtColor = isIncome ? '#22c55e' : '#ef4444'
-    const amtField = type === 'income' ? 'amount' : (categories.find(c => c.id === id)?.category_type === 'fixed' ? 'monthly_budget' : 'budget_amount')
+
+    // Find full item for edit modal
+    const openEdit = () => {
+      if (type === 'income') {
+        const inc = income.find(i => i.id === id)
+        if (inc) setEditModal({ item: inc, type: 'income' })
+      } else {
+        const cat = categories.find(c => c.id === id)
+        if (cat) setEditModal({ item: cat, type: 'category' })
+      }
+    }
 
     return (
-      <div key={`${type}-${id}`} className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs py-1 px-2 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+      <div key={`${type}-${id}`} className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-1 px-2 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
         <span style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>{day ? ordinal(day) : ''}</span>
-        {editableCell(type, id, 'name', name, name, 'text-left truncate', { color: 'var(--color-text-primary)' })}
-        {editableCell(type, id, amtField, Math.abs(amount), displayAmt, 'text-right', { color: amtColor })}
+        <span className="text-left truncate" style={{ color: 'var(--color-text-primary)' }}>{name}</span>
+        <span className="text-right" style={{ color: amtColor }}>{displayAmt}</span>
         <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>{accountName}</span>
-        {canDelete ? (
-          <button onClick={() => deleteLine(type, id)} className="p-0.5 text-gray-600 hover:text-red-400 flex-shrink-0"><Trash2 className="w-2.5 h-2.5" /></button>
-        ) : <span />}
+        <span className="flex justify-center gap-0.5">
+          <button onClick={openEdit} className="p-0.5 text-gray-600 hover:text-blue-400 flex-shrink-0" title="Edit">
+            <Pencil className="w-2.5 h-2.5" />
+          </button>
+          {canDelete ? (
+            <button onClick={() => deleteLine(type, id)} className="p-0.5 text-gray-600 hover:text-red-400 flex-shrink-0" title="Delete">
+              <Trash2 className="w-2.5 h-2.5" />
+            </button>
+          ) : <span className="w-3.5" />}
+        </span>
       </div>
     )
   }
@@ -412,7 +440,7 @@ function MonthlyBudget() {
   }
 
   const colHeader = (bgColor = '#3b82f6') => (
-    <div className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs font-semibold py-1.5 px-2" style={{ backgroundColor: bgColor, color: '#fff' }}>
+    <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-1.5 px-2" style={{ backgroundColor: bgColor, color: '#fff' }}>
       <span>Date</span><span>Item</span><span className="text-right">Amount</span><span className="text-right">Account</span><span />
     </div>
   )
@@ -439,13 +467,36 @@ function MonthlyBudget() {
   const totalOutgoing = totalBills + totalSpending + totalDistributions
   const surplus = totalIncome - totalOutgoing
 
-  // Get spent data from summary for spending category cards
-  const getCatSpent = (catName) => {
+  // Get remaining for a spending category card
+  const getCatRemaining = (catName) => {
     const h1Cat = firstHalf?.categories?.find(c => c.name === catName)
     const h2Cat = secondHalf?.categories?.find(c => c.name === catName)
     const budgeted = (h1Cat?.budgeted || 0) + (h2Cat?.budgeted || 0)
     const spent = (h1Cat?.spent || 0) + (h2Cat?.spent || 0)
     return budgeted - spent
+  }
+
+  // Get remaining for Dane/Kelly: transfer deposit - sum of their owned bills' actual spending
+  const getPersonRemaining = (ownerKey) => {
+    const personAcct = accounts.find(a => a.name.toLowerCase().includes(ownerKey))
+    const personTransfers = transferCats.filter(c => c.account_id === personAcct?.id)
+    const totalDeposits = personTransfers.reduce((s, c) => s + (c.budget_amount || 0) * 2, 0)
+
+    const ownedCats = categories.filter(c => c.owner === ownerKey && c.is_active)
+    let totalSpent = 0
+    ownedCats.forEach(cat => {
+      const h1Cat = firstHalf?.categories?.find(c => c.id === cat.id)
+      const h2Cat = secondHalf?.categories?.find(c => c.id === cat.id)
+      totalSpent += (h1Cat?.spent || 0) + (h2Cat?.spent || 0)
+    })
+    // Also include direct spending on the transfer categories themselves
+    personTransfers.forEach(t => {
+      const h1Cat = firstHalf?.categories?.find(c => c.id === t.id)
+      const h2Cat = secondHalf?.categories?.find(c => c.id === t.id)
+      totalSpent += (h1Cat?.spent || 0) + (h2Cat?.spent || 0)
+    })
+
+    return totalDeposits - totalSpent
   }
 
   const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', 'Dane Spending', 'Kelly Spending']
@@ -523,7 +574,8 @@ function MonthlyBudget() {
           let halfAmt = inc.amount
           if (inc.frequency === 'weekly') halfAmt = inc.amount * 2
           const incAcct = accounts.find(a => a.id === inc.account_id)
-          return lineRow('income', inc.id, inc.pay_day, inc.name, halfAmt, incAcct?.name || moneyMarketName, true, true)
+          const freqLabel = inc.frequency === 'weekly' ? ' (weekly)' : inc.frequency === 'biweekly' ? ' (bi-weekly)' : ''
+          return lineRow('income', inc.id, inc.pay_day, `${inc.name}${freqLabel}`, halfAmt, incAcct?.name || moneyMarketName, true, true)
         })}
         {addForm(`${sectionKey}-income`)}
         <div className="flex justify-end px-2 py-0.5">
@@ -642,12 +694,12 @@ function MonthlyBudget() {
         </div>
 
         <div className="py-1" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
-          <div className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs py-0.5 px-2">
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
             <span /><span style={{ color: 'var(--color-text-muted)' }}>Deposits</span>
             <span className="text-right" style={{ color: '#22c55e' }}>+{fmt(totalDeposits)}</span>
             <span /><span />
           </div>
-          <div className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs py-0.5 px-2">
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
             <span /><span style={{ color: 'var(--color-text-muted)' }}>Bills</span>
             <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(totalBillsForPerson)}</span>
             <span /><span />
@@ -690,7 +742,9 @@ function MonthlyBudget() {
           <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{fmt(totalBills)}</span>
         </div>
         {spendingCardCats.map(name => {
-          const remaining = getCatSpent(name)
+          const isDaneKelly = name.toLowerCase().includes('dane') || name.toLowerCase().includes('kelly')
+          const ownerKey = name.toLowerCase().includes('dane') ? 'dane' : name.toLowerCase().includes('kelly') ? 'kelly' : null
+          const remaining = isDaneKelly ? getPersonRemaining(ownerKey) : getCatRemaining(name)
           return (
             <div key={name} className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
               <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{name}</div>
@@ -769,6 +823,15 @@ function MonthlyBudget() {
           </div>
         </div>
       </div>
+      {editModal && (
+        <BudgetEditModal
+          item={editModal.item}
+          itemType={editModal.type}
+          accounts={accounts}
+          onSave={handleModalSave}
+          onClose={() => setEditModal(null)}
+        />
+      )}
     </div>
   )
 }

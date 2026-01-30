@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Check, X, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Check, X, Trash2, Pencil } from 'lucide-react'
 import {
   getBudgetCategories, getBudgetPeriodSummary, getBudgetPayPeriods,
   getBudgetIncome, getBudgetAccounts,
   createBudgetIncome, updateBudgetIncome, deleteBudgetIncome,
   createBudgetCategory, updateBudgetCategory, deleteBudgetCategory
 } from '../../services/api'
+import BudgetEditModal from './BudgetEditModal'
 
 function BillsSummary() {
   const [loading, setLoading] = useState(true)
@@ -16,9 +17,9 @@ function BillsSummary() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
 
-  const [editing, setEditing] = useState(null)
-  const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const [editModal, setEditModal] = useState(null) // { item, type: 'income'|'category' }
 
   const [addingIncome, setAddingIncome] = useState(false)
   const [addingBill, setAddingBill] = useState(false)
@@ -77,46 +78,6 @@ function BillsSummary() {
     const s = ['th', 'st', 'nd', 'rd']
     const v = d % 100
     return d + (s[(v - 20) % 10] || s[v] || s[0])
-  }
-
-  const startEdit = (type, id, field, value) => {
-    setEditing({ type, id, field })
-    setEditValue(String(value ?? ''))
-  }
-
-  const cancelEdit = () => {
-    setEditing(null)
-    setEditValue('')
-  }
-
-  const saveEdit = async () => {
-    if (!editing || saving) return
-    setSaving(true)
-    try {
-      if (editing.type === 'income') {
-        const update = {}
-        if (editing.field === 'name') update.name = editValue
-        if (editing.field === 'amount') update.amount = parseFloat(editValue) || 0
-        if (editing.field === 'pay_day') update.pay_day = parseInt(editValue) || 1
-        await updateBudgetIncome(editing.id, update)
-      } else {
-        const update = {}
-        if (editing.field === 'name') update.name = editValue
-        if (editing.field === 'amount') update.monthly_budget = parseFloat(editValue) || 0
-        if (editing.field === 'budget_amount') update.budget_amount = parseFloat(editValue) || 0
-        if (editing.field === 'bill_day') update.bill_day = parseInt(editValue) || null
-        if (editing.field === 'account_id') update.account_id = parseInt(editValue) || null
-        if (editing.field === 'billing_months') update.billing_months = editValue || null
-        if (editing.field === 'end_date') update.end_date = editValue || null
-        await updateBudgetCategory(editing.id, update)
-      }
-      cancelEdit()
-      fetchData()
-    } catch (err) {
-      console.error('Failed to update:', err)
-    } finally {
-      setSaving(false)
-    }
   }
 
   const resetAddForm = () => {
@@ -238,6 +199,15 @@ function BillsSummary() {
     }
   }
 
+  const handleModalSave = async (id, data) => {
+    if (editModal?.type === 'income') {
+      await updateBudgetIncome(id, data)
+    } else {
+      await updateBudgetCategory(id, data)
+    }
+    fetchData()
+  }
+
   if (loading && !summary) {
     return <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
   }
@@ -267,78 +237,6 @@ function BillsSummary() {
   const activeIncome = income.filter(i => i.is_active).sort((a, b) => (a.pay_day || 0) - (b.pay_day || 0))
 
   const getAcctName = (id) => accounts.find(a => a.id === id)?.name || ''
-
-  const renderCell = (type, id, field, displayValue, rawValue, align = 'left') => {
-    const isEditing = editing && editing.type === type && editing.id === id && editing.field === field
-    if (isEditing) {
-      if (field === 'account_id') {
-        return (
-          <span className="flex items-center gap-1">
-            <select value={editValue} onChange={(e) => setEditValue(e.target.value)}
-              className="w-full px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs"
-              style={{ color: 'var(--color-text-primary)' }} autoFocus>
-              <option value="">None</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-            <button onClick={saveEdit} className="p-0.5 text-green-400 flex-shrink-0"><Check className="w-3 h-3" /></button>
-            <button onClick={cancelEdit} className="p-0.5 text-gray-400 flex-shrink-0"><X className="w-3 h-3" /></button>
-          </span>
-        )
-      }
-      if (field === 'billing_months') {
-        return (
-          <span className="flex items-center gap-1">
-            <select value={editValue} onChange={(e) => setEditValue(e.target.value)}
-              className="w-full px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs"
-              style={{ color: 'var(--color-text-primary)' }} autoFocus>
-              <option value="">Every month</option>
-              <option value="1,4,7,10">Quarterly</option>
-              <option value="4,5,6,7,8,9,10">Apr-Oct</option>
-              <option value="1,7">Twice/year</option>
-            </select>
-            <button onClick={saveEdit} className="p-0.5 text-green-400 flex-shrink-0"><Check className="w-3 h-3" /></button>
-            <button onClick={cancelEdit} className="p-0.5 text-gray-400 flex-shrink-0"><X className="w-3 h-3" /></button>
-          </span>
-        )
-      }
-      if (field === 'end_date') {
-        return (
-          <span className="flex items-center gap-1">
-            <input type="month" value={editValue} onChange={(e) => setEditValue(e.target.value)}
-              className="w-full px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs"
-              style={{ color: 'var(--color-text-primary)' }} autoFocus />
-            <button onClick={saveEdit} className="p-0.5 text-green-400 flex-shrink-0"><Check className="w-3 h-3" /></button>
-            <button onClick={cancelEdit} className="p-0.5 text-gray-400 flex-shrink-0"><X className="w-3 h-3" /></button>
-          </span>
-        )
-      }
-      return (
-        <span className="flex items-center gap-1">
-          <input
-            type={field === 'name' ? 'text' : 'number'}
-            step={field === 'amount' || field === 'budget_amount' ? '0.01' : '1'}
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit() }}
-            className={`w-full px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm ${align === 'right' ? 'text-right' : ''}`}
-            style={{ color: 'var(--color-text-primary)' }}
-            autoFocus
-          />
-          <button onClick={saveEdit} className="p-0.5 text-green-400 flex-shrink-0"><Check className="w-3.5 h-3.5" /></button>
-          <button onClick={cancelEdit} className="p-0.5 text-gray-400 flex-shrink-0"><X className="w-3.5 h-3.5" /></button>
-        </span>
-      )
-    }
-    return (
-      <span
-        className="cursor-pointer hover:underline"
-        onClick={() => startEdit(type, id, field, rawValue)}
-        title="Click to edit"
-      >
-        {displayValue}
-      </span>
-    )
-  }
 
   const getRecurrenceLabel = (cat) => {
     if (cat.end_date) return 'payment plan'
@@ -375,29 +273,34 @@ function BillsSummary() {
             <Plus className="w-4 h-4" />
           </button>
         </div>
-        <div className="grid grid-cols-[45px_1fr_90px_90px_28px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+        <div className="grid grid-cols-[45px_1fr_90px_80px_52px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
           <span>Day</span><span>Name</span><span className="text-right">Amount</span><span className="text-right">Account</span><span />
         </div>
         {activeIncome.map(inc => {
           const monthlyAmt = inc.frequency === 'weekly' ? inc.amount * 4.33
             : inc.frequency === 'biweekly' ? inc.amount * 2.17
-            : inc.frequency === 'semimonthly' ? inc.amount
+            : inc.frequency === 'semimonthly' ? inc.amount * 2
             : inc.amount
+          const freqLabel = inc.frequency === 'weekly' ? '/wk' : inc.frequency === 'biweekly' ? '/2wk' : inc.frequency === 'semimonthly' ? '2x/mo' : '/mo'
           return (
-            <div key={`inc-${inc.id}`} className="grid grid-cols-[45px_1fr_90px_90px_28px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+            <div key={`inc-${inc.id}`} className="grid grid-cols-[45px_1fr_90px_80px_52px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
               <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
-                {renderCell('income', inc.id, 'pay_day', ordinal(inc.pay_day), inc.pay_day)}
+                {ordinal(inc.pay_day)}
               </span>
-              <span style={{ color: 'var(--color-text-primary)' }}>
-                {renderCell('income', inc.id, 'name', inc.name, inc.name)}
+              <span className="flex items-center gap-1" style={{ color: 'var(--color-text-primary)' }}>
+                {inc.name}
+                <span className="text-xs px-1 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', fontSize: '9px' }}>{freqLabel}</span>
               </span>
               <span className="text-right" style={{ color: '#22c55e' }}>
-                {renderCell('income', inc.id, 'amount', fmt(monthlyAmt), inc.amount, 'right')}
+                {fmt(monthlyAmt)}
               </span>
               <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
                 {getAcctName(inc.account_id)}
               </span>
-              <span className="flex justify-center">
+              <span className="flex justify-center gap-1">
+                <button onClick={() => setEditModal({ item: inc, type: 'income' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
                 <button onClick={() => deleteIncomeItem(inc.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -439,40 +342,41 @@ function BillsSummary() {
             <Plus className="w-4 h-4" />
           </button>
         </div>
-        <div className="grid grid-cols-[40px_1fr_80px_80px_60px_28px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+        <div className="grid grid-cols-[40px_1fr_80px_80px_60px_52px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
           <span>Day</span><span>Name</span><span className="text-right">Amount</span><span className="text-right">Account</span><span className="text-center">Recur</span><span />
         </div>
         {fixedBills.map(cat => {
           const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
           const recLabel = getRecurrenceLabel(cat)
           return (
-            <div key={cat.id} className="grid grid-cols-[40px_1fr_80px_80px_60px_28px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+            <div key={cat.id} className="grid grid-cols-[40px_1fr_80px_80px_60px_52px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
               <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
-                {renderCell('bill', cat.id, 'bill_day', cat.bill_day ? ordinal(cat.bill_day) : '—', cat.bill_day)}
+                {cat.bill_day ? ordinal(cat.bill_day) : '—'}
               </span>
               <span className="flex items-center gap-1 truncate" style={{ color: 'var(--color-text-primary)' }}>
-                {renderCell('bill', cat.id, 'name', cat.name, cat.name)}
+                {cat.name}
                 {cat.owner && <span className="text-xs px-1 rounded" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: '9px' }}>{cat.owner}</span>}
               </span>
               <span className="text-right" style={{ color: '#ef4444' }}>
-                {renderCell('bill', cat.id, 'amount', `-${fmt(amt)}`, amt, 'right')}
+                -{fmt(amt)}
               </span>
               <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
-                {renderCell('bill', cat.id, 'account_id', getAcctName(cat.account_id) || '—', cat.account_id)}
+                {getAcctName(cat.account_id) || '—'}
               </span>
               <span className="text-center">
                 {recLabel ? (
-                  <span className="text-xs px-1 py-0 rounded cursor-pointer hover:underline" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: '9px' }}
-                    onClick={() => startEdit('bill', cat.id, cat.end_date ? 'end_date' : 'billing_months', cat.end_date || cat.billing_months || '')}
+                  <span className="text-xs px-1 py-0 rounded" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: '9px' }}
                     title={cat.end_date ? `Ends ${cat.end_date}` : cat.billing_months ? `Months: ${cat.billing_months}` : ''}>
                     {recLabel}
                   </span>
                 ) : (
-                  <span className="text-xs cursor-pointer" style={{ color: 'var(--color-text-muted)', fontSize: '9px' }}
-                    onClick={() => startEdit('bill', cat.id, 'billing_months', '')}>monthly</span>
+                  <span className="text-xs" style={{ color: 'var(--color-text-muted)', fontSize: '9px' }}>monthly</span>
                 )}
               </span>
-              <span className="flex justify-center">
+              <span className="flex justify-center gap-1">
+                <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
                 <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -514,7 +418,7 @@ function BillsSummary() {
             </div>
           </div>
         )}
-        <div className="grid grid-cols-[40px_1fr_80px_80px_60px_28px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
+        <div className="grid grid-cols-[40px_1fr_80px_80px_60px_52px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
           <span /><span style={{ color: 'var(--color-text-primary)' }}>Total Bills</span>
           <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(totalBillsAmt)}</span>
           <span /><span /><span />
@@ -530,21 +434,24 @@ function BillsSummary() {
               <Plus className="w-4 h-4" />
             </button>
           </div>
-          <div className="grid grid-cols-[1fr_90px_90px_28px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+          <div className="grid grid-cols-[1fr_90px_80px_52px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
             <span>Name</span><span className="text-right">Per Period</span><span className="text-right">Account</span><span />
           </div>
           {spendingCats.map(cat => (
-            <div key={cat.id} className="grid grid-cols-[1fr_90px_90px_28px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+            <div key={cat.id} className="grid grid-cols-[1fr_90px_80px_52px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
               <span style={{ color: 'var(--color-text-primary)' }}>
-                {renderCell('bill', cat.id, 'name', cat.name, cat.name)}
+                {cat.name}
               </span>
               <span className="text-right" style={{ color: '#f59e0b' }}>
-                {renderCell('bill', cat.id, 'budget_amount', fmt(cat.budget_amount), cat.budget_amount, 'right')}
+                {fmt(cat.budget_amount)}
               </span>
               <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
-                {renderCell('bill', cat.id, 'account_id', getAcctName(cat.account_id) || '—', cat.account_id)}
+                {getAcctName(cat.account_id) || '—'}
               </span>
-              <span className="flex justify-center">
+              <span className="flex justify-center gap-1">
+                <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
                 <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -568,7 +475,7 @@ function BillsSummary() {
               <button onClick={() => setAddingSpending(false)} className="p-0.5 text-gray-400"><X className="w-3.5 h-3.5" /></button>
             </div>
           )}
-          <div className="grid grid-cols-[1fr_90px_90px_28px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
+          <div className="grid grid-cols-[1fr_90px_80px_52px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
             <span style={{ color: 'var(--color-text-primary)' }}>Total Spending</span>
             <span className="text-right" style={{ color: '#f59e0b' }}>-{fmt(totalSpendingAmt)}/mo</span>
             <span /><span />
@@ -585,21 +492,24 @@ function BillsSummary() {
               <Plus className="w-4 h-4" />
             </button>
           </div>
-          <div className="grid grid-cols-[1fr_90px_90px_28px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+          <div className="grid grid-cols-[1fr_90px_80px_52px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
             <span>Name</span><span className="text-right">Per Period</span><span className="text-right">Destination</span><span />
           </div>
           {transferCats.map(cat => (
-            <div key={cat.id} className="grid grid-cols-[1fr_90px_90px_28px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+            <div key={cat.id} className="grid grid-cols-[1fr_90px_80px_52px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
               <span style={{ color: 'var(--color-text-primary)' }}>
-                {renderCell('bill', cat.id, 'name', cat.name, cat.name)}
+                {cat.name}
               </span>
               <span className="text-right" style={{ color: '#3b82f6' }}>
-                {renderCell('bill', cat.id, 'budget_amount', fmt(cat.budget_amount), cat.budget_amount, 'right')}
+                {fmt(cat.budget_amount)}
               </span>
               <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
-                {renderCell('bill', cat.id, 'account_id', getAcctName(cat.account_id) || '—', cat.account_id)}
+                {getAcctName(cat.account_id) || '—'}
               </span>
-              <span className="flex justify-center">
+              <span className="flex justify-center gap-1">
+                <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
                 <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -623,7 +533,7 @@ function BillsSummary() {
               <button onClick={() => setAddingTransfer(false)} className="p-0.5 text-gray-400"><X className="w-3.5 h-3.5" /></button>
             </div>
           )}
-          <div className="grid grid-cols-[1fr_90px_90px_28px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
+          <div className="grid grid-cols-[1fr_90px_80px_52px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
             <span style={{ color: 'var(--color-text-primary)' }}>Total Distributions</span>
             <span className="text-right" style={{ color: '#3b82f6' }}>-{fmt(totalTransferAmt)}/mo</span>
             <span /><span />
@@ -654,6 +564,15 @@ function BillsSummary() {
           <span className="text-right" style={{ color: remaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remaining)}</span>
         </div>
       </div>
+      {editModal && (
+        <BudgetEditModal
+          item={editModal.item}
+          itemType={editModal.type}
+          accounts={accounts}
+          onSave={handleModalSave}
+          onClose={() => setEditModal(null)}
+        />
+      )}
     </div>
   )
 }

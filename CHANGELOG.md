@@ -2,6 +2,23 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.64.0] - 2026-01-30
+
+### Added
+- **Budget edit modal** - Every budget item (income, bills, spending, transfers) now has a pencil icon that opens a full edit modal
+  - Edit all fields at once: name, amount, bill day, account, billing schedule, start/end dates, owner, type
+  - Billing schedule supports presets (monthly, quarterly, seasonal) and custom month picker
+  - Start/end date fields for payment plans
+  - Frequency selector for income (weekly, bi-weekly, semi-monthly, monthly)
+  - Works in both Bills tab and Monthly Budget tab
+
+### Fixed
+- **Dane/Kelly spending cards** - Cards now correctly subtract their owned bills and transactions from their deposit amount
+  - Previously only tracked transactions tagged directly to the transfer category
+  - Now sums spending across all bills and categories owned by each person
+- **Weekly income display** - Monthly Budget now shows frequency label (weekly, bi-weekly) next to income items
+- **Semimonthly income display** - Bills tab now shows correct monthly total for semimonthly income (amount × 2)
+
 ## [1.63.0] - 2026-01-30
 
 ### Fixed

@@ -130,6 +130,25 @@ function BudgetOverview() {
     (variableCatIds.has(c.id) || transferCatIds.has(c.id)) && c.name !== 'Roll Over' && (c.budgeted > 0 || c.spent > 0)
   )
 
+  // Calculate Dane/Kelly remaining: transfer deposit - sum of their owned bills' actual spending
+  const getPersonRemaining = (ownerKey) => {
+    // Find transfer(s) going to this person's account
+    const personTransfer = allCardCats.find(c => c.name.toLowerCase().includes(ownerKey))
+    const deposit = personTransfer?.budgeted || 0
+
+    // Sum actual spending on all categories owned by this person
+    const ownedCats = categories.filter(c => c.owner === ownerKey && c.is_active)
+    let totalSpent = 0
+    ownedCats.forEach(cat => {
+      const sumCat = (summary?.categories || []).find(sc => sc.id === cat.id)
+      totalSpent += sumCat?.spent || 0
+    })
+    // Also include direct spending on the transfer category itself
+    totalSpent += personTransfer?.spent || 0
+
+    return deposit - totalSpent
+  }
+
   // Build cards: Income, Bills, then remaining for each spending category
   const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', "Dane Spending", "Kelly Spending"]
 
@@ -175,6 +194,19 @@ function BudgetOverview() {
             <div className="text-base font-bold" style={{ color: '#ef4444' }}>{fmt(billsBudgeted)}</div>
           </div>
           {spendingCardCats.map(name => {
+            const isDaneKelly = name.toLowerCase().includes('dane') || name.toLowerCase().includes('kelly')
+            const ownerKey = name.toLowerCase().includes('dane') ? 'dane' : name.toLowerCase().includes('kelly') ? 'kelly' : null
+
+            if (isDaneKelly) {
+              const remaining = getPersonRemaining(ownerKey)
+              return (
+                <div key={name} className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+                  <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</div>
+                  <div className="text-base font-bold" style={{ color: remaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remaining)}</div>
+                </div>
+              )
+            }
+
             const cat = allCardCats.find(c => c.name === name)
             if (!cat) return null
             const remaining = (cat.budgeted || 0) - (cat.spent || 0)
