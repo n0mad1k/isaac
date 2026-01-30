@@ -1474,30 +1474,35 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                       <div>
-                        <span className="text-gray-500">ACWR:</span>
-                        <span className={`ml-1 font-medium ${
+                        <div className="text-gray-500">ACWR (Workload Ratio)</div>
+                        <span className={`font-medium ${
                           readinessAnalysis.training_load.acwr > 1.5 ? 'text-red-400' :
                           readinessAnalysis.training_load.acwr > 1.3 ? 'text-yellow-400' :
                           'text-green-400'
                         }`}>
                           {readinessAnalysis.training_load.acwr?.toFixed(2) || '-'}
                         </span>
+                        <span className="text-gray-600 ml-1">(sweet spot: 0.8-1.3)</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Acute:</span>
-                        <span className="ml-1">{readinessAnalysis.training_load.acute_load?.toFixed(0) || '-'}</span>
+                        <div className="text-gray-500">This Week (Acute)</div>
+                        <span>{readinessAnalysis.training_load.acute_load?.toFixed(0) || '-'} load pts</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Chronic:</span>
-                        <span className="ml-1">{readinessAnalysis.training_load.chronic_load?.toFixed(0) || '-'}</span>
+                        <div className="text-gray-500">4-Wk Avg (Chronic)</div>
+                        <span>{readinessAnalysis.training_load.chronic_load?.toFixed(0) || '-'} load pts/wk</span>
                       </div>
                     </div>
-                    {readinessAnalysis.training_load.spike_detected && (
-                      <div className="mt-2 text-xs text-yellow-400 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" />
-                        Training load spike detected - injury risk elevated
+                    {readinessAnalysis.training_load.notes?.length > 0 && (
+                      <div className="mt-2 text-xs text-gray-400">
+                        {readinessAnalysis.training_load.notes.map((note, i) => (
+                          <p key={i} className="mt-0.5">{note}</p>
+                        ))}
                       </div>
                     )}
+                    <div className="mt-2 text-[10px] text-gray-600">
+                      ACWR = Acute-to-Chronic Workload Ratio. Compares this week's training to your 4-week average. Load pts = duration × effort (RPE). Rucks include weight×distance multiplier.
+                    </div>
                   </div>
                 )}
 

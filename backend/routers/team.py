@@ -1486,7 +1486,7 @@ def _build_analysis_result(member_id: int, analysis) -> dict:
             "acute_load": tl.acute_load,
             "chronic_load": tl.chronic_load,
             "acwr": tl.acwr,
-            "risk_level": tl.risk_level,
+            "risk": tl.risk_level,
             "spike_detected": tl.spike_detected,
             "monotony": tl.monotony,
             "notes": tl.notes

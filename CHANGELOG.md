@@ -2,6 +2,18 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.65.2] - 2026-01-30
+
+### Fixed
+- **Readiness assessment explanations** - Overhauled training load and risk flag explanations
+  - ACWR no longer flags HIGH risk when building a baseline (no chronic data yet)
+  - Training load section now explains what ACWR means, shows "This Week" vs "4-Wk Avg" labels
+  - Risk flags include full context: what the ratio means, why it matters, what to do
+  - Recommendations are now specific and actionable (not just "consider reduced intensity")
+  - Primary drivers explain the reasoning, not just numbers
+  - Added load point formula explanation (duration x effort, ruck weight multiplier)
+  - Fixed API key mismatch between backend (risk_level) and frontend (risk)
+
 ## [1.65.1] - 2026-01-30
 
 ### Fixed

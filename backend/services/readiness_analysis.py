@@ -769,25 +769,35 @@ def _analyze_training_load(workouts: List[MemberWorkout]) -> TrainingLoadAnalysi
 
     if chronic_load > 0:
         acwr = acute_load / chronic_load
+    elif acute_load == 0:
+        acwr = 1.0  # No training at all
     else:
-        acwr = 1.0 if acute_load == 0 else 2.0  # No baseline = risky if training
+        # No chronic baseline yet - can't compute meaningful ratio
+        # Treat as baseline-building, not a spike
+        acwr = 1.0
 
     notes = []
     spike_detected = False
+    no_baseline = chronic_load == 0 and acute_load > 0
+    acute_sessions = len(acute_workouts)
+    chronic_sessions = len(chronic_workouts)
 
-    if acwr > 1.5:
+    if no_baseline:
+        risk_level = "LOW"
+        notes.append(f"Building training baseline ({acute_sessions} session{'s' if acute_sessions != 1 else ''} this week). Need 3-4 weeks of data for accurate load tracking.")
+    elif acwr > 1.5:
         risk_level = "HIGH"
         spike_detected = True
-        notes.append(f"Training spike detected (ACWR: {acwr:.2f})")
+        notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your 4-week average ({chronic_load:.0f} pts/wk). Rapid increases above 1.5x are associated with higher soft-tissue injury risk.")
     elif acwr > 1.3:
         risk_level = "MODERATE"
-        notes.append(f"Elevated training load (ACWR: {acwr:.2f})")
+        notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your 4-week average ({chronic_load:.0f} pts/wk). Slightly elevated - monitor for fatigue.")
     elif acwr < 0.8:
         risk_level = "LOW"
-        notes.append("Training load declining - detraining risk")
+        notes.append(f"This week's load ({acute_load:.0f} pts) is only {acwr:.1f}x your average ({chronic_load:.0f} pts/wk). Training volume dropping - detraining may occur.")
     else:
         risk_level = "LOW"
-        notes.append(f"Training load balanced (ACWR: {acwr:.2f})")
+        notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your 4-week average ({chronic_load:.0f} pts/wk). Well balanced.")
 
     # Calculate monotony (standard deviation of daily loads)
     monotony = None
@@ -973,8 +983,8 @@ def _generate_risk_flags(
                 code="training_spike",
                 severity="moderate",
                 title="Training Load Spike",
-                explanation=f"ACWR {training_load.acwr:.2f} indicates elevated injury risk",
-                recommendation="Consider reduced intensity; prioritize recovery",
+                explanation=f"Your Acute-to-Chronic Workload Ratio (ACWR) is {training_load.acwr:.2f}. This means your training this week is {training_load.acwr:.1f}x higher than your 4-week average. Research shows ratios above 1.5 correlate with increased soft-tissue injury risk.",
+                recommendation="Reduce training intensity for 2-3 days. Focus on recovery (sleep, hydration, light movement). Gradual load increases of 10-15% per week are safer.",
                 source="physical"
             ))
 
@@ -985,24 +995,24 @@ def _get_recommendation(category: str, severity: str) -> str:
     """Get recommendation based on category and severity"""
     recommendations = {
         "autonomic": {
-            "low": "Consider additional rest",
-            "moderate": "Prioritize sleep and recovery",
-            "high": "Recommend rest day, evaluate stressors"
+            "low": "Your resting heart rate is slightly elevated. Try to get extra sleep tonight and limit caffeine/alcohol.",
+            "moderate": "Your autonomic recovery markers suggest incomplete recovery. Prioritize 7-9 hours of sleep and consider a lighter training day.",
+            "high": "Your body is showing signs of significant stress or poor recovery. Take a rest day, evaluate sleep quality, hydration, and recent stressors."
         },
         "cardiovascular": {
-            "low": "Monitor blood pressure",
-            "moderate": "Consult healthcare provider about BP",
-            "high": "Seek medical evaluation for cardiovascular concerns"
+            "low": "Blood pressure readings are slightly outside normal range. Reduce sodium intake and stay hydrated.",
+            "moderate": "Blood pressure or oxygen levels are concerning. Consider scheduling a checkup with your healthcare provider.",
+            "high": "Cardiovascular readings are significantly abnormal. Seek medical evaluation before resuming intense exercise."
         },
         "illness": {
-            "low": "Monitor symptoms",
-            "moderate": "Rest and hydrate, monitor temperature",
-            "high": "Rest required, consider medical evaluation"
+            "low": "Minor signs detected (slight temperature change, etc.). Stay hydrated and monitor how you feel over the next 24 hours.",
+            "moderate": "Your vitals suggest your immune system may be fighting something. Rest, hydrate well, and avoid hard training until symptoms resolve.",
+            "high": "Strong indicators of illness detected. Rest is required - training while sick delays recovery and increases complication risk."
         },
         "training_load": {
-            "low": "Review training plan",
-            "moderate": "Consider deload or recovery focus",
-            "high": "Reduce training intensity immediately"
+            "low": "Your training volume has been inconsistent. Try to maintain a regular schedule to build a sustainable fitness base.",
+            "moderate": "Training load is moderately elevated. Consider a lighter session or active recovery (walking, stretching, yoga).",
+            "high": "Training load has spiked significantly. Reduce intensity for 2-3 days to prevent overuse injuries. Focus on sleep and nutrition."
         }
     }
     return recommendations.get(category, {}).get(severity, "Monitor and reassess")
@@ -1167,7 +1177,7 @@ async def analyze_readiness(
 
     # Training load driver
     if training_load and training_load.spike_detected:
-        primary_drivers.append(f"Training spike (ACWR: {training_load.acwr:.2f})")
+        primary_drivers.append(f"Training spike: this week's load is {training_load.acwr:.1f}x your average (above 1.5x threshold)")
 
     # Subjective factors
     for sf in subjective_factors[:2]:
