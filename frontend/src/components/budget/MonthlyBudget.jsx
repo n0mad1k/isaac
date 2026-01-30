@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown, ArrowRightLeft } from 'lucide-react'
-import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories, getBudgetAccounts } from '../../services/api'
+import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown, ArrowRightLeft, Plus, Edit, Check, X } from 'lucide-react'
+import {
+  getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories, getBudgetAccounts,
+  updateBudgetCategory, createBudgetTransaction
+} from '../../services/api'
 
 function MonthlyBudget() {
   const [loading, setLoading] = useState(true)
@@ -10,6 +13,13 @@ function MonthlyBudget() {
   const [accounts, setAccounts] = useState([])
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
+
+  // Editing state
+  const [editingBudget, setEditingBudget] = useState(null) // { catId, field: 'budget_amount'|'monthly_budget' }
+  const [editValue, setEditValue] = useState('')
+  const [addingTxn, setAddingTxn] = useState(null) // { catId, period: 'first'|'second' }
+  const [txnForm, setTxnForm] = useState({ description: '', amount: '', date: '' })
+  const [saving, setSaving] = useState(false)
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December']
@@ -57,6 +67,60 @@ function MonthlyBudget() {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val)
   }
 
+  // Edit budget amount
+  const startEditBudget = (cat) => {
+    const isFixed = cat.category_type === 'fixed'
+    const field = isFixed ? 'monthly_budget' : 'budget_amount'
+    const value = isFixed ? (cat.monthly_budget || cat.budget_amount * 2 || 0) : (cat.budget_amount || 0)
+    setEditingBudget({ catId: cat.id, field })
+    setEditValue(String(value))
+  }
+
+  const saveEditBudget = async () => {
+    if (!editingBudget || saving) return
+    setSaving(true)
+    try {
+      const update = { [editingBudget.field]: parseFloat(editValue) || 0 }
+      await updateBudgetCategory(editingBudget.catId, update)
+      setEditingBudget(null)
+      fetchData()
+    } catch (err) {
+      console.error('Failed to update budget:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Add transaction
+  const startAddTxn = (catId, period) => {
+    const midMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${period === 'first' ? '07' : '20'}`
+    setAddingTxn({ catId, period })
+    setTxnForm({ description: '', amount: '', date: midMonth })
+  }
+
+  const saveAddTxn = async () => {
+    if (!addingTxn || saving || !txnForm.description || !txnForm.amount) return
+    setSaving(true)
+    try {
+      const defaultAcct = accounts.find(a => a.account_type === 'checking') || accounts[0]
+      await createBudgetTransaction({
+        account_id: defaultAcct?.id || 1,
+        category_id: addingTxn.catId,
+        transaction_date: txnForm.date,
+        description: txnForm.description,
+        amount: -Math.abs(parseFloat(txnForm.amount)),
+        transaction_type: 'debit',
+      })
+      setAddingTxn(null)
+      setTxnForm({ description: '', amount: '', date: '' })
+      fetchData()
+    } catch (err) {
+      console.error('Failed to add transaction:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading && !firstHalf) {
     return (
       <div className="space-y-4">
@@ -78,19 +142,95 @@ function MonthlyBudget() {
     return { budgeted: cat.budgeted, spent: cat.spent, remaining: cat.budgeted - cat.spent }
   }
 
-  const renderCategoryRow = (cat, summary) => {
+  const renderCategoryRow = (cat, summary, periodKey) => {
     const data = getCatData(summary, cat.id)
     const over = data.spent > data.budgeted && data.budgeted > 0
+    const isEditing = editingBudget?.catId === cat.id
+    const isAdding = addingTxn?.catId === cat.id && addingTxn?.period === periodKey
+
     return (
-      <div key={cat.id} className="flex justify-between items-center py-1 px-2 text-xs">
-        <span className="flex-1" style={{ color: 'var(--color-text-secondary)' }}>{cat.name}</span>
-        <span className="w-20 text-right" style={{ color: 'var(--color-text-muted)' }}>{fmt(data.budgeted)}</span>
-        <span className="w-20 text-right" style={{ color: data.spent > 0 ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
-          {data.spent > 0 ? fmt(data.spent) : '-'}
-        </span>
-        <span className="w-20 text-right font-medium" style={{ color: over ? '#ef4444' : data.remaining > 0 ? '#22c55e' : 'var(--color-text-muted)' }}>
-          {data.budgeted > 0 || data.spent > 0 ? fmt(data.remaining) : '-'}
-        </span>
+      <div key={`${cat.id}-${periodKey}`}>
+        <div className="flex justify-between items-center py-1 px-2 text-xs group">
+          <span className="flex-1 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
+            {cat.name}
+            <button
+              onClick={() => startAddTxn(cat.id, periodKey)}
+              className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-700 transition-opacity"
+              title="Add transaction"
+            >
+              <Plus className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
+            </button>
+          </span>
+          {isEditing ? (
+            <span className="w-20 flex items-center gap-0.5">
+              <input
+                type="number"
+                step="0.01"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveEditBudget(); if (e.key === 'Escape') setEditingBudget(null); }}
+                className="w-16 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs text-right"
+                style={{ color: 'var(--color-text-primary)' }}
+                autoFocus
+              />
+              <button onClick={saveEditBudget} className="p-0.5 text-green-400 hover:text-green-300">
+                <Check className="w-3 h-3" />
+              </button>
+            </span>
+          ) : (
+            <span
+              className="w-20 text-right cursor-pointer hover:underline"
+              style={{ color: 'var(--color-text-muted)' }}
+              onClick={() => startEditBudget(cat)}
+              title="Click to edit budget"
+            >
+              {fmt(data.budgeted)}
+            </span>
+          )}
+          <span className="w-20 text-right" style={{ color: data.spent > 0 ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
+            {data.spent > 0 ? fmt(data.spent) : '-'}
+          </span>
+          <span className="w-20 text-right font-medium" style={{ color: over ? '#ef4444' : data.remaining > 0 ? '#22c55e' : 'var(--color-text-muted)' }}>
+            {data.budgeted > 0 || data.spent > 0 ? fmt(data.remaining) : '-'}
+          </span>
+        </div>
+
+        {/* Inline add transaction form */}
+        {isAdding && (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-800/50 rounded mx-2 mb-1">
+            <input
+              type="date"
+              value={txnForm.date}
+              onChange={(e) => setTxnForm(f => ({ ...f, date: e.target.value }))}
+              className="w-28 px-1 py-0.5 bg-gray-900 border border-gray-700 rounded text-xs"
+              style={{ color: 'var(--color-text-primary)' }}
+            />
+            <input
+              type="text"
+              placeholder="Description"
+              value={txnForm.description}
+              onChange={(e) => setTxnForm(f => ({ ...f, description: e.target.value }))}
+              className="flex-1 px-1 py-0.5 bg-gray-900 border border-gray-700 rounded text-xs"
+              style={{ color: 'var(--color-text-primary)' }}
+              autoFocus
+            />
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Amount"
+              value={txnForm.amount}
+              onChange={(e) => setTxnForm(f => ({ ...f, amount: e.target.value }))}
+              className="w-20 px-1 py-0.5 bg-gray-900 border border-gray-700 rounded text-xs text-right"
+              style={{ color: 'var(--color-text-primary)' }}
+            />
+            <button onClick={saveAddTxn} disabled={saving} className="p-0.5 text-green-400 hover:text-green-300">
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => setAddingTxn(null)} className="p-0.5 text-gray-400 hover:text-gray-300">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     )
   }
@@ -113,7 +253,7 @@ function MonthlyBudget() {
     )
   }
 
-  const renderPeriodSection = (label, summary) => {
+  const renderPeriodSection = (label, summary, periodKey) => {
     if (!summary) return null
 
     return (
@@ -149,7 +289,7 @@ function MonthlyBudget() {
           {variableCats.length > 0 && (
             <div className="mt-2">
               <div className="text-xs font-semibold px-2 py-1" style={{ color: 'var(--color-text-primary)' }}>Variable Spending</div>
-              {variableCats.map(cat => renderCategoryRow(cat, summary))}
+              {variableCats.map(cat => renderCategoryRow(cat, summary, periodKey))}
               {renderSectionTotal(variableCats, summary, 'Variable Total')}
             </div>
           )}
@@ -158,7 +298,7 @@ function MonthlyBudget() {
           {fixedCats.length > 0 && (
             <div className="mt-2">
               <div className="text-xs font-semibold px-2 py-1" style={{ color: 'var(--color-text-primary)' }}>Bills & Fixed Expenses</div>
-              {fixedCats.map(cat => renderCategoryRow(cat, summary))}
+              {fixedCats.map(cat => renderCategoryRow(cat, summary, periodKey))}
               {renderSectionTotal(fixedCats, summary, 'Bills Total')}
             </div>
           )}
@@ -167,7 +307,7 @@ function MonthlyBudget() {
           {transferCats.length > 0 && (
             <div className="mt-2">
               <div className="text-xs font-semibold px-2 py-1" style={{ color: 'var(--color-text-primary)' }}>Savings & Transfers</div>
-              {transferCats.map(cat => renderCategoryRow(cat, summary))}
+              {transferCats.map(cat => renderCategoryRow(cat, summary, periodKey))}
               {renderSectionTotal(transferCats, summary, 'Transfers Total')}
             </div>
           )}
@@ -192,11 +332,9 @@ function MonthlyBudget() {
   const monthBudgeted = (firstHalf?.total_budgeted || 0) + (secondHalf?.total_budgeted || 0)
   const monthNet = monthIncome - monthSpent
 
-  // Build money distribution data - how income from Money Market is distributed
+  // Build money distribution data
   const buildDistribution = () => {
     const dist = []
-
-    // Personal spending accounts
     const daneSpending = categories.find(c => c.name === 'Dane Spending')
     const kellySpending = categories.find(c => c.name === 'Kelly Spending')
 
@@ -211,7 +349,6 @@ function MonthlyBudget() {
       dist.push({ name: "Kelly's Spending", budgeted: h1.budgeted + h2.budgeted, spent: h1.spent + h2.spent })
     }
 
-    // Main Checking (variable spending like Gas, Groceries, Main Spending goes through checking)
     const checkingCats = variableCats.filter(c => !['Dane Spending', 'Kelly Spending', 'Other', 'Roll Over'].includes(c.name))
     let checkingBudget = 0, checkingSpent = 0
     checkingCats.forEach(cat => {
@@ -220,7 +357,6 @@ function MonthlyBudget() {
       checkingBudget += h1.budgeted + h2.budgeted
       checkingSpent += h1.spent + h2.spent
     })
-    // Add fixed bills to checking (bills are paid from checking/money market)
     let billsBudget = 0, billsSpent = 0
     fixedCats.forEach(cat => {
       const h1 = getCatData(firstHalf, cat.id)
@@ -228,10 +364,8 @@ function MonthlyBudget() {
       billsBudget += h1.budgeted + h2.budgeted
       billsSpent += h1.spent + h2.spent
     })
-
     dist.push({ name: 'Main Checking (Bills & Variable)', budgeted: checkingBudget + billsBudget, spent: checkingSpent + billsSpent })
 
-    // Transfers (Savings, House/Travel Fund)
     transferCats.forEach(cat => {
       const h1 = getCatData(firstHalf, cat.id)
       const h2 = getCatData(secondHalf, cat.id)
@@ -306,7 +440,6 @@ function MonthlyBudget() {
           </p>
         </div>
 
-        {/* Distribution Column Headers */}
         <div className="flex justify-between items-center py-1.5 px-4 text-xs font-medium" style={{ backgroundColor: 'var(--color-bg-surface-soft)', color: 'var(--color-text-muted)' }}>
           <span className="flex-1">Destination</span>
           <span className="w-24 text-right">Budgeted</span>
@@ -315,7 +448,6 @@ function MonthlyBudget() {
         </div>
 
         <div className="px-2 py-1">
-          {/* Income source row */}
           <div className="flex justify-between items-center py-1.5 px-2 text-xs font-semibold rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)' }}>
             <span style={{ color: '#22c55e' }}>Total Income (Money Market)</span>
             <span className="w-24 text-right" style={{ color: '#22c55e' }}>{fmt(monthIncome)}</span>
@@ -323,7 +455,6 @@ function MonthlyBudget() {
             <span className="w-24" />
           </div>
 
-          {/* Distribution rows */}
           {distribution.map((d, i) => {
             const remaining = d.budgeted - d.spent
             return (
@@ -340,7 +471,6 @@ function MonthlyBudget() {
             )
           })}
 
-          {/* Distribution total */}
           <div className="flex justify-between items-center py-2 px-2 text-xs font-bold mt-1" style={{ borderTop: '1px solid var(--color-border-default)' }}>
             <span style={{ color: 'var(--color-text-primary)' }}>Total Distributed</span>
             <span className="w-24 text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(totalDistBudgeted)}</span>
@@ -350,7 +480,6 @@ function MonthlyBudget() {
             </span>
           </div>
 
-          {/* Unallocated */}
           <div className="flex justify-between items-center py-1.5 px-2 text-xs font-semibold rounded mb-1" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
             <span style={{ color: '#3b82f6' }}>Unallocated (stays in Money Market)</span>
             <span className="w-24 text-right" style={{ color: '#3b82f6' }}>{fmt(monthIncome - totalDistBudgeted)}</span>
@@ -362,8 +491,8 @@ function MonthlyBudget() {
 
       {/* Two Pay Periods */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {renderPeriodSection('Beginning of Month (1st - 14th)', firstHalf)}
-        {renderPeriodSection('End of Month (15th - End)', secondHalf)}
+        {renderPeriodSection('Beginning of Month (1st - 14th)', firstHalf, 'first')}
+        {renderPeriodSection('End of Month (15th - End)', secondHalf, 'second')}
       </div>
     </div>
   )

@@ -10,6 +10,9 @@ All notable changes to Isaac will be documented in this file.
 - **Chase credit card accounts** - Added Chase Credit Card 1 and Chase Credit Card 2 as budget accounts for statement imports
 - **Bills Summary tab** - Dedicated view for tracking monthly bills with paid/partial/due status indicators
 - **Income frequency support** - Budget income now supports weekly, biweekly, semimonthly, and monthly pay frequencies with proper pay period calculations
+- **Inline budget editing** - Click any budget amount in Monthly Budget or Bills tab to edit it inline
+- **Quick add transactions** - Hover over a category row to reveal a "+" button for adding transactions inline
+- **Mark bills as paid** - Click "Due" status on a bill to instantly mark it as paid with the full amount
 
 ### Fixed
 - **Budget data not loading** - Fixed database enum value casing that prevented SQLAlchemy from reading budget categories, transactions, and accounts

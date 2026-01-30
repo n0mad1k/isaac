@@ -1,13 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Receipt } from 'lucide-react'
-import { getBudgetCategories, getBudgetPeriodSummary, getBudgetPayPeriods } from '../../services/api'
+import { ChevronLeft, ChevronRight, Receipt, Plus, Check, X } from 'lucide-react'
+import {
+  getBudgetCategories, getBudgetPeriodSummary, getBudgetPayPeriods,
+  getBudgetAccounts, updateBudgetCategory, createBudgetTransaction
+} from '../../services/api'
 
 function BillsSummary() {
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState([])
+  const [accounts, setAccounts] = useState([])
   const [summary, setSummary] = useState(null)
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
+
+  // Editing state
+  const [editingAmount, setEditingAmount] = useState(null) // catId being edited
+  const [editValue, setEditValue] = useState('')
+  const [addingTxn, setAddingTxn] = useState(null) // catId for adding transaction
+  const [txnForm, setTxnForm] = useState({ description: '', amount: '', date: '' })
+  const [saving, setSaving] = useState(false)
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December']
@@ -15,11 +26,13 @@ function BillsSummary() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [catRes, periodsRes] = await Promise.all([
+      const [catRes, periodsRes, acctRes] = await Promise.all([
         getBudgetCategories(),
         getBudgetPayPeriods(currentYear, currentMonth),
+        getBudgetAccounts(),
       ])
       setCategories(catRes.data || [])
+      setAccounts(acctRes.data || [])
 
       // Get full month summary
       const periods = periodsRes.data || []
@@ -46,6 +59,83 @@ function BillsSummary() {
   }
 
   const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
+
+  // Edit bill amount (monthly_budget)
+  const startEditAmount = (cat) => {
+    const value = cat.monthly_budget || cat.budget_amount * 2 || 0
+    setEditingAmount(cat.id)
+    setEditValue(String(value))
+  }
+
+  const saveEditAmount = async () => {
+    if (!editingAmount || saving) return
+    setSaving(true)
+    try {
+      await updateBudgetCategory(editingAmount, { monthly_budget: parseFloat(editValue) || 0 })
+      setEditingAmount(null)
+      fetchData()
+    } catch (err) {
+      console.error('Failed to update bill amount:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Add transaction (pay bill)
+  const startAddTxn = (cat) => {
+    const budgeted = cat.monthly_budget || cat.budget_amount * 2 || 0
+    const today = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+    setAddingTxn(cat.id)
+    setTxnForm({ description: cat.name, amount: String(budgeted), date: today })
+  }
+
+  const saveAddTxn = async () => {
+    if (!addingTxn || saving || !txnForm.description || !txnForm.amount) return
+    setSaving(true)
+    try {
+      const defaultAcct = accounts.find(a => a.account_type === 'checking') || accounts[0]
+      await createBudgetTransaction({
+        account_id: defaultAcct?.id || 1,
+        category_id: addingTxn,
+        transaction_date: txnForm.date,
+        description: txnForm.description,
+        amount: -Math.abs(parseFloat(txnForm.amount)),
+        transaction_type: 'debit',
+      })
+      setAddingTxn(null)
+      setTxnForm({ description: '', amount: '', date: '' })
+      fetchData()
+    } catch (err) {
+      console.error('Failed to add bill payment:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Mark bill as paid (quick pay with full amount)
+  const markAsPaid = async (cat) => {
+    if (saving) return
+    const budgeted = cat.monthly_budget || cat.budget_amount * 2 || 0
+    if (budgeted <= 0) return
+    setSaving(true)
+    try {
+      const defaultAcct = accounts.find(a => a.account_type === 'checking') || accounts[0]
+      const today = new Date().toISOString().split('T')[0]
+      await createBudgetTransaction({
+        account_id: defaultAcct?.id || 1,
+        category_id: cat.id,
+        transaction_date: today,
+        description: cat.name,
+        amount: -Math.abs(budgeted),
+        transaction_type: 'debit',
+      })
+      fetchData()
+    } catch (err) {
+      console.error('Failed to mark bill as paid:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (loading && !summary) {
     return <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
@@ -119,30 +209,112 @@ function BillsSummary() {
               const budgeted = cat.monthly_budget || cat.budget_amount * 2 || 0
               const spent = data.spent || 0
               const isPaid = spent >= budgeted && budgeted > 0
+              const isEditingThis = editingAmount === cat.id
+              const isAddingThis = addingTxn === cat.id
 
               return (
-                <div key={cat.id} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ backgroundColor: 'var(--color-bg-surface-soft)' }}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                    <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
+                <div key={cat.id}>
+                  <div className="flex items-center justify-between px-2 py-2 rounded-lg group" style={{ backgroundColor: 'var(--color-bg-surface-soft)' }}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                      <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
+                      <button
+                        onClick={() => startAddTxn(cat)}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-700 transition-opacity"
+                        title="Add payment"
+                      >
+                        <Plus className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
+                      </button>
+                    </div>
+                    <div className="flex gap-4 items-center">
+                      {isEditingThis ? (
+                        <span className="w-20 flex items-center gap-0.5 justify-end">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEditAmount(); if (e.key === 'Escape') setEditingAmount(null); }}
+                            className="w-16 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs text-right"
+                            style={{ color: 'var(--color-text-primary)' }}
+                            autoFocus
+                          />
+                          <button onClick={saveEditAmount} className="p-0.5 text-green-400 hover:text-green-300">
+                            <Check className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ) : (
+                        <span
+                          className="w-20 text-right text-xs cursor-pointer hover:underline"
+                          style={{ color: 'var(--color-text-muted)' }}
+                          onClick={() => startEditAmount(cat)}
+                          title="Click to edit amount"
+                        >
+                          {fmt(budgeted)}
+                        </span>
+                      )}
+                      <span className="w-16 text-right text-xs" style={{ color: spent > 0 ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
+                        {spent > 0 ? fmt(spent) : '-'}
+                      </span>
+                      {!isPaid && budgeted > 0 && spent === 0 ? (
+                        <button
+                          onClick={() => markAsPaid(cat)}
+                          disabled={saving}
+                          className="w-16 text-right text-xs font-medium px-1.5 py-0.5 rounded bg-gray-700 text-gray-500 hover:bg-green-900/40 hover:text-green-400 transition-colors cursor-pointer"
+                          title="Click to mark as paid"
+                        >
+                          Due
+                        </button>
+                      ) : (
+                        <span className={`w-16 text-right text-xs font-medium px-1.5 py-0.5 rounded ${
+                          isPaid
+                            ? 'bg-green-900/40 text-green-400'
+                            : spent > 0
+                              ? 'bg-yellow-900/40 text-yellow-400'
+                              : 'bg-gray-700 text-gray-500'
+                        }`}>
+                          {isPaid ? 'Paid' : spent > 0 ? 'Partial' : 'Due'}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-4 items-center">
-                    <span className="w-20 text-right text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                      {fmt(budgeted)}
-                    </span>
-                    <span className="w-16 text-right text-xs" style={{ color: spent > 0 ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
-                      {spent > 0 ? fmt(spent) : '-'}
-                    </span>
-                    <span className={`w-16 text-right text-xs font-medium px-1.5 py-0.5 rounded ${
-                      isPaid
-                        ? 'bg-green-900/40 text-green-400'
-                        : spent > 0
-                          ? 'bg-yellow-900/40 text-yellow-400'
-                          : 'bg-gray-700 text-gray-500'
-                    }`}>
-                      {isPaid ? 'Paid' : spent > 0 ? 'Partial' : 'Due'}
-                    </span>
-                  </div>
+
+                  {/* Inline add transaction form */}
+                  {isAddingThis && (
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-800/50 rounded mx-2 mt-1">
+                      <input
+                        type="date"
+                        value={txnForm.date}
+                        onChange={(e) => setTxnForm(f => ({ ...f, date: e.target.value }))}
+                        className="w-28 px-1 py-0.5 bg-gray-900 border border-gray-700 rounded text-xs"
+                        style={{ color: 'var(--color-text-primary)' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Description"
+                        value={txnForm.description}
+                        onChange={(e) => setTxnForm(f => ({ ...f, description: e.target.value }))}
+                        className="flex-1 px-1 py-0.5 bg-gray-900 border border-gray-700 rounded text-xs"
+                        style={{ color: 'var(--color-text-primary)' }}
+                        autoFocus
+                      />
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Amount"
+                        value={txnForm.amount}
+                        onChange={(e) => setTxnForm(f => ({ ...f, amount: e.target.value }))}
+                        className="w-20 px-1 py-0.5 bg-gray-900 border border-gray-700 rounded text-xs text-right"
+                        style={{ color: 'var(--color-text-primary)' }}
+                      />
+                      <button onClick={saveAddTxn} disabled={saving} className="p-0.5 text-green-400 hover:text-green-300">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => setAddingTxn(null)} className="p-0.5 text-gray-400 hover:text-gray-300">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })}
