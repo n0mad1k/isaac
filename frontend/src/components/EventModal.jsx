@@ -9,6 +9,7 @@ const TASK_CATEGORIES = [
   { value: 'garden', label: 'Garden' },
   { value: 'home_maintenance', label: 'Home Maintenance' },
   { value: 'equipment', label: 'Equipment' },
+  { value: 'fitness', label: 'Fitness' },
   { value: 'seasonal', label: 'Seasonal' },
   { value: 'custom', label: 'Custom' },
   { value: 'other', label: 'Other' },

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Check, Trash2, Pencil, RefreshCw, Clock, CheckSquare, MapPin, Wrench, User } from 'lucide-react'
 import { getCalendarMonth, getCalendarWeek, createTask, updateTask, deleteTask, deleteTaskOccurrence, completeTask, uncompleteTask, syncCalendar } from '../services/api'
 import EventModal, { RecurrenceChoiceModal } from '../components/EventModal'
+import EventViewModal from '../components/EventViewModal'
 import MottoDisplay from '../components/MottoDisplay'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, addMonths, subMonths, addDays, subDays, startOfWeek, addWeeks, subWeeks, isSameDay } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
@@ -11,6 +12,7 @@ const TASK_CATEGORIES = [
   { value: 'garden', label: 'Garden' },
   { value: 'livestock', label: 'Livestock' },
   { value: 'maintenance', label: 'Maintenance' },
+  { value: 'fitness', label: 'Fitness' },
   { value: 'seasonal', label: 'Seasonal' },
   { value: 'household', label: 'Household' },
   { value: 'other', label: 'Other' },
@@ -33,6 +35,7 @@ function CalendarPage() {
   const scrollRef = useRef(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [recurringDeleteEvent, setRecurringDeleteEvent] = useState(null) // Event awaiting recurrence delete choice
+  const [viewingEvent, setViewingEvent] = useState(null) // Event shown in read-only view modal
 
   // Update current time every minute for the time indicator
   useEffect(() => {
@@ -134,9 +137,14 @@ function CalendarPage() {
     setShowEventModal(true)
   }
 
-  const handleEditEvent = (event) => {
-    // Care projections are virtual entries - can't edit them
+  const handleViewEvent = (event) => {
+    // Care projections are virtual entries - can't interact with them
     if (event.is_care_projection) return
+    setViewingEvent(event)
+  }
+
+  const handleEditFromView = (event) => {
+    setViewingEvent(null)
     setEditingEvent(event)
     setShowEventModal(true)
   }
@@ -340,7 +348,7 @@ function CalendarPage() {
               currentTime={currentTime}
               events={events}
               scrollRef={scrollRef}
-              onEventClick={handleEditEvent}
+              onEventClick={handleViewEvent}
               onAddEvent={handleAddEvent}
               onToggleComplete={handleToggleComplete}
               formatTime={formatTime}
@@ -352,7 +360,7 @@ function CalendarPage() {
               currentTime={currentTime}
               events={events}
               scrollRef={scrollRef}
-              onEventClick={handleEditEvent}
+              onEventClick={handleViewEvent}
               onAddEvent={handleAddEvent}
               onToggleComplete={handleToggleComplete}
               formatTime={formatTime}
@@ -367,7 +375,7 @@ function CalendarPage() {
           selectedDate={selectedDate}
           events={selectedDayEvents}
           onAddEvent={() => handleAddEvent()}
-          onEditEvent={handleEditEvent}
+          onEditEvent={handleViewEvent}
           onDeleteEvent={handleDeleteEvent}
           onToggleComplete={handleToggleComplete}
           formatTime={formatTime}
@@ -380,6 +388,30 @@ function CalendarPage() {
           action="delete"
           onChoice={handleRecurringDeleteChoice}
           onCancel={() => setRecurringDeleteEvent(null)}
+        />
+      )}
+
+      {/* Event View Modal */}
+      {viewingEvent && (
+        <EventViewModal
+          event={viewingEvent}
+          onClose={() => setViewingEvent(null)}
+          onEdit={handleEditFromView}
+          onCompleted={() => {
+            fetchCalendarData()
+            setViewingEvent(null)
+            if (selectedDate) {
+              const dateKey = format(selectedDate, 'yyyy-MM-dd')
+              setSelectedDayEvents(events[dateKey] || [])
+            }
+          }}
+          onDeleted={(deletedId) => {
+            fetchCalendarData()
+            setViewingEvent(null)
+            if (selectedDate) {
+              setSelectedDayEvents(prev => prev.filter(e => e.id !== deletedId))
+            }
+          }}
         />
       )}
 

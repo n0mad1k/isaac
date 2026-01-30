@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.55.0] - 2026-01-30
+
+### Added
+- **Calendar event view modal** - Clicking a calendar event now opens a read-only detail view showing title, date/time, description, location, category, priority, recurrence, and assigned members. Use the Edit button to switch to the edit form, or Complete/Delete directly from the view
+- **Fitness task category** - Added "Fitness" as a category option for events and reminders
+- **APT correction stretching events** - Added 4 weekly recurring mobility events (Mon/Tue/Thu/Sun 6:00-6:15am) with full 15-minute APT correction stretching routine
+
 ## [1.54.0] - 2026-01-30
 
 ### Added

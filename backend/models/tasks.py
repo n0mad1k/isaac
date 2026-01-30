@@ -25,6 +25,7 @@ class TaskCategory(enum.Enum):
     HOME_MAINTENANCE = "home_maintenance"
     GARDEN = "garden"
     EQUIPMENT = "equipment"
+    FITNESS = "fitness"
     SEASONAL = "seasonal"
     CUSTOM = "custom"
     OTHER = "other"
