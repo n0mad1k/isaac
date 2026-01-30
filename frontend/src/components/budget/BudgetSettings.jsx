@@ -314,19 +314,10 @@ function CategoriesSection({ categories, onRefresh }) {
 
       <div className="space-y-1.5">
         {categories.map(cat => (
-          <div key={cat.id} className="flex items-center justify-between px-3 py-2 bg-gray-800 rounded-lg">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-              <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
-              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>{cat.category_type}</span>
-              {cat.budget_amount > 0 && (
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.budget_amount)}/period</span>
-              )}
-              {cat.monthly_budget > 0 && (
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.monthly_budget)}/mo</span>
-              )}
-            </div>
-            <div className="flex gap-1">
+          <div key={cat.id} className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg">
+            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+            <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
+            <div className="flex gap-0.5 flex-shrink-0">
               <button
                 onClick={async () => {
                   try {
@@ -342,6 +333,13 @@ function CategoriesSection({ categories, onRefresh }) {
               <button onClick={() => handleEdit(cat)} className="p-1 rounded hover:bg-gray-700"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
               <button onClick={() => handleDelete(cat.id)} className="p-1 rounded hover:bg-red-900/50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
             </div>
+            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>{cat.category_type}</span>
+            {cat.budget_amount > 0 && (
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.budget_amount)}/period</span>
+            )}
+            {cat.monthly_budget > 0 && (
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.monthly_budget)}/mo</span>
+            )}
           </div>
         ))}
         {categories.length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--color-text-muted)' }}>No categories yet</p>}

@@ -5,7 +5,7 @@ Personal budget tracking with bi-weekly pay periods, statement import, and auto-
 
 from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, extract
+from sqlalchemy import select, func, and_, extract, update, delete as delete_stmt
 from typing import List, Optional
 from datetime import date, datetime
 from calendar import monthrange
@@ -379,6 +379,14 @@ async def delete_category(
         category = result.scalar_one_or_none()
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
+        # Null out category on related transactions
+        await db.execute(
+            update(BudgetTransaction).where(BudgetTransaction.category_id == category_id).values(category_id=None)
+        )
+        # Delete related rules
+        await db.execute(
+            delete_stmt(BudgetCategoryRule).where(BudgetCategoryRule.category_id == category_id)
+        )
         await db.delete(category)
         return {"message": "Category deleted"}
     except HTTPException:
