@@ -203,7 +203,7 @@ function Production() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-gray-800 rounded-xl p-4">
             <div className="flex items-center gap-2 text-gray-400 mb-1">
               <Beef className="w-4 h-4" />
@@ -487,7 +487,7 @@ function Production() {
       {/* Sale Modal */}
       {showSaleModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowSaleModal(false)}>
-          <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
               <h2 className="text-lg font-semibold">Record Sale</h2>
               <button onClick={() => setShowSaleModal(false)} className="text-gray-400 hover:text-white">
@@ -521,7 +521,7 @@ function Production() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Quantity *</label>
                   <input

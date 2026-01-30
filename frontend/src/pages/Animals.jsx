@@ -625,7 +625,7 @@ function Animals() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-2 mb-1">
             <Heart className="w-5 h-5" style={{ color: 'var(--color-error-600)' }} />
@@ -3225,7 +3225,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
               </label>
 
               {formData.cold_sensitive && (
-                <div className="grid grid-cols-2 gap-4 ml-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 ml-8">
                   <div>
                     <label className="block text-sm text-gray-400 mb-1">Min Comfortable Temp (°F)</label>
                     <input
@@ -3711,7 +3711,7 @@ function SplitExpenseFormModal({ animals, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Split Expense Across Animals</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -3719,9 +3719,9 @@ function SplitExpenseFormModal({ animals, onClose, onSave }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {/* Expense Details */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Type *</label>
               <select
@@ -3751,7 +3751,7 @@ function SplitExpenseFormModal({ animals, onClose, onSave }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Description</label>
               <input
@@ -4579,7 +4579,7 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold">Expenses for {animal.name}</h2>
@@ -4598,7 +4598,7 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {loading ? (
             <div className="text-center text-gray-400 py-8">Loading...</div>
           ) : expenses.length === 0 ? (
@@ -4610,7 +4610,7 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
                   {editingExpense === expense.id ? (
                     // Edit form
                     <div className="space-y-3">
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <select
                           value={editFormData.expense_type}
                           onChange={(e) => setEditFormData({ ...editFormData, expense_type: e.target.value })}
@@ -4673,7 +4673,7 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
                     // Duplicate form - prefilled with expense data, today's date
                     <div className="space-y-3">
                       <div className="text-xs text-purple-400 font-medium mb-1">Duplicate Expense (edit before saving)</div>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <select
                           value={duplicateFormData.expense_type}
                           onChange={(e) => setDuplicateFormData({ ...duplicateFormData, expense_type: e.target.value })}

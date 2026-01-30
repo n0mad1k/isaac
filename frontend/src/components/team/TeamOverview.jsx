@@ -61,7 +61,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
             <h2 className="text-xl font-semibold mb-4">
               Core Values
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-5xl mx-auto px-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-w-5xl mx-auto px-4">
               {settings.team_values.map((value, idx) => (
                 <div
                   key={idx}
@@ -89,7 +89,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
               <Users className="w-5 h-5 text-farm-green" />
               Team Roster ({overview?.active_members || members.length} Active)
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {members.map(member => (
                 <button
                   key={member.id}

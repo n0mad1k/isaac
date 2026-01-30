@@ -156,7 +156,7 @@ function MemberObservationsTab({ member, observations, onUpdate }) {
           </div>
 
           {/* Optional Links */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Related Goal Category (optional)</label>
               <select

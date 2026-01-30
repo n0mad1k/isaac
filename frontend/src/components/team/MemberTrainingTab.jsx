@@ -359,14 +359,14 @@ function TrainingModal({ training, memberId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md">
+      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h3 className="font-semibold">{training ? 'Edit Training' : 'Add Training'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           {error && (
             <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
               {error}
@@ -383,7 +383,7 @@ function TrainingModal({ training, memberId, onClose, onSave }) {
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Category</label>
               <select
@@ -475,14 +475,14 @@ function LogSessionModal({ training, memberId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md">
+      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h3 className="font-semibold">Log Training Session</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           {error && (
             <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
               {error}
@@ -491,7 +491,7 @@ function LogSessionModal({ training, memberId, onClose, onSave }) {
           <div className="text-center pb-2">
             <span className="text-lg font-medium">{training.name}</span>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Date</label>
               <input

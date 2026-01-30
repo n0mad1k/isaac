@@ -1046,7 +1046,7 @@ function Settings() {
 
       {/* User Management (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('users')}
@@ -1529,7 +1529,7 @@ function Settings() {
 
       {/* Role Permissions (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('roles')}
@@ -1697,7 +1697,7 @@ function Settings() {
       )}
 
       {/* Location Settings */}
-      <div className="bg-gray-800 rounded-xl p-6">
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('location')}
@@ -1723,7 +1723,7 @@ function Settings() {
 
       {/* Weather API Settings (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('weatherApi')}
@@ -1751,7 +1751,7 @@ function Settings() {
 
       {/* Email Server Settings (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('emailServer')}
@@ -1778,7 +1778,7 @@ function Settings() {
       )}
 
       {/* Email Notification Settings */}
-      <div className="bg-gray-800 rounded-xl p-6">
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('email')}
@@ -1807,7 +1807,7 @@ function Settings() {
       </div>
 
       {/* Alert Thresholds */}
-      <div className="bg-gray-800 rounded-xl p-6">
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('alerts')}
@@ -1832,7 +1832,7 @@ function Settings() {
       </div>
 
       {/* Notification Categories */}
-      <div className="bg-gray-800 rounded-xl p-6">
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('notifications')}
@@ -1859,7 +1859,7 @@ function Settings() {
 
       {/* Calendar Sync (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('calendar')}
@@ -1896,7 +1896,7 @@ function Settings() {
 
       {/* Cloudflare Access (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('cloudflare')}
@@ -1922,7 +1922,7 @@ function Settings() {
       )}
 
       {/* Display Settings */}
-      <div className="bg-gray-800 rounded-xl p-6">
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('display')}
@@ -2152,7 +2152,7 @@ function Settings() {
       </div>
 
       {/* Feature Toggles */}
-      <div className="bg-gray-800 rounded-xl p-6">
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('featureToggles')}
@@ -2212,7 +2212,7 @@ function Settings() {
 
       {/* Team Configuration - Only show when team is enabled */}
       {settings.team_enabled?.value === 'true' && (
-        <div className="bg-gray-800 rounded-xl p-6">
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('team')}
@@ -2451,7 +2451,7 @@ function Settings() {
 
       {/* Translation Settings (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('translation')}
@@ -2480,7 +2480,7 @@ function Settings() {
 
       {/* Storage Monitoring (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('storage')}
@@ -2595,7 +2595,7 @@ function Settings() {
 
       {/* Health Monitoring (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-6">
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('healthMonitor')}

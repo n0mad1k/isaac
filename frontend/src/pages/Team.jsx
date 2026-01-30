@@ -517,7 +517,7 @@ function Team() {
       {/* Quick Add Observation Modal */}
       {showObservationModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
             <h3 className="text-lg font-semibold mb-4">Add Observation</h3>
 
             <div className="space-y-4">
@@ -622,7 +622,7 @@ function Team() {
       {/* Quick Add Session Modal */}
       {showSessionModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
             <h3 className="text-lg font-semibold mb-4">Start Mentoring Session</h3>
 
             <div className="space-y-4">
@@ -673,7 +673,7 @@ function Team() {
       {/* Quick Add Weight Modal */}
       {showQuickWeight && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
             <h3 className="text-lg font-semibold mb-4">Log Weight</h3>
 
             <div className="space-y-4">
