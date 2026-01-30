@@ -2,6 +2,21 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.56.0] - 2026-01-30
+
+### Added
+- **Budget & Finance tracking** - New Budget tab in Farm Finances with full personal budget management
+  - Bank account tracking (checking, savings, credit, cash)
+  - Budget categories with per-pay-period and monthly amounts
+  - Bi-weekly pay period views (1st-14th, 15th-end) and full month view
+  - Manual transaction entry with auto-categorization
+  - Chase PDF statement import with duplicate detection
+  - Auto-categorization rules (contains, starts with, regex)
+  - Recurring income source definitions
+  - Budget vs actual progress bars and spending pie chart
+  - Dashboard widget showing current pay period spending summary
+  - Farm expense auto-creates budget transaction for cross-tracking
+
 ## [1.55.0] - 2026-01-30
 
 ### Added

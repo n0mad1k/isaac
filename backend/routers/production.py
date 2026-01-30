@@ -1536,6 +1536,29 @@ async def create_expense(
         recurring_interval=data.recurring_interval,
     )
     db.add(expense)
+    await db.flush()
+    await db.refresh(expense)
+
+    # Auto-create budget transaction for this expense
+    try:
+        from models.budget import BudgetTransaction, TransactionType, TransactionSource
+        budget_txn = BudgetTransaction(
+            account_id=1,  # Default account; user can re-assign in budget
+            transaction_date=expense.expense_date or date.today(),
+            description=f"Farm: {expense.description or expense.category}",
+            original_description=f"Farm Expense #{expense.id}: {expense.description or expense.category}",
+            amount=-abs(expense.amount),
+            transaction_type=TransactionType.DEBIT,
+            source=TransactionSource.APP_EXPENSE,
+            source_reference_id=f"farm_expense:{expense.id}",
+        )
+        # Auto-categorize
+        from services.statement_parser import auto_categorize_transaction
+        budget_txn.category_id = await auto_categorize_transaction(budget_txn.description, db)
+        db.add(budget_txn)
+    except Exception as e:
+        logger.warning(f"Could not create budget transaction for expense {expense.id}: {e}")
+
     await db.commit()
     await db.refresh(expense)
     return expense

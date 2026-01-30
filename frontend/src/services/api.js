@@ -763,4 +763,48 @@ export const getMemberTasks = (memberId, params) =>
 export const getMemberBacklog = (memberId) =>
   api.get(`/team/members/${memberId}/backlog/`)
 
+// Budget & Finance
+export const getBudgetAccounts = () => api.get('/budget/accounts/')
+export const createBudgetAccount = (data) => api.post('/budget/accounts/', data)
+export const updateBudgetAccount = (id, data) => api.put(`/budget/accounts/${id}/`, data)
+export const deleteBudgetAccount = (id) => api.delete(`/budget/accounts/${id}/`)
+
+export const getBudgetCategories = () => api.get('/budget/categories/')
+export const createBudgetCategory = (data) => api.post('/budget/categories/', data)
+export const updateBudgetCategory = (id, data) => api.put(`/budget/categories/${id}/`, data)
+export const deleteBudgetCategory = (id) => api.delete(`/budget/categories/${id}/`)
+
+export const getBudgetTransactions = (params) => api.get('/budget/transactions/', { params })
+export const createBudgetTransaction = (data) => api.post('/budget/transactions/', data)
+export const updateBudgetTransaction = (id, data) => api.put(`/budget/transactions/${id}/`, data)
+export const deleteBudgetTransaction = (id) => api.delete(`/budget/transactions/${id}/`)
+
+export const getBudgetRules = () => api.get('/budget/rules/')
+export const createBudgetRule = (data) => api.post('/budget/rules/', data)
+export const updateBudgetRule = (id, data) => api.put(`/budget/rules/${id}/`, data)
+export const deleteBudgetRule = (id) => api.delete(`/budget/rules/${id}/`)
+
+export const getBudgetIncome = () => api.get('/budget/income/')
+export const createBudgetIncome = (data) => api.post('/budget/income/', data)
+export const updateBudgetIncome = (id, data) => api.put(`/budget/income/${id}/`, data)
+export const deleteBudgetIncome = (id) => api.delete(`/budget/income/${id}/`)
+
+export const getBudgetPeriodSummary = (startDate, endDate) =>
+  api.get('/budget/summary/period/', { params: { start_date: startDate, end_date: endDate } })
+export const getBudgetMonthlySummary = (year, month) =>
+  api.get('/budget/summary/monthly/', { params: { year, month } })
+export const getBudgetDashboard = () => api.get('/budget/summary/dashboard/')
+export const getBudgetPayPeriods = (year, month) =>
+  api.get('/budget/pay-periods/', { params: { year, month } })
+
+export const importChaseStatement = (file, accountId, statementYear) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post(`/budget/import/chase/?account_id=${accountId}${statementYear ? `&statement_year=${statementYear}` : ''}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+export const confirmBudgetImport = (data) => api.post('/budget/import/confirm/', data)
+export const runBudgetCategorize = () => api.post('/budget/categorize/')
+
 export default api

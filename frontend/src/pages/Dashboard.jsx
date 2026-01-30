@@ -8,6 +8,7 @@ import AlertBanner from '../components/AlertBanner'
 import StorageAlertWidget from '../components/StorageAlertWidget'
 import ColdProtectionWidget from '../components/ColdProtectionWidget'
 import AnimalFeedWidget from '../components/AnimalFeedWidget'
+import BudgetWidget from '../components/BudgetWidget'
 import BibleVerse from '../components/BibleVerse'
 import MottoDisplay from '../components/MottoDisplay'
 import { useSettings } from '../contexts/SettingsContext'
@@ -220,6 +221,7 @@ function Dashboard() {
           <WeatherWidget weather={data?.weather} />
           <SunMoonWidget data={data?.sun_moon} />
           <AnimalFeedWidget animals={animals} />
+          <BudgetWidget />
         </div>
 
         {/* Right Column - natural sizes, scrolls if needed */}
