@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { Upload, FileText, CheckCircle2, AlertTriangle, X, Check } from 'lucide-react'
+import { Upload, FileText, CheckCircle2, AlertTriangle, X, Check, Edit, CheckSquare, Square } from 'lucide-react'
 import { importChaseStatement, confirmBudgetImport, getBudgetAccounts, getBudgetCategories } from '../../services/api'
 
 function StatementImport() {
@@ -13,6 +13,7 @@ function StatementImport() {
   const [parsing, setParsing] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  const [editingIdx, setEditingIdx] = useState(null)
   const fileInputRef = useRef(null)
 
   // Load accounts and categories on mount
@@ -71,7 +72,13 @@ function StatementImport() {
         parseInt(selectedAccountId),
         statementYear ? parseInt(statementYear) : null
       )
-      setPreview(res.data)
+      // Add 'selected' flag to each transaction (default: selected if not duplicate)
+      const data = res.data
+      data.transactions = data.transactions.map(t => ({
+        ...t,
+        selected: !t.is_duplicate,
+      }))
+      setPreview(data)
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to parse statement')
     } finally {
@@ -79,15 +86,35 @@ function StatementImport() {
     }
   }
 
-  const handleCategoryChange = (idx, categoryId) => {
+  const handleToggleSelect = (idx) => {
     setPreview(prev => {
       const txns = [...prev.transactions]
-      txns[idx] = {
-        ...txns[idx],
-        suggested_category_id: categoryId ? parseInt(categoryId) : null,
-        suggested_category_name: categoryId
-          ? categories.find(c => c.id === parseInt(categoryId))?.name || null
-          : null,
+      // Don't allow selecting duplicates
+      if (txns[idx].is_duplicate) return prev
+      txns[idx] = { ...txns[idx], selected: !txns[idx].selected }
+      return { ...prev, transactions: txns }
+    })
+  }
+
+  const handleSelectAll = () => {
+    setPreview(prev => {
+      const allNonDupSelected = prev.transactions.filter(t => !t.is_duplicate).every(t => t.selected)
+      const txns = prev.transactions.map(t =>
+        t.is_duplicate ? t : { ...t, selected: !allNonDupSelected }
+      )
+      return { ...prev, transactions: txns }
+    })
+  }
+
+  const handleFieldChange = (idx, field, value) => {
+    setPreview(prev => {
+      const txns = [...prev.transactions]
+      txns[idx] = { ...txns[idx], [field]: value }
+      if (field === 'suggested_category_id') {
+        txns[idx].suggested_category_name = value
+          ? categories.find(c => c.id === parseInt(value))?.name || null
+          : null
+        txns[idx].suggested_category_id = value ? parseInt(value) : null
       }
       return { ...prev, transactions: txns }
     })
@@ -98,7 +125,7 @@ function StatementImport() {
     setImporting(true)
     try {
       const transactions = preview.transactions
-        .filter(t => !t.is_duplicate)
+        .filter(t => t.selected && !t.is_duplicate)
         .map(t => ({
           date: t.date,
           description: t.description,
@@ -125,8 +152,8 @@ function StatementImport() {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
   }
 
-  const nonDuplicateCount = preview
-    ? preview.transactions.filter(t => !t.is_duplicate).length
+  const selectedCount = preview
+    ? preview.transactions.filter(t => t.selected && !t.is_duplicate).length
     : 0
 
   return (
@@ -251,65 +278,167 @@ function StatementImport() {
       {/* Preview Table */}
       {preview && (
         <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 flex-wrap gap-2">
             <div>
               <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                Preview ({preview.total_parsed} transactions)
+                Preview ({preview.total_parsed} parsed, {selectedCount} selected)
               </h4>
               <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                 {preview.categorized} auto-categorized, {preview.duplicates} duplicates
+                {' \u2022 '}Click a row to edit, use checkboxes to include/exclude
               </p>
             </div>
             <button
               onClick={handleConfirmImport}
-              disabled={importing || nonDuplicateCount === 0}
+              disabled={importing || selectedCount === 0}
               className="px-4 py-1.5 bg-farm-green text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
             >
-              {importing ? 'Importing...' : `Import ${nonDuplicateCount} Transactions`}
+              {importing ? 'Importing...' : `Import ${selectedCount} Transactions`}
             </button>
           </div>
 
           <div className="max-h-[500px] overflow-y-auto">
             {/* Table Header */}
-            <div className="hidden md:grid grid-cols-[80px_1fr_140px_90px_70px] gap-2 px-4 py-2 border-b border-gray-700 sticky top-0" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+            <div className="hidden md:grid grid-cols-[36px_80px_1fr_140px_100px_50px] gap-2 px-4 py-2 border-b border-gray-700 sticky top-0" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+              <button onClick={handleSelectAll} className="flex items-center justify-center" title="Select/Deselect All">
+                {preview.transactions.filter(t => !t.is_duplicate).every(t => t.selected)
+                  ? <CheckSquare className="w-4 h-4 text-green-400" />
+                  : <Square className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+                }
+              </button>
               <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Date</span>
               <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Description</span>
               <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Category</span>
               <span className="text-xs font-medium text-right" style={{ color: 'var(--color-text-muted)' }}>Amount</span>
-              <span className="text-xs font-medium text-center" style={{ color: 'var(--color-text-muted)' }}>Status</span>
+              <span className="text-xs font-medium text-center" style={{ color: 'var(--color-text-muted)' }}>Edit</span>
             </div>
 
             {preview.transactions.map((txn, idx) => (
-              <div
-                key={idx}
-                className={`grid grid-cols-1 md:grid-cols-[80px_1fr_140px_90px_70px] gap-1 md:gap-2 px-4 py-2 border-b border-gray-800 ${
-                  txn.is_duplicate ? 'opacity-40' : ''
-                }`}
-              >
-                <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{txn.date}</span>
-                <span className="text-xs truncate" style={{ color: 'var(--color-text-primary)' }}>{txn.description}</span>
-                <select
-                  value={txn.suggested_category_id || ''}
-                  onChange={(e) => handleCategoryChange(idx, e.target.value)}
-                  disabled={txn.is_duplicate}
-                  className="px-1 py-0.5 bg-gray-800 border border-gray-700 rounded text-xs"
-                  style={{ color: 'var(--color-text-secondary)' }}
+              <div key={idx}>
+                {/* Normal row */}
+                <div
+                  className={`grid grid-cols-[36px_1fr] md:grid-cols-[36px_80px_1fr_140px_100px_50px] gap-1 md:gap-2 px-4 py-2 border-b border-gray-800 ${
+                    txn.is_duplicate ? 'opacity-40' : ''
+                  } ${!txn.selected && !txn.is_duplicate ? 'opacity-50' : ''}`}
                 >
-                  <option value="">Uncategorized</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <span className={`text-xs text-right ${txn.amount < 0 ? 'text-red-400' : 'text-green-400'}`}>
-                  {formatCurrency(txn.amount)}
-                </span>
-                <div className="flex justify-center">
-                  {txn.is_duplicate ? (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-900/40 text-yellow-400">Dup</span>
-                  ) : txn.suggested_category_id ? (
-                    <Check className="w-3.5 h-3.5 text-green-400" />
-                  ) : (
-                    <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>-</span>
-                  )}
+                  {/* Checkbox */}
+                  <button
+                    onClick={() => handleToggleSelect(idx)}
+                    className="flex items-center justify-center"
+                    disabled={txn.is_duplicate}
+                  >
+                    {txn.is_duplicate ? (
+                      <span className="text-xs px-1 py-0.5 rounded bg-yellow-900/40 text-yellow-400">Dup</span>
+                    ) : txn.selected ? (
+                      <CheckSquare className="w-4 h-4 text-green-400" />
+                    ) : (
+                      <Square className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+                    )}
+                  </button>
+
+                  {/* Mobile: combined row */}
+                  <div className="md:hidden">
+                    <div className="flex justify-between">
+                      <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{txn.date}</span>
+                      <span className={`text-xs font-medium ${txn.amount < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        {formatCurrency(txn.amount)}
+                      </span>
+                    </div>
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--color-text-primary)' }}>{txn.description}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <select
+                        value={txn.suggested_category_id || ''}
+                        onChange={(e) => handleFieldChange(idx, 'suggested_category_id', e.target.value)}
+                        disabled={txn.is_duplicate}
+                        className="flex-1 px-1 py-0.5 bg-gray-800 border border-gray-700 rounded text-xs"
+                        style={{ color: 'var(--color-text-secondary)' }}
+                      >
+                        <option value="">Uncategorized</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      {!txn.is_duplicate && (
+                        <button onClick={() => setEditingIdx(editingIdx === idx ? null : idx)}
+                          className="p-0.5 rounded hover:bg-gray-700">
+                          <Edit className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Desktop columns */}
+                  <span className="hidden md:block text-xs" style={{ color: 'var(--color-text-secondary)' }}>{txn.date}</span>
+                  <span className="hidden md:block text-xs truncate" style={{ color: 'var(--color-text-primary)' }}>{txn.description}</span>
+                  <select
+                    value={txn.suggested_category_id || ''}
+                    onChange={(e) => handleFieldChange(idx, 'suggested_category_id', e.target.value)}
+                    disabled={txn.is_duplicate}
+                    className="hidden md:block px-1 py-0.5 bg-gray-800 border border-gray-700 rounded text-xs"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                  >
+                    <option value="">Uncategorized</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <span className={`hidden md:block text-xs text-right ${txn.amount < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                    {formatCurrency(txn.amount)}
+                  </span>
+                  <div className="hidden md:flex justify-center">
+                    {!txn.is_duplicate && (
+                      <button onClick={() => setEditingIdx(editingIdx === idx ? null : idx)}
+                        className="p-0.5 rounded hover:bg-gray-700">
+                        <Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Inline edit row */}
+                {editingIdx === idx && !txn.is_duplicate && (
+                  <div className="px-4 py-2 border-b border-gray-800 bg-gray-800/50">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Date</label>
+                        <input
+                          type="date"
+                          value={txn.date}
+                          onChange={(e) => handleFieldChange(idx, 'date', e.target.value)}
+                          className="w-full px-2 py-1 bg-gray-900 border border-gray-700 rounded text-xs"
+                          style={{ color: 'var(--color-text-primary)' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Description</label>
+                        <input
+                          type="text"
+                          value={txn.description}
+                          onChange={(e) => handleFieldChange(idx, 'description', e.target.value)}
+                          className="w-full px-2 py-1 bg-gray-900 border border-gray-700 rounded text-xs"
+                          style={{ color: 'var(--color-text-primary)' }}
+                          maxLength={500}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Amount</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={txn.amount}
+                          onChange={(e) => handleFieldChange(idx, 'amount', parseFloat(e.target.value) || 0)}
+                          className="w-full px-2 py-1 bg-gray-900 border border-gray-700 rounded text-xs"
+                          style={{ color: 'var(--color-text-primary)' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={() => setEditingIdx(null)}
+                        className="px-2 py-1 text-xs bg-gray-700 rounded hover:bg-gray-600"
+                        style={{ color: 'var(--color-text-secondary)' }}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
