@@ -2510,13 +2510,13 @@ function FitnessTab({ member, settings, formatDate }) {
                                   style={{ width: `${Math.min(100, bestScore)}%` }}
                                 />
                               </div>
-                              {/* Score markers */}
-                              <div className="flex justify-between text-[10px] text-gray-600 mt-0.5 px-0.5">
-                                <span>0</span>
-                                <span className="text-blue-600">|40 CIV</span>
-                                <span className="text-green-600">|70 MAR</span>
-                                <span className="text-yellow-600">|90 SF</span>
-                                <span>100</span>
+                              {/* Score markers - positioned at correct percentage locations */}
+                              <div className="relative text-[10px] text-gray-600 mt-0.5 h-3">
+                                <span className="absolute left-0">0</span>
+                                <span className="absolute text-blue-600" style={{ left: '40%', transform: 'translateX(-50%)' }}>|40 CIV</span>
+                                <span className="absolute text-green-600" style={{ left: '70%', transform: 'translateX(-50%)' }}>|70 MAR</span>
+                                <span className="absolute text-yellow-600" style={{ left: '90%', transform: 'translateX(-50%)' }}>|90 SF</span>
+                                <span className="absolute right-0">100</span>
                               </div>
                               {/* Average vs Best */}
                               {data.workout_count > 1 && avgScore !== bestScore && (

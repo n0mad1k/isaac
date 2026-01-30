@@ -9,6 +9,9 @@ All notable changes to Isaac will be documented in this file.
 - **Fitness task category** - Added "Fitness" as a category option for events and reminders
 - **APT correction stretching events** - Added 4 weekly recurring mobility events (Mon/Tue/Thu/Sun 6:00-6:15am) with full 15-minute APT correction stretching routine
 
+### Fixed
+- **Fitness score bar markers misaligned** - The CIV/MAR/SF tier markers below fitness progress bars were evenly spaced instead of positioned at their correct percentage locations (40%, 70%, 90%). This caused the bar to appear to reach Marine level when the score was still in Civilian range
+
 ## [1.54.0] - 2026-01-30
 
 ### Added
