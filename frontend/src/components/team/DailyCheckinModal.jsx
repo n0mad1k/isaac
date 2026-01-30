@@ -17,7 +17,10 @@ const CONTEXT_FACTORS = [
 
 function DailyCheckinModal({ members, onClose, onSuccess }) {
   const [selectedMemberId, setSelectedMemberId] = useState('')
-  const [inputDate, setInputDate] = useState(new Date().toISOString().split('T')[0])
+  const [inputDate, setInputDate] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
@@ -116,26 +119,44 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
     }
   }
 
-  const SliderInput = ({ label, value, onChange, min, max, leftLabel, rightLabel, color = 'bg-blue-500' }) => (
-    <div className="space-y-1">
-      <div className="flex justify-between text-sm">
-        <span className="text-gray-400">{label}</span>
-        <span className="text-white font-medium">{value}</span>
+  const SegmentedPicker = ({ label, value, onChange, min, max, leftLabel, rightLabel, color = 'blue' }) => {
+    const values = Array.from({ length: max - min + 1 }, (_, i) => min + i)
+    const colorMap = {
+      green: 'bg-green-600',
+      blue: 'bg-blue-600',
+      orange: 'bg-orange-600',
+      red: 'bg-red-600',
+      purple: 'bg-purple-600',
+    }
+    const activeClass = colorMap[color] || 'bg-blue-600'
+    return (
+      <div className="space-y-1">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-400">{label}</span>
+        </div>
+        <div className="flex gap-0.5">
+          {values.map(v => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => onChange(v)}
+              className={`flex-1 min-w-0 py-2 text-xs font-medium rounded transition-colors ${
+                v === value
+                  ? `${activeClass} text-white`
+                  : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+              }`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+        <div className="flex justify-between text-xs text-gray-500">
+          <span>{leftLabel}</span>
+          <span>{rightLabel}</span>
+        </div>
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
-        className={`w-full h-2 ${color} rounded-lg appearance-none cursor-pointer`}
-      />
-      <div className="flex justify-between text-xs text-gray-500">
-        <span>{leftLabel}</span>
-        <span>{rightLabel}</span>
-      </div>
-    </div>
-  )
+    )
+  }
 
   const SectionHeader = ({ title, icon: Icon, expanded, onToggle }) => (
     <button
@@ -192,12 +213,19 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
           {/* Date */}
           <div>
             <label className="block text-sm text-gray-400 mb-1">Date</label>
-            <input
-              type="date"
-              value={inputDate}
-              onChange={(e) => setInputDate(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-            />
+            <div className="flex items-center gap-3">
+              <input
+                type="date"
+                value={inputDate}
+                onChange={(e) => setInputDate(e.target.value)}
+                className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+              />
+              {inputDate && (
+                <span className="text-sm text-gray-300 whitespace-nowrap">
+                  {new Date(inputDate + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Vitals Section */}
@@ -365,7 +393,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
             />
             {subjectiveExpanded && (
               <div className="p-4 pt-0 space-y-4">
-                <SliderInput
+                <SegmentedPicker
                   label="Energy Level"
                   value={energyLevel}
                   onChange={setEnergyLevel}
@@ -373,7 +401,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                   max={10}
                   leftLabel="Exhausted"
                   rightLabel="Fresh"
-                  color="bg-green-500"
+                  color="green"
                 />
 
                 <div className="grid grid-cols-2 gap-4">
@@ -388,7 +416,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                       className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
-                  <SliderInput
+                  <SegmentedPicker
                     label="Sleep Quality"
                     value={sleepQuality}
                     onChange={setSleepQuality}
@@ -396,11 +424,11 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                     max={5}
                     leftLabel="Poor"
                     rightLabel="Excellent"
-                    color="bg-blue-500"
+                    color="blue"
                   />
                 </div>
 
-                <SliderInput
+                <SegmentedPicker
                   label="Soreness"
                   value={soreness}
                   onChange={setSoreness}
@@ -408,11 +436,11 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                   max={10}
                   leftLabel="None"
                   rightLabel="Severe"
-                  color="bg-orange-500"
+                  color="orange"
                 />
 
                 <div className="space-y-2">
-                  <SliderInput
+                  <SegmentedPicker
                     label="Pain Severity"
                     value={painSeverity}
                     onChange={setPainSeverity}
@@ -420,7 +448,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                     max={10}
                     leftLabel="None"
                     rightLabel="Severe"
-                    color="bg-red-500"
+                    color="red"
                   />
                   {painSeverity > 0 && (
                     <input
@@ -433,7 +461,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                   )}
                 </div>
 
-                <SliderInput
+                <SegmentedPicker
                   label="Stress Level"
                   value={stressLevel}
                   onChange={setStressLevel}
@@ -441,7 +469,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                   max={10}
                   leftLabel="Low"
                   rightLabel="High"
-                  color="bg-purple-500"
+                  color="purple"
                 />
               </div>
             )}

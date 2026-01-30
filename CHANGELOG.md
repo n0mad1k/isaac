@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.53.1] - 2026-01-30
+
+### Fixed
+- **Daily checkin sliders replaced with segmented pickers** - Replaced hard-to-use range sliders with tappable numbered button pickers for energy, sleep quality, soreness, pain, and stress inputs
+- **Daily checkin date timezone fix** - Date now uses local timezone instead of UTC, preventing wrong date when checking in after 7pm ET
+- **Readiness illness risk messaging** - Renamed "Illness Risk" to "Immune Status" so high scores (98 = healthy) no longer sound like "98% risk of getting sick." Added human-readable status labels and explanatory text
+- **Readiness confidence display** - Fixed confidence level showing "NaN%" by displaying the correct LOW/MEDIUM/HIGH text
+
 ## [1.53.0] - 2026-01-30
 
 ### Security

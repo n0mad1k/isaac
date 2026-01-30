@@ -1505,20 +1505,25 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 {readinessAnalysis.indicators?.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-gray-600">
                     <div className="text-xs text-gray-400 mb-2">PHYSICAL BREAKDOWN:</div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
                       {readinessAnalysis.indicators
                         .filter(ind => ['autonomic', 'cardiovascular', 'illness', 'body_composition'].includes(ind.category))
                         .map(ind => (
-                          <div key={ind.category} className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400 w-28 truncate" title={ind.name}>{ind.name}</span>
-                            <div className="flex-grow bg-gray-800 rounded-full h-2 overflow-hidden">
-                              <div
-                                className={`h-full ${ind.value >= 80 ? 'bg-green-500' : ind.value >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                style={{ width: `${ind.value}%` }}
-                              />
+                          <div key={ind.category}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400 w-28 truncate" title={ind.name}>{ind.name}</span>
+                              <div className="flex-grow bg-gray-800 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className={`h-full ${ind.value >= 80 ? 'bg-green-500' : ind.value >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                  style={{ width: `${ind.value}%` }}
+                                />
+                              </div>
+                              <span className="text-xs w-8 text-right">{ind.value?.toFixed(0) || '-'}</span>
+                              {getTrendIcon(ind.trend)}
                             </div>
-                            <span className="text-xs w-8 text-right">{ind.value?.toFixed(0) || '-'}</span>
-                            {getTrendIcon(ind.trend)}
+                            {ind.explanation && (
+                              <div className="text-xs text-gray-500 ml-[7.5rem] mt-0.5">{ind.explanation}</div>
+                            )}
                           </div>
                         ))}
                     </div>
@@ -1632,7 +1637,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                             <span className={ind.value >= 80 ? 'text-green-400' : ind.value >= 60 ? 'text-yellow-400' : 'text-red-400'}>
                               {ind.value.toFixed(0)}
                             </span>
-                            <span className="text-xs text-gray-500">({Math.round(ind.confidence * 100)}% conf)</span>
+                            <span className="text-xs text-gray-500">({ind.confidence} conf)</span>
                           </div>
                         </div>
                         {ind.contributing_factors?.length > 0 && (

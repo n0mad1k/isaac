@@ -695,16 +695,28 @@ def _detect_illness_pattern(
         score = min(score, 70)
 
     if not factors:
-        factors.append("No illness indicators detected")
+        factors.append("No illness indicators detected - vitals within normal range")
 
     trend = "stable" if score >= 80 else "declining"
 
+    # Build a human-readable status label
+    if score >= 90:
+        status_label = "Healthy"
+    elif score >= 70:
+        status_label = "Watch - minor elevation detected"
+    elif score >= 50:
+        status_label = "Concern - potential illness pattern"
+    else:
+        status_label = "Alert - strong illness indicators"
+
+    factors.insert(0, f"Status: {status_label}")
+
     return PerformanceIndicator(
-        name="Illness Risk",
+        name="Immune Status",
         category="illness",
         value=score,
         trend=trend,
-        explanation="Pattern-based illness detection",
+        explanation=f"Score reflects immune health (100=healthy, lower=concern). {status_label}.",
         confidence=confidence,
         contributing_factors=factors
     )
