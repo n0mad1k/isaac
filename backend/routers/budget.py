@@ -1,0 +1,1307 @@
+"""
+Budget & Finance API Routes
+Personal budget tracking with bi-weekly pay periods, statement import, and auto-categorization
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, and_, extract
+from typing import List, Optional
+from datetime import date, datetime
+from calendar import monthrange
+from pydantic import BaseModel, Field
+import logging
+
+from models.database import get_db
+from models.budget import (
+    BudgetAccount, BudgetCategory, BudgetTransaction, BudgetCategoryRule, BudgetIncome,
+    AccountType, CategoryType, TransactionType, TransactionSource, MatchType
+)
+from models.users import User
+from services.permissions import require_view, require_create, require_edit, require_delete
+from services.statement_parser import parse_chase_statement, auto_categorize_transaction
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/budget", tags=["Budget"])
+
+
+# ========================
+# Pydantic Schemas
+# ========================
+
+# --- Account Schemas ---
+class AccountCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    account_type: AccountType = AccountType.CHECKING
+    institution: Optional[str] = Field(None, max_length=100)
+    last_four: Optional[str] = Field(None, max_length=4, min_length=4)
+    is_active: bool = True
+    sort_order: int = 0
+
+class AccountUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    account_type: Optional[AccountType] = None
+    institution: Optional[str] = Field(None, max_length=100)
+    last_four: Optional[str] = Field(None, max_length=4, min_length=4)
+    is_active: Optional[bool] = None
+    sort_order: Optional[int] = None
+
+class AccountResponse(BaseModel):
+    id: int
+    name: str
+    account_type: AccountType
+    institution: Optional[str]
+    last_four: Optional[str]
+    is_active: bool
+    sort_order: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- Category Schemas ---
+class CategoryCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    category_type: CategoryType = CategoryType.VARIABLE
+    budget_amount: float = Field(0.0, ge=0)
+    monthly_budget: Optional[float] = Field(None, ge=0)
+    color: str = Field("#6B7280", max_length=20)
+    icon: Optional[str] = Field(None, max_length=50)
+    is_active: bool = True
+    sort_order: int = 0
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    category_type: Optional[CategoryType] = None
+    budget_amount: Optional[float] = Field(None, ge=0)
+    monthly_budget: Optional[float] = Field(None, ge=0)
+    color: Optional[str] = Field(None, max_length=20)
+    icon: Optional[str] = Field(None, max_length=50)
+    is_active: Optional[bool] = None
+    sort_order: Optional[int] = None
+
+class CategoryResponse(BaseModel):
+    id: int
+    name: str
+    category_type: CategoryType
+    budget_amount: float
+    monthly_budget: Optional[float]
+    color: str
+    icon: Optional[str]
+    is_active: bool
+    sort_order: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- Transaction Schemas ---
+class TransactionCreate(BaseModel):
+    account_id: int = Field(..., ge=1)
+    category_id: Optional[int] = Field(None, ge=1)
+    transaction_date: date
+    description: str = Field(..., min_length=1, max_length=500)
+    amount: float
+    transaction_type: TransactionType = TransactionType.DEBIT
+    is_pending: bool = False
+    notes: Optional[str] = Field(None, max_length=5000)
+
+class TransactionUpdate(BaseModel):
+    account_id: Optional[int] = Field(None, ge=1)
+    category_id: Optional[int] = None  # Allow setting to null
+    transaction_date: Optional[date] = None
+    description: Optional[str] = Field(None, min_length=1, max_length=500)
+    amount: Optional[float] = None
+    transaction_type: Optional[TransactionType] = None
+    is_pending: Optional[bool] = None
+    notes: Optional[str] = Field(None, max_length=5000)
+
+class TransactionResponse(BaseModel):
+    id: int
+    account_id: int
+    account_name: Optional[str] = None
+    category_id: Optional[int]
+    category_name: Optional[str] = None
+    category_color: Optional[str] = None
+    transaction_date: date
+    description: str
+    original_description: Optional[str]
+    amount: float
+    transaction_type: TransactionType
+    is_pending: bool
+    source: TransactionSource
+    source_reference_id: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- Rule Schemas ---
+class RuleCreate(BaseModel):
+    pattern: str = Field(..., min_length=1, max_length=200)
+    match_type: MatchType = MatchType.CONTAINS
+    category_id: int = Field(..., ge=1)
+    priority: int = Field(0, ge=0, le=1000)
+    is_active: bool = True
+
+class RuleUpdate(BaseModel):
+    pattern: Optional[str] = Field(None, min_length=1, max_length=200)
+    match_type: Optional[MatchType] = None
+    category_id: Optional[int] = Field(None, ge=1)
+    priority: Optional[int] = Field(None, ge=0, le=1000)
+    is_active: Optional[bool] = None
+
+class RuleResponse(BaseModel):
+    id: int
+    pattern: str
+    match_type: MatchType
+    category_id: int
+    category_name: Optional[str] = None
+    priority: int
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- Income Schemas ---
+class IncomeCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    amount: float = Field(..., gt=0)
+    pay_day: int = Field(..., ge=1, le=31)
+    account_id: int = Field(..., ge=1)
+    is_active: bool = True
+
+class IncomeUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    amount: Optional[float] = Field(None, gt=0)
+    pay_day: Optional[int] = Field(None, ge=1, le=31)
+    account_id: Optional[int] = Field(None, ge=1)
+    is_active: Optional[bool] = None
+
+class IncomeResponse(BaseModel):
+    id: int
+    name: str
+    amount: float
+    pay_day: int
+    account_id: int
+    account_name: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- Import Schemas ---
+class ImportPreviewTransaction(BaseModel):
+    date: str
+    description: str
+    original_description: str
+    amount: float
+    transaction_type: str
+    import_hash: str
+    suggested_category_id: Optional[int] = None
+    suggested_category_name: Optional[str] = None
+    is_duplicate: bool = False
+
+class ImportConfirmTransaction(BaseModel):
+    date: str
+    description: str
+    original_description: str
+    amount: float
+    transaction_type: str
+    import_hash: str
+    category_id: Optional[int] = None
+    account_id: int
+
+class ImportConfirmRequest(BaseModel):
+    transactions: List[ImportConfirmTransaction]
+
+
+# ========================
+# Account Endpoints
+# ========================
+
+@router.get("/accounts/", response_model=List[AccountResponse])
+async def list_accounts(
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(
+            select(BudgetAccount).order_by(BudgetAccount.sort_order, BudgetAccount.name)
+        )
+        return result.scalars().all()
+    except Exception as e:
+        logger.error(f"Error listing budget accounts: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.post("/accounts/", response_model=AccountResponse)
+async def create_account(
+    data: AccountCreate,
+    user: User = Depends(require_create("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        account = BudgetAccount(**data.model_dump())
+        db.add(account)
+        await db.flush()
+        await db.refresh(account)
+        return account
+    except Exception as e:
+        logger.error(f"Error creating budget account: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.put("/accounts/{account_id}/", response_model=AccountResponse)
+async def update_account(
+    account_id: int,
+    data: AccountUpdate,
+    user: User = Depends(require_edit("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(select(BudgetAccount).where(BudgetAccount.id == account_id))
+        account = result.scalar_one_or_none()
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(account, key, value)
+        await db.flush()
+        await db.refresh(account)
+        return account
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating budget account {account_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.delete("/accounts/{account_id}/")
+async def delete_account(
+    account_id: int,
+    user: User = Depends(require_delete("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(select(BudgetAccount).where(BudgetAccount.id == account_id))
+        account = result.scalar_one_or_none()
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
+        await db.delete(account)
+        return {"message": "Account deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting budget account {account_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+# ========================
+# Category Endpoints
+# ========================
+
+@router.get("/categories/", response_model=List[CategoryResponse])
+async def list_categories(
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(
+            select(BudgetCategory).order_by(BudgetCategory.sort_order, BudgetCategory.name)
+        )
+        return result.scalars().all()
+    except Exception as e:
+        logger.error(f"Error listing budget categories: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.post("/categories/", response_model=CategoryResponse)
+async def create_category(
+    data: CategoryCreate,
+    user: User = Depends(require_create("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        category = BudgetCategory(**data.model_dump())
+        db.add(category)
+        await db.flush()
+        await db.refresh(category)
+        return category
+    except Exception as e:
+        logger.error(f"Error creating budget category: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.put("/categories/{category_id}/", response_model=CategoryResponse)
+async def update_category(
+    category_id: int,
+    data: CategoryUpdate,
+    user: User = Depends(require_edit("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(select(BudgetCategory).where(BudgetCategory.id == category_id))
+        category = result.scalar_one_or_none()
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(category, key, value)
+        await db.flush()
+        await db.refresh(category)
+        return category
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating budget category {category_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.delete("/categories/{category_id}/")
+async def delete_category(
+    category_id: int,
+    user: User = Depends(require_delete("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(select(BudgetCategory).where(BudgetCategory.id == category_id))
+        category = result.scalar_one_or_none()
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+        await db.delete(category)
+        return {"message": "Category deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting budget category {category_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+# ========================
+# Transaction Endpoints
+# ========================
+
+@router.get("/transactions/")
+async def list_transactions(
+    account_id: Optional[int] = Query(None),
+    category_id: Optional[int] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    source: Optional[TransactionSource] = Query(None),
+    search: Optional[str] = Query(None, max_length=200),
+    uncategorized: Optional[bool] = Query(None),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        query = select(BudgetTransaction).order_by(BudgetTransaction.transaction_date.desc(), BudgetTransaction.id.desc())
+
+        if account_id:
+            query = query.where(BudgetTransaction.account_id == account_id)
+        if category_id:
+            query = query.where(BudgetTransaction.category_id == category_id)
+        if start_date:
+            query = query.where(BudgetTransaction.transaction_date >= start_date)
+        if end_date:
+            query = query.where(BudgetTransaction.transaction_date <= end_date)
+        if source:
+            query = query.where(BudgetTransaction.source == source)
+        if search:
+            query = query.where(BudgetTransaction.description.ilike(f"%{search}%"))
+        if uncategorized:
+            query = query.where(BudgetTransaction.category_id.is_(None))
+
+        # Get total count
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total = total_result.scalar()
+
+        # Apply pagination
+        query = query.limit(limit).offset(offset)
+        result = await db.execute(query)
+        transactions = result.scalars().all()
+
+        # Build response with joined data
+        response_items = []
+        for txn in transactions:
+            item = {
+                "id": txn.id,
+                "account_id": txn.account_id,
+                "account_name": None,
+                "category_id": txn.category_id,
+                "category_name": None,
+                "category_color": None,
+                "transaction_date": txn.transaction_date.isoformat(),
+                "description": txn.description,
+                "original_description": txn.original_description,
+                "amount": txn.amount,
+                "transaction_type": txn.transaction_type.value if txn.transaction_type else None,
+                "is_pending": txn.is_pending,
+                "source": txn.source.value if txn.source else None,
+                "source_reference_id": txn.source_reference_id,
+                "notes": txn.notes,
+                "created_at": txn.created_at.isoformat() if txn.created_at else None,
+            }
+
+            # Fetch account name
+            if txn.account_id:
+                acc_result = await db.execute(select(BudgetAccount.name).where(BudgetAccount.id == txn.account_id))
+                acc_name = acc_result.scalar_one_or_none()
+                item["account_name"] = acc_name
+
+            # Fetch category info
+            if txn.category_id:
+                cat_result = await db.execute(
+                    select(BudgetCategory.name, BudgetCategory.color)
+                    .where(BudgetCategory.id == txn.category_id)
+                )
+                cat_row = cat_result.first()
+                if cat_row:
+                    item["category_name"] = cat_row[0]
+                    item["category_color"] = cat_row[1]
+
+            response_items.append(item)
+
+        return {"items": response_items, "total": total}
+    except Exception as e:
+        logger.error(f"Error listing budget transactions: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.post("/transactions/", response_model=TransactionResponse)
+async def create_transaction(
+    data: TransactionCreate,
+    user: User = Depends(require_create("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        txn = BudgetTransaction(
+            account_id=data.account_id,
+            category_id=data.category_id,
+            transaction_date=data.transaction_date,
+            description=data.description,
+            original_description=data.description,
+            amount=data.amount,
+            transaction_type=data.transaction_type,
+            is_pending=data.is_pending,
+            source=TransactionSource.MANUAL,
+            notes=data.notes,
+        )
+
+        # Auto-categorize if no category provided
+        if not txn.category_id:
+            txn.category_id = await auto_categorize_transaction(txn.description, db)
+
+        db.add(txn)
+        await db.flush()
+        await db.refresh(txn)
+
+        # Build response with joined data
+        response = TransactionResponse(
+            id=txn.id,
+            account_id=txn.account_id,
+            category_id=txn.category_id,
+            transaction_date=txn.transaction_date,
+            description=txn.description,
+            original_description=txn.original_description,
+            amount=txn.amount,
+            transaction_type=txn.transaction_type,
+            is_pending=txn.is_pending,
+            source=txn.source,
+            source_reference_id=txn.source_reference_id,
+            notes=txn.notes,
+            created_at=txn.created_at,
+        )
+
+        # Fetch joined names
+        if txn.account_id:
+            acc_result = await db.execute(select(BudgetAccount.name).where(BudgetAccount.id == txn.account_id))
+            response.account_name = acc_result.scalar_one_or_none()
+        if txn.category_id:
+            cat_result = await db.execute(
+                select(BudgetCategory.name, BudgetCategory.color).where(BudgetCategory.id == txn.category_id)
+            )
+            cat_row = cat_result.first()
+            if cat_row:
+                response.category_name = cat_row[0]
+                response.category_color = cat_row[1]
+
+        return response
+    except Exception as e:
+        logger.error(f"Error creating budget transaction: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.put("/transactions/{transaction_id}/", response_model=TransactionResponse)
+async def update_transaction(
+    transaction_id: int,
+    data: TransactionUpdate,
+    user: User = Depends(require_edit("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(select(BudgetTransaction).where(BudgetTransaction.id == transaction_id))
+        txn = result.scalar_one_or_none()
+        if not txn:
+            raise HTTPException(status_code=404, detail="Transaction not found")
+
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(txn, key, value)
+
+        await db.flush()
+        await db.refresh(txn)
+
+        response = TransactionResponse(
+            id=txn.id,
+            account_id=txn.account_id,
+            category_id=txn.category_id,
+            transaction_date=txn.transaction_date,
+            description=txn.description,
+            original_description=txn.original_description,
+            amount=txn.amount,
+            transaction_type=txn.transaction_type,
+            is_pending=txn.is_pending,
+            source=txn.source,
+            source_reference_id=txn.source_reference_id,
+            notes=txn.notes,
+            created_at=txn.created_at,
+        )
+
+        if txn.account_id:
+            acc_result = await db.execute(select(BudgetAccount.name).where(BudgetAccount.id == txn.account_id))
+            response.account_name = acc_result.scalar_one_or_none()
+        if txn.category_id:
+            cat_result = await db.execute(
+                select(BudgetCategory.name, BudgetCategory.color).where(BudgetCategory.id == txn.category_id)
+            )
+            cat_row = cat_result.first()
+            if cat_row:
+                response.category_name = cat_row[0]
+                response.category_color = cat_row[1]
+
+        return response
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating budget transaction {transaction_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.delete("/transactions/{transaction_id}/")
+async def delete_transaction(
+    transaction_id: int,
+    user: User = Depends(require_delete("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(select(BudgetTransaction).where(BudgetTransaction.id == transaction_id))
+        txn = result.scalar_one_or_none()
+        if not txn:
+            raise HTTPException(status_code=404, detail="Transaction not found")
+        await db.delete(txn)
+        return {"message": "Transaction deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting budget transaction {transaction_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+# ========================
+# Category Rule Endpoints
+# ========================
+
+@router.get("/rules/")
+async def list_rules(
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(
+            select(BudgetCategoryRule).order_by(BudgetCategoryRule.priority.desc())
+        )
+        rules = result.scalars().all()
+
+        response = []
+        for rule in rules:
+            item = {
+                "id": rule.id,
+                "pattern": rule.pattern,
+                "match_type": rule.match_type.value if rule.match_type else None,
+                "category_id": rule.category_id,
+                "category_name": None,
+                "priority": rule.priority,
+                "is_active": rule.is_active,
+                "created_at": rule.created_at.isoformat() if rule.created_at else None,
+            }
+            if rule.category_id:
+                cat_result = await db.execute(
+                    select(BudgetCategory.name).where(BudgetCategory.id == rule.category_id)
+                )
+                item["category_name"] = cat_result.scalar_one_or_none()
+            response.append(item)
+
+        return response
+    except Exception as e:
+        logger.error(f"Error listing budget rules: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.post("/rules/")
+async def create_rule(
+    data: RuleCreate,
+    user: User = Depends(require_create("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        rule = BudgetCategoryRule(**data.model_dump())
+        db.add(rule)
+        await db.flush()
+        await db.refresh(rule)
+
+        item = {
+            "id": rule.id,
+            "pattern": rule.pattern,
+            "match_type": rule.match_type.value,
+            "category_id": rule.category_id,
+            "category_name": None,
+            "priority": rule.priority,
+            "is_active": rule.is_active,
+            "created_at": rule.created_at.isoformat() if rule.created_at else None,
+        }
+        if rule.category_id:
+            cat_result = await db.execute(
+                select(BudgetCategory.name).where(BudgetCategory.id == rule.category_id)
+            )
+            item["category_name"] = cat_result.scalar_one_or_none()
+        return item
+    except Exception as e:
+        logger.error(f"Error creating budget rule: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.put("/rules/{rule_id}/")
+async def update_rule(
+    rule_id: int,
+    data: RuleUpdate,
+    user: User = Depends(require_edit("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(select(BudgetCategoryRule).where(BudgetCategoryRule.id == rule_id))
+        rule = result.scalar_one_or_none()
+        if not rule:
+            raise HTTPException(status_code=404, detail="Rule not found")
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(rule, key, value)
+        await db.flush()
+        await db.refresh(rule)
+
+        item = {
+            "id": rule.id,
+            "pattern": rule.pattern,
+            "match_type": rule.match_type.value,
+            "category_id": rule.category_id,
+            "category_name": None,
+            "priority": rule.priority,
+            "is_active": rule.is_active,
+            "created_at": rule.created_at.isoformat() if rule.created_at else None,
+        }
+        if rule.category_id:
+            cat_result = await db.execute(
+                select(BudgetCategory.name).where(BudgetCategory.id == rule.category_id)
+            )
+            item["category_name"] = cat_result.scalar_one_or_none()
+        return item
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating budget rule {rule_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.delete("/rules/{rule_id}/")
+async def delete_rule(
+    rule_id: int,
+    user: User = Depends(require_delete("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(select(BudgetCategoryRule).where(BudgetCategoryRule.id == rule_id))
+        rule = result.scalar_one_or_none()
+        if not rule:
+            raise HTTPException(status_code=404, detail="Rule not found")
+        await db.delete(rule)
+        return {"message": "Rule deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting budget rule {rule_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+# ========================
+# Income Endpoints
+# ========================
+
+@router.get("/income/")
+async def list_income(
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(
+            select(BudgetIncome).order_by(BudgetIncome.pay_day, BudgetIncome.name)
+        )
+        income_sources = result.scalars().all()
+
+        response = []
+        for inc in income_sources:
+            item = {
+                "id": inc.id,
+                "name": inc.name,
+                "amount": inc.amount,
+                "pay_day": inc.pay_day,
+                "account_id": inc.account_id,
+                "account_name": None,
+                "is_active": inc.is_active,
+                "created_at": inc.created_at.isoformat() if inc.created_at else None,
+            }
+            if inc.account_id:
+                acc_result = await db.execute(
+                    select(BudgetAccount.name).where(BudgetAccount.id == inc.account_id)
+                )
+                item["account_name"] = acc_result.scalar_one_or_none()
+            response.append(item)
+
+        return response
+    except Exception as e:
+        logger.error(f"Error listing budget income: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.post("/income/")
+async def create_income(
+    data: IncomeCreate,
+    user: User = Depends(require_create("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        income = BudgetIncome(**data.model_dump())
+        db.add(income)
+        await db.flush()
+        await db.refresh(income)
+
+        item = {
+            "id": income.id,
+            "name": income.name,
+            "amount": income.amount,
+            "pay_day": income.pay_day,
+            "account_id": income.account_id,
+            "account_name": None,
+            "is_active": income.is_active,
+            "created_at": income.created_at.isoformat() if income.created_at else None,
+        }
+        if income.account_id:
+            acc_result = await db.execute(
+                select(BudgetAccount.name).where(BudgetAccount.id == income.account_id)
+            )
+            item["account_name"] = acc_result.scalar_one_or_none()
+        return item
+    except Exception as e:
+        logger.error(f"Error creating budget income: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.put("/income/{income_id}/")
+async def update_income(
+    income_id: int,
+    data: IncomeUpdate,
+    user: User = Depends(require_edit("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(select(BudgetIncome).where(BudgetIncome.id == income_id))
+        income = result.scalar_one_or_none()
+        if not income:
+            raise HTTPException(status_code=404, detail="Income source not found")
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(income, key, value)
+        await db.flush()
+        await db.refresh(income)
+
+        item = {
+            "id": income.id,
+            "name": income.name,
+            "amount": income.amount,
+            "pay_day": income.pay_day,
+            "account_id": income.account_id,
+            "account_name": None,
+            "is_active": income.is_active,
+            "created_at": income.created_at.isoformat() if income.created_at else None,
+        }
+        if income.account_id:
+            acc_result = await db.execute(
+                select(BudgetAccount.name).where(BudgetAccount.id == income.account_id)
+            )
+            item["account_name"] = acc_result.scalar_one_or_none()
+        return item
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating budget income {income_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.delete("/income/{income_id}/")
+async def delete_income(
+    income_id: int,
+    user: User = Depends(require_delete("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(select(BudgetIncome).where(BudgetIncome.id == income_id))
+        income = result.scalar_one_or_none()
+        if not income:
+            raise HTTPException(status_code=404, detail="Income source not found")
+        await db.delete(income)
+        return {"message": "Income source deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting budget income {income_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+# ========================
+# Summary Endpoints
+# ========================
+
+def _get_pay_periods(year: int, month: int) -> list:
+    """Get pay period date ranges for a given month (1st-14th, 15th-end)"""
+    last_day = monthrange(year, month)[1]
+    return [
+        {"start": date(year, month, 1), "end": date(year, month, 14), "label": f"1st - 14th"},
+        {"start": date(year, month, 15), "end": date(year, month, last_day), "label": f"15th - {last_day}th"},
+    ]
+
+
+@router.get("/pay-periods/")
+async def get_pay_periods(
+    year: int = Query(..., ge=2020, le=2030),
+    month: int = Query(..., ge=1, le=12),
+    user: User = Depends(require_view("budget")),
+):
+    periods = _get_pay_periods(year, month)
+    return [
+        {"start": p["start"].isoformat(), "end": p["end"].isoformat(), "label": p["label"]}
+        for p in periods
+    ]
+
+
+@router.get("/summary/period/")
+async def get_period_summary(
+    start_date: date = Query(...),
+    end_date: date = Query(...),
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get spending summary by category for a date range with budget vs actual"""
+    try:
+        # Get all categories
+        cat_result = await db.execute(
+            select(BudgetCategory).where(BudgetCategory.is_active == True)
+            .order_by(BudgetCategory.sort_order, BudgetCategory.name)
+        )
+        categories = cat_result.scalars().all()
+
+        # Determine if this is a half-month or full-month period
+        days_in_period = (end_date - start_date).days + 1
+        is_full_month = days_in_period > 20
+
+        # Get spending by category for the period
+        txn_result = await db.execute(
+            select(
+                BudgetTransaction.category_id,
+                func.sum(BudgetTransaction.amount).label("total")
+            )
+            .where(
+                BudgetTransaction.transaction_date >= start_date,
+                BudgetTransaction.transaction_date <= end_date,
+            )
+            .group_by(BudgetTransaction.category_id)
+        )
+        spending_by_cat = {row[0]: row[1] for row in txn_result.all()}
+
+        # Get total income for the period
+        income_result = await db.execute(
+            select(func.sum(BudgetTransaction.amount))
+            .where(
+                BudgetTransaction.transaction_date >= start_date,
+                BudgetTransaction.transaction_date <= end_date,
+                BudgetTransaction.amount > 0,
+            )
+        )
+        total_income = income_result.scalar() or 0.0
+
+        # Get total expenses for the period
+        expense_result = await db.execute(
+            select(func.sum(BudgetTransaction.amount))
+            .where(
+                BudgetTransaction.transaction_date >= start_date,
+                BudgetTransaction.transaction_date <= end_date,
+                BudgetTransaction.amount < 0,
+            )
+        )
+        total_expenses = expense_result.scalar() or 0.0
+
+        # Get uncategorized spending
+        uncategorized_spent = spending_by_cat.get(None, 0.0)
+
+        # Build category breakdown
+        category_summary = []
+        total_budgeted = 0.0
+        for cat in categories:
+            spent = spending_by_cat.get(cat.id, 0.0)
+            # Budget amount: use monthly_budget for full month, budget_amount for pay period
+            if is_full_month:
+                budgeted = cat.monthly_budget if cat.monthly_budget else (cat.budget_amount * 2)
+            else:
+                budgeted = cat.budget_amount
+
+            total_budgeted += budgeted
+            remaining = budgeted + spent  # spent is negative, so + gives remaining
+
+            category_summary.append({
+                "id": cat.id,
+                "name": cat.name,
+                "category_type": cat.category_type.value,
+                "color": cat.color,
+                "icon": cat.icon,
+                "budgeted": round(budgeted, 2),
+                "spent": round(abs(spent), 2),  # Return as positive for display
+                "remaining": round(remaining, 2),
+                "percentage": round((abs(spent) / budgeted * 100) if budgeted > 0 else 0, 1),
+            })
+
+        # Get expected income for the period
+        income_query = select(BudgetIncome).where(BudgetIncome.is_active == True)
+        income_defs = (await db.execute(income_query)).scalars().all()
+
+        expected_income = 0.0
+        for inc in income_defs:
+            if is_full_month:
+                expected_income += inc.amount
+            else:
+                # Check if pay_day falls in this period
+                if start_date.day <= inc.pay_day <= end_date.day:
+                    expected_income += inc.amount
+
+        return {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "categories": category_summary,
+            "total_income": round(total_income, 2),
+            "total_expenses": round(abs(total_expenses), 2),
+            "total_budgeted": round(total_budgeted, 2),
+            "net": round(total_income + total_expenses, 2),
+            "expected_income": round(expected_income, 2),
+            "uncategorized_spent": round(abs(uncategorized_spent), 2),
+        }
+    except Exception as e:
+        logger.error(f"Error getting budget period summary: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.get("/summary/monthly/")
+async def get_monthly_summary(
+    year: int = Query(..., ge=2020, le=2030),
+    month: int = Query(..., ge=1, le=12),
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Full month summary combining both pay periods"""
+    try:
+        last_day = monthrange(year, month)[1]
+        start = date(year, month, 1)
+        end = date(year, month, last_day)
+
+        # Reuse period summary logic for full month
+        from starlette.datastructures import QueryParams
+        return await get_period_summary(
+            start_date=start,
+            end_date=end,
+            user=user,
+            db=db,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting monthly budget summary: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.get("/summary/dashboard/")
+async def get_dashboard_summary(
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Dashboard widget data for current pay period"""
+    try:
+        today = date.today()
+        year = today.year
+        month = today.month
+        periods = _get_pay_periods(year, month)
+
+        # Find current pay period
+        current_period = periods[0]
+        for period in periods:
+            if period["start"] <= today <= period["end"]:
+                current_period = period
+                break
+
+        start = current_period["start"]
+        end = current_period["end"]
+
+        # Get top spending categories for current period
+        cat_result = await db.execute(
+            select(BudgetCategory).where(BudgetCategory.is_active == True)
+            .order_by(BudgetCategory.sort_order, BudgetCategory.name)
+        )
+        categories = cat_result.scalars().all()
+
+        txn_result = await db.execute(
+            select(
+                BudgetTransaction.category_id,
+                func.sum(BudgetTransaction.amount).label("total")
+            )
+            .where(
+                BudgetTransaction.transaction_date >= start,
+                BudgetTransaction.transaction_date <= end,
+                BudgetTransaction.amount < 0,
+            )
+            .group_by(BudgetTransaction.category_id)
+        )
+        spending_by_cat = {row[0]: abs(row[1]) for row in txn_result.all()}
+
+        # Total expenses for the period
+        total_expenses = sum(spending_by_cat.values())
+
+        # Build top category list
+        top_categories = []
+        total_budgeted = 0.0
+        for cat in categories:
+            spent = spending_by_cat.get(cat.id, 0.0)
+            budgeted = cat.budget_amount
+            total_budgeted += budgeted
+
+            if budgeted > 0 or spent > 0:
+                top_categories.append({
+                    "id": cat.id,
+                    "name": cat.name,
+                    "color": cat.color,
+                    "budgeted": round(budgeted, 2),
+                    "spent": round(spent, 2),
+                    "percentage": round((spent / budgeted * 100) if budgeted > 0 else 0, 1),
+                })
+
+        # Sort by spent amount descending, limit to top 6
+        top_categories.sort(key=lambda x: x["spent"], reverse=True)
+        top_categories = top_categories[:6]
+
+        # Get expected income for this period
+        income_defs = (await db.execute(
+            select(BudgetIncome).where(BudgetIncome.is_active == True)
+        )).scalars().all()
+
+        expected_income = 0.0
+        for inc in income_defs:
+            if start.day <= inc.pay_day <= end.day:
+                expected_income += inc.amount
+
+        return {
+            "period_label": current_period["label"],
+            "period_start": start.isoformat(),
+            "period_end": end.isoformat(),
+            "total_budgeted": round(total_budgeted, 2),
+            "total_spent": round(total_expenses, 2),
+            "total_remaining": round(total_budgeted - total_expenses, 2),
+            "expected_income": round(expected_income, 2),
+            "top_categories": top_categories,
+        }
+    except Exception as e:
+        logger.error(f"Error getting budget dashboard summary: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+# ========================
+# Import Endpoints
+# ========================
+
+@router.post("/import/chase/")
+async def import_chase_statement(
+    file: UploadFile = File(...),
+    account_id: int = Query(..., ge=1),
+    statement_year: Optional[int] = Query(None, ge=2020, le=2030),
+    user: User = Depends(require_create("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload and parse Chase PDF statement, return preview of transactions"""
+    try:
+        if not file.filename or not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="Only PDF files are accepted")
+
+        # Read PDF bytes (limit to 10MB)
+        content = await file.read()
+        if len(content) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+
+        # Parse the statement
+        parsed = parse_chase_statement(content, statement_year)
+
+        if not parsed:
+            raise HTTPException(status_code=400, detail="No transactions found in statement")
+
+        # Check for duplicates and auto-categorize
+        preview = []
+        for txn in parsed:
+            # Check for duplicate
+            dup_result = await db.execute(
+                select(BudgetTransaction.id)
+                .where(BudgetTransaction.import_hash == txn["import_hash"])
+            )
+            is_dup = dup_result.scalar_one_or_none() is not None
+
+            # Auto-categorize
+            cat_id = await auto_categorize_transaction(txn["description"], db)
+            cat_name = None
+            if cat_id:
+                cat_result = await db.execute(
+                    select(BudgetCategory.name).where(BudgetCategory.id == cat_id)
+                )
+                cat_name = cat_result.scalar_one_or_none()
+
+            preview.append({
+                "date": txn["date"],
+                "description": txn["description"],
+                "original_description": txn["original_description"],
+                "amount": txn["amount"],
+                "transaction_type": txn["transaction_type"],
+                "import_hash": txn["import_hash"],
+                "suggested_category_id": cat_id,
+                "suggested_category_name": cat_name,
+                "is_duplicate": is_dup,
+            })
+
+        return {
+            "account_id": account_id,
+            "total_parsed": len(parsed),
+            "duplicates": sum(1 for p in preview if p["is_duplicate"]),
+            "categorized": sum(1 for p in preview if p["suggested_category_id"]),
+            "transactions": preview,
+        }
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error importing Chase statement: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.post("/import/confirm/")
+async def confirm_import(
+    data: ImportConfirmRequest,
+    user: User = Depends(require_create("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Confirm and save previewed transactions, skipping duplicates"""
+    try:
+        imported = 0
+        skipped_dups = 0
+        errors = 0
+
+        for txn_data in data.transactions:
+            # Check for duplicate
+            dup_result = await db.execute(
+                select(BudgetTransaction.id)
+                .where(BudgetTransaction.import_hash == txn_data.import_hash)
+            )
+            if dup_result.scalar_one_or_none() is not None:
+                skipped_dups += 1
+                continue
+
+            try:
+                txn = BudgetTransaction(
+                    account_id=txn_data.account_id,
+                    category_id=txn_data.category_id,
+                    transaction_date=date.fromisoformat(txn_data.date),
+                    description=txn_data.description,
+                    original_description=txn_data.original_description,
+                    amount=txn_data.amount,
+                    transaction_type=TransactionType(txn_data.transaction_type),
+                    source=TransactionSource.CHASE_IMPORT,
+                    import_hash=txn_data.import_hash,
+                )
+                db.add(txn)
+                imported += 1
+            except Exception as e:
+                logger.warning(f"Error importing transaction: {e}")
+                errors += 1
+
+        await db.flush()
+
+        return {
+            "imported": imported,
+            "skipped_duplicates": skipped_dups,
+            "errors": errors,
+        }
+    except Exception as e:
+        logger.error(f"Error confirming budget import: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+# ========================
+# Utility Endpoints
+# ========================
+
+@router.post("/categorize/")
+async def run_auto_categorize(
+    user: User = Depends(require_edit("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Run auto-categorization rules on all uncategorized transactions"""
+    try:
+        from services.statement_parser import auto_categorize_transactions
+
+        # Get all uncategorized transaction IDs
+        result = await db.execute(
+            select(BudgetTransaction.id)
+            .where(BudgetTransaction.category_id.is_(None))
+        )
+        txn_ids = [row[0] for row in result.all()]
+
+        if not txn_ids:
+            return {"categorized": 0, "total_uncategorized": 0}
+
+        categorized = await auto_categorize_transactions(txn_ids, db)
+        await db.flush()
+
+        return {
+            "categorized": categorized,
+            "total_uncategorized": len(txn_ids),
+            "remaining_uncategorized": len(txn_ids) - categorized,
+        }
+    except Exception as e:
+        logger.error(f"Error running auto-categorize: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")

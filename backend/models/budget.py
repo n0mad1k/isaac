@@ -1,0 +1,154 @@
+"""
+Budget & Finance Models
+Personal budget tracking with bi-weekly pay periods, statement import, and auto-categorization
+"""
+
+from datetime import datetime
+from enum import Enum
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Date, Text, ForeignKey
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import relationship
+
+from .database import Base
+
+
+class AccountType(str, Enum):
+    CHECKING = "checking"
+    SAVINGS = "savings"
+    CREDIT = "credit"
+    CASH = "cash"
+
+
+class CategoryType(str, Enum):
+    VARIABLE = "variable"
+    FIXED = "fixed"
+    INCOME = "income"
+    TRANSFER = "transfer"
+
+
+class TransactionType(str, Enum):
+    DEBIT = "debit"
+    CREDIT = "credit"
+    TRANSFER = "transfer"
+
+
+class TransactionSource(str, Enum):
+    MANUAL = "manual"
+    CHASE_IMPORT = "chase_import"
+    NAVY_FED_IMPORT = "navy_fed_import"
+    APP_EXPENSE = "app_expense"
+
+
+class MatchType(str, Enum):
+    CONTAINS = "contains"
+    STARTS_WITH = "starts_with"
+    REGEX = "regex"
+
+
+class BudgetAccount(Base):
+    """Bank/financial accounts for budget tracking"""
+    __tablename__ = "budget_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    account_type = Column(SQLEnum(AccountType), nullable=False, default=AccountType.CHECKING)
+    institution = Column(String(100), nullable=True)
+    last_four = Column(String(4), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    sort_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    transactions = relationship("BudgetTransaction", back_populates="account")
+    income_sources = relationship("BudgetIncome", back_populates="account")
+
+    def __repr__(self):
+        return f"<BudgetAccount {self.name}>"
+
+
+class BudgetCategory(Base):
+    """User-defined spending/income categories"""
+    __tablename__ = "budget_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    category_type = Column(SQLEnum(CategoryType), nullable=False, default=CategoryType.VARIABLE)
+    budget_amount = Column(Float, default=0.0)  # Per pay period budget
+    monthly_budget = Column(Float, nullable=True)  # For bills that are monthly
+    color = Column(String(20), default="#6B7280")
+    icon = Column(String(50), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    sort_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    transactions = relationship("BudgetTransaction", back_populates="category")
+    rules = relationship("BudgetCategoryRule", back_populates="category")
+
+    def __repr__(self):
+        return f"<BudgetCategory {self.name}>"
+
+
+class BudgetTransaction(Base):
+    """Individual financial transactions"""
+    __tablename__ = "budget_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    account_id = Column(Integer, ForeignKey("budget_accounts.id"), nullable=False)
+    category_id = Column(Integer, ForeignKey("budget_categories.id"), nullable=True)
+    transaction_date = Column(Date, nullable=False)
+    description = Column(String(500), nullable=False)
+    original_description = Column(String(500), nullable=True)
+    amount = Column(Float, nullable=False)  # Negative = expense, positive = income
+    transaction_type = Column(SQLEnum(TransactionType), nullable=False, default=TransactionType.DEBIT)
+    is_pending = Column(Boolean, default=False, nullable=False)
+    source = Column(SQLEnum(TransactionSource), nullable=False, default=TransactionSource.MANUAL)
+    source_reference_id = Column(String(100), nullable=True)
+    import_hash = Column(String(64), unique=True, nullable=True)  # SHA256 for dedup
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    account = relationship("BudgetAccount", back_populates="transactions")
+    category = relationship("BudgetCategory", back_populates="transactions")
+
+    def __repr__(self):
+        return f"<BudgetTransaction {self.description} ${self.amount}>"
+
+
+class BudgetCategoryRule(Base):
+    """Auto-categorization rules for transactions"""
+    __tablename__ = "budget_category_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pattern = Column(String(200), nullable=False)
+    match_type = Column(SQLEnum(MatchType), nullable=False, default=MatchType.CONTAINS)
+    category_id = Column(Integer, ForeignKey("budget_categories.id"), nullable=False)
+    priority = Column(Integer, default=0, nullable=False)  # Higher wins
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    category = relationship("BudgetCategory", back_populates="rules")
+
+    def __repr__(self):
+        return f"<BudgetCategoryRule '{self.pattern}' -> {self.category_id}>"
+
+
+class BudgetIncome(Base):
+    """Recurring income definitions"""
+    __tablename__ = "budget_income"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    amount = Column(Float, nullable=False)
+    pay_day = Column(Integer, nullable=False)  # Day of month (1 or 15)
+    account_id = Column(Integer, ForeignKey("budget_accounts.id"), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    account = relationship("BudgetAccount", back_populates="income_sources")
+
+    def __repr__(self):
+        return f"<BudgetIncome {self.name} ${self.amount}>"

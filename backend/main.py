@@ -174,6 +174,7 @@ from routers import (
     customer_feedback_router,
     team_router,
     garden_router,
+    budget_router,
 )
 from routers.settings import get_setting
 
@@ -281,6 +282,7 @@ app.include_router(supply_requests_router)
 app.include_router(customer_feedback_router)
 app.include_router(team_router)
 app.include_router(garden_router)
+app.include_router(budget_router)
 
 
 @app.get("/")

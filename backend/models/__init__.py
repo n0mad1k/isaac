@@ -26,6 +26,10 @@ from .supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from .customer_feedback import CustomerFeedback, FeedbackType, FeedbackStatus
 from .translation import TranslationCache
 from .garden import PlantingEvent, JournalEntry, GardenBed, BedPlanting
+from .budget import (
+    BudgetAccount, BudgetCategory, BudgetTransaction, BudgetCategoryRule, BudgetIncome,
+    AccountType, CategoryType, TransactionType, TransactionSource, MatchType
+)
 from .team import (
     TeamMember, MemberWeightLog, MemberVitalsLog, MemberMedicalLog, MentoringSession,
     ValuesAssessmentHistory, WeeklyObservation, WeeklyAAR,
@@ -156,4 +160,15 @@ __all__ = [
     "JournalEntry",
     "GardenBed",
     "BedPlanting",
+    # Budget tracking
+    "BudgetAccount",
+    "BudgetCategory",
+    "BudgetTransaction",
+    "BudgetCategoryRule",
+    "BudgetIncome",
+    "AccountType",
+    "CategoryType",
+    "TransactionType",
+    "TransactionSource",
+    "MatchType",
 ]
