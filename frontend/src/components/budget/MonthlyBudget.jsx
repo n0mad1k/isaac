@@ -460,44 +460,60 @@ function MonthlyBudget() {
   const kellyBFirst = kellyBillsFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
   const kellyBSecond = kellyBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
 
-  // Use backend expected_income for consistency with Overview tab
+  // Determine which half of the month we're currently in (for card display)
+  const today = new Date()
+  const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth
+  const inFirstHalf = isCurrentMonth ? today.getDate() <= 14 : true
+  const currentHalf = inFirstHalf ? firstHalf : secondHalf
+
+  // Cards show CURRENT HALF data (not full month)
+  const cardIncome = currentHalf?.expected_income || (inFirstHalf ? firstHalfIncome : secondHalfIncome)
+  const cardBills = inFirstHalf ? firstHalfBills : secondHalfBills
+  // For spending/distributions in current half: items with bill_day in this half + per-period items
+  const cardDistHalf = distributions.filter(c => !c.bill_day || (inFirstHalf ? c.bill_day <= 14 : c.bill_day >= 15))
+  const cardVarHalf = variablePerHalf.filter(c => !c.bill_day || (inFirstHalf ? c.bill_day <= 14 : c.bill_day >= 15))
+  const cardSpending = cardVarHalf.reduce((s, c) => s + (c.budget_amount || 0), 0)
+  const cardDistributions = cardDistHalf.reduce((s, c) => s + (c.budget_amount || 0), 0)
+  const cardOutgoing = cardBills + cardSpending + cardDistributions
+  const cardSurplus = cardIncome - cardOutgoing
+
+  // Full month totals for Monthly Summary section
   const totalIncome = (firstHalf?.expected_income || 0) + (secondHalf?.expected_income || 0) || (firstHalfIncome + secondHalfIncome)
-  const totalBills = firstHalfBills + secondHalfBills // Main bills only; Dane/Kelly funded by their transfers
+  const totalBills = firstHalfBills + secondHalfBills
   const totalSpending = calcMonthlyTotal(variablePerHalf)
   const totalDistributions = calcMonthlyTotal(distributions)
   const totalOutgoing = totalBills + totalSpending + totalDistributions
   const surplus = totalIncome - totalOutgoing
 
-  // Get remaining for a spending category card
+  // Get remaining for a spending category card (current half only)
   const getCatRemaining = (catName) => {
-    const h1Cat = firstHalf?.categories?.find(c => c.name === catName)
-    const h2Cat = secondHalf?.categories?.find(c => c.name === catName)
-    const budgeted = (h1Cat?.budgeted || 0) + (h2Cat?.budgeted || 0)
-    const spent = (h1Cat?.spent || 0) + (h2Cat?.spent || 0)
+    const halfCat = currentHalf?.categories?.find(c => c.name === catName)
+    const budgeted = halfCat?.budgeted || 0
+    const spent = halfCat?.spent || 0
     return budgeted - spent
   }
 
-  // Get remaining for Dane/Kelly: transfer deposit - sum of their owned bills' actual spending
+  // Get remaining for Dane/Kelly: transfer deposit - sum of their owned bills' actual spending (current half)
   const getPersonRemaining = (ownerKey) => {
     const personAcct = accounts.find(a => a.name.toLowerCase().includes(ownerKey))
     const personTransfers = transferCats.filter(c => c.account_id === personAcct?.id)
-    const totalDeposits = personTransfers.reduce((s, c) => s + (c.budget_amount || 0) * 2, 0)
+    // Deposits for this half: per-period transfers + single-half transfers in this half
+    const halfDeposits = personTransfers
+      .filter(c => !c.bill_day || (inFirstHalf ? c.bill_day <= 14 : c.bill_day >= 15))
+      .reduce((s, c) => s + (c.budget_amount || 0), 0)
 
     const ownedCats = categories.filter(c => c.owner === ownerKey && c.is_active)
     let totalSpent = 0
     ownedCats.forEach(cat => {
-      const h1Cat = firstHalf?.categories?.find(c => c.id === cat.id)
-      const h2Cat = secondHalf?.categories?.find(c => c.id === cat.id)
-      totalSpent += (h1Cat?.spent || 0) + (h2Cat?.spent || 0)
+      const halfCat = currentHalf?.categories?.find(c => c.id === cat.id)
+      totalSpent += halfCat?.spent || 0
     })
-    // Also include direct spending on the transfer categories themselves
     personTransfers.forEach(t => {
-      const h1Cat = firstHalf?.categories?.find(c => c.id === t.id)
-      const h2Cat = secondHalf?.categories?.find(c => c.id === t.id)
-      totalSpent += (h1Cat?.spent || 0) + (h2Cat?.spent || 0)
+      const halfCat = currentHalf?.categories?.find(c => c.id === t.id)
+      totalSpent += halfCat?.spent || 0
     })
 
-    return totalDeposits - totalSpent
+    return halfDeposits - totalSpent
   }
 
   const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', 'Dane Spending', 'Kelly Spending']
@@ -744,15 +760,18 @@ function MonthlyBudget() {
         </div>
       </div>
 
-      {/* Cards: Income, Bills, per-category remaining, Surplus */}
+      {/* Cards: Current half-month snapshot */}
+      <div className="text-xs text-center mb-1" style={{ color: 'var(--color-text-muted)' }}>
+        {isCurrentMonth ? (inFirstHalf ? '1st - 14th (current)' : '15th - End (current)') : (inFirstHalf ? '1st - 14th' : '15th - End')}
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
         <div className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Income</div>
-          <span className="text-sm font-bold" style={{ color: '#22c55e' }}>{fmt(totalIncome)}</span>
+          <span className="text-sm font-bold" style={{ color: '#22c55e' }}>{fmt(cardIncome)}</span>
         </div>
         <div className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Bills</div>
-          <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{fmt(totalBills)}</span>
+          <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{fmt(cardBills)}</span>
         </div>
         {spendingCardCats.map(name => {
           const isDaneKelly = name.toLowerCase().includes('dane') || name.toLowerCase().includes('kelly')
@@ -767,7 +786,7 @@ function MonthlyBudget() {
         })}
         <div className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Surplus</div>
-          <span className="text-sm font-bold" style={{ color: surplus >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(surplus)}</span>
+          <span className="text-sm font-bold" style={{ color: cardSurplus >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(cardSurplus)}</span>
         </div>
       </div>
 

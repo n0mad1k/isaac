@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.65.7] - 2026-01-30
+
+### Fixed
+- **Monthly Budget cards show current half** - Summary cards (Income, Bills, Gas, Groceries, etc.) now show data for the current half of the month instead of the full month
+  - Cards display budgeted vs actual for just the current pay period (1st-14th or 15th-End)
+  - Label above cards indicates which half is shown
+  - Full-month totals still shown in the Monthly Summary section at the bottom
+  - Gas, Groceries, Spending, and person remaining amounts are now half-month accurate
+
 ## [1.65.6] - 2026-01-30
 
 ### Fixed
