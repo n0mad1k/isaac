@@ -284,6 +284,7 @@ class NWSForecastService:
         """
         Analyze hourly forecast to determine when rain is expected.
         Returns info about upcoming rain or clear conditions.
+        Uses start_time from NWS periods for accurate time calculation.
         """
         hourly = await self.get_hourly_forecast(lat, lon)
         if not hourly:
@@ -292,21 +293,22 @@ class NWSForecastService:
                 "message": "Forecast unavailable"
             }
 
-        now = datetime.now()
+        # Use timezone-aware current time for accurate comparison
+        now = datetime.now().astimezone()
         rain_keywords = ['rain', 'shower', 'storm', 'thunder', 'drizzle', 'precipitation']
 
         # Find first hour with rain in forecast text or high precipitation chance
-        first_rain_hour = None
-        for i, hour in enumerate(hourly):
+        first_rain_entry = None
+        for hour in hourly:
             forecast_lower = hour["short_forecast"].lower()
             has_rain_keyword = any(kw in forecast_lower for kw in rain_keywords)
             high_rain_chance = hour["rain_chance"] >= 40
 
             if has_rain_keyword or high_rain_chance:
-                first_rain_hour = i
+                first_rain_entry = hour
                 break
 
-        if first_rain_hour is None:
+        if first_rain_entry is None:
             return {
                 "has_data": True,
                 "raining_now": False,
@@ -316,8 +318,16 @@ class NWSForecastService:
                 "message": "No rain expected (48hr)"
             }
 
-        hours_until = first_rain_hour
-        rain_hour = hourly[first_rain_hour]
+        # Calculate actual hours until rain using the period's start_time
+        try:
+            rain_start = datetime.fromisoformat(first_rain_entry["start_time"])
+            diff = rain_start - now
+            hours_until = max(0, int(diff.total_seconds() / 3600))
+        except (ValueError, KeyError):
+            # Fallback to index if start_time parsing fails
+            hours_until = hourly.index(first_rain_entry)
+
+        rain_hour = first_rain_entry
 
         if hours_until == 0:
             return {

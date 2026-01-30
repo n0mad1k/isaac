@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.52.2] - 2026-01-30
+
+### Fixed
+- **Rain forecast time accuracy** - Rain "In Xhr" now uses actual NWS period start times instead of array index, fixing inaccurate hour calculations when forecast periods don't align with current time
+
 ## [1.52.1] - 2026-01-29
 
 ### Fixed
