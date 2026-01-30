@@ -2,25 +2,18 @@
 
 All notable changes to Isaac will be documented in this file.
 
-## [1.64.2] - 2026-01-30
+## [1.65.0] - 2026-01-30
 
 ### Fixed
-- **Settings mobile responsiveness** - Settings page now works properly on mobile devices
-  - All modals use responsive max-width (95vw on mobile, standard on desktop)
-  - All section cards have reduced padding on mobile (p-4 instead of p-6)
-  - Health stats grid starts at 1 column on mobile
-  - Permission matrix table is horizontally scrollable
-  - Better space usage on small screens
-
-## [1.64.1] - 2026-01-30
-
-### Fixed
-- **Calendar mobile responsiveness** - Calendar page now works properly on mobile devices
-  - All modals use responsive max-width (95vw on mobile, standard on desktop)
-  - Grid layouts start at 1 column on mobile, expand to 2 on larger screens
-  - Modal padding reduced on mobile for better space usage
-  - Week view is horizontally scrollable on mobile (8 columns total)
-  - Month calendar cells have smaller padding on mobile
+- **Full mobile responsiveness overhaul** - All pages and modals now work properly on mobile devices
+  - **Modals**: All modals use responsive max-width (95vw on mobile, standard max-width on desktop)
+  - **Grid layouts**: All grids start at 1 column on mobile, expand to 2+ on larger screens
+  - **Padding**: Modal and section padding reduced on mobile (p-4 vs p-6)
+  - **Tables**: Wide tables wrapped in horizontal scroll containers
+  - **Pages fixed**: ToDo, Calendar, Settings, Animals, Vehicles, Equipment, Garden, Plants, Seeds, HomeMaintenance, FarmAreas, FarmFinances, Production, Team, Dashboard
+  - **Components fixed**: EventModal, EventViewModal, MemberDossier, MemberForm, DailyCheckinModal, QuickAddVital, QuickAddWorkout, TeamOverview, MemberGearTab, MemberTrainingTab, MemberObservationsTab, TeamGearTab
+  - Header layouts collapse properly on small screens
+  - Button text hidden on mobile (icons remain visible)
 
 ## [1.64.0] - 2026-01-30
 

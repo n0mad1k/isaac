@@ -360,7 +360,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
           <>
             {/* Profile Tab */}
             {activeTab === 'profile' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* 1. Basic Info */}
                 <div className="bg-gray-700 rounded-lg p-4">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -963,7 +963,7 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           {error && (
             <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
               {error}
@@ -994,7 +994,7 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
               />
             </div>
           )}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Last Appointment</label>
               <input
@@ -1037,7 +1037,7 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Phone</label>
               <input
@@ -1472,7 +1472,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                         {readinessAnalysis.training_load.risk} RISK
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                       <div>
                         <span className="text-gray-500">ACWR:</span>
                         <span className={`ml-1 font-medium ${
@@ -1590,7 +1590,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                   {readinessAnalysis.data_quality_note && (
                     <p className="text-sm text-gray-300 mb-2">{readinessAnalysis.data_quality_note}</p>
                   )}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                     <div>
                       <span className="text-gray-500">7-day readings:</span>
                       <span className="ml-1">{readinessAnalysis.data_quality?.data_points_7d || 0}</span>
@@ -1664,7 +1664,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       </div>
 
       {/* Current Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="bg-gray-700 rounded-lg p-4">
           <div className="text-gray-400 text-sm mb-1">Weight</div>
           <div className="text-2xl font-bold">{formatWeight(member.current_weight)}</div>
@@ -1753,7 +1753,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
           <h3 className="font-semibold">Latest Vitals</h3>
           <span className="text-xs text-gray-500">Click any card to see history</span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           {/* Weight card first */}
           <div
             className="bg-gray-800 rounded p-3 cursor-pointer hover:bg-gray-750"
@@ -1920,7 +1920,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
               } else {
                 handleAddVital(e)
               }
-            }} className="p-4 space-y-4">
+            }} className="p-4 sm:p-6 space-y-4">
               {error && (
                 <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
                   {error}
@@ -2075,7 +2075,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               {error && (
                 <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
                   {error}
@@ -2085,7 +2085,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 Recorded: {formatDate(editingVital.recorded_at)}
               </div>
               {editingVital.vital_type === 'blood_pressure' ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm text-gray-400 mb-1">Systolic (mmHg) *</label>
                     <input
@@ -2780,7 +2780,7 @@ function FitnessTab({ member, settings, formatDate }) {
           )}
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-700/50 rounded-lg p-4 text-center">
               <div className="text-3xl font-bold text-blue-400">{stats.total_workouts}</div>
               <div className="text-sm text-gray-400">Workouts (30d)</div>
@@ -2831,7 +2831,7 @@ function FitnessTab({ member, settings, formatDate }) {
           {Object.keys(stats.by_type || {}).length > 0 && (
             <div className="bg-gray-700/30 rounded-lg p-4">
               <h4 className="font-semibold mb-3">Breakdown by Type</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {Object.entries(stats.by_type).map(([type, data]) => {
                   const typeInfo = WORKOUT_TYPES.find(t => t.value === type) || { label: type, icon: '💪' }
                   return (
@@ -2925,7 +2925,7 @@ function FitnessTab({ member, settings, formatDate }) {
                     </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                     {workout.duration_minutes && (
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-gray-400" />
@@ -3021,7 +3021,7 @@ function FitnessTab({ member, settings, formatDate }) {
               </div>
 
               {/* Date and Duration */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Date *</label>
                   <input
@@ -3047,7 +3047,7 @@ function FitnessTab({ member, settings, formatDate }) {
               {/* Cardio-specific fields */}
               {isCardioType && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm text-gray-400 mb-1">Distance (miles)</label>
                       <input
@@ -3087,7 +3087,7 @@ function FitnessTab({ member, settings, formatDate }) {
               )}
 
               {/* Heart Rate and Calories */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Avg Heart Rate (bpm)</label>
                   <input
@@ -3111,7 +3111,7 @@ function FitnessTab({ member, settings, formatDate }) {
               </div>
 
               {/* RPE and Quality */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">RPE (1-10)</label>
                   <input
