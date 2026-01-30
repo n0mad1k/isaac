@@ -46,12 +46,15 @@ class HealthLog(Base):
 
     # System resources
     memory_status = Column(String(20), default="unknown")
+    memory_message = Column(String(200), nullable=True)
     memory_percent = Column(Float, nullable=True)
 
     disk_status = Column(String(20), default="unknown")
+    disk_message = Column(String(200), nullable=True)
     disk_percent = Column(Float, nullable=True)
 
     cpu_status = Column(String(20), default="unknown")
+    cpu_message = Column(String(200), nullable=True)
     cpu_load = Column(Float, nullable=True)
 
     def __repr__(self):
@@ -69,7 +72,7 @@ class HealthLog(Base):
                 "latency_ms": self.database_latency_ms
             },
             "caldav": {"status": self.caldav_status, "message": self.caldav_message},
-            "memory": {"status": self.memory_status, "percent": self.memory_percent},
-            "disk": {"status": self.disk_status, "percent": self.disk_percent},
-            "cpu": {"status": self.cpu_status, "load": self.cpu_load}
+            "memory": {"status": self.memory_status, "message": self.memory_message, "percent": self.memory_percent},
+            "disk": {"status": self.disk_status, "message": self.disk_message, "percent": self.disk_percent},
+            "cpu": {"status": self.cpu_status, "message": self.cpu_message, "load": self.cpu_load}
         }

@@ -2635,20 +2635,28 @@ function Settings() {
                             {['api', 'database', 'caldav', 'memory', 'disk', 'cpu'].map(check => {
                               const data = healthSummary.latest[check]
                               if (!data) return null
+                              const isIssue = data.status === 'warning' || data.status === 'critical'
                               return (
-                                <div key={check} className="flex items-center justify-between bg-gray-800/50 rounded px-3 py-2">
-                                  <span className="text-gray-400 capitalize">{check}</span>
-                                  <span className={`text-xs font-medium ${
-                                    data.status === 'healthy' ? 'text-green-400' :
-                                    data.status === 'warning' ? 'text-yellow-400' :
-                                    data.status === 'critical' ? 'text-red-400' :
-                                    'text-gray-400'
-                                  }`}>
-                                    {data.status === 'healthy' ? '✓' : data.status === 'warning' ? '!' : data.status === 'critical' ? '✗' : '?'}
-                                    {data.percent !== undefined && ` ${data.percent?.toFixed(0)}%`}
-                                    {data.latency_ms !== undefined && ` ${data.latency_ms?.toFixed(0)}ms`}
-                                    {data.load !== undefined && ` ${data.load?.toFixed(1)}`}
-                                  </span>
+                                <div key={check} className={`bg-gray-800/50 rounded px-3 py-2 ${isIssue ? 'border border-' + (data.status === 'critical' ? 'red' : 'yellow') + '-700/50' : ''}`}>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-gray-400 capitalize">{check}</span>
+                                    <span className={`text-xs font-medium ${
+                                      data.status === 'healthy' ? 'text-green-400' :
+                                      data.status === 'warning' ? 'text-yellow-400' :
+                                      data.status === 'critical' ? 'text-red-400' :
+                                      'text-gray-400'
+                                    }`}>
+                                      {data.status === 'healthy' ? '✓' : data.status === 'warning' ? '⚠' : data.status === 'critical' ? '✗' : '?'}
+                                      {data.percent !== undefined && ` ${data.percent?.toFixed(0)}%`}
+                                      {data.latency_ms !== undefined && ` ${data.latency_ms?.toFixed(0)}ms`}
+                                      {data.load !== undefined && ` ${data.load?.toFixed(1)}`}
+                                    </span>
+                                  </div>
+                                  {data.message && (
+                                    <p className={`text-xs mt-1 ${isIssue ? (data.status === 'critical' ? 'text-red-300' : 'text-yellow-300') : 'text-gray-500'}`}>
+                                      {data.message}
+                                    </p>
+                                  )}
                                 </div>
                               )
                             })}
@@ -2725,30 +2733,51 @@ function Settings() {
                         <option value="critical">Critical</option>
                       </select>
                     </div>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
                       {healthLogs.length === 0 ? (
                         <p className="text-gray-400 text-sm py-4 text-center">No health logs yet</p>
                       ) : (
-                        healthLogs.map((log, idx) => (
-                          <div key={idx} className={`flex items-center justify-between px-3 py-2 rounded text-sm ${
-                            log.overall_status === 'healthy' ? 'bg-green-900/20' :
-                            log.overall_status === 'warning' ? 'bg-yellow-900/20' :
-                            log.overall_status === 'critical' ? 'bg-red-900/20' :
-                            'bg-gray-800/50'
-                          }`}>
-                            <span className="text-gray-400 text-xs">
-                              {new Date(log.checked_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <span className={`font-medium ${
-                              log.overall_status === 'healthy' ? 'text-green-400' :
-                              log.overall_status === 'warning' ? 'text-yellow-400' :
-                              log.overall_status === 'critical' ? 'text-red-400' :
-                              'text-gray-400'
+                        healthLogs.map((log, idx) => {
+                          const issues = ['api', 'database', 'caldav', 'memory', 'disk', 'cpu']
+                            .filter(check => log[check] && (log[check].status === 'warning' || log[check].status === 'critical'))
+                          return (
+                            <div key={idx} className={`px-3 py-2 rounded text-sm ${
+                              log.overall_status === 'healthy' ? 'bg-green-900/20' :
+                              log.overall_status === 'warning' ? 'bg-yellow-900/20' :
+                              log.overall_status === 'critical' ? 'bg-red-900/20' :
+                              'bg-gray-800/50'
                             }`}>
-                              {log.overall_status?.toUpperCase()}
-                            </span>
-                          </div>
-                        ))
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-400 text-xs">
+                                  {new Date(log.checked_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className={`font-medium ${
+                                  log.overall_status === 'healthy' ? 'text-green-400' :
+                                  log.overall_status === 'warning' ? 'text-yellow-400' :
+                                  log.overall_status === 'critical' ? 'text-red-400' :
+                                  'text-gray-400'
+                                }`}>
+                                  {log.overall_status?.toUpperCase()}
+                                </span>
+                              </div>
+                              {issues.length > 0 && (
+                                <div className="mt-1 space-y-0.5">
+                                  {issues.map(check => (
+                                    <div key={check} className="flex items-center gap-2 text-xs">
+                                      <span className={log[check].status === 'critical' ? 'text-red-400' : 'text-yellow-400'}>
+                                        {log[check].status === 'critical' ? '✗' : '⚠'}
+                                      </span>
+                                      <span className="text-gray-300 capitalize">{check}:</span>
+                                      <span className={log[check].status === 'critical' ? 'text-red-300' : 'text-yellow-300'}>
+                                        {log[check].message || `${log[check].percent !== undefined ? log[check].percent?.toFixed(0) + '%' : log[check].latency_ms !== undefined ? log[check].latency_ms?.toFixed(0) + 'ms' : log[check].load !== undefined ? 'load ' + log[check].load?.toFixed(1) : log[check].status}`}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })
                       )}
                     </div>
                   </div>

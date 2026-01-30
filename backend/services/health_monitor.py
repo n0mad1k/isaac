@@ -256,10 +256,13 @@ async def log_health_check(db: AsyncSession, checks: List[HealthCheck], overall_
         caldav_status=next((c.status for c in checks if c.name == "caldav"), "unknown"),
         caldav_message=next((c.message for c in checks if c.name == "caldav"), ""),
         memory_status=next((c.status for c in checks if c.name == "memory"), "unknown"),
+        memory_message=next((c.message for c in checks if c.name == "memory"), ""),
         memory_percent=next((c.value for c in checks if c.name == "memory"), None),
         disk_status=next((c.status for c in checks if c.name == "disk"), "unknown"),
+        disk_message=next((c.message for c in checks if c.name == "disk"), ""),
         disk_percent=next((c.value for c in checks if c.name == "disk"), None),
         cpu_status=next((c.status for c in checks if c.name == "cpu"), "unknown"),
+        cpu_message=next((c.message for c in checks if c.name == "cpu"), ""),
         cpu_load=next((c.value for c in checks if c.name == "cpu"), None),
     )
 

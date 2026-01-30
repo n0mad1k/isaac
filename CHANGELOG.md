@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.52.1] - 2026-01-29
+
+### Fixed
+- **Health monitor more informative** - Each health check now shows its status message (e.g., "Memory high: 82%", "CalDAV returned status 503") instead of just an icon. Warning/critical checks are highlighted with colored borders. Health logs now show which specific checks caused the issue with detailed messages
+
 ## [1.52.0] - 2026-01-29
 
 ### Added
