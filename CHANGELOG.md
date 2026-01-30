@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.57.0] - 2026-01-30
+
+### Added
+- **Monthly Budget tab** - Excel-style budget layout with both pay periods (1st-14th, 15th-End) showing Variable Spending, Bills & Fixed Expenses, and Savings & Transfers sections with budget/spent/remaining columns
+- **Money Market Distribution** - Monthly Budget now shows how income is distributed from Money Market to Dane's Spending, Kelly's Spending, Main Checking, Savings, and House/Travel Fund
+- **Chase credit card accounts** - Added Chase Credit Card 1 and Chase Credit Card 2 as budget accounts for statement imports
+- **Bills Summary tab** - Dedicated view for tracking monthly bills with paid/partial/due status indicators
+- **Income frequency support** - Budget income now supports weekly, biweekly, semimonthly, and monthly pay frequencies with proper pay period calculations
+
+### Fixed
+- **Budget data not loading** - Fixed database enum value casing that prevented SQLAlchemy from reading budget categories, transactions, and accounts
+- **Fixed bill budgets showing $0** - Half-month period summaries now correctly show monthly_budget for fixed bills instead of $0
+
 ## [1.56.0] - 2026-01-30
 
 ### Added
