@@ -73,6 +73,7 @@ class CategoryCreate(BaseModel):
     show_on_dashboard: bool = False
     bill_day: Optional[int] = Field(None, ge=1, le=31)
     owner: Optional[str] = Field(None, max_length=20)
+    billing_months: Optional[str] = Field(None, max_length=50)
     sort_order: int = 0
 
 class CategoryUpdate(BaseModel):
@@ -86,6 +87,7 @@ class CategoryUpdate(BaseModel):
     show_on_dashboard: Optional[bool] = None
     bill_day: Optional[int] = Field(None, ge=1, le=31)
     owner: Optional[str] = Field(None, max_length=20)
+    billing_months: Optional[str] = Field(None, max_length=50)
     sort_order: Optional[int] = None
 
 class CategoryResponse(BaseModel):
@@ -100,6 +102,7 @@ class CategoryResponse(BaseModel):
     show_on_dashboard: bool
     bill_day: Optional[int]
     owner: Optional[str]
+    billing_months: Optional[str]
     sort_order: int
     created_at: datetime
 

@@ -155,16 +155,29 @@ function MonthlyBudget() {
   }
 
   const activeCats = categories.filter(c => c.is_active)
-  const fixedCats = activeCats.filter(c => c.category_type === 'fixed')
+
+  // Filter out categories not active this month (e.g., yearly Prime, quarterly Trash Busters)
+  const isActiveThisMonth = (cat) => {
+    if (!cat.billing_months) return true
+    const months = cat.billing_months.split(',').map(m => parseInt(m.trim()))
+    return months.includes(currentMonth)
+  }
+
+  const fixedCats = activeCats.filter(c => c.category_type === 'fixed' && isActiveThisMonth(c))
   const variableCats = activeCats.filter(c => c.category_type === 'variable')
   const transferCats = activeCats.filter(c => c.category_type === 'transfer')
 
-  const mainBillsFirst = fixedCats.filter(c => !c.owner && (!c.bill_day || c.bill_day <= 14)).sort((a, b) => (a.bill_day || 0) - (b.bill_day || 0) || a.sort_order - b.sort_order)
-  const mainBillsSecond = fixedCats.filter(c => !c.owner && c.bill_day && c.bill_day >= 15).sort((a, b) => (a.bill_day || 15) - (b.bill_day || 15) || a.sort_order - b.sort_order)
-  const daneBillsFirst = fixedCats.filter(c => c.owner === 'dane' && (!c.bill_day || c.bill_day <= 14)).sort((a, b) => (a.bill_day || 0) - (b.bill_day || 0) || a.sort_order - b.sort_order)
-  const daneBillsSecond = fixedCats.filter(c => c.owner === 'dane' && c.bill_day && c.bill_day >= 15).sort((a, b) => (a.bill_day || 15) - (b.bill_day || 15) || a.sort_order - b.sort_order)
-  const kellyBillsFirst = fixedCats.filter(c => c.owner === 'kelly' && (!c.bill_day || c.bill_day <= 14)).sort((a, b) => (a.bill_day || 0) - (b.bill_day || 0) || a.sort_order - b.sort_order)
-  const kellyBillsSecond = fixedCats.filter(c => c.owner === 'kelly' && c.bill_day && c.bill_day >= 15).sort((a, b) => (a.bill_day || 15) - (b.bill_day || 15) || a.sort_order - b.sort_order)
+  // Per-period bills (no bill_day, have budget_amount) show in BOTH halves
+  const isPerPeriod = (cat) => !cat.bill_day && cat.budget_amount > 0
+
+  const sortBills = (a, b) => (a.bill_day || 0) - (b.bill_day || 0) || a.sort_order - b.sort_order
+
+  const mainBillsFirst = fixedCats.filter(c => !c.owner && ((c.bill_day && c.bill_day <= 14) || isPerPeriod(c))).sort(sortBills)
+  const mainBillsSecond = fixedCats.filter(c => !c.owner && ((c.bill_day && c.bill_day >= 15) || isPerPeriod(c))).sort(sortBills)
+  const daneBillsFirst = fixedCats.filter(c => c.owner === 'dane' && ((c.bill_day && c.bill_day <= 14) || isPerPeriod(c))).sort(sortBills)
+  const daneBillsSecond = fixedCats.filter(c => c.owner === 'dane' && ((c.bill_day && c.bill_day >= 15) || isPerPeriod(c))).sort(sortBills)
+  const kellyBillsFirst = fixedCats.filter(c => c.owner === 'kelly' && ((c.bill_day && c.bill_day <= 14) || isPerPeriod(c))).sort(sortBills)
+  const kellyBillsSecond = fixedCats.filter(c => c.owner === 'kelly' && ((c.bill_day && c.bill_day >= 15) || isPerPeriod(c))).sort(sortBills)
 
   const activeIncome = income.filter(i => i.is_active)
   const incomeFirst = activeIncome.filter(i => i.frequency === 'weekly' || i.frequency === 'biweekly' || !i.pay_day || i.pay_day <= 14)
@@ -187,7 +200,10 @@ function MonthlyBudget() {
   const distributions = transferCats.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
   const variablePerHalf = variableCats.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
 
-  const getBillAmount = (cat) => cat.monthly_budget || cat.budget_amount * 2 || 0
+  // For display in each half: per-period bills show budget_amount, monthly bills show monthly_budget
+  const getHalfBillAmount = (cat) => isPerPeriod(cat) ? cat.budget_amount : (cat.monthly_budget || cat.budget_amount * 2 || 0)
+  // Full monthly amount for totals
+  const getBillAmount = (cat) => isPerPeriod(cat) ? cat.budget_amount * 2 : (cat.monthly_budget || cat.budget_amount * 2 || 0)
   const getPerPeriodAmount = (cat) => cat.budget_amount || 0
 
   const getAccountName = (cat) => {
@@ -274,14 +290,14 @@ function MonthlyBudget() {
   // Totals
   const firstHalfIncome = calcHalfIncome(activeIncome, true)
   const secondHalfIncome = calcHalfIncome(activeIncome, false)
-  const firstHalfBills = mainBillsFirst.reduce((s, c) => s + getBillAmount(c), 0)
-  const secondHalfBills = mainBillsSecond.reduce((s, c) => s + getBillAmount(c), 0)
+  const firstHalfBills = mainBillsFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
+  const secondHalfBills = mainBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
   const distPerHalf = distributions.reduce((s, c) => s + getPerPeriodAmount(c), 0)
   const varPerHalf = variablePerHalf.reduce((s, c) => s + getPerPeriodAmount(c), 0)
-  const daneBFirst = daneBillsFirst.reduce((s, c) => s + getBillAmount(c), 0)
-  const daneBSecond = daneBillsSecond.reduce((s, c) => s + getBillAmount(c), 0)
-  const kellyBFirst = kellyBillsFirst.reduce((s, c) => s + getBillAmount(c), 0)
-  const kellyBSecond = kellyBillsSecond.reduce((s, c) => s + getBillAmount(c), 0)
+  const daneBFirst = daneBillsFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
+  const daneBSecond = daneBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
+  const kellyBFirst = kellyBillsFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
+  const kellyBSecond = kellyBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
 
   const totalIncome = firstHalfIncome + secondHalfIncome
   const totalBills = firstHalfBills + secondHalfBills + daneBFirst + daneBSecond + kellyBFirst + kellyBSecond
@@ -351,7 +367,7 @@ function MonthlyBudget() {
         {halfBills.length > 0 && (
           <>
             <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', color: 'var(--color-text-primary)' }}>Bills</div>
-            {halfBills.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getBillAmount(cat), getAccountName(cat)))}
+            {halfBills.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
           </>
         )}
 
@@ -379,7 +395,7 @@ function MonthlyBudget() {
         {colHeader('#8b5cf6')}
 
         <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: 'var(--color-text-primary)' }}>1st - 14th</div>
-        {bFirst.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getBillAmount(cat), getAccountName(cat)))}
+        {bFirst.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {addForm(`${ownerKey}-first`)}
         <div className="flex justify-end px-2 py-0.5">
           <button onClick={() => { setAddingTo(`${ownerKey}-first`); setNewLine({ name: '', amount: '', bill_day: '' }) }}
@@ -389,7 +405,7 @@ function MonthlyBudget() {
         </div>
 
         <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: 'var(--color-text-primary)' }}>15th - End</div>
-        {bSecond.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getBillAmount(cat), getAccountName(cat)))}
+        {bSecond.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {addForm(`${ownerKey}-second`)}
         <div className="flex justify-end px-2 py-0.5">
           <button onClick={() => { setAddingTo(`${ownerKey}-second`); setNewLine({ name: '', amount: '', bill_day: '' }) }}
@@ -400,7 +416,7 @@ function MonthlyBudget() {
 
         <div className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
           <span /><span style={{ color: 'var(--color-text-primary)' }}>Total</span>
-          <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(bFirst.reduce((s, c) => s + getBillAmount(c), 0) + bSecond.reduce((s, c) => s + getBillAmount(c), 0))}</span>
+          <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(bFirst.reduce((s, c) => s + getHalfBillAmount(c), 0) + bSecond.reduce((s, c) => s + getHalfBillAmount(c), 0))}</span>
           <span /><span />
         </div>
       </div>

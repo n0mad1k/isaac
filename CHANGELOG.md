@@ -2,6 +2,21 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.60.0] - 2026-01-30
+
+### Added
+- **Non-monthly billing support** - Bills can now have a `billing_months` field (e.g., "9" for yearly September, "1,4,7,10" for quarterly)
+  - Bills only appear and count in the budget during their active months
+  - Frequency badge shown in Bills tab (yearly, quarterly)
+  - Prime set to September only, Trash Busters quarterly, Pegasus Pest quarterly
+
+### Changed
+- **Per-period bills** (Maid, Massage) now correctly appear in BOTH halves of Monthly Budget
+- **Pay updated to weekly** - $2,171.58 weekly instead of semimonthly
+
+### Fixed
+- **Monthly Budget totals** - Per-period bills now show per-half amount instead of full monthly in each half
+
 ## [1.59.0] - 2026-01-30
 
 ### Changed

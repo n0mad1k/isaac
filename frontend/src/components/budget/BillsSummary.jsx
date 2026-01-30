@@ -27,6 +27,7 @@ function BillsSummary() {
   const [newName, setNewName] = useState('')
   const [newAmount, setNewAmount] = useState('')
   const [newDay, setNewDay] = useState('')
+  const [newBillingMonths, setNewBillingMonths] = useState('')
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December']
@@ -148,6 +149,7 @@ function BillsSummary() {
         monthly_budget: parseFloat(newAmount) || 0,
         budget_amount: 0,
         bill_day: parseInt(newDay) || null,
+        billing_months: newBillingMonths.trim() || null,
       })
       setAddingBill(false)
       setNewName('')
@@ -193,13 +195,21 @@ function BillsSummary() {
   }
 
   const totalMoneyIn = summary?.expected_income || 0
+
+  // Only show bills active in the current month
+  const isActiveThisMonth = (cat) => {
+    if (!cat.billing_months) return true
+    const months = cat.billing_months.split(',').map(m => parseInt(m.trim()))
+    return months.includes(currentMonth)
+  }
+
   const allCats = categories.filter(c => c.is_active)
   const billCats = [...allCats.filter(c => c.category_type === 'fixed'),
     ...allCats.filter(c => c.category_type === 'variable'),
     ...allCats.filter(c => c.category_type === 'transfer')]
     .filter(cat => {
       const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
-      return amt > 0
+      return amt > 0 && isActiveThisMonth(cat)
     })
     .sort((a, b) => (a.bill_day || 99) - (b.bill_day || 99) || a.sort_order - b.sort_order || a.name.localeCompare(b.name))
 
@@ -369,13 +379,15 @@ function BillsSummary() {
 
         {billCats.map(cat => {
           const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
+          const freqLabel = cat.billing_months ? (cat.billing_months.split(',').length === 1 ? 'yearly' : cat.billing_months.split(',').length <= 4 ? 'quarterly' : '') : ''
           return (
             <div key={cat.id} className="grid grid-cols-[45px_1fr_90px_28px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
               <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
                 {renderCell('bill', cat.id, 'bill_day', cat.bill_day ? ordinal(cat.bill_day) : '—', cat.bill_day)}
               </span>
-              <span style={{ color: 'var(--color-text-primary)' }}>
+              <span className="flex items-center gap-1.5" style={{ color: 'var(--color-text-primary)' }}>
                 {renderCell('bill', cat.id, 'name', cat.name, cat.name)}
+                {freqLabel && <span className="text-xs px-1 py-0 rounded" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: '9px' }}>{freqLabel}</span>}
               </span>
               <span className="text-right" style={{ color: '#ef4444' }}>
                 {renderCell('bill', cat.id, 'amount', `-${fmt(amt)}`, amt, 'right')}
