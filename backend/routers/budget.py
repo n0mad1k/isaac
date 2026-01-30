@@ -71,6 +71,8 @@ class CategoryCreate(BaseModel):
     icon: Optional[str] = Field(None, max_length=50)
     is_active: bool = True
     show_on_dashboard: bool = False
+    bill_day: Optional[int] = Field(None, ge=1, le=31)
+    owner: Optional[str] = Field(None, max_length=20)
     sort_order: int = 0
 
 class CategoryUpdate(BaseModel):
@@ -82,6 +84,8 @@ class CategoryUpdate(BaseModel):
     icon: Optional[str] = Field(None, max_length=50)
     is_active: Optional[bool] = None
     show_on_dashboard: Optional[bool] = None
+    bill_day: Optional[int] = Field(None, ge=1, le=31)
+    owner: Optional[str] = Field(None, max_length=20)
     sort_order: Optional[int] = None
 
 class CategoryResponse(BaseModel):
@@ -94,6 +98,8 @@ class CategoryResponse(BaseModel):
     icon: Optional[str]
     is_active: bool
     show_on_dashboard: bool
+    bill_day: Optional[int]
+    owner: Optional[str]
     sort_order: int
     created_at: datetime
 

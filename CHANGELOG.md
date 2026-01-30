@@ -2,6 +2,29 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.58.0] - 2026-01-30
+
+### Changed
+- **Monthly Budget rewrite** - Redesigned to match Excel layout with line-item ledger format
+  - Income, distributions, spending allocations, and bills shown inline for each half of month (1st-14th, 15th-End)
+  - Dane's Spending Bills and Kelly's Spending Bills as separate breakout sections
+  - Every line is click-to-edit (name and amount)
+  - Add new bill lines and remove existing ones
+  - Removed transaction adding (use Transactions tab instead)
+  - Removed Money Market Distribution section (distributions now shown inline)
+  - Monthly Summary with Total Money In, Bills, Spending, Savings, Total Outgoing, Money After Bills
+- **Bills tab simplified** - Removed status column and summary cards, now matches Excel with simple Description + Amount table and Total Money In / Bills / Money After Bills totals
+- **Bi-Budget cards** - Changed from 4 cards to 3 meaningful cards: Income, Bills, Remaining
+- **Transactions tab simplified** - Streamlined to just Date, Description, Amount, and Category (spending pools only: Gas, Groceries, Main Spending, Dane's Spending, Kelly's Spending)
+
+### Fixed
+- **Charts cut off** - Donut and bar charts in Bi-Budget now use responsive SVG with proper viewBox sizing
+- **Budgeted card showing incorrect total** - No longer sums all category budgets (which exceeded income); broken down by type instead
+
+### Added
+- **Bill day tracking** - Budget categories now have a `bill_day` field for which day of month the bill is due
+- **Category owner** - Budget categories can be tagged as 'dane' or 'kelly' for personal bill breakouts
+
 ## [1.57.0] - 2026-01-30
 
 ### Added

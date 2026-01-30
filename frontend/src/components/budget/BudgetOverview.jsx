@@ -103,8 +103,9 @@ function BudgetOverview() {
     )
   }
 
-  // Only variable spending categories (matches Excel: Gas, Groceries, Main Spending, Other, Roll Over)
+  // Only variable spending categories (Gas, Groceries, Main Spending, Dane Spending, Kelly Spending)
   const variableCatIds = new Set(categories.filter(c => c.category_type === 'variable' && c.is_active).map(c => c.id))
+  const fixedCatIds = new Set(categories.filter(c => c.category_type === 'fixed' && c.is_active).map(c => c.id))
   const variableCats = (summary?.categories || []).filter(c => variableCatIds.has(c.id) && (c.budgeted > 0 || c.spent > 0))
     .sort((a, b) => {
       const catA = categories.find(c => c.id === a.id)
@@ -115,6 +116,10 @@ function BudgetOverview() {
   const totalBudget = variableCats.reduce((s, c) => s + (c.budgeted || 0), 0)
   const totalSpent = variableCats.reduce((s, c) => s + (c.spent || 0), 0)
   const totalRemaining = totalBudget - totalSpent
+
+  // Compute bills total for the cards
+  const billsBudgeted = (summary?.categories || []).filter(c => fixedCatIds.has(c.id)).reduce((s, c) => s + (c.budgeted || 0), 0)
+  const remainingAfterBills = (summary?.expected_income || 0) - billsBudgeted
 
   return (
     <div className="space-y-4">
@@ -146,46 +151,32 @@ function BudgetOverview() {
         </div>
       </div>
 
-      {/* Summary Cards - matches Excel: Income, Bills, Spending, Remaining */}
-      {summary && (() => {
-        const allCats = summary.categories || []
-        const fixedCatIdsAll = new Set(categories.filter(c => c.category_type === 'fixed').map(c => c.id))
-        const billsBudgeted = allCats.filter(c => fixedCatIdsAll.has(c.id)).reduce((s, c) => s + (c.budgeted || 0), 0)
-        const spendingBudgeted = allCats.filter(c => variableCatIds.has(c.id)).reduce((s, c) => s + (c.budgeted || 0), 0)
-        const remaining = summary.expected_income - billsBudgeted - spendingBudgeted
-        return (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4" style={{ color: '#22c55e' }} />
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Income</span>
-              </div>
-              <div className="text-lg font-bold" style={{ color: '#22c55e' }}>{fmt(summary.expected_income)}</div>
+      {/* Summary Cards: Income, Bills, Remaining */}
+      {summary && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-4 h-4" style={{ color: '#22c55e' }} />
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Income</span>
             </div>
-            <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingDown className="w-4 h-4" style={{ color: '#ef4444' }} />
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Bills</span>
-              </div>
-              <div className="text-lg font-bold" style={{ color: '#ef4444' }}>{fmt(billsBudgeted)}</div>
-            </div>
-            <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-              <div className="flex items-center gap-2 mb-1">
-                <DollarSign className="w-4 h-4" style={{ color: '#f59e0b' }} />
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Spending</span>
-              </div>
-              <div className="text-lg font-bold" style={{ color: '#f59e0b' }}>{fmt(spendingBudgeted)}</div>
-            </div>
-            <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-              <div className="flex items-center gap-2 mb-1">
-                {remaining >= 0 ? <TrendingUp className="w-4 h-4" style={{ color: '#22c55e' }} /> : <TrendingDown className="w-4 h-4" style={{ color: '#ef4444' }} />}
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Remaining</span>
-              </div>
-              <div className="text-lg font-bold" style={{ color: remaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remaining)}</div>
-            </div>
+            <div className="text-lg font-bold" style={{ color: '#22c55e' }}>{fmt(summary.expected_income)}</div>
           </div>
-        )
-      })()}
+          <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingDown className="w-4 h-4" style={{ color: '#ef4444' }} />
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Bills</span>
+            </div>
+            <div className="text-lg font-bold" style={{ color: '#ef4444' }}>{fmt(billsBudgeted)}</div>
+          </div>
+          <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="w-4 h-4" style={{ color: remainingAfterBills >= 0 ? '#22c55e' : '#ef4444' }} />
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Remaining</span>
+            </div>
+            <div className="text-lg font-bold" style={{ color: remainingAfterBills >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remainingAfterBills)}</div>
+          </div>
+        </div>
+      )}
 
       {summary && variableCats.length > 0 && (
         <>
@@ -204,7 +195,7 @@ function BudgetOverview() {
               <h4 className="text-sm font-semibold mb-3 text-center" style={{ color: 'var(--color-text-primary)' }}>
                 Budget vs. Actual
               </h4>
-              <BarChart categories={variableCats} fmt={fmt} />
+              <BarChart categories={variableCats} />
             </div>
           </div>
 
@@ -244,18 +235,16 @@ function BudgetOverview() {
                         />
                       </span>
                     ) : (
-                      <span className="text-right flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => {
-                            const fullCat = categories.find(c => c.id === cat.id)
-                            if (fullCat) startEditBudget(fullCat)
-                          }}
-                          className="p-0.5 rounded hover:bg-gray-700"
-                          title="Edit budget"
-                        >
-                          <Pencil className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
-                        </button>
-                        <span style={{ color: 'var(--color-text-primary)' }}>{fmt(cat.budgeted)}</span>
+                      <span
+                        className="text-right cursor-pointer hover:underline"
+                        style={{ color: 'var(--color-text-primary)' }}
+                        onClick={() => {
+                          const fullCat = categories.find(c => c.id === cat.id)
+                          if (fullCat) startEditBudget(fullCat)
+                        }}
+                        title="Click to edit budget"
+                      >
+                        {fmt(cat.budgeted)}
                       </span>
                     )}
                     <span className="text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(cat.spent)}</span>
@@ -300,10 +289,10 @@ function DonutChart({ categories }) {
     )
   }
 
-  const size = 200
+  const size = 240
   const center = size / 2
-  const outerRadius = 85
-  const innerRadius = 50
+  const outerRadius = 90
+  const innerRadius = 55
   let currentAngle = -90
 
   const slices = categories.filter(c => c.spent > 0).map(cat => {
@@ -335,9 +324,8 @@ function DonutChart({ categories }) {
       'Z'
     ].join(' ')
 
-    // Label position at midpoint of arc
     const midAngle = ((startAngle + endAngle) / 2) * Math.PI / 180
-    const labelRadius = outerRadius + 18
+    const labelRadius = outerRadius + 20
     const labelX = center + labelRadius * Math.cos(midAngle)
     const labelY = center + labelRadius * Math.sin(midAngle)
 
@@ -346,11 +334,10 @@ function DonutChart({ categories }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <svg width="100%" height="auto" viewBox={`0 0 ${size} ${size}`} style={{ maxWidth: size }}>
         {slices.map((slice, i) => (
           <path key={i} d={slice.path} fill={slice.color} stroke="var(--color-bg-surface)" strokeWidth="2" />
         ))}
-        {/* Percentage labels */}
         {slices.filter(s => s.percentage >= 5).map((slice, i) => (
           <text key={`lbl-${i}`} x={slice.labelX} y={slice.labelY} textAnchor="middle" dominantBaseline="middle"
             fill="var(--color-text-secondary)" fontSize="11" fontWeight="600">
@@ -358,7 +345,6 @@ function DonutChart({ categories }) {
           </text>
         ))}
       </svg>
-      {/* Legend */}
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5">
         {slices.map((slice, i) => (
           <div key={i} className="flex items-center gap-1.5">
@@ -372,75 +358,56 @@ function DonutChart({ categories }) {
 }
 
 
-function BarChart({ categories, fmt }) {
+function BarChart({ categories }) {
   const maxVal = Math.max(...categories.flatMap(c => [c.budgeted || 0, c.spent || 0]), 1)
-
-  // Y-axis tick values
   const niceMax = Math.ceil(maxVal / 100) * 100
   const ticks = []
-  const tickCount = 5
+  const tickCount = 4
   for (let i = 0; i <= tickCount; i++) {
     ticks.push((niceMax / tickCount) * i)
   }
 
   const chartHeight = 180
-  const chartWidth = 280
-  const leftPad = 60
-  const bottomPad = 50
-  const barGroupWidth = (chartWidth - leftPad) / categories.length
-  const barWidth = barGroupWidth * 0.3
-  const barGap = 3
+  const leftPad = 55
+  const bottomPad = 60
+  const rightPad = 10
+  const catCount = categories.length
+  const totalWidth = leftPad + catCount * 60 + rightPad
+  const barGroupWidth = (totalWidth - leftPad - rightPad) / catCount
+  const barWidth = barGroupWidth * 0.35
+  const barGap = 4
 
   return (
-    <div className="flex justify-center">
-      <svg width={chartWidth} height={chartHeight + bottomPad} viewBox={`0 0 ${chartWidth} ${chartHeight + bottomPad}`}>
-        {/* Y-axis gridlines & labels */}
+    <div className="w-full overflow-x-auto">
+      <svg width="100%" height={chartHeight + bottomPad} viewBox={`0 0 ${totalWidth} ${chartHeight + bottomPad}`} preserveAspectRatio="xMidYMid meet">
         {ticks.map((tick, i) => {
           const y = chartHeight - (tick / niceMax) * chartHeight
           return (
             <g key={i}>
-              <line x1={leftPad} y1={y} x2={chartWidth} y2={y} stroke="var(--color-border-default)" strokeWidth="0.5" />
-              <text x={leftPad - 5} y={y + 4} textAnchor="end" fill="var(--color-text-muted)" fontSize="9">
+              <line x1={leftPad} y1={y} x2={totalWidth - rightPad} y2={y} stroke="var(--color-border-default)" strokeWidth="0.5" />
+              <text x={leftPad - 5} y={y + 4} textAnchor="end" fill="var(--color-text-muted)" fontSize="10">
                 ${tick.toLocaleString()}
               </text>
             </g>
           )
         })}
 
-        {/* Bars */}
         {categories.map((cat, i) => {
-          const groupX = leftPad + i * barGroupWidth + barGroupWidth * 0.15
+          const groupX = leftPad + i * barGroupWidth + barGroupWidth * 0.1
           const budgetH = ((cat.budgeted || 0) / niceMax) * chartHeight
           const spentH = ((cat.spent || 0) / niceMax) * chartHeight
 
           return (
             <g key={cat.id}>
-              {/* Budget bar (blue) */}
-              <rect
-                x={groupX}
-                y={chartHeight - budgetH}
-                width={barWidth}
-                height={budgetH}
-                fill="#6495ED"
-                rx="1"
-              />
-              {/* Spent bar (green) */}
-              <rect
-                x={groupX + barWidth + barGap}
-                y={chartHeight - spentH}
-                width={barWidth}
-                height={spentH}
-                fill="#9ACD32"
-                rx="1"
-              />
-              {/* Category label */}
+              <rect x={groupX} y={chartHeight - budgetH} width={barWidth} height={budgetH} fill="#6495ED" rx="2" />
+              <rect x={groupX + barWidth + barGap} y={chartHeight - spentH} width={barWidth} height={spentH} fill="#9ACD32" rx="2" />
               <text
                 x={groupX + barWidth + barGap / 2}
-                y={chartHeight + 12}
+                y={chartHeight + 8}
                 textAnchor="end"
                 fill="var(--color-text-muted)"
-                fontSize="9"
-                transform={`rotate(-45, ${groupX + barWidth + barGap / 2}, ${chartHeight + 12})`}
+                fontSize="10"
+                transform={`rotate(-35, ${groupX + barWidth + barGap / 2}, ${chartHeight + 8})`}
               >
                 {cat.name}
               </text>
@@ -449,10 +416,10 @@ function BarChart({ categories, fmt }) {
         })}
 
         {/* Legend */}
-        <rect x={chartWidth - 100} y={chartHeight + 30} width="10" height="10" fill="#6495ED" rx="1" />
-        <text x={chartWidth - 86} y={chartHeight + 39} fill="var(--color-text-secondary)" fontSize="10">Budget</text>
-        <rect x={chartWidth - 45} y={chartHeight + 30} width="10" height="10" fill="#9ACD32" rx="1" />
-        <text x={chartWidth - 31} y={chartHeight + 39} fill="var(--color-text-secondary)" fontSize="10">Spent</text>
+        <rect x={totalWidth / 2 - 60} y={chartHeight + bottomPad - 16} width="10" height="10" fill="#6495ED" rx="1" />
+        <text x={totalWidth / 2 - 46} y={chartHeight + bottomPad - 7} fill="var(--color-text-secondary)" fontSize="10">Budget</text>
+        <rect x={totalWidth / 2 + 10} y={chartHeight + bottomPad - 16} width="10" height="10" fill="#9ACD32" rx="1" />
+        <text x={totalWidth / 2 + 24} y={chartHeight + bottomPad - 7} fill="var(--color-text-secondary)" fontSize="10">Spent</text>
       </svg>
     </div>
   )

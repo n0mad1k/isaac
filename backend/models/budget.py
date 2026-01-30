@@ -86,6 +86,8 @@ class BudgetCategory(Base):
     icon = Column(String(50), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     show_on_dashboard = Column(Boolean, default=False, nullable=False)
+    bill_day = Column(Integer, nullable=True)  # Day of month bill is due (1-31), null for variable/transfer
+    owner = Column(String(20), nullable=True)  # null=shared/main, 'dane', 'kelly' for personal bills
     sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
