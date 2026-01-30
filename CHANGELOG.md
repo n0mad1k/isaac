@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.66.0] - 2026-01-30
+
+### Added
+- **Plant sale receipts & removal** - Sell Plant modal now supports customer name/email, receipt emailing, and plant removal
+  - Optional customer name and email fields on the sell form
+  - "Send receipt to customer email" checkbox emails an HTML receipt on sale
+  - "Remove plant from my list after sale" checkbox deletes the plant after recording the sale
+  - Sale total shown in the form before submitting
+  - Backend: new POST /production/sales/{id}/send-receipt/ endpoint
+  - Backend: Sale model now stores customer_name and customer_email for direct sales
+
 ## [1.65.8] - 2026-01-30
 
 ### Fixed

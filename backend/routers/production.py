@@ -128,6 +128,8 @@ class SaleCreate(BaseModel):
     plant_id: Optional[int] = None
     harvest_id: Optional[int] = None
     livestock_production_id: Optional[int] = None
+    customer_name: Optional[str] = Field(None, max_length=200)
+    customer_email: Optional[str] = Field(None, max_length=200)
 
 
 class SaleUpdate(BaseModel):
@@ -142,6 +144,8 @@ class SaleUpdate(BaseModel):
     plant_id: Optional[int] = None
     harvest_id: Optional[int] = None
     livestock_production_id: Optional[int] = None
+    customer_name: Optional[str] = Field(None, max_length=200)
+    customer_email: Optional[str] = Field(None, max_length=200)
 
 
 class SaleResponse(BaseModel):
@@ -159,6 +163,8 @@ class SaleResponse(BaseModel):
     harvest_id: Optional[int]
     livestock_production_id: Optional[int]
     customer_id: Optional[int]
+    customer_name: Optional[str]
+    customer_email: Optional[str]
     created_at: datetime
     updated_at: Optional[datetime]
 
@@ -742,6 +748,8 @@ async def create_sale(
         plant_id=data.plant_id,
         harvest_id=data.harvest_id,
         livestock_production_id=data.livestock_production_id,
+        customer_name=data.customer_name,
+        customer_email=data.customer_email,
     )
 
     db.add(sale)
@@ -804,6 +812,72 @@ async def delete_sale(
     await db.delete(sale)
     await db.commit()
     return {"message": "Sale deleted"}
+
+
+@router.post("/sales/{sale_id}/send-receipt/")
+async def send_sale_receipt(
+    sale_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
+):
+    """Send a receipt email for a direct sale"""
+    from services.email import EmailService
+    from models.settings import AppSetting
+
+    result = await db.execute(select(Sale).where(Sale.id == sale_id))
+    sale = result.scalar_one_or_none()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+
+    # Get customer email from sale record or linked customer
+    customer_email = sale.customer_email
+    customer_name = sale.customer_name or ""
+    if not customer_email and sale.customer_id:
+        cust_result = await db.execute(select(Customer).where(Customer.id == sale.customer_id))
+        customer = cust_result.scalar_one_or_none()
+        if customer:
+            customer_email = customer.email
+            if not customer_name:
+                customer_name = customer.name
+
+    if not customer_email:
+        raise HTTPException(status_code=400, detail="No email address on file for this sale")
+
+    # Get farm name from settings
+    farm_name_setting = await db.execute(
+        select(AppSetting).where(AppSetting.key == "farm_name")
+    )
+    farm_name_row = farm_name_setting.scalar_one_or_none()
+    farm_name = farm_name_row.value if farm_name_row and farm_name_row.value else "Isaac Farm"
+
+    sale_dict = {
+        "id": sale.id,
+        "customer_name": customer_name,
+        "item_name": sale.item_name,
+        "description": sale.description or "",
+        "category": sale.category.value if sale.category else "",
+        "quantity": sale.quantity,
+        "unit": sale.unit,
+        "unit_price": sale.unit_price,
+        "total_price": sale.total_price or 0,
+        "sale_date": sale.sale_date.strftime("%m/%d/%Y") if sale.sale_date else "",
+    }
+
+    email_service = await EmailService.get_configured_service(db)
+    try:
+        success = await email_service.send_sale_receipt(
+            to=customer_email,
+            sale=sale_dict,
+            farm_name=farm_name,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send sale receipt: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+    if success:
+        return {"message": f"Receipt sent to {customer_email}"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send receipt email. Check email configuration.")
 
 
 # ==================== Customer Routes ====================

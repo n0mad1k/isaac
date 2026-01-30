@@ -607,3 +607,89 @@ class EmailService:
         """
 
         return await self.send_email(subject, body, to=to, html=True)
+
+    async def send_sale_receipt(
+        self,
+        to: str,
+        sale: dict,
+        farm_name: str = "Isaac Farm",
+    ) -> bool:
+        """Send a receipt email for a direct sale.
+
+        Args:
+            to: Customer email address
+            sale: Dict with sale details
+            farm_name: Farm/business name for the receipt header
+        """
+        subject = f"Receipt - Sale #{sale['id']}"
+
+        customer_name = _escape_html(sale.get("customer_name", ""))
+        item_name = _escape_html(sale.get("item_name", ""))
+        description = _escape_html(sale.get("description", ""))
+        category = _escape_html(sale.get("category", "")).title()
+        sale_date = _escape_html(sale.get("sale_date", ""))
+        quantity = sale.get("quantity", 0)
+        unit = _escape_html(sale.get("unit", "each"))
+        unit_price = sale.get("unit_price", 0)
+        total_price = sale.get("total_price", 0)
+
+        body = f"""
+        <html>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <!-- Header -->
+                <div style="background: #2c3e50; color: white; padding: 20px 24px;">
+                    <h1 style="margin: 0; font-size: 20px;">{_escape_html(farm_name)}</h1>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">Sale Receipt</p>
+                </div>
+
+                <!-- Customer & Date -->
+                <div style="padding: 20px 24px; border-bottom: 1px solid #eee;">
+                    {f'<div style="font-weight: 600; font-size: 15px;">{customer_name}</div>' if customer_name else ''}
+                    <div style="color: #666; font-size: 13px; margin-top: 4px;">Date: {sale_date}</div>
+                </div>
+
+                <!-- Sale Details -->
+                <div style="padding: 16px 24px; border-bottom: 1px solid #eee;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 8px 12px; text-align: left; border-bottom: 2px solid #dee2e6;">Item</th>
+                                <th style="padding: 8px 12px; text-align: center; border-bottom: 2px solid #dee2e6;">Qty</th>
+                                <th style="padding: 8px 12px; text-align: right; border-bottom: 2px solid #dee2e6;">Price</th>
+                                <th style="padding: 8px 12px; text-align: right; border-bottom: 2px solid #dee2e6;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 8px 12px; border-bottom: 1px solid #eee;">
+                                    <div style="font-weight: 500;">{item_name}</div>
+                                    {f'<div style="color: #666; font-size: 12px;">{description}</div>' if description else ''}
+                                </td>
+                                <td style="padding: 8px 12px; text-align: center; border-bottom: 1px solid #eee;">{quantity:g} {unit}</td>
+                                <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">${unit_price:,.2f}/{unit}</td>
+                                <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee; font-weight: 600;">${total_price:,.2f}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Total -->
+                <div style="padding: 16px 24px;">
+                    <div style="display: flex; justify-content: flex-end;">
+                        <div style="text-align: right; font-size: 18px; font-weight: 700; color: #27ae60;">
+                            Total: ${total_price:,.2f}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div style="background: #f8f9fa; padding: 12px 24px; text-align: center; font-size: 11px; color: #999;">
+                    Receipt generated on {datetime.now().strftime('%m/%d/%Y at %I:%M %p')}
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        return await self.send_email(subject, body, to=to, html=True)

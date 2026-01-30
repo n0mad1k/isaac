@@ -8,7 +8,7 @@ import {
 import {
   getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag,
   recordPlantHarvest, searchPlantImport, previewPlantImport, importPlant, getFarmAreas, getWaterOverview,
-  uploadPlantPhoto, deletePlantPhoto, getPlantPhotoUrl, createSale
+  uploadPlantPhoto, deletePlantPhoto, getPlantPhotoUrl, createSale, sendSaleReceipt
 } from '../services/api'
 import { Download, ExternalLink, Loader2, Camera, Trash2, Upload, Clipboard, DollarSign } from 'lucide-react'
 import EventModal from '../components/EventModal'
@@ -430,8 +430,24 @@ function Plants() {
   }
 
   const handleSellPlant = async (data) => {
+    const { sendReceipt, removePlant, plantId, ...saleData } = data
     try {
-      await createSale(data)
+      const resp = await createSale(saleData)
+      if (sendReceipt && resp.data?.id && saleData.customer_email) {
+        try {
+          await sendSaleReceipt(resp.data.id)
+        } catch (err) {
+          console.error('Failed to send receipt:', err)
+          alert('Sale recorded but failed to send receipt email')
+        }
+      }
+      if (removePlant && plantId) {
+        try {
+          await deletePlant(plantId)
+        } catch (err) {
+          console.error('Failed to remove plant:', err)
+        }
+      }
       setShowSellForm(null)
       fetchData()
     } catch (error) {
@@ -2609,7 +2625,11 @@ function SellPlantModal({ plant, onClose, onSave }) {
     unit_price: '',
     sale_date: new Date().toISOString().split('T')[0],
     plant_id: plant.id,
+    customer_name: '',
+    customer_email: '',
   })
+  const [sendReceipt, setSendReceipt] = useState(false)
+  const [removePlant, setRemovePlant] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -2618,12 +2638,24 @@ function SellPlantModal({ plant, onClose, onSave }) {
       alert('Please enter a price')
       return
     }
+    if (sendReceipt && !formData.customer_email) {
+      alert('Please enter a customer email to send a receipt')
+      return
+    }
+    if (removePlant && !confirm(`Remove "${plant.name}" from your plant list after recording this sale?`)) {
+      return
+    }
     setSaving(true)
     try {
       await onSave({
         ...formData,
         quantity: parseFloat(formData.quantity),
         unit_price: parseFloat(formData.unit_price),
+        customer_name: formData.customer_name || undefined,
+        customer_email: formData.customer_email || undefined,
+        sendReceipt,
+        removePlant,
+        plantId: plant.id,
       })
     } catch (error) {
       console.error('Failed to record sale:', error)
@@ -2634,7 +2666,7 @@ function SellPlantModal({ plant, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -2702,10 +2734,61 @@ function SellPlantModal({ plant, onClose, onSave }) {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={2}
-              placeholder="Buyer name, details, etc."
+              placeholder="Details about the sale"
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Customer Name</label>
+              <input
+                type="text"
+                value={formData.customer_name}
+                onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                placeholder="Optional"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Customer Email</label>
+              <input
+                type="email"
+                value={formData.customer_email}
+                onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
+                placeholder="Optional"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sendReceipt}
+                onChange={(e) => setSendReceipt(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-sm text-gray-400">Send receipt to customer email</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={removePlant}
+                onChange={(e) => setRemovePlant(e.target.checked)}
+                className="rounded"
+              />
+              <span className="text-sm text-gray-400">Remove plant from my list after sale</span>
+            </label>
+          </div>
+
+          {formData.unit_price && formData.quantity && (
+            <div className="bg-gray-700/50 rounded-lg p-3 text-sm">
+              <span className="text-gray-400">Total: </span>
+              <span className="text-green-400 font-semibold">${(parseFloat(formData.quantity) * parseFloat(formData.unit_price)).toFixed(2)}</span>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button

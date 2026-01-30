@@ -174,6 +174,10 @@ class Sale(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Customer info (for direct sales / receipts)
+    customer_name = Column(String(200), nullable=True)
+    customer_email = Column(String(200), nullable=True)
+
     # Customer relationship (optional)
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
 
