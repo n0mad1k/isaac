@@ -182,7 +182,7 @@ function Dashboard() {
 
   return (
     <div ref={containerRef} className="flex flex-col gap-2 md:gap-3 min-h-0 md:h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] overflow-auto md:overflow-hidden">
-      {/* Header Row: Date/Time, Budget Ticker, Motto */}
+      {/* Header Row: Date/Time, Motto, Budget Ticker */}
       <div className="flex items-start justify-between gap-4 flex-shrink-0">
         {/* Left - Date/Time */}
         <div className="flex-shrink-0 min-w-0">
@@ -195,14 +195,11 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Budget Ticker - compact stacked list */}
-        <BudgetWidget className="flex-shrink-0 hidden md:flex" />
-
         {/* Motto - fills remaining space, wraps if needed */}
         <MottoDisplay className="py-1" />
 
-        {/* Spacer to balance the layout (matches Date/Time width approximately) */}
-        <div className="w-24 sm:w-32 md:w-36 lg:w-40 flex-shrink-0 hidden sm:block"></div>
+        {/* Right - Budget Ticker */}
+        <BudgetWidget className="flex-shrink-0 hidden md:flex" />
       </div>
 
       {/* Bible Verse - its own row */}

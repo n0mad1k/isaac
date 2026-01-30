@@ -37,7 +37,7 @@ function BudgetWidget({ className = '' }) {
   return (
     <div
       className={`flex flex-col gap-0.5 cursor-pointer max-h-[4.5rem] overflow-hidden ${className}`}
-      onClick={() => navigate('/finances')}
+      onClick={() => navigate('/farm-finances?tab=budget')}
       title="View Budget"
     >
       {cats.map(cat => {
