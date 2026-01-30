@@ -24,6 +24,7 @@ function BudgetTransactions() {
     description: '',
     amount: '',
     category_id: '',
+    account_id: '',
   })
 
   const fetchData = useCallback(async () => {
@@ -47,10 +48,12 @@ function BudgetTransactions() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Only variable spending categories for the dropdown
-  const spendingCategories = categories.filter(c =>
-    c.category_type === 'variable' && c.is_active
-  ).sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+  // All active categories grouped by type for dropdown
+  const allActiveCategories = categories.filter(c => c.is_active && c.name !== 'Roll Over' && c.name !== 'Other')
+    .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+  const variableCategories = allActiveCategories.filter(c => c.category_type === 'variable')
+  const fixedCategories = allActiveCategories.filter(c => c.category_type === 'fixed')
+  const transferCategories = allActiveCategories.filter(c => c.category_type === 'transfer')
 
   const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
 
@@ -60,6 +63,7 @@ function BudgetTransactions() {
       description: '',
       amount: '',
       category_id: '',
+      account_id: '',
     })
     setEditingId(null)
     setShowForm(false)
@@ -68,9 +72,10 @@ function BudgetTransactions() {
   const handleSubmit = async () => {
     if (!formData.description || !formData.amount || !formData.category_id) return
     try {
+      const selectedAcctId = formData.account_id ? parseInt(formData.account_id) : null
       const defaultAcct = accounts.find(a => a.account_type === 'checking') || accounts[0]
       const data = {
-        account_id: defaultAcct?.id || 1,
+        account_id: selectedAcctId || defaultAcct?.id || 1,
         category_id: parseInt(formData.category_id),
         transaction_date: formData.transaction_date,
         description: formData.description,
@@ -95,6 +100,7 @@ function BudgetTransactions() {
       description: txn.description,
       amount: String(Math.abs(txn.amount)),
       category_id: txn.category_id ? String(txn.category_id) : '',
+      account_id: txn.account_id ? String(txn.account_id) : '',
     })
     setEditingId(txn.id)
     setShowForm(true)
@@ -153,7 +159,7 @@ function BudgetTransactions() {
               <X className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
             </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Date</label>
               <input
@@ -191,6 +197,18 @@ function BudgetTransactions() {
               />
             </div>
             <div>
+              <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Account</label>
+              <select
+                value={formData.account_id}
+                onChange={(e) => setFormData(f => ({ ...f, account_id: e.target.value }))}
+                className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                <option value="">Default</option>
+                {accounts.filter(a => a.is_active).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            <div>
               <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Category</label>
               <select
                 value={formData.category_id}
@@ -199,7 +217,15 @@ function BudgetTransactions() {
                 style={{ color: 'var(--color-text-primary)' }}
               >
                 <option value="">Select...</option>
-                {spendingCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {variableCategories.length > 0 && <optgroup label="Spending">
+                  {variableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </optgroup>}
+                {transferCategories.length > 0 && <optgroup label="Transfers">
+                  {transferCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </optgroup>}
+                {fixedCategories.length > 0 && <optgroup label="Bills">
+                  {fixedCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </optgroup>}
               </select>
             </div>
           </div>
@@ -219,10 +245,11 @@ function BudgetTransactions() {
       {/* Transaction List */}
       <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         {/* Header */}
-        <div className="grid grid-cols-[90px_1fr_100px_120px_60px] text-xs font-semibold py-2 px-3" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+        <div className="grid grid-cols-[90px_1fr_100px_90px_120px_60px] text-xs font-semibold py-2 px-3" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
           <span>Date</span>
           <span>Description</span>
           <span className="text-right">Amount</span>
+          <span className="text-right">Account</span>
           <span className="text-right">Category</span>
           <span />
         </div>
@@ -239,7 +266,7 @@ function BudgetTransactions() {
           transactions.map(txn => (
             <div
               key={txn.id}
-              className="grid grid-cols-[90px_1fr_100px_120px_60px] text-xs py-2 px-3 items-center hover:bg-gray-800/30 transition-colors"
+              className="grid grid-cols-[90px_1fr_100px_90px_120px_60px] text-xs py-2 px-3 items-center hover:bg-gray-800/30 transition-colors"
               style={{ borderBottom: '1px solid var(--color-border-default)' }}
             >
               <span style={{ color: 'var(--color-text-muted)' }}>
@@ -249,6 +276,9 @@ function BudgetTransactions() {
               <span className="text-right font-medium" style={{ color: txn.amount < 0 ? '#ef4444' : '#22c55e' }}>
                 {fmt(txn.amount)}
               </span>
+              <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
+                {accounts.find(a => a.id === txn.account_id)?.name || ''}
+              </span>
               <span className="text-right">
                 <select
                   value={txn.category_id || ''}
@@ -257,7 +287,15 @@ function BudgetTransactions() {
                   style={{ color: 'var(--color-text-secondary)' }}
                 >
                   <option value="">--</option>
-                  {spendingCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {variableCategories.length > 0 && <optgroup label="Spending">
+                    {variableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </optgroup>}
+                  {transferCategories.length > 0 && <optgroup label="Transfers">
+                    {transferCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </optgroup>}
+                  {fixedCategories.length > 0 && <optgroup label="Bills">
+                    {fixedCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </optgroup>}
                 </select>
               </span>
               <span className="flex justify-end gap-1">

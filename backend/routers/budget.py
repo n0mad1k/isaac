@@ -956,8 +956,11 @@ def _calc_expected_income(income_defs, start: date, end: date) -> float:
             occurrences = _count_weekday_in_range(start, end, inc.pay_day)
             expected += inc.amount * (occurrences // 2 + (1 if occurrences % 2 and occurrences > 0 else 0))
         elif freq == IncomeFrequency.SEMIMONTHLY:
-            # Paid twice a month (e.g., 1st and 15th)
-            if start.day <= inc.pay_day <= end.day:
+            # Paid twice a month (1st and 15th)
+            # One payment in first half (days 1-14), one in second half (days 15+)
+            if start.day <= 14:
+                expected += inc.amount
+            if end.day >= 15:
                 expected += inc.amount
         elif freq == IncomeFrequency.MONTHLY:
             # Paid once per month on pay_day

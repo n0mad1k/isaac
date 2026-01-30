@@ -110,7 +110,8 @@ function MonthlyBudget() {
   const resetNewLine = (type = 'bill') => {
     setNewLine({
       type, name: '', amount: '', bill_day: '',
-      account_id: '', frequency: 'semimonthly', end_date: ''
+      account_id: '', frequency: 'semimonthly', end_date: '',
+      billing_months: ''
     })
   }
 
@@ -163,6 +164,10 @@ function MonthlyBudget() {
 
         if (type === 'payment_plan' && newLine.end_date) {
           data.end_date = newLine.end_date
+        }
+
+        if (newLine.billing_months) {
+          data.billing_months = newLine.billing_months
         }
 
         await createBudgetCategory(data)
@@ -311,12 +316,16 @@ function MonthlyBudget() {
     )
   }
 
+  const monthAbbrevs = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
   const addForm = (sectionKey) => {
     if (addingTo !== sectionKey) return null
     const { type } = newLine
-    const showDay = type === 'bill' || type === 'payment_plan' || type === 'income'
+    const isBillType = type === 'bill' || type === 'payment_plan'
+    const showDay = isBillType || type === 'income'
     const showFreq = type === 'income'
-    const showEndDate = type === 'payment_plan'
+    const showEndDate = isBillType
+    const showBillingMonths = isBillType
     const showAccount = true
 
     return (
@@ -331,8 +340,8 @@ function MonthlyBudget() {
             <option value="payment_plan">Payment Plan</option>
           </select>
           {showDay && (
-            <input type="number" placeholder="Day" value={newLine.bill_day} onChange={(e) => setNewLine(f => ({ ...f, bill_day: e.target.value }))}
-              className="w-12 px-1 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} />
+            <input type="number" placeholder="Day" min="1" max="31" value={newLine.bill_day} onChange={(e) => setNewLine(f => ({ ...f, bill_day: e.target.value }))}
+              className="w-12 px-1 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} title="Day of month (1-31)" />
           )}
           <input type="text" placeholder="Name" value={newLine.name} onChange={(e) => setNewLine(f => ({ ...f, name: e.target.value }))}
             className="flex-1 min-w-0 px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} autoFocus />
@@ -340,7 +349,7 @@ function MonthlyBudget() {
             className="w-20 px-1 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-right" style={{ color: 'var(--color-text-primary)' }}
             onKeyDown={(e) => { if (e.key === 'Enter') saveNewLine() }} />
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {showAccount && (
             <select value={newLine.account_id} onChange={(e) => setNewLine(f => ({ ...f, account_id: e.target.value }))}
               className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
@@ -358,13 +367,46 @@ function MonthlyBudget() {
             </select>
           )}
           {showEndDate && (
-            <input type="month" placeholder="End date" value={newLine.end_date} onChange={(e) => setNewLine(f => ({ ...f, end_date: e.target.value }))}
-              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} />
+            <input type="month" value={newLine.end_date} onChange={(e) => setNewLine(f => ({ ...f, end_date: e.target.value }))}
+              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}
+              title="End date (for payment plans)" />
+          )}
+          {showBillingMonths && (
+            <select value={newLine.billing_months} onChange={(e) => setNewLine(f => ({ ...f, billing_months: e.target.value }))}
+              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+              <option value="">Every month</option>
+              <option value="1,2,3,4,5,6,7,8,9,10,11,12">Monthly</option>
+              <option value="1,4,7,10">Quarterly</option>
+              <option value="4,5,6,7,8,9,10">Apr-Oct (seasonal)</option>
+              <option value="1,7">Twice a year</option>
+              <option value="custom">Custom...</option>
+            </select>
           )}
           <span className="flex-1" />
           <button onClick={saveNewLine} disabled={saving} className="p-1 text-green-400"><Check className="w-3.5 h-3.5" /></button>
           <button onClick={() => { setAddingTo(null); resetNewLine() }} className="p-1 text-gray-400"><X className="w-3.5 h-3.5" /></button>
         </div>
+        {newLine.billing_months === 'custom' && (
+          <div className="flex items-center gap-1 flex-wrap">
+            <span style={{ color: 'var(--color-text-muted)' }}>Active months:</span>
+            {monthAbbrevs.map((m, i) => {
+              const monthNum = i + 1
+              const selected = (newLine._customMonths || []).includes(monthNum)
+              return (
+                <button key={m} type="button"
+                  onClick={() => {
+                    const cur = newLine._customMonths || []
+                    const next = selected ? cur.filter(n => n !== monthNum) : [...cur, monthNum].sort((a, b) => a - b)
+                    setNewLine(f => ({ ...f, _customMonths: next, billing_months: next.join(',') }))
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-xs ${selected ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400'}`}
+                >
+                  {m}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
     )
   }
@@ -389,11 +431,12 @@ function MonthlyBudget() {
   const kellyBFirst = kellyBillsFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
   const kellyBSecond = kellyBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
 
-  const totalIncome = firstHalfIncome + secondHalfIncome
-  const totalBills = firstHalfBills + secondHalfBills + daneBFirst + daneBSecond + kellyBFirst + kellyBSecond
+  // Use backend expected_income for consistency with Overview tab
+  const totalIncome = (firstHalf?.expected_income || 0) + (secondHalf?.expected_income || 0) || (firstHalfIncome + secondHalfIncome)
+  const totalBills = firstHalfBills + secondHalfBills // Main bills only; Dane/Kelly funded by their transfers
   const totalSpending = varPerHalf * 2
-  const totalSavings = distPerHalf * 2
-  const totalOutgoing = totalBills + totalSpending + totalSavings
+  const totalDistributions = distPerHalf * 2
+  const totalOutgoing = totalBills + totalSpending + totalDistributions
   const surplus = totalIncome - totalOutgoing
 
   // Get spent data from summary for spending category cards
@@ -555,17 +598,29 @@ function MonthlyBudget() {
 
   // Person section renderer
   const personSection = (personName, ownerKey, bFirst, bSecond) => {
-    const hasData = bFirst.length > 0 || bSecond.length > 0 || addingTo === `${ownerKey}-first` || addingTo === `${ownerKey}-second`
+    // Find the person's spending account and transfers targeting it
+    const personAcct = accounts.find(a => a.name.toLowerCase().includes(ownerKey))
+    const personTransfers = transferCats.filter(c => c.account_id === personAcct?.id)
+    const depositPerHalf = personTransfers.reduce((s, c) => s + getPerPeriodAmount(c), 0)
+
+    const hasData = bFirst.length > 0 || bSecond.length > 0 || depositPerHalf > 0 || addingTo === `${ownerKey}-first` || addingTo === `${ownerKey}-second`
     if (!hasData) return null
+
+    const firstBillTotal = bFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
+    const secondBillTotal = bSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
+    const totalDeposits = depositPerHalf * 2
+    const totalBillsForPerson = firstBillTotal + secondBillTotal
+    const net = totalDeposits - totalBillsForPerson
 
     return (
       <div className="rounded-xl overflow-hidden min-w-0" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
-          <h4 className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{personName}'s Bills</h4>
+          <h4 className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{personName}'s Budget</h4>
         </div>
         {colHeader('#8b5cf6')}
 
         <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: 'var(--color-text-primary)' }}>1st - 14th</div>
+        {personTransfers.map(cat => lineRow('category', cat.id, null, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bFirst.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {addForm(`${ownerKey}-first`)}
         <div className="flex justify-end px-2 py-0.5">
@@ -576,6 +631,7 @@ function MonthlyBudget() {
         </div>
 
         <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: 'var(--color-text-primary)' }}>15th - End</div>
+        {personTransfers.map(cat => lineRow('category', cat.id, null, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bSecond.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {addForm(`${ownerKey}-second`)}
         <div className="flex justify-end px-2 py-0.5">
@@ -585,10 +641,22 @@ function MonthlyBudget() {
           </button>
         </div>
 
-        <div className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
-          <span /><span style={{ color: 'var(--color-text-primary)' }}>Total</span>
-          <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(bFirst.reduce((s, c) => s + getHalfBillAmount(c), 0) + bSecond.reduce((s, c) => s + getHalfBillAmount(c), 0))}</span>
-          <span /><span />
+        <div className="py-1" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
+          <div className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs py-0.5 px-2">
+            <span /><span style={{ color: 'var(--color-text-muted)' }}>Deposits</span>
+            <span className="text-right" style={{ color: '#22c55e' }}>+{fmt(totalDeposits)}</span>
+            <span /><span />
+          </div>
+          <div className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs py-0.5 px-2">
+            <span /><span style={{ color: 'var(--color-text-muted)' }}>Bills</span>
+            <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(totalBillsForPerson)}</span>
+            <span /><span />
+          </div>
+          <div className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs font-bold py-0.5 px-2">
+            <span /><span style={{ color: 'var(--color-text-primary)' }}>Remaining</span>
+            <span className="text-right" style={{ color: net >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(net)}</span>
+            <span /><span />
+          </div>
         </div>
       </div>
     )
@@ -684,7 +752,7 @@ function MonthlyBudget() {
             ['Total Money In', totalIncome, '#22c55e', false],
             ['Bills', totalBills, '#ef4444', true],
             ['Spending', totalSpending, '#ef4444', true],
-            ['Savings & Transfers', totalSavings, '#ef4444', true],
+            ['Distributions', totalDistributions, '#ef4444', true],
           ].map(([label, val, color, neg]) => (
             <div key={label} className="grid grid-cols-2 text-sm py-1.5 px-4">
               <span style={{ color: 'var(--color-text-primary)' }}>{label}</span>

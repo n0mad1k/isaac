@@ -106,6 +106,7 @@ function BudgetOverview() {
   // Variable spending categories
   const variableCatIds = new Set(categories.filter(c => c.category_type === 'variable' && c.is_active).map(c => c.id))
   const fixedCatIds = new Set(categories.filter(c => c.category_type === 'fixed' && c.is_active).map(c => c.id))
+  const transferCatIds = new Set(categories.filter(c => c.category_type === 'transfer' && c.is_active).map(c => c.id))
   const variableCats = (summary?.categories || []).filter(c => variableCatIds.has(c.id) && c.name !== 'Roll Over' && (c.budgeted > 0 || c.spent > 0))
     .sort((a, b) => {
       const catA = categories.find(c => c.id === a.id)
@@ -117,7 +118,17 @@ function BudgetOverview() {
   const totalSpent = variableCats.reduce((s, c) => s + (c.spent || 0), 0)
   const totalRemaining = totalBudget - totalSpent
 
-  const billsBudgeted = (summary?.categories || []).filter(c => fixedCatIds.has(c.id)).reduce((s, c) => s + (c.budgeted || 0), 0)
+  // Bills: only main bills (exclude dane/kelly owned bills - those are funded by transfers)
+  const billsBudgeted = (summary?.categories || []).filter(c => {
+    if (!fixedCatIds.has(c.id)) return false
+    const cat = categories.find(cc => cc.id === c.id)
+    return !cat?.owner
+  }).reduce((s, c) => s + (c.budgeted || 0), 0)
+
+  // For spending cards, include both variable and transfer categories
+  const allCardCats = (summary?.categories || []).filter(c =>
+    (variableCatIds.has(c.id) || transferCatIds.has(c.id)) && c.name !== 'Roll Over' && (c.budgeted > 0 || c.spent > 0)
+  )
 
   // Build cards: Income, Bills, then remaining for each spending category
   const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', "Dane Spending", "Kelly Spending"]
@@ -164,7 +175,7 @@ function BudgetOverview() {
             <div className="text-base font-bold" style={{ color: '#ef4444' }}>{fmt(billsBudgeted)}</div>
           </div>
           {spendingCardCats.map(name => {
-            const cat = variableCats.find(c => c.name === name)
+            const cat = allCardCats.find(c => c.name === name)
             if (!cat) return null
             const remaining = (cat.budgeted || 0) - (cat.spent || 0)
             return (
