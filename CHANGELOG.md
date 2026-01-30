@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.64.1] - 2026-01-30
+
+### Fixed
+- **Calendar mobile responsiveness** - Calendar page now works properly on mobile devices
+  - All modals use responsive max-width (95vw on mobile, standard on desktop)
+  - Grid layouts start at 1 column on mobile, expand to 2 on larger screens
+  - Modal padding reduced on mobile for better space usage
+  - Week view is horizontally scrollable on mobile (8 columns total)
+  - Month calendar cells have smaller padding on mobile
+
 ## [1.64.0] - 2026-01-30
 
 ### Added
