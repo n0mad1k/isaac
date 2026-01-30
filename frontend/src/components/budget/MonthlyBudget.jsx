@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown } from 'lucide-react'
-import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories } from '../../services/api'
+import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown, ArrowRightLeft } from 'lucide-react'
+import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories, getBudgetAccounts } from '../../services/api'
 
 function MonthlyBudget() {
   const [loading, setLoading] = useState(true)
   const [firstHalf, setFirstHalf] = useState(null)
   const [secondHalf, setSecondHalf] = useState(null)
   const [categories, setCategories] = useState([])
+  const [accounts, setAccounts] = useState([])
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
 
@@ -16,12 +17,14 @@ function MonthlyBudget() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [periodsRes, catRes] = await Promise.all([
+      const [periodsRes, catRes, acctRes] = await Promise.all([
         getBudgetPayPeriods(currentYear, currentMonth),
         getBudgetCategories(),
+        getBudgetAccounts(),
       ])
       const periods = periodsRes.data || []
       setCategories(catRes.data || [])
+      setAccounts(acctRes.data || [])
 
       if (periods.length >= 2) {
         const [first, second] = await Promise.all([
@@ -189,6 +192,59 @@ function MonthlyBudget() {
   const monthBudgeted = (firstHalf?.total_budgeted || 0) + (secondHalf?.total_budgeted || 0)
   const monthNet = monthIncome - monthSpent
 
+  // Build money distribution data - how income from Money Market is distributed
+  const buildDistribution = () => {
+    const dist = []
+
+    // Personal spending accounts
+    const daneSpending = categories.find(c => c.name === 'Dane Spending')
+    const kellySpending = categories.find(c => c.name === 'Kelly Spending')
+
+    if (daneSpending) {
+      const h1 = getCatData(firstHalf, daneSpending.id)
+      const h2 = getCatData(secondHalf, daneSpending.id)
+      dist.push({ name: "Dane's Spending", budgeted: h1.budgeted + h2.budgeted, spent: h1.spent + h2.spent })
+    }
+    if (kellySpending) {
+      const h1 = getCatData(firstHalf, kellySpending.id)
+      const h2 = getCatData(secondHalf, kellySpending.id)
+      dist.push({ name: "Kelly's Spending", budgeted: h1.budgeted + h2.budgeted, spent: h1.spent + h2.spent })
+    }
+
+    // Main Checking (variable spending like Gas, Groceries, Main Spending goes through checking)
+    const checkingCats = variableCats.filter(c => !['Dane Spending', 'Kelly Spending', 'Other', 'Roll Over'].includes(c.name))
+    let checkingBudget = 0, checkingSpent = 0
+    checkingCats.forEach(cat => {
+      const h1 = getCatData(firstHalf, cat.id)
+      const h2 = getCatData(secondHalf, cat.id)
+      checkingBudget += h1.budgeted + h2.budgeted
+      checkingSpent += h1.spent + h2.spent
+    })
+    // Add fixed bills to checking (bills are paid from checking/money market)
+    let billsBudget = 0, billsSpent = 0
+    fixedCats.forEach(cat => {
+      const h1 = getCatData(firstHalf, cat.id)
+      const h2 = getCatData(secondHalf, cat.id)
+      billsBudget += h1.budgeted + h2.budgeted
+      billsSpent += h1.spent + h2.spent
+    })
+
+    dist.push({ name: 'Main Checking (Bills & Variable)', budgeted: checkingBudget + billsBudget, spent: checkingSpent + billsSpent })
+
+    // Transfers (Savings, House/Travel Fund)
+    transferCats.forEach(cat => {
+      const h1 = getCatData(firstHalf, cat.id)
+      const h2 = getCatData(secondHalf, cat.id)
+      dist.push({ name: cat.name, budgeted: h1.budgeted + h2.budgeted, spent: h1.spent + h2.spent })
+    })
+
+    return dist
+  }
+
+  const distribution = buildDistribution()
+  const totalDistBudgeted = distribution.reduce((s, d) => s + d.budgeted, 0)
+  const totalDistSpent = distribution.reduce((s, d) => s + d.spent, 0)
+
   return (
     <div className="space-y-4">
       {/* Month Navigation */}
@@ -235,6 +291,72 @@ function MonthlyBudget() {
             <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Net</span>
           </div>
           <span className="text-lg font-bold" style={{ color: monthNet >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(monthNet)}</span>
+        </div>
+      </div>
+
+      {/* Money Distribution from Money Market */}
+      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+        <div className="px-4 py-2.5" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+          <h4 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+            <ArrowRightLeft className="w-4 h-4" style={{ color: '#3b82f6' }} />
+            Money Market Distribution
+          </h4>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+            How income is distributed from Money Market each month
+          </p>
+        </div>
+
+        {/* Distribution Column Headers */}
+        <div className="flex justify-between items-center py-1.5 px-4 text-xs font-medium" style={{ backgroundColor: 'var(--color-bg-surface-soft)', color: 'var(--color-text-muted)' }}>
+          <span className="flex-1">Destination</span>
+          <span className="w-24 text-right">Budgeted</span>
+          <span className="w-24 text-right">Actual</span>
+          <span className="w-24 text-right">Remaining</span>
+        </div>
+
+        <div className="px-2 py-1">
+          {/* Income source row */}
+          <div className="flex justify-between items-center py-1.5 px-2 text-xs font-semibold rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)' }}>
+            <span style={{ color: '#22c55e' }}>Total Income (Money Market)</span>
+            <span className="w-24 text-right" style={{ color: '#22c55e' }}>{fmt(monthIncome)}</span>
+            <span className="w-24" />
+            <span className="w-24" />
+          </div>
+
+          {/* Distribution rows */}
+          {distribution.map((d, i) => {
+            const remaining = d.budgeted - d.spent
+            return (
+              <div key={i} className="flex justify-between items-center py-1.5 px-2 text-xs">
+                <span className="flex-1" style={{ color: 'var(--color-text-secondary)' }}>{d.name}</span>
+                <span className="w-24 text-right" style={{ color: 'var(--color-text-muted)' }}>{fmt(d.budgeted)}</span>
+                <span className="w-24 text-right" style={{ color: d.spent > 0 ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
+                  {d.spent > 0 ? fmt(d.spent) : '-'}
+                </span>
+                <span className="w-24 text-right font-medium" style={{ color: remaining < 0 ? '#ef4444' : remaining > 0 ? '#22c55e' : 'var(--color-text-muted)' }}>
+                  {d.budgeted > 0 || d.spent > 0 ? fmt(remaining) : '-'}
+                </span>
+              </div>
+            )
+          })}
+
+          {/* Distribution total */}
+          <div className="flex justify-between items-center py-2 px-2 text-xs font-bold mt-1" style={{ borderTop: '1px solid var(--color-border-default)' }}>
+            <span style={{ color: 'var(--color-text-primary)' }}>Total Distributed</span>
+            <span className="w-24 text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(totalDistBudgeted)}</span>
+            <span className="w-24 text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(totalDistSpent)}</span>
+            <span className="w-24 text-right" style={{ color: monthIncome - totalDistSpent >= 0 ? '#22c55e' : '#ef4444' }}>
+              {fmt(monthIncome - totalDistSpent)}
+            </span>
+          </div>
+
+          {/* Unallocated */}
+          <div className="flex justify-between items-center py-1.5 px-2 text-xs font-semibold rounded mb-1" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
+            <span style={{ color: '#3b82f6' }}>Unallocated (stays in Money Market)</span>
+            <span className="w-24 text-right" style={{ color: '#3b82f6' }}>{fmt(monthIncome - totalDistBudgeted)}</span>
+            <span className="w-24" />
+            <span className="w-24" />
+          </div>
         </div>
       </div>
 

@@ -989,6 +989,8 @@ async def get_period_summary(
         # Determine if this is a half-month or full-month period
         days_in_period = (end_date - start_date).days + 1
         is_full_month = days_in_period > 20
+        is_first_half = start_date.day == 1 and not is_full_month
+        is_second_half = start_date.day >= 15 and not is_full_month
 
         # Get spending by category for the period
         txn_result = await db.execute(
@@ -1034,9 +1036,14 @@ async def get_period_summary(
         total_budgeted = 0.0
         for cat in categories:
             spent = spending_by_cat.get(cat.id, 0.0)
-            # Budget amount: use monthly_budget for full month, budget_amount for pay period
+            # Budget amount logic:
+            # - Full month: use monthly_budget, or budget_amount * 2
+            # - Half month, variable/transfer: use budget_amount (per-period budget)
+            # - Half month, fixed bills: use monthly_budget (bills are paid once/month)
             if is_full_month:
                 budgeted = cat.monthly_budget if cat.monthly_budget else (cat.budget_amount * 2)
+            elif cat.category_type == CategoryType.FIXED and cat.monthly_budget:
+                budgeted = cat.monthly_budget
             else:
                 budgeted = cat.budget_amount
 
