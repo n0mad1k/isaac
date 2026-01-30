@@ -5,21 +5,20 @@ All notable changes to Isaac will be documented in this file.
 ## [1.58.0] - 2026-01-30
 
 ### Changed
-- **Monthly Budget rewrite** - Redesigned to match Excel layout with line-item ledger format
-  - Income, distributions, spending allocations, and bills shown inline for each half of month (1st-14th, 15th-End)
-  - Dane's Spending Bills and Kelly's Spending Bills as separate breakout sections
-  - Every line is click-to-edit (name and amount)
-  - Add new bill lines and remove existing ones
-  - Removed transaction adding (use Transactions tab instead)
-  - Removed Money Market Distribution section (distributions now shown inline)
-  - Monthly Summary with Total Money In, Bills, Spending, Savings, Total Outgoing, Money After Bills
-- **Bills tab simplified** - Removed status column and summary cards, now matches Excel with simple Description + Amount table and Total Money In / Bills / Money After Bills totals
-- **Bi-Budget cards** - Changed from 4 cards to 3 meaningful cards: Income, Bills, Remaining
-- **Transactions tab simplified** - Streamlined to just Date, Description, Amount, and Category (spending pools only: Gas, Groceries, Main Spending, Dane's Spending, Kelly's Spending)
+- **Bi-Budget Overview** - Cards now show Income, Bills, and per-category remaining (Gas, Groceries, Main Spending, Dane Spending, Kelly Spending)
+- **Monthly Budget rewrite** - Side-by-side layout for 1st half and 2nd half of month, Dane/Kelly spending side by side below
+  - Every line is click-to-edit (name and amount), add/remove lines via "Add Line" button
+  - Cards match Bi-Budget: Income, Bills, per-category remaining, plus Surplus/Overage
+  - Monthly Summary with Total Money In, Bills, Spending, Savings, Total Outgoing, Surplus/Overage
+- **Bills tab** - Full add/edit/delete support for both income and bill lines
+  - Click any name or amount to edit inline, trash icon to delete, plus icon to add new lines
+  - Separate Income and Bills & Expenses sections with summary totals
+- **Transactions tab simplified** - Streamlined to Date, Description, Amount, and Category (Gas, Groceries, Main Spending, Dane's Spending, Kelly's Spending only)
+- **Bottom padding** - Added padding to all budget tabs so the three-dot menu button doesn't block content
 
 ### Fixed
-- **Charts cut off** - Donut and bar charts in Bi-Budget now use responsive SVG with proper viewBox sizing
-- **Budgeted card showing incorrect total** - No longer sums all category budgets (which exceeded income); broken down by type instead
+- **Charts cut off** - Donut and bar charts in Bi-Budget now use overflow-visible and proper viewBox sizing
+- **Budgeted card showing incorrect total** - Broken down by meaningful per-category remaining instead of total sum
 
 ### Added
 - **Bill day tracking** - Budget categories now have a `bill_day` field for which day of month the bill is due

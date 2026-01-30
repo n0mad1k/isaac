@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, Pencil } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
 import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories, updateBudgetCategory } from '../../services/api'
 
 function BudgetOverview() {
@@ -103,7 +103,7 @@ function BudgetOverview() {
     )
   }
 
-  // Only variable spending categories (Gas, Groceries, Main Spending, Dane Spending, Kelly Spending)
+  // Variable spending categories
   const variableCatIds = new Set(categories.filter(c => c.category_type === 'variable' && c.is_active).map(c => c.id))
   const fixedCatIds = new Set(categories.filter(c => c.category_type === 'fixed' && c.is_active).map(c => c.id))
   const variableCats = (summary?.categories || []).filter(c => variableCatIds.has(c.id) && (c.budgeted > 0 || c.spent > 0))
@@ -117,9 +117,10 @@ function BudgetOverview() {
   const totalSpent = variableCats.reduce((s, c) => s + (c.spent || 0), 0)
   const totalRemaining = totalBudget - totalSpent
 
-  // Compute bills total for the cards
   const billsBudgeted = (summary?.categories || []).filter(c => fixedCatIds.has(c.id)).reduce((s, c) => s + (c.budgeted || 0), 0)
-  const remainingAfterBills = (summary?.expected_income || 0) - billsBudgeted
+
+  // Build cards: Income, Bills, then remaining for each spending category
+  const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', "Dane Spending", "Kelly Spending"]
 
   return (
     <div className="space-y-4">
@@ -151,30 +152,28 @@ function BudgetOverview() {
         </div>
       </div>
 
-      {/* Summary Cards: Income, Bills, Remaining */}
+      {/* Summary Cards: Income, Bills, then remaining per spending category */}
       {summary && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
           <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4" style={{ color: '#22c55e' }} />
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Income</span>
-            </div>
-            <div className="text-lg font-bold" style={{ color: '#22c55e' }}>{fmt(summary.expected_income)}</div>
+            <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Income</div>
+            <div className="text-base font-bold" style={{ color: '#22c55e' }}>{fmt(summary.expected_income)}</div>
           </div>
           <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="w-4 h-4" style={{ color: '#ef4444' }} />
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Bills</span>
-            </div>
-            <div className="text-lg font-bold" style={{ color: '#ef4444' }}>{fmt(billsBudgeted)}</div>
+            <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Bills</div>
+            <div className="text-base font-bold" style={{ color: '#ef4444' }}>{fmt(billsBudgeted)}</div>
           </div>
-          <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4" style={{ color: remainingAfterBills >= 0 ? '#22c55e' : '#ef4444' }} />
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Remaining</span>
-            </div>
-            <div className="text-lg font-bold" style={{ color: remainingAfterBills >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remainingAfterBills)}</div>
-          </div>
+          {spendingCardCats.map(name => {
+            const cat = variableCats.find(c => c.name === name)
+            if (!cat) return null
+            const remaining = (cat.budgeted || 0) - (cat.spent || 0)
+            return (
+              <div key={name} className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+                <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</div>
+                <div className="text-base font-bold" style={{ color: remaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remaining)}</div>
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -183,7 +182,7 @@ function BudgetOverview() {
           {/* Charts - Donut + Bar side by side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Donut Chart - Actual Summary */}
-            <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+            <div className="rounded-xl p-4 overflow-visible" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
               <h4 className="text-sm font-semibold mb-3 text-center" style={{ color: 'var(--color-text-primary)' }}>
                 Actual Summary
               </h4>
@@ -191,7 +190,7 @@ function BudgetOverview() {
             </div>
 
             {/* Bar Chart - Budget vs Actual */}
-            <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+            <div className="rounded-xl p-4 overflow-visible" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
               <h4 className="text-sm font-semibold mb-3 text-center" style={{ color: 'var(--color-text-primary)' }}>
                 Budget vs. Actual
               </h4>
@@ -205,7 +204,6 @@ function BudgetOverview() {
               Summary by Category
             </h4>
 
-            {/* Header */}
             <div className="grid grid-cols-4 text-xs font-semibold py-2 px-2 rounded-t" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
               <span>Category</span>
               <span className="text-right">Budget</span>
@@ -213,7 +211,6 @@ function BudgetOverview() {
               <span className="text-right">Remaining</span>
             </div>
 
-            {/* Rows */}
             <div>
               {variableCats.map((cat, i) => {
                 const remaining = (cat.budgeted || 0) - (cat.spent || 0)
@@ -256,7 +253,6 @@ function BudgetOverview() {
               })}
             </div>
 
-            {/* Total Row */}
             <div className="grid grid-cols-4 text-xs font-bold py-2 px-2 rounded-b" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
               <span>Total</span>
               <span className="text-right">{fmt(totalBudget)}</span>
@@ -289,10 +285,11 @@ function DonutChart({ categories }) {
     )
   }
 
-  const size = 240
+  const size = 280
   const center = size / 2
-  const outerRadius = 90
-  const innerRadius = 55
+  const outerRadius = 100
+  const innerRadius = 60
+  const labelRadius = outerRadius + 25
   let currentAngle = -90
 
   const slices = categories.filter(c => c.spent > 0).map(cat => {
@@ -325,7 +322,6 @@ function DonutChart({ categories }) {
     ].join(' ')
 
     const midAngle = ((startAngle + endAngle) / 2) * Math.PI / 180
-    const labelRadius = outerRadius + 20
     const labelX = center + labelRadius * Math.cos(midAngle)
     const labelY = center + labelRadius * Math.sin(midAngle)
 
@@ -334,7 +330,7 @@ function DonutChart({ categories }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <svg width="100%" height="auto" viewBox={`0 0 ${size} ${size}`} style={{ maxWidth: size }}>
+      <svg width="100%" viewBox={`0 0 ${size} ${size}`} style={{ maxWidth: size, overflow: 'visible' }}>
         {slices.map((slice, i) => (
           <path key={i} d={slice.path} fill={slice.color} stroke="var(--color-bg-surface)" strokeWidth="2" />
         ))}
@@ -367,21 +363,22 @@ function BarChart({ categories }) {
     ticks.push((niceMax / tickCount) * i)
   }
 
-  const chartHeight = 180
+  const chartHeight = 200
   const leftPad = 55
-  const bottomPad = 60
-  const rightPad = 10
+  const bottomPad = 70
+  const rightPad = 20
+  const topPad = 10
   const catCount = categories.length
-  const totalWidth = leftPad + catCount * 60 + rightPad
+  const totalWidth = Math.max(leftPad + catCount * 70 + rightPad, 300)
   const barGroupWidth = (totalWidth - leftPad - rightPad) / catCount
-  const barWidth = barGroupWidth * 0.35
+  const barWidth = barGroupWidth * 0.32
   const barGap = 4
 
   return (
     <div className="w-full overflow-x-auto">
-      <svg width="100%" height={chartHeight + bottomPad} viewBox={`0 0 ${totalWidth} ${chartHeight + bottomPad}`} preserveAspectRatio="xMidYMid meet">
+      <svg width="100%" viewBox={`0 0 ${totalWidth} ${chartHeight + bottomPad + topPad}`} preserveAspectRatio="xMidYMid meet" style={{ overflow: 'visible' }}>
         {ticks.map((tick, i) => {
-          const y = chartHeight - (tick / niceMax) * chartHeight
+          const y = topPad + chartHeight - (tick / niceMax) * chartHeight
           return (
             <g key={i}>
               <line x1={leftPad} y1={y} x2={totalWidth - rightPad} y2={y} stroke="var(--color-border-default)" strokeWidth="0.5" />
@@ -393,21 +390,21 @@ function BarChart({ categories }) {
         })}
 
         {categories.map((cat, i) => {
-          const groupX = leftPad + i * barGroupWidth + barGroupWidth * 0.1
+          const groupX = leftPad + i * barGroupWidth + barGroupWidth * 0.15
           const budgetH = ((cat.budgeted || 0) / niceMax) * chartHeight
           const spentH = ((cat.spent || 0) / niceMax) * chartHeight
 
           return (
             <g key={cat.id}>
-              <rect x={groupX} y={chartHeight - budgetH} width={barWidth} height={budgetH} fill="#6495ED" rx="2" />
-              <rect x={groupX + barWidth + barGap} y={chartHeight - spentH} width={barWidth} height={spentH} fill="#9ACD32" rx="2" />
+              <rect x={groupX} y={topPad + chartHeight - budgetH} width={barWidth} height={budgetH} fill="#6495ED" rx="2" />
+              <rect x={groupX + barWidth + barGap} y={topPad + chartHeight - spentH} width={barWidth} height={spentH} fill="#9ACD32" rx="2" />
               <text
-                x={groupX + barWidth + barGap / 2}
-                y={chartHeight + 8}
-                textAnchor="end"
+                x={groupX + barWidth}
+                y={topPad + chartHeight + 14}
+                textAnchor="middle"
                 fill="var(--color-text-muted)"
-                fontSize="10"
-                transform={`rotate(-35, ${groupX + barWidth + barGap / 2}, ${chartHeight + 8})`}
+                fontSize="9"
+                transform={`rotate(-30, ${groupX + barWidth}, ${topPad + chartHeight + 14})`}
               >
                 {cat.name}
               </text>
@@ -416,10 +413,10 @@ function BarChart({ categories }) {
         })}
 
         {/* Legend */}
-        <rect x={totalWidth / 2 - 60} y={chartHeight + bottomPad - 16} width="10" height="10" fill="#6495ED" rx="1" />
-        <text x={totalWidth / 2 - 46} y={chartHeight + bottomPad - 7} fill="var(--color-text-secondary)" fontSize="10">Budget</text>
-        <rect x={totalWidth / 2 + 10} y={chartHeight + bottomPad - 16} width="10" height="10" fill="#9ACD32" rx="1" />
-        <text x={totalWidth / 2 + 24} y={chartHeight + bottomPad - 7} fill="var(--color-text-secondary)" fontSize="10">Spent</text>
+        <rect x={totalWidth / 2 - 60} y={topPad + chartHeight + bottomPad - 18} width="10" height="10" fill="#6495ED" rx="1" />
+        <text x={totalWidth / 2 - 46} y={topPad + chartHeight + bottomPad - 9} fill="var(--color-text-secondary)" fontSize="10">Budget</text>
+        <rect x={totalWidth / 2 + 10} y={topPad + chartHeight + bottomPad - 18} width="10" height="10" fill="#9ACD32" rx="1" />
+        <text x={totalWidth / 2 + 24} y={topPad + chartHeight + bottomPad - 9} fill="var(--color-text-secondary)" fontSize="10">Spent</text>
       </svg>
     </div>
   )

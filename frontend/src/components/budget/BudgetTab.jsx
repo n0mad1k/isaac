@@ -20,7 +20,7 @@ function BudgetTab() {
   const [activeSubTab, setActiveSubTab] = useState('overview')
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-20">
       {/* Sub-navigation */}
       <div className="flex gap-2 flex-wrap">
         {SUB_TABS.map((tab) => (

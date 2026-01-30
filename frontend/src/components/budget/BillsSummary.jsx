@@ -1,20 +1,31 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Pencil, Plus, Check, X, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Check, X, Trash2 } from 'lucide-react'
 import {
   getBudgetCategories, getBudgetPeriodSummary, getBudgetPayPeriods,
-  getBudgetIncome, updateBudgetCategory
+  getBudgetIncome, getBudgetAccounts,
+  createBudgetIncome, updateBudgetIncome, deleteBudgetIncome,
+  createBudgetCategory, updateBudgetCategory, deleteBudgetCategory
 } from '../../services/api'
 
 function BillsSummary() {
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState([])
   const [income, setIncome] = useState([])
+  const [accounts, setAccounts] = useState([])
   const [summary, setSummary] = useState(null)
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
-  const [editingId, setEditingId] = useState(null)
+
+  // Editing state: { type: 'income'|'bill', id, field: 'name'|'amount' }
+  const [editing, setEditing] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Adding state
+  const [addingIncome, setAddingIncome] = useState(false)
+  const [addingBill, setAddingBill] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newAmount, setNewAmount] = useState('')
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December']
@@ -22,13 +33,15 @@ function BillsSummary() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [catRes, periodsRes, incomeRes] = await Promise.all([
+      const [catRes, periodsRes, incomeRes, accountsRes] = await Promise.all([
         getBudgetCategories(),
         getBudgetPayPeriods(currentYear, currentMonth),
         getBudgetIncome(),
+        getBudgetAccounts(),
       ])
       setCategories(catRes.data || [])
       setIncome(incomeRes.data || [])
+      setAccounts(accountsRes.data || [])
 
       const periods = periodsRes.data || []
       if (periods.length >= 2) {
@@ -55,20 +68,108 @@ function BillsSummary() {
 
   const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
 
-  const startEdit = (catId, value) => {
-    setEditingId(catId)
+  // --- Editing ---
+  const startEdit = (type, id, field, value) => {
+    setEditing({ type, id, field })
     setEditValue(String(value))
   }
 
+  const cancelEdit = () => {
+    setEditing(null)
+    setEditValue('')
+  }
+
   const saveEdit = async () => {
-    if (!editingId || saving) return
+    if (!editing || saving) return
     setSaving(true)
     try {
-      await updateBudgetCategory(editingId, { monthly_budget: parseFloat(editValue) || 0 })
-      setEditingId(null)
+      if (editing.type === 'income') {
+        const update = {}
+        if (editing.field === 'name') update.name = editValue
+        if (editing.field === 'amount') update.amount = parseFloat(editValue) || 0
+        await updateBudgetIncome(editing.id, update)
+      } else {
+        const update = {}
+        if (editing.field === 'name') update.name = editValue
+        if (editing.field === 'amount') update.monthly_budget = parseFloat(editValue) || 0
+        await updateBudgetCategory(editing.id, update)
+      }
+      cancelEdit()
       fetchData()
     } catch (err) {
       console.error('Failed to update:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // --- Adding ---
+  const saveNewIncome = async () => {
+    if (!newName.trim() || saving) return
+    setSaving(true)
+    try {
+      const defaultAccount = accounts.length > 0 ? accounts[0].id : 1
+      await createBudgetIncome({
+        name: newName.trim(),
+        amount: parseFloat(newAmount) || 0,
+        frequency: 'monthly',
+        pay_day: 1,
+        account_id: defaultAccount,
+      })
+      setAddingIncome(false)
+      setNewName('')
+      setNewAmount('')
+      fetchData()
+    } catch (err) {
+      console.error('Failed to add income:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveNewBill = async () => {
+    if (!newName.trim() || saving) return
+    setSaving(true)
+    try {
+      await createBudgetCategory({
+        name: newName.trim(),
+        category_type: 'fixed',
+        monthly_budget: parseFloat(newAmount) || 0,
+        budget_amount: 0,
+      })
+      setAddingBill(false)
+      setNewName('')
+      setNewAmount('')
+      fetchData()
+    } catch (err) {
+      console.error('Failed to add bill:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // --- Deleting ---
+  const deleteIncomeItem = async (id) => {
+    if (saving) return
+    setSaving(true)
+    try {
+      await deleteBudgetIncome(id)
+      fetchData()
+    } catch (err) {
+      console.error('Failed to delete income:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteBillItem = async (id) => {
+    if (saving) return
+    setSaving(true)
+    try {
+      await deleteBudgetCategory(id)
+      fetchData()
+    } catch (err) {
+      console.error('Failed to delete bill:', err)
     } finally {
       setSaving(false)
     }
@@ -78,44 +179,56 @@ function BillsSummary() {
     return <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
   }
 
-  // Calculate total income for the month
   const totalMoneyIn = summary?.expected_income || 0
-
-  // All bill categories (fixed + transfer + variable spending allocations)
-  // Match Excel: every outgoing line item
   const allCats = categories.filter(c => c.is_active)
-  const fixedCats = allCats.filter(c => c.category_type === 'fixed')
-  const variableCats = allCats.filter(c => c.category_type === 'variable')
-  const transferCats = allCats.filter(c => c.category_type === 'transfer')
+  const billCats = [...allCats.filter(c => c.category_type === 'fixed'),
+    ...allCats.filter(c => c.category_type === 'variable'),
+    ...allCats.filter(c => c.category_type === 'transfer')]
+    .filter(cat => {
+      const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
+      return amt > 0
+    })
+    .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
 
-  // Build bill lines - everything that costs money
-  const billLines = []
-
-  // Income lines
-  income.filter(i => i.is_active).forEach(inc => {
-    billLines.push({ type: 'income', name: inc.name, amount: inc.amount * (inc.frequency === 'weekly' ? 4.33 : inc.frequency === 'biweekly' ? 2.17 : inc.frequency === 'semimonthly' ? 2 : 1) })
-  })
-
-  // Fixed bills
-  fixedCats.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)).forEach(cat => {
+  const totalBills = billCats.reduce((s, cat) => {
     const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
-    billLines.push({ type: 'bill', id: cat.id, name: cat.name, amount: -Math.abs(amt) })
-  })
-
-  // Variable spending
-  variableCats.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)).forEach(cat => {
-    const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
-    if (amt > 0) billLines.push({ type: 'bill', id: cat.id, name: cat.name, amount: -Math.abs(amt) })
-  })
-
-  // Transfers/Savings
-  transferCats.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)).forEach(cat => {
-    const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
-    if (amt > 0) billLines.push({ type: 'bill', id: cat.id, name: cat.name, amount: -Math.abs(amt) })
-  })
-
-  const totalBills = billLines.filter(l => l.type === 'bill').reduce((s, l) => s + l.amount, 0)
+    return s - Math.abs(amt)
+  }, 0)
   const moneyAfterBills = totalMoneyIn + totalBills
+
+  const activeIncome = income.filter(i => i.is_active)
+
+  // Editable cell renderer
+  const renderCell = (type, id, field, displayValue, rawValue) => {
+    const isEditing = editing && editing.type === type && editing.id === id && editing.field === field
+    if (isEditing) {
+      return (
+        <span className="flex items-center gap-1">
+          <input
+            type={field === 'amount' ? 'number' : 'text'}
+            step={field === 'amount' ? '0.01' : undefined}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit() }}
+            className="w-full px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm"
+            style={{ color: 'var(--color-text-primary)' }}
+            autoFocus
+          />
+          <button onClick={saveEdit} className="p-0.5 text-green-400 flex-shrink-0"><Check className="w-3.5 h-3.5" /></button>
+          <button onClick={cancelEdit} className="p-0.5 text-gray-400 flex-shrink-0"><X className="w-3.5 h-3.5" /></button>
+        </span>
+      )
+    }
+    return (
+      <span
+        className="cursor-pointer hover:underline"
+        onClick={() => startEdit(type, id, field, rawValue)}
+        title="Click to edit"
+      >
+        {displayValue}
+      </span>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -134,85 +247,162 @@ function BillsSummary() {
         </div>
       </div>
 
-      {/* Bills Table */}
+      {/* Income Section */}
       <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-        {/* Header */}
-        <div className="grid grid-cols-2 text-xs font-semibold py-2 px-3" style={{ backgroundColor: '#ef4444', color: '#fff' }}>
-          <span>Description</span>
-          <span className="text-right">Amount</span>
+        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#22c55e', color: '#fff' }}>
+          <span className="text-xs font-semibold">Income</span>
+          <button
+            onClick={() => { setAddingIncome(true); setNewName(''); setNewAmount('') }}
+            className="p-0.5 hover:bg-green-600 rounded"
+            title="Add income"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Income lines */}
-        {income.filter(i => i.is_active).map(inc => {
-          // Rough monthly amount
+        {/* Header row */}
+        <div className="grid grid-cols-[1fr_100px_28px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+          <span>Name</span>
+          <span className="text-right">Amount</span>
+          <span></span>
+        </div>
+
+        {activeIncome.map(inc => {
           const monthlyAmt = inc.frequency === 'weekly' ? inc.amount * 4.33
             : inc.frequency === 'biweekly' ? inc.amount * 2.17
             : inc.frequency === 'semimonthly' ? inc.amount * 2
             : inc.amount
           return (
-            <div key={`inc-${inc.id}`} className="grid grid-cols-2 text-sm py-2 px-3" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
-              <span style={{ color: 'var(--color-text-primary)' }}>{inc.name}</span>
-              <span className="text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(monthlyAmt)}</span>
+            <div key={`inc-${inc.id}`} className="grid grid-cols-[1fr_100px_28px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+              <span style={{ color: 'var(--color-text-primary)' }}>
+                {renderCell('income', inc.id, 'name', inc.name, inc.name)}
+              </span>
+              <span className="text-right" style={{ color: '#22c55e' }}>
+                {renderCell('income', inc.id, 'amount', fmt(monthlyAmt), inc.amount)}
+              </span>
+              <span className="flex justify-center">
+                <button onClick={() => deleteIncomeItem(inc.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </span>
             </div>
           )
         })}
 
-        {/* Bill lines */}
-        {[...fixedCats, ...variableCats, ...transferCats]
-          .filter(cat => {
-            const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
-            return amt > 0
-          })
-          .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
-          .map(cat => {
-            const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
-            const isEditing = editingId === cat.id
-            return (
-              <div key={cat.id} className="grid grid-cols-2 text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
-                <span style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
-                {isEditing ? (
-                  <span className="flex items-center justify-end gap-1">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingId(null) }}
-                      className="w-24 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm text-right"
-                      style={{ color: 'var(--color-text-primary)' }}
-                      autoFocus
-                    />
-                    <button onClick={saveEdit} className="p-0.5 text-green-400"><Check className="w-4 h-4" /></button>
-                    <button onClick={() => setEditingId(null)} className="p-0.5 text-gray-400"><X className="w-4 h-4" /></button>
-                  </span>
-                ) : (
-                  <span
-                    className="text-right cursor-pointer hover:underline"
-                    style={{ color: '#ef4444' }}
-                    onClick={() => startEdit(cat.id, amt)}
-                    title="Click to edit"
-                  >
-                    -{fmt(amt)}
-                  </span>
-                )}
-              </div>
-            )
-          })}
+        {/* Add income row */}
+        {addingIncome && (
+          <div className="grid grid-cols-[1fr_100px_28px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+            <input
+              type="text"
+              placeholder="Name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveNewIncome(); if (e.key === 'Escape') setAddingIncome(false) }}
+              className="px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm mr-1"
+              style={{ color: 'var(--color-text-primary)' }}
+              autoFocus
+            />
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Amount"
+              value={newAmount}
+              onChange={(e) => setNewAmount(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveNewIncome(); if (e.key === 'Escape') setAddingIncome(false) }}
+              className="px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm text-right"
+              style={{ color: 'var(--color-text-primary)' }}
+            />
+            <span className="flex justify-center gap-0.5">
+              <button onClick={saveNewIncome} className="p-0.5 text-green-400"><Check className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setAddingIncome(false)} className="p-0.5 text-gray-400"><X className="w-3.5 h-3.5" /></button>
+            </span>
+          </div>
+        )}
+      </div>
 
-        {/* Summary rows */}
-        <div className="py-1" style={{ borderTop: '2px solid var(--color-border-default)' }}>
-          <div className="grid grid-cols-2 text-sm font-bold py-2 px-3">
-            <span style={{ color: 'var(--color-text-primary)' }}>Total Money In</span>
-            <span className="text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(totalMoneyIn)}</span>
+      {/* Bills Section */}
+      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#ef4444', color: '#fff' }}>
+          <span className="text-xs font-semibold">Bills & Expenses</span>
+          <button
+            onClick={() => { setAddingBill(true); setNewName(''); setNewAmount('') }}
+            className="p-0.5 hover:bg-red-600 rounded"
+            title="Add line"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Header row */}
+        <div className="grid grid-cols-[1fr_100px_28px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+          <span>Name</span>
+          <span className="text-right">Amount</span>
+          <span></span>
+        </div>
+
+        {billCats.map(cat => {
+          const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
+          return (
+            <div key={cat.id} className="grid grid-cols-[1fr_100px_28px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+              <span style={{ color: 'var(--color-text-primary)' }}>
+                {renderCell('bill', cat.id, 'name', cat.name, cat.name)}
+              </span>
+              <span className="text-right" style={{ color: '#ef4444' }}>
+                {renderCell('bill', cat.id, 'amount', `-${fmt(amt)}`, amt)}
+              </span>
+              <span className="flex justify-center">
+                <button onClick={() => deleteBillItem(cat.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </span>
+            </div>
+          )
+        })}
+
+        {/* Add bill row */}
+        {addingBill && (
+          <div className="grid grid-cols-[1fr_100px_28px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+            <input
+              type="text"
+              placeholder="Name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveNewBill(); if (e.key === 'Escape') setAddingBill(false) }}
+              className="px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm mr-1"
+              style={{ color: 'var(--color-text-primary)' }}
+              autoFocus
+            />
+            <input
+              type="number"
+              step="0.01"
+              placeholder="Amount"
+              value={newAmount}
+              onChange={(e) => setNewAmount(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveNewBill(); if (e.key === 'Escape') setAddingBill(false) }}
+              className="px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm text-right"
+              style={{ color: 'var(--color-text-primary)' }}
+            />
+            <span className="flex justify-center gap-0.5">
+              <button onClick={saveNewBill} className="p-0.5 text-green-400"><Check className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setAddingBill(false)} className="p-0.5 text-gray-400"><X className="w-3.5 h-3.5" /></button>
+            </span>
           </div>
-          <div className="grid grid-cols-2 text-sm font-bold py-2 px-3">
-            <span style={{ color: 'var(--color-text-primary)' }}>Bills</span>
-            <span className="text-right" style={{ color: '#ef4444' }}>{fmt(totalBills)}</span>
-          </div>
-          <div className="grid grid-cols-2 text-sm font-bold py-2 px-3">
-            <span style={{ color: 'var(--color-text-primary)' }}>Money After Bills</span>
-            <span className="text-right" style={{ color: moneyAfterBills >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(moneyAfterBills)}</span>
-          </div>
+        )}
+      </div>
+
+      {/* Summary */}
+      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+        <div className="grid grid-cols-2 text-sm font-bold py-2 px-3" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+          <span style={{ color: 'var(--color-text-primary)' }}>Total Income</span>
+          <span className="text-right" style={{ color: '#22c55e' }}>{fmt(totalMoneyIn)}</span>
+        </div>
+        <div className="grid grid-cols-2 text-sm font-bold py-2 px-3" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+          <span style={{ color: 'var(--color-text-primary)' }}>Total Bills</span>
+          <span className="text-right" style={{ color: '#ef4444' }}>{fmt(totalBills)}</span>
+        </div>
+        <div className="grid grid-cols-2 text-sm font-bold py-2 px-3">
+          <span style={{ color: 'var(--color-text-primary)' }}>Remaining After Bills</span>
+          <span className="text-right" style={{ color: moneyAfterBills >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(moneyAfterBills)}</span>
         </div>
       </div>
     </div>
