@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.65.4] - 2026-01-30
+
+### Fixed
+- **Readiness indicator details** - Physical breakdown indicators now show contributing factors
+  - Each indicator (Immune Status, Autonomic Recovery, Cardiovascular) shows up to 3 contributing factors
+  - Color-coded scores (green/yellow/red) for quick visual assessment
+  - Indicators have background cards for better visual separation
+  - Immune Status correctly labeled (not "Illness Risk") with explanation that 100=healthy
+
 ## [1.65.3] - 2026-01-30
 
 ### Fixed

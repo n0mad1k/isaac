@@ -1514,20 +1514,30 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                       {readinessAnalysis.indicators
                         .filter(ind => ['autonomic', 'cardiovascular', 'illness', 'body_composition'].includes(ind.category))
                         .map(ind => (
-                          <div key={ind.category}>
+                          <div key={ind.category} className="bg-gray-800/50 rounded p-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-400 w-28 truncate" title={ind.name}>{ind.name}</span>
-                              <div className="flex-grow bg-gray-800 rounded-full h-2 overflow-hidden">
+                              <span className="text-xs text-gray-300 w-28 truncate font-medium" title={ind.name}>{ind.name}</span>
+                              <div className="flex-grow bg-gray-700 rounded-full h-2 overflow-hidden">
                                 <div
                                   className={`h-full ${ind.value >= 80 ? 'bg-green-500' : ind.value >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
                                   style={{ width: `${ind.value}%` }}
                                 />
                               </div>
-                              <span className="text-xs w-8 text-right">{ind.value?.toFixed(0) || '-'}</span>
+                              <span className={`text-xs w-8 text-right font-medium ${ind.value >= 80 ? 'text-green-400' : ind.value >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{ind.value?.toFixed(0) || '-'}</span>
                               {getTrendIcon(ind.trend)}
                             </div>
                             {ind.explanation && (
-                              <div className="text-xs text-gray-500 ml-[7.5rem] mt-0.5">{ind.explanation}</div>
+                              <div className="text-xs text-gray-400 mt-1 ml-1">{ind.explanation}</div>
+                            )}
+                            {ind.contributing_factors?.length > 0 && (
+                              <div className="mt-1 ml-1 space-y-0.5">
+                                {ind.contributing_factors.slice(0, 3).map((factor, fi) => (
+                                  <div key={fi} className="text-[11px] text-gray-500 flex items-start gap-1">
+                                    <span className="text-gray-600">-</span>
+                                    <span>{factor}</span>
+                                  </div>
+                                ))}
+                              </div>
                             )}
                           </div>
                         ))}
