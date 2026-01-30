@@ -2,6 +2,28 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.63.0] - 2026-01-30
+
+### Added
+- **Bills tab separation** - Bills tab now shows 4 distinct sections: Income, Bills (fixed), Spending Budgets (variable), and Distributions (transfers)
+  - Each section has its own add form with relevant fields
+  - Recurrence labels (monthly, quarterly, seasonal, yearly, payment plan)
+  - Editable account, billing months, and end date fields
+- **Transaction account picker** - Transactions can now be assigned to any budget account
+  - Account dropdown in add/edit form
+  - Account column in transaction list
+  - Category dropdown now grouped by type (Spending, Transfers, Bills)
+- **Person budget sections** - Dane and Kelly sections in Monthly Budget now show positive deposits from transfers
+  - Shows deposit lines, bills, and net remaining per person
+  - Person bills excluded from main budget total (funded by transfer deposits)
+
+### Fixed
+- **Income/Bills cards consistency** - Overview and Monthly Budget tabs now show matching Income and Bills values
+  - Fixed semimonthly income calculation in backend (was only counting one pay period)
+  - Overview Bills card now excludes person-owned bills (funded by transfers)
+  - Overview spending cards now find transfer-type categories (Dane/Kelly Spending)
+- **Dane/Kelly Spending as transfers** - Converted from variable to transfer type so they properly show as distributions from the main budget into spending accounts
+
 ## [1.62.0] - 2026-01-30
 
 ### Added
