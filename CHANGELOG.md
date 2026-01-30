@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.59.0] - 2026-01-30
+
+### Changed
+- **Bills tab** - Added date (day of month) column for all income and bill lines, sorted by date
+  - Day is editable inline (click to change), shown as ordinal (1st, 2nd, 15th, etc.)
+  - Add form now includes a Day field
+- **Income sources** - Set up correct pay structure: Pay on 1st ($3,711.85), Pay on 15th ($3,696.86), Disability on 1st ($1,968.28)
+- **Bill dates populated** - All recurring bills now have their due dates set from Excel data (e.g., Mortgage on 15th, Car Insurance on 2nd, Starlink on 9th, etc.)
+- **Bill ownership** - Dane's bills (US Mobile, BK, Klarna, Cloaked, Greyman, Claude.AI, Protonmail) and Kelly's bills (Massage) tagged with owner for proper Dane/Kelly breakout sections
+
 ## [1.58.0] - 2026-01-30
 
 ### Changed
