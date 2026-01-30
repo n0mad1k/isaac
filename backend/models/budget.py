@@ -78,6 +78,7 @@ class BudgetCategory(Base):
     color = Column(String(20), default="#6B7280")
     icon = Column(String(50), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    show_on_dashboard = Column(Boolean, default=False, nullable=False)
     sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

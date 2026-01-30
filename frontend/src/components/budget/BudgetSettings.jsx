@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, X, Trash2, Edit, Save } from 'lucide-react'
+import { Plus, X, Trash2, Edit, Save, LayoutDashboard } from 'lucide-react'
 import {
   getBudgetAccounts, createBudgetAccount, updateBudgetAccount, deleteBudgetAccount,
   getBudgetCategories, createBudgetCategory, updateBudgetCategory, deleteBudgetCategory,
@@ -211,18 +211,19 @@ function CategoriesSection({ categories, onRefresh }) {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({
     name: '', category_type: 'variable', budget_amount: '', monthly_budget: '',
-    color: '#3b82f6', icon: '', sort_order: 0,
+    color: '#3b82f6', icon: '', show_on_dashboard: false, sort_order: 0,
   })
 
   const resetForm = () => {
-    setForm({ name: '', category_type: 'variable', budget_amount: '', monthly_budget: '', color: '#3b82f6', icon: '', sort_order: 0 })
+    setForm({ name: '', category_type: 'variable', budget_amount: '', monthly_budget: '', color: '#3b82f6', icon: '', show_on_dashboard: false, sort_order: 0 })
     setEditingId(null)
   }
 
   const handleEdit = (cat) => {
     setForm({
       name: cat.name, category_type: cat.category_type, budget_amount: String(cat.budget_amount || ''),
-      monthly_budget: cat.monthly_budget ? String(cat.monthly_budget) : '', color: cat.color, icon: cat.icon || '', sort_order: cat.sort_order,
+      monthly_budget: cat.monthly_budget ? String(cat.monthly_budget) : '', color: cat.color, icon: cat.icon || '',
+      show_on_dashboard: cat.show_on_dashboard || false, sort_order: cat.sort_order,
     })
     setEditingId(cat.id)
     setShowForm(true)
@@ -326,6 +327,18 @@ function CategoriesSection({ categories, onRefresh }) {
               )}
             </div>
             <div className="flex gap-1">
+              <button
+                onClick={async () => {
+                  try {
+                    await updateBudgetCategory(cat.id, { show_on_dashboard: !cat.show_on_dashboard })
+                    onRefresh()
+                  } catch (err) { console.error('Failed to toggle dashboard:', err) }
+                }}
+                className="p-1 rounded hover:bg-gray-700"
+                title={cat.show_on_dashboard ? 'Shown on dashboard' : 'Not on dashboard'}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" style={{ color: cat.show_on_dashboard ? '#22c55e' : 'var(--color-text-muted)', opacity: cat.show_on_dashboard ? 1 : 0.4 }} />
+              </button>
               <button onClick={() => handleEdit(cat)} className="p-1 rounded hover:bg-gray-700"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
               <button onClick={() => handleDelete(cat.id)} className="p-1 rounded hover:bg-red-900/50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
             </div>

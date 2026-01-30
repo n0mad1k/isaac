@@ -70,6 +70,7 @@ class CategoryCreate(BaseModel):
     color: str = Field("#6B7280", max_length=20)
     icon: Optional[str] = Field(None, max_length=50)
     is_active: bool = True
+    show_on_dashboard: bool = False
     sort_order: int = 0
 
 class CategoryUpdate(BaseModel):
@@ -80,6 +81,7 @@ class CategoryUpdate(BaseModel):
     color: Optional[str] = Field(None, max_length=20)
     icon: Optional[str] = Field(None, max_length=50)
     is_active: Optional[bool] = None
+    show_on_dashboard: Optional[bool] = None
     sort_order: Optional[int] = None
 
 class CategoryResponse(BaseModel):
@@ -91,6 +93,7 @@ class CategoryResponse(BaseModel):
     color: str
     icon: Optional[str]
     is_active: bool
+    show_on_dashboard: bool
     sort_order: int
     created_at: datetime
 
@@ -1073,9 +1076,12 @@ async def get_dashboard_summary(
         start = current_period["start"]
         end = current_period["end"]
 
-        # Get top spending categories for current period
+        # Get categories marked for dashboard display
         cat_result = await db.execute(
-            select(BudgetCategory).where(BudgetCategory.is_active == True)
+            select(BudgetCategory).where(
+                BudgetCategory.is_active == True,
+                BudgetCategory.show_on_dashboard == True,
+            )
             .order_by(BudgetCategory.sort_order, BudgetCategory.name)
         )
         categories = cat_result.scalars().all()
@@ -1097,7 +1103,7 @@ async def get_dashboard_summary(
         # Total expenses for the period
         total_expenses = sum(spending_by_cat.values())
 
-        # Build top category list
+        # Build category list from dashboard-enabled categories
         top_categories = []
         total_budgeted = 0.0
         for cat in categories:
@@ -1105,19 +1111,14 @@ async def get_dashboard_summary(
             budgeted = cat.budget_amount
             total_budgeted += budgeted
 
-            if budgeted > 0 or spent > 0:
-                top_categories.append({
-                    "id": cat.id,
-                    "name": cat.name,
-                    "color": cat.color,
-                    "budgeted": round(budgeted, 2),
-                    "spent": round(spent, 2),
-                    "percentage": round((spent / budgeted * 100) if budgeted > 0 else 0, 1),
-                })
-
-        # Sort by spent amount descending, limit to top 6
-        top_categories.sort(key=lambda x: x["spent"], reverse=True)
-        top_categories = top_categories[:6]
+            top_categories.append({
+                "id": cat.id,
+                "name": cat.name,
+                "color": cat.color,
+                "budgeted": round(budgeted, 2),
+                "spent": round(spent, 2),
+                "percentage": round((spent / budgeted * 100) if budgeted > 0 else 0, 1),
+            })
 
         # Get expected income for this period
         income_defs = (await db.execute(

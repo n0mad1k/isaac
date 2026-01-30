@@ -182,7 +182,7 @@ function Dashboard() {
 
   return (
     <div ref={containerRef} className="flex flex-col gap-2 md:gap-3 min-h-0 md:h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] overflow-auto md:overflow-hidden">
-      {/* Header Row: Date/Time and Motto */}
+      {/* Header Row: Date/Time, Budget Ticker, Motto */}
       <div className="flex items-start justify-between gap-4 flex-shrink-0">
         {/* Left - Date/Time */}
         <div className="flex-shrink-0 min-w-0">
@@ -194,6 +194,9 @@ function Dashboard() {
             <span className="text-sm sm:text-lg md:text-base lg:text-xl">:{formatTimeInTz(currentTime, { second: '2-digit' })} {formatTimeInTz(currentTime, { hour: 'numeric', hour12: true }).match(/(AM|PM)/i)?.[0] || ''}</span>
           </div>
         </div>
+
+        {/* Budget Ticker - compact stacked list */}
+        <BudgetWidget className="flex-shrink-0 hidden md:flex" />
 
         {/* Motto - fills remaining space, wraps if needed */}
         <MottoDisplay className="py-1" />
@@ -221,7 +224,6 @@ function Dashboard() {
           <WeatherWidget weather={data?.weather} />
           <SunMoonWidget data={data?.sun_moon} />
           <AnimalFeedWidget animals={animals} />
-          <BudgetWidget />
         </div>
 
         {/* Right Column - natural sizes, scrolls if needed */}
