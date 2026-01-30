@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, DollarSign } from 'lucide-react'
-import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetIncome } from '../../services/api'
+import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown } from 'lucide-react'
+import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories } from '../../services/api'
 
 function MonthlyBudget() {
   const [loading, setLoading] = useState(true)
   const [firstHalf, setFirstHalf] = useState(null)
   const [secondHalf, setSecondHalf] = useState(null)
-  const [incomes, setIncomes] = useState([])
+  const [categories, setCategories] = useState([])
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
 
@@ -16,12 +16,12 @@ function MonthlyBudget() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [periodsRes, incomeRes] = await Promise.all([
+      const [periodsRes, catRes] = await Promise.all([
         getBudgetPayPeriods(currentYear, currentMonth),
-        getBudgetIncome(),
+        getBudgetCategories(),
       ])
       const periods = periodsRes.data || []
-      setIncomes(incomeRes.data || [])
+      setCategories(catRes.data || [])
 
       if (periods.length >= 2) {
         const [first, second] = await Promise.all([
@@ -49,81 +49,145 @@ function MonthlyBudget() {
     else setCurrentMonth(m => m + 1)
   }
 
-  const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
-
-  if (loading && !firstHalf) {
-    return <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
+  const fmt = (n) => {
+    const val = n || 0
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val)
   }
 
-  const renderPeriodSection = (label, data) => {
-    if (!data) return null
-    const totalBudget = data.total_budgeted || 0
-    const totalSpent = data.total_expenses || 0
-    const expectedIncome = data.expected_income || 0
-    const remaining = expectedIncome - totalSpent
+  if (loading && !firstHalf) {
+    return (
+      <div className="space-y-4">
+        <div className="animate-pulse bg-gray-800 rounded-xl h-16" />
+        <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
+      </div>
+    )
+  }
+
+  // Group categories by type for Excel-like layout
+  const variableCats = categories.filter(c => c.category_type === 'variable' && c.is_active)
+  const fixedCats = categories.filter(c => c.category_type === 'fixed' && c.is_active)
+  const transferCats = categories.filter(c => c.category_type === 'transfer' && c.is_active)
+
+  const getCatData = (summary, catId) => {
+    if (!summary?.categories) return { budgeted: 0, spent: 0, remaining: 0 }
+    const cat = summary.categories.find(c => c.id === catId)
+    if (!cat) return { budgeted: 0, spent: 0, remaining: 0 }
+    return { budgeted: cat.budgeted, spent: cat.spent, remaining: cat.budgeted - cat.spent }
+  }
+
+  const renderCategoryRow = (cat, summary) => {
+    const data = getCatData(summary, cat.id)
+    const over = data.spent > data.budgeted && data.budgeted > 0
+    return (
+      <div key={cat.id} className="flex justify-between items-center py-1 px-2 text-xs">
+        <span className="flex-1" style={{ color: 'var(--color-text-secondary)' }}>{cat.name}</span>
+        <span className="w-20 text-right" style={{ color: 'var(--color-text-muted)' }}>{fmt(data.budgeted)}</span>
+        <span className="w-20 text-right" style={{ color: data.spent > 0 ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
+          {data.spent > 0 ? fmt(data.spent) : '-'}
+        </span>
+        <span className="w-20 text-right font-medium" style={{ color: over ? '#ef4444' : data.remaining > 0 ? '#22c55e' : 'var(--color-text-muted)' }}>
+          {data.budgeted > 0 || data.spent > 0 ? fmt(data.remaining) : '-'}
+        </span>
+      </div>
+    )
+  }
+
+  const renderSectionTotal = (cats, summary, label) => {
+    let totalBudget = 0, totalSpent = 0
+    cats.forEach(cat => {
+      const data = getCatData(summary, cat.id)
+      totalBudget += data.budgeted
+      totalSpent += data.spent
+    })
+    const totalRemaining = totalBudget - totalSpent
+    return (
+      <div className="flex justify-between items-center py-1.5 px-2 text-xs font-semibold" style={{ borderTop: '1px solid var(--color-border-default)' }}>
+        <span className="flex-1" style={{ color: 'var(--color-text-primary)' }}>{label}</span>
+        <span className="w-20 text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(totalBudget)}</span>
+        <span className="w-20 text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(totalSpent)}</span>
+        <span className="w-20 text-right" style={{ color: totalRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(totalRemaining)}</span>
+      </div>
+    )
+  }
+
+  const renderPeriodSection = (label, summary) => {
+    if (!summary) return null
 
     return (
-      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
-          <DollarSign className="w-4 h-4" style={{ color: 'var(--color-green-500, #22c55e)' }} />
-          {label}
-        </h4>
-
-        {/* Income */}
-        <div className="mb-3 pb-3" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
-          <div className="flex justify-between text-sm mb-1">
-            <span style={{ color: 'var(--color-text-secondary)' }}>Expected Income</span>
-            <span className="font-medium text-green-400">{fmt(expectedIncome)}</span>
-          </div>
+      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+        {/* Header */}
+        <div className="px-4 py-2.5" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+          <h4 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+            <DollarSign className="w-4 h-4" style={{ color: '#22c55e' }} />
+            {label}
+          </h4>
         </div>
 
-        {/* Categories */}
-        <div className="space-y-1.5 mb-3">
-          {data.categories
-            ?.filter(c => c.budgeted > 0 || c.spent > 0)
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map(cat => {
-              const rem = cat.budgeted - cat.spent
-              const over = cat.spent > cat.budgeted
-              return (
-                <div key={cat.id} className="flex justify-between text-xs">
-                  <span style={{ color: 'var(--color-text-secondary)' }}>{cat.name}</span>
-                  <div className="flex gap-3">
-                    <span style={{ color: 'var(--color-text-muted)' }}>{fmt(cat.budgeted)}</span>
-                    <span style={{ color: over ? '#ef4444' : 'var(--color-text-primary)' }}>{fmt(cat.spent)}</span>
-                    <span className="w-20 text-right" style={{ color: over ? '#ef4444' : '#22c55e' }}>
-                      {fmt(rem)}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
+        {/* Column Headers */}
+        <div className="flex justify-between items-center py-1.5 px-2 text-xs font-medium" style={{ backgroundColor: 'var(--color-bg-surface-soft)', color: 'var(--color-text-muted)' }}>
+          <span className="flex-1">Category</span>
+          <span className="w-20 text-right">Budget</span>
+          <span className="w-20 text-right">Spent</span>
+          <span className="w-20 text-right">Remaining</span>
         </div>
 
-        {/* Totals */}
-        <div className="pt-3 space-y-1" style={{ borderTop: '1px solid var(--color-border-default)' }}>
-          <div className="flex justify-between text-sm font-medium">
-            <span style={{ color: 'var(--color-text-primary)' }}>Total Budgeted</span>
-            <span style={{ color: 'var(--color-text-primary)' }}>{fmt(totalBudget)}</span>
+        <div className="px-2 py-1">
+          {/* Income */}
+          <div className="flex justify-between items-center py-1.5 px-2 text-xs font-semibold rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)' }}>
+            <span style={{ color: '#22c55e' }}>Expected Income</span>
+            <span className="w-20 text-right" style={{ color: '#22c55e' }}>{fmt(summary.expected_income)}</span>
+            <span className="w-20 text-right" style={{ color: summary.total_income > 0 ? '#22c55e' : 'var(--color-text-muted)' }}>
+              {summary.total_income > 0 ? fmt(summary.total_income) : '-'}
+            </span>
+            <span className="w-20" />
           </div>
-          <div className="flex justify-between text-sm font-medium">
-            <span style={{ color: 'var(--color-text-primary)' }}>Total Spent</span>
-            <span style={{ color: '#ef4444' }}>{fmt(totalSpent)}</span>
-          </div>
-          <div className="flex justify-between text-sm font-bold">
-            <span style={{ color: 'var(--color-text-primary)' }}>Remaining</span>
-            <span style={{ color: remaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remaining)}</span>
+
+          {/* Variable Spending */}
+          {variableCats.length > 0 && (
+            <div className="mt-2">
+              <div className="text-xs font-semibold px-2 py-1" style={{ color: 'var(--color-text-primary)' }}>Variable Spending</div>
+              {variableCats.map(cat => renderCategoryRow(cat, summary))}
+              {renderSectionTotal(variableCats, summary, 'Variable Total')}
+            </div>
+          )}
+
+          {/* Fixed Bills */}
+          {fixedCats.length > 0 && (
+            <div className="mt-2">
+              <div className="text-xs font-semibold px-2 py-1" style={{ color: 'var(--color-text-primary)' }}>Bills & Fixed Expenses</div>
+              {fixedCats.map(cat => renderCategoryRow(cat, summary))}
+              {renderSectionTotal(fixedCats, summary, 'Bills Total')}
+            </div>
+          )}
+
+          {/* Transfers */}
+          {transferCats.length > 0 && (
+            <div className="mt-2">
+              <div className="text-xs font-semibold px-2 py-1" style={{ color: 'var(--color-text-primary)' }}>Savings & Transfers</div>
+              {transferCats.map(cat => renderCategoryRow(cat, summary))}
+              {renderSectionTotal(transferCats, summary, 'Transfers Total')}
+            </div>
+          )}
+
+          {/* Period Grand Total */}
+          <div className="mt-3 mb-1 flex justify-between items-center py-2 px-2 text-sm font-bold rounded" style={{ backgroundColor: 'var(--color-bg-surface-soft)' }}>
+            <span style={{ color: 'var(--color-text-primary)' }}>Period Total</span>
+            <span className="w-20 text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(summary.total_budgeted)}</span>
+            <span className="w-20 text-right" style={{ color: '#ef4444' }}>{fmt(summary.total_expenses)}</span>
+            <span className="w-20 text-right" style={{ color: summary.expected_income - summary.total_expenses >= 0 ? '#22c55e' : '#ef4444' }}>
+              {fmt(summary.expected_income - summary.total_expenses)}
+            </span>
           </div>
         </div>
       </div>
     )
   }
 
-  // Calculate full month totals
+  // Monthly totals
   const monthIncome = (firstHalf?.expected_income || 0) + (secondHalf?.expected_income || 0)
   const monthSpent = (firstHalf?.total_expenses || 0) + (secondHalf?.total_expenses || 0)
   const monthBudgeted = (firstHalf?.total_budgeted || 0) + (secondHalf?.total_budgeted || 0)
-  const monthRemaining = monthIncome - monthSpent
+  const monthNet = monthIncome - monthSpent
 
   return (
     <div className="space-y-4">
@@ -134,7 +198,7 @@ function MonthlyBudget() {
             <ChevronLeft className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
           </button>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            {monthNames[currentMonth - 1]} {currentYear}
+            Monthly Budget - {monthNames[currentMonth - 1]} {currentYear}
           </h3>
           <button onClick={goToNextMonth} className="p-1 rounded hover:bg-gray-700">
             <ChevronRight className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
@@ -142,38 +206,40 @@ function MonthlyBudget() {
         </div>
       </div>
 
-      {/* Monthly Summary */}
-      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-        <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Monthly Summary</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div>
-            <span className="text-xs block" style={{ color: 'var(--color-text-muted)' }}>Income</span>
-            <span className="text-lg font-bold text-green-400">{fmt(monthIncome)}</span>
+      {/* Monthly Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <div className="flex items-center gap-1.5 mb-1">
+            <TrendingUp className="w-3.5 h-3.5" style={{ color: '#22c55e' }} />
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Money In</span>
           </div>
-          <div>
-            <span className="text-xs block" style={{ color: 'var(--color-text-muted)' }}>Budgeted</span>
-            <span className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{fmt(monthBudgeted)}</span>
+          <span className="text-lg font-bold text-green-400">{fmt(monthIncome)}</span>
+        </div>
+        <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <div className="flex items-center gap-1.5 mb-1">
+            <TrendingDown className="w-3.5 h-3.5" style={{ color: '#ef4444' }} />
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Money Out</span>
           </div>
-          <div>
-            <span className="text-xs block" style={{ color: 'var(--color-text-muted)' }}>Spent</span>
-            <span className="text-lg font-bold" style={{ color: '#ef4444' }}>{fmt(monthSpent)}</span>
+          <span className="text-lg font-bold" style={{ color: '#ef4444' }}>{fmt(monthSpent)}</span>
+        </div>
+        <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <div className="flex items-center gap-1.5 mb-1">
+            <DollarSign className="w-3.5 h-3.5" style={{ color: '#3b82f6' }} />
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Budgeted</span>
           </div>
-          <div>
-            <span className="text-xs block" style={{ color: 'var(--color-text-muted)' }}>Remaining</span>
-            <span className="text-lg font-bold" style={{ color: monthRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(monthRemaining)}</span>
+          <span className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{fmt(monthBudgeted)}</span>
+        </div>
+        <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <div className="flex items-center gap-1.5 mb-1">
+            <DollarSign className="w-3.5 h-3.5" style={{ color: monthNet >= 0 ? '#22c55e' : '#ef4444' }} />
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Net</span>
           </div>
+          <span className="text-lg font-bold" style={{ color: monthNet >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(monthNet)}</span>
         </div>
       </div>
 
-      {/* Column headers */}
-      <div className="flex justify-end gap-3 text-xs px-4" style={{ color: 'var(--color-text-muted)' }}>
-        <span className="w-16 text-right">Budget</span>
-        <span className="w-16 text-right">Spent</span>
-        <span className="w-20 text-right">Remaining</span>
-      </div>
-
-      {/* Pay Period Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Two Pay Periods */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {renderPeriodSection('Beginning of Month (1st - 14th)', firstHalf)}
         {renderPeriodSection('End of Month (15th - End)', secondHalf)}
       </div>
