@@ -3,8 +3,8 @@ Livestock and Animal API Routes
 Supports Pets and Livestock categories with expense tracking and recurring care schedules
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
+from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -14,6 +14,9 @@ from pydantic import BaseModel, Field
 import uuid
 import csv
 import io
+import os
+import shutil
+import logging
 
 from models.database import get_db
 from models.livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, AnimalExpense, AnimalCareSchedule, AnimalFeed
@@ -25,6 +28,9 @@ from services.auto_reminders import (
     delete_reminder,
 )
 
+logger = logging.getLogger(__name__)
+
+RECEIPT_DIR = "data/expense_receipts"
 
 router = APIRouter(prefix="/animals", tags=["Animals"])
 
@@ -143,6 +149,7 @@ class ExpenseResponse(BaseModel):
     expense_date: date
     vendor: Optional[str]
     notes: Optional[str]
+    receipt_path: Optional[str] = None
     created_at: datetime
     expense_group_id: Optional[str] = None
     total_amount: Optional[float] = None
@@ -547,6 +554,97 @@ async def delete_expense(
     await db.delete(db_expense)
     await db.commit()
     return {"message": "Expense deleted"}
+
+
+# ==================== Expense Receipt Routes ====================
+
+@router.get("/expenses/receipts/{filename}")
+async def get_expense_receipt(filename: str):
+    """Serve an expense receipt file"""
+    filepath = os.path.join(RECEIPT_DIR, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Receipt not found")
+
+    abs_upload_dir = os.path.abspath(RECEIPT_DIR)
+    abs_filepath = os.path.abspath(filepath)
+    if not abs_filepath.startswith(abs_upload_dir):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return FileResponse(
+        filepath,
+        headers={"Content-Security-Policy": "script-src 'none'; object-src 'none'"}
+    )
+
+
+@router.post("/expenses/{expense_id}/receipt/")
+async def upload_expense_receipt(
+    expense_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_edit("animals")),
+):
+    """Upload a receipt for an animal expense"""
+    result = await db.execute(
+        select(AnimalExpense).where(AnimalExpense.id == expense_id)
+    )
+    expense = result.scalar_one_or_none()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, GIF, WebP, PDF")
+
+    os.makedirs(RECEIPT_DIR, exist_ok=True)
+
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"animal_{expense_id}_{uuid.uuid4().hex[:8]}.{ext}"
+    filepath = os.path.join(RECEIPT_DIR, filename)
+
+    # Delete old receipt if exists
+    if expense.receipt_path and os.path.exists(expense.receipt_path):
+        try:
+            os.remove(expense.receipt_path)
+        except OSError:
+            pass
+
+    try:
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        logger.error(f"Failed to save receipt file: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+    expense.receipt_path = filepath
+    await db.commit()
+
+    return {"receipt_path": filepath}
+
+
+@router.delete("/expenses/{expense_id}/receipt/")
+async def delete_expense_receipt(
+    expense_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_edit("animals")),
+):
+    """Delete a receipt from an animal expense"""
+    result = await db.execute(
+        select(AnimalExpense).where(AnimalExpense.id == expense_id)
+    )
+    expense = result.scalar_one_or_none()
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    if expense.receipt_path and os.path.exists(expense.receipt_path):
+        try:
+            os.remove(expense.receipt_path)
+        except OSError:
+            pass
+
+    expense.receipt_path = None
+    await db.commit()
+
+    return {"message": "Receipt deleted"}
 
 
 @router.get("/{animal_id}/expenses/export/")

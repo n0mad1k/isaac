@@ -128,6 +128,13 @@ export const getAnimalTotalExpenses = (animalId) =>
   api.get(`/animals/${animalId}/expenses/total/`)
 export const createSplitExpense = (data) =>
   api.post('/animals/expenses/split/', data)
+export const uploadAnimalExpenseReceipt = (id, formData) =>
+  api.post(`/animals/expenses/${id}/receipt/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+export const deleteAnimalExpenseReceipt = (id) => api.delete(`/animals/expenses/${id}/receipt/`)
+export const getAnimalExpenseReceiptUrl = (path) =>
+  path ? `${api.defaults.baseURL}/animals/expenses/receipts/${path.split('/').pop()}` : null
 export const exportAnimalExpenses = (animalId) =>
   `${api.defaults.baseURL}/animals/${animalId}/expenses/export/`
 export const exportAllExpenses = () =>
@@ -428,6 +435,13 @@ export const getExpenses = (params) => api.get('/production/expenses/', { params
 export const createExpense = (data) => api.post('/production/expenses/', data)
 export const updateExpense = (id, data) => api.patch(`/production/expenses/${id}/`, data)
 export const deleteExpense = (id) => api.delete(`/production/expenses/${id}/`)
+export const uploadExpenseReceipt = (id, formData) =>
+  api.post(`/production/expenses/${id}/receipt/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+export const deleteExpenseReceipt = (id) => api.delete(`/production/expenses/${id}/receipt/`)
+export const getExpenseReceiptUrl = (path) =>
+  path ? `${api.defaults.baseURL}/production/expenses/receipts/${path.split('/').pop()}` : null
 
 // Financial Summary
 export const getFinancialSummary = (year) =>

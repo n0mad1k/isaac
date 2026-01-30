@@ -49,6 +49,9 @@ class FarmExpense(Base):
     # For shared expenses: what % goes to business (rest goes to homestead)
     business_split_pct = Column(Float, default=100.0)  # 0-100, only used when scope=SHARED
 
+    # Receipt/document attachment
+    receipt_path = Column(String(500), nullable=True)
+
     # Recurring expense tracking
     is_recurring = Column(Boolean, default=False)
     recurring_interval = Column(String(20))  # monthly, quarterly, annually

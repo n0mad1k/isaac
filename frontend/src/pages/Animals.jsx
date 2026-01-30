@@ -3,7 +3,7 @@ import {
   Plus, Search, PawPrint, Calendar, AlertCircle, ChevronDown, ChevronUp,
   MapPin, DollarSign, Scale, Clock, Check, X, Syringe, Scissors,
   Heart, Beef, Dog, Cat, Pencil, Save, Package, Copy, CalendarPlus,
-  Trash2, Download, FileText, Bird, Rabbit, Egg
+  Trash2, Download, FileText, Bird, Rabbit, Egg, Upload, Clipboard, Receipt, Image
 } from 'lucide-react'
 import EventModal from '../components/EventModal'
 import MottoDisplay from '../components/MottoDisplay'
@@ -14,7 +14,8 @@ import {
   deleteCareSchedule, updateCareSchedule, createBulkCareSchedule,
   createAnimalFeed, updateAnimalFeed, deleteAnimalFeed, getFarmAreas,
   archiveLivestock, createSplitExpense, updateAnimalExpense, deleteAnimalExpense,
-  exportAnimalExpenses, exportAllExpenses
+  exportAnimalExpenses, exportAllExpenses,
+  uploadAnimalExpenseReceipt, deleteAnimalExpenseReceipt, getAnimalExpenseReceiptUrl
 } from '../services/api'
 import { format, differenceInDays, parseISO, startOfDay } from 'date-fns'
 
@@ -4427,6 +4428,55 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
   const [saving, setSaving] = useState(false)
   const [duplicatingExpense, setDuplicatingExpense] = useState(null)
   const [duplicateFormData, setDuplicateFormData] = useState(null)
+  const [uploadingReceipt, setUploadingReceipt] = useState(null)
+  const receiptFileRef = React.useRef(null)
+
+  const handleReceiptUpload = async (expenseId, file) => {
+    setUploadingReceipt(expenseId)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      await uploadAnimalExpenseReceipt(expenseId, fd)
+      fetchExpenses()
+      onUpdate()
+    } catch (err) {
+      console.error('Failed to upload receipt:', err)
+      alert(err?.userMessage || 'Failed to upload receipt')
+    } finally {
+      setUploadingReceipt(null)
+    }
+  }
+
+  const handleReceiptPaste = async (expenseId) => {
+    try {
+      const clipboardItems = await navigator.clipboard.read()
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith('image/')) {
+            const blob = await item.getType(type)
+            const ext = type.split('/')[1] || 'png'
+            const file = new File([blob], `pasted-receipt.${ext}`, { type })
+            await handleReceiptUpload(expenseId, file)
+            return
+          }
+        }
+      }
+      alert('No image found in clipboard')
+    } catch (err) {
+      console.error('Clipboard paste failed:', err)
+      alert('Could not read clipboard. Try uploading instead.')
+    }
+  }
+
+  const handleDeleteReceipt = async (expenseId) => {
+    try {
+      await deleteAnimalExpenseReceipt(expenseId)
+      fetchExpenses()
+      onUpdate()
+    } catch (err) {
+      console.error('Failed to delete receipt:', err)
+    }
+  }
 
   useEffect(() => {
     fetchExpenses()
@@ -4684,44 +4734,102 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
                     </div>
                   ) : (
                     // Display mode
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs px-2 py-0.5 rounded bg-gray-600 capitalize">
-                            {expense.expense_type}
-                          </span>
-                          <span className="font-medium text-green-400">${expense.amount.toFixed(2)}</span>
-                          <span className="text-xs text-gray-400">{expense.expense_date}</span>
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs px-2 py-0.5 rounded bg-gray-600 capitalize">
+                              {expense.expense_type}
+                            </span>
+                            <span className="font-medium text-green-400">${expense.amount.toFixed(2)}</span>
+                            <span className="text-xs text-gray-400">{expense.expense_date}</span>
+                            {expense.receipt_path && (
+                              <a
+                                href={getAnimalExpenseReceiptUrl(expense.receipt_path)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs px-2 py-0.5 bg-green-900/50 text-green-300 rounded flex items-center gap-1 hover:bg-green-800/50"
+                                title="View receipt"
+                              >
+                                <Receipt className="w-3 h-3" />
+                                Receipt
+                              </a>
+                            )}
+                          </div>
+                          {expense.description && (
+                            <div className="text-sm text-gray-300 mt-1 truncate">{expense.description}</div>
+                          )}
+                          {expense.vendor && (
+                            <div className="text-xs text-gray-500 mt-0.5">@ {expense.vendor}</div>
+                          )}
                         </div>
-                        {expense.description && (
-                          <div className="text-sm text-gray-300 mt-1 truncate">{expense.description}</div>
-                        )}
-                        {expense.vendor && (
-                          <div className="text-xs text-gray-500 mt-0.5">@ {expense.vendor}</div>
-                        )}
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            onClick={() => handleDuplicate(expense)}
+                            className="p-1.5 text-gray-400 hover:text-purple-400 transition-colors"
+                            title="Duplicate"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(expense)}
+                            className="p-1.5 text-gray-400 hover:text-blue-400 transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(expense.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-400 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 ml-2">
-                        <button
-                          onClick={() => handleDuplicate(expense)}
-                          className="p-1.5 text-gray-400 hover:text-purple-400 transition-colors"
-                          title="Duplicate"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(expense)}
-                          className="p-1.5 text-gray-400 hover:text-blue-400 transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(expense.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-400 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      {/* Receipt upload/management */}
+                      <div className="mt-2 flex items-center gap-2">
+                        {expense.receipt_path ? (
+                          <div className="flex items-center gap-2">
+                            {expense.receipt_path.toLowerCase().endsWith('.pdf') ? (
+                              <a href={getAnimalExpenseReceiptUrl(expense.receipt_path)} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+                                <FileText className="w-4 h-4" /> View PDF
+                              </a>
+                            ) : (
+                              <a href={getAnimalExpenseReceiptUrl(expense.receipt_path)} target="_blank" rel="noopener noreferrer">
+                                <img src={getAnimalExpenseReceiptUrl(expense.receipt_path)} alt="Receipt" className="h-10 rounded object-contain" />
+                              </a>
+                            )}
+                            <button onClick={() => handleDeleteReceipt(expense.id)}
+                              className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                              <Trash2 className="w-3 h-3" /> Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <input
+                              ref={uploadingReceipt === expense.id ? receiptFileRef : undefined}
+                              type="file"
+                              accept="image/*,.pdf"
+                              className="hidden"
+                              id={`receipt-${expense.id}`}
+                              onChange={(e) => {
+                                const file = e.target.files[0]
+                                if (file) handleReceiptUpload(expense.id, file)
+                                e.target.value = ''
+                              }}
+                            />
+                            <label htmlFor={`receipt-${expense.id}`}
+                              className="flex items-center gap-1 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded text-xs cursor-pointer transition-colors">
+                              <Upload className="w-3 h-3" /> {uploadingReceipt === expense.id ? 'Uploading...' : 'Receipt'}
+                            </label>
+                            <button onClick={() => handleReceiptPaste(expense.id)}
+                              className="flex items-center gap-1 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded text-xs transition-colors">
+                              <Clipboard className="w-3 h-3" /> Paste
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

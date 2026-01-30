@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.52.0] - 2026-01-29
+
+### Added
+- **Receipt upload for expenses** - Attach receipt images or PDFs to any farm or animal expense. Upload from file or paste from clipboard. Receipts display as thumbnails (images) or PDF icons in expense lists and modals
+  - Supported formats: JPEG, PNG, GIF, WebP, PDF
+  - Receipt indicator badge shown on expenses with attachments - click to view in new tab
+  - Available on both Farm Finances and Animal expense views
+
 ## [1.51.1] - 2026-01-29
 
 ### Fixed

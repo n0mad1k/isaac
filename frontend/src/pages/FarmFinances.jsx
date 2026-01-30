@@ -27,6 +27,10 @@ import {
   Briefcase,
   Sprout,
   Receipt,
+  Upload,
+  Clipboard,
+  FileText,
+  Image,
 } from 'lucide-react'
 import MottoDisplay from '../components/MottoDisplay'
 import {
@@ -64,6 +68,9 @@ import {
   createExpense,
   updateExpense,
   deleteExpense,
+  uploadExpenseReceipt,
+  deleteExpenseReceipt,
+  getExpenseReceiptUrl,
 } from '../services/api'
 import { format } from 'date-fns'
 
@@ -515,12 +522,14 @@ function FarmFinances() {
       }
       if (editingExpense) {
         await updateExpense(editingExpense.id, data)
+        setShowExpenseModal(false)
+        setEditingExpense(null)
+        resetExpenseForm()
       } else {
-        await createExpense(data)
+        const resp = await createExpense(data)
+        // Keep modal open with saved expense so user can add receipt
+        setEditingExpense(resp.data)
       }
-      setShowExpenseModal(false)
-      setEditingExpense(null)
-      resetExpenseForm()
       fetchData()
     } catch (error) {
       console.error('Failed to save expense:', error)
@@ -926,8 +935,20 @@ function FarmFinances() {
           onClose={() => {
             setShowExpenseModal(false)
             setEditingExpense(null)
+            resetExpenseForm()
           }}
           formatCurrency={formatCurrency}
+          onReceiptChange={async () => {
+            await fetchData()
+            // Refresh the editing expense to get updated receipt_path
+            if (editingExpense?.id) {
+              try {
+                const resp = await getExpenses()
+                const updated = resp.data.find(e => e.id === editingExpense.id)
+                if (updated) setEditingExpense(updated)
+              } catch (err) { /* ignore */ }
+            }
+          }}
         />
       )}
     </div>
@@ -1548,6 +1569,18 @@ function ExpenseList({ expenses, formatCurrency, onEdit, onDelete }) {
                   {expense.recurring_interval || 'recurring'}
                 </span>
               )}
+              {expense.receipt_path && (
+                <a
+                  href={getExpenseReceiptUrl(expense.receipt_path)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs px-2 py-0.5 bg-green-900/50 text-green-300 rounded flex items-center gap-1 hover:bg-green-800/50"
+                  title="View receipt"
+                >
+                  <Receipt className="w-3 h-3" />
+                  Receipt
+                </a>
+              )}
             </div>
             <div className="flex items-center gap-4 mt-1 text-sm">
               <span className="text-yellow-400 font-medium">{formatCurrency(expense.amount)}</span>
@@ -2026,7 +2059,61 @@ function HarvestAllocationModal({ harvest, formData, setFormData, onSubmit, onCl
   )
 }
 
-function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, formatCurrency }) {
+function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, formatCurrency, onReceiptChange }) {
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = React.useRef(null)
+
+  const handleReceiptUpload = async (file) => {
+    if (!editing?.id) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      await uploadExpenseReceipt(editing.id, fd)
+      if (onReceiptChange) onReceiptChange()
+    } catch (err) {
+      console.error('Failed to upload receipt:', err)
+      alert(err?.userMessage || 'Failed to upload receipt')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handlePaste = async () => {
+    if (!editing?.id) return
+    try {
+      const clipboardItems = await navigator.clipboard.read()
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith('image/')) {
+            const blob = await item.getType(type)
+            const ext = type.split('/')[1] || 'png'
+            const file = new File([blob], `pasted-receipt.${ext}`, { type })
+            await handleReceiptUpload(file)
+            return
+          }
+        }
+      }
+      alert('No image found in clipboard')
+    } catch (err) {
+      console.error('Clipboard paste failed:', err)
+      alert('Could not read clipboard. Try uploading instead.')
+    }
+  }
+
+  const handleDeleteReceipt = async () => {
+    if (!editing?.id) return
+    try {
+      await deleteExpenseReceipt(editing.id)
+      if (onReceiptChange) onReceiptChange()
+    } catch (err) {
+      console.error('Failed to delete receipt:', err)
+    }
+  }
+
+  const receiptUrl = editing?.receipt_path ? getExpenseReceiptUrl(editing.receipt_path) : null
+  const isPdf = editing?.receipt_path?.toLowerCase().endsWith('.pdf')
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -2178,6 +2265,58 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
+
+          {/* Receipt Section */}
+          {editing?.id ? (
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Receipt</label>
+              {receiptUrl ? (
+                <div className="space-y-2">
+                  <div className="bg-gray-700 rounded-lg p-3">
+                    {isPdf ? (
+                      <a href={receiptUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-blue-400 hover:text-blue-300">
+                        <FileText className="w-8 h-8" />
+                        <span className="text-sm">View PDF Receipt</span>
+                      </a>
+                    ) : (
+                      <a href={receiptUrl} target="_blank" rel="noopener noreferrer">
+                        <img src={receiptUrl} alt="Receipt" className="max-h-32 rounded object-contain" />
+                      </a>
+                    )}
+                  </div>
+                  <button type="button" onClick={handleDeleteReceipt}
+                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                    <Trash2 className="w-3 h-3" /> Remove receipt
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0]
+                      if (file) handleReceiptUpload(file)
+                      e.target.value = ''
+                    }}
+                  />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors disabled:opacity-50">
+                    <Upload className="w-4 h-4" /> {uploading ? 'Uploading...' : 'Upload'}
+                  </button>
+                  <button type="button" onClick={handlePaste} disabled={uploading}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors disabled:opacity-50">
+                    <Clipboard className="w-4 h-4" /> Paste
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500 italic">Save the expense first, then add a receipt.</p>
+          )}
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>

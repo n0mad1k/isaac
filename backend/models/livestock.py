@@ -273,6 +273,9 @@ class AnimalExpense(Base):
     notes = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Receipt/document attachment
+    receipt_path = Column(String(500), nullable=True)
+
     # Split expense fields
     expense_group_id = Column(String(36), nullable=True, index=True)  # UUID linking split expenses
     total_amount = Column(Float, nullable=True)  # Original total before split (for reference)
