@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, date, timedelta
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import uuid
 import csv
 import io
@@ -130,6 +130,13 @@ class AnimalUpdate(BaseModel):
     # Farm area
     farm_area_id: Optional[int] = Field(None, ge=1)
 
+    @field_validator('status', mode='before')
+    @classmethod
+    def normalize_status(cls, v):
+        if isinstance(v, str):
+            return v.lower().strip()
+        return v
+
 
 class ExpenseCreate(BaseModel):
     expense_type: str = Field(..., min_length=1, max_length=50)  # purchase, feed, medicine, vet, equipment, farrier, other
@@ -184,6 +191,13 @@ class CareLogCreate(BaseModel):
     weight: Optional[float] = Field(None, ge=0, le=10000)
     notes: Optional[str] = Field(None, max_length=2000)
     performed_at: Optional[datetime] = None
+
+    @field_validator('care_type', mode='before')
+    @classmethod
+    def normalize_care_type(cls, v):
+        if isinstance(v, str):
+            return v.lower().strip()
+        return v
 
 
 class CareLogResponse(BaseModel):

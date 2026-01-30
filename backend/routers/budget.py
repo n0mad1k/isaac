@@ -9,7 +9,7 @@ from sqlalchemy import select, func, and_, extract, update, delete as delete_stm
 from typing import List, Optional
 from datetime import date, datetime
 from calendar import monthrange
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import logging
 
 from models.database import get_db
@@ -79,6 +79,13 @@ class CategoryCreate(BaseModel):
     end_date: Optional[str] = Field(None, max_length=10)
     sort_order: int = 0
 
+    @field_validator('owner', mode='before')
+    @classmethod
+    def normalize_owner(cls, v):
+        if isinstance(v, str):
+            return v.lower().strip()
+        return v
+
 class CategoryUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     category_type: Optional[CategoryType] = None
@@ -95,6 +102,13 @@ class CategoryUpdate(BaseModel):
     start_date: Optional[str] = Field(None, max_length=10)
     end_date: Optional[str] = Field(None, max_length=10)
     sort_order: Optional[int] = None
+
+    @field_validator('owner', mode='before')
+    @classmethod
+    def normalize_owner(cls, v):
+        if isinstance(v, str):
+            return v.lower().strip()
+        return v
 
 class CategoryResponse(BaseModel):
     id: int

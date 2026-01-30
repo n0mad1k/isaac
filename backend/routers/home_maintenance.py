@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from models.database import get_db
 from models.home_maintenance import HomeMaintenance, HomeMaintenanceLog, DEFAULT_CATEGORIES, get_local_now
@@ -73,6 +73,13 @@ class MaintenanceCreate(BaseModel):
     notify_channels: str = Field("dashboard,calendar", max_length=100)
     notes: Optional[str] = Field(None, max_length=2000)
 
+    @field_validator('category', mode='before')
+    @classmethod
+    def normalize_category(cls, v):
+        if isinstance(v, str):
+            return v.lower().strip()
+        return v
+
 
 class MaintenanceUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -87,6 +94,13 @@ class MaintenanceUpdate(BaseModel):
     notify_channels: Optional[str] = Field(None, max_length=100)
     notes: Optional[str] = Field(None, max_length=2000)
     is_active: Optional[bool] = None
+
+    @field_validator('category', mode='before')
+    @classmethod
+    def normalize_category(cls, v):
+        if isinstance(v, str):
+            return v.lower().strip()
+        return v
 
 
 class SetDueDateRequest(BaseModel):

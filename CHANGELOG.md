@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.65.1] - 2026-01-30
+
+### Fixed
+- **Case normalization** - All categorical string fields are now normalized to lowercase on input and existing data
+  - Prevents bugs from mixed-case values (e.g., "Watered" vs "watered") breaking queries
+  - Affected fields: plant care type, growth stage, animal care type, animal status, home maintenance category, budget owner
+  - Existing database values auto-normalized on startup
+  - Pydantic validators ensure consistent lowercase storage going forward
+
 ## [1.65.0] - 2026-01-30
 
 ### Fixed

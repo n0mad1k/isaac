@@ -9,7 +9,7 @@ from sqlalchemy import select, func, and_, desc
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, date, timedelta
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import os
 import uuid
 import shutil
@@ -112,6 +112,13 @@ class PlantCreate(BaseModel):
     date_transplanted: Optional[datetime] = None
     growth_stage: Optional[str] = Field(None, max_length=30)
 
+    @field_validator('growth_stage', mode='before')
+    @classmethod
+    def normalize_growth_stage(cls, v):
+        if isinstance(v, str):
+            return v.lower().strip()
+        return v
+
 
 class PlantUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -171,6 +178,13 @@ class PlantUpdate(BaseModel):
     date_germinated: Optional[datetime] = None
     date_transplanted: Optional[datetime] = None
     growth_stage: Optional[str] = Field(None, max_length=30)
+
+    @field_validator('growth_stage', mode='before')
+    @classmethod
+    def normalize_growth_stage(cls, v):
+        if isinstance(v, str):
+            return v.lower().strip()
+        return v
 
 
 class PlantResponse(BaseModel):
@@ -260,6 +274,13 @@ class CareLogCreate(BaseModel):
     notes: Optional[str] = None
     quantity: Optional[str] = None
     performed_at: Optional[datetime] = None
+
+    @field_validator('care_type', mode='before')
+    @classmethod
+    def normalize_care_type(cls, v):
+        if isinstance(v, str):
+            return v.lower().strip()
+        return v
 
 
 class CareLogResponse(BaseModel):

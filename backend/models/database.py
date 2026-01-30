@@ -221,6 +221,38 @@ async def _migrate_role_permissions():
             await session.rollback()
 
 
+async def _normalize_case_data():
+    """Normalize categorical string columns to lowercase for consistency"""
+    normalize_targets = [
+        ("plant_care_logs", "care_type"),
+        ("plants", "growth_stage"),
+        ("animal_care_logs", "care_type"),
+        ("animals", "status"),
+        ("home_maintenance", "category"),
+        ("budget_categories", "owner"),
+    ]
+    async with async_session() as session:
+        try:
+            for table, column in normalize_targets:
+                # Check if table exists
+                result = await session.execute(
+                    text("SELECT name FROM sqlite_master WHERE type='table' AND name=:table"),
+                    {"table": table}
+                )
+                if not result.fetchone():
+                    continue
+                # Update non-lowercase values
+                result = await session.execute(
+                    text(f"UPDATE {table} SET {column} = LOWER(TRIM({column})) WHERE {column} IS NOT NULL AND {column} != LOWER(TRIM({column}))")
+                )
+                if result.rowcount > 0:
+                    logger.info(f"Normalized {result.rowcount} rows in {table}.{column} to lowercase")
+            await session.commit()
+        except Exception as e:
+            logger.warning(f"Could not normalize case data: {e}")
+            await session.rollback()
+
+
 async def init_db():
     """Initialize database tables and migrate schema"""
     async with engine.begin() as conn:
@@ -237,6 +269,9 @@ async def init_db():
 
     # Sync new permission categories to existing roles
     await _migrate_role_permissions()
+
+    # Normalize case on categorical string columns
+    await _normalize_case_data()
 
 
 async def get_db() -> AsyncSession:
