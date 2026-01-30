@@ -712,11 +712,11 @@ def _detect_illness_pattern(
     factors.insert(0, f"Status: {status_label}")
 
     return PerformanceIndicator(
-        name="Immune Status",
+        name="Immune Health",
         category="illness",
         value=score,
         trend=trend,
-        explanation=f"Score reflects immune health (100=healthy, lower=concern). {status_label}.",
+        explanation=f"Higher is better — {score:.0f}/100 means strong immune function. {status_label}.",
         confidence=confidence,
         contributing_factors=factors
     )
