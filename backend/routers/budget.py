@@ -1049,54 +1049,74 @@ async def get_period_summary(
         # Get uncategorized spending
         uncategorized_spent = spending_by_cat.get(None, 0.0)
 
-        # Calculate rollover from previous month's unspent variable spending
-        rollover_amount = 0.0
+        # Calculate accumulated rollover balance from all completed months
+        # Only tracks: Gas, Groceries, Main Spending
+        # Reduced by any Roll Over category transactions (money moved elsewhere)
+        rollover_balance = 0.0
+        rollover_cats = {"Gas", "Groceries", "Main Spending"}
         try:
-            # Get previous month date range
-            if start_date.month == 1:
-                prev_year, prev_month = start_date.year - 1, 12
-            else:
-                prev_year, prev_month = start_date.year, start_date.month - 1
-            prev_start = date(prev_year, prev_month, 1)
-            prev_last_day = monthrange(prev_year, prev_month)[1]
-            prev_end = date(prev_year, prev_month, prev_last_day)
-
-            # Get previous month spending by category
-            prev_txn_result = await db.execute(
-                select(
-                    BudgetTransaction.category_id,
-                    func.sum(BudgetTransaction.amount).label("total")
-                )
-                .where(
-                    BudgetTransaction.transaction_date >= prev_start,
-                    BudgetTransaction.transaction_date <= prev_end,
-                )
-                .group_by(BudgetTransaction.category_id)
+            # Find the first month with transactions
+            first_txn = await db.execute(
+                select(func.min(BudgetTransaction.transaction_date))
             )
-            prev_spending = {row[0]: row[1] for row in prev_txn_result.all()}
+            first_date = first_txn.scalar()
 
-            # Sum unspent from previous month's variable categories (exclude Roll Over itself)
-            prev_ym = f"{prev_year}-{prev_month:02d}"
-            for cat in categories:
-                if cat.category_type != CategoryType.VARIABLE:
-                    continue
-                if cat.name == "Roll Over":
-                    continue
-                # Check if category was active in the previous month
-                if cat.billing_months:
-                    active_months = [int(m.strip()) for m in cat.billing_months.split(',') if m.strip()]
-                    if prev_month not in active_months:
-                        continue
-                if cat.start_date and prev_ym < cat.start_date:
-                    continue
-                if cat.end_date and prev_ym > cat.end_date:
-                    continue
+            if first_date:
+                # Get rollover category IDs and Roll Over category ID
+                rollover_cat_ids = [c.id for c in categories if c.name in rollover_cats]
+                roll_over_cat = next((c for c in categories if c.name == "Roll Over"), None)
 
-                prev_budgeted = cat.monthly_budget if cat.monthly_budget else (cat.budget_amount * 2)
-                prev_spent = abs(prev_spending.get(cat.id, 0.0))
-                unspent = prev_budgeted - prev_spent
-                if unspent > 0:
-                    rollover_amount += unspent
+                # Only calculate for completed months before the current period
+                first_month_start = date(first_date.year, first_date.month, 1)
+                current_month_start = date(start_date.year, start_date.month, 1)
+
+                if first_month_start < current_month_start:
+                    # Get total spent on rollover categories in all previous months
+                    prev_spending_result = await db.execute(
+                        select(
+                            BudgetTransaction.category_id,
+                            func.sum(BudgetTransaction.amount).label("total")
+                        )
+                        .where(
+                            BudgetTransaction.transaction_date >= first_month_start,
+                            BudgetTransaction.transaction_date < current_month_start,
+                            BudgetTransaction.category_id.in_(rollover_cat_ids),
+                        )
+                        .group_by(BudgetTransaction.category_id)
+                    )
+                    prev_spending_map = {row[0]: row[1] for row in prev_spending_result.all()}
+
+                    # Count how many completed months
+                    m_cursor = first_month_start
+                    while m_cursor < current_month_start:
+                        for cat in categories:
+                            if cat.name not in rollover_cats:
+                                continue
+                            month_budget = cat.monthly_budget if cat.monthly_budget else (cat.budget_amount * 2)
+                            rollover_balance += month_budget
+                        # Advance to next month
+                        if m_cursor.month == 12:
+                            m_cursor = date(m_cursor.year + 1, 1, 1)
+                        else:
+                            m_cursor = date(m_cursor.year, m_cursor.month + 1, 1)
+
+                    # Subtract actual spending on those categories
+                    for cat_id, total_spent in prev_spending_map.items():
+                        rollover_balance += total_spent  # total_spent is negative
+
+                    # Subtract any Roll Over category transactions (money moved out)
+                    if roll_over_cat:
+                        ro_result = await db.execute(
+                            select(func.sum(BudgetTransaction.amount))
+                            .where(
+                                BudgetTransaction.category_id == roll_over_cat.id,
+                                BudgetTransaction.transaction_date < current_month_start,
+                            )
+                        )
+                        ro_spent = ro_result.scalar() or 0.0
+                        rollover_balance += ro_spent  # negative spending reduces balance
+
+                    rollover_balance = round(max(rollover_balance, 0), 2)
         except Exception as e:
             logger.warning(f"Could not calculate rollover: {e}")
 
@@ -1128,14 +1148,12 @@ async def get_period_summary(
                     if is_second_half and cat.bill_day < 15:
                         continue
 
+            # Skip Roll Over from category summary - it's a separate metric
+            if cat.name == "Roll Over":
+                continue
+
             spent = spending_by_cat.get(cat.id, 0.0)
 
-            # Roll Over category: auto-calculate from previous month's unspent
-            if cat.name == "Roll Over" and rollover_amount > 0:
-                if is_full_month:
-                    budgeted = rollover_amount
-                else:
-                    budgeted = round(rollover_amount / 2, 2)
             # Budget amount logic:
             # - Full month: use monthly_budget, or budget_amount * 2
             # - Half month, variable/transfer: use budget_amount (per-period budget)
@@ -1185,6 +1203,7 @@ async def get_period_summary(
             "net": round(total_income + total_expenses, 2),
             "expected_income": round(expected_income, 2),
             "uncategorized_spent": round(abs(uncategorized_spent), 2),
+            "rollover_balance": rollover_balance,
         }
     except Exception as e:
         logger.error(f"Error getting budget period summary: {e}")

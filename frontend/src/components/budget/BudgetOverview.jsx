@@ -106,7 +106,7 @@ function BudgetOverview() {
   // Variable spending categories
   const variableCatIds = new Set(categories.filter(c => c.category_type === 'variable' && c.is_active).map(c => c.id))
   const fixedCatIds = new Set(categories.filter(c => c.category_type === 'fixed' && c.is_active).map(c => c.id))
-  const variableCats = (summary?.categories || []).filter(c => variableCatIds.has(c.id) && (c.budgeted > 0 || c.spent > 0))
+  const variableCats = (summary?.categories || []).filter(c => variableCatIds.has(c.id) && c.name !== 'Roll Over' && (c.budgeted > 0 || c.spent > 0))
     .sort((a, b) => {
       const catA = categories.find(c => c.id === a.id)
       const catB = categories.find(c => c.id === b.id)
@@ -152,9 +152,9 @@ function BudgetOverview() {
         </div>
       </div>
 
-      {/* Summary Cards: Income, Bills, then remaining per spending category */}
+      {/* Summary Cards: Income, Bills, spending categories, Roll Over */}
       {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-2">
           <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
             <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Income</div>
             <div className="text-base font-bold" style={{ color: '#22c55e' }}>{fmt(summary.expected_income)}</div>
@@ -174,6 +174,12 @@ function BudgetOverview() {
               </div>
             )
           })}
+          <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Roll Over</div>
+            <div className="text-base font-bold" style={{ color: (summary.rollover_balance || 0) > 0 ? '#22c55e' : 'var(--color-text-muted)' }}>
+              {fmt(summary.rollover_balance || 0)}
+            </div>
+          </div>
         </div>
       )}
 

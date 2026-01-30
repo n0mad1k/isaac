@@ -6,7 +6,7 @@ Inspired by USMC Marine Corps Mentoring Program (NAVMC DIR 1500.58)
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, desc
+from sqlalchemy import select, func, and_, desc, or_
 from sqlalchemy.orm.attributes import flag_modified
 from typing import Optional, List, Any
 from pydantic import BaseModel, Field
@@ -41,7 +41,7 @@ from models.team import (
     MemberSubjectiveInput
 )
 from models.supply_requests import SupplyRequest, RequestStatus, RequestPriority
-from models.tasks import Task
+from models.tasks import Task, task_member_assignments
 from routers.auth import require_auth, require_admin
 from routers.settings import get_setting, set_setting
 from models.users import User
@@ -4232,10 +4232,18 @@ async def get_member_tasks(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_auth)
 ):
-    """Get tasks assigned to a member"""
-    query = select(Task).where(
-        Task.assigned_to_member_id == member_id,
-        Task.is_active == True
+    """Get tasks assigned to a member (checks both legacy and many-to-many)"""
+    query = (
+        select(Task)
+        .outerjoin(task_member_assignments, Task.id == task_member_assignments.c.task_id)
+        .where(
+            or_(
+                Task.assigned_to_member_id == member_id,
+                task_member_assignments.c.member_id == member_id,
+            ),
+            Task.is_active == True,
+        )
+        .distinct()
     )
 
     if not include_completed:
@@ -4246,7 +4254,7 @@ async def get_member_tasks(
 
     query = query.order_by(Task.due_date, Task.priority)
     result = await db.execute(query)
-    tasks = result.scalars().all()
+    tasks = result.scalars().unique().all()
 
     return [serialize_task_brief(task) for task in tasks]
 
@@ -4257,16 +4265,25 @@ async def get_member_backlog(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_auth)
 ):
-    """Get backlog tasks assigned to a member"""
-    query = select(Task).where(
-        Task.assigned_to_member_id == member_id,
-        Task.is_active == True,
-        Task.is_completed == False,
-        Task.is_backlog == True
-    ).order_by(Task.priority, Task.created_at)
+    """Get backlog tasks assigned to a member (checks both legacy and many-to-many)"""
+    query = (
+        select(Task)
+        .outerjoin(task_member_assignments, Task.id == task_member_assignments.c.task_id)
+        .where(
+            or_(
+                Task.assigned_to_member_id == member_id,
+                task_member_assignments.c.member_id == member_id,
+            ),
+            Task.is_active == True,
+            Task.is_completed == False,
+            Task.is_backlog == True,
+        )
+        .distinct()
+        .order_by(Task.priority, Task.created_at)
+    )
 
     result = await db.execute(query)
-    tasks = result.scalars().all()
+    tasks = result.scalars().unique().all()
 
     return [serialize_task_brief(task) for task in tasks]
 
