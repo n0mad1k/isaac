@@ -28,9 +28,10 @@ def main():
 
     # Step 2: Add Chase Trust account if not exists
     if 'Chase Trust' not in accounts:
+        now = __import__('datetime').datetime.now().isoformat()
         cur.execute(
-            "INSERT INTO budget_accounts (name, account_type, is_active, sort_order) VALUES (?, ?, ?, ?)",
-            ('Chase Trust', 'checking', 1, 10)
+            "INSERT INTO budget_accounts (name, account_type, is_active, sort_order, created_at) VALUES (?, ?, ?, ?, ?)",
+            ('Chase Trust', 'CHECKING', 1, 10, now)
         )
         accounts['Chase Trust'] = cur.lastrowid
         print(f"Added Chase Trust account (id={accounts['Chase Trust']})")
@@ -64,12 +65,14 @@ def main():
     cur.execute("SELECT id, name FROM budget_categories WHERE name IN ('Ambulance', 'Upper Endo')")
     existing = {row['name']: row['id'] for row in cur.fetchall()}
 
+    now = __import__('datetime').datetime.now().isoformat()
+
     if 'Ambulance' not in existing:
         cur.execute(
             """INSERT INTO budget_categories
-            (name, category_type, budget_amount, monthly_budget, is_active, bill_day, account_id, sort_order)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            ('Ambulance', 'fixed', 0, 59.83, 1, 7, money_market_id, 0)
+            (name, category_type, budget_amount, monthly_budget, is_active, bill_day, account_id, sort_order, color, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ('Ambulance', 'FIXED', 0, 59.83, 1, 7, money_market_id, 0, '#6B7280', now)
         )
         print("Added Ambulance payment plan ($59.83, 7th)")
     else:
@@ -78,9 +81,9 @@ def main():
     if 'Upper Endo' not in existing:
         cur.execute(
             """INSERT INTO budget_categories
-            (name, category_type, budget_amount, monthly_budget, is_active, bill_day, account_id, sort_order)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            ('Upper Endo', 'fixed', 0, 133.68, 1, 23, money_market_id, 0)
+            (name, category_type, budget_amount, monthly_budget, is_active, bill_day, account_id, sort_order, color, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ('Upper Endo', 'FIXED', 0, 133.68, 1, 23, money_market_id, 0, '#6B7280', now)
         )
         print("Added Upper Endo payment plan ($133.68, 23rd)")
     else:

@@ -1124,6 +1124,7 @@ async def get_permission_categories(
             "farm": {"label": "Farm Areas", "actions": ["view", "create", "interact", "edit", "delete"]},
             "production": {"label": "Production", "actions": ["view", "create", "interact", "edit", "delete"]},
             "workers": {"label": "Worker Tasks", "actions": ["view", "create", "interact", "edit", "delete"]},
+            "budget": {"label": "Budget & Finance", "actions": ["view", "create", "edit", "delete"]},
         },
         "defaults": DEFAULT_PERMISSIONS
     }
