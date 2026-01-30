@@ -746,7 +746,7 @@ async def upload_journal_photo(
 
 
 @router.get("/journal/photos/{filename}")
-async def get_journal_photo(filename: str):
+async def get_journal_photo(filename: str, user: User = Depends(require_auth)):
     """Serve a garden journal photo file."""
     filepath = os.path.join(GARDEN_PHOTO_DIR, filename)
     if not os.path.exists(filepath):

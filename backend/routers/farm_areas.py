@@ -16,7 +16,7 @@ from models.plants import Plant
 from models.livestock import Animal
 from models.tasks import Task
 from models.users import User
-from services.permissions import require_create, require_edit, require_delete, require_interact
+from services.permissions import require_view, require_create, require_edit, require_delete, require_interact
 
 
 router = APIRouter(prefix="/farm-areas", tags=["Farm Areas"])
@@ -185,7 +185,8 @@ class LogResponse(BaseModel):
 async def get_all_areas(
     type: Optional[FarmAreaType] = None,
     active_only: bool = True,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("farm")),
 ):
     """Get all farm areas"""
     query = select(FarmArea).options(
@@ -234,7 +235,7 @@ async def get_all_areas(
 
 
 @router.get("/{area_id}", response_model=AreaDetailResponse)
-async def get_area(area_id: int, db: AsyncSession = Depends(get_db)):
+async def get_area(area_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("farm"))):
     """Get specific farm area with plants and animals"""
     result = await db.execute(
         select(FarmArea)
@@ -408,7 +409,7 @@ async def delete_area(
 
 # Maintenance Routes
 @router.get("/{area_id}/maintenance", response_model=List[MaintenanceResponse])
-async def get_area_maintenance(area_id: int, active_only: bool = True, db: AsyncSession = Depends(get_db)):
+async def get_area_maintenance(area_id: int, active_only: bool = True, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("farm"))):
     """Get maintenance tasks for a farm area"""
     query = select(FarmAreaMaintenance).where(FarmAreaMaintenance.area_id == area_id)
 
@@ -637,7 +638,7 @@ async def complete_area_maintenance(
 
 
 @router.put("/maintenance/{task_id}/due-date", response_model=MaintenanceResponse)
-async def set_area_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db)):
+async def set_area_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db), user: User = Depends(require_edit("farm"))):
     """Set a manual due date for a maintenance task"""
     result = await db.execute(
         select(FarmAreaMaintenance).where(FarmAreaMaintenance.id == task_id)
@@ -674,7 +675,7 @@ async def set_area_maintenance_due_date(task_id: int, data: SetDueDateRequest, d
 
 
 @router.get("/{area_id}/logs", response_model=List[LogResponse])
-async def get_area_logs(area_id: int, db: AsyncSession = Depends(get_db)):
+async def get_area_logs(area_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("farm"))):
     """Get maintenance logs for a farm area"""
     result = await db.execute(
         select(FarmAreaMaintenanceLog)
@@ -696,6 +697,6 @@ async def get_area_logs(area_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/types/list")
-async def get_area_types():
+async def get_area_types(user: User = Depends(require_view("farm"))):
     """Get all farm area types"""
     return [{"value": t.value, "label": t.value.replace("_", " ").title()} for t in FarmAreaType]

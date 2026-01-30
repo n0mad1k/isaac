@@ -2,6 +2,22 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.53.0] - 2026-01-30
+
+### Security
+- **Authentication enforced on all API endpoints** - Added authentication requirements to ~149 previously unprotected endpoints across 11 router files
+  - production.py: 45 endpoints secured with role-based permissions (view/create/edit/delete)
+  - animals.py: 19 GET endpoints secured with require_view
+  - tasks.py: 13 endpoints secured with role-based permissions
+  - plants.py: 12 endpoints secured with role-based permissions
+  - equipment.py: 7 endpoints secured
+  - vehicles.py: 7 endpoints secured
+  - farm_areas.py: 6 endpoints secured
+  - home_maintenance.py: 6 endpoints secured
+  - seeds.py: 5 endpoints secured
+  - team.py: 2 photo-serving endpoints secured
+  - garden.py: 1 photo-serving endpoint secured
+
 ## [1.52.2] - 2026-01-30
 
 ### Fixed

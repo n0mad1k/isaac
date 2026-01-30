@@ -14,7 +14,7 @@ from models.database import get_db
 from models.home_maintenance import HomeMaintenance, HomeMaintenanceLog, DEFAULT_CATEGORIES, get_local_now
 from models.tasks import Task
 from models.users import User
-from services.permissions import require_create, require_edit, require_delete, require_interact
+from services.permissions import require_view, require_create, require_edit, require_delete, require_interact
 
 
 router = APIRouter(prefix="/home-maintenance", tags=["Home Maintenance"])
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/home-maintenance", tags=["Home Maintenance"])
 # ============================================
 
 @router.get("/categories/list")
-async def get_categories(db: AsyncSession = Depends(get_db)):
+async def get_categories(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("home"))):
     """Get all available categories (default + custom from existing tasks)"""
     # Get custom categories from existing tasks
     result = await db.execute(
@@ -47,7 +47,7 @@ async def get_categories(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/areas/list")
-async def get_areas(db: AsyncSession = Depends(get_db)):
+async def get_areas(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("home"))):
     """Get all unique area/appliance values from existing tasks"""
     result = await db.execute(
         select(HomeMaintenance.area_or_appliance)
@@ -141,7 +141,8 @@ async def get_all_maintenance(
     active_only: bool = True,
     limit: int = 500,
     offset: int = 0,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("home")),
 ):
     """Get all home maintenance tasks"""
     # Cap limit for DoS prevention
@@ -181,7 +182,7 @@ async def get_all_maintenance(
 
 
 @router.get("/{task_id}", response_model=MaintenanceResponse)
-async def get_maintenance(task_id: int, db: AsyncSession = Depends(get_db)):
+async def get_maintenance(task_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("home"))):
     """Get a specific maintenance task"""
     result = await db.execute(
         select(HomeMaintenance).where(HomeMaintenance.id == task_id)
@@ -404,7 +405,7 @@ async def complete_maintenance(
 
 
 @router.put("/{task_id}/due-date", response_model=MaintenanceResponse)
-async def set_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db)):
+async def set_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db), user: User = Depends(require_edit("home"))):
     """Set a manual due date for a maintenance task"""
     result = await db.execute(
         select(HomeMaintenance).where(HomeMaintenance.id == task_id)
@@ -441,7 +442,7 @@ async def set_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: As
 
 
 @router.get("/{task_id}/logs", response_model=List[LogResponse])
-async def get_maintenance_logs(task_id: int, db: AsyncSession = Depends(get_db)):
+async def get_maintenance_logs(task_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("home"))):
     """Get logs for a maintenance task"""
     result = await db.execute(
         select(HomeMaintenanceLog)

@@ -18,7 +18,7 @@ from models.database import get_db
 from models.plants import Plant, PlantCareLog, Tag, GrowthRate, SunRequirement, MoisturePreference
 from models.weather import WeatherReading
 from models.users import User
-from services.permissions import require_create, require_edit, require_delete, require_interact
+from services.permissions import require_view, require_create, require_edit, require_delete, require_interact
 from services.auto_reminders import delete_reminder
 from services.plant_import import plant_import_service
 from loguru import logger
@@ -364,6 +364,7 @@ async def list_plants(
     limit: int = 500,
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("plants")),
 ):
     """List all plants with optional filtering"""
     # Cap limit for DoS prevention
@@ -448,7 +449,7 @@ async def create_plant(
 
 
 @router.get("/tags/")
-async def list_tags(db: AsyncSession = Depends(get_db)):
+async def list_tags(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("plants"))):
     """Get all available tags"""
     result = await db.execute(select(Tag).order_by(Tag.name))
     return result.scalars().all()
@@ -481,7 +482,7 @@ class PlantImportPreview(BaseModel):
 
 
 @router.get("/import/search/")
-async def search_plant_import(q: str = Query(..., min_length=2, description="Plant name to search for")):
+async def search_plant_import(q: str = Query(..., min_length=2, description="Plant name to search for"), user: User = Depends(require_view("plants"))):
     """
     Search for plants on PictureThis to get importable URLs.
     Returns a list of matching plants with their wiki URLs.
@@ -523,7 +524,7 @@ async def search_plant_import(q: str = Query(..., min_length=2, description="Pla
 
 
 @router.post("/import/preview/")
-async def preview_plant_import(request: PlantImportRequest):
+async def preview_plant_import(request: PlantImportRequest, user: User = Depends(require_view("plants"))):
     """
     Preview plant data from a URL before importing.
     Supports pfaf.org and permapeople.org URLs.
@@ -736,7 +737,7 @@ async def start_from_seed(
 # ============================================
 
 @router.get("/photos/{filename}")
-async def get_plant_photo(filename: str):
+async def get_plant_photo(filename: str, user: User = Depends(require_view("plants"))):
     """Serve a plant photo file"""
     filepath = os.path.join(PLANT_PHOTO_DIR, filename)
     if not os.path.exists(filepath):
@@ -832,6 +833,7 @@ async def delete_plant_photo(
 async def get_water_overview(
     days: int = Query(7, ge=1, le=90),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("plants")),
 ):
     """
     Get comprehensive water overview for all plants.
@@ -993,7 +995,7 @@ async def get_water_overview(
 
 
 @router.get("/{plant_id}/")
-async def get_plant(plant_id: int, db: AsyncSession = Depends(get_db)):
+async def get_plant(plant_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("plants"))):
     """Get a specific plant by ID"""
     result = await db.execute(
         select(Plant).options(selectinload(Plant.tags)).where(Plant.id == plant_id)
@@ -1075,6 +1077,7 @@ async def get_care_logs(
     care_type: Optional[str] = None,
     limit: int = Query(default=50, le=200),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("plants")),
 ):
     """Get care logs for a plant"""
     query = select(PlantCareLog).where(PlantCareLog.plant_id == plant_id)
@@ -1130,7 +1133,7 @@ async def add_care_log(
 
 
 @router.get("/frost-sensitive/list/")
-async def get_frost_sensitive_plants(db: AsyncSession = Depends(get_db)):
+async def get_frost_sensitive_plants(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("plants"))):
     """Get all frost-sensitive plants (for weather alerts)"""
     result = await db.execute(
         select(Plant)
@@ -1144,7 +1147,7 @@ async def get_frost_sensitive_plants(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/needs-water/today/")
-async def get_plants_needing_water(db: AsyncSession = Depends(get_db)):
+async def get_plants_needing_water(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("plants"))):
     """Get plants that need watering today"""
     result = await db.execute(
         select(Plant)
@@ -1167,7 +1170,7 @@ async def get_plants_needing_water(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/needs-fertilizer/today/")
-async def get_plants_needing_fertilizer(db: AsyncSession = Depends(get_db)):
+async def get_plants_needing_fertilizer(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("plants"))):
     """Get plants that need fertilizing"""
     result = await db.execute(
         select(Plant)
@@ -1325,6 +1328,7 @@ async def water_plant(
 async def get_watering_history(
     plant_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("plants")),
 ):
     """
     Get watering history analysis for a plant.

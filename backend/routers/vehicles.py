@@ -14,7 +14,7 @@ from models.database import get_db
 from models.vehicles import Vehicle, VehicleMaintenance, VehicleMaintenanceLog, VehicleType, get_local_now
 from models.tasks import Task
 from models.users import User
-from services.permissions import require_create, require_edit, require_delete, require_interact
+from services.permissions import require_view, require_create, require_edit, require_delete, require_interact
 
 
 router = APIRouter(prefix="/vehicles", tags=["Vehicles"])
@@ -172,7 +172,8 @@ async def get_all_vehicles(
     active_only: bool = True,
     limit: int = 500,
     offset: int = 0,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("vehicles")),
 ):
     """Get all vehicles"""
     # Cap limit for DoS prevention
@@ -215,7 +216,7 @@ async def get_all_vehicles(
 
 
 @router.get("/{vehicle_id}", response_model=VehicleResponse)
-async def get_vehicle(vehicle_id: int, db: AsyncSession = Depends(get_db)):
+async def get_vehicle(vehicle_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("vehicles"))):
     """Get a specific vehicle"""
     result = await db.execute(
         select(Vehicle)
@@ -359,7 +360,7 @@ async def delete_vehicle(
 
 
 @router.put("/{vehicle_id}/mileage")
-async def update_mileage(vehicle_id: int, mileage: int, hours: Optional[int] = None, db: AsyncSession = Depends(get_db)):
+async def update_mileage(vehicle_id: int, mileage: int, hours: Optional[int] = None, db: AsyncSession = Depends(get_db), user: User = Depends(require_edit("vehicles"))):
     """Update vehicle mileage/hours"""
     result = await db.execute(
         select(Vehicle).where(Vehicle.id == vehicle_id)
@@ -379,7 +380,7 @@ async def update_mileage(vehicle_id: int, mileage: int, hours: Optional[int] = N
 
 # Maintenance Routes
 @router.get("/{vehicle_id}/maintenance", response_model=List[MaintenanceResponse])
-async def get_vehicle_maintenance(vehicle_id: int, active_only: bool = True, db: AsyncSession = Depends(get_db)):
+async def get_vehicle_maintenance(vehicle_id: int, active_only: bool = True, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("vehicles"))):
     """Get maintenance tasks for a vehicle"""
     query = select(VehicleMaintenance).where(VehicleMaintenance.vehicle_id == vehicle_id)
 
@@ -647,7 +648,7 @@ async def complete_vehicle_maintenance(
 
 
 @router.put("/maintenance/{task_id}/due-date", response_model=MaintenanceResponse)
-async def set_vehicle_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db)):
+async def set_vehicle_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db), user: User = Depends(require_edit("vehicles"))):
     """Set a manual due date for a maintenance task"""
     result = await db.execute(
         select(VehicleMaintenance).where(VehicleMaintenance.id == task_id)
@@ -687,7 +688,7 @@ async def set_vehicle_maintenance_due_date(task_id: int, data: SetDueDateRequest
 
 
 @router.get("/{vehicle_id}/logs", response_model=List[LogResponse])
-async def get_vehicle_logs(vehicle_id: int, db: AsyncSession = Depends(get_db)):
+async def get_vehicle_logs(vehicle_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("vehicles"))):
     """Get all maintenance logs for a vehicle"""
     result = await db.execute(
         select(VehicleMaintenanceLog)
@@ -711,6 +712,6 @@ async def get_vehicle_logs(vehicle_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/types/list")
-async def get_vehicle_types():
+async def get_vehicle_types(user: User = Depends(require_view("vehicles"))):
     """Get all available vehicle types"""
     return [{"value": t.value, "label": t.value.replace("_", " ").title()} for t in VehicleType]

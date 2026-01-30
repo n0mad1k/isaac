@@ -918,7 +918,7 @@ UPLOAD_DIR = "data/team_photos"
 
 
 @router.get("/photos/{filename}")
-async def get_member_photo(filename: str):
+async def get_member_photo(filename: str, current_user: User = Depends(require_auth)):
     """Serve a member photo file"""
     filepath = os.path.join(UPLOAD_DIR, filename)
     if not os.path.exists(filepath):
@@ -1018,7 +1018,7 @@ LOGO_DIR = "data/team_logo"
 
 
 @router.get("/logo/{filename}")
-async def get_team_logo(filename: str):
+async def get_team_logo(filename: str, current_user: User = Depends(require_auth)):
     """Serve the team logo file"""
     filepath = os.path.join(LOGO_DIR, filename)
     if not os.path.exists(filepath):

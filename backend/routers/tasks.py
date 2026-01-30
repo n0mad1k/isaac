@@ -544,6 +544,7 @@ async def list_tasks(
     limit: int = Query(default=500, le=1000),
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("tasks")),
 ):
     """List all tasks with optional filtering.
 
@@ -629,7 +630,7 @@ async def create_task(
 
 
 @router.get("/today/", response_model=List[TaskResponse])
-async def get_todays_tasks(db: AsyncSession = Depends(get_db)):
+async def get_todays_tasks(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("tasks"))):
     """Get all tasks due today (excludes worker-assigned tasks)"""
     today = date.today()
     result = await db.execute(
@@ -646,6 +647,7 @@ async def get_todays_tasks(db: AsyncSession = Depends(get_db)):
 async def get_upcoming_tasks(
     days: int = Query(default=7, le=90),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("tasks")),
 ):
     """Get tasks due in the next X days (excludes worker-assigned tasks)"""
     today = date.today()
@@ -663,7 +665,7 @@ async def get_upcoming_tasks(
 
 
 @router.get("/overdue/", response_model=List[TaskResponse])
-async def get_overdue_tasks(db: AsyncSession = Depends(get_db)):
+async def get_overdue_tasks(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("tasks"))):
     """Get all overdue tasks (includes tasks with past due_time today, excludes worker-assigned tasks)"""
     today = date.today()
     now_time = datetime.now().strftime("%H:%M")
@@ -690,7 +692,7 @@ async def get_overdue_tasks(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/metrics/")
-async def get_task_metrics(db: AsyncSession = Depends(get_db)):
+async def get_task_metrics(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("tasks"))):
     """Get productivity metrics for tasks"""
     from sqlalchemy import func
     from pytz import timezone
@@ -830,6 +832,7 @@ async def get_tasks_by_entity(
     entity_type: str,
     entity_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("tasks")),
 ):
     """Get all tasks linked to a specific entity"""
     entity_field_map = {
@@ -858,6 +861,7 @@ async def get_calendar_tasks(
     start_date: date,
     end_date: date,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("tasks")),
 ):
     """Get tasks for a date range (for calendar view, excludes worker-assigned tasks)"""
     result = await db.execute(
@@ -872,7 +876,7 @@ async def get_calendar_tasks(
 
 
 @router.get("/{task_id}/", response_model=TaskResponse)
-async def get_task(task_id: int, db: AsyncSession = Depends(get_db)):
+async def get_task(task_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("tasks"))):
     """Get a specific task by ID"""
     result = await db.execute(select(Task).where(Task.id == task_id))
     task = result.scalar_one_or_none()
@@ -1192,7 +1196,7 @@ async def edit_task_occurrence(
 
 
 @router.post("/setup-maintenance/")
-async def setup_florida_maintenance_tasks(db: AsyncSession = Depends(get_db)):
+async def setup_florida_maintenance_tasks(db: AsyncSession = Depends(get_db), user: User = Depends(require_create("tasks"))):
     """Initialize Florida home maintenance tasks"""
     created = 0
     today = date.today()
@@ -1238,6 +1242,7 @@ async def get_tasks_by_category(
     category: TaskCategory,
     include_completed: bool = False,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("tasks")),
 ):
     """Get all tasks in a category"""
     query = select(Task).where(Task.category == category).where(Task.is_active == True)
@@ -1252,7 +1257,7 @@ async def get_tasks_by_category(
 
 # CalDAV Sync
 @router.get("/caldav/status/")
-async def get_caldav_status(db: AsyncSession = Depends(get_db)):
+async def get_caldav_status(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("tasks"))):
     """Get CalDAV sync status"""
     caldav_service = await get_calendar_service(db)
     if caldav_service is None:
@@ -1270,7 +1275,7 @@ async def get_caldav_status(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/caldav/sync/")
-async def sync_tasks_to_caldav(db: AsyncSession = Depends(get_db)):
+async def sync_tasks_to_caldav(db: AsyncSession = Depends(get_db), user: User = Depends(require_create("tasks"))):
     """Sync all active tasks to CalDAV calendar"""
     caldav_service = await get_calendar_service(db)
     if not caldav_service:
@@ -1292,7 +1297,7 @@ async def sync_tasks_to_caldav(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/caldav/sync/{task_id}/")
-async def sync_single_task(task_id: int, db: AsyncSession = Depends(get_db)):
+async def sync_single_task(task_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_create("tasks"))):
     """Sync a single task to CalDAV"""
     caldav_service = await get_calendar_service(db)
     if not caldav_service:

@@ -14,7 +14,7 @@ from models.database import get_db
 from models.equipment import Equipment, EquipmentMaintenance, EquipmentMaintenanceLog, EquipmentType, get_local_now
 from models.tasks import Task
 from models.users import User
-from services.permissions import require_create, require_edit, require_delete, require_interact
+from services.permissions import require_view, require_create, require_edit, require_delete, require_interact
 
 
 router = APIRouter(prefix="/equipment", tags=["Equipment"])
@@ -164,7 +164,8 @@ async def get_all_equipment(
     active_only: bool = True,
     limit: int = 500,
     offset: int = 0,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("equipment")),
 ):
     """Get all equipment"""
     # Cap limit for DoS prevention
@@ -208,7 +209,7 @@ async def get_all_equipment(
 
 
 @router.get("/{equipment_id}", response_model=EquipmentResponse)
-async def get_equipment(equipment_id: int, db: AsyncSession = Depends(get_db)):
+async def get_equipment(equipment_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("equipment"))):
     """Get specific equipment"""
     result = await db.execute(
         select(Equipment)
@@ -355,7 +356,7 @@ async def delete_equipment(
 
 
 @router.put("/{equipment_id}/hours")
-async def update_hours(equipment_id: int, hours: int, db: AsyncSession = Depends(get_db)):
+async def update_hours(equipment_id: int, hours: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_edit("equipment"))):
     """Update equipment hours"""
     result = await db.execute(
         select(Equipment).where(Equipment.id == equipment_id)
@@ -373,7 +374,7 @@ async def update_hours(equipment_id: int, hours: int, db: AsyncSession = Depends
 
 # Maintenance Routes
 @router.get("/{equipment_id}/maintenance", response_model=List[MaintenanceResponse])
-async def get_equipment_maintenance(equipment_id: int, active_only: bool = True, db: AsyncSession = Depends(get_db)):
+async def get_equipment_maintenance(equipment_id: int, active_only: bool = True, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("equipment"))):
     """Get maintenance tasks for equipment"""
     query = select(EquipmentMaintenance).where(EquipmentMaintenance.equipment_id == equipment_id)
 
@@ -616,7 +617,7 @@ async def complete_equipment_maintenance(
 
 
 @router.put("/maintenance/{task_id}/due-date", response_model=MaintenanceResponse)
-async def set_equipment_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db)):
+async def set_equipment_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: AsyncSession = Depends(get_db), user: User = Depends(require_edit("equipment"))):
     """Set a manual due date for a maintenance task"""
     result = await db.execute(
         select(EquipmentMaintenance).where(EquipmentMaintenance.id == task_id)
@@ -653,7 +654,7 @@ async def set_equipment_maintenance_due_date(task_id: int, data: SetDueDateReque
 
 
 @router.get("/{equipment_id}/logs", response_model=List[LogResponse])
-async def get_equipment_logs(equipment_id: int, db: AsyncSession = Depends(get_db)):
+async def get_equipment_logs(equipment_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("equipment"))):
     """Get maintenance logs for equipment"""
     result = await db.execute(
         select(EquipmentMaintenanceLog)
@@ -676,6 +677,6 @@ async def get_equipment_logs(equipment_id: int, db: AsyncSession = Depends(get_d
 
 
 @router.get("/types/list")
-async def get_equipment_types():
+async def get_equipment_types(user: User = Depends(require_view("equipment"))):
     """Get all equipment types"""
     return [{"value": t.value, "label": t.value.replace("_", " ").title()} for t in EquipmentType]

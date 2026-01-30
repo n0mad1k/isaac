@@ -170,7 +170,7 @@ class SeedResponse(BaseModel):
 # ============================================
 
 @router.get("/photos/{filename}")
-async def get_seed_photo(filename: str):
+async def get_seed_photo(filename: str, user: User = Depends(require_view("seeds"))):
     """Serve a seed photo file"""
     filepath = os.path.join(SEED_PHOTO_DIR, filename)
     if not os.path.exists(filepath):
@@ -272,6 +272,7 @@ async def list_seeds(
     perennial: Optional[bool] = None,
     limit: int = Query(default=100, le=500),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("seeds")),
 ):
     """List all seeds with optional filtering"""
     query = select(Seed).where(Seed.is_active == True)
@@ -323,7 +324,7 @@ async def create_seed(
 
 
 @router.get("/categories/")
-async def get_categories():
+async def get_categories(user: User = Depends(require_view("seeds"))):
     """Get all seed categories with counts"""
     return {
         "categories": [
@@ -334,7 +335,7 @@ async def get_categories():
 
 
 @router.get("/stats/")
-async def get_seed_stats(db: AsyncSession = Depends(get_db)):
+async def get_seed_stats(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("seeds"))):
     """Get seed catalog statistics"""
     result = await db.execute(select(Seed).where(Seed.is_active == True))
     seeds = result.scalars().all()
@@ -364,7 +365,7 @@ async def get_seed_stats(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{seed_id}/", response_model=SeedResponse)
-async def get_seed(seed_id: int, db: AsyncSession = Depends(get_db)):
+async def get_seed(seed_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("seeds"))):
     """Get a specific seed by ID"""
     result = await db.execute(select(Seed).where(Seed.id == seed_id))
     seed = result.scalar_one_or_none()

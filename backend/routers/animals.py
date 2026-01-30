@@ -22,7 +22,7 @@ from models.database import get_db
 from models.livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, AnimalExpense, AnimalCareSchedule, AnimalFeed
 from models.settings import AppSetting
 from models.users import User
-from services.permissions import require_create, require_edit, require_delete, require_interact
+from services.permissions import require_view, require_create, require_edit, require_delete, require_interact
 from services.auto_reminders import (
     sync_all_animal_reminders,
     delete_reminder,
@@ -350,6 +350,7 @@ async def list_animals(
     limit: int = 500,
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """List all animals with optional filtering"""
     # Cap limit for DoS prevention
@@ -397,7 +398,7 @@ async def create_animal(
 
 
 @router.get("/{animal_id}")
-async def get_animal(animal_id: int, db: AsyncSession = Depends(get_db)):
+async def get_animal(animal_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("animals"))):
     """Get a specific animal by ID"""
     result = await db.execute(
         select(Animal).options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds), selectinload(Animal.farm_area)).where(Animal.id == animal_id)
@@ -473,6 +474,7 @@ async def get_expenses(
     expense_type: Optional[str] = None,
     limit: int = Query(default=100, le=500),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Get expenses for an animal"""
     query = select(AnimalExpense).where(AnimalExpense.animal_id == animal_id)
@@ -559,7 +561,7 @@ async def delete_expense(
 # ==================== Expense Receipt Routes ====================
 
 @router.get("/expenses/receipts/{filename}")
-async def get_expense_receipt(filename: str):
+async def get_expense_receipt(filename: str, user: User = Depends(require_view("animals"))):
     """Serve an expense receipt file"""
     filepath = os.path.join(RECEIPT_DIR, filename)
     if not os.path.exists(filepath):
@@ -651,6 +653,7 @@ async def delete_expense_receipt(
 async def export_expenses_csv(
     animal_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Export expenses for a single animal to CSV"""
     result = await db.execute(
@@ -690,6 +693,7 @@ async def export_expenses_csv(
 @router.get("/expenses/export/all/")
 async def export_all_expenses_csv(
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Export all animal expenses to CSV"""
     result = await db.execute(
@@ -742,7 +746,7 @@ async def export_all_expenses_csv(
 
 
 @router.get("/{animal_id}/expenses/total/")
-async def get_total_expenses(animal_id: int, db: AsyncSession = Depends(get_db)):
+async def get_total_expenses(animal_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("animals"))):
     """Get total expenses for an animal"""
     result = await db.execute(
         select(Animal).options(selectinload(Animal.expenses), selectinload(Animal.care_schedules), selectinload(Animal.feeds), selectinload(Animal.farm_area)).where(Animal.id == animal_id)
@@ -824,6 +828,7 @@ async def get_care_logs(
     care_type: Optional[str] = None,
     limit: int = Query(default=50, le=200),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Get care logs for an animal"""
     query = select(AnimalCareLog).where(AnimalCareLog.animal_id == animal_id)
@@ -886,7 +891,7 @@ async def add_care_log(
 
 # === Category-specific endpoints ===
 @router.get("/pets/list/")
-async def get_pets(db: AsyncSession = Depends(get_db)):
+async def get_pets(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("animals"))):
     """Get all pets"""
     result = await db.execute(
         select(Animal)
@@ -900,7 +905,7 @@ async def get_pets(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/livestock/list/")
-async def get_livestock(db: AsyncSession = Depends(get_db)):
+async def get_livestock(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("animals"))):
     """Get all livestock"""
     result = await db.execute(
         select(Animal)
@@ -918,6 +923,7 @@ async def get_livestock(db: AsyncSession = Depends(get_db)):
 async def get_animals_needing_worming(
     days: int = Query(default=14),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Get pets needing worming (due or overdue)"""
     result = await db.execute(
@@ -943,6 +949,7 @@ async def get_animals_needing_worming(
 async def get_animals_needing_vaccination(
     days: int = Query(default=30),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Get pets needing vaccination (due or overdue)"""
     result = await db.execute(
@@ -968,6 +975,7 @@ async def get_animals_needing_vaccination(
 async def get_animals_needing_hoof_trim(
     days: int = Query(default=14),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Get pets needing hoof trim (due or overdue)"""
     result = await db.execute(
@@ -993,6 +1001,7 @@ async def get_animals_needing_hoof_trim(
 async def get_animals_needing_dental(
     days: int = Query(default=30),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Get pets needing dental work (due or overdue)"""
     result = await db.execute(
@@ -1018,6 +1027,7 @@ async def get_animals_needing_dental(
 async def get_livestock_approaching_slaughter(
     days: int = Query(default=30),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Get livestock approaching slaughter date"""
     target_date = date.today() + timedelta(days=days)
@@ -1038,6 +1048,7 @@ async def get_livestock_approaching_slaughter(
 async def get_cold_sensitive_animals(
     temp: Optional[float] = None,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Get animals that need cold protection at a given temperature.
     If temp is provided, returns animals that need protection at that temp.
@@ -1065,6 +1076,7 @@ async def get_cold_sensitive_animals(
 async def get_animals_needing_blanket(
     temp: float = Query(..., description="Current/forecast temperature in F"),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Get animals that need a blanket at the given temperature (with buffer applied)"""
     # Get cold protection buffer from settings (same as plants use)
@@ -1095,6 +1107,7 @@ async def get_care_schedules(
     animal_id: int,
     include_inactive: bool = False,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("animals")),
 ):
     """Get care schedules for an animal"""
     query = select(AnimalCareSchedule).where(AnimalCareSchedule.animal_id == animal_id)
@@ -1314,7 +1327,7 @@ class FeedUpdate(BaseModel):
 
 
 @router.get("/{animal_id}/feeds/")
-async def get_animal_feeds(animal_id: int, db: AsyncSession = Depends(get_db)):
+async def get_animal_feeds(animal_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_view("animals"))):
     """Get all feeds for an animal"""
     result = await db.execute(
         select(Animal)

@@ -25,7 +25,7 @@ from models.expense import FarmExpense, ExpenseCategory, ExpenseScope
 from models.livestock import Animal, AnimalExpense
 from models.plants import Plant
 from models.users import User
-from services.permissions import require_create, require_edit, require_delete
+from services.permissions import require_view, require_create, require_edit, require_delete
 
 logger = logging.getLogger(__name__)
 
@@ -343,6 +343,7 @@ class HarvestAllocationResponse(BaseModel):
 async def get_production_stats(
     year: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """Get production statistics including sales and profit data"""
     # Livestock stats
@@ -442,6 +443,7 @@ async def list_livestock_production(
     animal_type: Optional[str] = None,
     limit: int = Query(default=100, le=500),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """List all livestock production records"""
     query = select(LivestockProduction)
@@ -462,6 +464,7 @@ async def list_livestock_production(
 async def archive_livestock(
     data: LivestockProductionCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Archive a livestock animal and create production record"""
     # Get the animal
@@ -517,6 +520,7 @@ async def archive_livestock(
 async def get_livestock_production(
     production_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """Get a specific livestock production record"""
     result = await db.execute(
@@ -533,6 +537,7 @@ async def update_livestock_production(
     production_id: int,
     updates: LivestockProductionUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
 ):
     """Update a livestock production record"""
     result = await db.execute(
@@ -559,6 +564,7 @@ async def update_livestock_production(
 async def delete_livestock_production(
     production_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("production")),
 ):
     """Delete a livestock production record"""
     result = await db.execute(
@@ -581,6 +587,7 @@ async def list_plant_harvests(
     plant_id: Optional[int] = None,
     limit: int = Query(default=100, le=500),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """List all plant harvest records"""
     query = select(PlantHarvest)
@@ -601,6 +608,7 @@ async def list_plant_harvests(
 async def record_plant_harvest(
     data: PlantHarvestCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Record a plant harvest"""
     # Get the plant
@@ -631,6 +639,7 @@ async def record_plant_harvest(
 async def get_plant_harvest(
     harvest_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """Get a specific plant harvest record"""
     result = await db.execute(
@@ -647,6 +656,7 @@ async def update_plant_harvest(
     harvest_id: int,
     updates: PlantHarvestUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
 ):
     """Update a plant harvest record"""
     result = await db.execute(
@@ -668,6 +678,7 @@ async def update_plant_harvest(
 async def delete_plant_harvest(
     harvest_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("production")),
 ):
     """Delete a plant harvest record"""
     result = await db.execute(
@@ -691,6 +702,7 @@ async def list_sales(
     category: Optional[SaleCategory] = None,
     limit: int = Query(default=100, le=500),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """List all sales records"""
     query = select(Sale)
@@ -711,6 +723,7 @@ async def list_sales(
 async def create_sale(
     data: SaleCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Create a new sale record"""
     # Calculate total price
@@ -741,6 +754,7 @@ async def create_sale(
 async def get_sale(
     sale_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """Get a specific sale record"""
     result = await db.execute(select(Sale).where(Sale.id == sale_id))
@@ -755,6 +769,7 @@ async def update_sale(
     sale_id: int,
     updates: SaleUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
 ):
     """Update a sale record"""
     result = await db.execute(select(Sale).where(Sale.id == sale_id))
@@ -778,6 +793,7 @@ async def update_sale(
 async def delete_sale(
     sale_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("production")),
 ):
     """Delete a sale record"""
     result = await db.execute(select(Sale).where(Sale.id == sale_id))
@@ -797,6 +813,7 @@ async def list_customers(
     active_only: bool = True,
     limit: int = Query(default=100, le=500),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """List all customers"""
     query = select(Customer)
@@ -811,6 +828,7 @@ async def list_customers(
 async def create_customer(
     data: CustomerCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Create a new customer"""
     customer = Customer(**data.model_dump())
@@ -824,6 +842,7 @@ async def create_customer(
 async def get_customer(
     customer_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """Get a specific customer"""
     result = await db.execute(select(Customer).where(Customer.id == customer_id))
@@ -838,6 +857,7 @@ async def update_customer(
     customer_id: int,
     updates: CustomerUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
 ):
     """Update a customer"""
     result = await db.execute(select(Customer).where(Customer.id == customer_id))
@@ -857,6 +877,7 @@ async def update_customer(
 async def delete_customer(
     customer_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("production")),
 ):
     """Delete a customer (soft delete - marks as inactive)"""
     result = await db.execute(select(Customer).where(Customer.id == customer_id))
@@ -878,6 +899,7 @@ async def list_orders(
     livestock_production_id: Optional[int] = None,
     limit: int = Query(default=100, le=500),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """List all livestock orders"""
     query = select(LivestockOrder)
@@ -913,6 +935,7 @@ async def list_orders(
 async def create_order(
     data: LivestockOrderCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Create a new livestock order"""
     # Get customer name if customer_id provided
@@ -951,6 +974,7 @@ async def create_order(
 async def get_order(
     order_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """Get a specific order with payments"""
     result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
@@ -974,6 +998,7 @@ async def update_order(
     order_id: int,
     updates: LivestockOrderUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
 ):
     """Update a livestock order"""
     result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
@@ -1021,6 +1046,7 @@ async def update_order(
 async def delete_order(
     order_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("production")),
 ):
     """Delete a livestock order"""
     result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
@@ -1040,6 +1066,7 @@ async def add_payment(
     order_id: int,
     data: OrderPaymentCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Add a payment to an order"""
     result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
@@ -1077,6 +1104,7 @@ async def delete_payment(
     order_id: int,
     payment_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("production")),
 ):
     """Delete a payment from an order"""
     result = await db.execute(
@@ -1107,6 +1135,7 @@ async def delete_payment(
 async def complete_order(
     order_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
 ):
     """Mark an order as completed"""
     result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
@@ -1124,6 +1153,7 @@ async def complete_order(
 async def send_order_receipt(
     order_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
 ):
     """Send a receipt email for an order to the customer"""
     from services.email import EmailService
@@ -1211,6 +1241,7 @@ async def send_order_receipt(
 async def list_livestock_allocations(
     production_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """List allocations for a livestock production record"""
     result = await db.execute(
@@ -1224,6 +1255,7 @@ async def create_livestock_allocation(
     production_id: int,
     data: ProductionAllocationCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Create an allocation for livestock production"""
     # Verify production exists
@@ -1264,6 +1296,7 @@ async def create_livestock_allocation(
 async def delete_allocation(
     allocation_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("production")),
 ):
     """Delete a production allocation"""
     result = await db.execute(
@@ -1284,6 +1317,7 @@ async def allocate_personal(
     percentage: float = Query(..., ge=0, le=100),
     notes: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Quick allocation for personal use"""
     prod_result = await db.execute(
@@ -1319,6 +1353,7 @@ async def allocate_personal(
 async def list_harvest_allocations(
     harvest_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """List allocations for a plant harvest"""
     result = await db.execute(
@@ -1332,6 +1367,7 @@ async def create_harvest_allocation(
     harvest_id: int,
     data: HarvestAllocationCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Create an allocation for a plant harvest"""
     # Verify harvest exists
@@ -1361,6 +1397,7 @@ async def create_harvest_allocation(
 async def delete_harvest_allocation(
     allocation_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("production")),
 ):
     """Delete a harvest allocation"""
     result = await db.execute(
@@ -1381,6 +1418,7 @@ async def allocate_consumed(
     quantity: float = Query(..., ge=0),
     notes: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Quick allocation for personal consumption"""
     harvest_result = await db.execute(
@@ -1461,6 +1499,7 @@ async def list_expenses(
     year: Optional[int] = None,
     limit: int = Query(default=200, le=500),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """List farm expenses with optional filters"""
     query = select(FarmExpense)
@@ -1481,6 +1520,7 @@ async def list_expenses(
 async def create_expense(
     data: ExpenseCreate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
 ):
     """Create a new farm expense"""
     expense = FarmExpense(
@@ -1506,6 +1546,7 @@ async def update_expense(
     expense_id: int,
     updates: ExpenseUpdate,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
 ):
     """Update a farm expense"""
     result = await db.execute(
@@ -1528,6 +1569,7 @@ async def update_expense(
 async def delete_expense(
     expense_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("production")),
 ):
     """Delete a farm expense"""
     result = await db.execute(
@@ -1545,7 +1587,7 @@ async def delete_expense(
 # ==================== Expense Receipt Routes ====================
 
 @router.get("/expenses/receipts/{filename}")
-async def get_expense_receipt(filename: str):
+async def get_expense_receipt(filename: str, user: User = Depends(require_view("production"))):
     """Serve an expense receipt file"""
     filepath = os.path.join(RECEIPT_DIR, filename)
     if not os.path.exists(filepath):
@@ -1641,6 +1683,7 @@ async def delete_expense_receipt(
 async def get_financial_summary(
     year: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """Get comprehensive financial summary"""
     # Get all livestock productions
@@ -1863,6 +1906,7 @@ async def get_financial_summary(
 @router.get("/outstanding-payments/")
 async def get_outstanding_payments(
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
 ):
     """Get orders with outstanding balances"""
     result = await db.execute(
