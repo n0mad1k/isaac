@@ -174,9 +174,9 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gray-800 px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="sticky top-0 bg-gray-800 px-4 sm:px-6 py-4 border-b border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5 text-blue-400" />
             <h2 className="text-lg font-semibold text-white">Daily Check-in</h2>
@@ -186,7 +186,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4">
           {error && (
             <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-200 text-sm">
               {error}
@@ -238,7 +238,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
             />
             {vitalsExpanded && (
               <div className="p-4 pt-0 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-gray-400 mb-1">Resting HR (bpm)</label>
                     <input
@@ -280,7 +280,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs text-gray-400 mb-1">SpO2 (%)</label>
                     <input
@@ -338,7 +338,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                     className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs text-gray-400 mb-1">Waist (in)</label>
                     <input
@@ -404,7 +404,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                   color="green"
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-400 mb-1">Sleep Hours</label>
                     <input
@@ -517,7 +517,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-800 px-6 py-4 border-t border-gray-700 flex justify-end gap-2">
+        <div className="sticky bottom-0 bg-gray-800 px-4 sm:px-6 py-4 border-t border-gray-700 flex justify-end gap-2">
           <button
             onClick={onClose}
             className="px-4 py-2 text-gray-400 hover:text-white"

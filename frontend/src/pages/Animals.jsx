@@ -2161,7 +2161,7 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
             {schedule ? 'Edit Care Item' : 'Add Care Item'} {animalName && `for ${animalName}`}
@@ -2171,7 +2171,7 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Care Item Name *</label>
             <input
@@ -2206,7 +2206,7 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Manual Due Date</label>
               <input
@@ -2377,7 +2377,7 @@ function BulkCareScheduleModal({ animals, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-semibold">Add Care Item to Multiple Animals</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -2386,9 +2386,9 @@ function BulkCareScheduleModal({ animals, onClose, onSave }) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
-          <div className="p-4 space-y-4 flex-shrink-0">
+          <div className="p-4 sm:p-6 space-y-4 flex-shrink-0">
             {/* Care Item Details */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Care Item Name *</label>
                 <input
@@ -2413,7 +2413,7 @@ function BulkCareScheduleModal({ animals, onClose, onSave }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Due Time (optional)</label>
                 <input
@@ -2693,7 +2693,7 @@ function FeedsSection({ animal, onFeedsChange }) {
       {/* Add/Edit form */}
       {(showAddForm || editingFeedId) && (
         <div className="bg-gray-700/30 rounded-lg p-3 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Feed Type *</label>
               <input
@@ -2849,7 +2849,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-xl font-semibold">{isDuplicate ? 'Duplicate Animal' : (animal ? 'Edit Animal' : 'Add New Animal')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -2857,7 +2857,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
           {/* Category Selection */}
           <div>
             <label className="block text-sm text-gray-400 mb-2">Category *</label>
@@ -2894,7 +2894,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
           </div>
 
           {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Name *</label>
               <input
@@ -3401,7 +3401,7 @@ function ExpenseFormModal({ animalId, animalName, animals, onClose, onSave, onSp
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Add Expense for {animalName}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -3409,7 +3409,7 @@ function ExpenseFormModal({ animalId, animalName, animals, onClose, onSave, onSp
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Type *</label>
             <select
@@ -3427,7 +3427,7 @@ function ExpenseFormModal({ animalId, animalName, animals, onClose, onSave, onSp
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Total Amount ($) *</label>
               <input
@@ -3984,7 +3984,7 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-sm" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Edit {label}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -3992,7 +3992,7 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-2">Date</label>
             <input
@@ -4068,7 +4068,7 @@ function FeedFormModal({ feed, animalName, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
             {feed ? 'Edit Feed' : 'Add Feed'} {animalName && `for ${animalName}`}
@@ -4078,7 +4078,7 @@ function FeedFormModal({ feed, animalName, onClose, onSave }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Feed Type *</label>
             <input
@@ -4195,7 +4195,7 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -4211,7 +4211,7 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           {/* Summary */}
           <div className="bg-gray-700/50 rounded-lg p-3">
             <div className="text-sm text-gray-400 mb-1">Total Investment</div>
@@ -4221,7 +4221,7 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
           </div>
 
           {/* Slaughter Event */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Slaughter Date</label>
               <input
@@ -4262,7 +4262,7 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
           </div>
 
           {/* Pickup Event */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Pickup Date</label>
               <input
@@ -4324,7 +4324,7 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Live Weight (lbs)</label>
               <input

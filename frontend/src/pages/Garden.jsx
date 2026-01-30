@@ -575,7 +575,7 @@ function PlannerTab() {
       {/* Add Event Modal */}
       {showAddEvent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => { setShowAddEvent(null); setSuccessionMode(false) }}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">Add Planting Event</h3>
             <div className="space-y-3">
               <div>
@@ -606,7 +606,7 @@ function PlannerTab() {
 
               {successionMode && (
                 <div className="bg-gray-700/30 rounded-lg p-3 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs text-gray-400 mb-1">Every N weeks</label>
                       <select value={successionForm.interval_weeks} onChange={(e) => setSuccessionForm({ ...successionForm, interval_weeks: parseInt(e.target.value) })} className="w-full bg-gray-700 text-white px-2 py-1.5 rounded text-sm">
@@ -832,10 +832,10 @@ function JournalTab() {
       {/* Add/Edit Entry Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">{editingId ? 'Edit Entry' : 'New Journal Entry'}</h3>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-300 mb-1">Title</label>
                   <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" placeholder="Entry title..." />
@@ -849,7 +849,7 @@ function JournalTab() {
                 <label className="block text-sm text-gray-300 mb-1">Content</label>
                 <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" rows={5} placeholder="Your observations, notes, progress..." />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-300 mb-1">Link to Plant</label>
                   <select value={form.plant_id} onChange={(e) => setForm({ ...form, plant_id: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded">
@@ -958,7 +958,7 @@ function CompanionTab() {
               {selectedData.notes && (
                 <p className="text-sm text-gray-400 italic">{selectedData.notes}</p>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-4">
                   <h4 className="text-sm font-medium text-green-400 mb-2 flex items-center gap-1">
                     <Check className="w-4 h-4" /> Good Companions
@@ -1226,7 +1226,7 @@ function LayoutTab() {
                 {companions && (
                   <div className="bg-gray-800/50 rounded-lg p-3">
                     <h5 className="text-sm font-medium text-gray-400 mb-2">Companion Info</h5>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {companions.companions?.length > 0 && (
                         <div>
                           <span className="text-xs text-green-400">Good with:</span>
@@ -1263,7 +1263,7 @@ function LayoutTab() {
       {/* Add Bed Modal */}
       {showAddBed && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddBed(false)}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">New Garden Bed</h3>
             <div className="space-y-3">
               <div>
@@ -1276,7 +1276,7 @@ function LayoutTab() {
                   {BED_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-300 mb-1">Width (inches)</label>
                   <input type="number" value={bedForm.width_inches} onChange={(e) => setBedForm({ ...bedForm, width_inches: parseInt(e.target.value) || 48 })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" />
@@ -1298,7 +1298,7 @@ function LayoutTab() {
       {/* Add Planting Modal */}
       {showAddPlanting && selectedBed && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddPlanting(false)}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">Add Plant to {selectedBed.name}</h3>
             <div className="space-y-3">
               <div>
@@ -1316,7 +1316,7 @@ function LayoutTab() {
                   {plantList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-300 mb-1">Grid Row</label>
                   <input type="number" min="0" max={gridRows - 1} value={plantingForm.grid_row} onChange={(e) => setPlantingForm({ ...plantingForm, grid_row: parseInt(e.target.value) || 0 })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" />

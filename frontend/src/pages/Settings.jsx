@@ -1305,7 +1305,7 @@ function Settings() {
           {/* Password Reset Modal */}
           {resetPasswordUser && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm sm:max-w-md mx-4">
+              <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md mx-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Key className="w-5 h-5 text-yellow-400" />
                   Reset Password for {resetPasswordUser.username}
@@ -2670,7 +2670,7 @@ function Settings() {
                       {/* 24h Stats */}
                       <div className="bg-gray-700/50 rounded-lg p-4">
                         <h3 className="text-sm font-medium mb-3">Last 24 Hours</h3>
-                        <div className="grid grid-cols-3 gap-4 text-center">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                           <div>
                             <p className="text-2xl font-bold text-green-400">{healthSummary.last_24h?.uptime_percent || 0}%</p>
                             <p className="text-xs text-gray-400">Uptime</p>

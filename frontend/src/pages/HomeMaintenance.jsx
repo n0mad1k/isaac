@@ -303,7 +303,7 @@ function HomeMaintenance() {
       )}
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{tasks.length}</div>
           <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Total Tasks</div>
@@ -455,7 +455,7 @@ function HomeMaintenance() {
       {/* Add/Edit Form Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="rounded-lg p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+          <div className="rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
             <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>
               {editingTask ? 'Edit Task' : 'Add Maintenance Task'}
             </h2>
@@ -514,7 +514,7 @@ function HomeMaintenance() {
               </div>
               <div>
                 <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Category Icon</label>
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                   {Object.entries(AVAILABLE_ICONS).map(([name, config]) => {
                     const IconComponent = config.icon
                     const isSelected = formData.category_icon === name
@@ -691,7 +691,7 @@ function HomeMaintenance() {
       {/* Complete Modal */}
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="rounded-lg p-6 w-full max-w-sm sm:max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+          <div className="rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
             <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>Complete: {completeModal.name}</h2>
             <div className="space-y-4">
               <div>

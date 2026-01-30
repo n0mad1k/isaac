@@ -706,7 +706,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
       {/* Plant This Seed Modal */}
       {showPlantForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPlantForm(false)}>
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-1">Plant This Seed</h3>
             <p className="text-sm text-gray-400 mb-4">Create a new plant from <span className="text-green-400">{seed.name}</span></p>
             <div className="space-y-3">
@@ -1013,7 +1013,7 @@ function Seeds() {
       {/* Add Seed Modal (only for new seeds) */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-4">Add New Seed</h2>
             <form onSubmit={handleAddNew} className="space-y-4">
               {/* Basic Info */}

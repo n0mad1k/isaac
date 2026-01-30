@@ -138,12 +138,12 @@ export default function EventViewModal({ event, onClose, onEdit, onCompleted, on
         onClick={onClose}
       >
         <div
-          className="rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col"
+          className="rounded-xl w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] flex flex-col"
           style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-start justify-between p-5 pb-3" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+          <div className="flex items-start justify-between p-4 sm:p-5 pb-3" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
             <div className="flex-1 min-w-0 pr-3">
               <div className="flex items-center gap-2 mb-1">
                 {isTodo ? (
@@ -175,7 +175,7 @@ export default function EventViewModal({ event, onClose, onEdit, onCompleted, on
           </div>
 
           {/* Body - Scrollable */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
             {/* Date & Time */}
             {(event.due_date || event.due_time) && (
               <div className="flex items-start gap-3">

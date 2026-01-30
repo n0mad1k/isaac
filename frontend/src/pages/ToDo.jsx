@@ -432,7 +432,7 @@ function ToDo() {
                 <BarChart3 className="w-5 h-5 text-cyan-400" />
                 Completion Summary
               </h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <div className="text-2xl font-bold">{metrics.completed_today}</div>
                   <div className="text-sm text-gray-400">Today</div>
@@ -449,7 +449,7 @@ function ToDo() {
             </div>
 
             {/* Health Indicators */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className={`rounded-lg p-4 ${metrics.overdue_count > 0 ? 'bg-red-900/30 border border-red-500/50' : 'bg-green-900/30 border border-green-500/50'}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <AlertCircle className={`w-5 h-5 ${metrics.overdue_count > 0 ? 'text-red-400' : 'text-green-400'}`} />
@@ -646,7 +646,7 @@ function ToDo() {
       {/* Add/Edit To Do Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">
                 {editingTodo ? 'Edit To Do' : 'Add New To Do'}
@@ -680,7 +680,7 @@ function ToDo() {
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Category</label>
                   <select

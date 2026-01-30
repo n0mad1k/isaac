@@ -183,7 +183,7 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h2 className="text-lg font-semibold">
@@ -450,7 +450,7 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
           {/* Sizing Section */}
           {activeSection === 'sizing' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Blood Type</label>
                   <select
@@ -575,7 +575,7 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
               </div>
 
               {/* Dates */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Last Dental</label>
                   <input

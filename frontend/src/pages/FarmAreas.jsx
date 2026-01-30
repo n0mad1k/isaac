@@ -606,12 +606,12 @@ function FarmAreas() {
       {/* Add/Edit Area Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingArea ? 'Edit Area' : 'Add Farm Area'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Name</label>
                   <input
@@ -637,7 +637,7 @@ function FarmAreas() {
                   <p className="text-xs text-gray-500 mt-1">Create sub-location (e.g., House &gt; Bedroom)</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Type</label>
                   <select
@@ -662,7 +662,7 @@ function FarmAreas() {
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Size (acres)</label>
                   <input
@@ -693,7 +693,7 @@ function FarmAreas() {
                   placeholder="e.g., Behind the barn"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Soil Type</label>
                   <input
@@ -746,7 +746,7 @@ function FarmAreas() {
       {/* Add/Edit Maintenance Modal */}
       {showAddMaintenance && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingMaintenance ? 'Edit Maintenance Task' : 'Add Maintenance Task'}
             </h2>
@@ -889,7 +889,7 @@ function FarmAreas() {
       {/* Complete Modal */}
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md">
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
             <h2 className="text-xl font-bold mb-4">Complete: {completeModal.name}</h2>
             <div className="space-y-4">
               <div>

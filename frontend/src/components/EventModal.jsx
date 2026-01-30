@@ -46,7 +46,7 @@ export function RecurrenceChoiceModal({ action, onChoice, onCancel }) {
   const isDelete = action === 'delete'
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4" onClick={onCancel}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-sm p-5" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-sm p-4 sm:p-5" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2 mb-4">
           <Repeat className="w-5 h-5 text-cyan-400" />
           <h3 className="text-lg font-semibold text-white">
@@ -335,8 +335,8 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
       />
     )}
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 sm:p-6 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
           <h2 className="text-lg font-semibold">
             {event ? 'Edit' : 'Add'} {formData.task_type === 'event' ? 'Event' : 'Reminder'}
             {preselectedEntity && (
@@ -350,7 +350,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4" id="event-form">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4" id="event-form">
           {/* Type Toggle */}
           <div className="flex bg-gray-700 rounded-lg p-1">
             <button
@@ -492,7 +492,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
 
           {/* Time fields - only show if has date and not all day */}
           {(formData.task_type === 'event' || hasDate) && !isAllDay && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Start Time</label>
                 <input
@@ -526,7 +526,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Category</label>
               <select

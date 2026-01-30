@@ -477,7 +477,7 @@ function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent, 
             <div
               key={dateKey}
               onClick={() => onDayClick(day)}
-              className="h-20 p-2 rounded-lg border transition-colors cursor-pointer"
+              className="h-20 p-1 sm:p-2 rounded-lg border transition-colors cursor-pointer"
               style={{
                 borderColor: isSelected || isCurrentDay ? 'var(--color-green-600)' : 'var(--color-border-subtle)',
                 backgroundColor: isSelected ? 'var(--color-green-100)' : isCurrentDay ? 'var(--color-green-100)' : 'var(--color-bg-surface-soft)'
@@ -621,9 +621,9 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
   }
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+    <div className="rounded-xl overflow-hidden overflow-x-auto" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
       {/* Day Headers */}
-      <div className="grid grid-cols-8" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+      <div className="grid grid-cols-8 min-w-[800px]" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
         <div className="p-2 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>Time</div>
         {weekDays.map((day) => (
           <div
@@ -643,7 +643,7 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
       </div>
 
       {/* All-day events section */}
-      <div className="grid grid-cols-8 min-h-[40px]" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+      <div className="grid grid-cols-8 min-h-[40px] min-w-[800px]" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
         <div className="p-2 text-xs flex items-center justify-center" style={{ color: 'var(--color-text-muted)' }}>All day</div>
         {weekDays.map((day) => {
           const { allDay } = getEventsForDay(day)
@@ -673,10 +673,10 @@ function WeekView({ currentDate, currentTime, events, scrollRef, onEventClick, o
       {/* Time grid */}
       <div
         ref={scrollRef}
-        className="overflow-y-auto"
+        className="overflow-y-auto overflow-x-auto"
         style={{ maxHeight: 'calc(100vh - 350px)' }}
       >
-        <div className="grid grid-cols-8">
+        <div className="grid grid-cols-8 min-w-[800px]">
           {/* Time column */}
           <div style={{ borderRight: '1px solid var(--color-border-subtle)' }}>
             {HOURS.map((hour) => (
