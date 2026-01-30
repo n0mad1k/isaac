@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.65.5] - 2026-01-30
+
+### Fixed
+- **Monthly Budget half-month duplication** - Items added in one half no longer replicate to the other half
+  - Distributions, spending, and transfers now respect bill_day to show only in the correct half
+  - Day field shown for all item types so users can control which half an item appears in
+  - Items without a day (per-period) still show in both halves as expected
+  - Monthly totals, Account Overview, and person section calculations updated accordingly
+  - New items auto-assigned to the half they're added from
+
 ## [1.65.4] - 2026-01-30
 
 ### Fixed

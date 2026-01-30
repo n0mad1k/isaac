@@ -149,7 +149,8 @@ function MonthlyBudget() {
         if (addingTo.startsWith('dane')) owner = 'dane'
         else if (addingTo.startsWith('kelly')) owner = 'kelly'
 
-        if (type === 'bill' || type === 'payment_plan') {
+        // Set bill_day for all non-income types to control which half they appear in
+        if (type !== 'income') {
           if (addingTo.includes('first') && !bill_day) bill_day = 1
           else if (addingTo.includes('second') && !bill_day) bill_day = 15
         }
@@ -350,7 +351,7 @@ function MonthlyBudget() {
     if (addingTo !== sectionKey) return null
     const { type } = newLine
     const isBillType = type === 'bill' || type === 'payment_plan'
-    const showDay = isBillType || type === 'income'
+    const showDay = true // Show for all types; day controls which half the item appears in
     const showFreq = type === 'income'
     const showEndDate = isBillType
     const showBillingMonths = isBillType
@@ -452,8 +453,8 @@ function MonthlyBudget() {
   const secondHalfIncome = calcHalfIncome(activeIncome, false)
   const firstHalfBills = mainBillsFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
   const secondHalfBills = mainBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
-  const distPerHalf = distributions.reduce((s, c) => s + getPerPeriodAmount(c), 0)
-  const varPerHalf = variablePerHalf.reduce((s, c) => s + getPerPeriodAmount(c), 0)
+  // Monthly total: items without bill_day appear in both halves (amount * 2), items with bill_day are single-half
+  const calcMonthlyTotal = (items) => items.reduce((s, c) => s + (c.bill_day ? (c.budget_amount || 0) : (c.budget_amount || 0) * 2), 0)
   const daneBFirst = daneBillsFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
   const daneBSecond = daneBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
   const kellyBFirst = kellyBillsFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
@@ -462,8 +463,8 @@ function MonthlyBudget() {
   // Use backend expected_income for consistency with Overview tab
   const totalIncome = (firstHalf?.expected_income || 0) + (secondHalf?.expected_income || 0) || (firstHalfIncome + secondHalfIncome)
   const totalBills = firstHalfBills + secondHalfBills // Main bills only; Dane/Kelly funded by their transfers
-  const totalSpending = varPerHalf * 2
-  const totalDistributions = distPerHalf * 2
+  const totalSpending = calcMonthlyTotal(variablePerHalf)
+  const totalDistributions = calcMonthlyTotal(distributions)
   const totalOutgoing = totalBills + totalSpending + totalDistributions
   const surplus = totalIncome - totalOutgoing
 
@@ -521,9 +522,12 @@ function MonthlyBudget() {
   // Find the primary income account (first income source's account, typically Money Market)
   const primaryAccountId = activeIncome[0]?.account_id || accounts[0]?.id
 
+  // Helper: get monthly amount for transfer/variable categories (bill_day = single-half, no bill_day = both halves)
+  const getMonthlyAmt = (cat) => cat.bill_day ? (cat.budget_amount || 0) : (cat.budget_amount || 0) * 2
+
   // Transfers: money out of primary, money into destination
   transferCats.forEach(cat => {
-    const monthlyAmt = (cat.budget_amount || 0) * 2
+    const monthlyAmt = getMonthlyAmt(cat)
     if (monthlyAmt <= 0) return
     // Money out of primary account
     if (primaryAccountId && accountFlows[primaryAccountId]) {
@@ -541,7 +545,7 @@ function MonthlyBudget() {
   allActiveBills.forEach(cat => {
     let monthlyAmt
     if (cat.category_type === 'variable') {
-      monthlyAmt = (cat.budget_amount || 0) * 2
+      monthlyAmt = getMonthlyAmt(cat)
     } else {
       monthlyAmt = isPerPeriod(cat) ? (cat.budget_amount || 0) * 2 : (cat.monthly_budget || 0)
     }
@@ -562,6 +566,11 @@ function MonthlyBudget() {
     const halfIncome = isFirst ? incomeFirst : incomeSecond
     const halfBills = isFirst ? mainBillsFirst : mainBillsSecond
     const sectionKey = isFirst ? 'first' : 'second'
+
+    // Filter distributions and spending: show items without bill_day (per-period) in both halves,
+    // but items with bill_day only in the matching half
+    const halfDist = distributions.filter(c => !c.bill_day || (isFirst ? c.bill_day <= 14 : c.bill_day >= 15))
+    const halfVar = variablePerHalf.filter(c => !c.bill_day || (isFirst ? c.bill_day <= 14 : c.bill_day >= 15))
 
     return (
       <div className="rounded-xl overflow-hidden min-w-0" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
@@ -585,14 +594,14 @@ function MonthlyBudget() {
           </button>
         </div>
 
-        {distributions.length > 0 && (
+        {(halfDist.length > 0 || distributions.length > 0) && (
           <>
             <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(59, 130, 246, 0.08)', color: 'var(--color-text-primary)' }}>Distributions</div>
-            {distributions.map(cat => {
+            {halfDist.map(cat => {
               const amt = getPerPeriodAmount(cat)
               if (amt <= 0) return null
               const destAcct = cat.account_id ? (accounts.find(a => a.id === cat.account_id)?.name || 'Unknown') : getTransferDest(cat)
-              return lineRow('category', cat.id, null, `Move To ${cat.name}`, amt, destAcct, false, true)
+              return lineRow('category', cat.id, cat.bill_day, `Move To ${cat.name}`, amt, destAcct, false, true)
             })}
             {addForm(`${sectionKey}-dist`)}
             <div className="flex justify-end px-2 py-0.5">
@@ -604,13 +613,13 @@ function MonthlyBudget() {
           </>
         )}
 
-        {variablePerHalf.length > 0 && (
+        {(halfVar.length > 0 || variablePerHalf.length > 0) && (
           <>
             <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(245, 158, 11, 0.08)', color: 'var(--color-text-primary)' }}>Spending</div>
-            {variablePerHalf.map(cat => {
+            {halfVar.map(cat => {
               const amt = getPerPeriodAmount(cat)
               if (amt <= 0) return null
-              return lineRow('category', cat.id, null, cat.name, amt, getAccountName(cat), false, true)
+              return lineRow('category', cat.id, cat.bill_day, cat.name, amt, getAccountName(cat), false, true)
             })}
             {addForm(`${sectionKey}-spending`)}
             <div className="flex justify-end px-2 py-0.5">
@@ -653,14 +662,18 @@ function MonthlyBudget() {
     // Find the person's spending account and transfers targeting it
     const personAcct = accounts.find(a => a.name.toLowerCase().includes(ownerKey))
     const personTransfers = transferCats.filter(c => c.account_id === personAcct?.id)
-    const depositPerHalf = personTransfers.reduce((s, c) => s + getPerPeriodAmount(c), 0)
 
-    const hasData = bFirst.length > 0 || bSecond.length > 0 || depositPerHalf > 0 || addingTo === `${ownerKey}-first` || addingTo === `${ownerKey}-second`
+    // Filter deposits by half: no bill_day = per-period (both halves), bill_day = specific half
+    const firstDeposits = personTransfers.filter(c => !c.bill_day || c.bill_day <= 14)
+    const secondDeposits = personTransfers.filter(c => !c.bill_day || c.bill_day >= 15)
+
+    const hasData = bFirst.length > 0 || bSecond.length > 0 || personTransfers.length > 0 || addingTo === `${ownerKey}-first` || addingTo === `${ownerKey}-second`
     if (!hasData) return null
 
     const firstBillTotal = bFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
     const secondBillTotal = bSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
-    const totalDeposits = depositPerHalf * 2
+    // Monthly total: per-period deposits count twice, single-half deposits count once
+    const totalDeposits = personTransfers.reduce((s, c) => s + (c.bill_day ? (c.budget_amount || 0) : (c.budget_amount || 0) * 2), 0)
     const totalBillsForPerson = firstBillTotal + secondBillTotal
     const net = totalDeposits - totalBillsForPerson
 
@@ -672,7 +685,7 @@ function MonthlyBudget() {
         {colHeader('#8b5cf6')}
 
         <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: 'var(--color-text-primary)' }}>1st - 14th</div>
-        {personTransfers.map(cat => lineRow('category', cat.id, null, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
+        {firstDeposits.map(cat => lineRow('category', cat.id, cat.bill_day, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bFirst.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {addForm(`${ownerKey}-first`)}
         <div className="flex justify-end px-2 py-0.5">
@@ -683,7 +696,7 @@ function MonthlyBudget() {
         </div>
 
         <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: 'var(--color-text-primary)' }}>15th - End</div>
-        {personTransfers.map(cat => lineRow('category', cat.id, null, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
+        {secondDeposits.map(cat => lineRow('category', cat.id, cat.bill_day, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bSecond.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {addForm(`${ownerKey}-second`)}
         <div className="flex justify-end px-2 py-0.5">
