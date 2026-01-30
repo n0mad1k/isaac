@@ -43,13 +43,14 @@ function BudgetWidget({ className = '' }) {
       {cats.map(cat => {
         const over = cat.spent > cat.budgeted
         const remaining = cat.budgeted - cat.spent
+        const color = over ? '#ef4444' : '#22c55e'
         return (
           <div
             key={cat.id}
-            className="flex items-center gap-1 text-xs font-mono leading-tight whitespace-nowrap"
-            style={{ color: over ? '#ef4444' : 'var(--color-text-muted)' }}
+            className="flex items-center gap-1 text-xs font-mono font-bold leading-tight whitespace-nowrap"
+            style={{ color }}
           >
-            <span className="font-sans" style={{ color: over ? '#ef4444' : 'var(--color-text-secondary)' }}>
+            <span className="font-sans font-semibold" style={{ color }}>
               {cat.name}:
             </span>
             <span>

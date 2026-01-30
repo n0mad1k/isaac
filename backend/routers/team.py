@@ -4207,7 +4207,7 @@ async def get_all_supply_requests(
 # ============================================
 
 def serialize_task_brief(task: Task):
-    """Serialize a task with minimal fields for member view"""
+    """Serialize a task with fields needed for member task view and edit form"""
     return {
         "id": task.id,
         "title": task.title,
@@ -4221,6 +4221,19 @@ def serialize_task_brief(task: Task):
         "category": task.category.value if task.category else None,
         "is_in_progress": task.is_in_progress,
         "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+        "location": task.location,
+        "recurrence": task.recurrence.value if task.recurrence else "once",
+        "recurrence_interval": task.recurrence_interval,
+        "visible_to_farmhands": task.visible_to_farmhands or False,
+        "reminder_alerts": task.reminder_alerts,
+        "assigned_to_member_id": task.assigned_to_member_id,
+        "assigned_member_ids": [m.id for m in task.assigned_members] if hasattr(task, 'assigned_members') and task.assigned_members else [],
+        "assigned_member_names": [m.nickname or m.name for m in task.assigned_members] if hasattr(task, 'assigned_members') and task.assigned_members else [],
+        "animal_id": task.animal_id,
+        "plant_id": task.plant_id,
+        "vehicle_id": task.vehicle_id,
+        "equipment_id": task.equipment_id,
+        "farm_area_id": task.farm_area_id,
     }
 
 

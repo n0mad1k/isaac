@@ -136,6 +136,9 @@ async def enrich_tasks_with_linked_fields(tasks: list, db: AsyncSession) -> list
             "is_blocked": task.is_blocked,
             "blocked_reason": task.blocked_reason,
             "completion_note": task.completion_note,
+            "visible_to_farmhands": task.visible_to_farmhands if hasattr(task, 'visible_to_farmhands') else False,
+            "recurrence_interval": task.recurrence_interval if hasattr(task, 'recurrence_interval') else None,
+            "reminder_alerts": task.reminder_alerts if hasattr(task, 'reminder_alerts') else None,
         }
         enriched.append(task_dict)
     return enriched
@@ -525,9 +528,15 @@ class TaskResponse(BaseModel):
     assigned_to_worker_id: Optional[int] = None
     assigned_to_user_id: Optional[int] = None
     assigned_to_member_id: Optional[int] = None
+    assigned_to_member_name: Optional[str] = None
+    assigned_member_ids: List[int] = []
+    assigned_member_names: List[str] = []
     is_blocked: bool = False
     blocked_reason: Optional[str] = None
     completion_note: Optional[str] = None
+    visible_to_farmhands: bool = False
+    recurrence_interval: Optional[int] = None
+    reminder_alerts: Optional[List[int]] = None
 
     class Config:
         from_attributes = True
@@ -640,7 +649,8 @@ async def get_todays_tasks(db: AsyncSession = Depends(get_db), user: User = Depe
         .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.priority, Task.due_time)
     )
-    return result.scalars().all()
+    tasks = result.scalars().all()
+    return await enrich_tasks_with_linked_fields(tasks, db)
 
 
 @router.get("/upcoming/", response_model=List[TaskResponse])
@@ -661,7 +671,8 @@ async def get_upcoming_tasks(
         .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.due_date, Task.priority)
     )
-    return result.scalars().all()
+    tasks = result.scalars().all()
+    return await enrich_tasks_with_linked_fields(tasks, db)
 
 
 @router.get("/overdue/", response_model=List[TaskResponse])
@@ -688,7 +699,8 @@ async def get_overdue_tasks(db: AsyncSession = Depends(get_db), user: User = Dep
         .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.due_date, Task.priority)
     )
-    return result.scalars().all()
+    tasks = result.scalars().all()
+    return await enrich_tasks_with_linked_fields(tasks, db)
 
 
 @router.get("/metrics/")
@@ -872,7 +884,8 @@ async def get_calendar_tasks(
         .where(Task.assigned_to_worker_id.is_(None))
         .order_by(Task.due_date, Task.priority)
     )
-    return result.scalars().all()
+    tasks = result.scalars().all()
+    return await enrich_tasks_with_linked_fields(tasks, db)
 
 
 @router.get("/{task_id}/", response_model=TaskResponse)
