@@ -231,7 +231,7 @@ function MonthlyBudget() {
 
   const activeIncome = income.filter(i => i.is_active)
   const incomeFirst = activeIncome.filter(i => i.frequency === 'weekly' || i.frequency === 'biweekly' || !i.pay_day || i.pay_day <= 14)
-  const incomeSecond = activeIncome.filter(i => i.frequency === 'weekly' || i.frequency === 'biweekly' || (i.pay_day && i.pay_day >= 15))
+  const incomeSecond = activeIncome.filter(i => i.frequency === 'weekly' || i.frequency === 'biweekly' || i.frequency === 'semimonthly' || (i.pay_day && i.pay_day >= 15))
 
   const calcHalfIncome = (incomeList, isFirst) => {
     let total = 0
