@@ -1159,7 +1159,7 @@ async def get_period_summary(
             # - Half month, variable/transfer: use budget_amount (per-period budget)
             # - Half month, fixed bills with bill_day: use monthly_budget (bills are paid once/month)
             # - Half month, per-period fixed bills (no bill_day): use budget_amount
-            elif is_full_month:
+            if is_full_month:
                 if is_per_period and cat.category_type == CategoryType.FIXED:
                     budgeted = cat.budget_amount * 2
                 else:
