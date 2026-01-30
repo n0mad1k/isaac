@@ -71,9 +71,9 @@ function QuickAddWorkout({ members, onClose, onSuccess, defaultMemberId }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md">
+      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Dumbbell className="w-5 h-5 text-green-400" />
             <h2 className="text-lg font-semibold text-white">Log Workout</h2>
@@ -83,7 +83,7 @@ function QuickAddWorkout({ members, onClose, onSuccess, defaultMemberId }) {
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4">
           {error && (
             <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 text-red-200 text-sm">
               {error}
@@ -212,7 +212,7 @@ function QuickAddWorkout({ members, onClose, onSuccess, defaultMemberId }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-700 flex justify-end gap-2">
+        <div className="px-4 sm:px-6 py-4 border-t border-gray-700 flex justify-end gap-2">
           <button
             onClick={onClose}
             className="px-4 py-2 text-gray-400 hover:text-white"

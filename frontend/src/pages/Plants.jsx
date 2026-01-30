@@ -3172,7 +3172,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
             <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
               <h3 className="text-sm font-medium text-blue-300 mb-2">Select Fields to Import</h3>
               <p className="text-xs text-gray-400 mb-3">Check the fields you want to overwrite with imported data:</p>
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
                 {Object.keys(importedData).filter(key =>
                   importedData[key] !== null && importedData[key] !== undefined && importedData[key] !== '' && key !== 'tag_ids'
                 ).map(field => {
