@@ -32,10 +32,8 @@ import {
   Clipboard,
   FileText,
   Image,
-  Wallet,
 } from 'lucide-react'
 import MottoDisplay from '../components/MottoDisplay'
-import BudgetTab from '../components/budget/BudgetTab'
 import {
   getProductionStats,
   getLivestockProductions,
@@ -660,7 +658,6 @@ function FarmFinances() {
     { key: 'overview', label: 'Overview', icon: TrendingUp },
     { key: 'business', label: 'Business', icon: Briefcase },
     { key: 'homestead', label: 'Homestead', icon: Sprout },
-    { key: 'budget', label: 'Budget', icon: Wallet },
   ]
 
   // Filter expenses by scope for each tab
@@ -844,7 +841,6 @@ function FarmFinances() {
         />
       )}
 
-      {activeTab === 'budget' && <BudgetTab />}
 
       {/* Sale Modal */}
       {showSaleModal && (

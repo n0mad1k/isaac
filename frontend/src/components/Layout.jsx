@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Leaf, PawPrint, ListTodo, Calendar, Settings, Car, Wrench, Fence, Menu, X, LogOut, User, Bug, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard, UsersRound, DollarSign } from 'lucide-react'
+import { Home, Leaf, PawPrint, ListTodo, Calendar, Settings, Car, Wrench, Fence, Menu, X, LogOut, User, Bug, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard, UsersRound, DollarSign, Wallet } from 'lucide-react'
 import { getSettings, getVersionInfo, toggleKeyboard as toggleKeyboardApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import FloatingActionMenu from './FloatingActionMenu'
@@ -232,6 +232,7 @@ function Layout() {
     ...(pageToggles.calendar ? [{ to: '/calendar', icon: Calendar, label: 'Calendar' }] : []),
     ...(workerTasksEnabled ? [{ to: '/worker-tasks', icon: ClipboardList, label: 'Workers' }] : []),
     ...(teamEnabled ? [{ to: '/team', icon: UsersRound, label: 'Team' }] : []),
+    { to: '/budget', icon: Wallet, label: 'Budget' },
     ...(pageToggles.plants || pageToggles.seeds ? [{ to: '/garden', icon: Leaf, label: 'Garden' }] : []),
     ...(pageToggles.animals ? [{ to: '/animals', icon: PawPrint, label: 'Animals' }] : []),
     ...(pageToggles.home_maintenance ? [{ to: '/home-maintenance', icon: Home, label: 'Home' }] : []),
