@@ -183,6 +183,7 @@ function FarmFinances() {
   const [editingCustomer, setEditingCustomer] = useState(null)
   const [editingOrder, setEditingOrder] = useState(null)
   const [editingExpense, setEditingExpense] = useState(null)
+  const [pendingReceipt, setPendingReceipt] = useState(null)
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null)
   const [selectedProductionForAllocation, setSelectedProductionForAllocation] = useState(null)
   const [selectedHarvestForAllocation, setSelectedHarvestForAllocation] = useState(null)
@@ -525,14 +526,22 @@ function FarmFinances() {
       }
       if (editingExpense) {
         await updateExpense(editingExpense.id, data)
-        setShowExpenseModal(false)
-        setEditingExpense(null)
-        resetExpenseForm()
       } else {
         const resp = await createExpense(data)
-        // Keep modal open with saved expense so user can add receipt
-        setEditingExpense(resp.data)
+        if (pendingReceipt) {
+          const fd = new FormData()
+          fd.append('file', pendingReceipt)
+          try {
+            await uploadExpenseReceipt(resp.data.id, fd)
+          } catch (err) {
+            console.error('Failed to upload receipt:', err)
+          }
+          setPendingReceipt(null)
+        }
       }
+      setShowExpenseModal(false)
+      setEditingExpense(null)
+      resetExpenseForm()
       fetchData()
     } catch (error) {
       console.error('Failed to save expense:', error)
@@ -586,6 +595,7 @@ function FarmFinances() {
 
   const openExpenseModal = (defaultScope = 'business') => {
     setEditingExpense(null)
+    setPendingReceipt(null)
     setExpenseModalDefaultScope(defaultScope)
     setExpenseFormData({
       ...expenseFormData,
@@ -939,8 +949,11 @@ function FarmFinances() {
           onClose={() => {
             setShowExpenseModal(false)
             setEditingExpense(null)
+            setPendingReceipt(null)
             resetExpenseForm()
           }}
+          pendingReceipt={pendingReceipt}
+          setPendingReceipt={setPendingReceipt}
           formatCurrency={formatCurrency}
           onReceiptChange={async () => {
             await fetchData()
@@ -2063,7 +2076,7 @@ function HarvestAllocationModal({ harvest, formData, setFormData, onSubmit, onCl
   )
 }
 
-function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, formatCurrency, onReceiptChange }) {
+function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, formatCurrency, onReceiptChange, pendingReceipt, setPendingReceipt }) {
   const [uploading, setUploading] = useState(false)
   const fileInputRef = React.useRef(null)
 
@@ -2271,10 +2284,10 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
           </div>
 
           {/* Receipt Section */}
-          {editing?.id ? (
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Receipt</label>
-              {receiptUrl ? (
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Receipt</label>
+            {editing?.id ? (
+              receiptUrl ? (
                 <div className="space-y-2">
                   <div className="bg-gray-700 rounded-lg p-3">
                     {isPdf ? (
@@ -2316,11 +2329,59 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
                     <Clipboard className="w-4 h-4" /> Paste
                   </button>
                 </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-500 italic">Save the expense first, then add a receipt.</p>
-          )}
+              )
+            ) : (
+              pendingReceipt ? (
+                <div className="flex items-center gap-2 bg-gray-700 rounded-lg p-3">
+                  <Receipt className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <span className="text-sm text-gray-300 truncate flex-1">{pendingReceipt.name}</span>
+                  <button type="button" onClick={() => setPendingReceipt(null)}
+                    className="text-red-400 hover:text-red-300">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0]
+                      if (file) setPendingReceipt(file)
+                      e.target.value = ''
+                    }}
+                  />
+                  <button type="button" onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
+                    <Upload className="w-4 h-4" /> Upload
+                  </button>
+                  <button type="button" onClick={async () => {
+                    try {
+                      const clipboardItems = await navigator.clipboard.read()
+                      for (const item of clipboardItems) {
+                        for (const type of item.types) {
+                          if (type.startsWith('image/')) {
+                            const blob = await item.getType(type)
+                            const ext = type.split('/')[1] || 'png'
+                            setPendingReceipt(new File([blob], `pasted-receipt.${ext}`, { type }))
+                            return
+                          }
+                        }
+                      }
+                      alert('No image found in clipboard')
+                    } catch (err) {
+                      alert('Could not read clipboard. Try uploading instead.')
+                    }
+                  }}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
+                    <Clipboard className="w-4 h-4" /> Paste
+                  </button>
+                </div>
+              )
+            )}
+          </div>
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>

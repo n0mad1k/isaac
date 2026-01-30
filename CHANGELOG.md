@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.65.8] - 2026-01-30
+
+### Fixed
+- **Receipt upload during expense creation** - Receipt upload/paste buttons now appear when adding a new farm expense, not just when editing
+  - Select or paste a receipt image/PDF while creating the expense
+  - Receipt auto-uploads when the expense is saved
+  - Selected file shown with name and remove button before saving
+  - Editing existing expenses still supports immediate upload/paste/delete as before
+
 ## [1.65.7] - 2026-01-30
 
 ### Fixed
