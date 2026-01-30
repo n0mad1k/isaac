@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.65.6] - 2026-01-30
+
+### Fixed
+- **Health monitor expandable logs** - Health log entries are now clickable to expand and see all individual checks
+  - Each expanded entry shows all 6 checks (API, Database, CalDAV, Memory, Disk, CPU) with status, values, and messages
+  - Issues highlighted with colored backgrounds for quick identification
+  - Collapsed entries show issue count badge for non-healthy entries
+  - Fixed CSS border coloring bug on warning/critical check cards in Current Status
+
 ## [1.65.5] - 2026-01-30
 
 ### Fixed
