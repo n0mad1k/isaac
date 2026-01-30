@@ -167,14 +167,14 @@ function BudgetOverview() {
                 <TrendingDown className="w-4 h-4" style={{ color: '#ef4444' }} />
                 <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Bills</span>
               </div>
-              <div className="text-lg font-bold" style={{ color: '#ef4444' }}>{fmt(billsTotal)}</div>
+              <div className="text-lg font-bold" style={{ color: '#ef4444' }}>{fmt(billsBudgeted)}</div>
             </div>
             <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
               <div className="flex items-center gap-2 mb-1">
                 <DollarSign className="w-4 h-4" style={{ color: '#f59e0b' }} />
                 <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Spending</span>
               </div>
-              <div className="text-lg font-bold" style={{ color: '#f59e0b' }}>{fmt(spendingTotal)}</div>
+              <div className="text-lg font-bold" style={{ color: '#f59e0b' }}>{fmt(spendingBudgeted)}</div>
             </div>
             <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
               <div className="flex items-center gap-2 mb-1">
