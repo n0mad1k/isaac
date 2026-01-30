@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Receipt, Plus, Check, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Receipt, Plus, Check, X, Pencil } from 'lucide-react'
 import {
   getBudgetCategories, getBudgetPeriodSummary, getBudgetPayPeriods,
   getBudgetAccounts, updateBudgetCategory, createBudgetTransaction
@@ -220,10 +220,10 @@ function BillsSummary() {
                       <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
                       <button
                         onClick={() => startAddTxn(cat)}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-700 transition-opacity"
+                        className="p-0.5 rounded hover:bg-gray-700"
                         title="Add payment"
                       >
-                        <Plus className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
+                        <Plus className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
                       </button>
                     </div>
                     <div className="flex gap-4 items-center">
@@ -244,13 +244,15 @@ function BillsSummary() {
                           </button>
                         </span>
                       ) : (
-                        <span
-                          className="w-20 text-right text-xs cursor-pointer hover:underline"
-                          style={{ color: 'var(--color-text-muted)' }}
-                          onClick={() => startEditAmount(cat)}
-                          title="Click to edit amount"
-                        >
-                          {fmt(budgeted)}
+                        <span className="w-20 flex items-center justify-end gap-0.5 text-xs">
+                          <button
+                            onClick={() => startEditAmount(cat)}
+                            className="p-0.5 rounded hover:bg-gray-700"
+                            title="Edit amount"
+                          >
+                            <Pencil className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
+                          </button>
+                          <span style={{ color: 'var(--color-text-muted)' }}>{fmt(budgeted)}</span>
                         </span>
                       )}
                       <span className="w-16 text-right text-xs" style={{ color: spent > 0 ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>

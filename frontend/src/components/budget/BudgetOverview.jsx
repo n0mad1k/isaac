@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, Pencil } from 'lucide-react'
 import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories, updateBudgetCategory } from '../../services/api'
 
 function BudgetOverview() {
@@ -146,39 +146,46 @@ function BudgetOverview() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4" style={{ color: '#22c55e' }} />
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Income</span>
+      {/* Summary Cards - matches Excel: Income, Bills, Spending, Remaining */}
+      {summary && (() => {
+        const allCats = summary.categories || []
+        const fixedCatIdsAll = new Set(categories.filter(c => c.category_type === 'fixed').map(c => c.id))
+        const billsBudgeted = allCats.filter(c => fixedCatIdsAll.has(c.id)).reduce((s, c) => s + (c.budgeted || 0), 0)
+        const spendingBudgeted = allCats.filter(c => variableCatIds.has(c.id)).reduce((s, c) => s + (c.budgeted || 0), 0)
+        const remaining = summary.expected_income - billsBudgeted - spendingBudgeted
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="w-4 h-4" style={{ color: '#22c55e' }} />
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Income</span>
+              </div>
+              <div className="text-lg font-bold" style={{ color: '#22c55e' }}>{fmt(summary.expected_income)}</div>
             </div>
-            <div className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{fmt(summary.expected_income)}</div>
-          </div>
-          <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="w-4 h-4" style={{ color: '#ef4444' }} />
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Spent</span>
+            <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingDown className="w-4 h-4" style={{ color: '#ef4444' }} />
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Bills</span>
+              </div>
+              <div className="text-lg font-bold" style={{ color: '#ef4444' }}>{fmt(billsTotal)}</div>
             </div>
-            <div className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{fmt(summary.total_expenses)}</div>
-          </div>
-          <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="w-4 h-4" style={{ color: '#3b82f6' }} />
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Budgeted</span>
+            <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="w-4 h-4" style={{ color: '#f59e0b' }} />
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Spending</span>
+              </div>
+              <div className="text-lg font-bold" style={{ color: '#f59e0b' }}>{fmt(spendingTotal)}</div>
             </div>
-            <div className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{fmt(summary.total_budgeted)}</div>
-          </div>
-          <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              {summary.net >= 0 ? <TrendingUp className="w-4 h-4" style={{ color: '#22c55e' }} /> : <TrendingDown className="w-4 h-4" style={{ color: '#ef4444' }} />}
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Net</span>
+            <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+              <div className="flex items-center gap-2 mb-1">
+                {remaining >= 0 ? <TrendingUp className="w-4 h-4" style={{ color: '#22c55e' }} /> : <TrendingDown className="w-4 h-4" style={{ color: '#ef4444' }} />}
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Remaining</span>
+              </div>
+              <div className="text-lg font-bold" style={{ color: remaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remaining)}</div>
             </div>
-            <div className="text-lg font-bold" style={{ color: summary.net >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(summary.net)}</div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {summary && variableCats.length > 0 && (
         <>
@@ -237,16 +244,18 @@ function BudgetOverview() {
                         />
                       </span>
                     ) : (
-                      <span
-                        className="text-right cursor-pointer hover:underline"
-                        style={{ color: 'var(--color-text-primary)' }}
-                        onClick={() => {
-                          const fullCat = categories.find(c => c.id === cat.id)
-                          if (fullCat) startEditBudget(fullCat)
-                        }}
-                        title="Click to edit budget"
-                      >
-                        {fmt(cat.budgeted)}
+                      <span className="text-right flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => {
+                            const fullCat = categories.find(c => c.id === cat.id)
+                            if (fullCat) startEditBudget(fullCat)
+                          }}
+                          className="p-0.5 rounded hover:bg-gray-700"
+                          title="Edit budget"
+                        >
+                          <Pencil className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
+                        </button>
+                        <span style={{ color: 'var(--color-text-primary)' }}>{fmt(cat.budgeted)}</span>
                       </span>
                     )}
                     <span className="text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(cat.spent)}</span>

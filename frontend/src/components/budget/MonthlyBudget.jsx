@@ -153,14 +153,14 @@ function MonthlyBudget() {
         <div className="flex justify-between items-center py-1 px-2 text-xs group">
           <span className="flex-1 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
             {cat.name}
-            <button
-              onClick={() => startAddTxn(cat.id, periodKey)}
-              className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-700 transition-opacity"
-              title="Add transaction"
-            >
-              <Plus className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
-            </button>
           </span>
+          <button
+            onClick={() => startAddTxn(cat.id, periodKey)}
+            className="p-0.5 rounded hover:bg-gray-700 mr-1"
+            title="Add transaction"
+          >
+            <Plus className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
+          </button>
           {isEditing ? (
             <span className="w-20 flex items-center gap-0.5">
               <input
@@ -178,13 +178,17 @@ function MonthlyBudget() {
               </button>
             </span>
           ) : (
-            <span
-              className="w-20 text-right cursor-pointer hover:underline"
-              style={{ color: 'var(--color-text-muted)' }}
-              onClick={() => startEditBudget(cat)}
-              title="Click to edit budget"
-            >
-              {fmt(data.budgeted)}
+            <span className="w-20 flex items-center justify-end gap-0.5">
+              <button
+                onClick={() => startEditBudget(cat)}
+                className="p-0.5 rounded hover:bg-gray-700"
+                title="Edit budget"
+              >
+                <Edit className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
+              </button>
+              <span className="text-right" style={{ color: 'var(--color-text-muted)' }}>
+                {fmt(data.budgeted)}
+              </span>
             </span>
           )}
           <span className="w-20 text-right" style={{ color: data.spent > 0 ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
@@ -326,11 +330,25 @@ function MonthlyBudget() {
     )
   }
 
-  // Monthly totals
+  // Monthly totals - broken down like Excel: Income, Bills, Spending, Remaining
   const monthIncome = (firstHalf?.expected_income || 0) + (secondHalf?.expected_income || 0)
-  const monthSpent = (firstHalf?.total_expenses || 0) + (secondHalf?.total_expenses || 0)
-  const monthBudgeted = (firstHalf?.total_budgeted || 0) + (secondHalf?.total_budgeted || 0)
-  const monthNet = monthIncome - monthSpent
+  let monthBills = 0, monthSpending = 0, monthSavings = 0
+  fixedCats.forEach(cat => {
+    const h1 = getCatData(firstHalf, cat.id)
+    const h2 = getCatData(secondHalf, cat.id)
+    monthBills += h1.budgeted + h2.budgeted
+  })
+  variableCats.forEach(cat => {
+    const h1 = getCatData(firstHalf, cat.id)
+    const h2 = getCatData(secondHalf, cat.id)
+    monthSpending += h1.budgeted + h2.budgeted
+  })
+  transferCats.forEach(cat => {
+    const h1 = getCatData(firstHalf, cat.id)
+    const h2 = getCatData(secondHalf, cat.id)
+    monthSavings += h1.budgeted + h2.budgeted
+  })
+  const monthRemaining = monthIncome - monthBills - monthSpending - monthSavings
 
   // Build money distribution data
   const buildDistribution = () => {
@@ -396,35 +414,35 @@ function MonthlyBudget() {
         </div>
       </div>
 
-      {/* Monthly Summary Cards */}
+      {/* Monthly Summary Cards - matches Excel: Income, Bills, Spending, Remaining */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp className="w-3.5 h-3.5" style={{ color: '#22c55e' }} />
             <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Money In</span>
           </div>
-          <span className="text-lg font-bold text-green-400">{fmt(monthIncome)}</span>
+          <span className="text-lg font-bold" style={{ color: '#22c55e' }}>{fmt(monthIncome)}</span>
         </div>
         <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingDown className="w-3.5 h-3.5" style={{ color: '#ef4444' }} />
-            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Money Out</span>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Bills</span>
           </div>
-          <span className="text-lg font-bold" style={{ color: '#ef4444' }}>{fmt(monthSpent)}</span>
+          <span className="text-lg font-bold" style={{ color: '#ef4444' }}>{fmt(monthBills)}</span>
         </div>
         <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-1.5 mb-1">
-            <DollarSign className="w-3.5 h-3.5" style={{ color: '#3b82f6' }} />
-            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Budgeted</span>
+            <DollarSign className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Spending</span>
           </div>
-          <span className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>{fmt(monthBudgeted)}</span>
+          <span className="text-lg font-bold" style={{ color: '#f59e0b' }}>{fmt(monthSpending)}</span>
         </div>
         <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-1.5 mb-1">
-            <DollarSign className="w-3.5 h-3.5" style={{ color: monthNet >= 0 ? '#22c55e' : '#ef4444' }} />
-            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Net</span>
+            <DollarSign className="w-3.5 h-3.5" style={{ color: monthRemaining >= 0 ? '#22c55e' : '#ef4444' }} />
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Remaining</span>
           </div>
-          <span className="text-lg font-bold" style={{ color: monthNet >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(monthNet)}</span>
+          <span className="text-lg font-bold" style={{ color: monthRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(monthRemaining)}</span>
         </div>
       </div>
 
