@@ -39,6 +39,13 @@ class TransactionSource(str, Enum):
     APP_EXPENSE = "app_expense"
 
 
+class IncomeFrequency(str, Enum):
+    WEEKLY = "weekly"
+    BIWEEKLY = "biweekly"
+    SEMIMONTHLY = "semimonthly"
+    MONTHLY = "monthly"
+
+
 class MatchType(str, Enum):
     CONTAINS = "contains"
     STARTS_WITH = "starts_with"
@@ -143,7 +150,8 @@ class BudgetIncome(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     amount = Column(Float, nullable=False)
-    pay_day = Column(Integer, nullable=False)  # Day of month (1 or 15)
+    frequency = Column(SQLEnum(IncomeFrequency), nullable=False, default=IncomeFrequency.MONTHLY)
+    pay_day = Column(Integer, nullable=False)  # Day of month for monthly/semimonthly, day of week (0=Mon..6=Sun) for weekly/biweekly
     account_id = Column(Integer, ForeignKey("budget_accounts.id"), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

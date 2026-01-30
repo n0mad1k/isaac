@@ -15,7 +15,7 @@ import logging
 from models.database import get_db
 from models.budget import (
     BudgetAccount, BudgetCategory, BudgetTransaction, BudgetCategoryRule, BudgetIncome,
-    AccountType, CategoryType, TransactionType, TransactionSource, MatchType
+    AccountType, CategoryType, TransactionType, TransactionSource, MatchType, IncomeFrequency
 )
 from models.users import User
 from services.permissions import require_view, require_create, require_edit, require_delete
@@ -177,14 +177,16 @@ class RuleResponse(BaseModel):
 class IncomeCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     amount: float = Field(..., gt=0)
-    pay_day: int = Field(..., ge=1, le=31)
+    frequency: IncomeFrequency = IncomeFrequency.MONTHLY
+    pay_day: int = Field(..., ge=0, le=31)
     account_id: int = Field(..., ge=1)
     is_active: bool = True
 
 class IncomeUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     amount: Optional[float] = Field(None, gt=0)
-    pay_day: Optional[int] = Field(None, ge=1, le=31)
+    frequency: Optional[IncomeFrequency] = None
+    pay_day: Optional[int] = Field(None, ge=0, le=31)
     account_id: Optional[int] = Field(None, ge=1)
     is_active: Optional[bool] = None
 
@@ -192,6 +194,7 @@ class IncomeResponse(BaseModel):
     id: int
     name: str
     amount: float
+    frequency: IncomeFrequency
     pay_day: int
     account_id: int
     account_name: Optional[str] = None
@@ -778,10 +781,12 @@ async def list_income(
 
         response = []
         for inc in income_sources:
+            freq = inc.frequency.value if inc.frequency else "monthly"
             item = {
                 "id": inc.id,
                 "name": inc.name,
                 "amount": inc.amount,
+                "frequency": freq,
                 "pay_day": inc.pay_day,
                 "account_id": inc.account_id,
                 "account_name": None,
@@ -813,10 +818,12 @@ async def create_income(
         await db.flush()
         await db.refresh(income)
 
+        freq = income.frequency.value if income.frequency else "monthly"
         item = {
             "id": income.id,
             "name": income.name,
             "amount": income.amount,
+            "frequency": freq,
             "pay_day": income.pay_day,
             "account_id": income.account_id,
             "account_name": None,
@@ -851,10 +858,12 @@ async def update_income(
         await db.flush()
         await db.refresh(income)
 
+        freq = income.frequency.value if income.frequency else "monthly"
         item = {
             "id": income.id,
             "name": income.name,
             "amount": income.amount,
+            "frequency": freq,
             "pay_day": income.pay_day,
             "account_id": income.account_id,
             "account_name": None,
@@ -897,6 +906,47 @@ async def delete_income(
 # ========================
 # Summary Endpoints
 # ========================
+
+def _count_weekday_in_range(start: date, end: date, weekday: int) -> int:
+    """Count occurrences of a specific weekday (0=Mon..6=Sun) in a date range (inclusive)"""
+    from datetime import timedelta
+    count = 0
+    # Jump to the first occurrence of the target weekday
+    d = start
+    days_ahead = weekday - d.weekday()
+    if days_ahead < 0:
+        days_ahead += 7
+    d = d + timedelta(days=days_ahead)
+    # Count from there, stepping by 7
+    while d <= end:
+        count += 1
+        d += timedelta(days=7)
+    return count
+
+
+def _calc_expected_income(income_defs, start: date, end: date) -> float:
+    """Calculate total expected income for a date range based on frequency"""
+    expected = 0.0
+    for inc in income_defs:
+        freq = inc.frequency if hasattr(inc, 'frequency') and inc.frequency else IncomeFrequency.MONTHLY
+        if freq == IncomeFrequency.WEEKLY:
+            # pay_day = day of week (0=Mon..6=Sun), count occurrences
+            occurrences = _count_weekday_in_range(start, end, inc.pay_day)
+            expected += inc.amount * occurrences
+        elif freq == IncomeFrequency.BIWEEKLY:
+            # Approximate: count weekday occurrences, divide by 2, round
+            occurrences = _count_weekday_in_range(start, end, inc.pay_day)
+            expected += inc.amount * (occurrences // 2 + (1 if occurrences % 2 and occurrences > 0 else 0))
+        elif freq == IncomeFrequency.SEMIMONTHLY:
+            # Paid twice a month (e.g., 1st and 15th)
+            if start.day <= inc.pay_day <= end.day:
+                expected += inc.amount
+        elif freq == IncomeFrequency.MONTHLY:
+            # Paid once per month on pay_day
+            if start.day <= inc.pay_day <= end.day:
+                expected += inc.amount
+    return expected
+
 
 def _get_pay_periods(year: int, month: int) -> list:
     """Get pay period date ranges for a given month (1st-14th, 15th-end)"""
@@ -1009,14 +1059,7 @@ async def get_period_summary(
         income_query = select(BudgetIncome).where(BudgetIncome.is_active == True)
         income_defs = (await db.execute(income_query)).scalars().all()
 
-        expected_income = 0.0
-        for inc in income_defs:
-            if is_full_month:
-                expected_income += inc.amount
-            else:
-                # Check if pay_day falls in this period
-                if start_date.day <= inc.pay_day <= end_date.day:
-                    expected_income += inc.amount
+        expected_income = _calc_expected_income(income_defs, start_date, end_date)
 
         return {
             "start_date": start_date.isoformat(),
@@ -1133,10 +1176,7 @@ async def get_dashboard_summary(
             select(BudgetIncome).where(BudgetIncome.is_active == True)
         )).scalars().all()
 
-        expected_income = 0.0
-        for inc in income_defs:
-            if start.day <= inc.pay_day <= end.day:
-                expected_income += inc.amount
+        expected_income = _calc_expected_income(income_defs, start, end)
 
         return {
             "period_label": current_period["label"],

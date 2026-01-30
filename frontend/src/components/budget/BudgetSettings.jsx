@@ -352,18 +352,35 @@ function CategoriesSection({ categories, onRefresh }) {
 // ============================
 // Income Section
 // ============================
+const FREQUENCY_OPTIONS = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Bi-Weekly' },
+  { value: 'semimonthly', label: 'Semi-Monthly' },
+  { value: 'monthly', label: 'Monthly' },
+]
+
+const DAY_OF_WEEK_OPTIONS = [
+  { value: '0', label: 'Monday' },
+  { value: '1', label: 'Tuesday' },
+  { value: '2', label: 'Wednesday' },
+  { value: '3', label: 'Thursday' },
+  { value: '4', label: 'Friday' },
+  { value: '5', label: 'Saturday' },
+  { value: '6', label: 'Sunday' },
+]
+
 function IncomeSection({ incomes, accounts, onRefresh }) {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ name: '', amount: '', pay_day: '1', account_id: '' })
+  const [form, setForm] = useState({ name: '', amount: '', frequency: 'monthly', pay_day: '1', account_id: '' })
 
   const resetForm = () => {
-    setForm({ name: '', amount: '', pay_day: '1', account_id: accounts.length > 0 ? String(accounts[0].id) : '' })
+    setForm({ name: '', amount: '', frequency: 'monthly', pay_day: '1', account_id: accounts.length > 0 ? String(accounts[0].id) : '' })
     setEditingId(null)
   }
 
   const handleEdit = (inc) => {
-    setForm({ name: inc.name, amount: String(inc.amount), pay_day: String(inc.pay_day), account_id: String(inc.account_id) })
+    setForm({ name: inc.name, amount: String(inc.amount), frequency: inc.frequency || 'monthly', pay_day: String(inc.pay_day), account_id: String(inc.account_id) })
     setEditingId(inc.id)
     setShowForm(true)
   }
@@ -397,6 +414,22 @@ function IncomeSection({ incomes, accounts, onRefresh }) {
 
   const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
 
+  const isWeeklyType = form.frequency === 'weekly' || form.frequency === 'biweekly'
+
+  const getFrequencyLabel = (freq) => {
+    const opt = FREQUENCY_OPTIONS.find(f => f.value === freq)
+    return opt ? opt.label : freq
+  }
+
+  const getPayDayLabel = (inc) => {
+    const freq = inc.frequency || 'monthly'
+    if (freq === 'weekly' || freq === 'biweekly') {
+      const dow = DAY_OF_WEEK_OPTIONS.find(d => d.value === String(inc.pay_day))
+      return dow ? dow.label : `Day ${inc.pay_day}`
+    }
+    return `Day ${inc.pay_day}`
+  }
+
   return (
     <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
       <div className="flex items-center justify-between mb-3">
@@ -412,10 +445,31 @@ function IncomeSection({ incomes, accounts, onRefresh }) {
             <input type="text" placeholder="Income Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
             <input type="number" step="0.01" placeholder="Amount" value={form.amount} onChange={(e) => setForm(p => ({ ...p, amount: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required />
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Pay Day</label>
-              <input type="number" min="1" max="31" value={form.pay_day} onChange={(e) => setForm(p => ({ ...p, pay_day: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required />
+              <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Frequency</label>
+              <select value={form.frequency} onChange={(e) => {
+                const freq = e.target.value
+                setForm(p => ({
+                  ...p,
+                  frequency: freq,
+                  pay_day: (freq === 'weekly' || freq === 'biweekly') ? '4' : '1'
+                }))
+              }} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                {FREQUENCY_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                {isWeeklyType ? 'Pay Day (Day of Week)' : 'Pay Day (Day of Month)'}
+              </label>
+              {isWeeklyType ? (
+                <select value={form.pay_day} onChange={(e) => setForm(p => ({ ...p, pay_day: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required>
+                  {DAY_OF_WEEK_OPTIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                </select>
+              ) : (
+                <input type="number" min="1" max="31" value={form.pay_day} onChange={(e) => setForm(p => ({ ...p, pay_day: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required />
+              )}
             </div>
             <div>
               <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Account</label>
@@ -438,8 +492,11 @@ function IncomeSection({ incomes, accounts, onRefresh }) {
             <div>
               <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{inc.name}</span>
               <span className="text-sm font-medium text-green-400 ml-2">{formatCurrency(inc.amount)}</span>
-              <span className="text-xs ml-2" style={{ color: 'var(--color-text-muted)' }}>
-                Day {inc.pay_day}{inc.account_name ? ` - ${inc.account_name}` : ''}
+              <span className="text-xs ml-2 px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+                {getFrequencyLabel(inc.frequency)}
+              </span>
+              <span className="text-xs ml-1" style={{ color: 'var(--color-text-muted)' }}>
+                {getPayDayLabel(inc)}{inc.account_name ? ` - ${inc.account_name}` : ''}
               </span>
             </div>
             <div className="flex gap-1">
