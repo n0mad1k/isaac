@@ -522,7 +522,7 @@ function Plants() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gray-800 rounded-xl p-4">
           <div className="text-2xl font-bold text-green-400">{stats.total}</div>
           <div className="text-sm text-gray-400">Total Plants</div>
@@ -582,7 +582,7 @@ function Plants() {
             </div>
 
             {/* Top summary cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-gray-700/50 rounded-lg p-3 text-center">
                 <div className="text-xl font-bold text-cyan-400">{waterOverview.rain?.total_inches || 0}"</div>
                 <div className="text-xs text-gray-400">Total Rain</div>
@@ -614,7 +614,7 @@ function Plants() {
                 <div className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1">
                   <CloudRain className="w-3.5 h-3.5" /> CURRENT RAIN
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <div><span className="text-gray-500">Rate:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_rate || 0} in/hr</span></div>
                   <div><span className="text-gray-500">Today:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_daily || 0}"</span></div>
                   <div><span className="text-gray-500">Week:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_weekly || 0}"</span></div>
@@ -628,7 +628,7 @@ function Plants() {
                   <Sprout className="w-3.5 h-3.5" /> SOIL MOISTURE
                 </div>
                 {waterOverview.soil_moisture ? (
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     {waterOverview.soil_moisture.map(s => (
                       <div key={s.sensor}>
                         <span className="text-gray-500">Sensor {s.sensor}:</span>{' '}
@@ -647,7 +647,7 @@ function Plants() {
             {/* Smart Watering Tracking */}
             <div className="bg-gray-700/30 rounded-lg p-3">
               <div className="text-xs font-semibold text-gray-300 mb-2">SMART WATERING TRACKING</div>
-              <div className="grid grid-cols-3 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                 <div>
                   <span className="text-gray-500">Rain-tracked:</span>{' '}
                   <span className="text-cyan-400">{waterOverview.plant_status?.rain_tracked || 0} plants</span>
@@ -1593,7 +1593,7 @@ function PlantCard({
             )}
 
             {/* Care Status Display */}
-            <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4 text-sm">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-cyan-400">
                   <Droplets className="w-4 h-4" />
@@ -1999,7 +1999,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           {/* Temperature & Tolerance */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Temperature & Tolerance</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Min Temp (°F)</label>
                 <input
@@ -2400,7 +2400,7 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-sm" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Edit {label}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -2493,7 +2493,7 @@ function HarvestFormModal({ plant, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -2634,7 +2634,7 @@ function SellPlantModal({ plant, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -2999,7 +2999,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
   if (step === 'fetch') {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-        <div className="bg-gray-800 rounded-xl w-full max-w-xl" onClick={e => e.stopPropagation()}>
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-xl" onClick={e => e.stopPropagation()}>
           <div className="p-4 border-b border-gray-700 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -3126,7 +3126,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
   // Edit step - full form with imported data
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold">
@@ -3355,7 +3355,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {/* Temperature & Tolerance */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Temperature & Tolerance</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Min Temp (°F)</label>
                 <input

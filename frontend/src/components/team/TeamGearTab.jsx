@@ -300,7 +300,7 @@ function TeamGearTab({ members, onRefresh }) {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-gray-700/50 rounded-lg p-3 text-center">
           <div className="text-2xl font-bold text-white">{gear.length}</div>
           <div className="text-xs text-gray-400">Total Items</div>
@@ -642,7 +642,7 @@ function GearFormModal({ gear, onClose, onSave, existingCategories = [] }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">
           {gear ? 'Edit Gear' : 'Add Gear'}
         </h3>
@@ -650,7 +650,7 @@ function GearFormModal({ gear, onClose, onSave, existingCategories = [] }) {
           <div className="bg-red-900/30 border border-red-700 rounded p-2 text-red-200 text-sm mb-4">{error}</div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm text-gray-400 mb-1">Name *</label>
               <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" />
@@ -727,7 +727,7 @@ function AssignGearModal({ gear, members, onClose, onAssign }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md">
+      <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
         <h3 className="text-lg font-semibold mb-4">{gear.member_id ? 'Reassign Gear' : 'Assign Gear'}</h3>
         <div className="mb-4">
           <div className="text-sm text-gray-400 mb-2">Gear Item:</div>
@@ -835,7 +835,7 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">{content ? 'Edit Content' : 'Add Content'}</h3>
         {error && <div className="bg-red-900/30 border border-red-700 rounded p-2 text-red-200 text-sm mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -843,7 +843,7 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
             <label className="block text-sm text-gray-400 mb-1">Item Name *</label>
             <input type="text" value={formData.item_name} onChange={(e) => setFormData({ ...formData, item_name: e.target.value })} required className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block text-sm text-gray-400 mb-1">Category</label><input type="text" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} placeholder="Medical, Food, etc." className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Status</label>
@@ -870,7 +870,7 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
 
           {/* Single Expiration Date */}
           {!trackIndividual && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><label className="block text-sm text-gray-400 mb-1">Expiration</label><input type="date" value={formData.expiration_date} onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
               <div><label className="block text-sm text-gray-400 mb-1">Alert Days</label><input type="number" value={formData.expiration_alert_days} onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
             </div>

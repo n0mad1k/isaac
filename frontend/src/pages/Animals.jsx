@@ -582,20 +582,20 @@ function Animals() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0" style={{ color: 'var(--color-text-primary)' }}>
           <PawPrint className="w-7 h-7" style={{ color: 'var(--color-teal-600)' }} />
           Animals
         </h1>
         <MottoDisplay />
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowBulkCareForm(true)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm"
             style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
           >
             <Calendar className="w-4 h-4" />
-            Bulk Care
+            <span className="hidden sm:inline">Bulk Care</span>
           </button>
           <button
             onClick={() => setShowSplitExpenseForm(true)}
@@ -603,7 +603,7 @@ function Animals() {
             style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
           >
             <DollarSign className="w-4 h-4" />
-            Split Expense
+            <span className="hidden sm:inline">Split Expense</span>
           </button>
           <a
             href={exportAllExpenses()}
@@ -611,7 +611,7 @@ function Animals() {
             style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
           >
             <Download className="w-4 h-4" />
-            Export All
+            <span className="hidden sm:inline">Export All</span>
           </a>
           <button
             onClick={() => { setEditingAnimal(null); setShowForm(true) }}
@@ -619,7 +619,7 @@ function Animals() {
             style={{ backgroundColor: 'var(--color-success-600)', color: '#ffffff' }}
           >
             <Plus className="w-5 h-5" />
-            Add Animal
+            <span className="hidden sm:inline">Add Animal</span>
           </button>
         </div>
       </div>
@@ -3813,7 +3813,7 @@ function SplitExpenseFormModal({ animals, onClose, onSave }) {
           {/* Animal Selection */}
           <div>
             <label className="block text-sm text-gray-400 mb-2">Select Animals *</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-900 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-900 rounded-lg">
               {animals.map(animal => {
                 const isSelected = selectedAnimals.find(a => a.id === animal.id)
                 return (

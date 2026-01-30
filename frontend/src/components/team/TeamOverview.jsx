@@ -142,7 +142,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
               <Calendar className="w-5 h-5 text-farm-green" />
               Upcoming Appointments (Next 30 Days)
             </h3>
-            <div className="bg-gray-700 rounded-lg overflow-hidden">
+            <div className="bg-gray-700 rounded-lg overflow-hidden overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-600">
@@ -221,7 +221,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
               <Target className="w-6 h-6 text-farm-green" />
               Core Values
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
               {settings.team_values.map((value, idx) => (
                 <div
                   key={idx}
@@ -290,7 +290,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
             <Calendar className="w-5 h-5 text-farm-green" />
             Upcoming Appointments (Next 30 Days)
           </h3>
-          <div className="bg-gray-700 rounded-lg overflow-hidden">
+          <div className="bg-gray-700 rounded-lg overflow-hidden overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-600">

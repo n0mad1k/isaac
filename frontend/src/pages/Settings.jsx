@@ -2790,7 +2790,7 @@ function Settings() {
 
       {/* Application Logs - Admin Only */}
       {isAdmin && (
-        <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+        <div className="rounded-xl p-4 sm:p-6" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('logs')}
@@ -2924,7 +2924,7 @@ function Settings() {
 
       {/* My Feedback */}
       {feedbackEnabled && (
-        <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+        <div className="rounded-xl p-4 sm:p-6" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('myFeedback')}
@@ -3177,7 +3177,7 @@ function Settings() {
       )}
 
       {/* Feedback & Support */}
-      <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+      <div className="rounded-xl p-4 sm:p-6" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
         <h2 className="text-lg font-semibold flex items-center gap-2 mb-4" style={{ color: 'var(--color-text-primary)' }}>
           <MessageSquare className="w-5 h-5 text-pink-400" />
           Feedback & Support
@@ -3221,7 +3221,7 @@ function Settings() {
       </div>
 
       {/* Version & Updates */}
-      <div className="bg-gray-800/50 rounded-xl p-6">
+      <div className="bg-gray-800/50 rounded-xl p-4 sm:p-6">
         <h3 className="font-medium text-white mb-4 flex items-center gap-2">
           <Server className="w-5 h-5 text-purple-400" />
           Version & Updates
@@ -3419,7 +3419,7 @@ function Settings() {
       </div>
 
       {/* Info */}
-      <div className="bg-gray-800/50 rounded-xl p-6 text-sm text-gray-400">
+      <div className="bg-gray-800/50 rounded-xl p-4 sm:p-6 text-sm text-gray-400">
         <h3 className="font-medium text-white mb-2">About Settings</h3>
         <ul className="list-disc list-inside space-y-1">
           <li>Make your changes, then click "Save Changes" to apply them</li>

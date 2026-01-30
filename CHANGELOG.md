@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.64.2] - 2026-01-30
+
+### Fixed
+- **Settings mobile responsiveness** - Settings page now works properly on mobile devices
+  - All modals use responsive max-width (95vw on mobile, standard on desktop)
+  - All section cards have reduced padding on mobile (p-4 instead of p-6)
+  - Health stats grid starts at 1 column on mobile
+  - Permission matrix table is horizontally scrollable
+  - Better space usage on small screens
+
 ## [1.64.1] - 2026-01-30
 
 ### Fixed
