@@ -131,7 +131,7 @@ function BudgetOverview() {
             <ChevronLeft className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
           </button>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Bi-Monthly Budget
+            Budget Overview
           </h3>
           <button onClick={goToNextMonth} className="p-1 rounded hover:bg-gray-700">
             <ChevronRight className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
@@ -194,7 +194,9 @@ function BudgetOverview() {
               <h4 className="text-sm font-semibold mb-3 text-center" style={{ color: 'var(--color-text-primary)' }}>
                 Budget vs. Actual
               </h4>
-              <BarChart categories={variableCats} />
+              <div style={{ maxWidth: '600px' }} className="mx-auto">
+                <BarChart categories={variableCats} />
+              </div>
             </div>
           </div>
 
@@ -365,13 +367,13 @@ function BarChart({ categories }) {
 
   const chartHeight = 200
   const leftPad = 55
-  const bottomPad = 70
+  const bottomPad = 85
   const rightPad = 20
   const topPad = 10
   const catCount = categories.length
-  const totalWidth = Math.max(leftPad + catCount * 70 + rightPad, 300)
+  const totalWidth = Math.max(leftPad + catCount * 80 + rightPad, 300)
   const barGroupWidth = (totalWidth - leftPad - rightPad) / catCount
-  const barWidth = barGroupWidth * 0.32
+  const barWidth = barGroupWidth * 0.30
   const barGap = 4
 
   return (
@@ -393,18 +395,20 @@ function BarChart({ categories }) {
           const groupX = leftPad + i * barGroupWidth + barGroupWidth * 0.15
           const budgetH = ((cat.budgeted || 0) / niceMax) * chartHeight
           const spentH = ((cat.spent || 0) / niceMax) * chartHeight
+          const labelX = groupX + barWidth
+          const labelY = topPad + chartHeight + 14
 
           return (
             <g key={cat.id}>
               <rect x={groupX} y={topPad + chartHeight - budgetH} width={barWidth} height={budgetH} fill="#6495ED" rx="2" />
               <rect x={groupX + barWidth + barGap} y={topPad + chartHeight - spentH} width={barWidth} height={spentH} fill="#9ACD32" rx="2" />
               <text
-                x={groupX + barWidth}
-                y={topPad + chartHeight + 14}
-                textAnchor="middle"
+                x={labelX}
+                y={labelY}
+                textAnchor="end"
                 fill="var(--color-text-muted)"
                 fontSize="9"
-                transform={`rotate(-30, ${groupX + barWidth}, ${topPad + chartHeight + 14})`}
+                transform={`rotate(-45, ${labelX}, ${labelY})`}
               >
                 {cat.name}
               </text>

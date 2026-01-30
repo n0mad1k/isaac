@@ -2,6 +2,32 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.61.0] - 2026-01-30
+
+### Added
+- **Dynamic Monthly Budget add form** - Add any type of line item: Bill, Income, Spending, Transfer, or Payment Plan
+  - Type selector with contextual fields (day, frequency, end date, account)
+  - Each section's + button pre-selects the appropriate type
+  - Account dropdown populated from budget accounts
+- **Payment plan support** - Bills with end dates that auto-expire when the plan is complete
+  - `start_date` and `end_date` fields on budget categories (YYYY-MM format)
+  - Categories auto-hide from budget when outside their active date range
+- **Account Overview section** - Shows per-account money flow in Monthly Budget
+  - Money In, Money Out, and Net columns for each account
+  - Automatically calculates flows from income, transfers, bills, and spending
+- **Income delete** - Trash icon on income line items in Monthly Budget
+- **Chase Trust account** - Added as budget account
+- **Ambulance & Upper Endo** - Added as payment plan bills
+
+### Changed
+- **Budget Overview chart** - Constrained bar chart to 600px max width, fixed label overlap with -45 degree rotation and increased bottom padding
+- **Period summary filtering** - Backend now correctly filters categories by billing_months, start_date/end_date, and bill_day for half-month periods
+- **Account display** - Categories with `account_id` set show the correct account name instead of guessing from owner
+
+### Fixed
+- **Overview cards vs Monthly Budget mismatch** - Period summary now skips categories not active in current month/period
+- **Per-period bill amounts in overview** - Per-period FIXED bills use budget_amount instead of monthly_budget in half-period views
+
 ## [1.60.0] - 2026-01-30
 
 ### Added

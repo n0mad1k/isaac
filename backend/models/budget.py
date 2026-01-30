@@ -68,6 +68,7 @@ class BudgetAccount(Base):
 
     transactions = relationship("BudgetTransaction", back_populates="account")
     income_sources = relationship("BudgetIncome", back_populates="account")
+    categories = relationship("BudgetCategory", back_populates="account")
 
     def __repr__(self):
         return f"<BudgetAccount {self.name}>"
@@ -89,12 +90,16 @@ class BudgetCategory(Base):
     bill_day = Column(Integer, nullable=True)  # Day of month bill is due (1-31), null for variable/transfer
     owner = Column(String(20), nullable=True)  # null=shared/main, 'dane', 'kelly' for personal bills
     billing_months = Column(String(50), nullable=True)  # Comma-separated months (1-12) when bill is due, null=every month
+    account_id = Column(Integer, ForeignKey('budget_accounts.id'), nullable=True)  # Which account this bill is paid from
+    start_date = Column(String(10), nullable=True)  # YYYY-MM format, when bill begins
+    end_date = Column(String(10), nullable=True)  # YYYY-MM format, when payment plan ends
     sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     transactions = relationship("BudgetTransaction", back_populates="category")
     rules = relationship("BudgetCategoryRule", back_populates="category")
+    account = relationship("BudgetAccount", back_populates="categories")
 
     def __repr__(self):
         return f"<BudgetCategory {self.name}>"

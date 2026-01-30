@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight, Plus, Check, X, Trash2 } from 'lucide-react'
 import {
   getBudgetPayPeriods, getBudgetCategories, getBudgetAccounts,
   getBudgetIncome, updateBudgetCategory, updateBudgetIncome,
-  createBudgetCategory, deleteBudgetCategory, getBudgetPeriodSummary
+  createBudgetCategory, deleteBudgetCategory, createBudgetIncome,
+  deleteBudgetIncome, getBudgetPeriodSummary
 } from '../../services/api'
 
 function MonthlyBudget() {
@@ -21,7 +22,10 @@ function MonthlyBudget() {
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
   const [addingTo, setAddingTo] = useState(null)
-  const [newLine, setNewLine] = useState({ name: '', amount: '', bill_day: '' })
+  const [newLine, setNewLine] = useState({
+    type: 'bill', name: '', amount: '', bill_day: '',
+    account_id: '', frequency: 'semimonthly', end_date: ''
+  })
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December']
@@ -103,30 +107,68 @@ function MonthlyBudget() {
 
   const cancelEdit = () => setEditingLine(null)
 
+  const resetNewLine = (type = 'bill') => {
+    setNewLine({
+      type, name: '', amount: '', bill_day: '',
+      account_id: '', frequency: 'semimonthly', end_date: ''
+    })
+  }
+
+  const openAddForm = (sectionKey, defaultType) => {
+    setAddingTo(sectionKey)
+    resetNewLine(defaultType)
+  }
+
   const saveNewLine = async () => {
     if (!addingTo || saving || !newLine.name || !newLine.amount) return
     setSaving(true)
     try {
-      let category_type = 'fixed'
-      let owner = null
-      let bill_day = parseInt(newLine.bill_day) || null
+      const { type } = newLine
+      const amount = parseFloat(newLine.amount) || 0
+      const acctId = parseInt(newLine.account_id) || null
 
-      if (addingTo.startsWith('dane')) owner = 'dane'
-      else if (addingTo.startsWith('kelly')) owner = 'kelly'
+      if (type === 'income') {
+        await createBudgetIncome({
+          name: newLine.name,
+          amount,
+          frequency: newLine.frequency || 'semimonthly',
+          pay_day: parseInt(newLine.bill_day) || 1,
+          account_id: acctId || accounts[0]?.id || 1,
+        })
+      } else {
+        let category_type = 'fixed'
+        let owner = null
+        let bill_day = parseInt(newLine.bill_day) || null
 
-      if (addingTo.includes('first') && !bill_day) bill_day = 1
-      else if (addingTo.includes('second') && !bill_day) bill_day = 15
+        if (type === 'spending') category_type = 'variable'
+        else if (type === 'transfer') category_type = 'transfer'
 
-      await createBudgetCategory({
-        name: newLine.name,
-        category_type,
-        monthly_budget: parseFloat(newLine.amount) || 0,
-        budget_amount: 0,
-        owner,
-        bill_day,
-      })
+        if (addingTo.startsWith('dane')) owner = 'dane'
+        else if (addingTo.startsWith('kelly')) owner = 'kelly'
+
+        if (type === 'bill' || type === 'payment_plan') {
+          if (addingTo.includes('first') && !bill_day) bill_day = 1
+          else if (addingTo.includes('second') && !bill_day) bill_day = 15
+        }
+
+        const data = {
+          name: newLine.name,
+          category_type,
+          monthly_budget: (type === 'bill' || type === 'payment_plan') ? amount : null,
+          budget_amount: (type === 'spending' || type === 'transfer') ? amount : 0,
+          owner,
+          bill_day,
+          account_id: acctId,
+        }
+
+        if (type === 'payment_plan' && newLine.end_date) {
+          data.end_date = newLine.end_date
+        }
+
+        await createBudgetCategory(data)
+      }
       setAddingTo(null)
-      setNewLine({ name: '', amount: '', bill_day: '' })
+      resetNewLine()
       fetchData()
     } catch (err) {
       console.error('Failed to add line:', err)
@@ -135,10 +177,14 @@ function MonthlyBudget() {
     }
   }
 
-  const deleteLine = async (catId) => {
+  const deleteLine = async (type, id) => {
     if (!window.confirm('Remove this line item?')) return
     try {
-      await deleteBudgetCategory(catId)
+      if (type === 'income') {
+        await deleteBudgetIncome(id)
+      } else {
+        await deleteBudgetCategory(id)
+      }
       fetchData()
     } catch (err) {
       console.error('Failed to delete:', err)
@@ -155,19 +201,23 @@ function MonthlyBudget() {
   }
 
   const activeCats = categories.filter(c => c.is_active)
+  const currentYM = `${currentYear}-${String(currentMonth).padStart(2, '0')}`
 
-  // Filter out categories not active this month (e.g., yearly Prime, quarterly Trash Busters)
+  // Filter out categories not active this month
   const isActiveThisMonth = (cat) => {
-    if (!cat.billing_months) return true
-    const months = cat.billing_months.split(',').map(m => parseInt(m.trim()))
-    return months.includes(currentMonth)
+    if (cat.billing_months) {
+      const months = cat.billing_months.split(',').map(m => parseInt(m.trim()))
+      if (!months.includes(currentMonth)) return false
+    }
+    if (cat.start_date && currentYM < cat.start_date) return false
+    if (cat.end_date && currentYM > cat.end_date) return false
+    return true
   }
 
   const fixedCats = activeCats.filter(c => c.category_type === 'fixed' && isActiveThisMonth(c))
   const variableCats = activeCats.filter(c => c.category_type === 'variable')
   const transferCats = activeCats.filter(c => c.category_type === 'transfer')
 
-  // Per-period bills (no bill_day, have budget_amount) show in BOTH halves
   const isPerPeriod = (cat) => !cat.bill_day && cat.budget_amount > 0
 
   const sortBills = (a, b) => (a.bill_day || 0) - (b.bill_day || 0) || a.sort_order - b.sort_order
@@ -200,13 +250,14 @@ function MonthlyBudget() {
   const distributions = transferCats.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
   const variablePerHalf = variableCats.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
 
-  // For display in each half: per-period bills show budget_amount, monthly bills show monthly_budget
   const getHalfBillAmount = (cat) => isPerPeriod(cat) ? cat.budget_amount : (cat.monthly_budget || cat.budget_amount * 2 || 0)
-  // Full monthly amount for totals
-  const getBillAmount = (cat) => isPerPeriod(cat) ? cat.budget_amount * 2 : (cat.monthly_budget || cat.budget_amount * 2 || 0)
   const getPerPeriodAmount = (cat) => cat.budget_amount || 0
 
   const getAccountName = (cat) => {
+    if (cat.account_id) {
+      const acct = accounts.find(a => a.id === cat.account_id)
+      if (acct) return acct.name
+    }
     if (cat.owner === 'dane') return accounts.find(a => a.name.toLowerCase().includes('dane'))?.name || "Dane's Spending"
     if (cat.owner === 'kelly') return accounts.find(a => a.name.toLowerCase().includes('kelly'))?.name || "Kelly's Spending"
     return accounts.find(a => a.account_type === 'checking')?.name || 'Main Checking'
@@ -252,8 +303,8 @@ function MonthlyBudget() {
         {editableCell(type, id, 'name', name, name, 'text-left truncate', { color: 'var(--color-text-primary)' })}
         {editableCell(type, id, amtField, Math.abs(amount), displayAmt, 'text-right', { color: amtColor })}
         <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>{accountName}</span>
-        {canDelete && type === 'category' ? (
-          <button onClick={() => deleteLine(id)} className="p-0.5 text-gray-600 hover:text-red-400 flex-shrink-0"><Trash2 className="w-2.5 h-2.5" /></button>
+        {canDelete ? (
+          <button onClick={() => deleteLine(type, id)} className="p-0.5 text-gray-600 hover:text-red-400 flex-shrink-0"><Trash2 className="w-2.5 h-2.5" /></button>
         ) : <span />}
       </div>
     )
@@ -261,20 +312,58 @@ function MonthlyBudget() {
 
   const addForm = (sectionKey) => {
     if (addingTo !== sectionKey) return null
+    const { type } = newLine
+    const showDay = type === 'bill' || type === 'payment_plan' || type === 'income'
+    const showFreq = type === 'income'
+    const showEndDate = type === 'payment_plan'
+    const showAccount = true
+
     return (
-      <div className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs py-1 px-2 items-center gap-1" style={{ borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
-        <input type="number" placeholder="Day" value={newLine.bill_day} onChange={(e) => setNewLine(f => ({ ...f, bill_day: e.target.value }))}
-          className="w-full px-1 py-0.5 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} />
-        <input type="text" placeholder="Name" value={newLine.name} onChange={(e) => setNewLine(f => ({ ...f, name: e.target.value }))}
-          className="w-full px-1 py-0.5 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} autoFocus />
-        <input type="number" step="0.01" placeholder="Amt" value={newLine.amount} onChange={(e) => setNewLine(f => ({ ...f, amount: e.target.value }))}
-          className="w-full px-1 py-0.5 bg-gray-800 border border-gray-700 rounded text-xs text-right" style={{ color: 'var(--color-text-primary)' }}
-          onKeyDown={(e) => { if (e.key === 'Enter') saveNewLine() }} />
-        <span className="flex items-center justify-end gap-0.5">
-          <button onClick={saveNewLine} disabled={saving} className="p-0.5 text-green-400"><Check className="w-3 h-3" /></button>
-          <button onClick={() => { setAddingTo(null); setNewLine({ name: '', amount: '', bill_day: '' }) }} className="p-0.5 text-gray-400"><X className="w-3 h-3" /></button>
-        </span>
-        <span />
+      <div className="text-xs py-2 px-2 space-y-1.5" style={{ borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
+        <div className="flex items-center gap-1.5">
+          <select value={type} onChange={(e) => setNewLine(f => ({ ...f, type: e.target.value }))}
+            className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+            <option value="bill">Bill</option>
+            <option value="income">Income</option>
+            <option value="spending">Spending</option>
+            <option value="transfer">Transfer</option>
+            <option value="payment_plan">Payment Plan</option>
+          </select>
+          {showDay && (
+            <input type="number" placeholder="Day" value={newLine.bill_day} onChange={(e) => setNewLine(f => ({ ...f, bill_day: e.target.value }))}
+              className="w-12 px-1 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} />
+          )}
+          <input type="text" placeholder="Name" value={newLine.name} onChange={(e) => setNewLine(f => ({ ...f, name: e.target.value }))}
+            className="flex-1 min-w-0 px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} autoFocus />
+          <input type="number" step="0.01" placeholder="Amt" value={newLine.amount} onChange={(e) => setNewLine(f => ({ ...f, amount: e.target.value }))}
+            className="w-20 px-1 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-right" style={{ color: 'var(--color-text-primary)' }}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveNewLine() }} />
+        </div>
+        <div className="flex items-center gap-1.5">
+          {showAccount && (
+            <select value={newLine.account_id} onChange={(e) => setNewLine(f => ({ ...f, account_id: e.target.value }))}
+              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+              <option value="">Account...</option>
+              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          )}
+          {showFreq && (
+            <select value={newLine.frequency} onChange={(e) => setNewLine(f => ({ ...f, frequency: e.target.value }))}
+              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Bi-Weekly</option>
+              <option value="semimonthly">Semi-Monthly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          )}
+          {showEndDate && (
+            <input type="month" placeholder="End date" value={newLine.end_date} onChange={(e) => setNewLine(f => ({ ...f, end_date: e.target.value }))}
+              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} />
+          )}
+          <span className="flex-1" />
+          <button onClick={saveNewLine} disabled={saving} className="p-1 text-green-400"><Check className="w-3.5 h-3.5" /></button>
+          <button onClick={() => { setAddingTo(null); resetNewLine() }} className="p-1 text-gray-400"><X className="w-3.5 h-3.5" /></button>
+        </div>
       </div>
     )
   }
@@ -317,6 +406,62 @@ function MonthlyBudget() {
 
   const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', 'Dane Spending', 'Kelly Spending']
 
+  // ---- Account Overview Calculations ----
+  const accountFlows = {}
+  accounts.forEach(acct => {
+    accountFlows[acct.id] = { name: acct.name, moneyIn: 0, moneyOut: 0 }
+  })
+
+  // Income -> money into their account
+  activeIncome.forEach(inc => {
+    if (inc.account_id && accountFlows[inc.account_id]) {
+      let monthlyAmt = inc.amount
+      if (inc.frequency === 'weekly') monthlyAmt = inc.amount * 4
+      else if (inc.frequency === 'biweekly') monthlyAmt = inc.amount * 2
+      else if (inc.frequency === 'semimonthly') monthlyAmt = inc.amount * 2
+      accountFlows[inc.account_id].moneyIn += monthlyAmt
+    }
+  })
+
+  // Find the primary income account (first income source's account, typically Money Market)
+  const primaryAccountId = activeIncome[0]?.account_id || accounts[0]?.id
+
+  // Transfers: money out of primary, money into destination
+  transferCats.forEach(cat => {
+    const monthlyAmt = (cat.budget_amount || 0) * 2
+    if (monthlyAmt <= 0) return
+    // Money out of primary account
+    if (primaryAccountId && accountFlows[primaryAccountId]) {
+      accountFlows[primaryAccountId].moneyOut += monthlyAmt
+    }
+    // Money into destination account
+    const destId = cat.account_id
+    if (destId && accountFlows[destId]) {
+      accountFlows[destId].moneyIn += monthlyAmt
+    }
+  })
+
+  // Fixed/Variable bills: money out of their account (or primary if no account_id)
+  const allActiveBills = [...fixedCats, ...variableCats]
+  allActiveBills.forEach(cat => {
+    let monthlyAmt
+    if (cat.category_type === 'variable') {
+      monthlyAmt = (cat.budget_amount || 0) * 2
+    } else {
+      monthlyAmt = isPerPeriod(cat) ? (cat.budget_amount || 0) * 2 : (cat.monthly_budget || 0)
+    }
+    if (monthlyAmt <= 0) return
+    const acctId = cat.account_id || primaryAccountId
+    if (acctId && accountFlows[acctId]) {
+      accountFlows[acctId].moneyOut += monthlyAmt
+    }
+  })
+
+  // Compute "Move to Checking" amount: sum of bills assigned to checking account
+  // This is handled automatically by transfers above
+
+  const accountList = Object.values(accountFlows).filter(a => a.moneyIn > 0 || a.moneyOut > 0)
+
   // Half section renderer
   const halfSection = (label, isFirst) => {
     const halfIncome = isFirst ? incomeFirst : incomeSecond
@@ -334,8 +479,15 @@ function MonthlyBudget() {
           let halfAmt = inc.amount
           if (inc.frequency === 'weekly') halfAmt = inc.amount * 2
           const incAcct = accounts.find(a => a.id === inc.account_id)
-          return lineRow('income', inc.id, inc.pay_day, inc.name, halfAmt, incAcct?.name || moneyMarketName, true, false)
+          return lineRow('income', inc.id, inc.pay_day, inc.name, halfAmt, incAcct?.name || moneyMarketName, true, true)
         })}
+        {addForm(`${sectionKey}-income`)}
+        <div className="flex justify-end px-2 py-0.5">
+          <button onClick={() => openAddForm(`${sectionKey}-income`, 'income')}
+            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+            <Plus className="w-3 h-3" /> Add Income
+          </button>
+        </div>
 
         {distributions.length > 0 && (
           <>
@@ -343,13 +495,16 @@ function MonthlyBudget() {
             {distributions.map(cat => {
               const amt = getPerPeriodAmount(cat)
               if (amt <= 0) return null
-              let destAcct = 'Main Checking'
-              const nl = cat.name.toLowerCase()
-              if (nl.includes('dane')) destAcct = "Dane's Spending"
-              else if (nl.includes('kelly')) destAcct = "Kelly's Spending"
-              else if (nl.includes('house') || nl.includes('travel')) destAcct = 'House/Travel Fund'
-              return lineRow('category', cat.id, null, `Move To ${cat.name}`, amt, destAcct, false, false)
+              const destAcct = cat.account_id ? (accounts.find(a => a.id === cat.account_id)?.name || 'Unknown') : getTransferDest(cat)
+              return lineRow('category', cat.id, null, `Move To ${cat.name}`, amt, destAcct, false, true)
             })}
+            {addForm(`${sectionKey}-dist`)}
+            <div className="flex justify-end px-2 py-0.5">
+              <button onClick={() => openAddForm(`${sectionKey}-dist`, 'transfer')}
+                className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+                <Plus className="w-3 h-3" /> Add Transfer
+              </button>
+            </div>
           </>
         )}
 
@@ -359,8 +514,15 @@ function MonthlyBudget() {
             {variablePerHalf.map(cat => {
               const amt = getPerPeriodAmount(cat)
               if (amt <= 0) return null
-              return lineRow('category', cat.id, null, cat.name, amt, getAccountName(cat), false, false)
+              return lineRow('category', cat.id, null, cat.name, amt, getAccountName(cat), false, true)
             })}
+            {addForm(`${sectionKey}-spending`)}
+            <div className="flex justify-end px-2 py-0.5">
+              <button onClick={() => openAddForm(`${sectionKey}-spending`, 'spending')}
+                className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+                <Plus className="w-3 h-3" /> Add Spending
+              </button>
+            </div>
           </>
         )}
 
@@ -373,13 +535,21 @@ function MonthlyBudget() {
 
         {addForm(`${sectionKey}-bills`)}
         <div className="flex justify-end px-2 py-1">
-          <button onClick={() => { setAddingTo(`${sectionKey}-bills`); setNewLine({ name: '', amount: '', bill_day: '' }) }}
+          <button onClick={() => openAddForm(`${sectionKey}-bills`, 'bill')}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
-            <Plus className="w-3 h-3" /> Add Line
+            <Plus className="w-3 h-3" /> Add Bill
           </button>
         </div>
       </div>
     )
+  }
+
+  const getTransferDest = (cat) => {
+    const nl = cat.name.toLowerCase()
+    if (nl.includes('dane')) return "Dane's Spending"
+    if (nl.includes('kelly')) return "Kelly's Spending"
+    if (nl.includes('house') || nl.includes('travel')) return 'House/Travel Fund'
+    return 'Main Checking'
   }
 
   // Person section renderer
@@ -398,7 +568,7 @@ function MonthlyBudget() {
         {bFirst.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {addForm(`${ownerKey}-first`)}
         <div className="flex justify-end px-2 py-0.5">
-          <button onClick={() => { setAddingTo(`${ownerKey}-first`); setNewLine({ name: '', amount: '', bill_day: '' }) }}
+          <button onClick={() => openAddForm(`${ownerKey}-first`, 'bill')}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
           </button>
@@ -408,7 +578,7 @@ function MonthlyBudget() {
         {bSecond.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {addForm(`${ownerKey}-second`)}
         <div className="flex justify-end px-2 py-0.5">
-          <button onClick={() => { setAddingTo(`${ownerKey}-second`); setNewLine({ name: '', amount: '', bill_day: '' }) }}
+          <button onClick={() => openAddForm(`${ownerKey}-second`, 'bill')}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
           </button>
@@ -476,6 +646,32 @@ function MonthlyBudget() {
         {personSection("Dane", "dane", daneBillsFirst, daneBillsSecond)}
         {personSection("Kelly", "kelly", kellyBillsFirst, kellyBillsSecond)}
       </div>
+
+      {/* Account Overview */}
+      {accountList.length > 0 && (
+        <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <div className="px-4 py-2.5" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+            <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Account Overview</h4>
+          </div>
+          <div className="grid grid-cols-4 text-xs font-semibold py-1.5 px-4" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+            <span>Account</span>
+            <span className="text-right">Money In</span>
+            <span className="text-right">Money Out</span>
+            <span className="text-right">Net</span>
+          </div>
+          {accountList.map((acct, i) => {
+            const net = acct.moneyIn - acct.moneyOut
+            return (
+              <div key={i} className="grid grid-cols-4 text-xs py-1.5 px-4" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+                <span style={{ color: 'var(--color-text-primary)' }}>{acct.name}</span>
+                <span className="text-right" style={{ color: '#22c55e' }}>{fmt(acct.moneyIn)}</span>
+                <span className="text-right" style={{ color: '#ef4444' }}>{fmt(acct.moneyOut)}</span>
+                <span className="text-right font-semibold" style={{ color: net >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(net)}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Monthly Summary */}
       <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>

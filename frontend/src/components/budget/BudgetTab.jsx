@@ -8,7 +8,7 @@ import StatementImport from './StatementImport'
 import BudgetSettings from './BudgetSettings'
 
 const SUB_TABS = [
-  { key: 'overview', label: 'Bi-Budget', icon: BarChart3 },
+  { key: 'overview', label: 'Overview', icon: BarChart3 },
   { key: 'transactions', label: 'Transactions', icon: List },
   { key: 'monthly', label: 'Monthly Budget', icon: Calendar },
   { key: 'bills', label: 'Bills', icon: Receipt },

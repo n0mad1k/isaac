@@ -74,6 +74,9 @@ class CategoryCreate(BaseModel):
     bill_day: Optional[int] = Field(None, ge=1, le=31)
     owner: Optional[str] = Field(None, max_length=20)
     billing_months: Optional[str] = Field(None, max_length=50)
+    account_id: Optional[int] = Field(None, ge=1)
+    start_date: Optional[str] = Field(None, max_length=10)
+    end_date: Optional[str] = Field(None, max_length=10)
     sort_order: int = 0
 
 class CategoryUpdate(BaseModel):
@@ -88,6 +91,9 @@ class CategoryUpdate(BaseModel):
     bill_day: Optional[int] = Field(None, ge=1, le=31)
     owner: Optional[str] = Field(None, max_length=20)
     billing_months: Optional[str] = Field(None, max_length=50)
+    account_id: Optional[int] = None
+    start_date: Optional[str] = Field(None, max_length=10)
+    end_date: Optional[str] = Field(None, max_length=10)
     sort_order: Optional[int] = None
 
 class CategoryResponse(BaseModel):
@@ -103,6 +109,9 @@ class CategoryResponse(BaseModel):
     bill_day: Optional[int]
     owner: Optional[str]
     billing_months: Optional[str]
+    account_id: Optional[int]
+    start_date: Optional[str]
+    end_date: Optional[str]
     sort_order: int
     created_at: datetime
 
@@ -1043,16 +1052,47 @@ async def get_period_summary(
         # Build category breakdown
         category_summary = []
         total_budgeted = 0.0
+        current_ym = f"{start_date.year}-{start_date.month:02d}"
+
         for cat in categories:
+            # Skip categories not active this month (billing_months filter)
+            if cat.billing_months:
+                active_months = [int(m.strip()) for m in cat.billing_months.split(',') if m.strip()]
+                if start_date.month not in active_months:
+                    continue
+
+            # Skip categories outside their start_date/end_date range
+            if cat.start_date and current_ym < cat.start_date:
+                continue
+            if cat.end_date and current_ym > cat.end_date:
+                continue
+
+            # For half-month periods with FIXED categories: only include if bill_day falls in that half
+            # Per-period bills (no bill_day) show in both halves
+            is_per_period = not cat.bill_day and cat.budget_amount and cat.budget_amount > 0
+            if not is_full_month and cat.category_type == CategoryType.FIXED:
+                if cat.bill_day:
+                    if is_first_half and cat.bill_day > 14:
+                        continue
+                    if is_second_half and cat.bill_day < 15:
+                        continue
+
             spent = spending_by_cat.get(cat.id, 0.0)
             # Budget amount logic:
             # - Full month: use monthly_budget, or budget_amount * 2
             # - Half month, variable/transfer: use budget_amount (per-period budget)
-            # - Half month, fixed bills: use monthly_budget (bills are paid once/month)
+            # - Half month, fixed bills with bill_day: use monthly_budget (bills are paid once/month)
+            # - Half month, per-period fixed bills (no bill_day): use budget_amount
             if is_full_month:
-                budgeted = cat.monthly_budget if cat.monthly_budget else (cat.budget_amount * 2)
-            elif cat.category_type == CategoryType.FIXED and cat.monthly_budget:
-                budgeted = cat.monthly_budget
+                if is_per_period and cat.category_type == CategoryType.FIXED:
+                    budgeted = cat.budget_amount * 2
+                else:
+                    budgeted = cat.monthly_budget if cat.monthly_budget else (cat.budget_amount * 2)
+            elif cat.category_type == CategoryType.FIXED:
+                if is_per_period:
+                    budgeted = cat.budget_amount
+                else:
+                    budgeted = cat.monthly_budget if cat.monthly_budget else (cat.budget_amount * 2)
             else:
                 budgeted = cat.budget_amount
 
