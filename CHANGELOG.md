@@ -4,6 +4,13 @@ All notable changes to Isaac will be documented in this file.
 
 ## [1.63.0] - 2026-01-30
 
+### Fixed
+- **Task assignee display** - Assignee names now show on tasks in ToDo, Calendar, Dashboard, and Team member tasks
+  - Added `assigned_member_names` and `assigned_member_ids` to all task API responses
+  - Today's schedule, calendar view, and overdue tasks now include assignment data
+  - Team member tasks endpoint includes all fields needed for the edit form
+- **Budget ticker styling** - Ticker now shows green when budget is good and bold text for visibility
+
 ### Added
 - **Bills tab separation** - Bills tab now shows 4 distinct sections: Income, Bills (fixed), Spending Budgets (variable), and Distributions (transfers)
   - Each section has its own add form with relevant fields
