@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.62.0] - 2026-01-30
+
+### Added
+- **Roll Over auto-calculation** - Roll Over category now dynamically calculates unspent budget from the previous month's variable spending categories
+  - Automatically shows leftover amounts from Gas, Groceries, Main Spending, etc.
+  - Splits evenly across both half-month periods
+  - Zero rollover if nothing was left unspent
+- **Budget permissions for kiosk** - Budget & Finance now appears in the role permissions settings so it can be enabled for kiosk users
+  - Budget tickers on dashboard require `budget:view` permission
+
 ## [1.61.0] - 2026-01-30
 
 ### Added

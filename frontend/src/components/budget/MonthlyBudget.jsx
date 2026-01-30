@@ -251,7 +251,20 @@ function MonthlyBudget() {
   const variablePerHalf = variableCats.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
 
   const getHalfBillAmount = (cat) => isPerPeriod(cat) ? cat.budget_amount : (cat.monthly_budget || cat.budget_amount * 2 || 0)
-  const getPerPeriodAmount = (cat) => cat.budget_amount || 0
+
+  // Roll Over: use dynamically calculated amount from period summary
+  const getRollOverPerHalf = () => {
+    const h1 = firstHalf?.categories?.find(c => c.name === 'Roll Over')
+    const h2 = secondHalf?.categories?.find(c => c.name === 'Roll Over')
+    return (h1?.budgeted || 0) + (h2?.budgeted || 0)
+  }
+  const rollOverMonthly = getRollOverPerHalf()
+  const rollOverPerPeriod = rollOverMonthly / 2
+
+  const getPerPeriodAmount = (cat) => {
+    if (cat.name === 'Roll Over') return rollOverPerPeriod
+    return cat.budget_amount || 0
+  }
 
   const getAccountName = (cat) => {
     if (cat.account_id) {
