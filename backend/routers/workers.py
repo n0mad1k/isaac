@@ -303,7 +303,12 @@ async def get_worker_tasks(
     if not include_completed:
         query = query.where(Task.is_completed == False)
 
-    query = query.order_by(Task.due_date.asc().nullslast(), Task.priority.asc())
+    query = query.order_by(
+        Task.is_backlog.asc(),  # Active tasks first, backlog second
+        Task.sort_order.asc().nullslast(),  # Manual order within group
+        Task.due_date.asc().nullslast(),
+        Task.priority.asc()
+    )
 
     result = await db.execute(query)
     tasks = result.scalars().all()
@@ -327,7 +332,9 @@ async def get_worker_tasks(
             "completion_note": task.completion_note,
             "worker_note": task.worker_note,
             "category": task.category.value if task.category else None,
-            "completed_at": task.completed_at.isoformat() if task.completed_at else None
+            "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+            "is_backlog": task.is_backlog or False,
+            "sort_order": task.sort_order
         }
 
         # Translate if worker language is not English
@@ -604,3 +611,74 @@ async def unassign_task_from_worker(
     await db.commit()
 
     return {"message": "Task unassigned from worker", "task_id": task_id}
+
+
+class ReorderRequest(BaseModel):
+    task_ids: List[int]  # Task IDs in desired order
+
+
+@router.post("/{worker_id}/tasks/reorder/")
+async def reorder_worker_tasks(
+    worker_id: int,
+    data: ReorderRequest,
+    user: User = Depends(require_edit("workers")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Reorder tasks for a worker. task_ids should be in desired display order."""
+    result = await db.execute(select(Worker).where(Worker.id == worker_id))
+    worker = result.scalar_one_or_none()
+    if not worker:
+        raise HTTPException(status_code=404, detail="Worker not found")
+
+    # Fetch all specified tasks assigned to this worker
+    task_result = await db.execute(
+        select(Task).where(
+            and_(
+                Task.id.in_(data.task_ids),
+                Task.assigned_to_worker_id == worker_id,
+                Task.is_active == True
+            )
+        )
+    )
+    tasks = {t.id: t for t in task_result.scalars().all()}
+
+    updated = 0
+    for idx, task_id in enumerate(data.task_ids):
+        if task_id in tasks:
+            tasks[task_id].sort_order = idx
+            updated += 1
+
+    await db.commit()
+    return {"message": f"Reordered {updated} tasks", "worker_id": worker_id}
+
+
+@router.post("/{worker_id}/tasks/{task_id}/backlog/")
+async def toggle_worker_task_backlog(
+    worker_id: int,
+    task_id: int,
+    user: User = Depends(require_edit("workers")),
+    db: AsyncSession = Depends(get_db)
+):
+    """Toggle a task's backlog status for a worker."""
+    result = await db.execute(
+        select(Task).where(
+            and_(
+                Task.id == task_id,
+                Task.assigned_to_worker_id == worker_id,
+                Task.is_active == True
+            )
+        )
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found or not assigned to this worker")
+
+    task.is_backlog = not (task.is_backlog or False)
+    task.sort_order = None  # Reset order when moving between lists
+    await db.commit()
+
+    return {
+        "message": f"Task {'moved to backlog' if task.is_backlog else 'moved to active'}",
+        "task_id": task_id,
+        "is_backlog": task.is_backlog
+    }

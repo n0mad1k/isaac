@@ -122,6 +122,7 @@ class Task(Base):
         backref="assigned_tasks",
         lazy="selectin"
     )
+    sort_order = Column(Integer, nullable=True)  # Manual ordering within worker's task list (lower = higher)
     is_in_progress = Column(Boolean, default=False)  # Worker started working on task
     is_blocked = Column(Boolean, default=False)  # Worker marked task as cannot complete
     blocked_reason = Column(Text, nullable=True)  # Required when is_blocked=True

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { ClipboardList, Plus, Check, X, AlertCircle, ChevronDown, ChevronUp, Edit, User, Phone, Mail, Trash2, Ban, Link, Unlink, ShoppingCart, Package, StickyNote, Play, RotateCcw, CheckCircle, Circle, Brush, Wheat, Wrench, TreeDeciduous, Hammer } from 'lucide-react'
-import { getWorkers, getWorker, createWorker, updateWorker, deleteWorker, getWorkerTasks, completeWorkerTask, uncompleteWorkerTask, blockWorkerTask, unblockWorkerTask, updateWorkerNote, startWorkerTask, stopWorkerTask, getAssignableTasks, assignTaskToWorker, unassignTaskFromWorker, getWorkerSupplyRequests, createSupplyRequest, updateSupplyRequest, deleteSupplyRequest } from '../services/api'
+import { ClipboardList, Plus, Check, X, AlertCircle, ChevronDown, ChevronUp, Edit, User, Phone, Mail, Trash2, Ban, Link, Unlink, ShoppingCart, Package, StickyNote, Play, RotateCcw, CheckCircle, Circle, Brush, Wheat, Wrench, TreeDeciduous, Hammer, ArrowUp, ArrowDown, Archive, Inbox } from 'lucide-react'
+import { getWorkers, getWorker, createWorker, updateWorker, deleteWorker, getWorkerTasks, completeWorkerTask, uncompleteWorkerTask, blockWorkerTask, unblockWorkerTask, updateWorkerNote, startWorkerTask, stopWorkerTask, getAssignableTasks, assignTaskToWorker, unassignTaskFromWorker, reorderWorkerTasks, toggleWorkerTaskBacklog, getWorkerSupplyRequests, createSupplyRequest, updateSupplyRequest, deleteSupplyRequest } from '../services/api'
 import { format } from 'date-fns'
 import { useSettings } from '../contexts/SettingsContext'
 import EventModal from '../components/EventModal'
@@ -54,6 +54,9 @@ function WorkerTasks() {
   const [blockReason, setBlockReason] = useState('')
   const [noteModal, setNoteModal] = useState(null)
   const [workerNoteText, setWorkerNoteText] = useState('')
+
+  // Backlog state
+  const [showBacklog, setShowBacklog] = useState(false)
 
   // Supply request state
   const [supplyRequests, setSupplyRequests] = useState([])
@@ -290,6 +293,45 @@ function WorkerTasks() {
       fetchWorkerTasks(selectedWorker.id)
     } catch (err) {
       console.error('Failed to complete task:', err)
+    }
+  }
+
+  const handleToggleBacklog = async (taskId) => {
+    if (!selectedWorker) return
+    try {
+      await toggleWorkerTaskBacklog(selectedWorker.id, taskId)
+      fetchWorkerTasks(selectedWorker.id)
+    } catch (err) {
+      console.error('Failed to toggle backlog:', err)
+    }
+  }
+
+  const handleMoveTask = async (taskId, direction, isBacklog) => {
+    if (!selectedWorker) return
+    const list = workerTasks.filter(t => (t.is_backlog || false) === isBacklog && !t.is_completed)
+    const idx = list.findIndex(t => t.id === taskId)
+    if (idx === -1) return
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (newIdx < 0 || newIdx >= list.length) return
+
+    const reordered = [...list]
+    const [moved] = reordered.splice(idx, 1)
+    reordered.splice(newIdx, 0, moved)
+
+    // Optimistic UI update
+    const taskIds = reordered.map(t => t.id)
+    const updatedTasks = workerTasks.map(t => {
+      const orderIdx = taskIds.indexOf(t.id)
+      if (orderIdx !== -1) return { ...t, sort_order: orderIdx }
+      return t
+    })
+    setWorkerTasks(updatedTasks)
+
+    try {
+      await reorderWorkerTasks(selectedWorker.id, taskIds)
+    } catch (err) {
+      console.error('Failed to reorder tasks:', err)
+      fetchWorkerTasks(selectedWorker.id) // Revert on error
     }
   }
 
@@ -607,220 +649,400 @@ function WorkerTasks() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-farm-green"></div>
             </div>
           ) : workerTasks.length > 0 ? (
-            <div className="space-y-2">
-              {workerTasks.map(task => (
-                <div
-                  key={task.id}
-                  className={`bg-gray-800 rounded-lg overflow-hidden ${
-                    task.is_completed ? 'opacity-60' : task.is_blocked ? 'border-l-4 border-orange-500' : ''
-                  }`}
-                >
-                  {/* Task Header */}
-                  <div
-                    className="p-4 cursor-pointer hover:bg-gray-700/50"
-                    onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {/* Quick complete checkbox */}
-                        {task.is_completed ? (
-                          <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                            <Check className="w-4 h-4 text-white" />
+            <>
+            {/* Active Tasks */}
+            {(() => {
+              const activeTasks = workerTasks.filter(t => !(t.is_backlog))
+              const backlogTasks = workerTasks.filter(t => t.is_backlog)
+              return (
+                <>
+                <div className="space-y-2">
+                  {activeTasks.length > 0 ? activeTasks.map((task, idx) => {
+                    const activeIncomplete = activeTasks.filter(t => !t.is_completed)
+                    const taskIdxInList = activeIncomplete.findIndex(t => t.id === task.id)
+                    return (
+                    <div
+                      key={task.id}
+                      className={`bg-gray-800 rounded-lg overflow-hidden ${
+                        task.is_completed ? 'opacity-60' : task.is_blocked ? 'border-l-4 border-orange-500' : ''
+                      }`}
+                    >
+                      {/* Task Header */}
+                      <div
+                        className="p-4 cursor-pointer hover:bg-gray-700/50"
+                        onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {/* Reorder buttons */}
+                            {!task.is_completed && (
+                              <div className="flex flex-col gap-0.5">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleMoveTask(task.id, 'up', false); }}
+                                  disabled={taskIdxInList <= 0}
+                                  className="p-0.5 text-gray-500 hover:text-white disabled:opacity-20"
+                                  title="Move up"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleMoveTask(task.id, 'down', false); }}
+                                  disabled={taskIdxInList >= activeIncomplete.length - 1 || taskIdxInList === -1}
+                                  className="p-0.5 text-gray-500 hover:text-white disabled:opacity-20"
+                                  title="Move down"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                            {/* Quick complete checkbox */}
+                            {task.is_completed ? (
+                              <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                                <Check className="w-4 h-4 text-white" />
+                              </div>
+                            ) : task.is_blocked ? (
+                              <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
+                                <Ban className="w-4 h-4 text-orange-400" />
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => handleQuickComplete(task.id, e)}
+                                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:border-green-400 hover:bg-green-500/10 ${
+                                  task.is_in_progress ? 'border-blue-400' : 'border-gray-500'
+                                }`}
+                                title="Complete task"
+                              >
+                                {task.is_in_progress && <Play className="w-3 h-3 text-blue-400" />}
+                              </button>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={task.is_completed ? 'line-through text-gray-400' : ''}>
+                                  {task.title}
+                                </span>
+                                {task.is_in_progress && (
+                                  <span className="px-1.5 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded">{t('task.inProgress')}</span>
+                                )}
+                                {task.is_blocked && (
+                                  <span className="px-1.5 py-0.5 text-xs bg-orange-500/20 text-orange-400 rounded">{t('task.blocked')}</span>
+                                )}
+                              </div>
+                              {task.worker_note && expandedTask !== task.id && (
+                                <div className="text-xs text-purple-400 mt-0.5 truncate">
+                                  <StickyNote className="w-3 h-3 inline mr-1" />
+                                  {task.worker_note}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        ) : task.is_blocked ? (
-                          <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center">
-                            <Ban className="w-4 h-4 text-orange-400" />
+                          <div className="flex items-center gap-3">
+                            {task.due_date && (
+                              <span className="text-sm text-gray-400">
+                                {format(new Date(task.due_date), 'MM/dd/yyyy')}
+                                {task.due_time && ` ${formatTime(task.due_time)}`}
+                              </span>
+                            )}
+                            {expandedTask === task.id ? (
+                              <ChevronUp className="w-5 h-5 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-gray-400" />
+                            )}
                           </div>
-                        ) : (
-                          <button
-                            onClick={(e) => handleQuickComplete(task.id, e)}
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:border-green-400 hover:bg-green-500/10 ${
-                              task.is_in_progress ? 'border-blue-400' : 'border-gray-500'
-                            }`}
-                            title="Complete task"
-                          >
-                            {task.is_in_progress && <Play className="w-3 h-3 text-blue-400" />}
-                          </button>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={task.is_completed ? 'line-through text-gray-400' : ''}>
-                              {task.title}
+                        </div>
+                      </div>
+
+                      {/* Task Details */}
+                      {expandedTask === task.id && (
+                        <div className="border-t border-gray-700 p-4 space-y-3">
+                          {task.description && (
+                            <p className="text-gray-300 text-sm">{task.description}</p>
+                          )}
+
+                          <div className="flex flex-wrap gap-4 text-sm">
+                            <span className={getPriorityLabel(task.priority).class}>
+                              {getPriorityLabel(task.priority).label} Priority
                             </span>
-                            {task.is_in_progress && (
-                              <span className="px-1.5 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded">{t('task.inProgress')}</span>
-                            )}
-                            {task.is_blocked && (
-                              <span className="px-1.5 py-0.5 text-xs bg-orange-500/20 text-orange-400 rounded">{t('task.blocked')}</span>
+                            {task.category && (
+                              <span className="text-gray-400">Category: {task.category}</span>
                             )}
                           </div>
-                          {task.worker_note && expandedTask !== task.id && (
-                            <div className="text-xs text-purple-400 mt-0.5 truncate">
-                              <StickyNote className="w-3 h-3 inline mr-1" />
-                              {task.worker_note}
+
+                          {task.is_blocked && task.blocked_reason && (
+                            <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-3">
+                              <div className="flex items-center gap-2 text-orange-400 mb-1">
+                                <AlertCircle className="w-4 h-4" />
+                                <span className="font-medium">Blocked</span>
+                              </div>
+                              <p className="text-sm text-gray-300">{task.blocked_reason}</p>
+                            </div>
+                          )}
+
+                          {task.is_completed && task.completion_note && (
+                            <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3">
+                              <div className="flex items-center gap-2 text-green-400 mb-1">
+                                <Check className="w-4 h-4" />
+                                <span className="font-medium">Completion Note</span>
+                              </div>
+                              <p className="text-sm text-gray-300">{task.completion_note}</p>
+                            </div>
+                          )}
+
+                          {task.worker_note && (
+                            <div className="bg-purple-500/20 border border-purple-500/50 rounded-lg p-3">
+                              <div className="flex items-center gap-2 text-purple-400 mb-1">
+                                <StickyNote className="w-4 h-4" />
+                                <span className="font-medium">Worker Note</span>
+                              </div>
+                              <p className="text-sm text-gray-300">{task.worker_note}</p>
+                            </div>
+                          )}
+
+                          {!task.is_completed && (
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              {task.is_blocked ? (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleUnblockTask(task.id); }}
+                                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+                                >
+                                  <X className="w-4 h-4" />
+                                  {t('task.clearBlock')}
+                                </button>
+                              ) : (
+                                <>
+                                  {!task.is_in_progress ? (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleStartTask(task.id); }}
+                                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+                                    >
+                                      <Play className="w-4 h-4" />
+                                      {t('task.start')}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleRevertTask(task.id); }}
+                                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                                    >
+                                      <RotateCcw className="w-4 h-4" />
+                                      {t('task.revert')}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setCompleteModal(task); }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500"
+                                  >
+                                    <Check className="w-4 h-4" />
+                                    {t('task.complete')}
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setBlockModal(task); }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-500"
+                                  >
+                                    <Ban className="w-4 h-4" />
+                                    {t('task.cannotComplete')}
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleToggleBacklog(task.id); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                                title="Move to backlog"
+                              >
+                                <Archive className="w-4 h-4" />
+                                Backlog
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+                                title={t('task.edit')}
+                              >
+                                <Edit className="w-4 h-4" />
+                                {t('task.edit')}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleUnassignTask(task.id); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                                title={t('task.unassign')}
+                              >
+                                <Unlink className="w-4 h-4" />
+                                {t('task.unassign')}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openNoteModal(task); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500"
+                                title={task.worker_note ? t('task.editNote') : t('task.addNote')}
+                              >
+                                <StickyNote className="w-4 h-4" />
+                                {task.worker_note ? t('task.editNote') : t('task.addNote')}
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Actions for completed tasks */}
+                          {task.is_completed && (
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleUncompleteTask(task.id); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-500"
+                              >
+                                <RotateCcw className="w-4 h-4" />
+                                {t('task.markIncomplete')}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+                                title={t('task.edit')}
+                              >
+                                <Edit className="w-4 h-4" />
+                                {t('task.edit')}
+                              </button>
                             </div>
                           )}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {task.due_date && (
-                          <span className="text-sm text-gray-400">
-                            {format(new Date(task.due_date), 'MM/dd/yyyy')}
-                            {task.due_time && ` ${formatTime(task.due_time)}`}
-                          </span>
-                        )}
-                        {expandedTask === task.id ? (
-                          <ChevronUp className="w-5 h-5 text-gray-400" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-400" />
-                        )}
-                      </div>
+                      )}
                     </div>
-                  </div>
-
-                  {/* Task Details */}
-                  {expandedTask === task.id && (
-                    <div className="border-t border-gray-700 p-4 space-y-3">
-                      {task.description && (
-                        <p className="text-gray-300 text-sm">{task.description}</p>
-                      )}
-
-                      <div className="flex flex-wrap gap-4 text-sm">
-                        <span className={getPriorityLabel(task.priority).class}>
-                          {getPriorityLabel(task.priority).label} Priority
-                        </span>
-                        {task.category && (
-                          <span className="text-gray-400">Category: {task.category}</span>
-                        )}
-                      </div>
-
-                      {task.is_blocked && task.blocked_reason && (
-                        <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-3">
-                          <div className="flex items-center gap-2 text-orange-400 mb-1">
-                            <AlertCircle className="w-4 h-4" />
-                            <span className="font-medium">Blocked</span>
-                          </div>
-                          <p className="text-sm text-gray-300">{task.blocked_reason}</p>
-                        </div>
-                      )}
-
-                      {task.is_completed && task.completion_note && (
-                        <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3">
-                          <div className="flex items-center gap-2 text-green-400 mb-1">
-                            <Check className="w-4 h-4" />
-                            <span className="font-medium">Completion Note</span>
-                          </div>
-                          <p className="text-sm text-gray-300">{task.completion_note}</p>
-                        </div>
-                      )}
-
-                      {task.worker_note && (
-                        <div className="bg-purple-500/20 border border-purple-500/50 rounded-lg p-3">
-                          <div className="flex items-center gap-2 text-purple-400 mb-1">
-                            <StickyNote className="w-4 h-4" />
-                            <span className="font-medium">Worker Note</span>
-                          </div>
-                          <p className="text-sm text-gray-300">{task.worker_note}</p>
-                        </div>
-                      )}
-
-                      {!task.is_completed && (
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          {task.is_blocked ? (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleUnblockTask(task.id); }}
-                              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
-                            >
-                              <X className="w-4 h-4" />
-                              {t('task.clearBlock')}
-                            </button>
-                          ) : (
-                            <>
-                              {!task.is_in_progress ? (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleStartTask(task.id); }}
-                                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
-                                >
-                                  <Play className="w-4 h-4" />
-                                  {t('task.start')}
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleRevertTask(task.id); }}
-                                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
-                                >
-                                  <RotateCcw className="w-4 h-4" />
-                                  {t('task.revert')}
-                                </button>
-                              )}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setCompleteModal(task); }}
-                                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500"
-                              >
-                                <Check className="w-4 h-4" />
-                                {t('task.complete')}
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setBlockModal(task); }}
-                                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-500"
-                              >
-                                <Ban className="w-4 h-4" />
-                                {t('task.cannotComplete')}
-                              </button>
-                            </>
-                          )}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
-                            title={t('task.edit')}
-                          >
-                            <Edit className="w-4 h-4" />
-                            {t('task.edit')}
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleUnassignTask(task.id); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
-                            title={t('task.unassign')}
-                          >
-                            <Unlink className="w-4 h-4" />
-                            {t('task.unassign')}
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openNoteModal(task); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500"
-                            title={task.worker_note ? t('task.editNote') : t('task.addNote')}
-                          >
-                            <StickyNote className="w-4 h-4" />
-                            {task.worker_note ? t('task.editNote') : t('task.addNote')}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Actions for completed tasks */}
-                      {task.is_completed && (
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleUncompleteTask(task.id); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-500"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                            {t('task.markIncomplete')}
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
-                            title={t('task.edit')}
-                          >
-                            <Edit className="w-4 h-4" />
-                            {t('task.edit')}
-                          </button>
-                        </div>
-                      )}
+                  )}) : (
+                    <div className="text-center py-6 text-gray-500 text-sm">
+                      No active tasks
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
+
+                {/* Backlog Section */}
+                {backlogTasks.length > 0 && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() => setShowBacklog(!showBacklog)}
+                      className="flex items-center gap-2 text-gray-400 hover:text-white mb-2"
+                    >
+                      <Archive className="w-4 h-4" />
+                      <span className="font-medium">Backlog ({backlogTasks.filter(t => !t.is_completed).length})</span>
+                      {showBacklog ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    {showBacklog && (
+                      <div className="space-y-2 border-l-2 border-gray-700 pl-3">
+                        {backlogTasks.map((task, idx) => {
+                          const backlogIncomplete = backlogTasks.filter(t => !t.is_completed)
+                          const taskIdxInList = backlogIncomplete.findIndex(t => t.id === task.id)
+                          return (
+                          <div
+                            key={task.id}
+                            className={`bg-gray-800/60 rounded-lg overflow-hidden ${
+                              task.is_completed ? 'opacity-60' : task.is_blocked ? 'border-l-4 border-orange-500' : ''
+                            }`}
+                          >
+                            <div
+                              className="p-3 cursor-pointer hover:bg-gray-700/50"
+                              onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  {/* Reorder buttons */}
+                                  {!task.is_completed && (
+                                    <div className="flex flex-col gap-0.5">
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleMoveTask(task.id, 'up', true); }}
+                                        disabled={taskIdxInList <= 0}
+                                        className="p-0.5 text-gray-500 hover:text-white disabled:opacity-20"
+                                        title="Move up"
+                                      >
+                                        <ArrowUp className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleMoveTask(task.id, 'down', true); }}
+                                        disabled={taskIdxInList >= backlogIncomplete.length - 1 || taskIdxInList === -1}
+                                        className="p-0.5 text-gray-500 hover:text-white disabled:opacity-20"
+                                        title="Move down"
+                                      >
+                                        <ArrowDown className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  )}
+                                  {task.is_completed ? (
+                                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                                      <Check className="w-3 h-3 text-white" />
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => handleQuickComplete(task.id, e)}
+                                      className="w-5 h-5 rounded-full border-2 border-gray-500 flex items-center justify-center transition-colors hover:border-green-400"
+                                      title="Complete task"
+                                    />
+                                  )}
+                                  <span className={`text-sm ${task.is_completed ? 'line-through text-gray-400' : ''}`}>
+                                    {task.title}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {!task.is_completed && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleToggleBacklog(task.id); }}
+                                      className="p-1 text-gray-500 hover:text-blue-400"
+                                      title="Move to active"
+                                    >
+                                      <Inbox className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  {expandedTask === task.id ? (
+                                    <ChevronUp className="w-4 h-4 text-gray-400" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            {expandedTask === task.id && (
+                              <div className="border-t border-gray-700 p-3 space-y-2">
+                                {task.description && (
+                                  <p className="text-gray-300 text-sm">{task.description}</p>
+                                )}
+                                <div className="flex flex-wrap gap-2">
+                                  {!task.is_completed && (
+                                    <>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleToggleBacklog(task.id); }}
+                                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-500"
+                                      >
+                                        <Inbox className="w-3.5 h-3.5" />
+                                        Move to Active
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
+                                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded hover:bg-gray-500"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleUnassignTask(task.id); }}
+                                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded hover:bg-gray-500"
+                                      >
+                                        <Unlink className="w-3.5 h-3.5" />
+                                        Unassign
+                                      </button>
+                                    </>
+                                  )}
+                                  {task.is_completed && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleUncompleteTask(task.id); }}
+                                      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-500"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5" />
+                                      Mark Incomplete
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )})}
+                      </div>
+                    )}
+                  </div>
+                )}
+                </>
+              )
+            })()}
+            </>
           ) : (
             <div className="text-center py-12 text-gray-400 bg-gray-800 rounded-lg">
               <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />

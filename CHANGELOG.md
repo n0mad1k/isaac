@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.54.0] - 2026-01-30
+
+### Added
+- **Worker task backlog** - Each worker now has a separate backlog section for tasks not currently active. Move tasks between active and backlog using the Archive/Inbox buttons
+- **Worker task reordering** - Use up/down arrow buttons to manually reorder tasks within active or backlog lists. Order persists across sessions
+
 ## [1.53.1] - 2026-01-30
 
 ### Fixed

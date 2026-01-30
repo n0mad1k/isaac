@@ -509,6 +509,10 @@ export const assignTaskToWorker = (workerId, taskId) =>
   api.post(`/workers/${workerId}/assign/${taskId}/`)
 export const unassignTaskFromWorker = (workerId, taskId) =>
   api.post(`/workers/${workerId}/unassign/${taskId}/`)
+export const reorderWorkerTasks = (workerId, taskIds) =>
+  api.post(`/workers/${workerId}/tasks/reorder/`, { task_ids: taskIds })
+export const toggleWorkerTaskBacklog = (workerId, taskId) =>
+  api.post(`/workers/${workerId}/tasks/${taskId}/backlog/`)
 
 // Supply Requests
 export const getSupplyRequests = (params) => api.get('/supply-requests/', { params })
