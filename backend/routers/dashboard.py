@@ -121,14 +121,14 @@ class DashboardResponse(BaseModel):
 @router.get("/", response_model=DashboardResponse)
 async def get_dashboard(
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: User = Depends(require_auth)
 ):
     """Get all dashboard data in a single request.
     For farm hand users: filters tasks to only show those marked visible_to_farmhands,
     and excludes the backlog section.
     """
     # Check if current user is a farm hand
-    is_farmhand = current_user and current_user.is_farmhand
+    is_farmhand = current_user.is_farmhand
 
     # Get current weather
     weather_data = None

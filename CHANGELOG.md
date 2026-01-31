@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.67.2] - 2026-01-30
+
+### Fixed
+- **Dashboard now requires authentication** - Previously accessible without login due to Optional auth dependency
+- **Removed error detail leaks in admin endpoints** - Settings update/push/pull operations no longer return internal error messages to the client
+
 ## [1.67.1] - 2026-01-30
 
 ### Fixed

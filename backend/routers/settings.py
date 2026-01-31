@@ -696,7 +696,8 @@ async def update_application(admin: User = Depends(require_admin)):
         else:
             results["message"] = f"Git pull failed: {result.stderr}"
     except Exception as e:
-        results["message"] = f"Update failed: {str(e)}"
+        logger.error(f"Git update failed: {e}")
+        results["message"] = "Update failed. Check server logs for details."
 
     return results
 
@@ -809,7 +810,8 @@ echo "STEP:done"
     except subprocess.TimeoutExpired:
         results["message"] = "Operation timed out (5 min limit)"
     except Exception as e:
-        results["message"] = f"Push to production failed: {str(e)}"
+        logger.error(f"Push to production failed: {e}")
+        results["message"] = "Push to production failed. Check server logs for details."
 
     return results
 
@@ -889,7 +891,8 @@ async def pull_from_production(admin: User = Depends(require_admin)):
                 conn.close()
             except Exception as e:
                 results["steps"][-1]["status"] = "warning"
-                results["steps"][-1]["message"] = f"Could not preserve dev tables: {str(e)}"
+                logger.error(f"Could not preserve dev tables: {e}")
+                results["steps"][-1]["message"] = "Could not preserve dev tables"
         else:
             results["steps"][-1]["status"] = "skipped"
             results["steps"][-1]["message"] = "No dev database to preserve"
@@ -1024,10 +1027,10 @@ async def pull_from_production(admin: User = Depends(require_admin)):
         results["message"] = "Successfully pulled data from production! Page will refresh."
 
     except Exception as e:
-        import traceback
+        logger.error(f"Pull from production failed: {e}")
         if results["steps"]:
             results["steps"][-1]["status"] = "error"
-        results["message"] = f"Pull from production failed: {str(e)}\n{traceback.format_exc()}"
+        results["message"] = "Pull from production failed. Check server logs for details."
 
     return results
 
