@@ -30,6 +30,7 @@ from .budget import (
     BudgetAccount, BudgetCategory, BudgetTransaction, BudgetCategoryRule, BudgetIncome,
     AccountType, CategoryType, TransactionType, TransactionSource, MatchType
 )
+from .chat import ChatConversation, ChatMessage, AiInsight, InsightPriority
 from .team import (
     TeamMember, MemberWeightLog, MemberVitalsLog, MemberMedicalLog, MentoringSession,
     ValuesAssessmentHistory, WeeklyObservation, WeeklyAAR,
@@ -171,4 +172,9 @@ __all__ = [
     "TransactionType",
     "TransactionSource",
     "MatchType",
+    # Chat / AI
+    "ChatConversation",
+    "ChatMessage",
+    "AiInsight",
+    "InsightPriority",
 ]

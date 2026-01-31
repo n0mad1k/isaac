@@ -808,4 +808,26 @@ export const importChaseStatement = (file, accountId, statementYear) => {
 export const confirmBudgetImport = (data) => api.post('/budget/import/confirm/', data)
 export const runBudgetCategorize = () => api.post('/budget/categorize/')
 
+// AI Chat & Insights
+export const getAiHealth = () => api.get('/chat/health/')
+export const getAiModels = () => api.get('/chat/models/')
+export const createConversation = (topic = null) => api.post('/chat/conversations/', { topic })
+export const getConversations = (limit = 50) => api.get('/chat/conversations/', { params: { limit } })
+export const getConversation = (id) => api.get(`/chat/conversations/${id}/`)
+export const deleteConversation = (id) => api.delete(`/chat/conversations/${id}/`)
+// sendMessage returns a fetch() Response for SSE streaming (not axios)
+export const sendMessage = async (conversationId, content) => {
+  const response = await fetch(`/api/chat/conversations/${conversationId}/messages/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ content }),
+  })
+  return response
+}
+export const getInsights = (params) => api.get('/chat/insights/', { params })
+export const getUnreadInsightCount = () => api.get('/chat/insights/unread-count/')
+export const markInsightRead = (id) => api.put(`/chat/insights/${id}/read/`)
+export const dismissInsight = (id) => api.put(`/chat/insights/${id}/dismiss/`)
+
 export default api

@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Leaf, PawPrint, ListTodo, Calendar, Settings, Car, Wrench, Fence, Menu, X, LogOut, User, Bug, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard, UsersRound, DollarSign, Wallet } from 'lucide-react'
-import { getSettings, getVersionInfo, toggleKeyboard as toggleKeyboardApi } from '../services/api'
+import { Home, Leaf, PawPrint, ListTodo, Calendar, Settings, Car, Wrench, Fence, Menu, X, LogOut, User, Bug, Users, ClipboardList, Keyboard, Wheat, LayoutDashboard, UsersRound, DollarSign, Wallet, Bot } from 'lucide-react'
+import { getSettings, getVersionInfo, toggleKeyboard as toggleKeyboardApi, getUnreadInsightCount } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import FloatingActionMenu from './FloatingActionMenu'
+import ChatPanel from './chat/ChatPanel'
 
 function Layout() {
   const [refreshInterval, setRefreshInterval] = useState(0) // 0 = disabled
@@ -18,6 +19,8 @@ function Layout() {
     farm_areas: true, farm_finances: true,
   })
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [unreadInsights, setUnreadInsights] = useState(0)
   const location = useLocation()
   const navigate = useNavigate()
   const intervalRef = useRef(null)
@@ -136,6 +139,21 @@ function Layout() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+
+  // Fetch unread insight count for chat badge
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await getUnreadInsightCount()
+        setUnreadInsights(res.data.unread_count || 0)
+      } catch {
+        // Silently fail - AI might not be set up yet
+      }
+    }
+    fetchUnreadCount()
+    const interval = setInterval(fetchUnreadCount, 5 * 60 * 1000) // every 5 min
+    return () => clearInterval(interval)
+  }, [])
 
   // Fetch refresh interval from settings and check if dev instance
   useEffect(() => {
@@ -370,6 +388,34 @@ function Layout() {
         isDevInstance={isDevInstance}
         workerTasksEnabled={workerTasksEnabled}
         navItems={navItems}
+      />
+
+      {/* AI Chat Button - fixed bottom-right, above floating action menu */}
+      <button
+        onClick={() => setChatOpen(!chatOpen)}
+        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105"
+        style={{
+          backgroundColor: chatOpen ? 'var(--color-text-muted)' : 'var(--color-green-600)',
+          color: 'white',
+        }}
+        title="Chat with Isaac"
+      >
+        {chatOpen ? <X className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
+        {!chatOpen && unreadInsights > 0 && (
+          <span
+            className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold"
+            style={{ backgroundColor: 'var(--color-error-600)', color: 'white' }}
+          >
+            {unreadInsights > 9 ? '9+' : unreadInsights}
+          </span>
+        )}
+      </button>
+
+      {/* AI Chat Panel */}
+      <ChatPanel
+        isOpen={chatOpen}
+        onClose={() => setChatOpen(false)}
+        onUnreadCountChange={setUnreadInsights}
       />
     </div>
   )

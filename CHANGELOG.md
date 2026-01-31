@@ -2,6 +2,20 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.68.0] - 2026-01-31
+
+### Added
+- **AI Assistant (Isaac AI)** - Integrated self-hosted Ollama LLM as a smart homestead assistant
+  - Chat with Isaac about garden, animals, fitness, budget, production, weather, and tasks
+  - Real-time streaming responses via Server-Sent Events (SSE)
+  - Context-aware conversations — Isaac automatically injects relevant data based on your question topic
+  - Conversation history with persistence across sessions
+  - Slide-out chat panel accessible from floating button on every page
+  - Proactive AI insights: morning digest, weekly fitness/budget reviews, monthly garden review
+  - Insights tab with priority indicators, read/dismiss actions, and unread badge
+  - Settings for Ollama URL, model selection, and enable/disable toggles
+  - Graceful degradation when Ollama is offline
+
 ## [1.67.4] - 2026-01-31
 
 ### Fixed

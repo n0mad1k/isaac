@@ -380,11 +380,78 @@ class SchedulerService:
             replace_existing=True,
         )
 
+        # AI Insight jobs (gated by ai_proactive_insights setting)
+        await self.schedule_ai_insights()
+
         self.scheduler.start()
         logger.info("Scheduler started with all jobs")
 
         # Schedule today's sunset reminder if needed (on startup)
         await self.schedule_sunset_reminder()
+
+    async def schedule_ai_insights(self):
+        """Schedule AI insight generation jobs if enabled"""
+        ai_enabled = await get_setting_value("ai_enabled")
+        insights_enabled = await get_setting_value("ai_proactive_insights")
+
+        if ai_enabled != "true" or insights_enabled != "true":
+            logger.debug("AI insights disabled, skipping scheduler registration")
+            return
+
+        from services.ai_insights import (
+            generate_morning_digest,
+            generate_weekly_fitness_review,
+            generate_monthly_garden_review,
+            generate_weekly_budget_review,
+            cleanup_expired_insights,
+        )
+
+        # Morning digest - daily at 6 AM
+        self.scheduler.add_job(
+            generate_morning_digest,
+            CronTrigger(hour=6, minute=0),
+            id="ai_morning_digest",
+            name="AI Morning Digest",
+            replace_existing=True,
+        )
+
+        # Weekly fitness review - Monday at 7 AM
+        self.scheduler.add_job(
+            generate_weekly_fitness_review,
+            CronTrigger(day_of_week="mon", hour=7, minute=0),
+            id="ai_weekly_fitness",
+            name="AI Weekly Fitness Review",
+            replace_existing=True,
+        )
+
+        # Monthly garden review - 1st of month at 8 AM
+        self.scheduler.add_job(
+            generate_monthly_garden_review,
+            CronTrigger(day=1, hour=8, minute=0),
+            id="ai_monthly_garden",
+            name="AI Monthly Garden Review",
+            replace_existing=True,
+        )
+
+        # Weekly budget review - Sunday at 9 AM
+        self.scheduler.add_job(
+            generate_weekly_budget_review,
+            CronTrigger(day_of_week="sun", hour=9, minute=0),
+            id="ai_weekly_budget",
+            name="AI Weekly Budget Review",
+            replace_existing=True,
+        )
+
+        # Cleanup expired insights - daily at 3:15 AM
+        self.scheduler.add_job(
+            cleanup_expired_insights,
+            CronTrigger(hour=3, minute=15),
+            id="ai_cleanup_insights",
+            name="AI Cleanup Expired Insights",
+            replace_existing=True,
+        )
+
+        logger.info("AI insight jobs scheduled")
 
     async def schedule_calendar_sync(self):
         """Schedule calendar sync if enabled - runs every 10 minutes"""
