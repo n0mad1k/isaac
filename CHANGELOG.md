@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.67.0] - 2026-01-30
+
+### Added
+- **Child/toddler support for Team page** - Health and readiness features now adapt to member age
+  - Age displayed next to member name in dossier header
+  - Pediatric blood pressure ranges (AAP guidelines) replace adult ACC/AHA thresholds for children
+  - Age-appropriate respiratory rate thresholds for toddlers, children, and teens
+  - Body fat/lean mass cards hidden for members under 16 (Marine Corps taping method not validated for children)
+  - Fitness, Training, and Mentoring tabs hidden for members under 13
+  - Fitness tier badge hidden for children under 13
+  - Backend readiness analysis passes age to all vital assessment functions
+  - Pediatric and Well-Child appointment types already available in medical tab
+
 ## [1.66.3] - 2026-01-30
 
 ### Fixed

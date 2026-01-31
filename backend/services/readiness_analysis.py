@@ -141,6 +141,37 @@ BP_CATEGORIES = {
 ACE_BF_STANDARDS_MALE = {(17, 999): 24}
 ACE_BF_STANDARDS_FEMALE = {(17, 999): 31}
 
+# Minimum age for body composition analysis (Marine Corps taping method not appropriate for children)
+MIN_AGE_BODY_COMPOSITION = 16
+
+# Pediatric blood pressure ranges (simplified from AAP guidelines)
+# Format: (normal_sys_max, elevated_sys_max, stage1_sys_max, normal_dia_max, elevated_dia_max, stage1_dia_max)
+PEDIATRIC_BP_RANGES = {
+    (1, 5): (110, 115, 120, 70, 75, 80),
+    (6, 12): (120, 125, 130, 80, 82, 85),
+    (13, 17): (120, 130, 140, 80, 80, 90),
+}
+
+# Pediatric respiratory rate ranges (breaths/min)
+# Format: (normal_max, elevated_threshold, high_threshold)
+PEDIATRIC_RR_RANGES = {
+    (0, 1): (40, 50, 60),
+    (1, 3): (30, 35, 40),
+    (4, 5): (25, 30, 35),
+    (6, 12): (22, 28, 35),
+    (13, 17): (20, 25, 30),
+}
+
+# Pediatric resting heart rate ranges (bpm)
+# Format: (normal_min, normal_max)
+PEDIATRIC_HR_RANGES = {
+    (0, 1): (100, 160),
+    (1, 3): (80, 130),
+    (4, 5): (80, 120),
+    (6, 12): (70, 110),
+    (13, 17): (60, 100),
+}
+
 
 # ============================================
 # Helper Functions
@@ -155,6 +186,53 @@ def _get_age_from_birthdate(birth_date: Optional[datetime]) -> Optional[int]:
     if (today.month, today.day) < (birth_date.month, birth_date.day):
         age -= 1
     return age
+
+
+def _is_child(age: Optional[int]) -> bool:
+    """Check if age indicates a child (under 18)"""
+    return age is not None and age < 18
+
+
+def _get_pediatric_bp_category(systolic: float, diastolic: float, age: int) -> str:
+    """Get BP category using pediatric ranges based on age."""
+    ranges = None
+    for (min_age, max_age), vals in PEDIATRIC_BP_RANGES.items():
+        if min_age <= age <= max_age:
+            ranges = vals
+            break
+    if not ranges:
+        return _get_bp_category(systolic, diastolic)  # Fall back to adult
+
+    normal_sys, elevated_sys, stage1_sys, normal_dia, elevated_dia, stage1_dia = ranges
+
+    if systolic >= 180 or diastolic >= 120:
+        return "crisis"
+    if systolic >= stage1_sys or diastolic >= stage1_dia:
+        return "stage2"
+    if systolic >= elevated_sys or diastolic >= elevated_dia:
+        return "stage1"
+    if systolic >= normal_sys or diastolic >= normal_dia:
+        return "elevated"
+    return "normal"
+
+
+def _get_rr_thresholds(age: Optional[int]) -> Tuple[float, float]:
+    """Get respiratory rate thresholds (elevated, high) based on age."""
+    if age is not None:
+        for (min_age, max_age), (_, elevated, high) in PEDIATRIC_RR_RANGES.items():
+            if min_age <= age <= max_age:
+                return (elevated, high)
+    # Adult defaults
+    return (20, 25)
+
+
+def _get_pediatric_hr_range(age: Optional[int]) -> Optional[Tuple[int, int]]:
+    """Get normal resting heart rate range (min, max) for pediatric ages."""
+    if age is not None:
+        for (min_age, max_age), (hr_min, hr_max) in PEDIATRIC_HR_RANGES.items():
+            if min_age <= age <= max_age:
+                return (hr_min, hr_max)
+    return None
 
 
 def _calculate_body_fat_taping(
@@ -307,14 +385,15 @@ def _get_bp_category(systolic: float, diastolic: float) -> str:
 
 def _assess_medical_safety(
     vitals: List[MemberVitalsLog],
-    context_factors: Optional[List[str]] = None
+    context_factors: Optional[List[str]] = None,
+    age: Optional[int] = None
 ) -> MedicalSafetyResult:
     """
     Assess medical safety - this is a HARD GATE.
     If RED, overall status is RED regardless of performance readiness.
 
     Checks:
-    - Blood pressure (ACC/AHA categories)
+    - Blood pressure (ACC/AHA for adults, AAP for children)
     - SpO2 (<92% = critical, <95% = concern)
     - Temperature (fever detection)
     - Severe symptom patterns
@@ -323,12 +402,15 @@ def _assess_medical_safety(
     status = "GREEN"
     action = None
 
-    # Blood Pressure
+    # Blood Pressure - use age-appropriate ranges
     latest_bp = _get_latest_vital(vitals, VitalType.BLOOD_PRESSURE)
     if latest_bp:
         systolic = latest_bp.value
         diastolic = latest_bp.value_secondary or 80
-        bp_category = _get_bp_category(systolic, diastolic)
+        if _is_child(age):
+            bp_category = _get_pediatric_bp_category(systolic, diastolic, age)
+        else:
+            bp_category = _get_bp_category(systolic, diastolic)
 
         # Combine context factors from the vital log itself and passed parameters
         bp_context_factors = list(latest_bp.context_factors or []) if latest_bp.context_factors else []
@@ -550,8 +632,8 @@ def _analyze_autonomic_recovery(
 # Cardiovascular Assessment
 # ============================================
 
-def _analyze_cardiovascular(vitals: List[MemberVitalsLog]) -> PerformanceIndicator:
-    """Analyze cardiovascular health from BP and SpO2."""
+def _analyze_cardiovascular(vitals: List[MemberVitalsLog], age: Optional[int] = None) -> PerformanceIndicator:
+    """Analyze cardiovascular health from BP and SpO2. Uses age-appropriate BP ranges for children."""
     factors = []
     bp_score = 100
     spo2_score = 100
@@ -562,7 +644,10 @@ def _analyze_cardiovascular(vitals: List[MemberVitalsLog]) -> PerformanceIndicat
     if latest_bp:
         sys = latest_bp.value
         dia = latest_bp.value_secondary or 80
-        bp_category = _get_bp_category(sys, dia)
+        if _is_child(age):
+            bp_category = _get_pediatric_bp_category(sys, dia, age)
+        else:
+            bp_category = _get_bp_category(sys, dia)
 
         if bp_category == "crisis":
             bp_score = 30
@@ -623,10 +708,12 @@ def _analyze_cardiovascular(vitals: List[MemberVitalsLog]) -> PerformanceIndicat
 
 def _detect_illness_pattern(
     vitals: List[MemberVitalsLog],
-    all_vitals: List[MemberVitalsLog]
+    all_vitals: List[MemberVitalsLog],
+    age: Optional[int] = None
 ) -> PerformanceIndicator:
     """
     Detect potential illness using pattern recognition.
+    Uses age-appropriate respiratory rate thresholds for children.
 
     Illness appears as PATTERN before thresholds are crossed.
     """
@@ -651,9 +738,14 @@ def _detect_illness_pattern(
             signals.append("temp_rhr_pattern")
             factors.append(f"Temperature ({latest_temp.value:.1f}°F) + elevated RHR")
 
+    # Get age-appropriate respiratory rate thresholds
+    rr_elevated, rr_high = _get_rr_thresholds(age)
+
     # Pattern: HRV drops sharply + respiratory changes
     if latest_hrv and hrv_baseline.long_avg and latest_rr:
-        if latest_hrv.value < hrv_baseline.long_avg * 0.75 and latest_rr.value > 18:
+        # Use a proportional threshold for children (RR baseline is higher)
+        rr_concern = rr_elevated * 0.9  # Slightly below elevated threshold
+        if latest_hrv.value < hrv_baseline.long_avg * 0.75 and latest_rr.value > rr_concern:
             signals.append("hrv_respiratory_pattern")
             factors.append("HRV significantly suppressed + elevated respiratory rate")
 
@@ -680,10 +772,10 @@ def _detect_illness_pattern(
             factors.append(f"Elevated temp: {latest_temp.value:.1f}°F")
 
     if latest_rr:
-        if latest_rr.value >= 25:
+        if latest_rr.value >= rr_high:
             score = min(score, 50)
             factors.append(f"Respiratory rate high: {latest_rr.value:.0f}/min")
-        elif latest_rr.value >= 20:
+        elif latest_rr.value >= rr_elevated:
             score = min(score, 75)
             factors.append(f"Respiratory rate elevated: {latest_rr.value:.0f}/min")
 
@@ -841,7 +933,17 @@ def _get_body_composition_context(
     Get body composition context (NOT used in daily readiness scoring).
 
     This is long-term health context only.
+    Skipped for children under MIN_AGE_BODY_COMPOSITION as the Marine Corps
+    taping method is not validated for pediatric use.
     """
+    age = _get_age_from_birthdate(member.birth_date)
+    if age is not None and age < MIN_AGE_BODY_COMPOSITION:
+        return {
+            "body_fat_pct": None,
+            "within_standards": None,
+            "note": "Body composition analysis not applicable for children"
+        }
+
     height = member.height_inches
     latest_waist = _get_latest_vital(vitals, VitalType.WAIST)
     latest_neck = _get_latest_vital(vitals, VitalType.NECK)
@@ -1050,6 +1152,9 @@ async def analyze_readiness(
     if not member:
         raise ValueError(f"Member {member_id} not found")
 
+    # Calculate age for age-appropriate vital ranges
+    member_age = _get_age_from_birthdate(member.birth_date)
+
     # Fetch all vitals for analysis
     baseline_cutoff = datetime.utcnow() - timedelta(days=max(lookback_days, LONG_BASELINE_DAYS + 7))
     vitals_result = await db.execute(
@@ -1092,16 +1197,16 @@ async def analyze_readiness(
     # ============================================
     # TRACK 1: Medical Safety (Hard Gate)
     # ============================================
-    medical_safety = _assess_medical_safety(recent_vitals, context_factors)
+    medical_safety = _assess_medical_safety(recent_vitals, context_factors, age=member_age)
 
     # ============================================
     # TRACK 2: Performance Readiness
     # ============================================
 
-    # Analyze each component
+    # Analyze each component (pass age for age-appropriate thresholds)
     autonomic = _analyze_autonomic_recovery(recent_vitals, all_vitals)
-    cardiovascular = _analyze_cardiovascular(recent_vitals)
-    illness = _detect_illness_pattern(recent_vitals, all_vitals)
+    cardiovascular = _analyze_cardiovascular(recent_vitals, age=member_age)
+    illness = _detect_illness_pattern(recent_vitals, all_vitals, age=member_age)
 
     # Training load analysis
     training_load = None

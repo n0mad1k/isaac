@@ -189,19 +189,37 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
     }
   }
 
-  // Tab definitions
-  const tabs = [
+  // Calculate age from birth_date for age-appropriate tab/feature filtering
+  const memberAge = (() => {
+    if (!member.birth_date) return null
+    const birth = new Date(member.birth_date)
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age
+  })()
+  const isChild = memberAge !== null && memberAge < 13
+  const isMinor = memberAge !== null && memberAge < 18
+
+  // Tab definitions - filter based on age
+  const allTabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'tasks', label: 'Tasks', icon: ListTodo },
     { id: 'gear', label: 'Gear', icon: Shield },
     { id: 'supplies', label: 'Supplies', icon: Package },
-    { id: 'training', label: 'Training', icon: Target },
+    { id: 'training', label: 'Training', icon: Target, minAge: 13 },
     { id: 'medical', label: 'Medical', icon: Heart },
-    { id: 'mentoring', label: 'Mentoring', icon: Brain },
+    { id: 'mentoring', label: 'Mentoring', icon: Brain, minAge: 13 },
     { id: 'observations', label: 'Observations', icon: MessageSquare },
     { id: 'health', label: 'Health Data', icon: Activity },
-    { id: 'fitness', label: 'Fitness', icon: Dumbbell },
+    { id: 'fitness', label: 'Fitness', icon: Dumbbell, minAge: 13 },
   ]
+  const tabs = allTabs.filter(tab => {
+    if (tab.minAge && memberAge !== null && memberAge < tab.minAge) return false
+    return true
+  })
 
   return (
     <div className="space-y-4">
@@ -236,6 +254,11 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
+              {memberAge !== null && (
+                <span className="text-sm text-gray-400">
+                  {memberAge < 1 ? 'Infant' : `${memberAge} yr${memberAge !== 1 ? 's' : ''}`}
+                </span>
+              )}
               {/* Readiness & Fitness Badges */}
               {(() => {
                 const overallStatus = readinessAnalysis?.overall_status || member.overall_readiness
@@ -266,7 +289,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                       </span>
                       <span className="text-[9px] text-gray-500 mt-0.5">MED</span>
                     </div>
-                    {fitBg && (
+                    {fitBg && !isChild && (
                       <div className="flex flex-col items-center" title={`Fitness: ${fitTier} ${member.fitness_sub_tier || ''}`}>
                         <span className={`px-2 py-0.5 rounded text-sm font-bold ${fitBg}`}>
                           {fitTier}
@@ -1102,6 +1125,19 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
   const [showAnalysisDetails, setShowAnalysisDetails] = useState(false)
   const [calculatingBodyFat, setCalculatingBodyFat] = useState(false)
 
+  // Calculate age for hiding adult-only features
+  const memberAge = (() => {
+    if (!member.birth_date) return null
+    const birth = new Date(member.birth_date)
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age
+  })()
+  const showBodyComposition = memberAge === null || memberAge >= 16
+
   // Handle calculate body fat
   const handleCalculateBodyFat = async () => {
     setCalculatingBodyFat(true)
@@ -1695,58 +1731,62 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
           <div className="text-gray-400 text-sm mb-1">Height</div>
           <div className="text-2xl font-bold">{formatHeight(member.height_inches)}</div>
         </div>
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-sm mb-1">Body Fat %</div>
-          <div className="text-2xl font-bold">{bodyFat !== null ? `${bodyFat.toFixed(1)}%` : 'N/A'}</div>
-          <div className={`text-xs ${bodyFatInfo.color}`}>{bodyFatInfo.label}</div>
-          {bodyFat === null && (
-            <>
-              {/* Show what's missing for body fat calculation */}
-              {(() => {
-                const isFemale = member.gender === 'female'
-                const hasHeight = !!member.height_inches
-                const hasWaist = !!getLatestVital('waist')
-                const hasNeck = !!getLatestVital('neck')
-                const hasHip = !!getLatestVital('hip')
+        {showBodyComposition && (
+          <div className="bg-gray-700 rounded-lg p-4">
+            <div className="text-gray-400 text-sm mb-1">Body Fat %</div>
+            <div className="text-2xl font-bold">{bodyFat !== null ? `${bodyFat.toFixed(1)}%` : 'N/A'}</div>
+            <div className={`text-xs ${bodyFatInfo.color}`}>{bodyFatInfo.label}</div>
+            {bodyFat === null && (
+              <>
+                {/* Show what's missing for body fat calculation */}
+                {(() => {
+                  const isFemale = member.gender === 'female'
+                  const hasHeight = !!member.height_inches
+                  const hasWaist = !!getLatestVital('waist')
+                  const hasNeck = !!getLatestVital('neck')
+                  const hasHip = !!getLatestVital('hip')
 
-                const missing = []
-                if (!hasHeight) missing.push('height')
-                if (!hasWaist) missing.push('waist')
-                if (!hasNeck) missing.push('neck')
-                if (isFemale && !hasHip) missing.push('hip')
+                  const missing = []
+                  if (!hasHeight) missing.push('height')
+                  if (!hasWaist) missing.push('waist')
+                  if (!hasNeck) missing.push('neck')
+                  if (isFemale && !hasHip) missing.push('hip')
 
-                if (missing.length > 0) {
+                  if (missing.length > 0) {
+                    return (
+                      <div className="text-xs text-yellow-400 mt-1">
+                        Missing: {missing.join(', ')}
+                        {isFemale && !hasHip && <span className="block text-gray-400">(Hip required for women)</span>}
+                      </div>
+                    )
+                  }
+
+                  // Has all measurements, show calculate button
                   return (
-                    <div className="text-xs text-yellow-400 mt-1">
-                      Missing: {missing.join(', ')}
-                      {isFemale && !hasHip && <span className="block text-gray-400">(Hip required for women)</span>}
-                    </div>
+                    <button
+                      onClick={handleCalculateBodyFat}
+                      disabled={calculatingBodyFat}
+                      className="mt-2 text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
+                    >
+                      {calculatingBodyFat ? 'Calculating...' : 'Calculate from Measurements'}
+                    </button>
                   )
-                }
-
-                // Has all measurements, show calculate button
-                return (
-                  <button
-                    onClick={handleCalculateBodyFat}
-                    disabled={calculatingBodyFat}
-                    className="mt-2 text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
-                  >
-                    {calculatingBodyFat ? 'Calculating...' : 'Calculate from Measurements'}
-                  </button>
-                )
-              })()}
-            </>
-          )}
-        </div>
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-sm mb-1">Lean Mass</div>
-          <div className="text-2xl font-bold">{leanMass !== null ? formatWeight(leanMass) : 'N/A'}</div>
-          {bodyFat !== null && (
-            <div className="text-xs text-gray-400">
-              Fat: {formatWeight(member.current_weight - leanMass)}
-            </div>
-          )}
-        </div>
+                })()}
+              </>
+            )}
+          </div>
+        )}
+        {showBodyComposition && (
+          <div className="bg-gray-700 rounded-lg p-4">
+            <div className="text-gray-400 text-sm mb-1">Lean Mass</div>
+            <div className="text-2xl font-bold">{leanMass !== null ? formatWeight(leanMass) : 'N/A'}</div>
+            {bodyFat !== null && (
+              <div className="text-xs text-gray-400">
+                Fat: {formatWeight(member.current_weight - leanMass)}
+              </div>
+            )}
+          </div>
+        )}
         <div className="bg-gray-700 rounded-lg p-4">
           <div className="text-gray-400 text-sm mb-1">Resting HR</div>
           <div className="text-2xl font-bold">{latestRHR ? `${Math.round(latestRHR.value)}` : 'N/A'}</div>
