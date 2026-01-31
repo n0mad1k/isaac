@@ -46,6 +46,8 @@ DEFAULT_SETTINGS = {
     "storage_warning_percent": "80",
     "storage_critical_percent": "95",
     "timezone": "America/New_York",
+    "ai_enabled": "true",
+    "ai_proactive_insights": "true",
 }
 
 
