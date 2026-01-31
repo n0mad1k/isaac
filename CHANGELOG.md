@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.66.2] - 2026-01-30
+
+### Fixed
+- **Worker task reorder arrows now work** - Up/down arrows properly reorder tasks with immediate visual feedback
+  - Tasks are sorted by sort_order after optimistic UI updates
+  - Completed tasks stay at the bottom of each section
+- **Backlog always expanded** - Worker backlog section now starts expanded by default instead of collapsed
+
 ## [1.66.1] - 2026-01-30
 
 ### Added

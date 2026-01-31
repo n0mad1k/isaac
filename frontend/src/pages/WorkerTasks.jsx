@@ -57,7 +57,7 @@ function WorkerTasks() {
   const [workerNoteText, setWorkerNoteText] = useState('')
 
   // Backlog state
-  const [showBacklog, setShowBacklog] = useState(false)
+  const [showBacklog, setShowBacklog] = useState(true)
 
   // Supply request state
   const [supplyRequests, setSupplyRequests] = useState([])
@@ -653,8 +653,14 @@ function WorkerTasks() {
             <>
             {/* Active Tasks */}
             {(() => {
-              const activeTasks = workerTasks.filter(t => !(t.is_backlog))
-              const backlogTasks = workerTasks.filter(t => t.is_backlog)
+              const activeTasks = workerTasks.filter(t => !(t.is_backlog)).sort((a, b) => {
+                if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1
+                return (a.sort_order ?? 999) - (b.sort_order ?? 999)
+              })
+              const backlogTasks = workerTasks.filter(t => t.is_backlog).sort((a, b) => {
+                if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1
+                return (a.sort_order ?? 999) - (b.sort_order ?? 999)
+              })
               return (
                 <>
                 <div className="space-y-2">
