@@ -5,6 +5,7 @@ Handles user login, registration, and session management
 
 import secrets
 from datetime import datetime, timedelta
+from html import escape as html_escape
 from typing import Optional, List
 from collections import defaultdict
 
@@ -1352,8 +1353,8 @@ async def invite_user(
         <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #10B981;">You've Been Invited!</h2>
             <p>You've been invited to join Isaac, a farm management dashboard.</p>
-            <p><strong>Invited by:</strong> {admin.display_name or admin.username}</p>
-            <p><strong>Your role:</strong> {invite_request.role.value}</p>
+            <p><strong>Invited by:</strong> {html_escape(admin.display_name or admin.username)}</p>
+            <p><strong>Your role:</strong> {html_escape(invite_request.role.value)}</p>
 
             <p style="margin: 20px 0;">
                 <a href="{invite_url}"
@@ -1460,8 +1461,8 @@ async def resend_invite(
         <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #10B981;">Invitation Reminder</h2>
             <p>This is a reminder that you've been invited to join Isaac, a farm management dashboard.</p>
-            <p><strong>Invited by:</strong> {admin.display_name or admin.username}</p>
-            <p><strong>Your role:</strong> {pending_user.role}</p>
+            <p><strong>Invited by:</strong> {html_escape(admin.display_name or admin.username)}</p>
+            <p><strong>Your role:</strong> {html_escape(str(pending_user.role))}</p>
 
             <p style="margin: 20px 0;">
                 <a href="{invite_url}"

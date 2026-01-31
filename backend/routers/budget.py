@@ -1412,7 +1412,8 @@ async def import_chase_statement(
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.warning(f"Chase statement import validation error: {e}")
+        raise HTTPException(status_code=400, detail="Invalid statement format")
     except Exception as e:
         logger.error(f"Error importing Chase statement: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred")

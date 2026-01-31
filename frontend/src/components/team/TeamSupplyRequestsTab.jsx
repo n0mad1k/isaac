@@ -329,7 +329,7 @@ function TeamSupplyRequestsTab({ members }) {
                       )}
                     </div>
 
-                    {request.link && (
+                    {request.link && /^https?:\/\//i.test(request.link) && (
                       <a
                         href={request.link}
                         target="_blank"

@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.67.1] - 2026-01-30
+
+### Fixed
+- **Security hardening** - Full security audit with fixes across backend and frontend
+  - Fixed ReDoS vulnerability in bank statement parser (input length limit + recursion guard)
+  - Fixed potential XSS via javascript: protocol in supply request product links
+  - Added deepl_api_key to encrypted settings list
+  - Removed internal error details from health monitor API responses
+  - HTML-escaped admin display names in invitation email templates
+  - Replaced ValueError str(e) leak in Chase statement import with generic message
+
 ## [1.67.0] - 2026-01-30
 
 ### Added

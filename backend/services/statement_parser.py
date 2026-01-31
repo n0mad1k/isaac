@@ -271,9 +271,10 @@ async def auto_categorize_transaction(
             matched = desc_upper.startswith(rule.pattern.upper())
         elif rule.match_type == MatchType.REGEX:
             try:
-                matched = bool(re.search(rule.pattern, description, re.IGNORECASE))
-            except re.error:
-                logger.warning(f"Invalid regex in rule {rule.id}: {rule.pattern}")
+                # Use re.search with a compiled pattern; limit description length to prevent ReDoS
+                matched = bool(re.search(rule.pattern, description[:500], re.IGNORECASE))
+            except (re.error, RecursionError):
+                logger.warning(f"Invalid or pathological regex in rule {rule.id}")
                 continue
 
         if matched:

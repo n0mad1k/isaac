@@ -70,7 +70,8 @@ class HealthMonitor:
         except asyncio.TimeoutError:
             return HealthCheck("api", HealthStatus.CRITICAL, "API request timed out")
         except Exception as e:
-            return HealthCheck("api", HealthStatus.CRITICAL, f"API unreachable: {str(e)[:100]}")
+            logger.error(f"API health check failed: {e}")
+            return HealthCheck("api", HealthStatus.CRITICAL, "API unreachable")
 
     async def check_database(self, db: AsyncSession) -> HealthCheck:
         """Check database connectivity"""
@@ -84,7 +85,8 @@ class HealthMonitor:
                 return HealthCheck("database", HealthStatus.WARNING, f"Database slow: {elapsed:.0f}ms", elapsed)
             return HealthCheck("database", HealthStatus.HEALTHY, f"Database responding: {elapsed:.0f}ms", elapsed)
         except Exception as e:
-            return HealthCheck("database", HealthStatus.CRITICAL, f"Database error: {str(e)[:100]}")
+            logger.error(f"Database health check failed: {e}")
+            return HealthCheck("database", HealthStatus.CRITICAL, "Database error")
 
     async def check_caldav(self, db: AsyncSession) -> HealthCheck:
         """Check CalDAV/Radicale status"""
