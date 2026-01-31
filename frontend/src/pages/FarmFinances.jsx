@@ -74,6 +74,7 @@ import {
   getExpenseReceiptUrl,
 } from '../services/api'
 import { format } from 'date-fns'
+import { formatPhoneNumber, displayPhone } from '../services/formatPhone'
 
 const SALE_CATEGORIES = [
   { value: 'livestock', label: 'Livestock' },
@@ -1409,7 +1410,7 @@ function BusinessTab({
                   <tr key={customer.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                     <td className="p-2 font-medium">{customer.name}</td>
                     <td className="p-2 text-gray-400">
-                      {customer.phone && <div>{customer.phone}</div>}
+                      {customer.phone && <div>{displayPhone(customer.phone)}</div>}
                       {customer.email && <div>{customer.email}</div>}
                     </td>
                     <td className="p-2 hidden md:table-cell text-gray-500 italic">{customer.notes}</td>
@@ -1768,7 +1769,7 @@ function CustomerModal({ formData, setFormData, editing, onSubmit, onClose }) {
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Phone</label>
-            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })} placeholder="(000)000-0000" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
           <div>
             <label className="block text-sm text-gray-400 mb-1">Address</label>

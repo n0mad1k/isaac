@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { X, User, Shield, Heart, Phone, Activity, Plus, Trash2 } from 'lucide-react'
+import { formatPhoneNumber } from '../../services/formatPhone'
 
 function MemberForm({ member, settings, onSubmit, onClose }) {
   const isEditing = !!member
@@ -328,7 +329,8 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={e => handleChange('phone', e.target.value)}
+                    onChange={e => handleChange('phone', formatPhoneNumber(e.target.value))}
+                    placeholder="(000)000-0000"
                     className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
                   />
                 </div>
@@ -368,7 +370,8 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                     <input
                       type="tel"
                       value={formData.emergency_contact_phone}
-                      onChange={e => handleChange('emergency_contact_phone', e.target.value)}
+                      onChange={e => handleChange('emergency_contact_phone', formatPhoneNumber(e.target.value))}
+                      placeholder="(000)000-0000"
                       className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
                     />
                   </div>

@@ -17,6 +17,7 @@ import {
   getWorkoutTypes, getWorkouts, getWorkoutStats, logWorkout, updateWorkout, deleteWorkout,
   getFitnessProfile
 } from '../../services/api'
+import { displayPhone, formatPhoneNumber } from '../../services/formatPhone'
 import MemberMentoringTab from './MemberMentoringTab'
 import MemberObservationsTab from './MemberObservationsTab'
 import MemberGearTab from './MemberGearTab'
@@ -306,7 +307,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               )}
               {member.phone && (
                 <span className="flex items-center gap-1">
-                  <Phone className="w-3 h-3" /> {member.phone}
+                  <Phone className="w-3 h-3" /> {displayPhone(member.phone)}
                 </span>
               )}
             </div>
@@ -490,7 +491,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     </h3>
                     <p className="text-white">{member.emergency_contact_name}</p>
                     {member.emergency_contact_phone && (
-                      <p className="text-gray-400">{member.emergency_contact_phone}</p>
+                      <p className="text-gray-400">{displayPhone(member.emergency_contact_phone)}</p>
                     )}
                   </div>
                 )}
@@ -1043,7 +1044,8 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
               <input
                 type="tel"
                 value={formData.provider_phone}
-                onChange={(e) => setFormData({ ...formData, provider_phone: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, provider_phone: formatPhoneNumber(e.target.value) })}
+                placeholder="(000)000-0000"
                 className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
               />
             </div>

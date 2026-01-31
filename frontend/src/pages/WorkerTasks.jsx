@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { ClipboardList, Plus, Check, X, AlertCircle, ChevronDown, ChevronUp, Edit, User, Phone, Mail, Trash2, Ban, Link, Unlink, ShoppingCart, Package, StickyNote, Play, RotateCcw, CheckCircle, Circle, Brush, Wheat, Wrench, TreeDeciduous, Hammer, ArrowUp, ArrowDown, Archive, Inbox } from 'lucide-react'
 import { getWorkers, getWorker, createWorker, updateWorker, deleteWorker, getWorkerTasks, completeWorkerTask, uncompleteWorkerTask, blockWorkerTask, unblockWorkerTask, updateWorkerNote, startWorkerTask, stopWorkerTask, getAssignableTasks, assignTaskToWorker, unassignTaskFromWorker, reorderWorkerTasks, toggleWorkerTaskBacklog, getWorkerSupplyRequests, createSupplyRequest, updateSupplyRequest, deleteSupplyRequest } from '../services/api'
 import { format } from 'date-fns'
+import { formatPhoneNumber, displayPhone } from '../services/formatPhone'
 import { useSettings } from '../contexts/SettingsContext'
 import EventModal from '../components/EventModal'
 import MottoDisplay from '../components/MottoDisplay'
@@ -542,7 +543,7 @@ function WorkerTasks() {
               {selectedWorker.phone && (
                 <div className="flex items-center gap-1 text-sm text-gray-400">
                   <Phone className="w-4 h-4" />
-                  {selectedWorker.phone}
+                  {displayPhone(selectedWorker.phone)}
                 </div>
               )}
               {selectedWorker.email && (
@@ -1280,7 +1281,8 @@ function WorkerTasks() {
                   <input
                     type="tel"
                     value={workerFormData.phone}
-                    onChange={(e) => setWorkerFormData({ ...workerFormData, phone: e.target.value })}
+                    onChange={(e) => setWorkerFormData({ ...workerFormData, phone: formatPhoneNumber(e.target.value) })}
+                    placeholder="(000)000-0000"
                     className="w-full bg-gray-700 rounded-lg px-4 py-2"
                   />
                 </div>

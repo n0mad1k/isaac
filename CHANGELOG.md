@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.66.1] - 2026-01-30
+
+### Added
+- **Phone number auto-formatting** - All phone input fields now auto-format as (XXX)XXX-XXXX while typing
+  - Team member phone and emergency contact phone
+  - Worker phone
+  - Customer phone (Farm Finances)
+  - Medical provider phone
+  - Existing phone numbers displayed in formatted form everywhere in the app
+
 ## [1.66.0] - 2026-01-30
 
 ### Added
