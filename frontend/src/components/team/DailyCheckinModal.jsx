@@ -213,18 +213,18 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
           {/* Date */}
           <div>
             <label className="block text-sm text-gray-400 mb-1">Date</label>
-            <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="flex items-center bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                {inputDate
+                  ? new Date(inputDate + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+                  : 'Select date'}
+              </div>
               <input
                 type="date"
                 value={inputDate}
                 onChange={(e) => setInputDate(e.target.value)}
-                className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
               />
-              {inputDate && (
-                <span className="text-sm text-gray-300 whitespace-nowrap">
-                  {new Date(inputDate + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
-                </span>
-              )}
             </div>
           </div>
 

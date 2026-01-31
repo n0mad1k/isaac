@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.67.4] - 2026-01-31
+
+### Fixed
+- **Daily check-in date format** - Date field now always displays MM/DD/YYYY instead of browser-dependent format
+
 ## [1.67.3] - 2026-01-30
 
 ### Fixed
