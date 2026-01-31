@@ -105,8 +105,17 @@ class EmailService:
         body: str,
         to: Optional[str] = None,
         html: bool = False,
+        subject_prefix: Optional[str] = None,
     ) -> bool:
-        """Send an email notification"""
+        """Send an email notification.
+
+        Args:
+            subject: Email subject line
+            body: Email body (plain text or HTML)
+            to: Recipient email address
+            html: Whether body is HTML
+            subject_prefix: Override the default [Isaac] prefix (e.g. farm name for receipts)
+        """
         if not self.is_configured():
             logger.warning("Email not configured, skipping notification")
             return False
@@ -121,7 +130,8 @@ class EmailService:
         try:
             message = MIMEMultipart("alternative")
             # Sanitize subject to prevent header injection
-            message["Subject"] = f"[Isaac] {_sanitize_header(subject)}"
+            prefix = f"[{_sanitize_header(subject_prefix)}]" if subject_prefix else "[Isaac]"
+            message["Subject"] = f"{prefix} {_sanitize_header(subject)}"
             message["From"] = self.from_addr
             message["To"] = recipient
 
@@ -606,7 +616,7 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, body, to=to, html=True)
+        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name)
 
     async def send_sale_receipt(
         self,
@@ -692,4 +702,4 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, body, to=to, html=True)
+        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name)

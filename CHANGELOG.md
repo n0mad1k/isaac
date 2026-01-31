@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.66.3] - 2026-01-30
+
+### Fixed
+- **Receipt emails use farm name** - Customer receipt email subjects now show "[Farm Name]" instead of "[Isaac]"
+  - Set your farm name in Settings > Farm Name to customize
+  - Both order receipts and sale receipts use the configured farm name
+  - Internal emails (daily digest, alerts) still use "[Isaac]" prefix
+
+### Added
+- **Send receipt for direct sales** - Receipt icon button now appears on sales that have a customer email in Farm Finances
+  - Customer name shown on sales cards when available
+  - Works alongside the existing order receipt system
+
 ## [1.66.2] - 2026-01-30
 
 ### Fixed

@@ -55,6 +55,7 @@ import {
   deleteOrderPayment,
   completeOrder,
   sendOrderReceipt,
+  sendSaleReceipt,
   getFinancialSummary,
   getOutstandingPayments,
   getLivestockAllocations,
@@ -379,6 +380,16 @@ function FarmFinances() {
   const handleSendReceipt = async (id) => {
     try {
       const res = await sendOrderReceipt(id)
+      alert(res.data.message || 'Receipt sent!')
+    } catch (error) {
+      const msg = error.response?.data?.detail || 'Failed to send receipt'
+      alert(msg)
+    }
+  }
+
+  const handleSendSaleReceipt = async (id) => {
+    try {
+      const res = await sendSaleReceipt(id)
       alert(res.data.message || 'Receipt sent!')
     } catch (error) {
       const msg = error.response?.data?.detail || 'Failed to send receipt'
@@ -1217,9 +1228,12 @@ function BusinessTab({
                       <h4 className="font-medium">{sale.item_name}</h4>
                       <span className="text-xs px-2 py-0.5 bg-gray-600 rounded capitalize">{sale.category}</span>
                     </div>
-                    <div className="flex items-center gap-4 mt-1 text-sm">
+                    <div className="flex items-center gap-4 mt-1 text-sm flex-wrap">
                       <span className="text-green-400 font-medium">{formatCurrency(sale.total_price)}</span>
                       <span className="text-gray-400">{sale.quantity} {sale.unit} @ {formatCurrency(sale.unit_price)}/{sale.unit}</span>
+                      {sale.customer_name && (
+                        <span className="text-gray-400">{sale.customer_name}</span>
+                      )}
                       {sale.sale_date && (
                         <span className="flex items-center gap-1 text-gray-400">
                           <Calendar className="w-3 h-3" />
@@ -1228,9 +1242,16 @@ function BusinessTab({
                       )}
                     </div>
                   </div>
-                  <button onClick={() => handleDeleteSale(sale.id, sale.item_name)} className="p-1 text-gray-400 hover:text-red-400">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex gap-1">
+                    {sale.customer_email && (
+                      <button onClick={() => handleSendSaleReceipt(sale.id)} className="p-1 text-gray-400 hover:text-amber-400" title="Email Receipt">
+                        <Receipt className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button onClick={() => handleDeleteSale(sale.id, sale.item_name)} className="p-1 text-gray-400 hover:text-red-400">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
