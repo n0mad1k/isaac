@@ -493,7 +493,7 @@ function MonthlyBudget() {
     return budgeted - spent
   }
 
-  // Get remaining for Dane/Kelly: transfer deposit - sum of their owned bills' actual spending (current half)
+  // Get remaining for Dane/Kelly: transfer deposit - owned bill budgets - discretionary spending
   const getPersonRemaining = (ownerKey) => {
     const personAcct = accounts.find(a => a.name.toLowerCase().includes(ownerKey))
     const personTransfers = transferCats.filter(c => c.account_id === personAcct?.id)
@@ -502,18 +502,22 @@ function MonthlyBudget() {
       .filter(c => !c.bill_day || (inFirstHalf ? c.bill_day <= 14 : c.bill_day >= 15))
       .reduce((s, c) => s + (c.budget_amount || 0), 0)
 
+    // Subtract budgeted amounts of owned bills (these are committed costs)
     const ownedCats = categories.filter(c => c.owner === ownerKey && c.is_active)
-    let totalSpent = 0
+    let totalBills = 0
     ownedCats.forEach(cat => {
       const halfCat = currentHalf?.categories?.find(c => c.id === cat.id)
-      totalSpent += halfCat?.spent || 0
-    })
-    personTransfers.forEach(t => {
-      const halfCat = currentHalf?.categories?.find(c => c.id === t.id)
-      totalSpent += halfCat?.spent || 0
+      totalBills += halfCat?.budgeted || 0
     })
 
-    return halfDeposits - totalSpent
+    // Also subtract actual discretionary spending on the transfer category itself
+    let discretionarySpent = 0
+    personTransfers.forEach(t => {
+      const halfCat = currentHalf?.categories?.find(c => c.id === t.id)
+      discretionarySpent += halfCat?.spent || 0
+    })
+
+    return halfDeposits - totalBills - discretionarySpent
   }
 
   const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', 'Dane Spending', 'Kelly Spending']

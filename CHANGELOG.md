@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.67.3] - 2026-01-30
+
+### Fixed
+- **Spending cards now subtract owned bills** - Dane/Kelly spending cards subtract budgeted bill amounts (Claude.AI, Klarna, etc.) instead of only actual transactions, showing true discretionary remaining
+
 ## [1.67.2] - 2026-01-30
 
 ### Fixed

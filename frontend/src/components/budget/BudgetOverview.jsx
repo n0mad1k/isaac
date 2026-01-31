@@ -130,23 +130,24 @@ function BudgetOverview() {
     (variableCatIds.has(c.id) || transferCatIds.has(c.id)) && c.name !== 'Roll Over' && (c.budgeted > 0 || c.spent > 0)
   )
 
-  // Calculate Dane/Kelly remaining: transfer deposit - sum of their owned bills' actual spending
+  // Calculate Dane/Kelly remaining: transfer deposit - owned bill budgets - discretionary spending
   const getPersonRemaining = (ownerKey) => {
     // Find transfer(s) going to this person's account
     const personTransfer = allCardCats.find(c => c.name.toLowerCase().includes(ownerKey))
     const deposit = personTransfer?.budgeted || 0
 
-    // Sum actual spending on all categories owned by this person
+    // Subtract budgeted amounts of owned bills (these are committed costs)
     const ownedCats = categories.filter(c => c.owner === ownerKey && c.is_active)
-    let totalSpent = 0
+    let totalBills = 0
     ownedCats.forEach(cat => {
       const sumCat = (summary?.categories || []).find(sc => sc.id === cat.id)
-      totalSpent += sumCat?.spent || 0
+      totalBills += sumCat?.budgeted || 0
     })
-    // Also include direct spending on the transfer category itself
-    totalSpent += personTransfer?.spent || 0
 
-    return deposit - totalSpent
+    // Also subtract actual discretionary spending on the transfer category itself
+    const discretionarySpent = personTransfer?.spent || 0
+
+    return deposit - totalBills - discretionarySpent
   }
 
   // Build cards: Income, Bills, then remaining for each spending category
