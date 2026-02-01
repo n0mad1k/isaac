@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.68.3] - 2026-02-01
+
+### Fixed
+- **Person spending balance now uses budgeted bills** - Spending account balances correctly deduct budgeted bill amounts per half-period instead of relying on actual transactions. Balances now accurately reflect: deposits minus committed bills minus discretionary spending.
+
 ## [1.68.2] - 2026-02-01
 
 ### Added

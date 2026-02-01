@@ -1174,18 +1174,11 @@ async def get_period_summary(
             logger.warning(f"Could not calculate rollover: {e}")
 
         # Calculate person spending account balances (rollover across half-periods)
-        # Each person gets a deposit per half-period; leftover rolls to next half
+        # Each half-period: +deposit, -budgeted bills, -actual discretionary spending
+        # Bills are committed costs deducted from budgeted amounts (not actual transactions)
         person_spending_balances = {}
         try:
-            # Use the first budget transaction date as budget system start
-            if not first_date:
-                p_first_txn = await db.execute(
-                    select(func.min(BudgetTransaction.transaction_date))
-                )
-                first_date = p_first_txn.scalar()
-
             for owner_key in ['dane', 'kelly']:
-                # Find the person's transfer category
                 transfer_cat = next(
                     (c for c in categories
                      if c.category_type == CategoryType.TRANSFER
@@ -1197,30 +1190,55 @@ async def get_period_summary(
 
                 deposit_per_period = transfer_cat.budget_amount
 
-                # All person-related category IDs (owned bills + transfer cat)
-                owned_cat_ids = [c.id for c in categories if c.owner == owner_key]
-                person_cat_ids = owned_cat_ids + [transfer_cat.id]
+                # Get person's owned bill categories (everything except the transfer cat)
+                owned_bills = [c for c in categories
+                               if c.owner == owner_key
+                               and c.id != transfer_cat.id]
 
-                # Determine budget start: use first transaction on person categories,
-                # fall back to overall first_date, then current period start
-                person_first_result = await db.execute(
-                    select(func.min(BudgetTransaction.transaction_date))
-                    .where(BudgetTransaction.category_id.in_(person_cat_ids))
-                )
-                person_first = person_first_result.scalar()
-                budget_start = person_first or first_date or start_date
-
-                # Count half-periods from budget start through current period end
+                # Budget starts from first transaction in system or current period
+                budget_start = first_date or start_date
                 s_y, s_m = budget_start.year, budget_start.month
                 s_d = 1 if budget_start.day <= 14 else 15
 
-                num_periods = 0
+                balance = 0.0
                 y, m, d = s_y, s_m, s_d
                 while True:
                     period_dt = date(y, m, d)
                     if period_dt > end_date:
                         break
-                    num_periods += 1
+
+                    is_first_half = (d == 1)
+
+                    # Add deposit for this half-period
+                    balance += deposit_per_period
+
+                    # Deduct budgeted bill amounts for this half-period
+                    for bill in owned_bills:
+                        # Check if bill is active this month
+                        if bill.billing_months:
+                            active_months = [int(bm.strip()) for bm in bill.billing_months.split(',') if bm.strip()]
+                            if m not in active_months:
+                                continue
+
+                        # Check start_date / end_date (YYYY-MM format)
+                        period_ym = f"{y}-{m:02d}"
+                        if bill.start_date and period_ym < bill.start_date:
+                            continue
+                        if bill.end_date and period_ym > bill.end_date:
+                            continue
+
+                        if bill.bill_day is not None:
+                            # Bill with specific due day - deduct in matching half only
+                            bill_in_first_half = (bill.bill_day <= 14)
+                            if is_first_half == bill_in_first_half:
+                                bill_amount = bill.monthly_budget if bill.monthly_budget else bill.budget_amount
+                                balance -= bill_amount
+                        else:
+                            # Per-period bill (no specific day) - deduct each half
+                            if bill.budget_amount and bill.budget_amount > 0:
+                                balance -= bill.budget_amount
+
+                    # Advance to next half-period
                     if d == 1:
                         d = 15
                     else:
@@ -1231,18 +1249,17 @@ async def get_period_summary(
                         else:
                             m += 1
 
-                # Sum all actual transactions on person categories through period end
-                person_txn_result = await db.execute(
+                # Subtract actual discretionary transactions on the transfer category
+                discretionary_result = await db.execute(
                     select(func.sum(BudgetTransaction.amount))
                     .where(
-                        BudgetTransaction.category_id.in_(person_cat_ids),
+                        BudgetTransaction.category_id == transfer_cat.id,
                         BudgetTransaction.transaction_date <= end_date,
                     )
                 )
-                total_person_spent = person_txn_result.scalar() or 0.0
+                discretionary_spent = discretionary_result.scalar() or 0.0
+                balance += discretionary_spent  # spending is negative, so adding reduces balance
 
-                # Balance = total deposits + actual spending (spending is negative)
-                balance = (num_periods * deposit_per_period) + total_person_spent
                 person_spending_balances[owner_key] = round(balance, 2)
         except Exception as e:
             logger.warning(f"Could not calculate person spending balances: {e}")
