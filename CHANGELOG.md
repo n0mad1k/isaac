@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.68.2] - 2026-02-01
+
+### Changed
+- **Dane/Kelly budget sections now show per-half breakdowns** - Each person's budget section on the Monthly Budget page now shows deposit, bills, and remaining for each half (1st-14th and 15th-End) plus a monthly grand total
+
 ## [1.68.1] - 2026-02-01
 
 ### Fixed

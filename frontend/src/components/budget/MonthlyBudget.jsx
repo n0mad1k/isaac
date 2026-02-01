@@ -692,6 +692,13 @@ function MonthlyBudget() {
 
     const firstBillTotal = bFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
     const secondBillTotal = bSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
+
+    // Per-half deposit totals
+    const firstDepositTotal = firstDeposits.reduce((s, c) => s + (c.budget_amount || 0), 0)
+    const secondDepositTotal = secondDeposits.reduce((s, c) => s + (c.budget_amount || 0), 0)
+    const firstHalfRemaining = firstDepositTotal - firstBillTotal
+    const secondHalfRemaining = secondDepositTotal - secondBillTotal
+
     // Monthly total: per-period deposits count twice, single-half deposits count once
     const totalDeposits = personTransfers.reduce((s, c) => s + (c.bill_day ? (c.budget_amount || 0) : (c.budget_amount || 0) * 2), 0)
     const totalBillsForPerson = firstBillTotal + secondBillTotal
@@ -727,18 +734,51 @@ function MonthlyBudget() {
         </div>
 
         <div className="py-1" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
+          {/* 1st Half Summary */}
           <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
-            <span /><span style={{ color: 'var(--color-text-muted)' }}>Deposits</span>
-            <span className="text-right" style={{ color: '#22c55e' }}>+{fmt(totalDeposits)}</span>
+            <span /><span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>1st - 14th</span>
+            <span /><span /><span />
+          </div>
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
+            <span /><span style={{ color: 'var(--color-text-muted)' }}>Deposit</span>
+            <span className="text-right" style={{ color: '#22c55e' }}>+{fmt(firstDepositTotal)}</span>
             <span /><span />
           </div>
           <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
             <span /><span style={{ color: 'var(--color-text-muted)' }}>Bills</span>
-            <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(totalBillsForPerson)}</span>
+            <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(firstBillTotal)}</span>
             <span /><span />
           </div>
-          <div className="grid grid-cols-[40px_1fr_80px_90px_24px] text-xs font-bold py-0.5 px-2">
-            <span /><span style={{ color: 'var(--color-text-primary)' }}>Remaining</span>
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2">
+            <span /><span style={{ color: 'var(--color-text-muted)' }}>Remaining</span>
+            <span className="text-right" style={{ color: firstHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(firstHalfRemaining)}</span>
+            <span /><span />
+          </div>
+
+          {/* 2nd Half Summary */}
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2 mt-1">
+            <span /><span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>15th - End</span>
+            <span /><span /><span />
+          </div>
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
+            <span /><span style={{ color: 'var(--color-text-muted)' }}>Deposit</span>
+            <span className="text-right" style={{ color: '#22c55e' }}>+{fmt(secondDepositTotal)}</span>
+            <span /><span />
+          </div>
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
+            <span /><span style={{ color: 'var(--color-text-muted)' }}>Bills</span>
+            <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(secondBillTotal)}</span>
+            <span /><span />
+          </div>
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2">
+            <span /><span style={{ color: 'var(--color-text-muted)' }}>Remaining</span>
+            <span className="text-right" style={{ color: secondHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfRemaining)}</span>
+            <span /><span />
+          </div>
+
+          {/* Monthly Grand Total */}
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2 mt-1" style={{ borderTop: '2px solid var(--color-border-default)' }}>
+            <span /><span style={{ color: 'var(--color-text-primary)' }}>Monthly Total</span>
             <span className="text-right" style={{ color: net >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(net)}</span>
             <span /><span />
           </div>
