@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.69.1] - 2026-02-01
+
+### Fixed
+- **Transaction archival now only touches previous half-period** - Archive job explicitly protects the current half-period's transactions and only snapshots/cleans up completed periods
+- **Transactions tab defaults to current half** - Budget transactions view now filters to the current half-period by default with toggle for This Half / This Month / All
+
 ## [1.69.0] - 2026-02-01
 
 ### Added

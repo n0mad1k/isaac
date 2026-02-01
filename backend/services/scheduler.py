@@ -1634,7 +1634,8 @@ class SchedulerService:
     async def archive_budget_transactions(self):
         """Archive old budget transactions and snapshot period summaries.
         Runs on 1st and 15th — snapshots the just-ended half-period and
-        deletes transactions older than 3 months."""
+        deletes transactions older than 3 months.
+        SAFETY: Never touches current half-period transactions."""
         from datetime import date, timedelta
         from dateutil.relativedelta import relativedelta
         import json
@@ -1647,19 +1648,21 @@ class SchedulerService:
 
                 today = date.today()
 
-                # Determine the just-ended half-period
+                # Determine current half-period (PROTECTED — never touched)
                 if today.day <= 14:
-                    # We're in the 1st half — the 2nd half of last month just ended
-                    prev_end = today.replace(day=1) - timedelta(days=1)  # last day of prev month
+                    current_start = today.replace(day=1)
+                    # Previous half = 2nd half of last month
+                    prev_end = current_start - timedelta(days=1)  # last day of prev month
                     prev_start = prev_end.replace(day=15)
-                    half = 2
                     period_key = f"{prev_start.year}-{prev_start.month:02d}-2"
                 else:
-                    # We're in the 2nd half — the 1st half of this month just ended
+                    current_start = today.replace(day=15)
+                    # Previous half = 1st half of this month
                     prev_start = today.replace(day=1)
                     prev_end = today.replace(day=14)
-                    half = 1
                     period_key = f"{today.year}-{today.month:02d}-1"
+
+                logger.info(f"Archiving period {period_key} ({prev_start} to {prev_end}). Current period starts {current_start} — protected.")
 
                 # Check if snapshot already exists
                 existing = await db.execute(
@@ -1668,8 +1671,7 @@ class SchedulerService:
                 if existing.scalar():
                     logger.debug(f"Snapshot for {period_key} already exists, skipping")
                 else:
-                    # Create snapshot for the just-ended period
-                    # Get spending by category for the period
+                    # Create snapshot for the just-ended period ONLY
                     cat_spending_q = await db.execute(
                         select(
                             BudgetCategory.name,
@@ -1685,7 +1687,6 @@ class SchedulerService:
                     )
                     cat_spending = {name: round(abs(amt), 2) for name, amt in cat_spending_q.fetchall()}
 
-                    # Get totals
                     income_q = await db.execute(
                         select(func.sum(BudgetTransaction.amount))
                         .where(
@@ -1728,11 +1729,14 @@ class SchedulerService:
                     txn.period_key = f"{td.year}-{td.month:02d}-{h}"
                 await db.commit()
 
-                # Delete transactions older than 3 months
+                # Delete transactions older than 3 months — but NEVER from current period
                 cutoff = today - relativedelta(months=3)
                 delete_result = await db.execute(
                     delete(BudgetTransaction).where(
-                        BudgetTransaction.transaction_date < cutoff
+                        and_(
+                            BudgetTransaction.transaction_date < cutoff,
+                            BudgetTransaction.transaction_date < current_start,
+                        )
                     )
                 )
                 deleted_count = delete_result.rowcount
