@@ -131,8 +131,12 @@ function BudgetOverview() {
   )
 
   // Get person spending balance (accumulated with rollover from prior periods)
-  const getPersonRemaining = (ownerKey) => {
-    return summary?.person_spending_balances?.[ownerKey] ?? 0
+  const getPersonData = (ownerKey) => {
+    const data = summary?.person_spending_balances?.[ownerKey]
+    if (!data) return { available: 0 }
+    // Handle both old (number) and new (object) format
+    if (typeof data === 'number') return { available: data }
+    return data
   }
 
   // Build cards: Income, Bills, then remaining for each spending category
@@ -184,11 +188,17 @@ function BudgetOverview() {
             const ownerKey = name.toLowerCase().includes('dane') ? 'dane' : name.toLowerCase().includes('kelly') ? 'kelly' : null
 
             if (isDaneKelly) {
-              const remaining = getPersonRemaining(ownerKey)
+              const personData = getPersonData(ownerKey)
+              const available = personData.available
               return (
                 <div key={name} className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
                   <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</div>
-                  <div className="text-base font-bold" style={{ color: remaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remaining)}</div>
+                  <div className="text-base font-bold" style={{ color: available >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(available)}</div>
+                  {personData.period_spent > 0 && (
+                    <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                      spent: {fmt(personData.period_spent)}
+                    </div>
+                  )}
                 </div>
               )
             }

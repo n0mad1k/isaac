@@ -493,9 +493,12 @@ function MonthlyBudget() {
     return budgeted - spent
   }
 
-  // Get person spending balance (accumulated with rollover from prior periods)
-  const getPersonRemaining = (ownerKey) => {
-    return currentHalf?.person_spending_balances?.[ownerKey] ?? 0
+  // Get person spending data (accumulated with rollover from prior periods)
+  const getPersonData = (ownerKey, half) => {
+    const data = (half || currentHalf)?.person_spending_balances?.[ownerKey]
+    if (!data) return { available: 0 }
+    if (typeof data === 'number') return { available: data }
+    return data
   }
 
   const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', 'Dane Spending', 'Kelly Spending']
@@ -683,9 +686,13 @@ function MonthlyBudget() {
     const net = totalDeposits - totalBillsForPerson
 
     // Account balances with rollover from prior periods
-    const firstHalfBalance = firstHalf?.person_spending_balances?.[ownerKey] ?? null
-    const secondHalfBalance = secondHalf?.person_spending_balances?.[ownerKey] ?? null
-    const endOfMonthBalance = secondHalfBalance ?? firstHalfBalance
+    const firstData = getPersonData(ownerKey, firstHalf)
+    const secondData = getPersonData(ownerKey, secondHalf)
+    const firstHalfBalance = firstData.available
+    const secondHalfBalance = secondData.available
+    const endOfMonthBalance = secondHalf ? secondHalfBalance : firstHalfBalance
+    const firstPeriodSpent = firstData.period_spent || 0
+    const secondPeriodSpent = secondData.period_spent || 0
 
     return (
       <div className="rounded-xl overflow-hidden min-w-0" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
@@ -732,9 +739,16 @@ function MonthlyBudget() {
             <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(firstBillTotal)}</span>
             <span /><span />
           </div>
+          {firstPeriodSpent > 0 && (
+            <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
+              <span /><span style={{ color: 'var(--color-text-muted)' }}>Spending</span>
+              <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(firstPeriodSpent)}</span>
+              <span /><span />
+            </div>
+          )}
           <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2">
-            <span /><span style={{ color: 'var(--color-text-muted)' }}>Remaining</span>
-            <span className="text-right" style={{ color: firstHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(firstHalfRemaining)}</span>
+            <span /><span style={{ color: 'var(--color-text-muted)' }}>Net This Half</span>
+            <span className="text-right" style={{ color: (firstHalfRemaining - firstPeriodSpent) >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(firstHalfRemaining - firstPeriodSpent)}</span>
             <span /><span />
           </div>
 
@@ -753,27 +767,25 @@ function MonthlyBudget() {
             <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(secondBillTotal)}</span>
             <span /><span />
           </div>
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2">
-            <span /><span style={{ color: 'var(--color-text-muted)' }}>Remaining</span>
-            <span className="text-right" style={{ color: secondHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfRemaining)}</span>
-            <span /><span />
-          </div>
-
-          {/* Monthly Budget Total */}
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-1 px-2 mt-1" style={{ borderTop: '1px solid var(--color-border-default)' }}>
-            <span /><span style={{ color: 'var(--color-text-muted)' }}>Monthly Budget</span>
-            <span className="text-right" style={{ color: net >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(net)}</span>
-            <span /><span />
-          </div>
-
-          {/* Account Balance with Rollover */}
-          {endOfMonthBalance != null && (
-            <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)' }}>
-              <span /><span style={{ color: 'var(--color-text-primary)' }}>Account Balance</span>
-              <span className="text-right" style={{ color: endOfMonthBalance >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(endOfMonthBalance)}</span>
+          {secondPeriodSpent > 0 && (
+            <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
+              <span /><span style={{ color: 'var(--color-text-muted)' }}>Spending</span>
+              <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(secondPeriodSpent)}</span>
               <span /><span />
             </div>
           )}
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2">
+            <span /><span style={{ color: 'var(--color-text-muted)' }}>Net This Half</span>
+            <span className="text-right" style={{ color: (secondHalfRemaining - secondPeriodSpent) >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfRemaining - secondPeriodSpent)}</span>
+            <span /><span />
+          </div>
+
+          {/* Available to Spend — THE key number */}
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-2 px-2 mt-1" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
+            <span /><span style={{ color: 'var(--color-text-primary)' }}>Available to Spend</span>
+            <span className="text-right text-sm" style={{ color: endOfMonthBalance >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(endOfMonthBalance)}</span>
+            <span /><span />
+          </div>
         </div>
       </div>
     )
@@ -812,7 +824,20 @@ function MonthlyBudget() {
         {spendingCardCats.map(name => {
           const isDaneKelly = name.toLowerCase().includes('dane') || name.toLowerCase().includes('kelly')
           const ownerKey = name.toLowerCase().includes('dane') ? 'dane' : name.toLowerCase().includes('kelly') ? 'kelly' : null
-          const remaining = isDaneKelly ? getPersonRemaining(ownerKey) : getCatRemaining(name)
+          if (isDaneKelly) {
+            const personData = getPersonData(ownerKey)
+            const available = personData.available
+            return (
+              <div key={name} className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+                <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{name}</div>
+                <span className="text-sm font-bold" style={{ color: available >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(available)}</span>
+                {personData.period_spent > 0 && (
+                  <div className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>spent: {fmt(personData.period_spent)}</div>
+                )}
+              </div>
+            )
+          }
+          const remaining = getCatRemaining(name)
           return (
             <div key={name} className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
               <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{name}</div>

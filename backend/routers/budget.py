@@ -1207,6 +1207,8 @@ async def get_period_summary(
                 s_d = 1 if budget_start.day <= 14 else 15
 
                 balance = 0.0
+                total_deposits = 0.0
+                total_bills_deducted = 0.0
                 y, m, d = s_y, s_m, s_d
                 while True:
                     period_dt = date(y, m, d)
@@ -1217,6 +1219,7 @@ async def get_period_summary(
 
                     # Add deposit for this half-period
                     balance += deposit_per_period
+                    total_deposits += deposit_per_period
 
                     # Deduct budgeted bill amounts for this half-period
                     for bill in owned_bills:
@@ -1239,10 +1242,12 @@ async def get_period_summary(
                             if is_first_half == bill_in_first_half:
                                 bill_amount = bill.monthly_budget if bill.monthly_budget else bill.budget_amount
                                 balance -= bill_amount
+                                total_bills_deducted += bill_amount
                         else:
                             # Per-period bill (no specific day) - deduct each half
                             if bill.budget_amount and bill.budget_amount > 0:
                                 balance -= bill.budget_amount
+                                total_bills_deducted += bill.budget_amount
 
                     # Advance to next half-period
                     if d == 1:
@@ -1266,7 +1271,25 @@ async def get_period_summary(
                 discretionary_spent = discretionary_result.scalar() or 0.0
                 balance += discretionary_spent  # spending is negative, so adding reduces balance
 
-                person_spending_balances[owner_key] = round(balance, 2)
+                # Get spending just for this period (for display breakdown)
+                period_spending_result = await db.execute(
+                    select(func.sum(BudgetTransaction.amount))
+                    .where(
+                        BudgetTransaction.category_id == transfer_cat.id,
+                        BudgetTransaction.transaction_date >= start_date,
+                        BudgetTransaction.transaction_date <= end_date,
+                    )
+                )
+                period_spending = abs(period_spending_result.scalar() or 0.0)
+
+                person_spending_balances[owner_key] = {
+                    "available": round(balance, 2),
+                    "total_deposits": round(total_deposits, 2),
+                    "total_committed_bills": round(total_bills_deducted, 2),
+                    "total_spent": round(abs(discretionary_spent), 2),
+                    "period_spent": round(period_spending, 2),
+                    "deposit_per_period": deposit_per_period,
+                }
         except Exception as e:
             logger.warning(f"Could not calculate person spending balances: {e}")
 

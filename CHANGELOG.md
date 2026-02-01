@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.69.2] - 2026-02-01
+
+### Changed
+- **Person spending shows "Available to Spend"** - Dane/Kelly spending sections now show clear breakdown: Deposit, Bills, Spending (transactions), Net This Half, and a prominent "Available to Spend" total that includes rollover from prior periods
+- **Spending cards show transaction activity** - Overview and Monthly Budget cards now show how much was spent this period below the available balance
+- **API returns spending breakdown** - Person spending balances now include total deposits, committed bills, total spent, and per-period spending for full transparency
+
 ## [1.69.1] - 2026-02-01
 
 ### Fixed
