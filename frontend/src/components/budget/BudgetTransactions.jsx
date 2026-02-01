@@ -16,6 +16,30 @@ function BudgetTransactions() {
   const [page, setPage] = useState(0)
   const pageSize = 50
 
+  // Period filter: 'current' = current half, 'month' = full month, 'all' = everything
+  const [periodFilter, setPeriodFilter] = useState('current')
+
+  // Calculate current half-period date range
+  const getDateRange = (filter) => {
+    const today = new Date()
+    const y = today.getFullYear()
+    const m = today.getMonth() + 1
+    const mStr = String(m).padStart(2, '0')
+
+    if (filter === 'current') {
+      if (today.getDate() <= 14) {
+        return { start_date: `${y}-${mStr}-01`, end_date: `${y}-${mStr}-14` }
+      } else {
+        const lastDay = new Date(y, m, 0).getDate()
+        return { start_date: `${y}-${mStr}-15`, end_date: `${y}-${mStr}-${lastDay}` }
+      }
+    } else if (filter === 'month') {
+      const lastDay = new Date(y, m, 0).getDate()
+      return { start_date: `${y}-${mStr}-01`, end_date: `${y}-${mStr}-${lastDay}` }
+    }
+    return {} // 'all' - no filter
+  }
+
   // Add/Edit form
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -30,8 +54,9 @@ function BudgetTransactions() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
+      const dateRange = getDateRange(periodFilter)
       const [txnRes, accRes, catRes] = await Promise.all([
-        getBudgetTransactions({ limit: pageSize, offset: page * pageSize }),
+        getBudgetTransactions({ limit: pageSize, offset: page * pageSize, ...dateRange }),
         getBudgetAccounts(),
         getBudgetCategories(),
       ])
@@ -44,7 +69,7 @@ function BudgetTransactions() {
     } finally {
       setLoading(false)
     }
-  }, [page])
+  }, [page, periodFilter])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -134,15 +159,36 @@ function BudgetTransactions() {
 
   return (
     <div className="space-y-3">
-      {/* Add Transaction Button */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => { resetForm(); setShowForm(true) }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-farm-green text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add Transaction
-        </button>
+      {/* Period Filter & Add Button */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { resetForm(); setShowForm(true) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-farm-green text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Transaction
+          </button>
+          <div className="flex gap-1">
+            {[
+              { key: 'current', label: 'This Half' },
+              { key: 'month', label: 'This Month' },
+              { key: 'all', label: 'All' },
+            ].map(f => (
+              <button
+                key={f.key}
+                onClick={() => { setPeriodFilter(f.key); setPage(0) }}
+                className={`px-2 py-1 rounded text-xs transition-colors ${
+                  periodFilter === f.key
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
           {total} transaction{total !== 1 ? 's' : ''}
         </span>
