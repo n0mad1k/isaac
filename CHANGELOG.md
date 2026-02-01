@@ -4,8 +4,10 @@ All notable changes to Isaac will be documented in this file.
 
 ## [1.68.2] - 2026-02-01
 
-### Changed
-- **Dane/Kelly budget sections now show per-half breakdowns** - Each person's budget section on the Monthly Budget page now shows deposit, bills, and remaining for each half (1st-14th and 15th-End) plus a monthly grand total
+### Added
+- **Dane/Kelly spending rollover** - Spending account balances now accumulate across half-periods instead of resetting each half. Leftover funds roll forward until spent.
+- **Per-half budget breakdowns** - Each person's budget section shows deposit, bills, and remaining for each half (1st-14th and 15th-End)
+- **Account Balance line** - Person budget sections now show the accumulated account balance with rollover at the bottom
 
 ## [1.68.1] - 2026-02-01
 

@@ -493,31 +493,9 @@ function MonthlyBudget() {
     return budgeted - spent
   }
 
-  // Get remaining for Dane/Kelly: transfer deposit - owned bill budgets - discretionary spending
+  // Get person spending balance (accumulated with rollover from prior periods)
   const getPersonRemaining = (ownerKey) => {
-    const personAcct = accounts.find(a => a.name.toLowerCase().includes(ownerKey))
-    const personTransfers = transferCats.filter(c => c.account_id === personAcct?.id)
-    // Deposits for this half: per-period transfers + single-half transfers in this half
-    const halfDeposits = personTransfers
-      .filter(c => !c.bill_day || (inFirstHalf ? c.bill_day <= 14 : c.bill_day >= 15))
-      .reduce((s, c) => s + (c.budget_amount || 0), 0)
-
-    // Subtract budgeted amounts of owned bills (these are committed costs)
-    const ownedCats = categories.filter(c => c.owner === ownerKey && c.is_active)
-    let totalBills = 0
-    ownedCats.forEach(cat => {
-      const halfCat = currentHalf?.categories?.find(c => c.id === cat.id)
-      totalBills += halfCat?.budgeted || 0
-    })
-
-    // Also subtract actual discretionary spending on the transfer category itself
-    let discretionarySpent = 0
-    personTransfers.forEach(t => {
-      const halfCat = currentHalf?.categories?.find(c => c.id === t.id)
-      discretionarySpent += halfCat?.spent || 0
-    })
-
-    return halfDeposits - totalBills - discretionarySpent
+    return currentHalf?.person_spending_balances?.[ownerKey] ?? 0
   }
 
   const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', 'Dane Spending', 'Kelly Spending']
@@ -704,6 +682,11 @@ function MonthlyBudget() {
     const totalBillsForPerson = firstBillTotal + secondBillTotal
     const net = totalDeposits - totalBillsForPerson
 
+    // Account balances with rollover from prior periods
+    const firstHalfBalance = firstHalf?.person_spending_balances?.[ownerKey] ?? null
+    const secondHalfBalance = secondHalf?.person_spending_balances?.[ownerKey] ?? null
+    const endOfMonthBalance = secondHalfBalance ?? firstHalfBalance
+
     return (
       <div className="rounded-xl overflow-hidden min-w-0" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
@@ -776,12 +759,21 @@ function MonthlyBudget() {
             <span /><span />
           </div>
 
-          {/* Monthly Grand Total */}
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2 mt-1" style={{ borderTop: '2px solid var(--color-border-default)' }}>
-            <span /><span style={{ color: 'var(--color-text-primary)' }}>Monthly Total</span>
+          {/* Monthly Budget Total */}
+          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-1 px-2 mt-1" style={{ borderTop: '1px solid var(--color-border-default)' }}>
+            <span /><span style={{ color: 'var(--color-text-muted)' }}>Monthly Budget</span>
             <span className="text-right" style={{ color: net >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(net)}</span>
             <span /><span />
           </div>
+
+          {/* Account Balance with Rollover */}
+          {endOfMonthBalance != null && (
+            <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)' }}>
+              <span /><span style={{ color: 'var(--color-text-primary)' }}>Account Balance</span>
+              <span className="text-right" style={{ color: endOfMonthBalance >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(endOfMonthBalance)}</span>
+              <span /><span />
+            </div>
+          )}
         </div>
       </div>
     )

@@ -1173,6 +1173,80 @@ async def get_period_summary(
         except Exception as e:
             logger.warning(f"Could not calculate rollover: {e}")
 
+        # Calculate person spending account balances (rollover across half-periods)
+        # Each person gets a deposit per half-period; leftover rolls to next half
+        person_spending_balances = {}
+        try:
+            # Use the first budget transaction date as budget system start
+            if not first_date:
+                p_first_txn = await db.execute(
+                    select(func.min(BudgetTransaction.transaction_date))
+                )
+                first_date = p_first_txn.scalar()
+
+            for owner_key in ['dane', 'kelly']:
+                # Find the person's transfer category
+                transfer_cat = next(
+                    (c for c in categories
+                     if c.category_type == CategoryType.TRANSFER
+                     and owner_key in c.name.lower()),
+                    None
+                )
+                if not transfer_cat or not transfer_cat.budget_amount:
+                    continue
+
+                deposit_per_period = transfer_cat.budget_amount
+
+                # All person-related category IDs (owned bills + transfer cat)
+                owned_cat_ids = [c.id for c in categories if c.owner == owner_key]
+                person_cat_ids = owned_cat_ids + [transfer_cat.id]
+
+                # Determine budget start: use first transaction on person categories,
+                # fall back to overall first_date, then current period start
+                person_first_result = await db.execute(
+                    select(func.min(BudgetTransaction.transaction_date))
+                    .where(BudgetTransaction.category_id.in_(person_cat_ids))
+                )
+                person_first = person_first_result.scalar()
+                budget_start = person_first or first_date or start_date
+
+                # Count half-periods from budget start through current period end
+                s_y, s_m = budget_start.year, budget_start.month
+                s_d = 1 if budget_start.day <= 14 else 15
+
+                num_periods = 0
+                y, m, d = s_y, s_m, s_d
+                while True:
+                    period_dt = date(y, m, d)
+                    if period_dt > end_date:
+                        break
+                    num_periods += 1
+                    if d == 1:
+                        d = 15
+                    else:
+                        d = 1
+                        if m == 12:
+                            m = 1
+                            y += 1
+                        else:
+                            m += 1
+
+                # Sum all actual transactions on person categories through period end
+                person_txn_result = await db.execute(
+                    select(func.sum(BudgetTransaction.amount))
+                    .where(
+                        BudgetTransaction.category_id.in_(person_cat_ids),
+                        BudgetTransaction.transaction_date <= end_date,
+                    )
+                )
+                total_person_spent = person_txn_result.scalar() or 0.0
+
+                # Balance = total deposits + actual spending (spending is negative)
+                balance = (num_periods * deposit_per_period) + total_person_spent
+                person_spending_balances[owner_key] = round(balance, 2)
+        except Exception as e:
+            logger.warning(f"Could not calculate person spending balances: {e}")
+
         # Build category breakdown
         category_summary = []
         total_budgeted = 0.0
@@ -1257,6 +1331,7 @@ async def get_period_summary(
             "expected_income": round(expected_income, 2),
             "uncategorized_spent": round(abs(uncategorized_spent), 2),
             "rollover_balance": rollover_balance,
+            "person_spending_balances": person_spending_balances,
         }
     except Exception as e:
         logger.error(f"Error getting budget period summary: {e}")
