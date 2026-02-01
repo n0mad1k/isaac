@@ -1133,7 +1133,43 @@ async def get_period_summary(
                         ro_spent = ro_result.scalar() or 0.0
                         rollover_balance += ro_spent  # negative spending reduces balance
 
-                    rollover_balance = round(max(rollover_balance, 0), 2)
+                # If viewing the second half, also include the first half's surplus
+                # so rollover carries across half-periods, not just full months
+                if is_second_half and rollover_cat_ids:
+                    first_half_start = date(start_date.year, start_date.month, 1)
+                    first_half_end = date(start_date.year, start_date.month, 14)
+
+                    # Add per-period budget for rollover categories (first half)
+                    for cat in categories:
+                        if cat.name in rollover_cats:
+                            rollover_balance += (cat.budget_amount or 0)
+
+                    # Subtract first half spending on rollover categories
+                    fh_result = await db.execute(
+                        select(func.sum(BudgetTransaction.amount))
+                        .where(
+                            BudgetTransaction.transaction_date >= first_half_start,
+                            BudgetTransaction.transaction_date <= first_half_end,
+                            BudgetTransaction.category_id.in_(rollover_cat_ids),
+                        )
+                    )
+                    fh_spent = fh_result.scalar() or 0.0
+                    rollover_balance += fh_spent  # negative, reduces balance
+
+                    # Subtract Roll Over transactions from first half
+                    if roll_over_cat:
+                        fh_ro_result = await db.execute(
+                            select(func.sum(BudgetTransaction.amount))
+                            .where(
+                                BudgetTransaction.category_id == roll_over_cat.id,
+                                BudgetTransaction.transaction_date >= first_half_start,
+                                BudgetTransaction.transaction_date <= first_half_end,
+                            )
+                        )
+                        fh_ro_spent = fh_ro_result.scalar() or 0.0
+                        rollover_balance += fh_ro_spent
+
+                rollover_balance = round(max(rollover_balance, 0), 2)
         except Exception as e:
             logger.warning(f"Could not calculate rollover: {e}")
 

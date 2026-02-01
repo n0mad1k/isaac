@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.68.1] - 2026-02-01
+
+### Fixed
+- **Budget rollover now carries across half-periods** - Surplus from Gas/Groceries/Main Spending in the 1st-14th now rolls over to the 15th-end view (previously only rolled over at month boundaries)
+
 ## [1.68.0] - 2026-01-31
 
 ### Added
