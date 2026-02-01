@@ -122,6 +122,7 @@ class BudgetTransaction(Base):
     source_reference_id = Column(String(100), nullable=True)
     import_hash = Column(String(64), unique=True, nullable=True)  # SHA256 for dedup
     notes = Column(Text, nullable=True)
+    period_key = Column(String(10), nullable=True)  # e.g. "2026-02-1" (year-month-half)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -169,3 +170,20 @@ class BudgetIncome(Base):
 
     def __repr__(self):
         return f"<BudgetIncome {self.name} ${self.amount}>"
+
+
+class BudgetPeriodSnapshot(Base):
+    """End-of-period summaries for trend tracking (persists after transaction cleanup)"""
+    __tablename__ = "budget_period_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    period_key = Column(String(10), nullable=False, unique=True)  # e.g. "2026-02-1"
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    total_income = Column(Float, default=0.0)
+    total_expenses = Column(Float, default=0.0)
+    total_bills = Column(Float, default=0.0)
+    category_spending = Column(Text, nullable=True)  # JSON: {category_name: amount_spent}
+    person_balances = Column(Text, nullable=True)  # JSON: {dane: balance, kelly: balance}
+    rollover_balance = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow)

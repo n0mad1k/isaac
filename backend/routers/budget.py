@@ -15,6 +15,7 @@ import logging
 from models.database import get_db
 from models.budget import (
     BudgetAccount, BudgetCategory, BudgetTransaction, BudgetCategoryRule, BudgetIncome,
+    BudgetPeriodSnapshot,
     AccountType, CategoryType, TransactionType, TransactionSource, MatchType, IncomeFrequency
 )
 from models.users import User
@@ -531,10 +532,14 @@ async def create_transaction(
     db: AsyncSession = Depends(get_db),
 ):
     try:
+        txn_date = data.transaction_date
+        half = 1 if txn_date.day <= 14 else 2
+        period_key = f"{txn_date.year}-{txn_date.month:02d}-{half}"
+
         txn = BudgetTransaction(
             account_id=data.account_id,
             category_id=data.category_id,
-            transaction_date=data.transaction_date,
+            transaction_date=txn_date,
             description=data.description,
             original_description=data.description,
             amount=data.amount,
@@ -542,6 +547,7 @@ async def create_transaction(
             is_pending=data.is_pending,
             source=TransactionSource.MANUAL,
             notes=data.notes,
+            period_key=period_key,
         )
 
         # Auto-categorize if no category provided
@@ -1570,16 +1576,21 @@ async def confirm_import(
                 continue
 
             try:
+                imp_date = date.fromisoformat(txn_data.date)
+                imp_half = 1 if imp_date.day <= 14 else 2
+                imp_period_key = f"{imp_date.year}-{imp_date.month:02d}-{imp_half}"
+
                 txn = BudgetTransaction(
                     account_id=txn_data.account_id,
                     category_id=txn_data.category_id,
-                    transaction_date=date.fromisoformat(txn_data.date),
+                    transaction_date=imp_date,
                     description=txn_data.description,
                     original_description=txn_data.original_description,
                     amount=txn_data.amount,
                     transaction_type=TransactionType(txn_data.transaction_type),
                     source=TransactionSource.CHASE_IMPORT,
                     import_hash=txn_data.import_hash,
+                    period_key=imp_period_key,
                 )
                 db.add(txn)
                 imported += 1
@@ -1632,4 +1643,117 @@ async def run_auto_categorize(
         }
     except Exception as e:
         logger.error(f"Error running auto-categorize: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+# ========================
+# Spending Trends & Archival
+# ========================
+
+@router.get("/trends/")
+async def get_spending_trends(
+    months: int = Query(default=3, ge=1, le=12),
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get spending trends by category across recent half-periods.
+    Combines live transactions with archived period snapshots."""
+    import json
+    from dateutil.relativedelta import relativedelta
+
+    try:
+        today = date.today()
+        cutoff = today - relativedelta(months=months)
+
+        # Get live transaction data grouped by period and category
+        live_result = await db.execute(
+            select(
+                BudgetCategory.name,
+                func.sum(BudgetTransaction.amount),
+                BudgetTransaction.period_key,
+            )
+            .join(BudgetCategory, BudgetTransaction.category_id == BudgetCategory.id)
+            .where(
+                BudgetTransaction.transaction_date >= cutoff,
+                BudgetTransaction.amount < 0,
+            )
+            .group_by(BudgetCategory.name, BudgetTransaction.period_key)
+        )
+        live_data = live_result.fetchall()
+
+        # Also get archived snapshots for periods that may have had transactions deleted
+        snapshots_result = await db.execute(
+            select(BudgetPeriodSnapshot)
+            .where(BudgetPeriodSnapshot.start_date >= cutoff)
+            .order_by(BudgetPeriodSnapshot.start_date)
+        )
+        snapshots = snapshots_result.scalars().all()
+
+        # Build period -> category -> amount map
+        # Live data takes priority, snapshots fill in gaps
+        periods = {}
+
+        # First, load snapshot data
+        for snap in snapshots:
+            if snap.category_spending:
+                cat_data = json.loads(snap.category_spending)
+                periods[snap.period_key] = {
+                    "start_date": snap.start_date.isoformat(),
+                    "end_date": snap.end_date.isoformat(),
+                    "total_income": snap.total_income,
+                    "total_expenses": snap.total_expenses,
+                    "categories": cat_data,
+                }
+
+        # Then overlay live data (more current)
+        for name, amount, period_key in live_data:
+            if not period_key:
+                continue
+            if period_key not in periods:
+                periods[period_key] = {"categories": {}, "total_income": 0, "total_expenses": 0}
+            periods[period_key]["categories"][name] = round(abs(amount), 2)
+
+        # Recalculate total_expenses from live category data
+        for pk, pdata in periods.items():
+            if "categories" in pdata:
+                pdata["total_expenses"] = round(sum(pdata["categories"].values()), 2)
+
+        # Sort by period key
+        sorted_periods = dict(sorted(periods.items()))
+
+        return {
+            "months": months,
+            "periods": sorted_periods,
+        }
+    except Exception as e:
+        logger.error(f"Error getting spending trends: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.get("/snapshots/")
+async def get_period_snapshots(
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all period snapshots for historical reference"""
+    try:
+        result = await db.execute(
+            select(BudgetPeriodSnapshot).order_by(BudgetPeriodSnapshot.start_date.desc())
+        )
+        snapshots = result.scalars().all()
+        return [
+            {
+                "period_key": s.period_key,
+                "start_date": s.start_date.isoformat(),
+                "end_date": s.end_date.isoformat(),
+                "total_income": s.total_income,
+                "total_expenses": s.total_expenses,
+                "category_spending": s.category_spending,
+                "person_balances": s.person_balances,
+                "rollover_balance": s.rollover_balance,
+            }
+            for s in snapshots
+        ]
+    except Exception as e:
+        logger.error(f"Error getting period snapshots: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred")

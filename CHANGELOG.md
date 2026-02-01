@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.69.0] - 2026-02-01
+
+### Added
+- **Transaction archival system** - Transactions are now tagged with a `period_key` (e.g., 2026-02-1 for 1st half) for easy grouping
+- **Automatic period snapshots** - End-of-period spending summaries are saved before transactions age out, preserving trend data
+- **3-month transaction retention** - Transactions older than 3 months are automatically cleaned up on the 1st and 15th of each month
+- **Spending trends endpoint** - New `/api/budget/trends/` endpoint returns per-category spending across recent half-periods for trend analysis
+- **Period snapshots endpoint** - New `/api/budget/snapshots/` endpoint returns archived period summaries
+
 ## [1.68.3] - 2026-02-01
 
 ### Fixed

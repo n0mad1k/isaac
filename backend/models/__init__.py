@@ -28,6 +28,7 @@ from .translation import TranslationCache
 from .garden import PlantingEvent, JournalEntry, GardenBed, BedPlanting
 from .budget import (
     BudgetAccount, BudgetCategory, BudgetTransaction, BudgetCategoryRule, BudgetIncome,
+    BudgetPeriodSnapshot,
     AccountType, CategoryType, TransactionType, TransactionSource, MatchType
 )
 from .chat import ChatConversation, ChatMessage, AiInsight, InsightPriority
@@ -172,6 +173,7 @@ __all__ = [
     "TransactionType",
     "TransactionSource",
     "MatchType",
+    "BudgetPeriodSnapshot",
     # Chat / AI
     "ChatConversation",
     "ChatMessage",

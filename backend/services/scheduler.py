@@ -382,6 +382,15 @@ class SchedulerService:
             replace_existing=True,
         )
 
+        # Budget transaction archival - runs on 1st and 15th at 1 AM
+        self.scheduler.add_job(
+            self.archive_budget_transactions,
+            CronTrigger(day="1,15", hour=1, minute=0),
+            id="budget_archive",
+            name="Archive Budget Transactions",
+            replace_existing=True,
+        )
+
         # AI Insight jobs (gated by ai_proactive_insights setting)
         await self.schedule_ai_insights()
 
@@ -1621,6 +1630,121 @@ class SchedulerService:
 
         except Exception as e:
             logger.error(f"Error cleaning up old health data: {e}")
+
+    async def archive_budget_transactions(self):
+        """Archive old budget transactions and snapshot period summaries.
+        Runs on 1st and 15th — snapshots the just-ended half-period and
+        deletes transactions older than 3 months."""
+        from datetime import date, timedelta
+        from dateutil.relativedelta import relativedelta
+        import json
+
+        logger.info("Running budget transaction archival...")
+        try:
+            async with async_session() as db:
+                from models.budget import BudgetTransaction, BudgetCategory, BudgetPeriodSnapshot
+                from sqlalchemy import select, delete, func, and_
+
+                today = date.today()
+
+                # Determine the just-ended half-period
+                if today.day <= 14:
+                    # We're in the 1st half — the 2nd half of last month just ended
+                    prev_end = today.replace(day=1) - timedelta(days=1)  # last day of prev month
+                    prev_start = prev_end.replace(day=15)
+                    half = 2
+                    period_key = f"{prev_start.year}-{prev_start.month:02d}-2"
+                else:
+                    # We're in the 2nd half — the 1st half of this month just ended
+                    prev_start = today.replace(day=1)
+                    prev_end = today.replace(day=14)
+                    half = 1
+                    period_key = f"{today.year}-{today.month:02d}-1"
+
+                # Check if snapshot already exists
+                existing = await db.execute(
+                    select(BudgetPeriodSnapshot).where(BudgetPeriodSnapshot.period_key == period_key)
+                )
+                if existing.scalar():
+                    logger.debug(f"Snapshot for {period_key} already exists, skipping")
+                else:
+                    # Create snapshot for the just-ended period
+                    # Get spending by category for the period
+                    cat_spending_q = await db.execute(
+                        select(
+                            BudgetCategory.name,
+                            func.sum(BudgetTransaction.amount)
+                        )
+                        .join(BudgetCategory, BudgetTransaction.category_id == BudgetCategory.id)
+                        .where(
+                            BudgetTransaction.transaction_date >= prev_start,
+                            BudgetTransaction.transaction_date <= prev_end,
+                            BudgetTransaction.amount < 0,
+                        )
+                        .group_by(BudgetCategory.name)
+                    )
+                    cat_spending = {name: round(abs(amt), 2) for name, amt in cat_spending_q.fetchall()}
+
+                    # Get totals
+                    income_q = await db.execute(
+                        select(func.sum(BudgetTransaction.amount))
+                        .where(
+                            BudgetTransaction.transaction_date >= prev_start,
+                            BudgetTransaction.transaction_date <= prev_end,
+                            BudgetTransaction.amount > 0,
+                        )
+                    )
+                    total_income = income_q.scalar() or 0.0
+
+                    expense_q = await db.execute(
+                        select(func.sum(BudgetTransaction.amount))
+                        .where(
+                            BudgetTransaction.transaction_date >= prev_start,
+                            BudgetTransaction.transaction_date <= prev_end,
+                            BudgetTransaction.amount < 0,
+                        )
+                    )
+                    total_expenses = abs(expense_q.scalar() or 0.0)
+
+                    snapshot = BudgetPeriodSnapshot(
+                        period_key=period_key,
+                        start_date=prev_start,
+                        end_date=prev_end,
+                        total_income=round(total_income, 2),
+                        total_expenses=round(total_expenses, 2),
+                        category_spending=json.dumps(cat_spending) if cat_spending else None,
+                    )
+                    db.add(snapshot)
+                    await db.commit()
+                    logger.info(f"Created budget snapshot for {period_key}: income={total_income:.2f}, expenses={total_expenses:.2f}")
+
+                # Backfill period_key on transactions that don't have one
+                txns_no_key = await db.execute(
+                    select(BudgetTransaction).where(BudgetTransaction.period_key.is_(None))
+                )
+                for txn in txns_no_key.scalars().all():
+                    td = txn.transaction_date
+                    h = 1 if td.day <= 14 else 2
+                    txn.period_key = f"{td.year}-{td.month:02d}-{h}"
+                await db.commit()
+
+                # Delete transactions older than 3 months
+                cutoff = today - relativedelta(months=3)
+                delete_result = await db.execute(
+                    delete(BudgetTransaction).where(
+                        BudgetTransaction.transaction_date < cutoff
+                    )
+                )
+                deleted_count = delete_result.rowcount
+                await db.commit()
+
+                if deleted_count > 0:
+                    logger.info(f"Deleted {deleted_count} budget transactions older than {cutoff}")
+                else:
+                    logger.debug("No old budget transactions to clean up")
+
+        except Exception as e:
+            logger.error(f"Error archiving budget transactions: {e}")
 
     async def run_health_check(self):
         """Run periodic health checks and send alerts if needed"""
