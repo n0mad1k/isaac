@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.69.4] - 2026-02-01
+
+### Changed
+- **Period-aware available calculation** - Available to Spend now reflects only the half-periods in the viewed date range. Viewing 1st half shows rollover + 1st half net - 1st half spending. Full month shows both halves combined.
+- **Cumulative 2nd half totals** - Monthly Budget 2nd half "Total" now shows the cumulative amount (1st half remaining + 2nd half remaining), matching Excel spreadsheet format
+- **Full month available in Monthly Budget** - Bottom "Available to Spend" combines rollover + full monthly net - all month spending for an accurate overall balance
+
 ## [1.69.3] - 2026-02-01
 
 ### Changed

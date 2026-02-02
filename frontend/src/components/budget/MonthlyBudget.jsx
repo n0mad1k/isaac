@@ -686,13 +686,18 @@ function MonthlyBudget() {
     const net = totalDeposits - totalBillsForPerson
 
     // Person spending data from API (includes rollover, per-half margins, spending)
-    const personData = getPersonData(ownerKey, currentHalf)
+    // Use firstHalf data for the monthly view since it has rollover from prior months
+    const personData = getPersonData(ownerKey, firstHalf)
+    const secondPersonData = getPersonData(ownerKey, secondHalf)
     const rollover = personData.rollover || 0
-    const monthlyNet = personData.monthly_net || 0
-    const monthSpent = personData.month_spent || 0
-    const available = personData.available || 0
+    const monthlyNet = personData.monthly_net || (personData.first_half_remaining || 0) + (personData.second_half_remaining || 0)
+    const periodSpent = (personData.period_spent || 0) + (secondPersonData.period_spent || 0)
+    // For full month available: rollover + full monthly net - all month spending
+    const fullMonthAvailable = rollover + monthlyNet - periodSpent
     const apiFhRemaining = personData.first_half_remaining
     const apiShRemaining = personData.second_half_remaining
+    // 2nd half cumulative total (like the Excel): 1st half remaining + 2nd half remaining
+    const secondHalfCumulative = (apiFhRemaining || firstHalfRemaining) + (apiShRemaining != null ? apiShRemaining : secondHalfRemaining)
 
     return (
       <div className="rounded-xl overflow-hidden min-w-0" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
@@ -762,7 +767,7 @@ function MonthlyBudget() {
           </div>
           <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2" style={{ borderTop: '1px solid var(--color-border-default)' }}>
             <span /><span style={{ color: 'var(--color-text-primary)' }}>Total</span>
-            <span className="text-right" style={{ color: secondHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(apiShRemaining != null ? apiShRemaining : secondHalfRemaining)}</span>
+            <span className="text-right" style={{ color: secondHalfCumulative >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfCumulative)}</span>
             <span /><span />
           </div>
 
@@ -783,17 +788,17 @@ function MonthlyBudget() {
               </div>
             )}
             {/* This month's spending */}
-            {monthSpent > 0 && (
+            {periodSpent > 0 && (
               <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
                 <span /><span style={{ color: 'var(--color-text-muted)' }}>Spending</span>
-                <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(monthSpent)}</span>
+                <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(periodSpent)}</span>
                 <span /><span />
               </div>
             )}
             {/* Available to Spend */}
             <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
               <span /><span style={{ color: 'var(--color-text-primary)' }}>Available to Spend</span>
-              <span className="text-right text-sm" style={{ color: available >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(available)}</span>
+              <span className="text-right text-sm" style={{ color: fullMonthAvailable >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(fullMonthAvailable)}</span>
               <span /><span />
             </div>
           </div>

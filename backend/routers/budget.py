@@ -1272,24 +1272,34 @@ async def get_period_summary(
                 second_half_bills = calc_half_bills(current_year, current_month, False)
                 first_half_remaining = deposit_per_period - first_half_bills
                 second_half_remaining = deposit_per_period - second_half_bills
+
+                # Determine which halves are included in the date range
+                includes_first = start_date.day <= 14
+                includes_second = end_date.day > 14
+
+                # Period net = only the halves in the date range
+                period_net = 0.0
+                if includes_first:
+                    period_net += first_half_remaining
+                if includes_second:
+                    period_net += second_half_remaining
+
+                # Full month net (always both halves, for display)
                 monthly_net = first_half_remaining + second_half_remaining
 
-                # This month's transactions
-                import calendar
-                month_last_day = calendar.monthrange(current_year, current_month)[1]
-                month_end = date(current_year, current_month, month_last_day)
-                month_txn_result = await db.execute(
+                # Transactions within the date range
+                period_txn_result = await db.execute(
                     select(func.sum(BudgetTransaction.amount))
                     .where(
                         BudgetTransaction.category_id == transfer_cat.id,
-                        BudgetTransaction.transaction_date >= month_start,
-                        BudgetTransaction.transaction_date <= month_end,
+                        BudgetTransaction.transaction_date >= start_date,
+                        BudgetTransaction.transaction_date <= end_date,
                     )
                 )
-                month_spent = abs(month_txn_result.scalar() or 0.0)
+                period_spent = abs(period_txn_result.scalar() or 0.0)
 
-                # Available = rollover + monthly net - month spending
-                available = rollover + monthly_net - month_spent
+                # Available = rollover + net for the periods in view - spending in view
+                available = rollover + period_net - period_spent
 
                 person_spending_balances[owner_key] = {
                     "available": round(available, 2),
@@ -1297,7 +1307,8 @@ async def get_period_summary(
                     "first_half_remaining": round(first_half_remaining, 2),
                     "second_half_remaining": round(second_half_remaining, 2),
                     "monthly_net": round(monthly_net, 2),
-                    "month_spent": round(month_spent, 2),
+                    "period_net": round(period_net, 2),
+                    "period_spent": round(period_spent, 2),
                     "deposit_per_period": deposit_per_period,
                     "first_half_bills": round(first_half_bills, 2),
                     "second_half_bills": round(second_half_bills, 2),
