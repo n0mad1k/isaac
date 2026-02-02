@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.76.0] - 2026-02-02
+
+### Added
+- **Knowledge Base RAG system** - AI chat can now search your ingested document library (PDFs, EPUBs, text files) for relevant reference material using SQLite FTS5 with BM25 ranking
+  - Ingestion script: `scripts/ingest_knowledge.py` extracts text, chunks, and indexes documents
+  - Supports dedup mode (`--dedup`) and auto-cleanup (`--dedup-clean`)
+  - Enable in Settings under AI Assistant section (Knowledge Base Enabled)
+  - Categories auto-detected from directory structure (medical, building, bushcraft, etc.)
+  - Results injected as context alongside domain-specific farm data
+- **Knowledge Base status endpoint** - `/chat/knowledge-base/status/` shows DB stats and availability
+
 ## [1.75.2] - 2026-02-02
 
 ### Fixed

@@ -69,6 +69,27 @@ async def list_ai_models(
         raise HTTPException(status_code=500, detail="Failed to get AI model info")
 
 
+# --- Knowledge Base ---
+
+@router.get("/knowledge-base/status/")
+async def get_kb_status(
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get knowledge base status and statistics"""
+    from services.knowledge_base import get_kb_stats
+    from services.ollama_service import get_setting_value
+
+    enabled = await get_setting_value(db, "knowledge_base_enabled", "false")
+    stats = get_kb_stats()
+
+    return {
+        "enabled": enabled == "true",
+        "available": stats is not None,
+        "stats": stats,
+    }
+
+
 # --- Conversations ---
 
 @router.post("/conversations/")
@@ -231,6 +252,13 @@ async def send_message(
     # Gather context for the detected topic
     effective_topic = topic or conversation.topic
     context_data = await gather_context(db, effective_topic)
+
+    # Search knowledge base for relevant reference material
+    from services.knowledge_base import search_knowledge_base
+    kb_context = await search_knowledge_base(db, data.content)
+    if kb_context:
+        context_data = context_data + "\n\n" + kb_context if context_data else kb_context
+
     system_prompt = build_system_prompt(effective_topic)
 
     # Build conversation history (last N messages for context)

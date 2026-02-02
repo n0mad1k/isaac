@@ -434,6 +434,10 @@ DEFAULT_SETTINGS = {
         "value": "",
         "description": "Comma-separated domains the AI may access (garden,fitness,budget,production,animals,weather,tasks). Empty = no personal data shared."
     },
+    "knowledge_base_enabled": {
+        "value": "false",
+        "description": "Enable knowledge base search. When enabled, AI chat will search your ingested documents (PDFs, books) for relevant reference material."
+    },
 }
 
 
