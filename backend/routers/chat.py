@@ -21,7 +21,7 @@ from services.ollama_service import get_configured_service
 from services.ai_context import detect_topic, gather_context, build_system_prompt
 
 
-router = APIRouter(prefix="/api/chat", tags=["chat"])
+router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 # --- Pydantic Schemas ---

@@ -271,6 +271,25 @@ ssh -i /home/n0mad1k/.ssh/levi n0mad1k@levi.local
 
 Or with the host alias `levi` if SSH config is loaded.
 
+## Nginx Reverse Proxy — Router Prefix Rule
+
+**CRITICAL: Nginx strips `/api/` prefix before forwarding to the backend.**
+
+The Nginx config uses:
+```
+location ^~ /api/ {
+    proxy_pass http://127.0.0.1:8000/;
+}
+```
+This means a browser request to `/api/chat/health/` arrives at the backend as `/chat/health/`.
+
+**Therefore, FastAPI router prefixes must NOT include `/api/`.** Use:
+- `APIRouter(prefix="/chat")` ✅ CORRECT
+- `APIRouter(prefix="/api/chat")` ❌ WRONG — will cause 404
+
+All existing routers follow this pattern: `/tasks`, `/team`, `/weather`, `/settings`, etc.
+The frontend `api` axios instance has `baseURL: '/api'`, so frontend calls like `api.get('/chat/health/')` become `/api/chat/health/` in the browser, which Nginx correctly strips to `/chat/health/`.
+
 ## Project Structure
 
 - **Backend**: FastAPI Python app at `/opt/levi/backend/`
