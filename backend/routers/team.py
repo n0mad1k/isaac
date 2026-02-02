@@ -42,7 +42,7 @@ from models.team import (
     MemberSubjectiveInput
 )
 from models.supply_requests import SupplyRequest, RequestStatus, RequestPriority
-from models.tasks import Task, task_member_assignments
+from models.tasks import Task, TaskType, TaskCategory, task_member_assignments
 from routers.auth import require_auth, require_admin
 from routers.settings import get_setting, set_setting
 from models.users import User
@@ -2691,13 +2691,56 @@ async def create_aar(
     if existing:
         raise HTTPException(status_code=400, detail="AAR already exists for this week")
 
+    action_items = data.action_items or []
+
     aar = WeeklyAAR(
         week_start=week_start,
         week_number=data.week_number or week_start.isocalendar()[1],
         summary_notes=data.summary_notes,
-        action_items=data.action_items or []
+        action_items=action_items
     )
     db.add(aar)
+    await db.flush()  # get the AAR ID before creating tasks
+
+    # Create tasks for action items with assignments
+    if action_items:
+        local_now = await get_local_now(db)
+        members_result = await db.execute(
+            select(TeamMember).where(TeamMember.is_active == True)
+        )
+        all_members = members_result.scalars().all()
+        member_lookup = {}
+        for m in all_members:
+            member_lookup[m.name.lower()] = m.id
+            if m.nickname:
+                member_lookup[m.nickname.lower()] = m.id
+
+        week_end = week_start + timedelta(days=13)
+        for item in action_items:
+            if not item.get('item', '').strip():
+                continue
+            assigned_name = (item.get('assigned_to') or '').strip()
+            member_id = member_lookup.get(assigned_name.lower()) if assigned_name else None
+
+            new_task = Task(
+                title=item['item'],
+                task_type=TaskType.TODO,
+                category=TaskCategory.CUSTOM,
+                due_date=week_end.date() if week_end else None,
+                priority=2,
+                is_completed=item.get('completed', False),
+                completed_at=local_now if item.get('completed') else None,
+                notes=f"auto:aar:{aar.id}",
+            )
+            db.add(new_task)
+            await db.flush()
+            if member_id:
+                new_task.assigned_members = [m for m in all_members if m.id == member_id]
+            item['task_id'] = new_task.id
+
+        aar.action_items = action_items
+        flag_modified(aar, 'action_items')
+
     await db.commit()
     await db.refresh(aar)
 
@@ -2724,13 +2767,91 @@ async def update_aar(
         raise HTTPException(status_code=404, detail="AAR not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    local_now = await get_local_now(db)
+
+    # Sync action items to tasks
+    if 'action_items' in update_data and update_data['action_items'] is not None:
+        new_items = update_data['action_items']
+        old_items = aar.action_items or []
+
+        # Build lookup of member names → IDs
+        members_result = await db.execute(
+            select(TeamMember).where(TeamMember.is_active == True)
+        )
+        all_members = members_result.scalars().all()
+        member_lookup = {}
+        for m in all_members:
+            member_lookup[m.name.lower()] = m.id
+            if m.nickname:
+                member_lookup[m.nickname.lower()] = m.id
+
+        # Track which task_ids are still referenced
+        active_task_ids = set()
+
+        for item in new_items:
+            assigned_name = (item.get('assigned_to') or '').strip()
+            member_id = member_lookup.get(assigned_name.lower()) if assigned_name else None
+
+            if item.get('task_id'):
+                # Existing linked task — update it
+                task_result = await db.execute(
+                    select(Task).where(Task.id == item['task_id'])
+                )
+                task = task_result.scalar_one_or_none()
+                if task:
+                    task.title = item.get('item', task.title)
+                    task.is_completed = item.get('completed', False)
+                    if item.get('completed') and not task.completed_at:
+                        task.completed_at = local_now
+                    elif not item.get('completed'):
+                        task.completed_at = None
+                    # Update member assignment
+                    if member_id:
+                        task.assigned_members = [m for m in all_members if m.id == member_id]
+                    active_task_ids.add(task.id)
+            elif item.get('item', '').strip():
+                # New action item — create a task
+                week_end = aar.week_start + timedelta(days=13) if aar.week_start else None
+                new_task = Task(
+                    title=item['item'],
+                    task_type=TaskType.TODO,
+                    category=TaskCategory.CUSTOM,
+                    due_date=week_end.date() if week_end else None,
+                    priority=2,
+                    is_completed=item.get('completed', False),
+                    completed_at=local_now if item.get('completed') else None,
+                    notes=f"auto:aar:{aar.id}",
+                )
+                db.add(new_task)
+                await db.flush()  # get the ID
+
+                # Assign to member
+                if member_id:
+                    new_task.assigned_members = [m for m in all_members if m.id == member_id]
+
+                item['task_id'] = new_task.id
+                active_task_ids.add(new_task.id)
+
+        # Deactivate tasks from removed action items
+        old_task_ids = {item.get('task_id') for item in old_items if item.get('task_id')}
+        removed_task_ids = old_task_ids - active_task_ids
+        if removed_task_ids:
+            for tid in removed_task_ids:
+                task_result = await db.execute(select(Task).where(Task.id == tid))
+                task = task_result.scalar_one_or_none()
+                if task:
+                    task.is_active = False
+
+        update_data['action_items'] = new_items
+
     for key, value in update_data.items():
         setattr(aar, key, value)
 
-    local_now = await get_local_now(db)
     if data.is_completed and not aar.completed_at:
         aar.completed_at = local_now
 
+    # Mark the JSON column as modified so SQLAlchemy persists it
+    flag_modified(aar, 'action_items')
     aar.updated_at = local_now
     await db.commit()
 

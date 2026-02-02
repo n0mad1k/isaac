@@ -168,20 +168,26 @@ function WeeklyAARView({ settings, members }) {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const monday = getMondayOfWeek(new Date())
-
       if (currentAAR?.exists) {
         await updateAAR(currentAAR.id, formData)
       } else {
+        // Use the week_start from the current AAR state (set by backend)
+        const weekStart = currentAAR?.week_start || getMondayOfWeek(new Date()).toISOString()
         await createAAR({
-          week_start: monday.toISOString(),
+          week_start: weekStart,
           ...formData
         })
       }
 
-      // Reload data
+      // Reload data (get updated action items with task_ids)
       const aarRes = await getCurrentAAR()
       setCurrentAAR(aarRes.data)
+      if (aarRes.data.exists) {
+        setFormData({
+          summary_notes: aarRes.data.summary_notes || '',
+          action_items: aarRes.data.action_items || []
+        })
+      }
       setEditMode(false)
     } catch (err) {
       console.error('Failed to save AAR:', err)

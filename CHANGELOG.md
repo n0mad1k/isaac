@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.71.0] - 2026-02-01
+
+### Added
+- **AAR action items create tasks** - When you save action items in the Weekly AAR, they automatically create tasks assigned to the specified team member. Due date defaults to end of the following week. Editing action items updates the linked task, removing them deactivates the task, and toggling completion syncs between AAR and tasks.
+
 ## [1.70.6] - 2026-02-01
 
 ### Added
