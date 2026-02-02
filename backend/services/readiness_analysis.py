@@ -838,12 +838,28 @@ def _calculate_session_load(workout: MemberWorkout) -> float:
     return session_load
 
 
-def _analyze_training_load(workouts: List[MemberWorkout]) -> TrainingLoadAnalysis:
+def _steps_to_load(steps: float, stairs: float = 0) -> float:
+    """
+    Convert daily steps and stairs climbed into training load points.
+
+    Steps are low-intensity locomotion; stairs add intensity.
+    Scaled so typical activity doesn't dominate workout-based load:
+      10,000 steps = ~30 load pts (vs ~210 for a moderate 30-min workout)
+      10 flights stairs = ~50 load pts (stairs are significantly harder)
+    """
+    steps_load = (steps / 1000) * 3  # 3 pts per 1,000 steps
+    stairs_load = stairs * 5  # 5 pts per flight of stairs
+    return steps_load + stairs_load
+
+
+def _analyze_training_load(workouts: List[MemberWorkout], step_data: Optional[dict] = None) -> TrainingLoadAnalysis:
     """
     Analyze training load using Acute:Chronic Workload Ratio (ACWR).
 
     Acute = last 7 days total load
     Chronic = last 28 days average weekly load
+
+    Includes steps and stairs climbed as ambulatory training load.
 
     ACWR > 1.5 = HIGH injury risk
     ACWR 1.3-1.5 = MODERATE risk
@@ -858,6 +874,19 @@ def _analyze_training_load(workouts: List[MemberWorkout]) -> TrainingLoadAnalysi
 
     acute_load = sum(_calculate_session_load(w) for w in acute_workouts)
     chronic_total = sum(_calculate_session_load(w) for w in chronic_workouts)
+
+    # Add ambulatory load from steps/stairs
+    ambulatory_acute = 0
+    ambulatory_chronic = 0
+    if step_data:
+        for day_key, data in step_data.items():
+            day_load = _steps_to_load(data.get("steps", 0), data.get("stairs", 0))
+            if day_key >= acute_cutoff.date():
+                ambulatory_acute += day_load
+            if day_key >= chronic_cutoff.date():
+                ambulatory_chronic += day_load
+        acute_load += ambulatory_acute
+        chronic_total += ambulatory_chronic
 
     # Calculate actual weeks of data available (min 1, max 4)
     # This prevents inflated ACWR when only 1-2 weeks of data exist
@@ -901,14 +930,32 @@ def _analyze_training_load(workouts: List[MemberWorkout]) -> TrainingLoadAnalysi
         risk_level = "LOW"
         notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your {weeks_of_data}-week average ({chronic_load:.0f} pts/wk). Well balanced.")
 
+    # Note ambulatory load contribution if significant
+    if step_data and ambulatory_acute > 0:
+        avg_daily_steps = sum(d.get("steps", 0) for d in step_data.values()) / max(len(step_data), 1)
+        avg_daily_stairs = sum(d.get("stairs", 0) for d in step_data.values()) / max(len(step_data), 1)
+        parts = []
+        if avg_daily_steps > 0:
+            parts.append(f"{avg_daily_steps:,.0f} steps/day")
+        if avg_daily_stairs > 0:
+            parts.append(f"{avg_daily_stairs:.0f} flights/day")
+        if parts:
+            notes.append(f"Ambulatory load included: {', '.join(parts)} ({ambulatory_acute:.0f} pts this week)")
+
     # Calculate monotony (standard deviation of daily loads)
     monotony = None
-    if len(chronic_workouts) >= 7:
+    if len(chronic_workouts) >= 7 or (step_data and len(step_data) >= 7):
         daily_loads = {}
         for w in chronic_workouts:
             day_key = w.workout_date.date() if w.workout_date else None
             if day_key:
                 daily_loads[day_key] = daily_loads.get(day_key, 0) + _calculate_session_load(w)
+        # Add step/stair loads to daily totals
+        if step_data:
+            for day_key, data in step_data.items():
+                if day_key >= chronic_cutoff.date():
+                    day_load = _steps_to_load(data.get("steps", 0), data.get("stairs", 0))
+                    daily_loads[day_key] = daily_loads.get(day_key, 0) + day_load
 
         if len(daily_loads) >= 5:
             loads = list(daily_loads.values())
@@ -1219,10 +1266,24 @@ async def analyze_readiness(
     cardiovascular = _analyze_cardiovascular(recent_vitals, age=member_age)
     illness = _detect_illness_pattern(recent_vitals, all_vitals, age=member_age)
 
-    # Training load analysis
+    # Gather step/stair data for training load
+    step_data = {}
+    for v in all_vitals:
+        if v.vital_type in (VitalType.STEPS, VitalType.STAIRS_CLIMBED):
+            day_key = v.recorded_at.date() if v.recorded_at else None
+            if day_key:
+                if day_key not in step_data:
+                    step_data[day_key] = {"steps": 0, "stairs": 0}
+                if v.vital_type == VitalType.STEPS:
+                    step_data[day_key]["steps"] = max(step_data[day_key]["steps"], v.value or 0)
+                elif v.vital_type == VitalType.STAIRS_CLIMBED:
+                    step_data[day_key]["stairs"] = max(step_data[day_key]["stairs"], v.value or 0)
+
+    # Training load analysis (workouts + steps/stairs)
     training_load = None
-    if workouts:
-        training_load = _analyze_training_load(workouts)
+    has_activity_data = workouts or step_data
+    if has_activity_data:
+        training_load = _analyze_training_load(workouts, step_data=step_data if step_data else None)
 
     indicators = [autonomic, cardiovascular, illness]
 

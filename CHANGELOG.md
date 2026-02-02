@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.76.1] - 2026-02-02
+
+### Changed
+- **Steps and stairs now affect training load** - Daily step count and stairs climbed are no longer just observational metrics. They now contribute to the Acute:Chronic Workload Ratio (ACWR) calculation
+  - 10,000 steps = ~30 load points, each flight of stairs = 5 load points
+  - Shown in training load notes as "Ambulatory load included"
+  - High step counts combined with workouts can push ACWR into moderate/high zones
+
 ## [1.76.0] - 2026-02-02
 
 ### Added
