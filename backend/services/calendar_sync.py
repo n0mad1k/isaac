@@ -1061,15 +1061,18 @@ class CalendarSyncService:
 # Cache for calendar service singleton
 _calendar_service_cache: Optional[CalendarSyncService] = None
 _calendar_service_config_hash: Optional[str] = None
+# Track bad config to avoid repeated warnings
+_calendar_bad_config_logged: bool = False
 
 
 async def get_calendar_service(db: AsyncSession) -> Optional[CalendarSyncService]:
     """Get a configured calendar sync service from settings (cached singleton)"""
-    global _calendar_service_cache, _calendar_service_config_hash
+    global _calendar_service_cache, _calendar_service_config_hash, _calendar_bad_config_logged
 
     enabled = await get_calendar_setting(db, "calendar_enabled")
     if enabled != "true":
         _calendar_service_cache = None
+        _calendar_bad_config_logged = False
         return None
 
     url = await get_calendar_setting(db, "calendar_url")
@@ -1078,9 +1081,14 @@ async def get_calendar_service(db: AsyncSession) -> Optional[CalendarSyncService
     calendar_name = await get_calendar_setting(db, "calendar_name")
 
     if not all([url, username, password]):
-        logger.debug("Calendar sync enabled but not fully configured (missing url, username, or password)")
+        if not _calendar_bad_config_logged:
+            _calendar_bad_config_logged = True
+            logger.warning("Calendar sync enabled but not fully configured (missing url, username, or password). Re-enter calendar password in Settings if encryption key changed.")
         _calendar_service_cache = None
         return None
+
+    # Config is good now, reset the bad config flag
+    _calendar_bad_config_logged = False
 
     # Get timezone from app settings
     result = await db.execute(

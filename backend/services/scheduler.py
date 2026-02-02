@@ -502,6 +502,7 @@ class SchedulerService:
                 if not service:
                     return
 
+
                 if not service.connect():
                     logger.error("Failed to connect to calendar for sync")
                     return

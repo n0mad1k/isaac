@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.76.3] - 2026-02-02
+
+### Fixed
+- **Decryption and calendar sync warnings no longer repeat every 10 minutes** - Both the decryption failure warning and "calendar sync not configured" warning now only log once per process lifecycle instead of every scheduler cycle. Actionable messages guide the user to re-enter the value in Settings.
+
 ## [1.76.2] - 2026-02-02
 
 ### Fixed

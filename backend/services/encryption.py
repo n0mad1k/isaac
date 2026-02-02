@@ -97,7 +97,7 @@ def decrypt_value(encrypted_value: str) -> str:
         value_hash = encrypted_value[:20]
         if value_hash not in _decryption_warned:
             _decryption_warned.add(value_hash)
-            logger.warning("Decryption failed due to invalid token - possible key mismatch or corrupted data")
+            logger.warning("Decryption failed for an encrypted setting - re-enter the value in Settings if the encryption key changed")
         return ""
     except Exception as e:
         logger.error(f"Unexpected error during decryption: {type(e).__name__}")
