@@ -4964,11 +4964,17 @@ async def get_growth_data(
         current_weight_pct = calculate_percentile(
             gender, age_months, "weight", lbs_to_kg(member.current_weight)
         )
+        # Convert median to imperial (lbs)
+        if current_weight_pct and "median" in current_weight_pct:
+            current_weight_pct["median"] = round(kg_to_lbs(current_weight_pct["median"]), 1)
 
     if member.height_inches:
         current_height_pct = calculate_percentile(
             gender, age_months, "height", inches_to_cm(member.height_inches)
         )
+        # Convert median to imperial (inches)
+        if current_height_pct and "median" in current_height_pct:
+            current_height_pct["median"] = round(cm_to_inches(current_height_pct["median"]), 1)
 
     if member.current_weight and member.height_inches and age_months >= 24:
         height_m = member.height_inches * 0.0254
@@ -5033,10 +5039,21 @@ async def get_growth_curves(
     gender = member.gender.value if hasattr(member.gender, 'value') else member.gender
     age_months = calculate_age_months(member.birth_date)
 
-    # Get percentile curves
+    # Get percentile curves (returned in metric from CDC data)
     curves = get_percentile_curves(gender, measurement_type)
     if not curves:
         raise HTTPException(status_code=404, detail="Growth reference data not found")
+
+    # Convert percentile curves to imperial for weight/height
+    if measurement_type == "weight":
+        for pct_key, points in curves["percentile_lines"].items():
+            for pt in points:
+                pt["value"] = round(kg_to_lbs(pt["value"]), 2)
+    elif measurement_type == "height":
+        for pct_key, points in curves["percentile_lines"].items():
+            for pt in points:
+                pt["value"] = round(cm_to_inches(pt["value"]), 2)
+    # BMI stays as kg/m²
 
     # Get member's data points
     weight_result = await db.execute(
@@ -5054,7 +5071,7 @@ async def get_growth_curves(
         if measurement_type == "weight" and log.weight:
             member_points.append({
                 "month": log_age,
-                "value": round(lbs_to_kg(log.weight), 2),
+                "value": round(log.weight, 2),
                 "value_display": log.weight,
                 "unit_display": "lbs",
                 "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
@@ -5062,7 +5079,7 @@ async def get_growth_curves(
         elif measurement_type == "height" and log.height_inches:
             member_points.append({
                 "month": log_age,
-                "value": round(inches_to_cm(log.height_inches), 2),
+                "value": round(log.height_inches, 2),
                 "value_display": log.height_inches,
                 "unit_display": "in",
                 "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None

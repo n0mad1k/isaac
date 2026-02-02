@@ -308,8 +308,7 @@ def get_milestones_for_age(age_months: int) -> list:
     applicable = []
 
     for group in data["age_groups"]:
-        if group["age_months"] <= age_months:
-            applicable.append(group)
+        applicable.append(group)
 
     return applicable
 

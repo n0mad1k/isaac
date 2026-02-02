@@ -180,8 +180,8 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
     return Object.values(dataMap).sort((a, b) => a.month - b.month)
   }, [growthCurves, ageMonths])
 
-  // Unit labels
-  const unitLabel = chartType === 'weight' ? 'kg' : chartType === 'height' ? 'cm' : 'kg/m²'
+  // Unit labels (imperial for weight/height)
+  const unitLabel = chartType === 'weight' ? 'lbs' : chartType === 'height' ? 'in' : 'kg/m²'
   const chartTitle = chartType === 'weight' ? 'Weight-for-Age' :
     chartType === 'height' ? 'Height-for-Age' : 'BMI-for-Age'
 
@@ -476,9 +476,10 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
           <div className="space-y-3">
             {milestones.milestone_groups?.map((group) => {
               const groupKey = `group_${group.age_months}`
-              const isExpanded = expandedGroups[groupKey] !== false // default open for current age group
+              const isExpanded = expandedGroups[groupKey] === true // collapsed by default
               const isCurrent = group.age_months <= ageMonths &&
                 (!milestones.milestone_groups.find(g => g.age_months > group.age_months && g.age_months <= ageMonths))
+              const isUpcoming = group.age_months > ageMonths
 
               // Count achieved in this group
               let groupTotal = 0
@@ -492,7 +493,9 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
 
               return (
                 <div key={groupKey} className={`rounded-lg border ${
-                  isCurrent ? 'border-purple-600 bg-purple-900/10' : 'border-gray-700 bg-gray-900/30'
+                  isCurrent ? 'border-purple-600 bg-purple-900/10' :
+                  isUpcoming ? 'border-blue-700/50 bg-blue-900/10' :
+                  'border-gray-700 bg-gray-900/30'
                 }`}>
                   <button
                     onClick={() => toggleGroup(groupKey)}
@@ -502,6 +505,9 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                       <span className="text-white font-medium">{group.label}</span>
                       {isCurrent && (
                         <span className="text-xs px-2 py-0.5 bg-purple-600 text-white rounded">Current</span>
+                      )}
+                      {isUpcoming && (
+                        <span className="text-xs px-2 py-0.5 bg-blue-600/50 text-blue-200 rounded">Upcoming</span>
                       )}
                       <span className="text-xs text-gray-400">
                         {groupAchieved}/{groupTotal}
@@ -599,7 +605,7 @@ function PercentileCard({ label, icon: Icon, data, currentValue }) {
       </div>
       <div className="text-xs text-gray-400 mt-1">
         {currentValue && <span>{currentValue} · </span>}
-        Median: {data.median} {label === 'Weight' ? 'kg' : label === 'Height' ? 'cm' : 'kg/m²'}
+        Median: {data.median} {label === 'Weight' ? 'lbs' : label === 'Height' ? 'in' : 'kg/m²'}
       </div>
     </div>
   )
