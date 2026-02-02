@@ -3,6 +3,7 @@ Equipment/Tools API Routes
 """
 
 from fastapi import APIRouter, Depends, HTTPException
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -259,6 +260,8 @@ async def create_equipment(
     await db.commit()
     await db.refresh(equipment)
 
+    logger.info(f"Created equipment: {equipment.name} (id={equipment.id}, type={equipment.type.value})")
+
     return EquipmentResponse(
         id=equipment.id,
         name=equipment.name,
@@ -300,6 +303,7 @@ async def update_equipment(
     equipment = result.scalar_one_or_none()
 
     if not equipment:
+        logger.error(f"Update equipment failed: equipment_id={equipment_id} not found")
         raise HTTPException(status_code=404, detail="Equipment not found")
 
     update_data = data.model_dump(exclude_unset=True)
@@ -308,6 +312,8 @@ async def update_equipment(
 
     await db.commit()
     await db.refresh(equipment)
+
+    logger.info(f"Updated equipment: {equipment.name} (id={equipment.id}, fields={list(update_data.keys())})")
 
     return EquipmentResponse(
         id=equipment.id,
@@ -347,10 +353,14 @@ async def delete_equipment(
     equipment = result.scalar_one_or_none()
 
     if not equipment:
+        logger.error(f"Delete equipment failed: equipment_id={equipment_id} not found")
         raise HTTPException(status_code=404, detail="Equipment not found")
 
+    equipment_name = equipment.name
     await db.delete(equipment)
     await db.commit()
+
+    logger.info(f"Deleted equipment: {equipment_name} (id={equipment_id})")
 
     return {"message": "Equipment deleted"}
 
@@ -364,10 +374,14 @@ async def update_hours(equipment_id: int, hours: int, db: AsyncSession = Depends
     equipment = result.scalar_one_or_none()
 
     if not equipment:
+        logger.error(f"Update hours failed: equipment_id={equipment_id} not found")
         raise HTTPException(status_code=404, detail="Equipment not found")
 
+    old_hours = equipment.current_hours
     equipment.current_hours = hours
     await db.commit()
+
+    logger.info(f"Updated hours for equipment: {equipment.name} (id={equipment_id}, {old_hours} -> {hours})")
 
     return {"message": "Hours updated", "current_hours": hours}
 
@@ -417,6 +431,7 @@ async def create_equipment_maintenance(
     """Create maintenance task for equipment"""
     result = await db.execute(select(Equipment).where(Equipment.id == equipment_id))
     if not result.scalar_one_or_none():
+        logger.error(f"Create maintenance failed: equipment_id={equipment_id} not found")
         raise HTTPException(status_code=404, detail="Equipment not found")
 
     task_data = data.model_dump()
@@ -440,6 +455,8 @@ async def create_equipment_maintenance(
     db.add(task)
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Created maintenance task: {task.name} (id={task.id}, equipment_id={equipment_id})")
 
     return MaintenanceResponse(
         id=task.id,
@@ -476,6 +493,7 @@ async def update_equipment_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Update maintenance failed: task_id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     update_data = data.model_dump(exclude_unset=True)
@@ -497,6 +515,8 @@ async def update_equipment_maintenance(
 
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Updated maintenance task: {task.name} (id={task_id}, fields={list(update_data.keys())})")
 
     return MaintenanceResponse(
         id=task.id,
@@ -532,10 +552,15 @@ async def delete_equipment_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Delete maintenance failed: task_id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
+    task_name = task.name
+    equipment_id = task.equipment_id
     await db.delete(task)
     await db.commit()
+
+    logger.info(f"Deleted maintenance task: {task_name} (id={task_id}, equipment_id={equipment_id})")
 
     return {"message": "Maintenance task deleted"}
 
@@ -554,6 +579,7 @@ async def complete_equipment_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Complete maintenance failed: task_id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     performed_at = data.performed_at or get_local_now()
@@ -595,6 +621,8 @@ async def complete_equipment_maintenance(
     await db.commit()
     await db.refresh(task)
 
+    logger.info(f"Completed maintenance task: {task.name} (id={task_id}, equipment_id={task.equipment_id}, hours_at={data.hours_at})")
+
     return MaintenanceResponse(
         id=task.id,
         equipment_id=task.equipment_id,
@@ -625,12 +653,15 @@ async def set_equipment_maintenance_due_date(task_id: int, data: SetDueDateReque
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Set due date failed: maintenance task_id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     task.set_manual_due_date(data.due_date)
 
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Set due date for maintenance task: {task.name} (id={task_id}, due_date={data.due_date})")
 
     return MaintenanceResponse(
         id=task.id,

@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel, Field
+from loguru import logger
 
 from models.database import get_db
 from models.vehicles import Vehicle, VehicleMaintenance, VehicleMaintenanceLog, VehicleType, get_local_now
@@ -265,6 +266,8 @@ async def create_vehicle(
     await db.commit()
     await db.refresh(vehicle)
 
+    logger.info(f"Created vehicle: {vehicle.name} (id={vehicle.id}, type={vehicle.type.value})")
+
     return VehicleResponse(
         id=vehicle.id,
         name=vehicle.name,
@@ -305,6 +308,7 @@ async def update_vehicle(
     vehicle = result.scalar_one_or_none()
 
     if not vehicle:
+        logger.error(f"Update vehicle failed: vehicle id={vehicle_id} not found")
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
     update_data = data.model_dump(exclude_unset=True)
@@ -313,6 +317,8 @@ async def update_vehicle(
 
     await db.commit()
     await db.refresh(vehicle)
+
+    logger.info(f"Updated vehicle: {vehicle.name} (id={vehicle_id}, fields={list(update_data.keys())})")
 
     return VehicleResponse(
         id=vehicle.id,
@@ -351,10 +357,14 @@ async def delete_vehicle(
     vehicle = result.scalar_one_or_none()
 
     if not vehicle:
+        logger.error(f"Delete vehicle failed: vehicle id={vehicle_id} not found")
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
+    vehicle_name = vehicle.name
     await db.delete(vehicle)
     await db.commit()
+
+    logger.info(f"Deleted vehicle: {vehicle_name} (id={vehicle_id})")
 
     return {"message": "Vehicle deleted"}
 
@@ -368,6 +378,7 @@ async def update_mileage(vehicle_id: int, mileage: int, hours: Optional[int] = N
     vehicle = result.scalar_one_or_none()
 
     if not vehicle:
+        logger.error(f"Update mileage failed: vehicle id={vehicle_id} not found")
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
     vehicle.current_mileage = mileage
@@ -375,6 +386,9 @@ async def update_mileage(vehicle_id: int, mileage: int, hours: Optional[int] = N
         vehicle.current_hours = hours
 
     await db.commit()
+
+    logger.info(f"Updated vehicle mileage: {vehicle.name} (id={vehicle_id}) -> mileage={mileage}, hours={vehicle.current_hours}")
+
     return {"message": "Mileage updated", "current_mileage": mileage, "current_hours": vehicle.current_hours}
 
 
@@ -427,6 +441,7 @@ async def create_vehicle_maintenance(
     # Verify vehicle exists
     result = await db.execute(select(Vehicle).where(Vehicle.id == vehicle_id))
     if not result.scalar_one_or_none():
+        logger.error(f"Create maintenance failed: vehicle id={vehicle_id} not found")
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
     task_data = data.model_dump()
@@ -453,6 +468,8 @@ async def create_vehicle_maintenance(
     db.add(task)
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Created maintenance task: {task.name} (id={task.id}) for vehicle_id={vehicle_id}")
 
     return MaintenanceResponse(
         id=task.id,
@@ -492,6 +509,7 @@ async def update_vehicle_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Update maintenance failed: task id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     update_data = data.model_dump(exclude_unset=True)
@@ -517,6 +535,8 @@ async def update_vehicle_maintenance(
 
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Updated maintenance task: {task.name} (id={task_id}, fields={list(update_data.keys())})")
 
     return MaintenanceResponse(
         id=task.id,
@@ -555,10 +575,15 @@ async def delete_vehicle_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Delete maintenance failed: task id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
+    task_name = task.name
+    vehicle_id = task.vehicle_id
     await db.delete(task)
     await db.commit()
+
+    logger.info(f"Deleted maintenance task: {task_name} (id={task_id}, vehicle_id={vehicle_id})")
 
     return {"message": "Maintenance task deleted"}
 
@@ -577,6 +602,7 @@ async def complete_vehicle_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Complete maintenance failed: task id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     performed_at = data.performed_at or get_local_now()
@@ -623,6 +649,8 @@ async def complete_vehicle_maintenance(
     await db.commit()
     await db.refresh(task)
 
+    logger.info(f"Completed maintenance task: {task.name} (id={task_id}, vehicle_id={task.vehicle_id}, mileage={data.mileage_at}, hours={data.hours_at})")
+
     return MaintenanceResponse(
         id=task.id,
         vehicle_id=task.vehicle_id,
@@ -656,12 +684,15 @@ async def set_vehicle_maintenance_due_date(task_id: int, data: SetDueDateRequest
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Set due date failed: maintenance task id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     task.set_manual_due_date(data.due_date)
 
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Set manual due date: {task.name} (id={task_id}) -> {data.due_date}")
 
     return MaintenanceResponse(
         id=task.id,

@@ -8,6 +8,7 @@ from sqlalchemy import select, desc
 from typing import List, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel
+from loguru import logger
 
 from models.database import get_db
 from models.weather import WeatherReading, WeatherAlert, AlertSeverity
@@ -101,12 +102,15 @@ async def get_current_weather_raw(user: User = Depends(require_auth), db: AsyncS
 @router.post("/refresh/")
 async def refresh_weather(user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
     """Manually trigger a weather data fetch"""
+    logger.info("Manual weather refresh triggered by user {}", user.username)
     data = await weather_service.fetch_current_weather()
     if not data:
+        logger.warning("Weather data fetch returned no data")
         raise HTTPException(status_code=503, detail="Could not fetch weather data")
 
     reading = await weather_service.save_reading(db, data)
     await weather_service.check_alerts(db, reading)
+    logger.info("Weather refreshed: temp={}, humidity={}", reading.temp_outdoor, reading.humidity_outdoor)
 
     return {
         "message": "Weather data refreshed",
@@ -205,11 +209,13 @@ async def acknowledge_alert(alert_id: int, user: User = Depends(require_auth), d
     )
     alert = result.scalar_one_or_none()
     if not alert:
+        logger.error("Weather alert not found: alert_id={}", alert_id)
         raise HTTPException(status_code=404, detail="Alert not found")
 
     alert.is_acknowledged = True
     alert.acknowledged_at = datetime.utcnow()
     await db.commit()
+    logger.info("Weather alert acknowledged: alert_id={}, type={}", alert_id, alert.alert_type)
     return {"message": "Alert acknowledged"}
 
 
@@ -221,10 +227,12 @@ async def dismiss_alert(alert_id: int, user: User = Depends(require_auth), db: A
     )
     alert = result.scalar_one_or_none()
     if not alert:
+        logger.error("Weather alert not found for dismiss: alert_id={}", alert_id)
         raise HTTPException(status_code=404, detail="Alert not found")
 
     alert.is_active = False
     await db.commit()
+    logger.info("Weather alert dismissed: alert_id={}, type={}", alert_id, alert.alert_type)
     return {"message": "Alert dismissed"}
 
 
@@ -268,6 +276,7 @@ async def get_forecast(user: User = Depends(require_auth)):
     """Get 5-day weather forecast from National Weather Service"""
     forecast = await forecast_service.get_forecast_simple()
     if not forecast:
+        logger.warning("NWS forecast fetch returned no data")
         raise HTTPException(status_code=503, detail="Could not fetch forecast data")
     return {"forecast": forecast}
 

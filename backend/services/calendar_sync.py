@@ -219,7 +219,8 @@ class CalendarSyncService:
                         else:
                             end_dt = start_dt + timedelta(hours=1)
                         component.add('dtend', end_dt)
-                    except (ValueError, AttributeError):
+                    except (ValueError, AttributeError) as e:
+                        logger.warning(f"Failed to parse event time for task {task.id}, falling back to all-day: {e}")
                         component.add('dtstart', task.due_date)
                         component.add('dtend', task.due_date + timedelta(days=1))
                 else:
@@ -256,7 +257,8 @@ class CalendarSyncService:
                             hour, minute
                         ))
                         component.add('due', due_dt)
-                    except (ValueError, AttributeError):
+                    except (ValueError, AttributeError) as e:
+                        logger.warning(f"Failed to parse todo time for task {task.id}, falling back to date-only: {e}")
                         component.add('due', task.due_date)
                 else:
                     component.add('due', task.due_date)
@@ -500,8 +502,8 @@ class CalendarSyncService:
                                         logger.debug(f"Updated calendar todo for task {task.id}")
                                         found = True
                                         break
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.warning(f"Failed to parse existing todo while syncing task {task.id}: {e}")
                         if found:
                             break
                 except Exception as e:
@@ -539,6 +541,8 @@ class CalendarSyncService:
         from sqlalchemy import or_, and_
 
         now = datetime.utcnow()
+        sync_type = "full" if force_full else "incremental"
+        logger.info(f"Starting {sync_type} calendar sync (tasks -> calendar)")
         synced = 0
         deleted = 0
         skipped = 0
@@ -684,8 +688,7 @@ class CalendarSyncService:
         # Commit all changes
         await db.commit()
 
-        sync_type = "full" if force_full else "incremental"
-        logger.info(f"Calendar {sync_type} sync: {synced} synced, {linked} linked, {deleted} deleted, {skipped} skipped, {deleted_by_phone} deleted by phone")
+        logger.info(f"Calendar {sync_type} sync complete: {synced} synced, {linked} linked, {deleted} deleted, {skipped} skipped, {deleted_by_phone} deleted by phone")
         return {"synced": synced, "linked": linked, "deleted": deleted, "skipped": skipped, "deleted_by_phone": deleted_by_phone}
 
     async def get_calendar_events(
@@ -768,6 +771,7 @@ class CalendarSyncService:
 
     async def sync_calendar_to_tasks(self, db: AsyncSession) -> dict:
         """Sync calendar events to Isaac tasks (bi-directional with deletion detection)"""
+        logger.info("Starting calendar sync (calendar -> tasks)")
         events = await self.get_calendar_events()
 
         # Build set of UIDs currently in calendar
@@ -951,9 +955,11 @@ class CalendarSyncService:
                     existing_task.is_completed = event_dict['is_completed']
                     changed = True
                 if changed:
+                    logger.info(f"Updated existing task '{existing_task.title}' from calendar (uid={calendar_uid})")
                     updated += 1
             else:
                 # Create new task from calendar event
+                logger.info(f"Creating new task from calendar event: '{event_dict.get('title', 'Calendar Event')}' (uid={calendar_uid})")
                 new_task = Task(
                     title=event_dict.get('title', 'Calendar Event'),
                     description=event_dict.get('description'),
@@ -1043,8 +1049,8 @@ class CalendarSyncService:
                                     logger.debug(f"Deleted calendar todo for task {task_id}")
                                     deleted = True
                                     break
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning(f"Failed to parse todo data while searching for deletion (task {task_id}): {e}")
                     if deleted:
                         break
             except Exception as e:
@@ -1093,6 +1099,7 @@ async def get_calendar_service(db: AsyncSession) -> Optional[CalendarSyncService
         return _calendar_service_cache
 
     # Create new service and cache it
+    logger.info(f"Creating new CalendarSyncService for {url} (calendar: {calendar_name}, tz: {timezone})")
     _calendar_service_cache = CalendarSyncService(
         url=url,
         username=username,

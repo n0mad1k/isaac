@@ -152,8 +152,22 @@ def calculate_planting_schedule(
     if year is None:
         year = date.today().year
 
-    last_frost = _get_frost_date(last_frost_mm_dd, year)
-    first_frost = _get_frost_date(first_frost_mm_dd, year)
+    if not seeds:
+        logger.warning("calculate_planting_schedule called with no seeds")
+
+    logger.info(f"Calculating planting schedule for {len(seeds) if seeds else 0} seeds (year={year}, last_frost={last_frost_mm_dd}, first_frost={first_frost_mm_dd})")
+
+    try:
+        last_frost = _get_frost_date(last_frost_mm_dd, year)
+    except Exception as e:
+        logger.error(f"Failed to parse last frost date '{last_frost_mm_dd}': {e}")
+        raise
+
+    try:
+        first_frost = _get_frost_date(first_frost_mm_dd, year)
+    except Exception as e:
+        logger.error(f"Failed to parse first frost date '{first_frost_mm_dd}': {e}")
+        raise
 
     # Initialize 12 months
     months = []
@@ -173,8 +187,15 @@ def calculate_planting_schedule(
         try:
             _process_seed(seed, months, last_frost, first_frost, year)
         except Exception as e:
-            logger.warning(f"Error processing seed '{getattr(seed, 'name', '?')}' for planting schedule: {e}")
+            logger.error(f"Failed to process seed '{getattr(seed, 'name', '?')}' (id={getattr(seed, 'id', '?')}) for planting schedule: {e}")
             continue
+
+    total_activities = sum(
+        len(m["activities"][a])
+        for m in months
+        for a in m["activities"]
+    )
+    logger.info(f"Planting schedule complete: {total_activities} total activities across 12 months")
 
     return {
         "frost_dates": {
@@ -196,6 +217,8 @@ def _process_seed(seed, months: list, last_frost: date, first_frost: date, year:
     # --- Indoor Start ---
     indoor_months = set()
     if not seed.direct_sow:
+        if not seed.indoor_start and not seed.sow_months:
+            logger.warning(f"Seed '{seed.name}' (id={seed.id}) is not direct sow but has no indoor_start or sow_months data")
         weeks = parse_weeks_before_frost(seed.indoor_start)
         if weeks:
             indoor_date = last_frost - timedelta(weeks=weeks)
@@ -219,6 +242,8 @@ def _process_seed(seed, months: list, last_frost: date, first_frost: date, year:
     # --- Direct Sow ---
     direct_sow_months = set()
     if seed.direct_sow:
+        if not seed.sow_months and not seed.spring_planting and not seed.fall_planting:
+            logger.warning(f"Seed '{seed.name}' (id={seed.id}) is direct sow but has no sow_months, spring_planting, or fall_planting data")
         # Use sow_months first, then spring/fall planting
         if seed.sow_months:
             sow_months = parse_month_range(seed.sow_months)
@@ -280,6 +305,9 @@ def _process_seed(seed, months: list, last_frost: date, first_frost: date, year:
                 # Handle year wrapping
                 if harvest_date.year == year:
                     harvest_months_set.add(harvest_date.month)
+
+    if not harvest_months_set:
+        logger.warning(f"Seed '{seed.name}' (id={seed.id}) has no determinable harvest months (no harvest_months or days_to_maturity data)")
 
     for m in sorted(harvest_months_set):
         months[m - 1]["activities"]["harvest"].append({

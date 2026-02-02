@@ -3,6 +3,7 @@ Farm Areas API Routes
 """
 
 from fastapi import APIRouter, Depends, HTTPException
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -299,6 +300,8 @@ async def create_area(
     await db.commit()
     await db.refresh(area)
 
+    logger.info(f"Farm area created: id={area.id}, name='{area.name}', type={area.type.value}")
+
     return AreaResponse(
         id=area.id,
         name=area.name,
@@ -342,6 +345,7 @@ async def update_area(
     area = result.scalar_one_or_none()
 
     if not area:
+        logger.error(f"Farm area not found for update: area_id={area_id}")
         raise HTTPException(status_code=404, detail="Farm area not found")
 
     update_data = data.model_dump(exclude_unset=True)
@@ -350,6 +354,8 @@ async def update_area(
 
     await db.commit()
     await db.refresh(area)
+
+    logger.info(f"Farm area updated: id={area.id}, name='{area.name}', fields={list(update_data.keys())}")
 
     return AreaResponse(
         id=area.id,
@@ -387,7 +393,10 @@ async def delete_area(
     area = result.scalar_one_or_none()
 
     if not area:
+        logger.error(f"Farm area not found for delete: area_id={area_id}")
         raise HTTPException(status_code=404, detail="Farm area not found")
+
+    area_name = area.name
 
     # Clear farm_area_id from associated plants and animals
     await db.execute(
@@ -403,6 +412,8 @@ async def delete_area(
 
     await db.delete(area)
     await db.commit()
+
+    logger.info(f"Farm area deleted: id={area_id}, name='{area_name}'")
 
     return {"message": "Farm area deleted"}
 
@@ -452,6 +463,7 @@ async def create_area_maintenance(
     """Create maintenance task for a farm area"""
     result = await db.execute(select(FarmArea).where(FarmArea.id == area_id))
     if not result.scalar_one_or_none():
+        logger.error(f"Farm area not found for maintenance creation: area_id={area_id}")
         raise HTTPException(status_code=404, detail="Farm area not found")
 
     task_data = data.model_dump()
@@ -473,6 +485,8 @@ async def create_area_maintenance(
     db.add(task)
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Farm maintenance created: id={task.id}, area_id={area_id}, name='{task.name}'")
 
     return MaintenanceResponse(
         id=task.id,
@@ -509,6 +523,7 @@ async def update_area_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Maintenance task not found for update: task_id={task_id}")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     update_data = data.model_dump(exclude_unset=True)
@@ -527,6 +542,8 @@ async def update_area_maintenance(
 
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Farm maintenance updated: id={task.id}, name='{task.name}', fields={list(data.model_dump(exclude_unset=True).keys())}")
 
     return MaintenanceResponse(
         id=task.id,
@@ -562,10 +579,16 @@ async def delete_area_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Maintenance task not found for delete: task_id={task_id}")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
+
+    task_name = task.name
+    area_id = task.area_id
 
     await db.delete(task)
     await db.commit()
+
+    logger.info(f"Farm maintenance deleted: id={task_id}, area_id={area_id}, name='{task_name}'")
 
     return {"message": "Maintenance task deleted"}
 
@@ -584,6 +607,7 @@ async def complete_area_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Maintenance task not found for completion: task_id={task_id}")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     performed_at = data.performed_at or get_local_now()
@@ -612,9 +636,12 @@ async def complete_area_maintenance(
     if linked_task and not linked_task.is_completed:
         linked_task.is_completed = True
         linked_task.completed_at = performed_at
+        logger.info(f"Linked auto-reminder task completed: task_id={linked_task.id} for maintenance_id={task_id}")
 
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Farm maintenance completed: id={task_id}, name='{task.name}', next_due={task.next_due}")
 
     return MaintenanceResponse(
         id=task.id,
@@ -646,12 +673,15 @@ async def set_area_maintenance_due_date(task_id: int, data: SetDueDateRequest, d
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Maintenance task not found for due date update: task_id={task_id}")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     task.set_manual_due_date(data.due_date)
 
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Farm maintenance due date set: id={task_id}, name='{task.name}', due_date={data.due_date}")
 
     return MaintenanceResponse(
         id=task.id,

@@ -11,6 +11,7 @@ from datetime import datetime, date, timedelta
 from pydantic import BaseModel
 import httpx
 import re
+from loguru import logger
 
 from models.database import get_db
 from models.plants import Plant
@@ -252,8 +253,7 @@ async def get_dashboard(
 
             return None
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"Error getting linked_location for task {task.id}: {e}")
+            logger.error(f"Dashboard linked_location lookup failed for task {task.id}: {e}")
             return None
 
     def get_linked_entity(task):
@@ -269,8 +269,7 @@ async def get_dashboard(
 
             return None
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"Error getting linked_entity for task {task.id}: {e}")
+            logger.error(f"Dashboard linked_entity lookup failed for task {task.id}: {e}")
             return None
 
     # Get today's tasks (items due today OR overdue todos - not overdue events)
@@ -287,7 +286,8 @@ async def get_dashboard(
         tz_name = tz_setting.value
     try:
         app_tz = pytz.timezone(tz_name)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Dashboard invalid timezone '{tz_name}', falling back to America/New_York: {e}")
         app_tz = pytz.timezone("America/New_York")
 
     now_local = datetime.now(app_tz)
@@ -615,8 +615,7 @@ async def get_dashboard(
         sun_moon_raw = get_sun_moon_data()
         sun_moon_data = SunMoonData(**sun_moon_raw)
     except Exception as e:
-        import logging
-        logging.warning(f"Failed to get sun/moon data: {e}")
+        logger.error(f"Dashboard sun/moon widget failed: {e}")
 
     return DashboardResponse(
         weather=weather_data,
@@ -1408,7 +1407,8 @@ async def get_cold_protection_needed(db: AsyncSession = Depends(get_db), user: U
 
         try:
             app_tz = pytz.timezone(tz_name)
-        except:
+        except Exception as e:
+            logger.error(f"Cold protection invalid timezone '{tz_name}', falling back to America/New_York: {e}")
             app_tz = pytz.timezone("America/New_York")
 
         now = datetime.now(app_tz)
@@ -1427,8 +1427,8 @@ async def get_cold_protection_needed(db: AsyncSession = Depends(get_db), user: U
                         if end_time > now + timedelta(hours=2):
                             forecast_low = period.get("temperature")
                             break
-                    except:
-                        pass
+                    except Exception as e:
+                        logger.error(f"Cold protection forecast end_time parse failed for '{end_time_str}': {e}")
 
         # Fallback: if no suitable night period found, use first available low
         if forecast_low is None:
@@ -1600,8 +1600,8 @@ def _safe_get_size(path: Path) -> int:
     try:
         if path.exists() and path.is_file() and not path.is_symlink():
             return path.stat().st_size
-    except (OSError, PermissionError):
-        pass
+    except (OSError, PermissionError) as e:
+        logger.error(f"Storage stat failed for file '{path}': {e}")
     return 0
 
 
@@ -1617,10 +1617,10 @@ def _safe_dir_size(dir_path: Path) -> int:
                 if f.is_file() and not f.is_symlink():
                     try:
                         total += f.stat().st_size
-                    except (OSError, PermissionError):
-                        pass
-    except (OSError, PermissionError):
-        pass
+                    except (OSError, PermissionError) as e:
+                        logger.error(f"Storage stat failed for file '{f}' in dir '{dir_path}': {e}")
+    except (OSError, PermissionError) as e:
+        logger.error(f"Storage dir scan failed for '{dir_path}': {e}")
     return total
 
 
@@ -1636,7 +1636,8 @@ async def get_storage_stats(db: AsyncSession = Depends(get_db), user: User = Dep
     try:
         total, used, free = shutil.disk_usage("/")
         usage_percent = (used / total) * 100 if total > 0 else 0
-    except OSError:
+    except OSError as e:
+        logger.error(f"Storage disk usage check failed: {e}")
         total, used, free = 0, 0, 0
         usage_percent = 0
 
@@ -1694,9 +1695,9 @@ async def clear_logs(user: User = Depends(require_admin)):
                         cleared_count += 1
                         cleared_bytes += size
                     except (OSError, PermissionError) as e:
-                        # Log but don't fail on individual file errors
-                        pass
+                        logger.error(f"Clear logs failed to delete file '{f}': {e}")
     except (OSError, PermissionError) as e:
+        logger.error(f"Clear logs failed to access logs directory: {e}")
         return {
             "success": False,
             "error": "Permission denied accessing logs directory",
@@ -1755,6 +1756,7 @@ async def get_verse_of_the_day(user: User = Depends(require_auth)):
             "version": "NIV"
         }
     except Exception as e:
+        logger.error(f"Dashboard verse of the day fetch failed: {e}")
         return {
             "reference": "Psalm 104:14",
             "text": "He causes the grass to grow for the cattle, and vegetation for the service of man, that he may bring forth food from the earth.",

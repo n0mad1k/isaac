@@ -8,6 +8,7 @@ import base64
 import hashlib
 from cryptography.fernet import Fernet, InvalidToken
 from typing import Optional
+from loguru import logger
 
 
 # Prefix to identify encrypted values in the database
@@ -33,6 +34,7 @@ def _get_encryption_key() -> bytes:
 
     if not secret_key:
         # Generate a new secret key and append to .env
+        logger.warning("No SECRET_KEY found in environment or .env file - generating a new one")
         secret_key = base64.urlsafe_b64encode(os.urandom(32)).decode()
         env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
         with open(env_file, "a") as f:
@@ -57,10 +59,14 @@ def encrypt_value(plaintext: str) -> str:
     if plaintext.startswith(ENCRYPTED_PREFIX):
         return plaintext
 
-    key = _get_encryption_key()
-    fernet = Fernet(key)
-    encrypted = fernet.encrypt(plaintext.encode())
-    return ENCRYPTED_PREFIX + encrypted.decode()
+    try:
+        key = _get_encryption_key()
+        fernet = Fernet(key)
+        encrypted = fernet.encrypt(plaintext.encode())
+        return ENCRYPTED_PREFIX + encrypted.decode()
+    except Exception as e:
+        logger.error(f"Failed to encrypt value: {type(e).__name__}")
+        raise
 
 
 def decrypt_value(encrypted_value: str) -> str:
@@ -84,8 +90,10 @@ def decrypt_value(encrypted_value: str) -> str:
     except InvalidToken:
         # If decryption fails (wrong key, corrupted), return empty
         # This prevents exposing partial data
+        logger.warning("Decryption failed due to invalid token - possible key mismatch or corrupted data")
         return ""
-    except Exception:
+    except Exception as e:
+        logger.error(f"Unexpected error during decryption: {type(e).__name__}")
         return ""
 
 

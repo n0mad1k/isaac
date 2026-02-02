@@ -19,6 +19,7 @@ from enum import Enum
 import math
 import json
 import re
+from loguru import logger
 
 
 # ============================================
@@ -533,6 +534,7 @@ RUCK_WEIGHT_ADJUSTMENTS = [
 def get_ruck_weight_adjustment(weight_carried_lbs: float, body_weight_lbs: float) -> int:
     """Calculate score adjustment based on ruck weight as % of body weight"""
     if not body_weight_lbs or body_weight_lbs <= 0:
+        logger.warning(f"Invalid body weight ({body_weight_lbs}) for ruck weight adjustment, returning 0")
         return 0
     ratio = weight_carried_lbs / body_weight_lbs
     for threshold, adjustment in RUCK_WEIGHT_ADJUSTMENTS:
@@ -1022,8 +1024,10 @@ def _score_exercise(exercise: dict, age: int, is_female: bool,
     # Barbell lifts: BW ratio scoring
     if category in ["SQUAT", "DEADLIFT", "BENCH", "OHP"]:
         if weight <= 0 or reps <= 0:
+            logger.warning(f"Skipping {category} exercise '{name}': invalid weight ({weight}) or reps ({reps})")
             return None
         if not body_weight_lbs or body_weight_lbs <= 0:
+            logger.warning(f"No body weight provided for {category} BW ratio scoring, defaulting to 180 lbs")
             body_weight_lbs = 180  # Default
 
         e1rm = _estimate_1rm(weight, reps)
@@ -1034,6 +1038,7 @@ def _score_exercise(exercise: dict, age: int, is_female: bool,
         bw_table = FEMALE_BW_RATIO if is_female else MALE_BW_RATIO
         base_thresholds = bw_table.get(category)
         if not base_thresholds:
+            logger.warning(f"No BW ratio thresholds found for category '{category}'")
             return None
 
         # Adjust thresholds: younger/older athletes get easier thresholds (multiply down)
@@ -1099,7 +1104,8 @@ def calculate_strength_score(
         if isinstance(exercises, str):
             try:
                 exercises = json.loads(exercises)
-            except (json.JSONDecodeError, TypeError):
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.error(f"Failed to parse exercises JSON string: {e}")
                 exercises = []
 
         if isinstance(exercises, list):
@@ -1123,6 +1129,7 @@ def calculate_strength_score(
             factors.append(f"Duration: {duration_minutes} min")
         factors.append("Score estimated from perceived effort")
     else:
+        logger.warning(f"Strength score returned None: no recognized exercises and no RPE provided (age={age}, is_female={is_female})")
         return None
 
     gender_str = "female" if is_female else "male"
@@ -1321,6 +1328,7 @@ def calculate_pt_test_score(
             factors.append(f"Duration: {duration_minutes} min")
         factors.append("Score estimated from perceived effort")
     else:
+        logger.warning(f"PT test score returned None: no score and no RPE provided (test_standard={test_standard})")
         return None
 
     our_score = max(0, min(100, our_score))
@@ -1407,6 +1415,8 @@ def calculate_workout_score(
                 is_female=is_female,
                 distance_miles=distance_miles
             )
+        else:
+            logger.warning(f"RUN workout missing valid pace data (pace={pace_seconds_per_mile})")
 
     # RUCK: MARSOC-anchored with weight adjustment
     if workout_type_upper == "RUCK":
@@ -1419,6 +1429,8 @@ def calculate_workout_score(
                 is_female=is_female,
                 distance_miles=distance_miles
             )
+        else:
+            logger.warning(f"RUCK workout missing required data (pace={pace_seconds_per_mile}, weight_carried={weight_carried_lbs})")
 
     # SWIM: 300m standard-based
     if workout_type_upper == "SWIM":
@@ -1429,6 +1441,8 @@ def calculate_workout_score(
                 is_female=is_female,
                 distance_miles=distance_miles
             )
+        else:
+            logger.warning(f"SWIM workout missing valid pace data (pace={pace_seconds_per_mile})")
 
     # BIKE: population-based with confidence
     if workout_type_upper == "BIKE":
@@ -1439,6 +1453,8 @@ def calculate_workout_score(
                 is_female=is_female,
                 distance_miles=distance_miles
             )
+        else:
+            logger.warning(f"BIKE workout missing valid pace data (pace={pace_seconds_per_mile})")
 
     # ROW: 500m split-based
     if workout_type_upper == "ROW":
@@ -1449,6 +1465,8 @@ def calculate_workout_score(
                 is_female=is_female,
                 distance_miles=distance_miles
             )
+        else:
+            logger.warning(f"ROW workout missing valid pace data (pace={pace_seconds_per_mile})")
 
     # STRENGTH: exercise-level scoring
     if workout_type_upper == "STRENGTH":
@@ -1471,6 +1489,8 @@ def calculate_workout_score(
                 max_heart_rate=max_heart_rate,
                 age=age
             )
+        else:
+            logger.warning(f"{workout_type_upper} workout missing RPE value")
 
     # PT_TEST: PFT/CFT class mapping
     if workout_type_upper == "PT_TEST":
@@ -1487,6 +1507,7 @@ def calculate_workout_score(
 
     # Fallback: RPE-based for any other type with RPE
     if rpe:
+        logger.info(f"Using RPE fallback scoring for workout type '{workout_type_upper}' (RPE={rpe}, duration={duration_minutes}min)")
         base_score = _score_from_rpe_duration(rpe, duration_minutes, cap=89,
                                                avg_heart_rate=avg_heart_rate,
                                                max_heart_rate=max_heart_rate,
@@ -1506,6 +1527,7 @@ def calculate_workout_score(
             contributing_factors=factors
         )
 
+    logger.warning(f"Could not score workout: type='{workout_type_upper}', insufficient data (pace={pace_seconds_per_mile}, rpe={rpe}, exercises={'yes' if exercises else 'no'})")
     return None
 
 
@@ -1547,6 +1569,9 @@ def get_fitness_profile(
     scores_by_type: Dict[str, List[float]] = {}
     all_scores: List[float] = []
     scored_workouts = []
+
+    if not workouts:
+        logger.warning(f"get_fitness_profile called with no workouts (age={age}, is_female={is_female})")
 
     for workout in workouts:
         workout_type = workout.get("workout_type", "OTHER")

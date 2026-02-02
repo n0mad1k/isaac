@@ -9,6 +9,7 @@ from sqlalchemy import select, and_
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+from loguru import logger
 
 from models.database import get_db
 from models.workers import Worker
@@ -139,6 +140,8 @@ async def create_worker(
     await db.commit()
     await db.refresh(worker)
 
+    logger.info(f"Created worker '{worker.name}' (id={worker.id}, role={worker.role}, lang={worker.language})")
+
     return {
         "id": worker.id,
         "name": worker.name,
@@ -235,6 +238,7 @@ async def update_worker(
     worker = result.scalar_one_or_none()
 
     if not worker:
+        logger.error(f"Update failed: worker {worker_id} not found")
         raise HTTPException(status_code=404, detail="Worker not found")
 
     update_data = data.model_dump(exclude_unset=True)
@@ -244,6 +248,8 @@ async def update_worker(
     worker.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(worker)
+
+    logger.info(f"Updated worker '{worker.name}' (id={worker_id}, fields={list(update_data.keys())})")
 
     return {
         "id": worker.id,
@@ -269,8 +275,10 @@ async def delete_worker(
     worker = result.scalar_one_or_none()
 
     if not worker:
+        logger.error(f"Delete failed: worker {worker_id} not found")
         raise HTTPException(status_code=404, detail="Worker not found")
 
+    logger.info(f"Deactivated worker '{worker.name}' (id={worker_id})")
     worker.is_active = False
     worker.updated_at = datetime.utcnow()
     await db.commit()
@@ -291,6 +299,7 @@ async def get_worker_tasks(
     worker = result.scalar_one_or_none()
 
     if not worker:
+        logger.error(f"Get worker tasks failed: worker {worker_id} not found")
         raise HTTPException(status_code=404, detail="Worker not found")
 
     query = select(Task).where(
@@ -366,10 +375,13 @@ async def update_worker_note(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Worker note failed: task {task_id} not found or not assigned to worker {worker_id}")
         raise HTTPException(status_code=404, detail="Task not found or not assigned to this worker")
 
     task.worker_note = note.strip() if note else None
     await db.commit()
+
+    logger.info(f"Worker note updated on task {task_id} by worker {worker_id}")
 
     return {"message": "Note updated", "task_id": task_id, "note": task.worker_note}
 
@@ -393,12 +405,15 @@ async def start_worker_task(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Start task failed: task {task_id} not found or not assigned to worker {worker_id}")
         raise HTTPException(status_code=404, detail="Task not found or not assigned to this worker")
 
     task.is_in_progress = True
     task.is_blocked = False
     task.blocked_reason = None
     await db.commit()
+
+    logger.info(f"Task {task_id} started by worker {worker_id}")
 
     return {"message": "Task started", "task_id": task_id}
 
@@ -422,10 +437,13 @@ async def stop_worker_task(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Stop task failed: task {task_id} not found or not assigned to worker {worker_id}")
         raise HTTPException(status_code=404, detail="Task not found or not assigned to this worker")
 
     task.is_in_progress = False
     await db.commit()
+
+    logger.info(f"Task {task_id} paused by worker {worker_id}")
 
     return {"message": "Task paused", "task_id": task_id}
 
@@ -450,6 +468,7 @@ async def complete_worker_task(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Complete task failed: task {task_id} not found or not assigned to worker {worker_id}")
         raise HTTPException(status_code=404, detail="Task not found or not assigned to this worker")
 
     task.is_completed = True
@@ -461,6 +480,8 @@ async def complete_worker_task(
     task.completion_count = (task.completion_count or 0) + 1
 
     await db.commit()
+
+    logger.info(f"Task {task_id} completed by worker {worker_id} (completion_count={task.completion_count})")
 
     return {"message": "Task completed", "task_id": task_id}
 
@@ -484,6 +505,7 @@ async def uncomplete_worker_task(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Uncomplete task failed: task {task_id} not found or not assigned to worker {worker_id}")
         raise HTTPException(status_code=404, detail="Task not found or not assigned to this worker")
 
     task.is_completed = False
@@ -491,6 +513,8 @@ async def uncomplete_worker_task(
     # Keep the completion_note as a record of what was done
 
     await db.commit()
+
+    logger.info(f"Task {task_id} reverted to incomplete by worker {worker_id}")
 
     return {"message": "Task marked incomplete", "task_id": task_id}
 
@@ -505,6 +529,7 @@ async def block_worker_task(
 ):
     """Mark a task as blocked (cannot complete), with required reason"""
     if not reason or not reason.strip():
+        logger.error(f"Block task failed: no reason provided for task {task_id} by worker {worker_id}")
         raise HTTPException(status_code=400, detail="Reason is required when blocking a task")
 
     result = await db.execute(
@@ -518,12 +543,15 @@ async def block_worker_task(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Block task failed: task {task_id} not found or not assigned to worker {worker_id}")
         raise HTTPException(status_code=404, detail="Task not found or not assigned to this worker")
 
     task.is_blocked = True
     task.blocked_reason = reason.strip()
 
     await db.commit()
+
+    logger.info(f"Task {task_id} blocked by worker {worker_id}: {reason.strip()}")
 
     return {"message": "Task marked as blocked", "task_id": task_id, "reason": reason}
 
@@ -547,12 +575,15 @@ async def unblock_worker_task(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Unblock task failed: task {task_id} not found or not assigned to worker {worker_id}")
         raise HTTPException(status_code=404, detail="Task not found or not assigned to this worker")
 
     task.is_blocked = False
     task.blocked_reason = None
 
     await db.commit()
+
+    logger.info(f"Task {task_id} unblocked for worker {worker_id}")
 
     return {"message": "Task unblocked", "task_id": task_id}
 
@@ -569,17 +600,21 @@ async def assign_task_to_worker(
     worker_result = await db.execute(select(Worker).where(Worker.id == worker_id))
     worker = worker_result.scalar_one_or_none()
     if not worker:
+        logger.error(f"Assign task failed: worker {worker_id} not found")
         raise HTTPException(status_code=404, detail="Worker not found")
 
     # Get the task
     task_result = await db.execute(select(Task).where(Task.id == task_id))
     task = task_result.scalar_one_or_none()
     if not task:
+        logger.error(f"Assign task failed: task {task_id} not found")
         raise HTTPException(status_code=404, detail="Task not found")
 
     # Assign to worker
     task.assigned_to_worker_id = worker_id
     await db.commit()
+
+    logger.info(f"Assigned task {task_id} to worker '{worker.name}' (worker_id={worker_id})")
 
     return {"message": f"Task assigned to {worker.name}", "task_id": task_id, "worker_id": worker_id}
 
@@ -603,12 +638,15 @@ async def unassign_task_from_worker(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Unassign task failed: task {task_id} not found or not assigned to worker {worker_id}")
         raise HTTPException(status_code=404, detail="Task not found or not assigned to this worker")
 
     task.assigned_to_worker_id = None
     task.is_blocked = False
     task.blocked_reason = None
     await db.commit()
+
+    logger.info(f"Unassigned task {task_id} from worker {worker_id}")
 
     return {"message": "Task unassigned from worker", "task_id": task_id}
 
@@ -628,6 +666,7 @@ async def reorder_worker_tasks(
     result = await db.execute(select(Worker).where(Worker.id == worker_id))
     worker = result.scalar_one_or_none()
     if not worker:
+        logger.error(f"Reorder tasks failed: worker {worker_id} not found")
         raise HTTPException(status_code=404, detail="Worker not found")
 
     # Fetch all specified tasks assigned to this worker
@@ -649,6 +688,9 @@ async def reorder_worker_tasks(
             updated += 1
 
     await db.commit()
+
+    logger.info(f"Reordered {updated} tasks for worker '{worker.name}' (worker_id={worker_id})")
+
     return {"message": f"Reordered {updated} tasks", "worker_id": worker_id}
 
 
@@ -671,11 +713,14 @@ async def toggle_worker_task_backlog(
     )
     task = result.scalar_one_or_none()
     if not task:
+        logger.error(f"Toggle backlog failed: task {task_id} not found or not assigned to worker {worker_id}")
         raise HTTPException(status_code=404, detail="Task not found or not assigned to this worker")
 
     task.is_backlog = not (task.is_backlog or False)
     task.sort_order = None  # Reset order when moving between lists
     await db.commit()
+
+    logger.info(f"Task {task_id} {'moved to backlog' if task.is_backlog else 'moved to active'} for worker {worker_id}")
 
     return {
         "message": f"Task {'moved to backlog' if task.is_backlog else 'moved to active'}",

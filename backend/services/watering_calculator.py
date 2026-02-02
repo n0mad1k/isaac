@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Optional, Dict, List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from loguru import logger
 
 from models.plants import PlantCareLog
 
@@ -82,16 +83,24 @@ def calculate_watering_interval(
         season = get_current_season()
 
     # Get base interval for moisture preference
+    if moisture_preference not in BASE_INTERVALS:
+        logger.warning(f"Unknown moisture preference '{moisture_preference}', defaulting to 'moist'")
     base = BASE_INTERVALS.get(moisture_preference, BASE_INTERVALS["moist"])
     interval = base.get(season, 7)
 
     # Apply zone modifier
     zone_key = usda_zone.lower() if usda_zone else "7a"
+    if not usda_zone:
+        logger.warning("No USDA zone provided, defaulting to '7a'")
+    elif zone_key not in ZONE_MODIFIERS:
+        logger.warning(f"Unknown USDA zone '{usda_zone}', using modifier 1.0")
     zone_mod = ZONE_MODIFIERS.get(zone_key, 1.0)
     interval = round(interval * zone_mod)
 
     # Clamp to reasonable range (2-45 days)
-    return max(2, min(45, interval))
+    result = max(2, min(45, interval))
+    logger.info(f"Watering interval calculated: {result} days (moisture={moisture_preference}, zone={usda_zone}, season={season})")
+    return result
 
 
 def generate_water_schedule(
@@ -107,7 +116,9 @@ def generate_water_schedule(
     for season in seasons:
         days = calculate_watering_interval(moisture_preference, usda_zone, season)
         parts.append(f"{season}:{days}")
-    return ",".join(parts)
+    schedule = ",".join(parts)
+    logger.info(f"Generated water schedule for moisture={moisture_preference}, zone={usda_zone}: {schedule}")
+    return schedule
 
 
 async def analyze_watering_history(
@@ -139,6 +150,7 @@ async def analyze_watering_history(
     logs = result.scalars().all()
 
     if not logs:
+        logger.warning(f"No watering history found for plant_id={plant_id}")
         return {
             "total_events": 0,
             "waters": 0,
@@ -186,6 +198,7 @@ async def analyze_watering_history(
                 suggestion = "You often water before schedule. Consider decreasing interval."
                 suggested_adjustment = -1
 
+    logger.info(f"Watering history analysis for plant_id={plant_id}: {len(waters)} waters, {len(skips)} skips, skip_rate={round(skip_rate, 2)}, avg_days={round(avg_days, 1) if avg_days else None}")
     return {
         "total_events": total,
         "waters": len(waters),

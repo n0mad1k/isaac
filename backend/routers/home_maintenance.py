@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel, Field, field_validator
+from loguru import logger
 
 from models.database import get_db
 from models.home_maintenance import HomeMaintenance, HomeMaintenanceLog, DEFAULT_CATEGORIES, get_local_now
@@ -258,6 +259,8 @@ async def create_maintenance(
     await db.commit()
     await db.refresh(task)
 
+    logger.info(f"Home maintenance task created: id={task.id}, name='{task.name}', category='{task.category}'")
+
     return MaintenanceResponse(
         id=task.id,
         name=task.name,
@@ -293,6 +296,7 @@ async def update_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Update failed: home maintenance task id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     update_data = data.model_dump(exclude_unset=True)
@@ -311,6 +315,8 @@ async def update_maintenance(
 
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Home maintenance task updated: id={task_id}, fields={list(update_data.keys())}")
 
     return MaintenanceResponse(
         id=task.id,
@@ -346,10 +352,14 @@ async def delete_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Delete failed: home maintenance task id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
+    task_name = task.name
     await db.delete(task)
     await db.commit()
+
+    logger.info(f"Home maintenance task deleted: id={task_id}, name='{task_name}'")
 
     return {"message": "Maintenance task deleted"}
 
@@ -368,6 +378,7 @@ async def complete_maintenance(
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Complete failed: home maintenance task id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     # Create log entry
@@ -393,9 +404,12 @@ async def complete_maintenance(
     if linked_task and not linked_task.is_completed:
         linked_task.is_completed = True
         linked_task.completed_at = performed_at
+        logger.info(f"Linked auto-reminder task id={linked_task.id} marked complete for home maintenance id={task_id}")
 
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Home maintenance task completed: id={task_id}, name='{task.name}', next_due={task.next_due}")
 
     return MaintenanceResponse(
         id=task.id,
@@ -427,12 +441,15 @@ async def set_maintenance_due_date(task_id: int, data: SetDueDateRequest, db: As
     task = result.scalar_one_or_none()
 
     if not task:
+        logger.error(f"Set due date failed: home maintenance task id={task_id} not found")
         raise HTTPException(status_code=404, detail="Maintenance task not found")
 
     task.set_manual_due_date(data.due_date)
 
     await db.commit()
     await db.refresh(task)
+
+    logger.info(f"Home maintenance due date set: id={task_id}, name='{task.name}', due_date={data.due_date}")
 
     return MaintenanceResponse(
         id=task.id,

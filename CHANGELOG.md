@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.74.2] - 2026-02-02
+
+### Changed
+- **Comprehensive logging revamp** - Added structured logging across 15 backend files for better diagnostics and troubleshooting
+  - Routers: weather, supply requests, home maintenance, equipment, vehicles, farm areas, workers, dashboard
+  - Services: audit, calendar sync, encryption, fitness standards, permissions, planting calculator, watering calculator
+  - All CRUD operations log create/update/delete with relevant context (IDs, names, changed fields)
+  - All error handlers log the actual error before returning generic messages to clients
+  - Warning-level logs for missing data, fallback values, and edge cases
+  - Dashboard bare `except:` clauses converted to proper `except Exception as e:` with logging
+
 ## [1.74.1] - 2026-02-02
 
 ### Fixed

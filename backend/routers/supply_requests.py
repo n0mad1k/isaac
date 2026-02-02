@@ -9,6 +9,7 @@ from sqlalchemy import select, and_
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+from loguru import logger
 
 from models.database import get_db
 from models.supply_requests import SupplyRequest, RequestStatus
@@ -179,6 +180,7 @@ async def create_request(
     worker_result = await db.execute(select(Worker).where(Worker.id == data.worker_id))
     worker = worker_result.scalar_one_or_none()
     if not worker:
+        logger.error(f"Supply request creation failed: worker_id={data.worker_id} not found")
         raise HTTPException(status_code=404, detail="Worker not found")
 
     request = SupplyRequest(
@@ -191,6 +193,8 @@ async def create_request(
     db.add(request)
     await db.commit()
     await db.refresh(request)
+
+    logger.info(f"Supply request created: id={request.id}, worker={worker.name}, item='{data.item_name}', qty={data.quantity}")
 
     return {
         "id": request.id,
@@ -218,15 +222,24 @@ async def update_request(
     request = result.scalar_one_or_none()
 
     if not request:
+        logger.error(f"Supply request update failed: request_id={request_id} not found")
         raise HTTPException(status_code=404, detail="Supply request not found")
 
     update_data = data.model_dump(exclude_unset=True)
+    old_status = request.status
     for key, value in update_data.items():
         setattr(request, key, value)
 
     request.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(request)
+
+    # Log status changes (approval, rejection, fulfillment)
+    if "status" in update_data:
+        new_status = update_data["status"]
+        logger.info(f"Supply request id={request_id} status changed: {old_status} -> {new_status}, item='{request.item_name}'")
+    else:
+        logger.info(f"Supply request updated: id={request_id}, fields={list(update_data.keys())}")
 
     # Get worker name
     worker_result = await db.execute(select(Worker).where(Worker.id == request.worker_id))
@@ -257,7 +270,10 @@ async def delete_request(
     request = result.scalar_one_or_none()
 
     if not request:
+        logger.error(f"Supply request delete failed: request_id={request_id} not found")
         raise HTTPException(status_code=404, detail="Supply request not found")
+
+    logger.info(f"Supply request deleted: id={request_id}, item='{request.item_name}', worker_id={request.worker_id}")
 
     await db.delete(request)
     await db.commit()

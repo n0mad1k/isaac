@@ -8,6 +8,7 @@ from typing import Optional
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Request
+from loguru import logger
 
 from models.users import AuditLog, AuditAction
 from models.database import async_session
@@ -60,17 +61,22 @@ async def log_audit(
         success=success
     )
 
-    if db:
-        db.add(audit_log)
-        await db.commit()
-        await db.refresh(audit_log)
-    else:
-        async with async_session() as session:
-            session.add(audit_log)
-            await session.commit()
-            await session.refresh(audit_log)
+    try:
+        if db:
+            db.add(audit_log)
+            await db.commit()
+            await db.refresh(audit_log)
+        else:
+            async with async_session() as session:
+                session.add(audit_log)
+                await session.commit()
+                await session.refresh(audit_log)
 
-    return audit_log
+        logger.info(f"Audit log created: action={action.value}, user_id={user_id}, username={username}, success={success}")
+        return audit_log
+    except Exception as e:
+        logger.error(f"Failed to create audit log: action={action.value}, user_id={user_id}, username={username}, error={e}")
+        raise
 
 
 async def get_audit_logs(
@@ -124,14 +130,19 @@ async def cleanup_old_audit_logs(db: AsyncSession, days: int = 90) -> int:
     from datetime import timedelta
     cutoff = datetime.utcnow() - timedelta(days=days)
 
-    result = await db.execute(
-        select(AuditLog).where(AuditLog.timestamp < cutoff)
-    )
-    logs = result.scalars().all()
-    count = len(logs)
+    try:
+        result = await db.execute(
+            select(AuditLog).where(AuditLog.timestamp < cutoff)
+        )
+        logs = result.scalars().all()
+        count = len(logs)
 
-    for log in logs:
-        await db.delete(log)
+        for log in logs:
+            await db.delete(log)
 
-    await db.commit()
-    return count
+        await db.commit()
+        logger.info(f"Cleaned up {count} audit logs older than {days} days (cutoff: {cutoff.isoformat()})")
+        return count
+    except Exception as e:
+        logger.error(f"Failed to clean up audit logs older than {days} days: {e}")
+        raise

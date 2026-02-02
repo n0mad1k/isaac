@@ -7,6 +7,7 @@ from typing import Optional, Callable
 from functools import wraps
 
 from fastapi import Depends, HTTPException
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -80,6 +81,7 @@ def require_permission(category: str, action: str):
         has_perm = await check_permission(user, db, category, action)
 
         if not has_perm:
+            logger.warning(f"Permission denied: user '{user.username}' (role={user.role.value}) lacks '{action}' on '{category}'")
             raise HTTPException(
                 status_code=403,
                 detail="Permission denied"
