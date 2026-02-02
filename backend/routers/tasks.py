@@ -964,7 +964,9 @@ async def complete_task(
     task.updated_at = datetime.utcnow()
 
     # For auto-generated recurring reminders, mark as inactive so a new one can be created
-    is_auto_reminder = task.notes and task.notes.startswith("auto:")
+    # Only deactivate known recurring types (NOT aar action items which are one-time tasks)
+    RECURRING_AUTO_TYPES = ("auto:plant_", "auto:vehicle_", "auto:equipment_", "auto:home_", "auto:farm_", "auto:animal_", "auto:care_group:")
+    is_auto_reminder = task.notes and any(task.notes.startswith(prefix) for prefix in RECURRING_AUTO_TYPES)
     if is_auto_reminder:
         await update_source_entity_on_complete(db, task.notes)
         # Mark this completed task as inactive so next sync creates a new one

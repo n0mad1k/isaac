@@ -49,7 +49,7 @@ class OllamaService:
     async def check_health(self) -> bool:
         """Check if Ollama is running and accessible"""
         try:
-            response = await self.client.get(f"{self.base_url}/api/tags", timeout=5.0)
+            response = await self.client.get(f"{self.base_url}/api/tags", timeout=10.0)
             return response.status_code == 200
         except Exception:
             return False

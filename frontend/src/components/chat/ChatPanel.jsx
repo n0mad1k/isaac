@@ -39,11 +39,21 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
     }
   }, [isOpen, tab])
 
-  // Check Ollama health
+  // Check Ollama health (with retry)
   const checkHealth = async () => {
+    setAiStatus('checking')
     try {
       const res = await getAiHealth()
-      setAiStatus(res.data.status)
+      if (res.data.status === 'online') {
+        setAiStatus('online')
+        return
+      }
+    } catch { /* first attempt failed */ }
+    // Retry once after a short delay
+    await new Promise(r => setTimeout(r, 2000))
+    try {
+      const res = await getAiHealth()
+      setAiStatus(res.data.status || 'offline')
     } catch {
       setAiStatus('offline')
     }

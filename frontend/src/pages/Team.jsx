@@ -60,10 +60,10 @@ function Team() {
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(false)
 
-  // Load data
-  const loadData = async () => {
+  // Load data - silent=true skips the loading spinner (used by child component refreshes)
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       setError(null)
 
       const [settingsRes, overviewRes, membersRes] = await Promise.all([
@@ -80,9 +80,12 @@ function Team() {
       console.error('Failed to load team data:', err)
       setError(err.userMessage || 'Failed to load team data')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
+
+  // Silent refresh for child components (doesn't unmount/remount components)
+  const silentRefresh = () => loadData(true)
 
   useEffect(() => {
     loadData()
@@ -475,7 +478,7 @@ function Team() {
                 setShowMemberForm(true)
               }}
               onDelete={() => handleDeleteMember(selectedMember.id)}
-              onUpdate={loadData}
+              onUpdate={silentRefresh}
             />
           )}
 

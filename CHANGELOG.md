@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.71.1] - 2026-02-01
+
+### Fixed
+- **Task completion no longer redirects to profile tab** - Completing tasks on a team member's Tasks tab now stays on the correct tab instead of resetting to the Profile tab
+- **AAR action item tasks no longer disappear after completion** - AAR-linked tasks (auto:aar) are no longer incorrectly deactivated when completed. Only recurring auto-reminders (plant care, vehicle/equipment maintenance, etc.) are deactivated on completion
+- **Chatbot health check more reliable** - Increased Ollama health check timeout and added automatic retry on failure to reduce false "not running" status on slower connections
+
 ## [1.71.0] - 2026-02-01
 
 ### Added
