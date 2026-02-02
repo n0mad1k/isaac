@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Menu, MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus, Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Bug, ClipboardList, LayoutDashboard, LogOut, Users, DollarSign, UsersRound, Wheat } from 'lucide-react'
+import { Menu, MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus, Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Bug, ClipboardList, LayoutDashboard, LogOut, Users, DollarSign, UsersRound, Wheat, Bot } from 'lucide-react'
 import { checkFeedbackEnabled, submitFeedback, toggleKeyboard as toggleKeyboardApi } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import EventModal from './EventModal'
@@ -10,7 +10,7 @@ import EventModal from './EventModal'
  * On mobile: shows nav + actions in fullscreen overlay
  * On desktop: shows just actions in expandable menu
  */
-function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navItems = [], isDevInstance = false, workerTasksEnabled = false }) {
+function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navItems = [], isDevInstance = false, workerTasksEnabled = false, onChatToggle = null, unreadInsights = 0 }) {
   const [expanded, setExpanded] = useState(false)
   const [feedbackEnabled, setFeedbackEnabled] = useState(false)
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
@@ -118,6 +118,11 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
     window.dispatchEvent(new CustomEvent('task-created'))
   }
 
+  const handleOpenChat = () => {
+    setExpanded(false)
+    if (onChatToggle) onChatToggle()
+  }
+
   const handleLogout = async () => {
     setExpanded(false)
     await logout()
@@ -221,6 +226,28 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
                   <Plus className="w-5 h-5" />
                   <span className="text-sm font-medium">Add Event</span>
                 </button>
+                {onChatToggle && (
+                  <button
+                    onClick={handleOpenChat}
+                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors relative"
+                    style={{
+                      backgroundColor: 'var(--color-bg-surface)',
+                      border: '1px solid var(--color-border-default)',
+                      color: 'var(--color-text-primary)'
+                    }}
+                  >
+                    <Bot className="w-5 h-5" />
+                    <span className="text-sm font-medium">Isaac AI</span>
+                    {unreadInsights > 0 && (
+                      <span
+                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold"
+                        style={{ backgroundColor: 'var(--color-error-600)', color: 'white' }}
+                      >
+                        {unreadInsights > 9 ? '9+' : unreadInsights}
+                      </span>
+                    )}
+                  </button>
+                )}
                 {showHardRefresh && (
                   <button
                     onClick={handleHardRefresh}
@@ -286,6 +313,29 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
               <Plus className="w-5 h-5" />
               <span className="text-sm font-medium">Add</span>
             </button>
+            {onChatToggle && (
+              <button
+                onClick={handleOpenChat}
+                className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation relative"
+                style={{
+                  backgroundColor: 'var(--color-bg-surface)',
+                  border: '2px solid var(--color-border-default)',
+                  color: 'var(--color-text-primary)'
+                }}
+                title="Chat with Isaac"
+              >
+                <Bot className="w-5 h-5" />
+                <span className="text-sm font-medium">Isaac AI</span>
+                {unreadInsights > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold"
+                    style={{ backgroundColor: 'var(--color-error-600)', color: 'white' }}
+                  >
+                    {unreadInsights > 9 ? '9+' : unreadInsights}
+                  </span>
+                )}
+              </button>
+            )}
             {showHardRefresh && (
               <button
                 onClick={handleHardRefresh}

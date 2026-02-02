@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.70.0] - 2026-02-01
+
+### Added
+- **Isaac AI Chat Assistant** - Chat with a self-hosted Ollama LLM about your homestead. Isaac understands your garden, animals, budget, fitness, production, weather, and tasks with real-time data context injection.
+- **Streaming responses** - AI responses stream in real-time via Server-Sent Events
+- **Conversation management** - Create, view, and delete chat conversations with persistent history
+- **Topic auto-detection** - Isaac automatically detects what you're asking about and injects relevant data context
+- **AI Insights tab** - View and manage proactive AI-generated insights organized by domain
+- **Chat accessible from menu** - Isaac AI chat button is in the three-dot/hamburger menu for quick access on mobile and desktop
+
+### Changed
+- **Chat button moved to menu** - Removed standalone floating chat button; now accessible from the three-dot (desktop) and hamburger (mobile) menus
+
 ## [1.69.4] - 2026-02-01
 
 ### Changed
