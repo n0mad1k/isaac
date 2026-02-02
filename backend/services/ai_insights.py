@@ -1,6 +1,6 @@
 """
 AI Insights Service
-Generates proactive insights on a schedule using Ollama
+Generates proactive insights on a schedule using Claude
 """
 
 from datetime import datetime, timedelta
@@ -20,6 +20,7 @@ from services.ai_context import (
     gather_weather_context,
     gather_animals_context,
     build_system_prompt,
+    get_shared_domains,
 )
 
 
@@ -65,8 +66,14 @@ async def _save_insight(
         logger.info(f"Saved AI insight: {title}")
 
 
+async def _get_shared_domains() -> set:
+    """Get the set of domains the user has opted into sharing with AI"""
+    async with async_session() as db:
+        return await get_shared_domains(db)
+
+
 async def _generate_insight(prompt: str, system_prompt: str, context: str) -> str:
-    """Generate an insight using Ollama (non-streaming)"""
+    """Generate an insight using Claude (non-streaming)"""
     async with async_session() as db:
         service = await get_configured_service(db)
         try:
@@ -88,14 +95,29 @@ async def generate_morning_digest():
 
     logger.info("Generating AI morning digest...")
     try:
+        allowed = await _get_shared_domains()
+        # Morning digest uses tasks, weather, animals, garden — only include allowed
         async with async_session() as db:
-            # Gather multi-domain context
-            tasks_ctx = await gather_tasks_context(db)
-            weather_ctx = await gather_weather_context(db)
-            animals_ctx = await gather_animals_context(db)
-            garden_ctx = await gather_garden_context(db)
+            tasks_ctx = await gather_tasks_context(db) if "tasks" in allowed else ""
+            weather_ctx = await gather_weather_context(db) if "weather" in allowed else ""
+            animals_ctx = await gather_animals_context(db) if "animals" in allowed else ""
+            garden_ctx = await gather_garden_context(db) if "garden" in allowed else ""
 
-        context = f"TASKS:\n{tasks_ctx}\n\nWEATHER:\n{weather_ctx}\n\nANIMALS:\n{animals_ctx}\n\nGARDEN:\n{garden_ctx}"
+        # If no domains are enabled, skip generation entirely
+        if not any([tasks_ctx, weather_ctx, animals_ctx, garden_ctx]):
+            logger.debug("No shared domains for morning digest, skipping")
+            return
+
+        parts = []
+        if tasks_ctx:
+            parts.append(f"TASKS:\n{tasks_ctx}")
+        if weather_ctx:
+            parts.append(f"WEATHER:\n{weather_ctx}")
+        if animals_ctx:
+            parts.append(f"ANIMALS:\n{animals_ctx}")
+        if garden_ctx:
+            parts.append(f"GARDEN:\n{garden_ctx}")
+        context = "\n\n".join(parts)
         system = build_system_prompt("tasks")
 
         prompt = (
@@ -124,6 +146,12 @@ async def generate_morning_digest():
 async def generate_weekly_fitness_review():
     """Generate a weekly fitness analysis insight"""
     if not await _is_enabled():
+        return
+
+    # Check if fitness domain is shared
+    allowed = await _get_shared_domains()
+    if "fitness" not in allowed:
+        logger.debug("Fitness domain not shared, skipping fitness review")
         return
 
     logger.info("Generating AI weekly fitness review...")
@@ -162,11 +190,17 @@ async def generate_monthly_garden_review():
     if not await _is_enabled():
         return
 
+    # Check if garden domain is shared
+    allowed = await _get_shared_domains()
+    if "garden" not in allowed:
+        logger.debug("Garden domain not shared, skipping garden review")
+        return
+
     logger.info("Generating AI monthly garden review...")
     try:
         async with async_session() as db:
             garden_ctx = await gather_garden_context(db)
-            weather_ctx = await gather_weather_context(db)
+            weather_ctx = await gather_weather_context(db) if "weather" in allowed else ""
 
         context = f"GARDEN:\n{garden_ctx}\n\nWEATHER:\n{weather_ctx}"
         system = build_system_prompt("garden")
@@ -198,6 +232,12 @@ async def generate_monthly_garden_review():
 async def generate_weekly_budget_review():
     """Generate a weekly budget analysis insight"""
     if not await _is_enabled():
+        return
+
+    # Check if budget domain is shared
+    allowed = await _get_shared_domains()
+    if "budget" not in allowed:
+        logger.debug("Budget domain not shared, skipping budget review")
         return
 
     logger.info("Generating AI weekly budget review...")

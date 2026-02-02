@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.73.0] - 2026-02-02
+
+### Changed
+- **AI assistant switched from Ollama to Claude** - Replaced self-hosted Ollama with Anthropic Claude API. Set your API key in Settings under "Anthropic API Key". Supports streaming, conversation history, and scheduled insights
+- **AI privacy controls** - New "AI Shared Domains" setting lets you choose exactly which data categories (garden, fitness, budget, production, animals, weather, tasks) the AI can access. Empty by default — no personal data leaves your Pi unless you opt in
+  - Chat still works with no domains enabled, but won't reference personal data
+  - Scheduled insights (morning digest, weekly reviews) only generate for enabled domains
+
 ## [1.72.0] - 2026-02-01
 
 ### Added

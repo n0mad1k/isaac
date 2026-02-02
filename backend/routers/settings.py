@@ -389,22 +389,26 @@ DEFAULT_SETTINGS = {
         "description": "JSON array of team values with names, descriptions, and questions"
     },
 
-    # AI Assistant (Ollama)
+    # AI Assistant (Claude)
     "ai_enabled": {
         "value": "true",
-        "description": "Enable the AI assistant (requires Ollama running)"
+        "description": "Enable the AI assistant (requires Anthropic API key)"
     },
     "ai_proactive_insights": {
         "value": "true",
         "description": "Enable scheduled AI insights (morning digest, weekly reviews)"
     },
-    "ollama_url": {
-        "value": "http://localhost:11434",
-        "description": "Ollama server URL"
+    "anthropic_api_key": {
+        "value": "",
+        "description": "Anthropic API key for Claude AI assistant"
     },
-    "ollama_model": {
-        "value": "qwen2.5:1.5b",
-        "description": "Ollama model to use for AI assistant"
+    "claude_model": {
+        "value": "claude-sonnet-4-20250514",
+        "description": "Claude model to use for AI assistant"
+    },
+    "ai_shared_domains": {
+        "value": "",
+        "description": "Comma-separated domains the AI may access (garden,fitness,budget,production,animals,weather,tasks). Empty = no personal data shared."
     },
 }
 
@@ -464,7 +468,7 @@ async def set_setting(db: AsyncSession, key: str, value: str) -> AppSetting:
 
 
 # Sensitive settings that should be masked in responses (includes cloudflare_api_token)
-SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token', 'deepl_api_key']
+SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token', 'deepl_api_key', 'anthropic_api_key']
 
 def mask_sensitive_value(key: str, value: str) -> str:
     """Mask sensitive settings for display"""

@@ -1,6 +1,6 @@
 """
 AI Chat Router
-Handles conversations with the Ollama-powered assistant and AI insights
+Handles conversations with the Claude-powered assistant and AI insights
 """
 
 import json
@@ -40,19 +40,21 @@ async def check_ai_health(
     user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """Check if Ollama is running and accessible"""
+    """Check if Claude API key is set and valid"""
     try:
         service = await get_configured_service(db)
+        if not service.api_key:
+            return {"status": "offline", "model": service.model, "provider": "claude"}
         healthy = await service.check_health()
         await service.close()
         return {
             "status": "online" if healthy else "offline",
             "model": service.model,
-            "url": service.base_url,
+            "provider": "claude",
         }
     except Exception as e:
         logger.error(f"AI health check failed: {e}")
-        return {"status": "offline", "model": "", "url": ""}
+        return {"status": "offline", "model": "", "provider": "claude"}
 
 
 @router.get("/models/")
@@ -60,15 +62,13 @@ async def list_ai_models(
     user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """List available Ollama models"""
+    """Return the configured Claude model"""
     try:
         service = await get_configured_service(db)
-        models = await service.list_models()
-        await service.close()
-        return {"models": models}
+        return {"models": [{"name": service.model}]}
     except Exception as e:
-        logger.error(f"Failed to list models: {e}")
-        raise HTTPException(status_code=500, detail="Failed to list AI models")
+        logger.error(f"Failed to get model info: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get AI model info")
 
 
 # --- Conversations ---
@@ -202,7 +202,7 @@ async def send_message(
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     # Check if AI is enabled
-    from services.ollama_service import get_setting_value
+    from services.ollama_service import get_setting_value  # helper still lives here
     ai_enabled = await get_setting_value(db, "ai_enabled", "true")
     if ai_enabled != "true":
         raise HTTPException(status_code=503, detail="AI assistant is disabled in settings")
@@ -251,7 +251,7 @@ async def send_message(
         if m.id != user_msg.id
     ]
 
-    # Get configured Ollama service
+    # Get configured Claude service
     service = await get_configured_service(db)
 
     # Create the SSE streaming response

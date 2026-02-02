@@ -102,6 +102,7 @@ ENCRYPTED_SETTINGS = [
     'awn_app_key',
     'cloudflare_api_token',
     'deepl_api_key',
+    'anthropic_api_key',
 ]
 
 

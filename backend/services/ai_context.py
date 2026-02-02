@@ -440,9 +440,26 @@ CONTEXT_GATHERERS = {
 }
 
 
+async def get_shared_domains(db: AsyncSession) -> set:
+    """Read ai_shared_domains setting and return as a set of allowed domain names"""
+    from models.settings import AppSetting
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "ai_shared_domains")
+    )
+    setting = result.scalar_one_or_none()
+    raw = setting.value if setting and setting.value else ""
+    return {d.strip().lower() for d in raw.split(",") if d.strip()}
+
+
 async def gather_context(db: AsyncSession, topic: Optional[str]) -> str:
-    """Gather context data for the detected topic. Returns context string."""
+    """Gather context data for the detected topic, respecting privacy settings.
+    Only gathers data if the topic's domain is in ai_shared_domains."""
     if not topic or topic not in CONTEXT_GATHERERS:
+        return ""
+
+    # Privacy gate: check if this domain is allowed
+    allowed = await get_shared_domains(db)
+    if topic not in allowed:
         return ""
 
     try:

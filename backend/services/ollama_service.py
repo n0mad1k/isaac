@@ -1,9 +1,9 @@
 """
-Ollama LLM Service
-Communicates with self-hosted Ollama API for AI assistant features
+Claude AI Service
+Communicates with Anthropic Claude API for AI assistant features
 """
 
-import httpx
+import anthropic
 from typing import AsyncGenerator, Optional, List, Dict
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,8 +13,7 @@ from models.settings import AppSetting
 
 
 # Default settings
-DEFAULT_OLLAMA_URL = "http://localhost:11434"
-DEFAULT_OLLAMA_MODEL = "qwen2.5:1.5b"
+DEFAULT_CLAUDE_MODEL = "claude-sonnet-4-20250514"
 
 
 async def get_setting_value(db: AsyncSession, key: str, default: str = "") -> str:
@@ -28,42 +27,43 @@ async def get_setting_value(db: AsyncSession, key: str, default: str = "") -> st
     return default
 
 
-class OllamaService:
-    """Client for Ollama LLM API"""
+class ClaudeService:
+    """Client for Anthropic Claude API"""
 
-    def __init__(self, base_url: str = DEFAULT_OLLAMA_URL, model: str = DEFAULT_OLLAMA_MODEL):
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, api_key: str, model: str = DEFAULT_CLAUDE_MODEL):
+        self.api_key = api_key
         self.model = model
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: Optional[anthropic.AsyncAnthropic] = None
 
     @property
-    def client(self) -> httpx.AsyncClient:
-        if self._client is None or self._client.is_closed:
-            self._client = httpx.AsyncClient(timeout=120.0)
+    def client(self) -> anthropic.AsyncAnthropic:
+        if self._client is None:
+            self._client = anthropic.AsyncAnthropic(api_key=self.api_key)
         return self._client
 
     async def close(self):
-        if self._client and not self._client.is_closed:
-            await self._client.aclose()
+        if self._client is not None:
+            await self._client.close()
+            self._client = None
 
     async def check_health(self) -> bool:
-        """Check if Ollama is running and accessible"""
-        try:
-            response = await self.client.get(f"{self.base_url}/api/tags", timeout=10.0)
-            return response.status_code == 200
-        except Exception:
+        """Check if the API key is set and valid by making a minimal request"""
+        if not self.api_key:
             return False
-
-    async def list_models(self) -> List[Dict]:
-        """List available models from Ollama"""
         try:
-            response = await self.client.get(f"{self.base_url}/api/tags", timeout=10.0)
-            response.raise_for_status()
-            data = response.json()
-            return data.get("models", [])
+            # Make a minimal request to verify the key works
+            response = await self.client.messages.create(
+                model=self.model,
+                max_tokens=1,
+                messages=[{"role": "user", "content": "hi"}],
+            )
+            return True
+        except anthropic.AuthenticationError:
+            logger.error("Claude API key is invalid")
+            return False
         except Exception as e:
-            logger.error(f"Failed to list Ollama models: {e}")
-            return []
+            logger.error(f"Claude health check failed: {e}")
+            return False
 
     async def generate(
         self,
@@ -72,31 +72,27 @@ class OllamaService:
         context: str = "",
     ) -> str:
         """Generate a complete response (non-streaming)"""
-        messages = self._build_messages(prompt, system_prompt, context)
+        system_content = system_prompt
+        if context:
+            system_content += f"\n\n{context}"
 
         try:
-            response = await self.client.post(
-                f"{self.base_url}/api/chat",
-                json={
-                    "model": self.model,
-                    "messages": messages,
-                    "stream": False,
-                    "options": {
-                        "num_ctx": 4096,
-                        "temperature": 0.7,
-                    },
-                },
-                timeout=120.0,
+            response = await self.client.messages.create(
+                model=self.model,
+                max_tokens=1024,
+                system=system_content.strip() if system_content.strip() else anthropic.NOT_GIVEN,
+                messages=[{"role": "user", "content": prompt}],
             )
-            response.raise_for_status()
-            data = response.json()
-            return data.get("message", {}).get("content", "")
-        except httpx.TimeoutException:
-            logger.error("Ollama request timed out")
-            return "I'm taking too long to respond. Try a shorter question or check that Ollama is running."
+            return response.content[0].text if response.content else ""
+        except anthropic.APITimeoutError:
+            logger.error("Claude API request timed out")
+            return "I'm taking too long to respond. Try a shorter question."
+        except anthropic.AuthenticationError:
+            logger.error("Claude API key is invalid")
+            return "API key is invalid. Check your Anthropic API key in Settings."
         except Exception as e:
-            logger.error(f"Ollama generate error: {e}")
-            return "I couldn't generate a response. Check that Ollama is running."
+            logger.error(f"Claude generate error: {e}")
+            return "I couldn't generate a response. Check your API key in Settings."
 
     async def generate_stream(
         self,
@@ -106,63 +102,44 @@ class OllamaService:
         history: Optional[List[Dict]] = None,
     ) -> AsyncGenerator[str, None]:
         """Generate a streaming response, yielding tokens as they arrive"""
-        messages = self._build_messages(prompt, system_prompt, context, history)
+        messages = self._build_messages(prompt, history)
+        system_content = system_prompt
+        if context:
+            system_content += f"\n\n{context}"
 
         try:
-            async with self.client.stream(
-                "POST",
-                f"{self.base_url}/api/chat",
-                json={
-                    "model": self.model,
-                    "messages": messages,
-                    "stream": True,
-                    "options": {
-                        "num_ctx": 4096,
-                        "temperature": 0.7,
-                    },
-                },
-                timeout=120.0,
-            ) as response:
-                response.raise_for_status()
-                import json as json_mod
-                async for line in response.aiter_lines():
-                    if line.strip():
-                        try:
-                            data = json_mod.loads(line)
-                            content = data.get("message", {}).get("content", "")
-                            if content:
-                                yield content
-                            if data.get("done", False):
-                                break
-                        except json_mod.JSONDecodeError:
-                            continue
-        except httpx.TimeoutException:
-            logger.error("Ollama stream timed out")
+            async with self.client.messages.stream(
+                model=self.model,
+                max_tokens=1024,
+                system=system_content.strip() if system_content.strip() else anthropic.NOT_GIVEN,
+                messages=messages,
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield text
+
+        except anthropic.APITimeoutError:
+            logger.error("Claude stream timed out")
             yield "I'm taking too long to respond. Try a shorter question."
+        except anthropic.AuthenticationError:
+            logger.error("Claude API key is invalid")
+            yield "API key is invalid. Check your Anthropic API key in Settings."
         except Exception as e:
-            logger.error(f"Ollama stream error: {e}")
-            yield "I couldn't generate a response. Check that Ollama is running."
+            logger.error(f"Claude stream error: {e}")
+            yield "I couldn't generate a response. Check your API key in Settings."
 
     def _build_messages(
         self,
         prompt: str,
-        system_prompt: str = "",
-        context: str = "",
         history: Optional[List[Dict]] = None,
     ) -> List[Dict]:
-        """Build the messages list for the Ollama chat API"""
+        """Build the messages list for the Claude API (no system role in messages)"""
         messages = []
 
-        # System message with context
-        system_content = system_prompt
-        if context:
-            system_content += f"\n\n{context}"
-        if system_content.strip():
-            messages.append({"role": "system", "content": system_content})
-
-        # Conversation history
+        # Conversation history (user/assistant only — Claude API does not accept system in messages)
         if history:
-            messages.extend(history)
+            for msg in history:
+                if msg.get("role") in ("user", "assistant"):
+                    messages.append({"role": msg["role"], "content": msg["content"]})
 
         # Current user message
         messages.append({"role": "user", "content": prompt})
@@ -170,8 +147,12 @@ class OllamaService:
         return messages
 
 
-async def get_configured_service(db: AsyncSession) -> OllamaService:
-    """Factory: create an OllamaService configured from database settings"""
-    url = await get_setting_value(db, "ollama_url", DEFAULT_OLLAMA_URL)
-    model = await get_setting_value(db, "ollama_model", DEFAULT_OLLAMA_MODEL)
-    return OllamaService(base_url=url, model=model)
+async def get_configured_service(db: AsyncSession) -> ClaudeService:
+    """Factory: create a ClaudeService configured from database settings"""
+    from services.encryption import decrypt_value, ENCRYPTED_PREFIX
+    raw_key = await get_setting_value(db, "anthropic_api_key", "")
+    # Decrypt if stored encrypted
+    if raw_key.startswith(ENCRYPTED_PREFIX):
+        raw_key = decrypt_value(raw_key)
+    model = await get_setting_value(db, "claude_model", DEFAULT_CLAUDE_MODEL)
+    return ClaudeService(api_key=raw_key, model=model)

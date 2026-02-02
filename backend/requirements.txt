@@ -45,6 +45,9 @@ cryptography==44.0.1
 # PDF Parsing (budget statement import)
 pdfplumber==0.11.4
 
+# AI (Claude)
+anthropic>=0.39.0
+
 # Utilities
 loguru==0.7.3
 psutil==5.9.8  # System resource monitoring
