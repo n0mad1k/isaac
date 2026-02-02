@@ -650,6 +650,10 @@ export const getMemberObservations = (memberId, params) =>
   api.get(`/team/members/${memberId}/observations/`, { params })
 export const createObservation = (memberId, data) =>
   api.post(`/team/members/${memberId}/observations/`, data)
+export const updateObservation = (observationId, data) =>
+  api.patch(`/team/observations/${observationId}/`, data)
+export const deleteObservation = (observationId) =>
+  api.delete(`/team/observations/${observationId}/`)
 export const getWeekObservations = (date) => api.get(`/team/observations/week/${date}/`)
 
 // Weekly AAR

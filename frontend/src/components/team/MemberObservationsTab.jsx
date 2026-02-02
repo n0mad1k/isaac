@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { Plus, ThumbsUp, AlertTriangle, User, Users, Settings, X } from 'lucide-react'
-import { createObservation } from '../../services/api'
+import { Plus, ThumbsUp, AlertTriangle, User, Users, Settings, Pencil, Trash2, Check, X } from 'lucide-react'
+import { createObservation, updateObservation, deleteObservation } from '../../services/api'
 
 function MemberObservationsTab({ member, observations, onUpdate }) {
   const [showForm, setShowForm] = useState(false)
@@ -13,6 +13,14 @@ function MemberObservationsTab({ member, observations, onUpdate }) {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+
+  // Edit state
+  const [editingId, setEditingId] = useState(null)
+  const [editContent, setEditContent] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+
+  // Delete state
+  const [deletingId, setDeletingId] = useState(null)
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A'
@@ -51,6 +59,35 @@ function MemberObservationsTab({ member, observations, onUpdate }) {
     }
   }
 
+  const handleEdit = (obs) => {
+    setEditingId(obs.id)
+    setEditContent(obs.content)
+  }
+
+  const handleEditSave = async (obsId) => {
+    if (!editContent.trim()) return
+    setEditSaving(true)
+    try {
+      await updateObservation(obsId, { content: editContent.trim() })
+      setEditingId(null)
+      onUpdate()
+    } catch (err) {
+      console.error('Failed to update observation:', err)
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const handleDelete = async (obsId) => {
+    try {
+      await deleteObservation(obsId)
+      setDeletingId(null)
+      onUpdate()
+    } catch (err) {
+      console.error('Failed to delete observation:', err)
+    }
+  }
+
   // Group observations by week
   const groupedObservations = observations.reduce((groups, obs) => {
     const weekKey = obs.week_start || 'unknown'
@@ -65,6 +102,100 @@ function MemberObservationsTab({ member, observations, onUpdate }) {
     individual: User,
     team: Users,
     operations: Settings
+  }
+
+  const renderObservationCard = (obs, colorClass, borderClass) => {
+    const ScopeIcon = scopeIcons[obs.scope]
+    const isEditing = editingId === obs.id
+    const isDeleting = deletingId === obs.id
+
+    return (
+      <div key={obs.id} className={`${colorClass} border ${borderClass} rounded p-2 text-sm`}>
+        <div className="flex items-start gap-2">
+          <ScopeIcon className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            {isEditing ? (
+              <div className="flex gap-2">
+                <textarea
+                  value={editContent}
+                  onChange={e => setEditContent(e.target.value)}
+                  rows={2}
+                  className="flex-1 bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-sm"
+                  autoFocus
+                />
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={() => handleEditSave(obs.id)}
+                    disabled={editSaving}
+                    className="p-1 text-green-400 hover:text-green-300"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setEditingId(null)}
+                    className="p-1 text-gray-400 hover:text-gray-300"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : isDeleting ? (
+              <div className="flex items-center justify-between">
+                <span className="text-red-300">Delete this observation?</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleDelete(obs.id)}
+                    className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => setDeletingId(null)}
+                    className="px-2 py-1 text-xs text-gray-400 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-gray-200">{obs.content}</p>
+                {(obs.linked_value || obs.linked_goal_category) && (
+                  <div className="mt-1 text-xs text-gray-400">
+                    {obs.linked_goal_category && <span className="mr-2">#{obs.linked_goal_category}</span>}
+                    {obs.linked_value && <span>#{obs.linked_value}</span>}
+                  </div>
+                )}
+                {obs.discussed_in_aar && (
+                  <div className="mt-1 text-xs text-blue-400">
+                    Discussed in AAR
+                    {obs.action_item && ` - Action: ${obs.action_item}`}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          {!isEditing && !isDeleting && (
+            <div className="flex gap-1 shrink-0">
+              <button
+                onClick={() => handleEdit(obs)}
+                className="p-1 text-gray-500 hover:text-gray-300"
+                title="Edit"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setDeletingId(obs.id)}
+                className="p-1 text-gray-500 hover:text-red-400"
+                title="Delete"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -221,25 +352,9 @@ function MemberObservationsTab({ member, observations, onUpdate }) {
                     </h5>
                     {weekObs.went_well.length > 0 ? (
                       <div className="space-y-2">
-                        {weekObs.went_well.map(obs => {
-                          const ScopeIcon = scopeIcons[obs.scope]
-                          return (
-                            <div key={obs.id} className="bg-green-900/20 border border-green-800/30 rounded p-2 text-sm">
-                              <div className="flex items-start gap-2">
-                                <ScopeIcon className="w-4 h-4 text-gray-400 mt-0.5" />
-                                <div className="flex-1">
-                                  <p className="text-gray-200">{obs.content}</p>
-                                  {(obs.linked_value || obs.linked_goal_category) && (
-                                    <div className="mt-1 text-xs text-gray-400">
-                                      {obs.linked_goal_category && <span className="mr-2">#{obs.linked_goal_category}</span>}
-                                      {obs.linked_value && <span>#{obs.linked_value}</span>}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
+                        {weekObs.went_well.map(obs =>
+                          renderObservationCard(obs, 'bg-green-900/20', 'border-green-800/30')
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm text-gray-500">No entries</p>
@@ -254,31 +369,9 @@ function MemberObservationsTab({ member, observations, onUpdate }) {
                     </h5>
                     {weekObs.needs_improvement.length > 0 ? (
                       <div className="space-y-2">
-                        {weekObs.needs_improvement.map(obs => {
-                          const ScopeIcon = scopeIcons[obs.scope]
-                          return (
-                            <div key={obs.id} className="bg-yellow-900/20 border border-yellow-800/30 rounded p-2 text-sm">
-                              <div className="flex items-start gap-2">
-                                <ScopeIcon className="w-4 h-4 text-gray-400 mt-0.5" />
-                                <div className="flex-1">
-                                  <p className="text-gray-200">{obs.content}</p>
-                                  {(obs.linked_value || obs.linked_goal_category) && (
-                                    <div className="mt-1 text-xs text-gray-400">
-                                      {obs.linked_goal_category && <span className="mr-2">#{obs.linked_goal_category}</span>}
-                                      {obs.linked_value && <span>#{obs.linked_value}</span>}
-                                    </div>
-                                  )}
-                                  {obs.discussed_in_aar && (
-                                    <div className="mt-1 text-xs text-blue-400">
-                                      Discussed in AAR
-                                      {obs.action_item && ` - Action: ${obs.action_item}`}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
+                        {weekObs.needs_improvement.map(obs =>
+                          renderObservationCard(obs, 'bg-yellow-900/20', 'border-yellow-800/30')
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm text-gray-500">No entries</p>

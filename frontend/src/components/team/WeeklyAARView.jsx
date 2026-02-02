@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import {
   Calendar, ThumbsUp, ThumbsDown, AlertTriangle, Users, User, Settings,
-  Plus, Check, ChevronDown, ChevronUp, RefreshCw, X
+  Plus, Check, ChevronDown, ChevronUp, RefreshCw, X, Pencil, Trash2
 } from 'lucide-react'
-import { getWeekObservations, getCurrentAAR, createAAR, updateAAR, getAARs, createObservation } from '../../services/api'
+import { getWeekObservations, getCurrentAAR, createAAR, updateAAR, getAARs, createObservation, updateObservation, deleteObservation } from '../../services/api'
 
 function WeeklyAARView({ settings, members }) {
   const [loading, setLoading] = useState(true)
@@ -29,6 +29,12 @@ function WeeklyAARView({ settings, members }) {
   })
   const [newActionItem, setNewActionItem] = useState({ item: '', assigned_to: '' })
   const [saving, setSaving] = useState(false)
+
+  // Observation edit/delete state
+  const [editingObsId, setEditingObsId] = useState(null)
+  const [editObsContent, setEditObsContent] = useState('')
+  const [editObsSaving, setEditObsSaving] = useState(false)
+  const [deletingObsId, setDeletingObsId] = useState(null)
 
   // Get Monday of current week
   const getMondayOfWeek = (date) => {
@@ -106,6 +112,36 @@ function WeeklyAARView({ settings, members }) {
       console.error('Failed to add observation:', err)
     } finally {
       setQuickAddSubmitting(false)
+    }
+  }
+
+  // Observation edit/delete handlers
+  const handleEditObs = (obs) => {
+    setEditingObsId(obs.id)
+    setEditObsContent(obs.content)
+  }
+
+  const handleEditObsSave = async (obsId) => {
+    if (!editObsContent.trim()) return
+    setEditObsSaving(true)
+    try {
+      await updateObservation(obsId, { content: editObsContent.trim() })
+      setEditingObsId(null)
+      await loadData()
+    } catch (err) {
+      console.error('Failed to update observation:', err)
+    } finally {
+      setEditObsSaving(false)
+    }
+  }
+
+  const handleDeleteObs = async (obsId) => {
+    try {
+      await deleteObservation(obsId)
+      setDeletingObsId(null)
+      await loadData()
+    } catch (err) {
+      console.error('Failed to delete observation:', err)
     }
   }
 
@@ -214,8 +250,10 @@ function WeeklyAARView({ settings, members }) {
     )
   }
 
-  const monday = getMondayOfWeek(new Date())
-  const weekNum = Math.ceil((((new Date() - new Date(new Date().getFullYear(), 0, 1)) / 86400000) + 1) / 7)
+  // Use the AAR's week_start if available, otherwise calculate from today
+  const aarWeekStart = currentAAR?.week_start ? new Date(currentAAR.week_start) : null
+  const monday = aarWeekStart || getMondayOfWeek(new Date())
+  const weekNum = Math.ceil((((monday - new Date(monday.getFullYear(), 0, 1)) / 86400000) + 1) / 7)
 
   return (
     <div className="space-y-6">
@@ -275,14 +313,41 @@ function WeeklyAARView({ settings, members }) {
                     Went Well ({obs.went_well.length})
                   </div>
                   {obs.went_well.length > 0 ? (
-                    <ul className="text-sm space-y-1">
+                    <div className="text-sm space-y-1">
                       {obs.went_well.map(o => (
-                        <li key={o.id} className="text-gray-300">
-                          • {o.content}
-                          <span className="text-gray-500 text-xs ml-1">- {o.member_name}</span>
-                        </li>
+                        <div key={o.id} className="group">
+                          {editingObsId === o.id ? (
+                            <div className="flex gap-2 items-start">
+                              <textarea
+                                value={editObsContent}
+                                onChange={e => setEditObsContent(e.target.value)}
+                                rows={2}
+                                className="flex-1 bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-sm"
+                                autoFocus
+                              />
+                              <button onClick={() => handleEditObsSave(o.id)} disabled={editObsSaving} className="p-1 text-green-400 hover:text-green-300"><Check className="w-4 h-4" /></button>
+                              <button onClick={() => setEditingObsId(null)} className="p-1 text-gray-400 hover:text-gray-300"><X className="w-4 h-4" /></button>
+                            </div>
+                          ) : deletingObsId === o.id ? (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-red-300">Delete this?</span>
+                              <div className="flex gap-2">
+                                <button onClick={() => handleDeleteObs(o.id)} className="px-2 py-0.5 text-xs bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+                                <button onClick={() => setDeletingObsId(null)} className="px-2 py-0.5 text-xs text-gray-400 hover:text-white">Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-start gap-1">
+                              <span className="text-gray-300 flex-1">• {o.content} <span className="text-gray-500 text-xs">- {o.member_name}</span></span>
+                              <div className="hidden group-hover:flex gap-0.5 shrink-0">
+                                <button onClick={() => handleEditObs(o)} className="p-0.5 text-gray-500 hover:text-gray-300"><Pencil className="w-3 h-3" /></button>
+                                <button onClick={() => setDeletingObsId(o.id)} className="p-0.5 text-gray-500 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   ) : (
                     <p className="text-sm text-gray-500">None reported</p>
                   )}
@@ -295,14 +360,41 @@ function WeeklyAARView({ settings, members }) {
                     Needs Improvement ({obs.needs_improvement.length})
                   </div>
                   {obs.needs_improvement.length > 0 ? (
-                    <ul className="text-sm space-y-1">
+                    <div className="text-sm space-y-1">
                       {obs.needs_improvement.map(o => (
-                        <li key={o.id} className="text-gray-300">
-                          • {o.content}
-                          <span className="text-gray-500 text-xs ml-1">- {o.member_name}</span>
-                        </li>
+                        <div key={o.id} className="group">
+                          {editingObsId === o.id ? (
+                            <div className="flex gap-2 items-start">
+                              <textarea
+                                value={editObsContent}
+                                onChange={e => setEditObsContent(e.target.value)}
+                                rows={2}
+                                className="flex-1 bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-sm"
+                                autoFocus
+                              />
+                              <button onClick={() => handleEditObsSave(o.id)} disabled={editObsSaving} className="p-1 text-green-400 hover:text-green-300"><Check className="w-4 h-4" /></button>
+                              <button onClick={() => setEditingObsId(null)} className="p-1 text-gray-400 hover:text-gray-300"><X className="w-4 h-4" /></button>
+                            </div>
+                          ) : deletingObsId === o.id ? (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-red-300">Delete this?</span>
+                              <div className="flex gap-2">
+                                <button onClick={() => handleDeleteObs(o.id)} className="px-2 py-0.5 text-xs bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+                                <button onClick={() => setDeletingObsId(null)} className="px-2 py-0.5 text-xs text-gray-400 hover:text-white">Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-start gap-1">
+                              <span className="text-gray-300 flex-1">• {o.content} <span className="text-gray-500 text-xs">- {o.member_name}</span></span>
+                              <div className="hidden group-hover:flex gap-0.5 shrink-0">
+                                <button onClick={() => handleEditObs(o)} className="p-0.5 text-gray-500 hover:text-gray-300"><Pencil className="w-3 h-3" /></button>
+                                <button onClick={() => setDeletingObsId(o.id)} className="p-0.5 text-gray-500 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   ) : (
                     <p className="text-sm text-gray-500">None reported</p>
                   )}

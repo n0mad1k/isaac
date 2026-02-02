@@ -338,6 +338,14 @@ class ObservationCreate(BaseModel):
     week_start: Optional[datetime] = None  # If not provided, calculated from current date
 
 
+class ObservationUpdate(BaseModel):
+    observation_type: Optional[ObservationType] = None
+    scope: Optional[ObservationScope] = None
+    content: Optional[str] = Field(None, min_length=1)
+    linked_value: Optional[str] = None
+    linked_goal_category: Optional[str] = None
+
+
 class AARCreate(BaseModel):
     week_start: datetime
     week_number: Optional[int] = None
@@ -2467,6 +2475,48 @@ async def create_observation(
         "observation_type": observation.observation_type.value,
         "created_at": observation.created_at.isoformat() if observation.created_at else None,
     }
+
+
+@router.patch("/observations/{observation_id}/")
+async def update_observation(
+    observation_id: int,
+    data: ObservationUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update an observation"""
+    result = await db.execute(
+        select(WeeklyObservation).where(WeeklyObservation.id == observation_id)
+    )
+    observation = result.scalar_one_or_none()
+    if not observation:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(observation, key, value)
+
+    await db.commit()
+    return {"message": "Observation updated", "id": observation.id}
+
+
+@router.delete("/observations/{observation_id}/")
+async def delete_observation(
+    observation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete an observation"""
+    result = await db.execute(
+        select(WeeklyObservation).where(WeeklyObservation.id == observation_id)
+    )
+    observation = result.scalar_one_or_none()
+    if not observation:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    await db.delete(observation)
+    await db.commit()
+    return {"message": "Observation deleted"}
 
 
 @router.get("/observations/week/{date}/")

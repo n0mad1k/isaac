@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.70.6] - 2026-02-01
+
+### Added
+- **Edit/delete observations** - Edit or delete observations from both the individual member Observations tab and the Weekly AAR page. Hover over any observation to see edit/delete icons. Inline editing with save/cancel, delete with confirmation prompt
+
 ## [1.70.5] - 2026-02-01
 
 ### Fixed
