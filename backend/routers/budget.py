@@ -102,6 +102,7 @@ class CategoryUpdate(BaseModel):
     account_id: Optional[int] = None
     start_date: Optional[str] = Field(None, max_length=10)
     end_date: Optional[str] = Field(None, max_length=10)
+    starting_balance: Optional[float] = None
     sort_order: Optional[int] = None
 
     @field_validator('owner', mode='before')
@@ -1179,9 +1180,8 @@ async def get_period_summary(
         except Exception as e:
             logger.warning(f"Could not calculate rollover: {e}")
 
-        # Calculate person spending account balances (rollover across half-periods)
-        # Each half-period: +deposit, -budgeted bills, -actual discretionary spending
-        # Bills are committed costs deducted from budgeted amounts (not actual transactions)
+        # Calculate person spending account balances
+        # Separates: rollover (prior months), this month's margin, spending
         person_spending_balances = {}
         try:
             for owner_key in ['dane', 'kelly']:
@@ -1201,94 +1201,106 @@ async def get_period_summary(
                                if c.owner == owner_key
                                and c.id != transfer_cat.id]
 
-                # Budget starts from first transaction in system or current period
-                budget_start = first_date or start_date
-                s_y, s_m = budget_start.year, budget_start.month
-                s_d = 1 if budget_start.day <= 14 else 15
-
-                balance = 0.0
-                total_deposits = 0.0
-                total_bills_deducted = 0.0
-                y, m, d = s_y, s_m, s_d
-                while True:
-                    period_dt = date(y, m, d)
-                    if period_dt > end_date:
-                        break
-
-                    is_first_half = (d == 1)
-
-                    # Add deposit for this half-period
-                    balance += deposit_per_period
-                    total_deposits += deposit_per_period
-
-                    # Deduct budgeted bill amounts for this half-period
+                # Helper to calculate bills for a specific half-period
+                def calc_half_bills(year, month, is_first_half):
+                    total = 0.0
                     for bill in owned_bills:
-                        # Check if bill is active this month
                         if bill.billing_months:
                             active_months = [int(bm.strip()) for bm in bill.billing_months.split(',') if bm.strip()]
-                            if m not in active_months:
+                            if month not in active_months:
                                 continue
-
-                        # Check start_date / end_date (YYYY-MM format)
-                        period_ym = f"{y}-{m:02d}"
+                        period_ym = f"{year}-{month:02d}"
                         if bill.start_date and period_ym < bill.start_date:
                             continue
                         if bill.end_date and period_ym > bill.end_date:
                             continue
-
                         if bill.bill_day is not None:
-                            # Bill with specific due day - deduct in matching half only
-                            bill_in_first_half = (bill.bill_day <= 14)
-                            if is_first_half == bill_in_first_half:
-                                bill_amount = bill.monthly_budget if bill.monthly_budget else bill.budget_amount
-                                balance -= bill_amount
-                                total_bills_deducted += bill_amount
+                            bill_in_first = (bill.bill_day <= 14)
+                            if is_first_half == bill_in_first:
+                                total += bill.monthly_budget if bill.monthly_budget else bill.budget_amount
                         else:
-                            # Per-period bill (no specific day) - deduct each half
                             if bill.budget_amount and bill.budget_amount > 0:
-                                balance -= bill.budget_amount
-                                total_bills_deducted += bill.budget_amount
+                                total += bill.budget_amount
+                    return total
 
-                    # Advance to next half-period
-                    if d == 1:
-                        d = 15
-                    else:
-                        d = 1
-                        if m == 12:
-                            m = 1
-                            y += 1
+                # Current month boundaries
+                current_month = start_date.month
+                current_year = start_date.year
+                month_start = date(current_year, current_month, 1)
+
+                # Calculate rollover from prior months
+                # If starting_balance is set, use it directly instead of computing from history
+                if transfer_cat.starting_balance is not None:
+                    # Use the seeded starting balance, then add net from months
+                    # BETWEEN the starting_balance set date and current month
+                    # For now, starting_balance represents the rollover into THIS month
+                    rollover = transfer_cat.starting_balance
+                else:
+                    # Compute from all historical half-periods before current month
+                    budget_start = first_date or start_date
+                    s_y, s_m = budget_start.year, budget_start.month
+                    s_d = 1 if budget_start.day <= 14 else 15
+
+                    rollover = 0.0
+                    y, m, d = s_y, s_m, s_d
+                    while True:
+                        if (y, m) >= (current_year, current_month):
+                            break
+                        is_first_half = (d == 1)
+                        rollover += deposit_per_period
+                        rollover -= calc_half_bills(y, m, is_first_half)
+                        if d == 1:
+                            d = 15
                         else:
-                            m += 1
+                            d = 1
+                            if m == 12: m = 1; y += 1
+                            else: m += 1
 
-                # Subtract actual discretionary transactions on the transfer category
-                discretionary_result = await db.execute(
+                    # Subtract prior months' transactions from rollover
+                    prior_txn_result = await db.execute(
+                        select(func.sum(BudgetTransaction.amount))
+                        .where(
+                            BudgetTransaction.category_id == transfer_cat.id,
+                            BudgetTransaction.transaction_date < month_start,
+                        )
+                    )
+                    prior_txns = prior_txn_result.scalar() or 0.0
+                    rollover += prior_txns
+
+                # Calculate this month's per-half margins
+                first_half_bills = calc_half_bills(current_year, current_month, True)
+                second_half_bills = calc_half_bills(current_year, current_month, False)
+                first_half_remaining = deposit_per_period - first_half_bills
+                second_half_remaining = deposit_per_period - second_half_bills
+                monthly_net = first_half_remaining + second_half_remaining
+
+                # This month's transactions
+                import calendar
+                month_last_day = calendar.monthrange(current_year, current_month)[1]
+                month_end = date(current_year, current_month, month_last_day)
+                month_txn_result = await db.execute(
                     select(func.sum(BudgetTransaction.amount))
                     .where(
                         BudgetTransaction.category_id == transfer_cat.id,
-                        BudgetTransaction.transaction_date <= end_date,
+                        BudgetTransaction.transaction_date >= month_start,
+                        BudgetTransaction.transaction_date <= month_end,
                     )
                 )
-                discretionary_spent = discretionary_result.scalar() or 0.0
-                balance += discretionary_spent  # spending is negative, so adding reduces balance
+                month_spent = abs(month_txn_result.scalar() or 0.0)
 
-                # Get spending just for this period (for display breakdown)
-                period_spending_result = await db.execute(
-                    select(func.sum(BudgetTransaction.amount))
-                    .where(
-                        BudgetTransaction.category_id == transfer_cat.id,
-                        BudgetTransaction.transaction_date >= start_date,
-                        BudgetTransaction.transaction_date <= end_date,
-                    )
-                )
-                period_spending = abs(period_spending_result.scalar() or 0.0)
+                # Available = rollover + monthly net - month spending
+                available = rollover + monthly_net - month_spent
 
                 person_spending_balances[owner_key] = {
-                    "available": round(balance, 2),
-                    "total_deposits": round(total_deposits, 2),
-                    "total_committed_bills": round(total_bills_deducted, 2),
-                    "total_spent": round(abs(discretionary_spent), 2),
-                    "period_spent": round(period_spending, 2),
+                    "available": round(available, 2),
+                    "rollover": round(rollover, 2),
+                    "first_half_remaining": round(first_half_remaining, 2),
+                    "second_half_remaining": round(second_half_remaining, 2),
+                    "monthly_net": round(monthly_net, 2),
+                    "month_spent": round(month_spent, 2),
                     "deposit_per_period": deposit_per_period,
+                    "first_half_bills": round(first_half_bills, 2),
+                    "second_half_bills": round(second_half_bills, 2),
                 }
         except Exception as e:
             logger.warning(f"Could not calculate person spending balances: {e}")

@@ -93,6 +93,7 @@ class BudgetCategory(Base):
     account_id = Column(Integer, ForeignKey('budget_accounts.id'), nullable=True)  # Which account this bill is paid from
     start_date = Column(String(10), nullable=True)  # YYYY-MM format, when bill begins
     end_date = Column(String(10), nullable=True)  # YYYY-MM format, when payment plan ends
+    starting_balance = Column(Float, nullable=True, default=None)  # Initial rollover balance for TRANSFER categories (seeded from external tracking)
     sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

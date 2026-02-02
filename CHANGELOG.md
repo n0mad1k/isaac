@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.69.3] - 2026-02-01
+
+### Changed
+- **Person spending now shows Excel-style breakdown** - Each half shows Deposit, Bills, and Total (remaining after bills). Bottom shows Monthly Remaining, Rollover from prior months, Spending (transactions), and Available to Spend
+- **Starting balance support for spending accounts** - Transfer categories now have a `starting_balance` field to seed rollover from external tracking (e.g., Excel). Set via category settings.
+- **Separated rollover from monthly margin** - Backend now calculates rollover (prior months' net minus prior spending) separately from this month's deposits minus bills
+
 ## [1.69.2] - 2026-02-01
 
 ### Changed
