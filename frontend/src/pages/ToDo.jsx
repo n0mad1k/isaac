@@ -72,6 +72,7 @@ function ToDo() {
   const [hideCompleted, setHideCompleted] = useState(false)
   const [selectedRecurrence, setSelectedRecurrence] = useState('once')
   const [customInterval, setCustomInterval] = useState('')
+  const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState([])
   const [selectedAlerts, setSelectedAlerts] = useState([])
   const [displayLimit, setDisplayLimit] = useState(20)  // For "All" tab pagination
   const [workers, setWorkers] = useState([])
@@ -231,6 +232,7 @@ function ToDo() {
     setEditingTodo(todo)
     setSelectedRecurrence(todo.recurrence || 'once')
     setCustomInterval(todo.recurrence_interval?.toString() || '')
+    setSelectedDaysOfWeek(todo.recurrence_days_of_week || [])
     setSelectedAlerts(todo.reminder_alerts || [])
     setSelectedWorkerId(todo.assigned_to_worker_id || null)
     // Use assigned_member_ids array, or fall back to legacy single member
@@ -274,6 +276,7 @@ function ToDo() {
       priority: parseInt(formData.get('priority')) || 2,
       recurrence: selectedRecurrence,
       recurrence_interval: selectedRecurrence === 'custom' && customInterval ? parseInt(customInterval) : null,
+      recurrence_days_of_week: selectedRecurrence === 'custom_weekly' && selectedDaysOfWeek.length > 0 ? selectedDaysOfWeek : null,
       task_type: 'todo',  // Always create as todo from this page
       is_backlog: formData.get('is_backlog') === 'on',
       visible_to_farmhands: formData.get('visible_to_farmhands') === 'on',
@@ -309,6 +312,7 @@ function ToDo() {
     setEditingTodo(null)
     setSelectedRecurrence('once')
     setCustomInterval('')
+    setSelectedDaysOfWeek([])
     setSelectedAlerts([])
     setSelectedWorkerId(null)
     setSelectedMemberIds([])
@@ -579,7 +583,9 @@ function ToDo() {
                     {todo.due_time && <span>🕐 {formatTime(todo.due_time)}</span>}
                     {todo.recurrence && todo.recurrence !== 'once' && (
                       <span className="capitalize text-blue-400">
-                        🔄 {todo.recurrence}
+                        🔄 {todo.recurrence === 'custom_weekly' && todo.recurrence_days_of_week?.length > 0
+                          ? todo.recurrence_days_of_week.map(d => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join('/')
+                          : todo.recurrence}
                       </span>
                     )}
                     {!todo.due_date && (
@@ -757,6 +763,7 @@ function ToDo() {
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="biweekly">Bi-weekly</option>
+                  <option value="custom_weekly">Specific Days</option>
                   <option value="monthly">Monthly</option>
                   <option value="quarterly">Quarterly</option>
                   <option value="annually">Annually</option>
@@ -774,6 +781,44 @@ function ToDo() {
                     placeholder="e.g., 14"
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
+                </div>
+              )}
+              {selectedRecurrence === 'custom_weekly' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Select days</label>
+                  <div className="flex gap-1.5">
+                    {[
+                      { value: 0, label: 'Mon' },
+                      { value: 1, label: 'Tue' },
+                      { value: 2, label: 'Wed' },
+                      { value: 3, label: 'Thu' },
+                      { value: 4, label: 'Fri' },
+                      { value: 5, label: 'Sat' },
+                      { value: 6, label: 'Sun' },
+                    ].map(day => {
+                      const selected = selectedDaysOfWeek.includes(day.value)
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDaysOfWeek(prev =>
+                              selected
+                                ? prev.filter(d => d !== day.value)
+                                : [...prev, day.value].sort((a, b) => a - b)
+                            )
+                          }}
+                          className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                            selected
+                              ? 'bg-farm-green text-white'
+                              : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
               <div>

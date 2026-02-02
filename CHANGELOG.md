@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.72.0] - 2026-02-01
+
+### Added
+- **Specific days recurrence** - Tasks, events, and reminders can now repeat on specific days of the week (e.g., Mon/Wed/Fri or Tue/Thu). Select "Specific Days" in the recurrence dropdown, then tap the day buttons to toggle. Works in EventModal, ToDo page, and Team member task editor. Calendar and dashboard correctly project these tasks on the selected days
+
 ## [1.71.1] - 2026-02-01
 
 ### Fixed

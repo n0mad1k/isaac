@@ -41,6 +41,7 @@ class TaskRecurrence(enum.Enum):
     BIANNUALLY = "biannually"
     ANNUALLY = "annually"
     CUSTOM = "custom"
+    CUSTOM_WEEKLY = "custom_weekly"  # Specific days of week (e.g., Mon/Wed/Fri)
 
 
 class TaskType(enum.Enum):
@@ -66,6 +67,7 @@ class Task(Base):
     location = Column(String(200))  # Event location
     recurrence = Column(Enum(TaskRecurrence), default=TaskRecurrence.ONCE)
     recurrence_interval = Column(Integer)  # For custom: every X days
+    recurrence_days_of_week = Column(JSON, nullable=True)  # For custom_weekly: [0,2,4] = Mon/Wed/Fri (0=Mon, 6=Sun)
 
     # For annual tasks - specific month/day
     recurrence_month = Column(Integer)  # 1-12

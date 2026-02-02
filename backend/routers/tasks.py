@@ -138,6 +138,7 @@ async def enrich_tasks_with_linked_fields(tasks: list, db: AsyncSession) -> list
             "completion_note": task.completion_note,
             "visible_to_farmhands": task.visible_to_farmhands if hasattr(task, 'visible_to_farmhands') else False,
             "recurrence_interval": task.recurrence_interval if hasattr(task, 'recurrence_interval') else None,
+            "recurrence_days_of_week": task.recurrence_days_of_week if hasattr(task, 'recurrence_days_of_week') else None,
             "reminder_alerts": task.reminder_alerts if hasattr(task, 'reminder_alerts') else None,
         }
         enriched.append(task_dict)
@@ -435,6 +436,7 @@ class TaskCreate(BaseModel):
     location: Optional[str] = Field(None, max_length=200)
     recurrence: TaskRecurrence = TaskRecurrence.ONCE
     recurrence_interval: Optional[int] = Field(None, ge=1, le=365)
+    recurrence_days_of_week: Optional[List[int]] = None  # [0,2,4] = Mon/Wed/Fri for custom_weekly
     recurrence_month: Optional[int] = Field(None, ge=1, le=12)
     recurrence_day: Optional[int] = Field(None, ge=1, le=31)
     priority: int = Field(2, ge=1, le=3)
@@ -468,6 +470,7 @@ class TaskUpdate(BaseModel):
     location: Optional[str] = Field(None, max_length=200)
     recurrence: Optional[TaskRecurrence] = None
     recurrence_interval: Optional[int] = Field(None, ge=1, le=365)
+    recurrence_days_of_week: Optional[List[int]] = None  # [0,2,4] = Mon/Wed/Fri for custom_weekly
     priority: Optional[int] = Field(None, ge=1, le=3)
     is_completed: Optional[bool] = None
     notify_email: Optional[bool] = None
@@ -614,6 +617,13 @@ async def create_task(
     user: User = Depends(require_create("tasks"))
 ):
     """Create a new task"""
+    # Validate custom_weekly has days selected
+    if task.recurrence == TaskRecurrence.CUSTOM_WEEKLY:
+        if not task.recurrence_days_of_week or len(task.recurrence_days_of_week) == 0:
+            raise HTTPException(status_code=400, detail="Select at least one day of the week")
+        if not all(0 <= d <= 6 for d in task.recurrence_days_of_week):
+            raise HTTPException(status_code=400, detail="Invalid day of week value")
+
     task_data = task.model_dump(exclude={'assigned_member_ids'})
     db_task = Task(**task_data)
     db.add(db_task)
@@ -910,6 +920,13 @@ async def update_task(
     task = result.scalar_one_or_none()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    # Validate custom_weekly has days selected
+    if updates.recurrence == TaskRecurrence.CUSTOM_WEEKLY:
+        if not updates.recurrence_days_of_week or len(updates.recurrence_days_of_week) == 0:
+            raise HTTPException(status_code=400, detail="Select at least one day of the week")
+        if not all(0 <= d <= 6 for d in updates.recurrence_days_of_week):
+            raise HTTPException(status_code=400, detail="Invalid day of week value")
 
     # Get update data, excluding assigned_member_ids which needs special handling
     update_data = updates.model_dump(exclude_unset=True, exclude={'assigned_member_ids'})

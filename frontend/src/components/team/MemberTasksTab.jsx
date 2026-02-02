@@ -33,6 +33,7 @@ function MemberTasksTab({ member, onUpdate }) {
   const [selectedAlerts, setSelectedAlerts] = useState([])
   const [selectedRecurrence, setSelectedRecurrence] = useState('once')
   const [customInterval, setCustomInterval] = useState('')
+  const [selectedDaysOfWeek, setSelectedDaysOfWeek] = useState([])
   const [selectedMemberIds, setSelectedMemberIds] = useState([])
   const [showMemberDropdown, setShowMemberDropdown] = useState(false)
   const [linkType, setLinkType] = useState('none')
@@ -144,6 +145,7 @@ function MemberTasksTab({ member, onUpdate }) {
     setSelectedAlerts(task.alerts || [])
     setSelectedRecurrence(task.recurrence || 'once')
     setCustomInterval(task.recurrence_interval ? String(task.recurrence_interval) : '')
+    setSelectedDaysOfWeek(task.recurrence_days_of_week || [])
     // Support both new multi-select and legacy single select
     setSelectedMemberIds(
       task.assigned_member_ids?.length > 0
@@ -165,6 +167,7 @@ function MemberTasksTab({ member, onUpdate }) {
     setSelectedAlerts([])
     setSelectedRecurrence('once')
     setCustomInterval('')
+    setSelectedDaysOfWeek([])
     setIsAllDay(true)
     setSelectedMemberIds([])
     setShowMemberDropdown(false)
@@ -187,6 +190,7 @@ function MemberTasksTab({ member, onUpdate }) {
         alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
         recurrence: selectedRecurrence,
         recurrence_interval: selectedRecurrence === 'custom' ? parseInt(customInterval) || null : null,
+        recurrence_days_of_week: selectedRecurrence === 'custom_weekly' && selectedDaysOfWeek.length > 0 ? selectedDaysOfWeek : null,
         animal_id: linkType === 'animal' ? editingTask.animal_id : null,
         plant_id: linkType === 'plant' ? editingTask.plant_id : null,
         vehicle_id: linkType === 'vehicle' ? editingTask.vehicle_id : null,
@@ -649,6 +653,7 @@ function MemberTasksTab({ member, onUpdate }) {
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="biweekly">Bi-weekly</option>
+                  <option value="custom_weekly">Specific Days</option>
                   <option value="monthly">Monthly</option>
                   <option value="quarterly">Quarterly</option>
                   <option value="annually">Annually</option>
@@ -666,6 +671,44 @@ function MemberTasksTab({ member, onUpdate }) {
                     placeholder="e.g., 14"
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
+                </div>
+              )}
+              {selectedRecurrence === 'custom_weekly' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Select days</label>
+                  <div className="flex gap-1.5">
+                    {[
+                      { value: 0, label: 'Mon' },
+                      { value: 1, label: 'Tue' },
+                      { value: 2, label: 'Wed' },
+                      { value: 3, label: 'Thu' },
+                      { value: 4, label: 'Fri' },
+                      { value: 5, label: 'Sat' },
+                      { value: 6, label: 'Sun' },
+                    ].map(day => {
+                      const selected = selectedDaysOfWeek.includes(day.value)
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDaysOfWeek(prev =>
+                              selected
+                                ? prev.filter(d => d !== day.value)
+                                : [...prev, day.value].sort((a, b) => a - b)
+                            )
+                          }}
+                          className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                            selected
+                              ? 'bg-farm-green text-white'
+                              : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
               {/* Assignment - Multi-select */}

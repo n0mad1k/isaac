@@ -808,6 +808,10 @@ async def get_calendar_month(
                 return target_date
         elif task.recurrence == TaskRecurrence.DAILY:
             return target_date
+        elif task.recurrence == TaskRecurrence.CUSTOM_WEEKLY:
+            days = task.recurrence_days_of_week or []
+            if target_date.weekday() in days:
+                return target_date
         return None
 
     # Project recurring tasks into the date range (skip the original due_date since it's in the main query)
@@ -861,6 +865,7 @@ async def get_calendar_month(
                 "is_span_end": current == task_end,
                 "is_recurring": is_recurring,
                 "recurrence": task.recurrence.value if task.recurrence else None,
+                "recurrence_days_of_week": task.recurrence_days_of_week,
             })
             current += timedelta(days=1)
 
@@ -891,6 +896,7 @@ async def get_calendar_month(
                 "is_span_end": True,
                 "is_recurring": True,
                 "recurrence": task.recurrence.value if task.recurrence else None,
+                "recurrence_days_of_week": task.recurrence_days_of_week,
             })
 
     # Project care schedules into future calendar dates
@@ -1156,6 +1162,10 @@ async def get_calendar_week(
                 return target_date
         elif task.recurrence == TaskRecurrence.DAILY:
             return target_date
+        elif task.recurrence == TaskRecurrence.CUSTOM_WEEKLY:
+            days = task.recurrence_days_of_week or []
+            if target_date.weekday() in days:
+                return target_date
 
         return None
 
@@ -1212,6 +1222,7 @@ async def get_calendar_week(
                 "is_span_end": current == task_end,
                 "is_recurring": is_recurring,
                 "recurrence": task.recurrence.value if task.recurrence else None,
+                "recurrence_days_of_week": task.recurrence_days_of_week,
             })
             current += timedelta(days=1)
 
@@ -1243,6 +1254,7 @@ async def get_calendar_week(
                 "is_span_end": True,
                 "is_recurring": True,  # Mark as recurring projection
                 "recurrence": task.recurrence.value if task.recurrence else None,
+                "recurrence_days_of_week": task.recurrence_days_of_week,
             })
 
     # Project care schedules into future calendar dates

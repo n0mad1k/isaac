@@ -33,10 +33,21 @@ const RECURRENCE_OPTIONS = [
   { value: 'daily', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
   { value: 'biweekly', label: 'Bi-weekly' },
+  { value: 'custom_weekly', label: 'Specific Days' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'quarterly', label: 'Quarterly' },
   { value: 'annually', label: 'Annually' },
   { value: 'custom', label: 'Custom (every X days)' },
+]
+
+const DAY_OPTIONS = [
+  { value: 0, label: 'Mon' },
+  { value: 1, label: 'Tue' },
+  { value: 2, label: 'Wed' },
+  { value: 3, label: 'Thu' },
+  { value: 4, label: 'Fri' },
+  { value: 5, label: 'Sat' },
+  { value: 6, label: 'Sun' },
 ]
 
 /**
@@ -101,6 +112,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
     reminder_alerts: event?.reminder_alerts || null, // null = use default from settings
     recurrence: event?.recurrence || 'once',
     recurrence_interval: event?.recurrence_interval || null,
+    recurrence_days_of_week: event?.recurrence_days_of_week || [],
     animal_id: event?.animal_id || (preselectedEntity?.type === 'animal' ? preselectedEntity.id : null),
     plant_id: event?.plant_id || (preselectedEntity?.type === 'plant' ? preselectedEntity.id : null),
     vehicle_id: event?.vehicle_id || (preselectedEntity?.type === 'vehicle' ? preselectedEntity.id : null),
@@ -242,6 +254,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
       // Recurrence
       recurrence: formData.recurrence || 'once',
       recurrence_interval: formData.recurrence === 'custom' && formData.recurrence_interval ? parseInt(formData.recurrence_interval) : null,
+      recurrence_days_of_week: formData.recurrence === 'custom_weekly' && formData.recurrence_days_of_week?.length > 0 ? formData.recurrence_days_of_week : null,
       // Clear all entity links except the selected type
       animal_id: linkType === 'animal' ? formData.animal_id : null,
       plant_id: linkType === 'plant' ? formData.plant_id : null,
@@ -579,6 +592,36 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                     placeholder="e.g., 14"
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
+                </div>
+              )}
+              {formData.recurrence === 'custom_weekly' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Select days</label>
+                  <div className="flex gap-1.5">
+                    {DAY_OPTIONS.map(day => {
+                      const selected = (formData.recurrence_days_of_week || []).includes(day.value)
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => {
+                            const current = formData.recurrence_days_of_week || []
+                            const updated = selected
+                              ? current.filter(d => d !== day.value)
+                              : [...current, day.value].sort((a, b) => a - b)
+                            setFormData({ ...formData, recurrence_days_of_week: updated })
+                          }}
+                          className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                            selected
+                              ? 'bg-farm-green text-white'
+                              : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
             </div>

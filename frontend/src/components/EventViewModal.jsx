@@ -28,12 +28,15 @@ const RECURRENCE_LABELS = {
   daily: 'Daily',
   weekly: 'Weekly',
   biweekly: 'Bi-weekly',
+  custom_weekly: 'Specific Days',
   monthly: 'Monthly',
   quarterly: 'Quarterly',
   biannually: 'Bi-annually',
   annually: 'Annually',
   custom: 'Custom',
 }
+
+const DAY_ABBREVS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 /**
  * Read-only event detail view modal.
@@ -48,7 +51,9 @@ export default function EventViewModal({ event, onClose, onEdit, onCompleted, on
 
   const priority = PRIORITY_CONFIG[event.priority] || PRIORITY_CONFIG[2]
   const categoryLabel = CATEGORY_LABELS[event.category] || event.category
-  const recurrenceLabel = RECURRENCE_LABELS[event.recurrence] || event.recurrence
+  const recurrenceLabel = event.recurrence === 'custom_weekly' && event.recurrence_days_of_week?.length > 0
+    ? event.recurrence_days_of_week.map(d => DAY_ABBREVS[d]).join('/')
+    : (RECURRENCE_LABELS[event.recurrence] || event.recurrence)
   const isRecurring = event.is_recurring && event.recurrence && event.recurrence !== 'once'
   const isTodo = event.task_type === 'todo'
 
