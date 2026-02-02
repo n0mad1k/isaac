@@ -615,6 +615,8 @@ export const getGrowthReference = (gender, measurementType) =>
 export const getMemberMilestones = (memberId) => api.get(`/team/members/${memberId}/milestones/`)
 export const toggleMilestone = (memberId, milestoneId, data) =>
   api.put(`/team/members/${memberId}/milestones/${milestoneId}/`, data)
+export const bulkToggleMilestones = (memberId, data) =>
+  api.put(`/team/members/${memberId}/milestones-bulk/`, data)
 
 // Workout/Fitness Tracking
 export const getWorkoutTypes = () => api.get('/team/workout-types/')

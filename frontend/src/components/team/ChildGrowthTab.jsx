@@ -2,14 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react'
 import {
   TrendingUp, TrendingDown, Minus, Plus, Check, ChevronDown, ChevronUp,
   AlertTriangle, CheckCircle, Activity, Ruler, Scale, Baby, Brain,
-  MessageSquare, Hand, Users
+  MessageSquare, Hand, Users, CheckCheck
 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Area, ComposedChart, Legend
 } from 'recharts'
 import {
-  getGrowthData, getGrowthCurves, getMemberMilestones, toggleMilestone, logWeight
+  getGrowthData, getGrowthCurves, getMemberMilestones, toggleMilestone, bulkToggleMilestones, logWeight
 } from '../../services/api'
 
 const STATUS_COLORS = {
@@ -139,6 +139,21 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
       setMilestones(res.data)
     } catch (err) {
       console.error('Failed to toggle milestone:', err)
+    }
+  }
+
+  const handleBulkToggle = async (group, achieved) => {
+    // Collect all milestone IDs from all categories in the group
+    const milestoneIds = []
+    Object.values(group.categories).forEach(items => {
+      items.forEach(item => milestoneIds.push(item.id))
+    })
+    try {
+      await bulkToggleMilestones(member.id, { milestone_ids: milestoneIds, achieved })
+      const res = await getMemberMilestones(member.id)
+      setMilestones(res.data)
+    } catch (err) {
+      console.error('Failed to bulk toggle milestones:', err)
     }
   }
 
@@ -523,6 +538,25 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
 
                   {isExpanded && (
                     <div className="px-3 pb-3 space-y-3">
+                      <div className="flex gap-2 mb-1">
+                        {groupAchieved < groupTotal && (
+                          <button
+                            onClick={() => handleBulkToggle(group, true)}
+                            className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 rounded border border-purple-600/40"
+                          >
+                            <CheckCheck className="w-3 h-3" />
+                            Mark All Done
+                          </button>
+                        )}
+                        {groupAchieved > 0 && (
+                          <button
+                            onClick={() => handleBulkToggle(group, false)}
+                            className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-700/50 hover:bg-gray-600/50 text-gray-400 rounded border border-gray-600/40"
+                          >
+                            Clear All
+                          </button>
+                        )}
+                      </div>
                       {Object.entries(group.categories).map(([category, items]) => {
                         const Icon = CATEGORY_ICONS[category] || Brain
                         return (

@@ -2,6 +2,21 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.78.1] - 2026-02-02
+
+### Fixed
+- **Growth chart now shows child's data** - Child's data point appears from profile weight/height even before logging entries
+- **Growth chart uses imperial units** - Weight in lbs, height in inches (was showing metric kg/cm)
+- **Child's line clearly visible** - Bright purple line with large dots, percentile reference lines faded to 50% opacity
+- **Chart legend is readable** - Simple colored dots/lines with clear labels
+
+### Added
+- **Bulk milestone selection** - "Mark All Done" and "Clear All" buttons on each milestone age group
+- **Upcoming milestone groups shown** - Children ahead of schedule can check off future milestones (labeled "Upcoming")
+
+### Changed
+- Developmental milestones collapsed by default (click to expand)
+
 ## [1.78.0] - 2026-02-02
 
 ### Added

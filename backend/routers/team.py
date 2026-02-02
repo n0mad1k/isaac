@@ -4889,6 +4889,11 @@ class MilestoneUpdate(BaseModel):
     notes: Optional[str] = Field(None, max_length=500)
 
 
+class BulkMilestoneUpdate(BaseModel):
+    milestone_ids: List[str] = Field(..., min_length=1, max_length=200)
+    achieved: bool
+
+
 @router.get("/members/{member_id}/growth-data/")
 async def get_growth_data(
     member_id: int,
@@ -4954,6 +4959,32 @@ async def get_growth_data(
                 "percentile": height_pct,
                 "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
             })
+
+    # If no logs, seed from member's current values
+    if not weight_data and member.current_weight:
+        weight_kg = lbs_to_kg(member.current_weight)
+        weight_pct = calculate_percentile(gender, age_months, "weight", weight_kg)
+        weight_data.append({
+            "id": None,
+            "age_months": age_months,
+            "weight_lbs": member.current_weight,
+            "weight_kg": round(weight_kg, 2),
+            "percentile": weight_pct,
+            "recorded_at": datetime.utcnow().isoformat(),
+            "notes": "From profile"
+        })
+
+    if not height_data and member.height_inches:
+        height_cm = inches_to_cm(member.height_inches)
+        height_pct = calculate_percentile(gender, age_months, "height", height_cm)
+        height_data.append({
+            "id": None,
+            "age_months": age_months,
+            "height_inches": member.height_inches,
+            "height_cm": round(height_cm, 2),
+            "percentile": height_pct,
+            "recorded_at": datetime.utcnow().isoformat()
+        })
 
     # Current percentile summary
     current_weight_pct = None
@@ -5093,6 +5124,35 @@ async def get_growth_curves(
                 "value_display": round(bmi, 1),
                 "unit_display": "kg/m²",
                 "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
+            })
+
+    # If no log-based points, fall back to member's current values
+    if not member_points:
+        if measurement_type == "weight" and member.current_weight:
+            member_points.append({
+                "month": age_months,
+                "value": round(member.current_weight, 2),
+                "value_display": member.current_weight,
+                "unit_display": "lbs",
+                "recorded_at": datetime.utcnow().isoformat()
+            })
+        elif measurement_type == "height" and member.height_inches:
+            member_points.append({
+                "month": age_months,
+                "value": round(member.height_inches, 2),
+                "value_display": member.height_inches,
+                "unit_display": "in",
+                "recorded_at": datetime.utcnow().isoformat()
+            })
+        elif measurement_type == "bmi" and member.current_weight and member.height_inches and age_months >= 24:
+            height_m = member.height_inches * 0.0254
+            bmi = (member.current_weight * 0.453592) / (height_m * height_m)
+            member_points.append({
+                "month": age_months,
+                "value": round(bmi, 1),
+                "value_display": round(bmi, 1),
+                "unit_display": "kg/m²",
+                "recorded_at": datetime.utcnow().isoformat()
             })
 
     return {
@@ -5249,3 +5309,48 @@ async def toggle_milestone(
         "achieved_date": record.achieved_date.isoformat() if record.achieved_date else None,
         "notes": record.notes
     }
+
+
+@router.put("/members/{member_id}/milestones-bulk/")
+async def bulk_toggle_milestones(
+    member_id: int,
+    data: BulkMilestoneUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth)
+):
+    """Bulk toggle multiple milestones as achieved/not achieved"""
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    now = datetime.utcnow()
+    updated = 0
+
+    for milestone_id in data.milestone_ids:
+        result = await db.execute(
+            select(MemberMilestone).where(
+                MemberMilestone.member_id == member_id,
+                MemberMilestone.milestone_id == milestone_id
+            )
+        )
+        record = result.scalar_one_or_none()
+
+        if record:
+            record.achieved = data.achieved
+            record.achieved_date = now if data.achieved else None
+            record.updated_at = now
+        else:
+            record = MemberMilestone(
+                member_id=member_id,
+                milestone_id=milestone_id,
+                achieved=data.achieved,
+                achieved_date=now if data.achieved else None
+            )
+            db.add(record)
+        updated += 1
+
+    await db.commit()
+    return {"updated": updated, "achieved": data.achieved}
