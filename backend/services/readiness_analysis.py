@@ -857,7 +857,16 @@ def _analyze_training_load(workouts: List[MemberWorkout]) -> TrainingLoadAnalysi
 
     acute_load = sum(_calculate_session_load(w) for w in acute_workouts)
     chronic_total = sum(_calculate_session_load(w) for w in chronic_workouts)
-    chronic_load = chronic_total / 4 if chronic_total > 0 else 0  # Average weekly
+
+    # Calculate actual weeks of data available (min 1, max 4)
+    # This prevents inflated ACWR when only 1-2 weeks of data exist
+    if chronic_workouts:
+        oldest_chronic = min(w.workout_date for w in chronic_workouts if w.workout_date)
+        days_of_data = (now - oldest_chronic).days
+        weeks_of_data = max(1, min(4, (days_of_data + 6) // 7))  # Round up to nearest week, cap at 4
+    else:
+        weeks_of_data = 4
+    chronic_load = chronic_total / weeks_of_data if chronic_total > 0 else 0
 
     if chronic_load > 0:
         acwr = acute_load / chronic_load
@@ -880,16 +889,16 @@ def _analyze_training_load(workouts: List[MemberWorkout]) -> TrainingLoadAnalysi
     elif acwr > 1.5:
         risk_level = "HIGH"
         spike_detected = True
-        notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your 4-week average ({chronic_load:.0f} pts/wk). Rapid increases above 1.5x are associated with higher soft-tissue injury risk.")
+        notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your {weeks_of_data}-week average ({chronic_load:.0f} pts/wk). Rapid increases above 1.5x are associated with higher soft-tissue injury risk.")
     elif acwr > 1.3:
         risk_level = "MODERATE"
-        notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your 4-week average ({chronic_load:.0f} pts/wk). Slightly elevated - monitor for fatigue.")
+        notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your {weeks_of_data}-week average ({chronic_load:.0f} pts/wk). Slightly elevated - monitor for fatigue.")
     elif acwr < 0.8:
         risk_level = "LOW"
-        notes.append(f"This week's load ({acute_load:.0f} pts) is only {acwr:.1f}x your average ({chronic_load:.0f} pts/wk). Training volume dropping - detraining may occur.")
+        notes.append(f"This week's load ({acute_load:.0f} pts) is only {acwr:.1f}x your {weeks_of_data}-week average ({chronic_load:.0f} pts/wk). Training volume dropping - detraining may occur.")
     else:
         risk_level = "LOW"
-        notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your 4-week average ({chronic_load:.0f} pts/wk). Well balanced.")
+        notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your {weeks_of_data}-week average ({chronic_load:.0f} pts/wk). Well balanced.")
 
     # Calculate monotony (standard deviation of daily loads)
     monotony = None
