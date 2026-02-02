@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.76.2] - 2026-02-02
+
+### Fixed
+- **Observations now clear after AAR completion** - Completing an AAR marks all undiscussed observations from the AAR's week and earlier as discussed, not just exact week matches. Previously, observations from prior weeks would persist in the active view.
+
 ## [1.76.1] - 2026-02-02
 
 ### Changed

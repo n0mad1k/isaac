@@ -2906,10 +2906,12 @@ async def update_aar(
 
     if data.is_completed and not aar.completed_at:
         aar.completed_at = local_now
-        # Mark all observations for this AAR's week as discussed
+        # Mark all undiscussed observations from the AAR's week and earlier as discussed
+        # Using <= instead of == so prior-week observations are also cleared
+        aar_week_end = aar.week_start + timedelta(days=6)
         await db.execute(
             update(WeeklyObservation)
-            .where(WeeklyObservation.week_start == aar.week_start)
+            .where(WeeklyObservation.week_start <= aar_week_end)
             .where(WeeklyObservation.discussed_in_aar == False)
             .values(discussed_in_aar=True)
         )
