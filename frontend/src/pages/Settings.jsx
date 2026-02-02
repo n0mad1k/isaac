@@ -792,7 +792,7 @@ function Settings() {
   const calendarSettings = ['calendar_enabled', 'calendar_url', 'calendar_username', 'calendar_password', 'calendar_name', 'calendar_sync_interval']
   const cloudflareSettings = ['cloudflare_api_token', 'cloudflare_account_id', 'cloudflare_app_id']
   const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
-  const displaySettings = ['dashboard_refresh_interval', 'hide_completed_today', 'time_format', 'worker_tasks_enabled', 'team_enabled']
+  const displaySettings = ['dashboard_refresh_interval', 'hide_completed_today', 'time_format']
   const teamSettings = ['team_name', 'team_mission', 'team_units', 'mentoring_day', 'aar_day']
   const aiSettings = ['ai_enabled', 'ai_provider', 'ai_proactive_insights', 'ollama_url', 'ollama_model', 'anthropic_api_key', 'claude_model', 'openai_api_key', 'openai_model', 'ai_shared_domains']
 
@@ -2052,103 +2052,6 @@ function Settings() {
                 </div>
               </div>
 
-              {/* Worker Tasks Page Toggle */}
-              <div className="bg-gray-750 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Worker Tasks Page</h3>
-                    <p className="text-sm text-gray-400">Enable the Worker Tasks page for managing external worker assignments</p>
-                  </div>
-                  <button
-                    onClick={() => handleChange('worker_tasks_enabled', settings.worker_tasks_enabled?.value === 'true' ? 'false' : 'true')}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      settings.worker_tasks_enabled?.value === 'true'
-                        ? 'bg-farm-green'
-                        : 'bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        settings.worker_tasks_enabled?.value === 'true' ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* Team Management Page Toggle */}
-              <div className="bg-gray-750 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Team Management Page</h3>
-                    <p className="text-sm text-gray-400">Enable the Team page for member dossiers, mentoring, and AAR</p>
-                  </div>
-                  <button
-                    onClick={() => handleChange('team_enabled', settings.team_enabled?.value === 'true' ? 'false' : 'true')}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      settings.team_enabled?.value === 'true'
-                        ? 'bg-farm-green'
-                        : 'bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        settings.team_enabled?.value === 'true' ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* Keyboard Button Toggle (for kiosk/touch displays) */}
-              <div className="bg-gray-750 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">On-Screen Keyboard Button</h3>
-                    <p className="text-sm text-gray-400">Show a keyboard button in the nav bar for touch screen displays</p>
-                  </div>
-                  <button
-                    onClick={() => handleChange('show_keyboard_button', settings.show_keyboard_button?.value === 'true' ? 'false' : 'true')}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      settings.show_keyboard_button?.value === 'true'
-                        ? 'bg-farm-green'
-                        : 'bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        settings.show_keyboard_button?.value === 'true' ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* Customer Feedback Toggle (Admin Only) */}
-              {isAdmin && (
-              <div className="bg-gray-750 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Customer Feedback</h3>
-                    <p className="text-sm text-gray-400">Allow users to submit feedback, bug reports, and feature requests</p>
-                  </div>
-                  <button
-                    onClick={() => handleChange('customer_feedback_enabled', settings.customer_feedback_enabled?.value === 'true' ? 'false' : 'true')}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      settings.customer_feedback_enabled?.value === 'true'
-                        ? 'bg-farm-green'
-                        : 'bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        settings.customer_feedback_enabled?.value === 'true' ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-              )}
             </div>
           </div>
         )}
@@ -2164,7 +2067,7 @@ function Settings() {
           <h2 className="text-lg font-semibold flex items-center gap-2">
             {expandedSections.ai ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
             <Bot className="w-5 h-5 text-purple-400" />
-            AI Assistant (Claude)
+            AI Assistant
           </h2>
         </div>
         {expandedSections.ai && (
@@ -2209,6 +2112,7 @@ function Settings() {
             </p>
             <div className="space-y-3">
               {[
+                { key: 'page_budget_enabled', label: 'Budget', desc: 'Budget tracking and financial overview' },
                 { key: 'page_calendar_enabled', label: 'Calendar', desc: 'Event calendar and scheduling' },
                 { key: 'page_plants_enabled', label: 'Plants', desc: 'Plant tracking and watering schedules' },
                 { key: 'page_seeds_enabled', label: 'Seeds', desc: 'Seed inventory and planting plans' },
@@ -2220,6 +2124,9 @@ function Settings() {
                 { key: 'page_farm_finances_enabled', label: 'Farm Finances', desc: 'Production tracking and finances' },
                 { key: 'worker_tasks_enabled', label: 'Worker Tasks', desc: 'Task management for farm workers' },
                 { key: 'team_enabled', label: 'Team Management', desc: 'Member dossiers, mentoring, and AAR' },
+                { key: 'show_keyboard_button', label: 'On-Screen Keyboard', desc: 'Show keyboard toggle button for touch displays' },
+                { key: 'show_hard_refresh_button', label: 'Hard Refresh Button', desc: 'Show hard refresh button in floating menu' },
+                { key: 'customer_feedback_enabled', label: 'Feedback Button', desc: 'Enable feedback submission for users' },
               ].map(toggle => (
                 <div key={toggle.key} className="bg-gray-750 rounded-lg p-3">
                   <div className="flex items-center justify-between">

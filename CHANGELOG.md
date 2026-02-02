@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.74.1] - 2026-02-02
+
+### Fixed
+- **AI chat hides when AI is disabled** - Disabling the AI assistant in Settings now properly hides the chat button and panel from the floating action menu
+- **Feature Toggles consolidated** - All feature toggles now live in the dedicated Feature Toggles section in Settings. Removed duplicates from the Display section
+- **Budget page toggle** - Added missing toggle for the Budget page. All navigation pages now have on/off toggles
+- **Added missing toggles** - On-Screen Keyboard, Hard Refresh Button, and Feedback Button toggles added to Feature Toggles section
+
 ## [1.74.0] - 2026-02-02
 
 ### Added

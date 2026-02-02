@@ -13,8 +13,9 @@ function Layout() {
   const [teamEnabled, setTeamEnabled] = useState(false)
   const [showKeyboardButton, setShowKeyboardButton] = useState(false)
   const [showHardRefreshButton, setShowHardRefreshButton] = useState(true)
+  const [aiEnabled, setAiEnabled] = useState(false)
   const [pageToggles, setPageToggles] = useState({
-    calendar: true, plants: true, seeds: true, animals: true,
+    budget: true, calendar: true, plants: true, seeds: true, animals: true,
     home_maintenance: true, vehicles: true, equipment: true,
     farm_areas: true, farm_finances: true,
   })
@@ -140,8 +141,12 @@ function Layout() {
   }, [])
 
 
-  // Fetch unread insight count for chat badge
+  // Fetch unread insight count for chat badge (only when AI is enabled)
   useEffect(() => {
+    if (!aiEnabled) {
+      setUnreadInsights(0)
+      return
+    }
     const fetchUnreadCount = async () => {
       try {
         const res = await getUnreadInsightCount()
@@ -153,7 +158,7 @@ function Layout() {
     fetchUnreadCount()
     const interval = setInterval(fetchUnreadCount, 5 * 60 * 1000) // every 5 min
     return () => clearInterval(interval)
-  }, [])
+  }, [aiEnabled])
 
   // Fetch refresh interval from settings and check if dev instance
   useEffect(() => {
@@ -178,8 +183,13 @@ function Layout() {
         // Check hard refresh button enabled (defaults to true)
         const hardRefreshEnabled = settings?.show_hard_refresh_button?.value !== 'false'
         setShowHardRefreshButton(hardRefreshEnabled)
+        // Check AI enabled
+        const aiIsEnabled = settings?.ai_enabled?.value === 'true'
+        setAiEnabled(aiIsEnabled)
+        if (!aiIsEnabled) setChatOpen(false)
         // Check page toggles (default to true if not set)
         setPageToggles({
+          budget: settings?.page_budget_enabled?.value !== 'false',
           calendar: settings?.page_calendar_enabled?.value !== 'false',
           plants: settings?.page_plants_enabled?.value !== 'false',
           seeds: settings?.page_seeds_enabled?.value !== 'false',
@@ -250,7 +260,7 @@ function Layout() {
     ...(pageToggles.calendar ? [{ to: '/calendar', icon: Calendar, label: 'Calendar' }] : []),
     ...(workerTasksEnabled ? [{ to: '/worker-tasks', icon: ClipboardList, label: 'Workers' }] : []),
     ...(teamEnabled ? [{ to: '/team', icon: UsersRound, label: 'Team' }] : []),
-    { to: '/budget', icon: Wallet, label: 'Budget' },
+    ...(pageToggles.budget ? [{ to: '/budget', icon: Wallet, label: 'Budget' }] : []),
     ...(pageToggles.plants || pageToggles.seeds ? [{ to: '/garden', icon: Leaf, label: 'Garden' }] : []),
     ...(pageToggles.animals ? [{ to: '/animals', icon: PawPrint, label: 'Animals' }] : []),
     ...(pageToggles.home_maintenance ? [{ to: '/home-maintenance', icon: Home, label: 'Home' }] : []),
@@ -388,16 +398,18 @@ function Layout() {
         isDevInstance={isDevInstance}
         workerTasksEnabled={workerTasksEnabled}
         navItems={navItems}
-        onChatToggle={() => setChatOpen(!chatOpen)}
-        unreadInsights={unreadInsights}
+        onChatToggle={aiEnabled ? () => setChatOpen(!chatOpen) : null}
+        unreadInsights={aiEnabled ? unreadInsights : 0}
       />
 
-      {/* AI Chat Panel */}
-      <ChatPanel
-        isOpen={chatOpen}
-        onClose={() => setChatOpen(false)}
-        onUnreadCountChange={setUnreadInsights}
-      />
+      {/* AI Chat Panel - only render when AI is enabled */}
+      {aiEnabled && (
+        <ChatPanel
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+          onUnreadCountChange={setUnreadInsights}
+        />
+      )}
     </div>
   )
 }

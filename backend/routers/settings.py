@@ -300,6 +300,10 @@ DEFAULT_SETTINGS = {
     },
 
     # === Feature Toggles (Page Visibility) ===
+    "page_budget_enabled": {
+        "value": "true",
+        "description": "Show the Budget page in navigation"
+    },
     "page_calendar_enabled": {
         "value": "true",
         "description": "Show the Calendar page in navigation"
