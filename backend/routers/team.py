@@ -21,6 +21,11 @@ from loguru import logger
 
 from models.database import get_db
 from services.readiness_analysis import _calculate_body_fat_taping
+from services.growth_charts import (
+    calculate_percentile, get_percentile_curves, get_growth_velocity,
+    get_milestones_for_age, calculate_age_months,
+    lbs_to_kg, inches_to_cm, kg_to_lbs, cm_to_inches
+)
 from models.settings import AppSetting
 from models.team import (
     TeamMember, MemberWeightLog, MemberVitalsLog, MemberMedicalLog, MentoringSession,
@@ -39,7 +44,9 @@ from models.team import (
     # Fitness/Workout tracking
     MemberWorkout, WorkoutType,
     # Subjective inputs
-    MemberSubjectiveInput
+    MemberSubjectiveInput,
+    # Child growth tracking
+    MemberMilestone
 )
 from models.supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from models.tasks import Task, TaskType, TaskCategory, task_member_assignments
@@ -1187,13 +1194,30 @@ async def log_weight(
     await db.commit()
     await db.refresh(log)
 
-    return {
+    response = {
         "id": log.id,
         "weight": log.weight,
         "height_inches": log.height_inches,
         "notes": log.notes,
         "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
     }
+
+    # Add percentile data for children with birth_date and gender
+    if member.birth_date and member.gender:
+        age_months = calculate_age_months(member.birth_date)
+        gender = member.gender.value if hasattr(member.gender, 'value') else member.gender
+        weight_kg = lbs_to_kg(log.weight)
+        weight_pct = calculate_percentile(gender, age_months, "weight", weight_kg)
+        if weight_pct:
+            response["weight_percentile"] = weight_pct
+
+        if log.height_inches:
+            height_cm = inches_to_cm(log.height_inches)
+            height_pct = calculate_percentile(gender, age_months, "height", height_cm)
+            if height_pct:
+                response["height_percentile"] = height_pct
+
+    return response
 
 
 # ============================================
@@ -4853,3 +4877,358 @@ async def delete_workout(
     await db.commit()
 
     return {"success": True, "message": "Workout deleted"}
+
+
+# ============================================
+# Child Growth & Development Tracking
+# ============================================
+
+class MilestoneUpdate(BaseModel):
+    achieved: bool
+    achieved_date: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=500)
+
+
+@router.get("/members/{member_id}/growth-data/")
+async def get_growth_data(
+    member_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth)
+):
+    """Get weight/height history with percentiles for a child member"""
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    if not member.birth_date or not member.gender:
+        raise HTTPException(status_code=400, detail="Member must have birth date and gender set")
+
+    age_months = calculate_age_months(member.birth_date)
+    gender = member.gender.value if hasattr(member.gender, 'value') else member.gender
+
+    # Get weight history
+    weight_result = await db.execute(
+        select(MemberWeightLog)
+        .where(MemberWeightLog.member_id == member_id)
+        .order_by(MemberWeightLog.recorded_at.asc())
+    )
+    weight_logs = weight_result.scalars().all()
+
+    # Build growth data with percentiles
+    weight_data = []
+    height_data = []
+
+    for log in weight_logs:
+        log_age = calculate_age_months(member.birth_date) if not log.recorded_at else \
+            ((log.recorded_at.year - member.birth_date.year) * 12 +
+             (log.recorded_at.month - member.birth_date.month))
+        log_age = max(0, log_age)
+
+        # Weight percentile (convert lbs to kg)
+        weight_kg = lbs_to_kg(log.weight)
+        weight_pct = calculate_percentile(gender, log_age, "weight", weight_kg)
+
+        weight_data.append({
+            "id": log.id,
+            "age_months": log_age,
+            "weight_lbs": log.weight,
+            "weight_kg": round(weight_kg, 2),
+            "percentile": weight_pct,
+            "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None,
+            "notes": log.notes
+        })
+
+        # Height percentile if available (convert inches to cm)
+        if log.height_inches:
+            height_cm = inches_to_cm(log.height_inches)
+            height_pct = calculate_percentile(gender, log_age, "height", height_cm)
+
+            height_data.append({
+                "id": log.id,
+                "age_months": log_age,
+                "height_inches": log.height_inches,
+                "height_cm": round(height_cm, 2),
+                "percentile": height_pct,
+                "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
+            })
+
+    # Current percentile summary
+    current_weight_pct = None
+    current_height_pct = None
+    current_bmi_pct = None
+
+    if member.current_weight:
+        current_weight_pct = calculate_percentile(
+            gender, age_months, "weight", lbs_to_kg(member.current_weight)
+        )
+
+    if member.height_inches:
+        current_height_pct = calculate_percentile(
+            gender, age_months, "height", inches_to_cm(member.height_inches)
+        )
+
+    if member.current_weight and member.height_inches and age_months >= 24:
+        height_m = member.height_inches * 0.0254
+        bmi = (member.current_weight * 0.453592) / (height_m * height_m)
+        current_bmi_pct = calculate_percentile(gender, age_months, "bmi", bmi)
+
+    # Growth velocity
+    weight_velocity = None
+    height_velocity = None
+
+    if len(weight_data) >= 2:
+        velocity_points = [
+            {"age_months": d["age_months"], "value": d["weight_kg"]}
+            for d in weight_data
+        ]
+        weight_velocity = get_growth_velocity(gender, "weight", velocity_points)
+
+    if len(height_data) >= 2:
+        velocity_points = [
+            {"age_months": d["age_months"], "value": d["height_cm"]}
+            for d in height_data
+        ]
+        height_velocity = get_growth_velocity(gender, "height", velocity_points)
+
+    return {
+        "member_id": member_id,
+        "age_months": age_months,
+        "gender": gender,
+        "current_summary": {
+            "weight": current_weight_pct,
+            "height": current_height_pct,
+            "bmi": current_bmi_pct
+        },
+        "weight_history": weight_data,
+        "height_history": height_data,
+        "weight_velocity": weight_velocity,
+        "height_velocity": height_velocity
+    }
+
+
+@router.get("/members/{member_id}/growth-curves/{measurement_type}/")
+async def get_growth_curves(
+    member_id: int,
+    measurement_type: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth)
+):
+    """Get percentile reference curves + member data points for charting"""
+    if measurement_type not in ("weight", "height", "bmi"):
+        raise HTTPException(status_code=400, detail="Invalid measurement type")
+
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    if not member.birth_date or not member.gender:
+        raise HTTPException(status_code=400, detail="Member must have birth date and gender set")
+
+    gender = member.gender.value if hasattr(member.gender, 'value') else member.gender
+    age_months = calculate_age_months(member.birth_date)
+
+    # Get percentile curves
+    curves = get_percentile_curves(gender, measurement_type)
+    if not curves:
+        raise HTTPException(status_code=404, detail="Growth reference data not found")
+
+    # Get member's data points
+    weight_result = await db.execute(
+        select(MemberWeightLog)
+        .where(MemberWeightLog.member_id == member_id)
+        .order_by(MemberWeightLog.recorded_at.asc())
+    )
+    weight_logs = weight_result.scalars().all()
+
+    member_points = []
+    for log in weight_logs:
+        log_age = max(0, (log.recorded_at.year - member.birth_date.year) * 12 +
+                       (log.recorded_at.month - member.birth_date.month)) if log.recorded_at else 0
+
+        if measurement_type == "weight" and log.weight:
+            member_points.append({
+                "month": log_age,
+                "value": round(lbs_to_kg(log.weight), 2),
+                "value_display": log.weight,
+                "unit_display": "lbs",
+                "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
+            })
+        elif measurement_type == "height" and log.height_inches:
+            member_points.append({
+                "month": log_age,
+                "value": round(inches_to_cm(log.height_inches), 2),
+                "value_display": log.height_inches,
+                "unit_display": "in",
+                "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
+            })
+        elif measurement_type == "bmi" and log.weight and log.height_inches and log_age >= 24:
+            height_m = log.height_inches * 0.0254
+            bmi = (log.weight * 0.453592) / (height_m * height_m)
+            member_points.append({
+                "month": log_age,
+                "value": round(bmi, 1),
+                "value_display": round(bmi, 1),
+                "unit_display": "kg/m²",
+                "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
+            })
+
+    return {
+        "gender": gender,
+        "measurement_type": measurement_type,
+        "current_age_months": age_months,
+        "curves": curves,
+        "member_points": member_points
+    }
+
+
+@router.get("/growth-reference/{gender}/{measurement_type}/")
+async def get_growth_reference(
+    gender: str,
+    measurement_type: str,
+    user: User = Depends(require_auth)
+):
+    """Get raw percentile curves for a given gender and measurement type"""
+    if gender not in ("male", "female"):
+        raise HTTPException(status_code=400, detail="Gender must be 'male' or 'female'")
+    if measurement_type not in ("weight", "height", "bmi"):
+        raise HTTPException(status_code=400, detail="Invalid measurement type")
+
+    curves = get_percentile_curves(gender, measurement_type)
+    if not curves:
+        raise HTTPException(status_code=404, detail="Growth reference data not found")
+
+    return curves
+
+
+@router.get("/members/{member_id}/milestones/")
+async def get_member_milestones(
+    member_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth)
+):
+    """Get milestone checklist with achieved status for a child member"""
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    if not member.birth_date:
+        raise HTTPException(status_code=400, detail="Member must have birth date set")
+
+    age_months = calculate_age_months(member.birth_date)
+
+    # Only show milestones for children under 6 (72 months)
+    if age_months > 72:
+        return {"milestones": [], "message": "Milestones not applicable for age 6+"}
+
+    # Get reference milestones for this age
+    reference = get_milestones_for_age(age_months)
+
+    # Get achieved milestones from DB
+    achieved_result = await db.execute(
+        select(MemberMilestone).where(MemberMilestone.member_id == member_id)
+    )
+    achieved_records = {m.milestone_id: m for m in achieved_result.scalars().all()}
+
+    # Merge reference with achieved status
+    milestone_groups = []
+    total = 0
+    achieved_count = 0
+
+    for group in reference:
+        group_data = {
+            "age_months": group["age_months"],
+            "label": group["label"],
+            "categories": {}
+        }
+
+        for category, items in group["milestones"].items():
+            cat_items = []
+            for item in items:
+                record = achieved_records.get(item["id"])
+                is_achieved = record.achieved if record else False
+                if is_achieved:
+                    achieved_count += 1
+                total += 1
+
+                cat_items.append({
+                    "id": item["id"],
+                    "text": item["text"],
+                    "achieved": is_achieved,
+                    "achieved_date": record.achieved_date.isoformat() if record and record.achieved_date else None,
+                    "notes": record.notes if record else None
+                })
+            group_data["categories"][category] = cat_items
+
+        milestone_groups.append(group_data)
+
+    return {
+        "age_months": age_months,
+        "milestone_groups": milestone_groups,
+        "progress": {
+            "total": total,
+            "achieved": achieved_count,
+            "percentage": round(achieved_count / total * 100, 1) if total > 0 else 0
+        }
+    }
+
+
+@router.put("/members/{member_id}/milestones/{milestone_id}/")
+async def toggle_milestone(
+    member_id: int,
+    milestone_id: str,
+    data: MilestoneUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth)
+):
+    """Toggle a developmental milestone as achieved/not achieved"""
+    # Verify member exists
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Find or create milestone record
+    result = await db.execute(
+        select(MemberMilestone).where(
+            MemberMilestone.member_id == member_id,
+            MemberMilestone.milestone_id == milestone_id
+        )
+    )
+    record = result.scalar_one_or_none()
+
+    if record:
+        record.achieved = data.achieved
+        record.achieved_date = datetime.fromisoformat(data.achieved_date) if data.achieved_date and data.achieved else None
+        record.notes = data.notes
+        record.updated_at = datetime.utcnow()
+    else:
+        record = MemberMilestone(
+            member_id=member_id,
+            milestone_id=milestone_id,
+            achieved=data.achieved,
+            achieved_date=datetime.fromisoformat(data.achieved_date) if data.achieved_date and data.achieved else (datetime.utcnow() if data.achieved else None),
+            notes=data.notes
+        )
+        db.add(record)
+
+    await db.commit()
+    await db.refresh(record)
+
+    return {
+        "id": record.id,
+        "milestone_id": record.milestone_id,
+        "achieved": record.achieved,
+        "achieved_date": record.achieved_date.isoformat() if record.achieved_date else None,
+        "notes": record.notes
+    }

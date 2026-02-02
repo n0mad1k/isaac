@@ -606,6 +606,16 @@ export const getReadinessAnalysis = (memberId, lookbackDays = 30, force = false)
   })
 export const calculateBodyFat = (memberId) => api.post(`/team/members/${memberId}/calculate-body-fat/`)
 
+// Child Growth & Development Tracking
+export const getGrowthData = (memberId) => api.get(`/team/members/${memberId}/growth-data/`)
+export const getGrowthCurves = (memberId, measurementType) =>
+  api.get(`/team/members/${memberId}/growth-curves/${measurementType}/`)
+export const getGrowthReference = (gender, measurementType) =>
+  api.get(`/team/growth-reference/${gender}/${measurementType}/`)
+export const getMemberMilestones = (memberId) => api.get(`/team/members/${memberId}/milestones/`)
+export const toggleMilestone = (memberId, milestoneId, data) =>
+  api.put(`/team/members/${memberId}/milestones/${milestoneId}/`, data)
+
 // Workout/Fitness Tracking
 export const getWorkoutTypes = () => api.get('/team/workout-types/')
 export const getWorkouts = (memberId, params = {}) =>

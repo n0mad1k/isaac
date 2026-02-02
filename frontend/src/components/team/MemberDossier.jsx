@@ -4,7 +4,7 @@ import {
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle, AlertTriangle,
   Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus, Target, Check, X,
   ListTodo, Package, RefreshCw, TrendingUp, TrendingDown, Minus, Info, Dumbbell,
-  Clock, Flame, Mountain, Timer
+  Clock, Flame, Mountain, Timer, Baby
 } from 'lucide-react'
 import {
   getWeightHistory, logWeight, getMedicalHistory, updateMedicalStatus,
@@ -24,6 +24,7 @@ import MemberGearTab from './MemberGearTab'
 import MemberTrainingTab from './MemberTrainingTab'
 import MemberTasksTab from './MemberTasksTab'
 import MemberSupplyRequestsTab from './MemberSupplyRequestsTab'
+import ChildGrowthTab from './ChildGrowthTab'
 
 function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [activeTab, setActiveTab] = useState('profile')
@@ -71,7 +72,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   useEffect(() => {
     const loadTabData = async () => {
       // These tabs load their own data
-      if (['gear', 'training', 'tasks', 'supplies', 'fitness'].includes(activeTab)) {
+      if (['gear', 'training', 'tasks', 'supplies', 'fitness', 'growth'].includes(activeTab)) {
         setLoading(false)
         return
       }
@@ -205,6 +206,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const isMinor = memberAge !== null && memberAge < 18
 
   // Tab definitions - filter based on age
+  // Children under 13 get "Growth" tab instead of "Health Data"
   const allTabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'tasks', label: 'Tasks', icon: ListTodo },
@@ -214,7 +216,11 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
     { id: 'medical', label: 'Medical', icon: Heart },
     { id: 'mentoring', label: 'Mentoring', icon: Brain, minAge: 13 },
     { id: 'observations', label: 'Observations', icon: MessageSquare },
-    { id: 'health', label: 'Health Data', icon: Activity },
+    // Show Growth tab for children <13, Health Data for 13+
+    ...(isChild
+      ? [{ id: 'growth', label: 'Growth', icon: Baby }]
+      : [{ id: 'health', label: 'Health Data', icon: Activity }]
+    ),
     { id: 'fitness', label: 'Fitness', icon: Dumbbell, minAge: 13 },
   ]
   const tabs = allTabs.filter(tab => {
@@ -752,6 +758,17 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   const obsRes = await getMemberObservations(member.id, { include_discussed: showObsHistory })
                   setObservations(obsRes.data)
                 }}
+              />
+            )}
+
+            {/* Growth Tab (children under 13) */}
+            {activeTab === 'growth' && (
+              <ChildGrowthTab
+                member={member}
+                formatWeight={formatWeight}
+                formatHeight={formatHeight}
+                formatDate={formatDate}
+                onUpdate={onUpdate}
               />
             )}
 

@@ -254,6 +254,7 @@ class TeamMember(Base):
     supply_requests = relationship("SupplyRequest", back_populates="member", cascade="all, delete-orphan")
     workouts = relationship("MemberWorkout", back_populates="member", cascade="all, delete-orphan")
     subjective_inputs = relationship("MemberSubjectiveInput", back_populates="member", cascade="all, delete-orphan")
+    milestones = relationship("MemberMilestone", back_populates="member", cascade="all, delete-orphan")
 
 
 class MemberWeightLog(Base):
@@ -730,3 +731,26 @@ class MemberSubjectiveInput(Base):
 
     # Relationship
     member = relationship("TeamMember", back_populates="subjective_inputs")
+
+
+# ============================================
+# Child Growth & Development Tracking
+# ============================================
+
+class MemberMilestone(Base):
+    """Tracks developmental milestone achievements for children under 6"""
+    __tablename__ = "member_milestones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    member_id = Column(Integer, ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False)
+
+    milestone_id = Column(String(100), nullable=False)  # e.g. "motor_2mo_1"
+    achieved = Column(Boolean, default=False)
+    achieved_date = Column(DateTime, nullable=True)
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    member = relationship("TeamMember", back_populates="milestones")

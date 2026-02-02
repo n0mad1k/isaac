@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.78.0] - 2026-02-02
+
+### Added
+- **Children's Growth & Development Tracking** - Children under 13 now see a dedicated "Growth" tab instead of adult Health Data:
+  - Growth percentile charts with CDC reference bands (3rd, 10th, 25th, 50th, 75th, 90th, 97th percentiles)
+  - Weight-for-age, height-for-age, and BMI-for-age charts with child's data plotted against CDC curves
+  - Current percentile summary cards with color-coded status (on track, monitor, concern)
+  - Growth velocity tracking — detects if child is maintaining or crossing percentile bands
+  - Developmental milestone checklists for children under 6 (motor, language, social, cognitive)
+  - Milestone progress tracking with age-grouped checkboxes based on CDC "Learn the Signs" guidelines
+  - Weight/height logging shows percentile immediately after entry
+  - Adults (13+) continue to see the existing Health Data tab unchanged
+
 ## [1.77.3] - 2026-02-02
 
 ### Fixed

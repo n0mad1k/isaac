@@ -1,0 +1,350 @@
+{
+  "age_groups": [
+    {
+      "age_months": 2,
+      "label": "2 Months",
+      "milestones": {
+        "motor": [
+          {"id": "motor_2mo_1", "text": "Can hold head up and begins to push up when lying on tummy"},
+          {"id": "motor_2mo_2", "text": "Makes smoother movements with arms and legs"}
+        ],
+        "language": [
+          {"id": "lang_2mo_1", "text": "Coos, makes gurgling sounds"},
+          {"id": "lang_2mo_2", "text": "Turns head toward sounds"}
+        ],
+        "social": [
+          {"id": "social_2mo_1", "text": "Begins to smile at people"},
+          {"id": "social_2mo_2", "text": "Can briefly calm self (may bring hands to mouth)"},
+          {"id": "social_2mo_3", "text": "Tries to look at parent"}
+        ],
+        "cognitive": [
+          {"id": "cog_2mo_1", "text": "Pays attention to faces"},
+          {"id": "cog_2mo_2", "text": "Begins to follow things with eyes"},
+          {"id": "cog_2mo_3", "text": "Begins to act bored (cries, fussy) if activity doesn't change"}
+        ]
+      }
+    },
+    {
+      "age_months": 4,
+      "label": "4 Months",
+      "milestones": {
+        "motor": [
+          {"id": "motor_4mo_1", "text": "Holds head steady, unsupported"},
+          {"id": "motor_4mo_2", "text": "Pushes down on legs when feet are on a hard surface"},
+          {"id": "motor_4mo_3", "text": "May be able to roll over from tummy to back"}
+        ],
+        "language": [
+          {"id": "lang_4mo_1", "text": "Begins to babble"},
+          {"id": "lang_4mo_2", "text": "Babbles with expression and copies sounds heard"},
+          {"id": "lang_4mo_3", "text": "Cries in different ways to show hunger, pain, or being tired"}
+        ],
+        "social": [
+          {"id": "social_4mo_1", "text": "Smiles spontaneously, especially at people"},
+          {"id": "social_4mo_2", "text": "Likes to play with people and might cry when playing stops"},
+          {"id": "social_4mo_3", "text": "Copies some movements and facial expressions"}
+        ],
+        "cognitive": [
+          {"id": "cog_4mo_1", "text": "Lets you know if happy or sad"},
+          {"id": "cog_4mo_2", "text": "Responds to affection"},
+          {"id": "cog_4mo_3", "text": "Reaches for toy with one hand"},
+          {"id": "cog_4mo_4", "text": "Uses hands and eyes together, such as seeing a toy and reaching for it"}
+        ]
+      }
+    },
+    {
+      "age_months": 6,
+      "label": "6 Months",
+      "milestones": {
+        "motor": [
+          {"id": "motor_6mo_1", "text": "Rolls over in both directions (front to back, back to front)"},
+          {"id": "motor_6mo_2", "text": "Begins to sit without support"},
+          {"id": "motor_6mo_3", "text": "Rocks back and forth on hands and knees"}
+        ],
+        "language": [
+          {"id": "lang_6mo_1", "text": "Responds to own name"},
+          {"id": "lang_6mo_2", "text": "Responds to sounds by making sounds"},
+          {"id": "lang_6mo_3", "text": "Strings vowels together when babbling and likes taking turns with parent while making sounds"},
+          {"id": "lang_6mo_4", "text": "Begins to say consonant sounds (m, b)"}
+        ],
+        "social": [
+          {"id": "social_6mo_1", "text": "Knows familiar faces and begins to know if someone is a stranger"},
+          {"id": "social_6mo_2", "text": "Likes to play with others, especially parents"},
+          {"id": "social_6mo_3", "text": "Responds to other people's emotions and often seems happy"},
+          {"id": "social_6mo_4", "text": "Likes to look at self in a mirror"}
+        ],
+        "cognitive": [
+          {"id": "cog_6mo_1", "text": "Looks at things nearby"},
+          {"id": "cog_6mo_2", "text": "Brings things to mouth"},
+          {"id": "cog_6mo_3", "text": "Shows curiosity about things and tries to get things that are out of reach"},
+          {"id": "cog_6mo_4", "text": "Begins to pass things from one hand to the other"}
+        ]
+      }
+    },
+    {
+      "age_months": 9,
+      "label": "9 Months",
+      "milestones": {
+        "motor": [
+          {"id": "motor_9mo_1", "text": "Stands, holding on"},
+          {"id": "motor_9mo_2", "text": "Can get into sitting position"},
+          {"id": "motor_9mo_3", "text": "Sits without support"},
+          {"id": "motor_9mo_4", "text": "Pulls to stand"},
+          {"id": "motor_9mo_5", "text": "Crawls"}
+        ],
+        "language": [
+          {"id": "lang_9mo_1", "text": "Understands \"no\""},
+          {"id": "lang_9mo_2", "text": "Makes a lot of different sounds like \"mamamama\" and \"bababababa\""},
+          {"id": "lang_9mo_3", "text": "Copies sounds and gestures of others"}
+        ],
+        "social": [
+          {"id": "social_9mo_1", "text": "May be afraid of strangers"},
+          {"id": "social_9mo_2", "text": "May be clingy with familiar adults"},
+          {"id": "social_9mo_3", "text": "Has favorite toys"}
+        ],
+        "cognitive": [
+          {"id": "cog_9mo_1", "text": "Watches the path of something as it falls"},
+          {"id": "cog_9mo_2", "text": "Looks for things seen hidden"},
+          {"id": "cog_9mo_3", "text": "Plays peek-a-boo"},
+          {"id": "cog_9mo_4", "text": "Puts things in mouth"},
+          {"id": "cog_9mo_5", "text": "Moves things smoothly from one hand to the other"}
+        ]
+      }
+    },
+    {
+      "age_months": 12,
+      "label": "12 Months",
+      "milestones": {
+        "motor": [
+          {"id": "motor_12mo_1", "text": "Gets to a sitting position without help"},
+          {"id": "motor_12mo_2", "text": "Pulls up to stand, walks holding on to furniture"},
+          {"id": "motor_12mo_3", "text": "May take a few steps without holding on"},
+          {"id": "motor_12mo_4", "text": "May stand alone"}
+        ],
+        "language": [
+          {"id": "lang_12mo_1", "text": "Responds to simple spoken requests"},
+          {"id": "lang_12mo_2", "text": "Uses simple gestures, like shaking head \"no\" or waving \"bye-bye\""},
+          {"id": "lang_12mo_3", "text": "Says \"mama\" and \"dada\" and exclamations like \"uh-oh!\""},
+          {"id": "lang_12mo_4", "text": "Tries to say words you say"}
+        ],
+        "social": [
+          {"id": "social_12mo_1", "text": "Is shy or nervous with strangers"},
+          {"id": "social_12mo_2", "text": "Cries when mom or dad leaves"},
+          {"id": "social_12mo_3", "text": "Has favorite things and people"},
+          {"id": "social_12mo_4", "text": "Hands you a book when wants to hear a story"}
+        ],
+        "cognitive": [
+          {"id": "cog_12mo_1", "text": "Explores things in different ways, like shaking, banging, throwing"},
+          {"id": "cog_12mo_2", "text": "Finds hidden things easily"},
+          {"id": "cog_12mo_3", "text": "Looks at the right picture or thing when it's named"},
+          {"id": "cog_12mo_4", "text": "Copies gestures"},
+          {"id": "cog_12mo_5", "text": "Starts to use things correctly (drinks from a cup, brushes hair)"}
+        ]
+      }
+    },
+    {
+      "age_months": 15,
+      "label": "15 Months",
+      "milestones": {
+        "motor": [
+          {"id": "motor_15mo_1", "text": "Walks well"},
+          {"id": "motor_15mo_2", "text": "May walk up steps"},
+          {"id": "motor_15mo_3", "text": "Can help undress self"},
+          {"id": "motor_15mo_4", "text": "Drinks from a cup"},
+          {"id": "motor_15mo_5", "text": "Eats with a spoon (messy)"}
+        ],
+        "language": [
+          {"id": "lang_15mo_1", "text": "Says several single words"},
+          {"id": "lang_15mo_2", "text": "Says and shakes head \"no\""},
+          {"id": "lang_15mo_3", "text": "Points to show someone what they want"}
+        ],
+        "social": [
+          {"id": "social_15mo_1", "text": "Copies what others are doing"},
+          {"id": "social_15mo_2", "text": "Shows you an object they like"},
+          {"id": "social_15mo_3", "text": "Claps when excited"},
+          {"id": "social_15mo_4", "text": "Hugs stuffed dolls or other toys"}
+        ],
+        "cognitive": [
+          {"id": "cog_15mo_1", "text": "Knows what ordinary things are for (phone, brush, spoon)"},
+          {"id": "cog_15mo_2", "text": "Points to get the attention of others"},
+          {"id": "cog_15mo_3", "text": "Shows interest in a doll or stuffed animal by pretending to feed"}
+        ]
+      }
+    },
+    {
+      "age_months": 18,
+      "label": "18 Months",
+      "milestones": {
+        "motor": [
+          {"id": "motor_18mo_1", "text": "Walks alone"},
+          {"id": "motor_18mo_2", "text": "May walk up steps and run"},
+          {"id": "motor_18mo_3", "text": "Pulls toys while walking"},
+          {"id": "motor_18mo_4", "text": "Can help undress self"},
+          {"id": "motor_18mo_5", "text": "Drinks from a cup and eats with a spoon"}
+        ],
+        "language": [
+          {"id": "lang_18mo_1", "text": "Says several single words"},
+          {"id": "lang_18mo_2", "text": "Says and shakes head \"no\""},
+          {"id": "lang_18mo_3", "text": "Points to show someone what they want"}
+        ],
+        "social": [
+          {"id": "social_18mo_1", "text": "May have temper tantrums"},
+          {"id": "social_18mo_2", "text": "May be afraid of strangers"},
+          {"id": "social_18mo_3", "text": "Shows affection to familiar people"},
+          {"id": "social_18mo_4", "text": "Plays simple pretend, such as feeding a doll"}
+        ],
+        "cognitive": [
+          {"id": "cog_18mo_1", "text": "Knows what ordinary things are for (phone, brush, spoon)"},
+          {"id": "cog_18mo_2", "text": "Points to get the attention of others"},
+          {"id": "cog_18mo_3", "text": "Shows interest in a doll or stuffed animal by pretending to feed"},
+          {"id": "cog_18mo_4", "text": "Points to one body part"},
+          {"id": "cog_18mo_5", "text": "Scribbles on own"}
+        ]
+      }
+    },
+    {
+      "age_months": 24,
+      "label": "2 Years",
+      "milestones": {
+        "motor": [
+          {"id": "motor_24mo_1", "text": "Stands on tiptoe"},
+          {"id": "motor_24mo_2", "text": "Kicks a ball"},
+          {"id": "motor_24mo_3", "text": "Begins to run"},
+          {"id": "motor_24mo_4", "text": "Climbs onto and down from furniture without help"},
+          {"id": "motor_24mo_5", "text": "Walks up and down stairs holding on"},
+          {"id": "motor_24mo_6", "text": "Throws ball overhand"}
+        ],
+        "language": [
+          {"id": "lang_24mo_1", "text": "Points to things or pictures when they are named"},
+          {"id": "lang_24mo_2", "text": "Says sentences with 2 to 4 words"},
+          {"id": "lang_24mo_3", "text": "Follows simple instructions"},
+          {"id": "lang_24mo_4", "text": "Repeats words overheard in conversation"},
+          {"id": "lang_24mo_5", "text": "Points to things in a book"}
+        ],
+        "social": [
+          {"id": "social_24mo_1", "text": "Copies others, especially adults and older children"},
+          {"id": "social_24mo_2", "text": "Gets excited when with other children"},
+          {"id": "social_24mo_3", "text": "Shows more and more independence"},
+          {"id": "social_24mo_4", "text": "Plays mainly beside other children, but begins to include them in activities"}
+        ],
+        "cognitive": [
+          {"id": "cog_24mo_1", "text": "Finds things even when hidden under two or three covers"},
+          {"id": "cog_24mo_2", "text": "Begins to sort shapes and colors"},
+          {"id": "cog_24mo_3", "text": "Completes sentences and rhymes in familiar books"},
+          {"id": "cog_24mo_4", "text": "Plays simple make-believe games"},
+          {"id": "cog_24mo_5", "text": "Builds towers of 4 or more blocks"},
+          {"id": "cog_24mo_6", "text": "Might use one hand more than the other"},
+          {"id": "cog_24mo_7", "text": "Follows two-step instructions such as \"Pick up your shoes and put them in the closet\""}
+        ]
+      }
+    },
+    {
+      "age_months": 36,
+      "label": "3 Years",
+      "milestones": {
+        "motor": [
+          {"id": "motor_36mo_1", "text": "Climbs well"},
+          {"id": "motor_36mo_2", "text": "Runs easily"},
+          {"id": "motor_36mo_3", "text": "Pedals a tricycle"},
+          {"id": "motor_36mo_4", "text": "Walks up and down stairs, one foot on each step"}
+        ],
+        "language": [
+          {"id": "lang_36mo_1", "text": "Follows instructions with 2 or 3 steps"},
+          {"id": "lang_36mo_2", "text": "Can name most familiar things"},
+          {"id": "lang_36mo_3", "text": "Understands words like \"in,\" \"on,\" and \"under\""},
+          {"id": "lang_36mo_4", "text": "Says first name, age, and sex"},
+          {"id": "lang_36mo_5", "text": "Names a friend"},
+          {"id": "lang_36mo_6", "text": "Says words like \"I,\" \"me,\" \"we,\" and \"you\" and some plurals"}
+        ],
+        "social": [
+          {"id": "social_36mo_1", "text": "Copies adults and friends"},
+          {"id": "social_36mo_2", "text": "Shows affection for friends without prompting"},
+          {"id": "social_36mo_3", "text": "Takes turns in games"},
+          {"id": "social_36mo_4", "text": "Shows concern for a crying friend"},
+          {"id": "social_36mo_5", "text": "Understands the idea of \"mine\" and \"his\" or \"hers\""},
+          {"id": "social_36mo_6", "text": "Shows a wide range of emotions"}
+        ],
+        "cognitive": [
+          {"id": "cog_36mo_1", "text": "Can work toys with buttons, levers, and moving parts"},
+          {"id": "cog_36mo_2", "text": "Plays make-believe with dolls, animals, and people"},
+          {"id": "cog_36mo_3", "text": "Does puzzles with 3 or 4 pieces"},
+          {"id": "cog_36mo_4", "text": "Understands what \"two\" means"},
+          {"id": "cog_36mo_5", "text": "Copies a circle with pencil or crayon"},
+          {"id": "cog_36mo_6", "text": "Turns book pages one at a time"},
+          {"id": "cog_36mo_7", "text": "Screws and unscrews jar lids or turns door handle"}
+        ]
+      }
+    },
+    {
+      "age_months": 48,
+      "label": "4 Years",
+      "milestones": {
+        "motor": [
+          {"id": "motor_48mo_1", "text": "Hops and stands on one foot up to 2 seconds"},
+          {"id": "motor_48mo_2", "text": "Catches a bounced ball most of the time"},
+          {"id": "motor_48mo_3", "text": "Pours, cuts with supervision, and mashes own food"}
+        ],
+        "language": [
+          {"id": "lang_48mo_1", "text": "Knows some basic rules of grammar, such as correctly using \"he\" and \"she\""},
+          {"id": "lang_48mo_2", "text": "Sings a song or says a poem from memory"},
+          {"id": "lang_48mo_3", "text": "Tells stories"},
+          {"id": "lang_48mo_4", "text": "Can say first and last name"}
+        ],
+        "social": [
+          {"id": "social_48mo_1", "text": "Enjoys doing new things"},
+          {"id": "social_48mo_2", "text": "Plays \"Mom\" and \"Dad\""},
+          {"id": "social_48mo_3", "text": "Is more and more creative with make-believe play"},
+          {"id": "social_48mo_4", "text": "Would rather play with other children than alone"},
+          {"id": "social_48mo_5", "text": "Cooperates with other children"},
+          {"id": "social_48mo_6", "text": "Often can't tell what's real and what's make-believe"}
+        ],
+        "cognitive": [
+          {"id": "cog_48mo_1", "text": "Names some colors and some numbers"},
+          {"id": "cog_48mo_2", "text": "Understands the idea of counting"},
+          {"id": "cog_48mo_3", "text": "Starts to understand time"},
+          {"id": "cog_48mo_4", "text": "Remembers parts of a story"},
+          {"id": "cog_48mo_5", "text": "Understands the idea of \"same\" and \"different\""},
+          {"id": "cog_48mo_6", "text": "Draws a person with 2 to 4 body parts"},
+          {"id": "cog_48mo_7", "text": "Uses scissors"},
+          {"id": "cog_48mo_8", "text": "Starts to copy some capital letters"},
+          {"id": "cog_48mo_9", "text": "Plays board or card games"}
+        ]
+      }
+    },
+    {
+      "age_months": 60,
+      "label": "5 Years",
+      "milestones": {
+        "motor": [
+          {"id": "motor_60mo_1", "text": "Stands on one foot for 10 seconds or longer"},
+          {"id": "motor_60mo_2", "text": "Hops; may be able to skip"},
+          {"id": "motor_60mo_3", "text": "Can do a somersault"},
+          {"id": "motor_60mo_4", "text": "Uses a fork and spoon and sometimes a table knife"},
+          {"id": "motor_60mo_5", "text": "Can use the toilet on own"},
+          {"id": "motor_60mo_6", "text": "Swings and climbs"}
+        ],
+        "language": [
+          {"id": "lang_60mo_1", "text": "Speaks very clearly"},
+          {"id": "lang_60mo_2", "text": "Tells a simple story using full sentences"},
+          {"id": "lang_60mo_3", "text": "Uses future tense; for example, \"Grandma will be here\""},
+          {"id": "lang_60mo_4", "text": "Says name and address"}
+        ],
+        "social": [
+          {"id": "social_60mo_1", "text": "Wants to please friends"},
+          {"id": "social_60mo_2", "text": "Wants to be like friends"},
+          {"id": "social_60mo_3", "text": "More likely to agree with rules"},
+          {"id": "social_60mo_4", "text": "Likes to sing, dance, and act"},
+          {"id": "social_60mo_5", "text": "Is aware of gender"},
+          {"id": "social_60mo_6", "text": "Can tell what's real and what's make-believe"},
+          {"id": "social_60mo_7", "text": "Shows more independence"}
+        ],
+        "cognitive": [
+          {"id": "cog_60mo_1", "text": "Counts 10 or more things"},
+          {"id": "cog_60mo_2", "text": "Can draw a person with at least 6 body parts"},
+          {"id": "cog_60mo_3", "text": "Can print some letters or numbers"},
+          {"id": "cog_60mo_4", "text": "Copies a triangle and other geometric shapes"},
+          {"id": "cog_60mo_5", "text": "Knows about things used every day, like money and food"}
+        ]
+      }
+    }
+  ]
+}
