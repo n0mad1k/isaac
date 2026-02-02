@@ -291,33 +291,36 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                 contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
                 labelStyle={{ color: '#9ca3af' }}
                 formatter={(value, name) => {
-                  if (name === 'child') return [value, 'Child']
+                  if (name === 'child') return [<span style={{ color: '#ffffff', fontWeight: 'bold' }}>{`${value} ${unitLabel}`}</span>, `★ ${member.first_name || 'Child'}`]
                   const pctMap = { p3: '3rd', p10: '10th', p25: '25th', p50: '50th', p75: '75th', p90: '90th', p97: '97th' }
-                  return [value, pctMap[name] || name]
+                  return [`${value} ${unitLabel}`, pctMap[name] || name]
                 }}
                 labelFormatter={(month) => `Age: ${month} months`}
+                itemSorter={(item) => item.name === 'child' ? -1 : 0}
               />
               {/* Shaded percentile bands */}
               <Area type="monotone" dataKey="p97" stroke="none" fill="#374151" fillOpacity={0.3} />
               <Area type="monotone" dataKey="p3" stroke="none" fill="#1f2937" fillOpacity={1} />
 
-              {/* Percentile lines */}
-              <Line type="monotone" dataKey="p3" stroke="#ef4444" strokeWidth={1} dot={false} strokeDasharray="4 4" />
-              <Line type="monotone" dataKey="p10" stroke="#f97316" strokeWidth={1} dot={false} strokeDasharray="4 4" />
-              <Line type="monotone" dataKey="p25" stroke="#eab308" strokeWidth={1} dot={false} strokeDasharray="3 3" />
-              <Line type="monotone" dataKey="p50" stroke="#22c55e" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="p75" stroke="#eab308" strokeWidth={1} dot={false} strokeDasharray="3 3" />
-              <Line type="monotone" dataKey="p90" stroke="#f97316" strokeWidth={1} dot={false} strokeDasharray="4 4" />
-              <Line type="monotone" dataKey="p97" stroke="#ef4444" strokeWidth={1} dot={false} strokeDasharray="4 4" />
+              {/* Percentile lines - subtle so child's data stands out */}
+              <Line type="monotone" dataKey="p3" stroke="#ef4444" strokeWidth={1} dot={false} strokeDasharray="4 4" strokeOpacity={0.5} />
+              <Line type="monotone" dataKey="p10" stroke="#f97316" strokeWidth={1} dot={false} strokeDasharray="4 4" strokeOpacity={0.5} />
+              <Line type="monotone" dataKey="p25" stroke="#eab308" strokeWidth={1} dot={false} strokeDasharray="3 3" strokeOpacity={0.5} />
+              <Line type="monotone" dataKey="p50" stroke="#22c55e" strokeWidth={1.5} dot={false} strokeOpacity={0.7} />
+              <Line type="monotone" dataKey="p75" stroke="#eab308" strokeWidth={1} dot={false} strokeDasharray="3 3" strokeOpacity={0.5} />
+              <Line type="monotone" dataKey="p90" stroke="#f97316" strokeWidth={1} dot={false} strokeDasharray="4 4" strokeOpacity={0.5} />
+              <Line type="monotone" dataKey="p97" stroke="#ef4444" strokeWidth={1} dot={false} strokeDasharray="4 4" strokeOpacity={0.5} />
 
-              {/* Child's data */}
+              {/* Child's data - bold & prominent */}
               <Line
                 type="monotone"
                 dataKey="child"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                dot={{ fill: '#3b82f6', stroke: '#1e40af', strokeWidth: 2, r: 5 }}
+                stroke="#ffffff"
+                strokeWidth={4}
+                dot={{ fill: '#3b82f6', stroke: '#ffffff', strokeWidth: 3, r: 7 }}
+                activeDot={{ fill: '#3b82f6', stroke: '#ffffff', strokeWidth: 3, r: 9 }}
                 connectNulls
+                name="child"
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -328,12 +331,27 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
         )}
 
         {/* Chart legend */}
-        <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-400 justify-center">
-          <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-blue-500 inline-block"></span> Child</span>
-          <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-green-500 inline-block"></span> 50th</span>
-          <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-yellow-500 inline-block border-dashed"></span> 25th/75th</span>
-          <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-orange-500 inline-block"></span> 10th/90th</span>
-          <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-red-500 inline-block"></span> 3rd/97th</span>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-sm justify-center">
+          <span className="flex items-center gap-2">
+            <svg width="28" height="12"><line x1="0" y1="6" x2="28" y2="6" stroke="#ffffff" strokeWidth="4" /><circle cx="14" cy="6" r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" /></svg>
+            <span className="text-white font-semibold">{member.first_name || 'Child'}</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <svg width="28" height="12"><line x1="0" y1="6" x2="28" y2="6" stroke="#22c55e" strokeWidth="2" /></svg>
+            <span className="text-gray-300">50th %ile</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <svg width="28" height="12"><line x1="0" y1="6" x2="28" y2="6" stroke="#eab308" strokeWidth="1" strokeDasharray="3 3" /></svg>
+            <span className="text-gray-400">25th / 75th</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <svg width="28" height="12"><line x1="0" y1="6" x2="28" y2="6" stroke="#f97316" strokeWidth="1" strokeDasharray="4 4" /></svg>
+            <span className="text-gray-400">10th / 90th</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <svg width="28" height="12"><line x1="0" y1="6" x2="28" y2="6" stroke="#ef4444" strokeWidth="1" strokeDasharray="4 4" /></svg>
+            <span className="text-gray-400">3rd / 97th</span>
+          </span>
         </div>
       </div>
 
