@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.77.1] - 2026-02-02
+
+### Fixed
+- **Budget transactions table no longer clips on desktop** - Widened Category column (120px→140px) and Account column (90px→110px) so dropdown text and action buttons don't overflow the right edge. Added overflow handling to prevent cell content from escaping grid boundaries.
+
 ## [1.77.0] - 2026-02-02
 
 ### Added

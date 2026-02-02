@@ -286,9 +286,9 @@ function BudgetTransactions() {
       )}
 
       {/* Transaction List */}
-      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+      <div className="rounded-xl overflow-x-auto" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         {/* Desktop Header - hidden on mobile */}
-        <div className="hidden md:grid grid-cols-[90px_1fr_100px_90px_120px_60px] text-xs font-semibold py-2 px-3" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+        <div className="hidden md:grid grid-cols-[90px_1fr_100px_110px_140px_50px] text-xs font-semibold py-2 px-3" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
           <span>Date</span>
           <span>Description</span>
           <span className="text-right">Amount</span>
@@ -312,24 +312,24 @@ function BudgetTransactions() {
               {transactions.map(txn => (
                 <div
                   key={txn.id}
-                  className="grid grid-cols-[90px_1fr_100px_90px_120px_60px] text-xs py-2 px-3 items-center hover:bg-gray-800/30 transition-colors"
+                  className="grid grid-cols-[90px_1fr_100px_110px_140px_50px] text-xs py-2 px-3 items-center hover:bg-gray-800/30 transition-colors"
                   style={{ borderBottom: '1px solid var(--color-border-default)' }}
                 >
                   <span style={{ color: 'var(--color-text-muted)' }}>
                     {formatDate ? formatDate(txn.transaction_date) : txn.transaction_date}
                   </span>
-                  <span style={{ color: 'var(--color-text-primary)' }}>{txn.description}</span>
+                  <span className="min-w-0 truncate" style={{ color: 'var(--color-text-primary)' }}>{txn.description}</span>
                   <span className="text-right font-medium" style={{ color: txn.amount < 0 ? '#ef4444' : '#22c55e' }}>
                     {fmt(txn.amount)}
                   </span>
                   <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
                     {accounts.find(a => a.id === txn.account_id)?.name || ''}
                   </span>
-                  <span className="text-right">
+                  <span className="text-right min-w-0 overflow-hidden">
                     <select
                       value={txn.category_id || ''}
                       onChange={(e) => handleCategoryChange(txn.id, e.target.value ? parseInt(e.target.value) : null)}
-                      className="px-1 py-0.5 bg-transparent border border-transparent hover:border-gray-600 rounded text-xs text-right cursor-pointer"
+                      className="w-full px-1 py-0.5 bg-transparent border border-transparent hover:border-gray-600 rounded text-xs text-right cursor-pointer truncate"
                       style={{ color: 'var(--color-text-secondary)' }}
                     >
                       <option value="">--</option>
