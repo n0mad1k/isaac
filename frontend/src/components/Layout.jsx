@@ -214,6 +214,11 @@ function Layout() {
     }
     fetchRefreshSetting()
     fetchVersionInfo()
+
+    // Re-fetch settings when they change (e.g., user saves in Settings page)
+    const handleSettingsChanged = () => fetchRefreshSetting()
+    window.addEventListener('settings-changed', handleSettingsChanged)
+    return () => window.removeEventListener('settings-changed', handleSettingsChanged)
   }, [])
 
   // Check if any modal or form is open (to pause refresh)

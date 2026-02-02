@@ -566,6 +566,8 @@ function Settings() {
 
       // Refresh to get updated timestamps
       await fetchSettings()
+      // Notify Layout and other listeners that settings changed
+      window.dispatchEvent(new CustomEvent('settings-changed'))
       setMessage({ type: 'success', text: `Saved ${changedKeys.length} setting(s)` })
       setTimeout(() => setMessage(null), 3000)
     } catch (error) {
