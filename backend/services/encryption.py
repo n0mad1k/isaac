@@ -103,6 +103,7 @@ ENCRYPTED_SETTINGS = [
     'cloudflare_api_token',
     'deepl_api_key',
     'anthropic_api_key',
+    'openai_api_key',
 ]
 
 

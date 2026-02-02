@@ -40,21 +40,19 @@ async def check_ai_health(
     user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """Check if Claude API key is set and valid"""
+    """Check if AI provider is healthy (Ollama running, or API key valid)"""
     try:
         service = await get_configured_service(db)
-        if not service.api_key:
-            return {"status": "offline", "model": service.model, "provider": "claude"}
         healthy = await service.check_health()
         await service.close()
         return {
             "status": "online" if healthy else "offline",
             "model": service.model,
-            "provider": "claude",
+            "provider": service.provider,
         }
     except Exception as e:
         logger.error(f"AI health check failed: {e}")
-        return {"status": "offline", "model": "", "provider": "claude"}
+        return {"status": "offline", "model": "", "provider": ""}
 
 
 @router.get("/models/")
@@ -62,10 +60,10 @@ async def list_ai_models(
     user: User = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return the configured Claude model"""
+    """Return the configured AI model"""
     try:
         service = await get_configured_service(db)
-        return {"models": [{"name": service.model}]}
+        return {"models": [{"name": service.model, "provider": service.provider}]}
     except Exception as e:
         logger.error(f"Failed to get model info: {e}")
         raise HTTPException(status_code=500, detail="Failed to get AI model info")

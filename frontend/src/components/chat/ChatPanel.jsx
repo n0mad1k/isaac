@@ -15,6 +15,7 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
   const [aiStatus, setAiStatus] = useState('checking') // checking, online, offline
+  const [aiProvider, setAiProvider] = useState('')
   const [insights, setInsights] = useState([])
   const [loading, setLoading] = useState(false)
   const [showConversationList, setShowConversationList] = useState(true)
@@ -44,6 +45,7 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
     setAiStatus('checking')
     try {
       const res = await getAiHealth()
+      if (res.data.provider) setAiProvider(res.data.provider)
       if (res.data.status === 'online') {
         setAiStatus('online')
         return
@@ -53,6 +55,7 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
     await new Promise(r => setTimeout(r, 2000))
     try {
       const res = await getAiHealth()
+      if (res.data.provider) setAiProvider(res.data.provider)
       setAiStatus(res.data.status || 'offline')
     } catch {
       setAiStatus('offline')
@@ -275,7 +278,7 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
               </button>
             )}
             <Bot className="w-5 h-5" style={{ color: 'var(--color-green-600)' }} />
-            <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Isaac AI <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>Claude</span></span>
+            <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Isaac AI {aiProvider && <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>{aiProvider === 'claude' ? 'Claude' : aiProvider === 'openai' ? 'ChatGPT' : 'Ollama'}</span>}</span>
             <span
               className="w-2 h-2 rounded-full"
               style={{ backgroundColor: aiStatus === 'online' ? 'var(--color-success-600)' : aiStatus === 'offline' ? 'var(--color-error-600)' : 'var(--color-warning-600)' }}
@@ -318,7 +321,7 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
               <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6">
                 <WifiOff className="w-10 h-10" style={{ color: 'var(--color-text-muted)' }} />
                 <p className="text-sm text-center" style={{ color: 'var(--color-text-muted)' }}>
-                  AI is offline. Add your Anthropic API key in Settings to chat with Isaac.
+                  AI is offline. Configure your AI provider in Settings to chat with Isaac.
                 </p>
                 <button
                   onClick={checkHealth}

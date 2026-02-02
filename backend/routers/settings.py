@@ -389,22 +389,42 @@ DEFAULT_SETTINGS = {
         "description": "JSON array of team values with names, descriptions, and questions"
     },
 
-    # AI Assistant (Claude)
+    # AI Assistant (multi-provider)
     "ai_enabled": {
         "value": "true",
-        "description": "Enable the AI assistant (requires Anthropic API key)"
+        "description": "Enable the AI assistant"
+    },
+    "ai_provider": {
+        "value": "ollama",
+        "description": "AI provider: ollama (self-hosted), claude (Anthropic), or openai (ChatGPT)"
     },
     "ai_proactive_insights": {
         "value": "true",
         "description": "Enable scheduled AI insights (morning digest, weekly reviews)"
     },
+    "ollama_url": {
+        "value": "http://localhost:11434",
+        "description": "Ollama server URL (for self-hosted provider)"
+    },
+    "ollama_model": {
+        "value": "llama3.2",
+        "description": "Ollama model name"
+    },
     "anthropic_api_key": {
         "value": "",
-        "description": "Anthropic API key for Claude AI assistant"
+        "description": "Anthropic API key for Claude"
     },
     "claude_model": {
         "value": "claude-sonnet-4-20250514",
-        "description": "Claude model to use for AI assistant"
+        "description": "Claude model to use"
+    },
+    "openai_api_key": {
+        "value": "",
+        "description": "OpenAI API key for ChatGPT"
+    },
+    "openai_model": {
+        "value": "gpt-4o-mini",
+        "description": "OpenAI model to use"
     },
     "ai_shared_domains": {
         "value": "",
@@ -468,7 +488,7 @@ async def set_setting(db: AsyncSession, key: str, value: str) -> AppSetting:
 
 
 # Sensitive settings that should be masked in responses (includes cloudflare_api_token)
-SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token', 'deepl_api_key', 'anthropic_api_key']
+SENSITIVE_SETTINGS = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token', 'deepl_api_key', 'anthropic_api_key', 'openai_api_key']
 
 def mask_sensitive_value(key: str, value: str) -> str:
     """Mask sensitive settings for display"""
