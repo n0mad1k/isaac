@@ -22,10 +22,14 @@ DEEPL_PRO_URL = "https://api.deepl.com/v2/translate"
 
 
 async def get_deepl_key():
-    """Get DeepL API key from settings"""
+    """Get DeepL API key from settings (handles decryption)"""
     try:
         from services.scheduler import get_setting_value
-        return await get_setting_value("deepl_api_key")
+        from services.encryption import decrypt_value, is_encrypted
+        raw_key = await get_setting_value("deepl_api_key")
+        if raw_key and is_encrypted(raw_key):
+            raw_key = decrypt_value(raw_key)
+        return raw_key if raw_key else None
     except Exception as e:
         logger.debug(f"Could not get DeepL key from settings: {e}")
         return None
