@@ -57,6 +57,11 @@ class HealthLog(Base):
     cpu_message = Column(String(200), nullable=True)
     cpu_load = Column(Float, nullable=True)
 
+    # Calendar sync performance
+    calendar_sync_status = Column(String(20), default="unknown")
+    calendar_sync_message = Column(String(200), nullable=True)
+    calendar_sync_value = Column(Float, nullable=True)
+
     def __repr__(self):
         return f"<HealthLog {self.checked_at} status={self.overall_status}>"
 
@@ -74,5 +79,6 @@ class HealthLog(Base):
             "caldav": {"status": self.caldav_status, "message": self.caldav_message},
             "memory": {"status": self.memory_status, "message": self.memory_message, "percent": self.memory_percent},
             "disk": {"status": self.disk_status, "message": self.disk_message, "percent": self.disk_percent},
-            "cpu": {"status": self.cpu_status, "message": self.cpu_message, "load": self.cpu_load}
+            "cpu": {"status": self.cpu_status, "message": self.cpu_message, "load": self.cpu_load},
+            "calendar_sync": {"status": self.calendar_sync_status, "message": self.calendar_sync_message, "value": self.calendar_sync_value}
         }

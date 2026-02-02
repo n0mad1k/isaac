@@ -2594,15 +2594,30 @@ function Settings() {
                               {healthSummary.latest.overall_status?.toUpperCase()}
                             </span>
                           </div>
+                          {/* Warning/Critical reason banner */}
+                          {healthSummary.latest.overall_status !== 'healthy' && (() => {
+                            const allCheckKeys = ['api', 'database', 'caldav', 'memory', 'disk', 'cpu', 'calendar_sync']
+                            const issueChecks = allCheckKeys
+                              .filter(k => healthSummary.latest[k] && (healthSummary.latest[k].status === 'warning' || healthSummary.latest[k].status === 'critical'))
+                              .map(k => healthSummary.latest[k].message || k)
+                            return issueChecks.length > 0 ? (
+                              <div className={`rounded-lg px-4 py-3 mb-3 ${healthSummary.latest.overall_status === 'critical' ? 'bg-red-900/30 border border-red-700/50' : 'bg-yellow-900/30 border border-yellow-700/50'}`}>
+                                <p className={`text-sm font-medium ${healthSummary.latest.overall_status === 'critical' ? 'text-red-200' : 'text-yellow-200'}`}>
+                                  {issueChecks.join(' | ')}
+                                </p>
+                              </div>
+                            ) : null
+                          })()}
                           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                            {['api', 'database', 'caldav', 'memory', 'disk', 'cpu'].map(check => {
+                            {['api', 'database', 'caldav', 'calendar_sync', 'memory', 'disk', 'cpu'].map(check => {
                               const data = healthSummary.latest[check]
                               if (!data) return null
                               const isIssue = data.status === 'warning' || data.status === 'critical'
+                              const label = check === 'calendar_sync' ? 'Cal Sync' : check
                               return (
                                 <div key={check} className={`bg-gray-800/50 rounded px-3 py-2 ${isIssue ? (data.status === 'critical' ? 'border border-red-700/50' : 'border border-yellow-700/50') : ''}`}>
                                   <div className="flex items-center justify-between">
-                                    <span className="text-gray-400 capitalize">{check}</span>
+                                    <span className="text-gray-400 capitalize">{label}</span>
                                     <span className={`text-xs font-medium ${
                                       data.status === 'healthy' ? 'text-green-400' :
                                       data.status === 'warning' ? 'text-yellow-400' :
@@ -2701,37 +2716,36 @@ function Settings() {
                         <p className="text-gray-400 text-sm py-4 text-center">No health logs yet</p>
                       ) : (
                         healthLogs.map((log, idx) => {
-                          const allChecks = ['api', 'database', 'caldav', 'memory', 'disk', 'cpu']
+                          const allChecks = ['api', 'database', 'caldav', 'calendar_sync', 'memory', 'disk', 'cpu']
                           const issues = allChecks.filter(check => log[check] && (log[check].status === 'warning' || log[check].status === 'critical'))
                           const isExpanded = expandedLogs[idx]
-                          const issueCount = issues.length
                           return (
                             <div key={idx} className={`rounded text-sm cursor-pointer transition-colors ${
-                              log.overall_status === 'healthy' ? 'bg-green-900/20 hover:bg-green-900/30' :
-                              log.overall_status === 'warning' ? 'bg-yellow-900/20 hover:bg-yellow-900/30' :
-                              log.overall_status === 'critical' ? 'bg-red-900/20 hover:bg-red-900/30' :
+                              log.overall_status === 'healthy' ? 'bg-gray-800/50 hover:bg-gray-800/70' :
+                              log.overall_status === 'warning' ? 'bg-gray-800/50 hover:bg-gray-800/70 border-l-4 border-yellow-500' :
+                              log.overall_status === 'critical' ? 'bg-gray-800/50 hover:bg-gray-800/70 border-l-4 border-red-500' :
                               'bg-gray-800/50 hover:bg-gray-800/70'
                             }`}
                               onClick={() => setExpandedLogs(prev => ({ ...prev, [idx]: !prev[idx] }))}
                             >
                               <div className="flex items-center justify-between px-3 py-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-gray-500 text-xs">{isExpanded ? '▼' : '▶'}</span>
-                                  <span className="text-gray-400 text-xs">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-gray-500 text-xs flex-shrink-0">{isExpanded ? '▼' : '▶'}</span>
+                                  <span className="text-gray-300 text-xs flex-shrink-0">
                                     {new Date(log.checked_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </span>
-                                  {issueCount > 0 && !isExpanded && (
-                                    <span className="text-xs text-yellow-400">
+                                  {issues.length > 0 && !isExpanded && (
+                                    <span className="text-yellow-300 text-xs truncate">
                                       {issues.map(check => {
                                         const d = log[check]
                                         return d?.message || check
-                                      }).join('; ')}
+                                      }).join(' | ')}
                                     </span>
                                   )}
                                 </div>
-                                <span className={`font-medium ${
+                                <span className={`font-medium text-xs flex-shrink-0 ${
                                   log.overall_status === 'healthy' ? 'text-green-400' :
-                                  log.overall_status === 'warning' ? 'text-yellow-400' :
+                                  log.overall_status === 'warning' ? 'text-yellow-300' :
                                   log.overall_status === 'critical' ? 'text-red-400' :
                                   'text-gray-400'
                                 }`}>
@@ -2739,23 +2753,25 @@ function Settings() {
                                 </span>
                               </div>
                               {isExpanded && (
-                                <div className="px-3 pb-2 space-y-1 border-t border-gray-700/50 pt-2">
+                                <div className="px-3 pb-3 space-y-1 border-t border-gray-700/50 pt-2">
                                   {allChecks.map(check => {
                                     const data = log[check]
                                     if (!data) return null
                                     const isIssue = data.status === 'warning' || data.status === 'critical'
                                     const statusIcon = data.status === 'healthy' ? '✓' : data.status === 'warning' ? '⚠' : data.status === 'critical' ? '✗' : '?'
                                     const statusColor = data.status === 'healthy' ? 'text-green-400' : data.status === 'warning' ? 'text-yellow-400' : data.status === 'critical' ? 'text-red-400' : 'text-gray-400'
+                                    const label = check === 'calendar_sync' ? 'Cal Sync' : check
                                     const valueStr = data.percent !== undefined ? `${data.percent?.toFixed(0)}%` : data.latency_ms !== undefined ? `${data.latency_ms?.toFixed(0)}ms` : data.load !== undefined ? `load ${data.load?.toFixed(1)}` : ''
                                     return (
-                                      <div key={check} className={`rounded px-2 py-1.5 ${isIssue ? (data.status === 'critical' ? 'bg-red-900/30' : 'bg-yellow-900/30') : 'bg-gray-800/30'}`}>
-                                        <div className="flex items-center gap-2 text-xs">
+                                      <div key={check} className={`rounded px-3 py-2 ${isIssue ? (data.status === 'critical' ? 'bg-red-900/20 border border-red-800/40' : 'bg-yellow-900/20 border border-yellow-800/40') : 'bg-gray-700/30'}`}>
+                                        <div className="flex items-center gap-2 text-sm">
                                           <span className={statusColor}>{statusIcon}</span>
-                                          <span className="text-gray-300 capitalize font-medium">{check}</span>
-                                          <span className={statusColor}>{valueStr}</span>
+                                          <span className="text-gray-200 capitalize font-medium">{label}</span>
+                                          {valueStr && <span className="text-gray-400">{valueStr}</span>}
+                                          {data.message && !isIssue && <span className="text-gray-500 text-xs ml-auto">{data.message}</span>}
                                         </div>
                                         {data.message && isIssue && (
-                                          <p className={`text-sm mt-1 ml-5 ${data.status === 'critical' ? 'text-red-300' : 'text-yellow-300'}`}>
+                                          <p className={`text-sm mt-1 ml-6 ${data.status === 'critical' ? 'text-red-300' : 'text-yellow-200'}`}>
                                             {data.message}
                                           </p>
                                         )}

@@ -266,6 +266,9 @@ async def log_health_check(db: AsyncSession, checks: List[HealthCheck], overall_
         cpu_status=next((c.status for c in checks if c.name == "cpu"), "unknown"),
         cpu_message=next((c.message for c in checks if c.name == "cpu"), ""),
         cpu_load=next((c.value for c in checks if c.name == "cpu"), None),
+        calendar_sync_status=next((c.status for c in checks if c.name == "calendar_sync"), "unknown"),
+        calendar_sync_message=next((c.message for c in checks if c.name == "calendar_sync"), ""),
+        calendar_sync_value=next((c.value for c in checks if c.name == "calendar_sync"), None),
     )
 
     db.add(log)

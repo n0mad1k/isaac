@@ -2,10 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.77.3] - 2026-02-02
+
+### Fixed
+- **Health monitor now shows WHY there's a warning** - Added warning reason banner at the top of health status (e.g., "Calendar sync stale (305m ago) — scheduler may need restart"). Previously showed WARNING badge with no explanation.
+- **Calendar Sync now tracked in health checks** - Added "Cal Sync" to the health monitoring grid so stale/slow calendar syncs are visible. Previously the check ran but was invisible in the UI.
+- **Health log entries are now readable** - Fixed poor contrast in expanded health log rows. Switched from colored backgrounds (unreadable) to dark backgrounds with clear text and left-border status indicators.
+
 ## [1.77.2] - 2026-02-02
 
 ### Fixed
 - **AI provider selection is now a dropdown** - Changed from text input to select dropdown with Ollama/Claude/OpenAI options, fixing issue where provider-specific fields (API keys, model) wouldn't appear after changing provider
+- **Observations now properly clear after AAR completion** - Fixed stale observations from completed AARs still appearing in the current week. Added startup migration to auto-mark observations as discussed when their AAR has been completed
+- **Decryption warnings resolved** - Cleared corrupted encrypted settings on prod that were encrypted with an old key, eliminating recurring decryption failure warnings in logs
 
 ## [1.77.1] - 2026-02-02
 
