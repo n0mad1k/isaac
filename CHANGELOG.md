@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.76.5] - 2026-02-02
+
+### Changed
+- **Health monitor warnings are now more informative** - Warning and critical messages include actionable guidance (e.g., "Memory at 85% — consider restarting services to free memory" instead of just "Memory high: 85%"). Warning text in the UI is now larger and more prominent. Collapsed health log entries show the actual warning messages inline.
+
 ## [1.76.4] - 2026-02-02
 
 ### Fixed

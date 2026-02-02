@@ -82,7 +82,7 @@ class HealthMonitor:
             elapsed = (datetime.utcnow() - start).total_seconds() * 1000
 
             if elapsed > 1000:
-                return HealthCheck("database", HealthStatus.WARNING, f"Database slow: {elapsed:.0f}ms", elapsed)
+                return HealthCheck("database", HealthStatus.WARNING, f"Database slow at {elapsed:.0f}ms — may need maintenance or disk is busy", elapsed)
             return HealthCheck("database", HealthStatus.HEALTHY, f"Database responding: {elapsed:.0f}ms", elapsed)
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
@@ -102,7 +102,7 @@ class HealthMonitor:
         password = await get_calendar_setting(db, "calendar_password")
 
         if not url or not username or not password:
-            return HealthCheck("caldav", HealthStatus.UNKNOWN, "CalDAV not fully configured")
+            return HealthCheck("caldav", HealthStatus.UNKNOWN, "CalDAV not fully configured — set URL, username, and password in Settings")
 
         try:
             timeout = aiohttp.ClientTimeout(total=10)
@@ -134,13 +134,13 @@ class HealthMonitor:
         # Alert if sync takes more than 60 seconds (should be <10s normally)
         if duration > 90:
             return HealthCheck("calendar_sync", HealthStatus.CRITICAL,
-                f"Calendar sync very slow: {duration:.0f}s", duration)
+                f"Calendar sync took {duration:.0f}s — network or CalDAV server may be overloaded", duration)
         elif duration > 60:
             return HealthCheck("calendar_sync", HealthStatus.WARNING,
-                f"Calendar sync slow: {duration:.0f}s", duration)
+                f"Calendar sync slow at {duration:.0f}s — check network or CalDAV server", duration)
         elif minutes_ago > 15:
             return HealthCheck("calendar_sync", HealthStatus.WARNING,
-                f"Calendar sync stale: {minutes_ago:.0f}m ago", minutes_ago)
+                f"Calendar sync stale ({minutes_ago:.0f}m ago) — scheduler may need restart", minutes_ago)
 
         return HealthCheck("calendar_sync", HealthStatus.HEALTHY,
             f"Calendar sync OK: {duration:.1f}s, {minutes_ago:.0f}m ago", duration)
@@ -152,9 +152,9 @@ class HealthMonitor:
             used_percent = memory.percent
 
             if used_percent > 90:
-                return HealthCheck("memory", HealthStatus.CRITICAL, f"Memory critical: {used_percent:.1f}%", used_percent)
+                return HealthCheck("memory", HealthStatus.CRITICAL, f"Memory critical at {used_percent:.1f}% — restart services or reboot to free memory", used_percent)
             elif used_percent > 80:
-                return HealthCheck("memory", HealthStatus.WARNING, f"Memory high: {used_percent:.1f}%", used_percent)
+                return HealthCheck("memory", HealthStatus.WARNING, f"Memory at {used_percent:.1f}% — consider restarting services to free memory", used_percent)
             return HealthCheck("memory", HealthStatus.HEALTHY, f"Memory OK: {used_percent:.1f}%", used_percent)
         except Exception as e:
             return HealthCheck("memory", HealthStatus.UNKNOWN, f"Memory check failed: {str(e)[:100]}")
@@ -166,9 +166,9 @@ class HealthMonitor:
             used_percent = disk.percent
 
             if used_percent > 95:
-                return HealthCheck("disk", HealthStatus.CRITICAL, f"Disk critical: {used_percent:.1f}%", used_percent)
+                return HealthCheck("disk", HealthStatus.CRITICAL, f"Disk critical at {used_percent:.1f}% — clear old backups or logs immediately", used_percent)
             elif used_percent > 85:
-                return HealthCheck("disk", HealthStatus.WARNING, f"Disk high: {used_percent:.1f}%", used_percent)
+                return HealthCheck("disk", HealthStatus.WARNING, f"Disk at {used_percent:.1f}% — clear old backups, logs, or unused files", used_percent)
             return HealthCheck("disk", HealthStatus.HEALTHY, f"Disk OK: {used_percent:.1f}%", used_percent)
         except Exception as e:
             return HealthCheck("disk", HealthStatus.UNKNOWN, f"Disk check failed: {str(e)[:100]}")
@@ -181,10 +181,10 @@ class HealthMonitor:
             load_percent = (load_avg[0] / cpu_count) * 100
 
             if load_percent > 200:
-                return HealthCheck("cpu", HealthStatus.CRITICAL, f"CPU overloaded: {load_avg[0]:.2f}", load_percent)
+                return HealthCheck("cpu", HealthStatus.CRITICAL, f"CPU overloaded (load {load_avg[0]:.2f}/{cpu_count} cores) — heavy tasks are degrading performance", load_percent)
             elif load_percent > 100:
-                return HealthCheck("cpu", HealthStatus.WARNING, f"CPU high: {load_avg[0]:.2f}", load_percent)
-            return HealthCheck("cpu", HealthStatus.HEALTHY, f"CPU OK: {load_avg[0]:.2f}", load_percent)
+                return HealthCheck("cpu", HealthStatus.WARNING, f"CPU high (load {load_avg[0]:.2f}/{cpu_count} cores) — background tasks may slow the app", load_percent)
+            return HealthCheck("cpu", HealthStatus.HEALTHY, f"CPU OK: load {load_avg[0]:.2f}/{cpu_count} cores", load_percent)
         except Exception as e:
             return HealthCheck("cpu", HealthStatus.UNKNOWN, f"CPU check failed: {str(e)[:100]}")
 

@@ -2601,7 +2601,7 @@ function Settings() {
                                     </span>
                                   </div>
                                   {data.message && (
-                                    <p className={`text-xs mt-1 ${isIssue ? (data.status === 'critical' ? 'text-red-300' : 'text-yellow-300') : 'text-gray-500'}`}>
+                                    <p className={`mt-1 ${isIssue ? `text-sm font-medium ${data.status === 'critical' ? 'text-red-300' : 'text-yellow-300'}` : 'text-xs text-gray-500'}`}>
                                       {data.message}
                                     </p>
                                   )}
@@ -2707,7 +2707,10 @@ function Settings() {
                                   </span>
                                   {issueCount > 0 && !isExpanded && (
                                     <span className="text-xs text-yellow-400">
-                                      ({issueCount} issue{issueCount !== 1 ? 's' : ''})
+                                      {issues.map(check => {
+                                        const d = log[check]
+                                        return d?.message || check
+                                      }).join('; ')}
                                     </span>
                                   )}
                                 </div>
@@ -2730,14 +2733,16 @@ function Settings() {
                                     const statusColor = data.status === 'healthy' ? 'text-green-400' : data.status === 'warning' ? 'text-yellow-400' : data.status === 'critical' ? 'text-red-400' : 'text-gray-400'
                                     const valueStr = data.percent !== undefined ? `${data.percent?.toFixed(0)}%` : data.latency_ms !== undefined ? `${data.latency_ms?.toFixed(0)}ms` : data.load !== undefined ? `load ${data.load?.toFixed(1)}` : ''
                                     return (
-                                      <div key={check} className={`flex items-start gap-2 text-xs rounded px-2 py-1 ${isIssue ? (data.status === 'critical' ? 'bg-red-900/30' : 'bg-yellow-900/30') : 'bg-gray-800/30'}`}>
-                                        <span className={statusColor}>{statusIcon}</span>
-                                        <span className="text-gray-300 capitalize w-16">{check}</span>
-                                        <span className={statusColor}>{valueStr}</span>
-                                        {data.message && (
-                                          <span className={isIssue ? (data.status === 'critical' ? 'text-red-300' : 'text-yellow-300') : 'text-gray-500'}>
-                                            — {data.message}
-                                          </span>
+                                      <div key={check} className={`rounded px-2 py-1.5 ${isIssue ? (data.status === 'critical' ? 'bg-red-900/30' : 'bg-yellow-900/30') : 'bg-gray-800/30'}`}>
+                                        <div className="flex items-center gap-2 text-xs">
+                                          <span className={statusColor}>{statusIcon}</span>
+                                          <span className="text-gray-300 capitalize font-medium">{check}</span>
+                                          <span className={statusColor}>{valueStr}</span>
+                                        </div>
+                                        {data.message && isIssue && (
+                                          <p className={`text-sm mt-1 ml-5 ${data.status === 'critical' ? 'text-red-300' : 'text-yellow-300'}`}>
+                                            {data.message}
+                                          </p>
                                         )}
                                       </div>
                                     )
