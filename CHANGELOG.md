@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.78.3] - 2026-02-02
+
+### Changed
+- **Health indicators now expandable with detailed sections** - Each health indicator card is now clickable to expand and reveal detailed sections: Your Readings (actual measured values), Reference Ranges (normal ranges for comparison), Contributing Factors, and Recommendations. Collapsed view still shows score badge, progress bar, and summary explanation.
+
 ## [1.78.2] - 2026-02-02
 
 ### Fixed
