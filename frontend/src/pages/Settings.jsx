@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search, Upload, Image } from 'lucide-react'
+import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search, Upload, Image, Bot } from 'lucide-react'
 import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
@@ -102,12 +102,13 @@ function Settings() {
     storage: false,
     healthMonitor: false,
     logs: false,
+    ai: false,
     myFeedback: true
   })
   const [teamValues, setTeamValues] = useState([])
 
   // Fields that should be treated as passwords
-  const passwordFields = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token', 'deepl_api_key']
+  const passwordFields = ['calendar_password', 'smtp_password', 'awn_api_key', 'awn_app_key', 'cloudflare_api_token', 'deepl_api_key', 'anthropic_api_key']
 
   const fetchSettings = async () => {
     try {
@@ -793,6 +794,7 @@ function Settings() {
   const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
   const displaySettings = ['dashboard_refresh_interval', 'hide_completed_today', 'time_format', 'worker_tasks_enabled', 'team_enabled']
   const teamSettings = ['team_name', 'team_mission', 'team_units', 'mentoring_day', 'aar_day']
+  const aiSettings = ['ai_enabled', 'anthropic_api_key', 'claude_model', 'ai_proactive_insights', 'ai_shared_domains']
 
   // Simplified notification categories - one setting per category
   const notifyCategories = [
@@ -2151,6 +2153,34 @@ function Settings() {
           </div>
         )}
       </div>
+
+      {/* AI Assistant Settings */}
+      {isAdmin && (
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => toggleSection('ai')}
+        >
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            {expandedSections.ai ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            <Bot className="w-5 h-5 text-purple-400" />
+            AI Assistant (Claude)
+          </h2>
+        </div>
+        {expandedSections.ai && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-400 mb-4">
+              Configure Claude AI for the chat assistant and scheduled insights. Get an API key at{' '}
+              <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">console.anthropic.com</a>.
+              Use "AI Shared Domains" to control which personal data categories the AI can access (comma-separated: garden,fitness,budget,production,animals,weather,tasks). Leave empty to share no data.
+            </p>
+            <div className="space-y-4">
+              {aiSettings.map(key => renderSettingCard(key))}
+            </div>
+          </div>
+        )}
+      </div>
+      )}
 
       {/* Feature Toggles */}
       <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
