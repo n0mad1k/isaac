@@ -61,7 +61,8 @@ function BudgetSettings() {
 
   const sections = [
     { key: 'accounts', label: 'Accounts' },
-    { key: 'categories', label: 'Categories' },
+    { key: 'pots', label: 'Pots of Money' },
+    { key: 'categories', label: 'All Categories' },
     { key: 'income', label: 'Income' },
     { key: 'rules', label: 'Rules' },
   ]
@@ -91,6 +92,9 @@ function BudgetSettings() {
 
       {activeSection === 'accounts' && (
         <AccountsSection accounts={accounts} onRefresh={fetchAll} />
+      )}
+      {activeSection === 'pots' && (
+        <PotsSection categories={categories} onRefresh={fetchAll} />
       )}
       {activeSection === 'categories' && (
         <CategoriesSection categories={categories} onRefresh={fetchAll} />
@@ -197,6 +201,149 @@ function AccountsSection({ accounts, onRefresh }) {
           </div>
         ))}
         {accounts.length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--color-text-muted)' }}>No accounts yet</p>}
+      </div>
+    </div>
+  )
+}
+
+
+// ============================
+// Pots of Money Section
+// ============================
+function PotsSection({ categories, onRefresh }) {
+  const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [form, setForm] = useState({
+    name: '', category_type: 'variable', budget_amount: '', monthly_budget: '',
+    color: '#3b82f6',
+  })
+
+  // Only show variable and transfer categories (the "pots of money")
+  const pots = categories.filter(c => c.category_type === 'variable' || c.category_type === 'transfer')
+    .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+
+  const resetForm = () => {
+    setForm({ name: '', category_type: 'variable', budget_amount: '', monthly_budget: '', color: '#3b82f6' })
+    setEditingId(null)
+  }
+
+  const handleEdit = (cat) => {
+    setForm({
+      name: cat.name, category_type: cat.category_type,
+      budget_amount: String(cat.budget_amount || ''),
+      monthly_budget: cat.monthly_budget ? String(cat.monthly_budget) : '',
+      color: cat.color,
+    })
+    setEditingId(cat.id)
+    setShowForm(true)
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const data = {
+        name: form.name,
+        category_type: form.category_type,
+        budget_amount: parseFloat(form.budget_amount) || 0,
+        monthly_budget: form.monthly_budget ? parseFloat(form.monthly_budget) : null,
+        color: form.color,
+      }
+      if (editingId) {
+        await updateBudgetCategory(editingId, data)
+      } else {
+        await createBudgetCategory(data)
+      }
+      setShowForm(false)
+      resetForm()
+      onRefresh()
+    } catch (err) {
+      console.error('Failed to save pot:', err)
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this pot? Transactions will become uncategorized.')) return
+    try {
+      await deleteBudgetCategory(id)
+      onRefresh()
+    } catch (err) {
+      console.error('Failed to delete pot:', err)
+    }
+  }
+
+  const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+
+  return (
+    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Pots of Money</h4>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Spending categories and funds that transactions are tracked against</p>
+        </div>
+        <button onClick={() => { resetForm(); setShowForm(!showForm) }} className="flex items-center gap-1 px-2 py-1 bg-farm-green text-white rounded text-xs hover:bg-green-700">
+          <Plus className="w-3 h-3" /> Add Pot
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-gray-800 rounded-lg space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input type="text" placeholder="Pot Name (e.g., Emergency Fund)" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
+            <select value={form.category_type} onChange={(e) => setForm(p => ({ ...p, category_type: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
+              <option value="variable">Spending Pot (Gas, Groceries, etc.)</option>
+              <option value="transfer">Fund/Transfer (Savings, Travel, etc.)</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Budget Per Half-Month</label>
+              <input type="number" step="0.01" placeholder="0.00" value={form.budget_amount} onChange={(e) => setForm(p => ({ ...p, budget_amount: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
+            </div>
+            <div>
+              <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Monthly Budget (optional)</label>
+              <input type="number" step="0.01" placeholder="Auto = 2x per-period" value={form.monthly_budget} onChange={(e) => setForm(p => ({ ...p, monthly_budget: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Color</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {DEFAULT_COLORS.map(c => (
+                <button key={c} type="button" onClick={() => setForm(p => ({ ...p, color: c }))}
+                  className={`w-6 h-6 rounded-full border-2 transition-transform ${form.color === c ? 'border-white scale-110' : 'border-transparent'}`}
+                  style={{ backgroundColor: c }} />
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" className="px-3 py-1.5 bg-farm-green text-white rounded text-xs hover:bg-green-700">{editingId ? 'Update' : 'Add Pot'}</button>
+            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-gray-700 rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
+          </div>
+        </form>
+      )}
+
+      <div className="space-y-1.5">
+        {pots.map(cat => (
+          <div key={cat.id} className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg">
+            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
+              <span className="text-xs ml-2 px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+                {cat.category_type === 'variable' ? 'Spending' : 'Fund'}
+              </span>
+              {cat.budget_amount > 0 && (
+                <span className="text-xs ml-2" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.budget_amount)}/half</span>
+              )}
+              {cat.monthly_budget > 0 && (
+                <span className="text-xs ml-1" style={{ color: 'var(--color-text-muted)' }}>({formatCurrency(cat.monthly_budget)}/mo)</span>
+              )}
+            </div>
+            <div className="flex gap-1 flex-shrink-0">
+              <button onClick={() => handleEdit(cat)} className="p-1 rounded hover:bg-gray-700"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
+              <button onClick={() => handleDelete(cat.id)} className="p-1 rounded hover:bg-red-900/50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
+            </div>
+          </div>
+        ))}
+        {pots.length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--color-text-muted)' }}>No pots yet. Add a spending pot or savings fund to get started.</p>}
       </div>
     </div>
   )

@@ -2,7 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
-## [1.70.2] - 2026-02-01
+## [1.70.3] - 2026-02-01
+
+### Added
+- **Pots of Money management** - New "Pots of Money" tab in Budget Settings for managing spending pots (Gas, Groceries, etc.) and funds (Savings, Travel, etc.) with a simplified, user-friendly interface
+- **Add/edit/delete pots** - Create custom pots like Emergency Fund or Home Repairs directly from the Pots tab
+
+### Changed
+- **Transaction defaults** - New transactions now default to Money Market account. Category dropdown only shows pots of money (spending + funds), not fixed bills
 
 ### Fixed
 - **Main rollover skips setup month** - The first month of budget tracking is treated as a setup month and does not contribute to the Roll Over balance. Rollover accumulates starting from month 2 of tracking.

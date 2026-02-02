@@ -79,8 +79,13 @@ function BudgetTransactions() {
   const variableCategories = allActiveCategories.filter(c => c.category_type === 'variable')
   const fixedCategories = allActiveCategories.filter(c => c.category_type === 'fixed')
   const transferCategories = allActiveCategories.filter(c => c.category_type === 'transfer')
+  // "Pots of money" = variable spending + transfer categories (not fixed bills)
+  const potCategories = [...variableCategories, ...transferCategories]
 
   const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
+
+  // Find the Money Market account for defaulting
+  const moneyMarketAcct = accounts.find(a => a.name === 'Money Market' && a.is_active)
 
   const resetForm = () => {
     setFormData({
@@ -88,7 +93,7 @@ function BudgetTransactions() {
       description: '',
       amount: '',
       category_id: '',
-      account_id: '',
+      account_id: moneyMarketAcct ? String(moneyMarketAcct.id) : '',
     })
     setEditingId(null)
     setShowForm(false)
@@ -98,7 +103,7 @@ function BudgetTransactions() {
     if (!formData.description || !formData.amount || !formData.category_id) return
     try {
       const selectedAcctId = formData.account_id ? parseInt(formData.account_id) : null
-      const defaultAcct = accounts.find(a => a.account_type === 'checking') || accounts[0]
+      const defaultAcct = moneyMarketAcct || accounts.find(a => a.account_type === 'savings') || accounts[0]
       const data = {
         account_id: selectedAcctId || defaultAcct?.id || 1,
         category_id: parseInt(formData.category_id),
@@ -263,15 +268,7 @@ function BudgetTransactions() {
                 style={{ color: 'var(--color-text-primary)' }}
               >
                 <option value="">Select...</option>
-                {variableCategories.length > 0 && <optgroup label="Spending">
-                  {variableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </optgroup>}
-                {transferCategories.length > 0 && <optgroup label="Transfers">
-                  {transferCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </optgroup>}
-                {fixedCategories.length > 0 && <optgroup label="Bills">
-                  {fixedCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </optgroup>}
+                {potCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
           </div>
