@@ -13,7 +13,7 @@ from datetime import datetime
 from models.database import get_db
 from models.customer_feedback import CustomerFeedback, FeedbackType, FeedbackStatus
 from routers.settings import get_setting
-from routers.auth import require_admin, get_current_user
+from routers.auth import require_admin, get_current_user, require_auth
 from models.users import User
 from config import settings as app_settings
 from loguru import logger
@@ -481,7 +481,7 @@ async def dismiss_feedback(
 @router.get("/my/")
 async def get_my_feedback(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_auth)
 ):
     """Get feedback submitted by the current authenticated user.
     Feedback is filtered by username or display_name matching submitted_by field.
@@ -628,7 +628,7 @@ async def update_my_feedback(
     feedback_id: int,
     update: FeedbackUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_auth)
 ):
     """Update feedback (only if status is NEW and owned by current user)"""
     # Check if feedback is enabled
@@ -694,7 +694,7 @@ async def update_my_feedback(
 async def delete_my_feedback(
     feedback_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_auth)
 ):
     """Delete feedback (only if status is NEW and owned by current user)"""
     # Check if feedback is enabled

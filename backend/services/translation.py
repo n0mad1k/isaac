@@ -7,7 +7,7 @@ With persistent database caching to reduce API usage
 import httpx
 from loguru import logger
 from typing import Optional
-from sqlalchemy import select
+from sqlalchemy import select, text, delete
 from datetime import datetime
 
 from models.translation import TranslationCache
@@ -208,7 +208,7 @@ async def clear_database_cache():
         from models.database import async_session
 
         async with async_session() as db:
-            await db.execute("DELETE FROM translation_cache")
+            await db.execute(text("DELETE FROM translation_cache"))
             await db.commit()
         logger.info("Database translation cache cleared")
     except Exception as e:
@@ -228,7 +228,7 @@ async def get_full_cache_stats() -> dict:
         from models.database import async_session
 
         async with async_session() as db:
-            result = await db.execute("SELECT COUNT(*) FROM translation_cache")
+            result = await db.execute(text("SELECT COUNT(*) FROM translation_cache"))
             db_count = result.scalar() or 0
 
             return {

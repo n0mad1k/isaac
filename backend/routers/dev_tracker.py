@@ -15,6 +15,8 @@ import shutil
 
 from models.database import get_db
 from models.dev_tracker import DevTrackerItem, DevTrackerImage, DevTrackerMetrics, ItemType, ItemPriority, ItemStatus
+from models.users import User
+from routers.auth import require_auth
 from config import settings
 
 # Image storage directory
@@ -142,7 +144,8 @@ async def get_all_items(
     status: Optional[ItemStatus] = None,
     version: Optional[str] = None,
     include_archived: bool = False,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth),
 ):
     """Get all dev tracker items"""
     check_dev_only()
@@ -179,7 +182,7 @@ async def get_all_items(
 
 
 @router.get("/stats/summary")
-async def get_stats(db: AsyncSession = Depends(get_db)):
+async def get_stats(db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Get summary statistics"""
     check_dev_only()
 
@@ -205,7 +208,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/metrics/", response_model=MetricsResponse)
-async def get_metrics(db: AsyncSession = Depends(get_db)):
+async def get_metrics(db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Get comprehensive metrics including historical data"""
     check_dev_only()
 
@@ -257,7 +260,7 @@ async def get_metrics(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{item_id}", response_model=ItemResponse)
-async def get_item(item_id: int, db: AsyncSession = Depends(get_db)):
+async def get_item(item_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Get a specific item"""
     check_dev_only()
 
@@ -273,7 +276,7 @@ async def get_item(item_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/", response_model=ItemResponse)
-async def create_item(data: ItemCreate, db: AsyncSession = Depends(get_db)):
+async def create_item(data: ItemCreate, db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Create a new tracker item"""
     check_dev_only()
 
@@ -295,7 +298,7 @@ async def create_item(data: ItemCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/{item_id}", response_model=ItemResponse)
-async def update_item(item_id: int, data: ItemUpdate, db: AsyncSession = Depends(get_db)):
+async def update_item(item_id: int, data: ItemUpdate, db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Update an item"""
     check_dev_only()
 
@@ -351,7 +354,7 @@ async def update_item(item_id: int, data: ItemUpdate, db: AsyncSession = Depends
 
 
 @router.delete("/{item_id}")
-async def delete_item(item_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_item(item_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Delete an item"""
     check_dev_only()
 
@@ -370,7 +373,7 @@ async def delete_item(item_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/seed-from-changelog")
-async def seed_from_changelog(version: str, db: AsyncSession = Depends(get_db)):
+async def seed_from_changelog(version: str, db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
     """Seed test items from changelog for a specific version"""
     check_dev_only()
 
@@ -438,6 +441,7 @@ async def upload_image(
     item_id: int,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth),
 ):
     """Upload an image to a dev tracker item"""
     check_dev_only()
@@ -487,7 +491,7 @@ async def upload_image(
 
 
 @router.get("/images/{filename}")
-async def serve_image(filename: str):
+async def serve_image(filename: str, user: User = Depends(require_auth)):
     """Serve a dev tracker image file"""
     check_dev_only()
 
@@ -512,6 +516,7 @@ async def delete_image(
     item_id: int,
     image_id: int,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_auth),
 ):
     """Delete an image from a dev tracker item"""
     check_dev_only()

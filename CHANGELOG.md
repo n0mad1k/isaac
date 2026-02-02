@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.74.3] - 2026-02-02
+
+### Fixed
+- **Security audit fixes** - Full-scope security review with actionable fixes applied
+  - Added authentication to all 10 Dev Tracker endpoints (previously only checked dev instance, not user auth)
+  - Fixed 3 Customer Feedback `/my/*` endpoints to properly reject unauthenticated requests
+  - Fixed raw SQL strings in translation service to use proper `text()` wrapper
+
 ## [1.74.2] - 2026-02-02
 
 ### Changed
