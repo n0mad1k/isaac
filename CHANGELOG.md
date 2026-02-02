@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.78.2] - 2026-02-02
+
+### Fixed
+- **Mobile pages no longer broken** - Fixed vertical single-character text on all mobile pages caused by family motto being crushed in narrow flex containers. Motto now hidden on mobile screens.
+- **All page headers responsive** - 8 pages updated to use mobile-first flex layout (stacks vertically on phones, horizontal on tablets+): Plants, Vehicles, Farm Finances, Seeds, Farm Areas, Equipment, Production, Worker Tasks
+
 ## [1.78.1] - 2026-02-02
 
 ### Fixed

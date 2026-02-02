@@ -926,7 +926,7 @@ function Seeds() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0">
           <Sprout className="w-7 h-7 text-green-500" />
           Seed Catalog

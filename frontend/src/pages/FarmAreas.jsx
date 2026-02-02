@@ -329,7 +329,7 @@ function FarmAreas() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3 flex-shrink-0">
           <Fence className="w-8 h-8 text-farm-green" />
           <h1 className="text-2xl font-bold">Farm Areas</h1>
