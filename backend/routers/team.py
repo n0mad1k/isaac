@@ -6,7 +6,7 @@ Inspired by USMC Marine Corps Mentoring Program (NAVMC DIR 1500.58)
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, desc, or_
+from sqlalchemy import select, func, and_, desc, or_, update
 from sqlalchemy.orm.attributes import flag_modified
 from typing import Optional, List, Any
 from pydantic import BaseModel, Field
@@ -2431,19 +2431,24 @@ async def get_values_summary(
 async def get_member_observations(
     member_id: int,
     weeks: int = 4,
+    include_discussed: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_auth)
 ):
-    """Get observations for a specific member"""
+    """Get observations for a specific member. By default excludes observations already discussed in AAR."""
     local_now = await get_local_now(db)
     cutoff = local_now - timedelta(weeks=weeks)
 
-    result = await db.execute(
+    query = (
         select(WeeklyObservation)
         .where(WeeklyObservation.member_id == member_id)
         .where(WeeklyObservation.created_at >= cutoff)
-        .order_by(desc(WeeklyObservation.created_at))
     )
+    if not include_discussed:
+        query = query.where(WeeklyObservation.discussed_in_aar == False)
+    query = query.order_by(desc(WeeklyObservation.created_at))
+
+    result = await db.execute(query)
     observations = result.scalars().all()
 
     return [
@@ -2895,6 +2900,13 @@ async def update_aar(
 
     if data.is_completed and not aar.completed_at:
         aar.completed_at = local_now
+        # Mark all observations for this AAR's week as discussed
+        await db.execute(
+            update(WeeklyObservation)
+            .where(WeeklyObservation.week_start == aar.week_start)
+            .where(WeeklyObservation.discussed_in_aar == False)
+            .values(discussed_in_aar=True)
+        )
 
     # Mark the JSON column as modified so SQLAlchemy persists it
     flag_modified(aar, 'action_items')

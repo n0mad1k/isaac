@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { Plus, ThumbsUp, AlertTriangle, User, Users, Settings, Pencil, Trash2, Check, X } from 'lucide-react'
+import { Plus, ThumbsUp, AlertTriangle, User, Users, Settings, Pencil, Trash2, Check, X, History } from 'lucide-react'
 import { createObservation, updateObservation, deleteObservation } from '../../services/api'
 
-function MemberObservationsTab({ member, observations, onUpdate }) {
+function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory, showingHistory }) {
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
     observation_type: 'went_well',
@@ -203,13 +203,27 @@ function MemberObservationsTab({ member, observations, onUpdate }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Weekly Observations</h3>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-3 py-2 bg-farm-green text-white rounded hover:bg-green-600 text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Add Observation
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleHistory}
+            className={`flex items-center gap-1 px-3 py-2 rounded text-sm transition-colors ${
+              showingHistory
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-400 hover:text-white'
+            }`}
+            title={showingHistory ? 'Showing all observations' : 'Show past AAR observations'}
+          >
+            <History className="w-4 h-4" />
+            {showingHistory ? 'All' : 'History'}
+          </button>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 px-3 py-2 bg-farm-green text-white rounded hover:bg-green-600 text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add Observation
+          </button>
+        </div>
       </div>
 
       {/* Add Form */}

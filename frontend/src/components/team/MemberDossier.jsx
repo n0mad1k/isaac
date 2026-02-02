@@ -38,6 +38,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [medicalHistory, setMedicalHistory] = useState([])
   const [sessions, setSessions] = useState([])
   const [observations, setObservations] = useState([])
+  const [showObsHistory, setShowObsHistory] = useState(false)
   const [appointments, setAppointments] = useState([])
   const [workouts, setWorkouts] = useState([])
   const [workoutStats, setWorkoutStats] = useState(null)
@@ -740,8 +741,15 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               <MemberObservationsTab
                 member={member}
                 observations={observations}
+                showingHistory={showObsHistory}
+                onToggleHistory={async () => {
+                  const newVal = !showObsHistory
+                  setShowObsHistory(newVal)
+                  const obsRes = await getMemberObservations(member.id, { include_discussed: newVal })
+                  setObservations(obsRes.data)
+                }}
                 onUpdate={async () => {
-                  const obsRes = await getMemberObservations(member.id)
+                  const obsRes = await getMemberObservations(member.id, { include_discussed: showObsHistory })
                   setObservations(obsRes.data)
                 }}
               />
