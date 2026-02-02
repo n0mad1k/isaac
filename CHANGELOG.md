@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.75.1] - 2026-02-02
+
+### Fixed
+- **Fixed duplicate calendar events from recurring entries** - CalDAV sync was expanding recurring events (e.g., weekly "Lazy Monday") into individual one-off tasks. Now skips expanded occurrences and preserves the original recurring event
+- **Deleted 13 duplicate Lazy Monday entries** from production database
+
 ## [1.75.0] - 2026-02-02
 
 ### Fixed

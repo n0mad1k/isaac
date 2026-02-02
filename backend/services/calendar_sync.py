@@ -724,21 +724,17 @@ class CalendarSyncService:
                             task_dict = self.vevent_to_task_dict(component)
                             if task_dict.get('title'):
                                 uid = task_dict.get('calendar_uid')
-                                # For recurring events, use UID + RECURRENCE-ID as unique key
+                                # Skip expanded occurrences of recurring events
+                                # CalDAV date_search expands RRULE events into individual
+                                # occurrences with RECURRENCE-ID. We only want the base
+                                # recurring event - Isaac handles recurrence natively.
                                 recurrence_id = component.get('recurrence-id')
                                 if recurrence_id:
-                                    rec_dt = recurrence_id.dt
-                                    if isinstance(rec_dt, datetime):
-                                        unique_key = f"{uid}_{rec_dt.strftime('%Y%m%d')}"
-                                    else:
-                                        unique_key = f"{uid}_{rec_dt.isoformat()}"
-                                    # Update the calendar_uid to include recurrence for tracking
-                                    task_dict['calendar_uid'] = unique_key
-                                else:
-                                    unique_key = uid
+                                    logger.debug(f"Skipping expanded occurrence of recurring event {uid}")
+                                    continue
 
-                                if unique_key and unique_key not in seen_uids:
-                                    seen_uids.add(unique_key)
+                                if uid and uid not in seen_uids:
+                                    seen_uids.add(uid)
                                     result.append(task_dict)
                 except Exception as e:
                     logger.warning(f"Failed to parse calendar event: {e}")
