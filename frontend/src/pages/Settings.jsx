@@ -855,6 +855,21 @@ function Settings() {
     const isPasswordField = passwordFields.includes(key)
     const isTimeField = key.includes('_time') && key !== 'time_format' // e.g., email_digest_time
 
+    // AI provider dropdown
+    if (key === 'ai_provider') {
+      return (
+        <select
+          value={setting.value || 'ollama'}
+          onChange={(e) => handleChange(key, e.target.value)}
+          className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green w-full"
+        >
+          <option value="ollama">Ollama (Self-hosted)</option>
+          <option value="claude">Claude (Anthropic)</option>
+          <option value="openai">OpenAI (ChatGPT)</option>
+        </select>
+      )
+    }
+
     if (isBooleanSetting) {
       return (
         <label className="relative inline-flex items-center cursor-pointer">
@@ -2080,7 +2095,7 @@ function Settings() {
             </p>
             <div className="space-y-4">
               {aiSettings.filter(key => {
-                const provider = settings?.ai_provider?.value || 'ollama'
+                const provider = (settings?.ai_provider?.value || 'ollama').toLowerCase()
                 // Always show: ai_enabled, ai_provider, ai_proactive_insights, ai_shared_domains
                 if (['ai_enabled', 'ai_provider', 'ai_proactive_insights', 'ai_shared_domains', 'knowledge_base_enabled'].includes(key)) return true
                 // Provider-specific

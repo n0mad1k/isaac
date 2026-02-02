@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.77.2] - 2026-02-02
+
+### Fixed
+- **AI provider selection is now a dropdown** - Changed from text input to select dropdown with Ollama/Claude/OpenAI options, fixing issue where provider-specific fields (API keys, model) wouldn't appear after changing provider
+
 ## [1.77.1] - 2026-02-02
 
 ### Fixed

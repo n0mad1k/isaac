@@ -168,6 +168,11 @@ When the user asks you to work on something that's NOT already in the dev tracke
 - If an item title contains `*`, it means the implementation failed and the text after `*` describes what needs to be fixed
 - Example: `Feature X * backend returns 500 error` means Feature X was attempted but has a 500 error that needs fixing
 
+**CRITICAL - Before Starting ANY Item:**
+- **ALWAYS check for images** — Run `curl -sk "https://192.168.5.56:8443/api/dev-tracker/<id>"` and check the `images` array. If images exist, download and view them: `curl -sk "https://192.168.5.56:8443/api/dev-tracker/images/<filename>" -o /tmp/item-<id>.png` then read the file
+- **ALWAYS check fail_note_history** — The `fail_note_history` JSON field contains all previous fail notes with dates. The `show` command displays these, but also check the raw API response for the full history
+- Images often show EXACTLY what's wrong — don't guess when there's a screenshot available
+
 **CRITICAL - Failed Items (fail_count > 0):**
 - Items with `fail_count > 0` mean a PREVIOUS ATTEMPT FAILED - they are NOT fixed
 - NEVER assume a failed item is "already done" or "already fixed"
