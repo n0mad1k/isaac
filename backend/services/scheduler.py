@@ -277,6 +277,15 @@ class SchedulerService:
             replace_existing=True,
         )
 
+        # Auto-watering check - every 30 minutes (decoupled from weather polling)
+        self.scheduler.add_job(
+            self.check_auto_watering,
+            IntervalTrigger(minutes=30),
+            id="auto_watering",
+            name="Auto Watering Check",
+            replace_existing=True,
+        )
+
         # Daily digest email - time from settings
         await self.schedule_daily_digest()
 
@@ -568,7 +577,7 @@ class SchedulerService:
         logger.info("Scheduler stopped")
 
     async def poll_weather(self):
-        """Fetch and store current weather, check for alerts, and run auto-watering"""
+        """Fetch and store current weather, check for alerts"""
         logger.debug("Polling weather station...")
         try:
             data = await self.weather_service.fetch_current_weather()
@@ -580,13 +589,13 @@ class SchedulerService:
         except Exception as e:
             logger.error(f"Error polling weather: {e}")
 
-        # Auto-watering runs independently of weather fetch success
-        # Sprinkler schedules must be checked even if weather station is offline
+    async def check_auto_watering(self):
+        """Check plants for rain/sprinkler watering decisions (runs every 30 min)"""
         try:
             from services.auto_watering import run_auto_watering_check
             async with async_session() as db:
                 watering_stats = await run_auto_watering_check(db)
-                if watering_stats.get("rain_watered") or watering_stats.get("sprinkler_watered"):
+                if watering_stats.get("rain_skipped") or watering_stats.get("sprinkler_watered"):
                     logger.info(f"Auto watering: {watering_stats}")
         except Exception as e:
             logger.error(f"Error in auto-watering check: {e}")

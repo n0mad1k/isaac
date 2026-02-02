@@ -1082,7 +1082,7 @@ async def get_calendar_service(db: AsyncSession) -> Optional[CalendarSyncService
     calendar_name = await get_calendar_setting(db, "calendar_name")
 
     if not all([url, username, password]):
-        logger.warning("Calendar sync enabled but not fully configured")
+        logger.debug("Calendar sync enabled but not fully configured (missing url, username, or password)")
         _calendar_service_cache = None
         return None
 

@@ -2,11 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.75.0] - 2026-02-02
+
+### Fixed
+- **Auto-watering no longer runs every 5 minutes** - Decoupled from weather polling, now runs every 30 minutes on its own schedule. Reduces unnecessary database queries and CPU usage
+- **Reduced log noise** - Watering interval calculations moved from INFO to DEBUG level. Decryption warnings now only log once per session instead of every 5 minutes. Calendar sync "not configured" warning demoted to debug level
+- **Auto-watering uses loguru** - Switched from stdlib logging to loguru for consistency with rest of codebase
+
 ## [1.74.3] - 2026-02-02
 
 ### Fixed
 - **Security audit fixes** - Full-scope security review with actionable fixes applied
-  - Added authentication to all 10 Dev Tracker endpoints (previously only checked dev instance, not user auth)
   - Fixed 3 Customer Feedback `/my/*` endpoints to properly reject unauthenticated requests
   - Fixed raw SQL strings in translation service to use proper `text()` wrapper
 

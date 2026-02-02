@@ -14,6 +14,9 @@ from loguru import logger
 # Prefix to identify encrypted values in the database
 ENCRYPTED_PREFIX = "enc::"
 
+# Track which values have already warned about decryption failure (avoid log spam)
+_decryption_warned: set = set()
+
 
 def _get_encryption_key() -> bytes:
     """
@@ -90,7 +93,11 @@ def decrypt_value(encrypted_value: str) -> str:
     except InvalidToken:
         # If decryption fails (wrong key, corrupted), return empty
         # This prevents exposing partial data
-        logger.warning("Decryption failed due to invalid token - possible key mismatch or corrupted data")
+        # Only warn once per unique encrypted value to avoid log spam from repeated scheduler calls
+        value_hash = encrypted_value[:20]
+        if value_hash not in _decryption_warned:
+            _decryption_warned.add(value_hash)
+            logger.warning("Decryption failed due to invalid token - possible key mismatch or corrupted data")
         return ""
     except Exception as e:
         logger.error(f"Unexpected error during decryption: {type(e).__name__}")

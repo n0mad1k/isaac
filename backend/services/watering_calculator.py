@@ -99,7 +99,7 @@ def calculate_watering_interval(
 
     # Clamp to reasonable range (2-45 days)
     result = max(2, min(45, interval))
-    logger.info(f"Watering interval calculated: {result} days (moisture={moisture_preference}, zone={usda_zone}, season={season})")
+    logger.debug(f"Watering interval calculated: {result} days (moisture={moisture_preference}, zone={usda_zone}, season={season})")
     return result
 
 

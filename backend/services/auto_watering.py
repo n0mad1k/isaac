@@ -10,7 +10,7 @@ This is more accurate than the old approach which marked plants watered
 immediately on any rainy day.
 """
 
-import logging
+from loguru import logger
 import pytz
 from datetime import datetime, date, timedelta
 from typing import Dict, Optional, List, Tuple
@@ -23,7 +23,6 @@ from models.plants import Plant
 from models.weather import WeatherReading
 from models.settings import AppSetting
 
-logger = logging.getLogger(__name__)
 
 # Data retention: 45 days covers even drought-tolerant plants (cacti ~2-6 weeks)
 WEATHER_RETENTION_DAYS = 45
