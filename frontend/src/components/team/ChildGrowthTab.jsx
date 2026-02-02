@@ -291,7 +291,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                 contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
                 labelStyle={{ color: '#9ca3af' }}
                 formatter={(value, name) => {
-                  if (name === 'child') return [<span style={{ color: '#ffffff', fontWeight: 'bold' }}>{`${value} ${unitLabel}`}</span>, `★ ${member.first_name || 'Child'}`]
+                  if (name === 'child') return [<span style={{ color: '#d946ef', fontWeight: 'bold' }}>{`${value} ${unitLabel}`}</span>, `● ${member.first_name || 'Child'}`]
                   const pctMap = { p3: '3rd', p10: '10th', p25: '25th', p50: '50th', p75: '75th', p90: '90th', p97: '97th' }
                   return [`${value} ${unitLabel}`, pctMap[name] || name]
                 }}
@@ -315,12 +315,13 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
               <Line
                 type="monotone"
                 dataKey="child"
-                stroke="#ffffff"
-                strokeWidth={4}
-                dot={{ fill: '#3b82f6', stroke: '#ffffff', strokeWidth: 3, r: 7 }}
-                activeDot={{ fill: '#3b82f6', stroke: '#ffffff', strokeWidth: 3, r: 9 }}
+                stroke="#f0abfc"
+                strokeWidth={3}
+                dot={{ fill: '#d946ef', stroke: '#ffffff', strokeWidth: 2, r: 6 }}
+                activeDot={{ fill: '#d946ef', stroke: '#ffffff', strokeWidth: 3, r: 9 }}
                 connectNulls
                 name="child"
+                isAnimationActive={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -331,26 +332,26 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
         )}
 
         {/* Chart legend */}
-        <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-sm justify-center">
-          <span className="flex items-center gap-2">
-            <svg width="28" height="12"><line x1="0" y1="6" x2="28" y2="6" stroke="#ffffff" strokeWidth="4" /><circle cx="14" cy="6" r="4" fill="#3b82f6" stroke="#ffffff" strokeWidth="2" /></svg>
-            <span className="text-white font-semibold">{member.first_name || 'Child'}</span>
+        <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4 justify-center">
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: '#d946ef', border: '2px solid #ffffff' }}></span>
+            <span className="text-sm text-white font-bold">{member.first_name || 'Child'}</span>
           </span>
-          <span className="flex items-center gap-2">
-            <svg width="28" height="12"><line x1="0" y1="6" x2="28" y2="6" stroke="#22c55e" strokeWidth="2" /></svg>
-            <span className="text-gray-300">50th %ile</span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-0.5 inline-block" style={{ backgroundColor: '#22c55e' }}></span>
+            <span className="text-xs text-gray-400">50th</span>
           </span>
-          <span className="flex items-center gap-2">
-            <svg width="28" height="12"><line x1="0" y1="6" x2="28" y2="6" stroke="#eab308" strokeWidth="1" strokeDasharray="3 3" /></svg>
-            <span className="text-gray-400">25th / 75th</span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-0.5 inline-block" style={{ backgroundColor: '#eab308' }}></span>
+            <span className="text-xs text-gray-400">25th/75th</span>
           </span>
-          <span className="flex items-center gap-2">
-            <svg width="28" height="12"><line x1="0" y1="6" x2="28" y2="6" stroke="#f97316" strokeWidth="1" strokeDasharray="4 4" /></svg>
-            <span className="text-gray-400">10th / 90th</span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-0.5 inline-block" style={{ backgroundColor: '#f97316' }}></span>
+            <span className="text-xs text-gray-400">10th/90th</span>
           </span>
-          <span className="flex items-center gap-2">
-            <svg width="28" height="12"><line x1="0" y1="6" x2="28" y2="6" stroke="#ef4444" strokeWidth="1" strokeDasharray="4 4" /></svg>
-            <span className="text-gray-400">3rd / 97th</span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-0.5 inline-block" style={{ backgroundColor: '#ef4444' }}></span>
+            <span className="text-xs text-gray-400">3rd/97th</span>
           </span>
         </div>
       </div>
