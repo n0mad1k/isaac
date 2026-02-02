@@ -1573,8 +1573,31 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                               {getTrendIcon(ind.trend)}
                             </div>
                             {ind.explanation && (
-                              <div className="text-xs text-gray-400 mt-1 ml-1">{ind.explanation}</div>
+                              <div className={`text-sm mt-1 ml-1 font-medium ${ind.value >= 80 ? 'text-green-400' : ind.value >= 60 ? 'text-yellow-400' : 'text-red-400'}`}>{ind.explanation}</div>
                             )}
+                            {/* Actual values */}
+                            {ind.details?.actual_values?.length > 0 && (
+                              <div className="mt-1.5 ml-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                                {ind.details.actual_values.map((val, vi) => (
+                                  <span key={vi} className="text-xs text-gray-300 bg-gray-700/50 px-1.5 py-0.5 rounded">{val}</span>
+                                ))}
+                              </div>
+                            )}
+                            {/* Normal ranges */}
+                            {ind.details?.normal_ranges?.length > 0 && (
+                              <div className="mt-1 ml-1 space-y-0.5">
+                                {ind.details.normal_ranges.map((range, ri) => (
+                                  <div key={ri} className="text-[11px] text-gray-500">{range}</div>
+                                ))}
+                              </div>
+                            )}
+                            {/* Recommendation */}
+                            {ind.details?.recommendation && (
+                              <div className={`text-xs mt-1.5 ml-1 px-2 py-1 rounded ${ind.value >= 80 ? 'bg-green-900/20 text-green-300' : ind.value >= 60 ? 'bg-yellow-900/20 text-yellow-300' : 'bg-red-900/20 text-red-300'}`}>
+                                {ind.details.recommendation}
+                              </div>
+                            )}
+                            {/* Contributing factors */}
                             {ind.contributing_factors?.length > 0 && (
                               <div className="mt-1 ml-1 space-y-0.5">
                                 {ind.contributing_factors.slice(0, 3).map((factor, fi) => (

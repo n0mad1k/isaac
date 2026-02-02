@@ -65,6 +65,7 @@ class PerformanceIndicator:
     explanation: str
     confidence: str                     # LOW, MEDIUM, HIGH
     contributing_factors: List[str] = field(default_factory=list)
+    details: Dict[str, Any] = field(default_factory=dict)  # actual_values, normal_ranges, recommendation
 
 
 @dataclass
@@ -618,14 +619,45 @@ def _analyze_autonomic_recovery(
     if not factors:
         factors.append("Autonomic indicators within normal range")
 
+    # Build detailed values for informative display
+    details = {"actual_values": [], "normal_ranges": []}
+    latest_rhr = _get_latest_vital(vitals, VitalType.RESTING_HEART_RATE)
+    latest_hrv = _get_latest_vital(vitals, VitalType.HRV)
+    if latest_rhr:
+        details["actual_values"].append(f"RHR: {latest_rhr.value:.0f} bpm")
+        if rhr_baseline.long_avg:
+            details["actual_values"].append(f"RHR baseline: {rhr_baseline.long_avg:.0f} bpm")
+        details["normal_ranges"].append("Healthy adult RHR: 50-80 bpm (lower = fitter)")
+    if latest_hrv:
+        details["actual_values"].append(f"HRV: {latest_hrv.value:.0f} ms")
+        if hrv_baseline.long_avg:
+            details["actual_values"].append(f"HRV baseline: {hrv_baseline.long_avg:.0f} ms")
+        details["normal_ranges"].append("HRV varies widely; your baseline is what matters")
+
+    if score < 60:
+        details["recommendation"] = "Recovery is suppressed. Prioritize sleep (7-9 hrs), reduce training intensity, and stay hydrated."
+    elif score < 80:
+        details["recommendation"] = "Recovery is moderate. Monitor for persistent patterns. Light activity is OK."
+    else:
+        details["recommendation"] = "Recovery looks good. Normal training load is appropriate."
+
+    # Make explanation specific to actual state
+    if score < 60:
+        explanation = "Autonomic markers indicate incomplete recovery — consider a rest day"
+    elif score < 80:
+        explanation = "Autonomic recovery is moderate — monitor trends"
+    else:
+        explanation = "Autonomic recovery is strong — well-recovered"
+
     return PerformanceIndicator(
         name="Autonomic Recovery",
         category="autonomic",
         value=score,
         trend=trend,
-        explanation="RHR and HRV recovery indicators (persistence-based)",
+        explanation=explanation,
         confidence=confidence,
-        contributing_factors=factors
+        contributing_factors=factors,
+        details=details
     )
 
 
@@ -692,14 +724,44 @@ def _analyze_cardiovascular(vitals: List[MemberVitalsLog], age: Optional[int] = 
 
     trend = "stable" if final_score >= 70 else "declining"
 
+    # Build detailed values
+    details = {"actual_values": [], "normal_ranges": []}
+    if latest_bp:
+        sys = latest_bp.value
+        dia = latest_bp.value_secondary or 80
+        details["actual_values"].append(f"Blood Pressure: {sys:.0f}/{dia:.0f} mmHg")
+        if _is_child(age):
+            details["normal_ranges"].append(f"Pediatric BP varies by age/height percentile")
+        else:
+            details["normal_ranges"].append("Normal: <120/80 | Elevated: 120-129 | Stage 1: 130-139/80-89 | Stage 2: 140+/90+")
+    if latest_spo2:
+        details["actual_values"].append(f"SpO2: {latest_spo2.value:.0f}%")
+        details["normal_ranges"].append("Normal SpO2: 95-100% | Below 92% is critical")
+
+    if final_score < 60:
+        details["recommendation"] = "Cardiovascular readings are concerning. Consult a healthcare provider. Avoid intense exercise."
+    elif final_score < 80:
+        details["recommendation"] = "Some readings are borderline. Monitor daily, reduce sodium, stay active."
+    else:
+        details["recommendation"] = "Cardiovascular markers are healthy. Maintain current lifestyle."
+
+    # Specific explanation
+    if final_score < 60:
+        explanation = "Cardiovascular readings are elevated — monitor closely"
+    elif final_score < 80:
+        explanation = "Some cardiovascular markers are borderline — track trends"
+    else:
+        explanation = "Cardiovascular health looks good"
+
     return PerformanceIndicator(
         name="Cardiovascular",
         category="cardiovascular",
         value=final_score,
         trend=trend,
-        explanation="Blood pressure (ACC/AHA) and oxygen saturation",
+        explanation=explanation,
         confidence=confidence,
-        contributing_factors=factors
+        contributing_factors=factors,
+        details=details
     )
 
 
@@ -804,14 +866,37 @@ def _detect_illness_pattern(
 
     factors.insert(0, f"Status: {status_label}")
 
+    # Build detailed values
+    details = {"actual_values": [], "normal_ranges": []}
+    if latest_temp:
+        details["actual_values"].append(f"Temperature: {latest_temp.value:.1f}°F")
+        details["normal_ranges"].append("Normal: 97.0-99.0°F | Fever: >100.4°F")
+    if latest_rr:
+        details["actual_values"].append(f"Respiratory Rate: {latest_rr.value:.0f}/min")
+        if _is_child(age):
+            details["normal_ranges"].append(f"Pediatric RR varies by age (elevated threshold: {rr_elevated}/min)")
+        else:
+            details["normal_ranges"].append("Normal adult: 12-20/min | Elevated: >20/min")
+    if latest_rhr and rhr_baseline.long_avg:
+        diff = latest_rhr.value - rhr_baseline.long_avg
+        details["actual_values"].append(f"RHR vs baseline: {diff:+.0f} bpm")
+
+    if score < 60:
+        details["recommendation"] = "Strong illness pattern detected. Rest, hydrate, monitor temperature. Consider medical evaluation."
+    elif score < 80:
+        details["recommendation"] = "Minor elevation detected. Get extra sleep, wash hands frequently, stay hydrated."
+    else:
+        details["recommendation"] = "No illness indicators. Immune markers look healthy."
+
     return PerformanceIndicator(
         name="Immune Health",
         category="illness",
         value=score,
         trend=trend,
-        explanation=f"Higher is better — {score:.0f}/100 means strong immune function. {status_label}.",
+        explanation=status_label,
         confidence=confidence,
-        contributing_factors=factors
+        contributing_factors=factors,
+        details=details
     )
 
 

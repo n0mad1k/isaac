@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.76.6] - 2026-02-02
+
+### Changed
+- **Health data indicators now show detailed information** - Each physical breakdown indicator (Autonomic Recovery, Cardiovascular, Immune Health) now includes:
+  - Actual vital values with units (e.g., "RHR: 62 bpm", "BP: 128/82 mmHg", "SpO2: 98%")
+  - Normal ranges for reference (e.g., "Normal SpO2: 95-100%")
+  - Personalized baseline comparisons (e.g., "HRV baseline: 45 ms")
+  - Actionable recommendations based on score (e.g., "Recovery is suppressed. Prioritize sleep...")
+  - Status-specific explanations instead of generic category descriptions
+
 ## [1.76.5] - 2026-02-02
 
 ### Changed

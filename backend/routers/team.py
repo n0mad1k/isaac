@@ -1556,7 +1556,8 @@ def _build_analysis_result(member_id: int, analysis) -> dict:
                 "trend": ind.trend,
                 "explanation": ind.explanation,
                 "confidence": ind.confidence,
-                "contributing_factors": ind.contributing_factors
+                "contributing_factors": ind.contributing_factors,
+                "details": ind.details if ind.details else {}
             }
             for ind in analysis.indicators
         ],
