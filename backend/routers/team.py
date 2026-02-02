@@ -2735,7 +2735,11 @@ async def create_aar(
             db.add(new_task)
             await db.flush()
             if member_id:
-                new_task.assigned_members = [m for m in all_members if m.id == member_id]
+                await db.execute(
+                    task_member_assignments.insert().values(
+                        task_id=new_task.id, member_id=member_id
+                    )
+                )
             item['task_id'] = new_task.id
 
         aar.action_items = action_items
@@ -2805,9 +2809,18 @@ async def update_aar(
                         task.completed_at = local_now
                     elif not item.get('completed'):
                         task.completed_at = None
-                    # Update member assignment
+                    # Update member assignment via junction table
                     if member_id:
-                        task.assigned_members = [m for m in all_members if m.id == member_id]
+                        await db.execute(
+                            task_member_assignments.delete().where(
+                                task_member_assignments.c.task_id == task.id
+                            )
+                        )
+                        await db.execute(
+                            task_member_assignments.insert().values(
+                                task_id=task.id, member_id=member_id
+                            )
+                        )
                     active_task_ids.add(task.id)
             elif item.get('item', '').strip():
                 # New action item — create a task
@@ -2825,9 +2838,13 @@ async def update_aar(
                 db.add(new_task)
                 await db.flush()  # get the ID
 
-                # Assign to member
+                # Assign to member via junction table
                 if member_id:
-                    new_task.assigned_members = [m for m in all_members if m.id == member_id]
+                    await db.execute(
+                        task_member_assignments.insert().values(
+                            task_id=new_task.id, member_id=member_id
+                        )
+                    )
 
                 item['task_id'] = new_task.id
                 active_task_ids.add(new_task.id)
