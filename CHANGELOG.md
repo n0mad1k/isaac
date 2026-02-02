@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.75.2] - 2026-02-02
+
+### Fixed
+- **Health monitor email alerts now send correctly** - Fixed `send_health_alert` passing invalid `is_alert` parameter to email service, replaced with proper `subject_prefix`
+- **Health check warnings now include details** - Log messages show which specific checks failed and why, instead of just "warning"
+- **Application logs readable in dark theme** - Replaced hardcoded light-theme colors with dark-compatible styling matching the Health Logs section
+
 ## [1.75.1] - 2026-02-02
 
 ### Fixed

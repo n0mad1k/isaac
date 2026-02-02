@@ -316,7 +316,7 @@ async def send_health_alert(db: AsyncSession, checks: List[HealthCheck], overall
         await email_service.send_email(
             subject=subject,
             body=body,
-            is_alert=True
+            subject_prefix="[HEALTH]"
         )
         logger.info(f"Health alert email sent: {overall_status}")
     except Exception as e:

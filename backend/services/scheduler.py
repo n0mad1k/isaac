@@ -1792,7 +1792,8 @@ class SchedulerService:
                         break  # Only send one alert per check cycle
 
                 if overall_status != HealthStatus.HEALTHY:
-                    logger.warning(f"Health check: {overall_status}")
+                    issues = [f"{c.name}={c.status}({c.message})" for c in checks if c.status != HealthStatus.HEALTHY]
+                    logger.warning(f"Health check: {overall_status} - {', '.join(issues)}")
 
         except Exception as e:
             logger.error(f"Error running health check: {e}")
