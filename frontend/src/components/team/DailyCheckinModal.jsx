@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, ClipboardCheck, Heart, Activity, Brain, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, ClipboardCheck, Heart, Activity, Brain, ChevronDown, ChevronUp, Footprints } from 'lucide-react'
 import { submitDailyCheckin } from '../../services/api'
 
 const CONTEXT_FACTORS = [
@@ -26,6 +26,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
 
   // Expanded sections
   const [vitalsExpanded, setVitalsExpanded] = useState(true)
+  const [activityExpanded, setActivityExpanded] = useState(true)
   const [bodyExpanded, setBodyExpanded] = useState(false)
   const [subjectiveExpanded, setSubjectiveExpanded] = useState(true)
   const [contextExpanded, setContextExpanded] = useState(false)
@@ -38,6 +39,10 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
   const [spo2, setSpo2] = useState('')
   const [temperature, setTemperature] = useState('')
   const [respRate, setRespRate] = useState('')
+
+  // Activity
+  const [steps, setSteps] = useState('')
+  const [stairsClimbed, setStairsClimbed] = useState('')
 
   // Body measurements
   const [weight, setWeight] = useState('')
@@ -88,6 +93,9 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
         ...(spo2 && { blood_oxygen: parseFloat(spo2) }),
         ...(temperature && { temperature: parseFloat(temperature) }),
         ...(respRate && { respiratory_rate: parseInt(respRate) }),
+        // Activity
+        ...(steps && { steps: parseInt(steps) }),
+        ...(stairsClimbed && { stairs_climbed: parseInt(stairsClimbed) }),
         // Body measurements
         ...(weight && { weight: parseFloat(weight) }),
         ...(waist && { waist: parseFloat(waist) }),
@@ -309,6 +317,42 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                       value={respRate}
                       onChange={(e) => setRespRate(e.target.value)}
                       placeholder="14"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Activity Section */}
+          <div className="border border-gray-700 rounded-lg overflow-hidden">
+            <SectionHeader
+              title="Activity"
+              icon={Footprints}
+              expanded={activityExpanded}
+              onToggle={() => setActivityExpanded(!activityExpanded)}
+            />
+            {activityExpanded && (
+              <div className="p-4 pt-0 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Steps</label>
+                    <input
+                      type="number"
+                      value={steps}
+                      onChange={(e) => setSteps(e.target.value)}
+                      placeholder="10000"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Stairs Climbed (flights)</label>
+                    <input
+                      type="number"
+                      value={stairsClimbed}
+                      onChange={(e) => setStairsClimbed(e.target.value)}
+                      placeholder="10"
                       className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>

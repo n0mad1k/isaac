@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.74.0] - 2026-02-02
+
+### Added
+- **Steps & stairs tracking** - Track daily step count and flights of stairs climbed in the Daily Check-in form. New "Activity" section appears between Vitals and Body Measurements. Data viewable in the Health Data tab alongside other vitals
+
+### Fixed
+- **ACWR inflated with limited training data** - ACWR was always dividing by 4 weeks even with only 1 week of data, causing artificially high ratios (e.g., 4.0x). Now uses actual weeks of data available (capped at 4) for accurate ratios
+
 ## [1.73.0] - 2026-02-02
 
 ### Changed

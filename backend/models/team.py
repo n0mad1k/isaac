@@ -150,6 +150,8 @@ class VitalType(str, enum.Enum):
     WAIST = "waist"  # Circumference in inches
     NECK = "neck"  # Circumference in inches (for taping method)
     HIP = "hip"  # Circumference in inches (for females)
+    STEPS = "steps"  # Daily step count
+    STAIRS_CLIMBED = "stairs_climbed"  # Floors/flights of stairs climbed
 
 
 class TeamMember(Base):

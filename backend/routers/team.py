@@ -267,6 +267,10 @@ class DailyCheckinInput(BaseModel):
     pain_location: Optional[str] = Field(None, max_length=100)
     stress_level: Optional[int] = Field(None, ge=0, le=10)
 
+    # Activity
+    steps: Optional[int] = Field(None, ge=0, le=200000)
+    stairs_climbed: Optional[int] = Field(None, ge=0, le=1000)
+
     # Context factors (JSON array of strings)
     context_factors: Optional[List[str]] = None
     notes: Optional[str] = Field(None, max_length=1000)
@@ -1209,6 +1213,8 @@ VITAL_UNITS = {
     VitalType.WAIST: "in",
     VitalType.NECK: "in",
     VitalType.HIP: "in",
+    VitalType.STEPS: "steps",
+    VitalType.STAIRS_CLIMBED: "flights",
 }
 
 
@@ -1691,6 +1697,29 @@ async def submit_daily_checkin(
         )
         db.add(vital)
         created_records.append("hip")
+
+    # Activity metrics
+    if data.steps is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.STEPS,
+            value=data.steps,
+            unit="steps",
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("steps")
+
+    if data.stairs_climbed is not None:
+        vital = MemberVitalsLog(
+            member_id=member_id,
+            vital_type=VitalType.STAIRS_CLIMBED,
+            value=data.stairs_climbed,
+            unit="flights",
+            recorded_at=recorded_at
+        )
+        db.add(vital)
+        created_records.append("stairs_climbed")
 
     # Weight log
     if data.weight is not None:
