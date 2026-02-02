@@ -278,17 +278,17 @@ function Layout() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+    <div className="h-screen bg-gray-900 text-white flex flex-col">
       {/* Dev Instance Banner */}
       {isDevInstance && (
-        <div className="bg-orange-600 text-white text-center py-1 text-sm font-medium z-[60]">
+        <div className="bg-orange-600 text-white text-center py-1 text-sm font-medium z-[70]">
           Development Instance - Changes here don't affect production
         </div>
       )}
 
 
       {/* Content wrapper - flex container for sidebar + main */}
-      <div className="flex-1 flex flex-col md:flex-row">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row">
       {/* Desktop Sidebar - Compact, expandable */}
       <aside className="hidden md:flex w-16 flex-col items-center py-2 flex-shrink-0" style={{ backgroundColor: 'var(--color-nav-bg, #1f2937)' }}>
         <NavLink to="/" className="mb-2 hover:opacity-80 transition-opacity">
@@ -391,7 +391,7 @@ function Layout() {
       </aside>
 
       {/* Main content - full width on mobile, no header clearance needed */}
-      <main className="flex-1 overflow-auto p-3 md:p-4 lg:p-6">
+      <main className="flex-1 min-h-0 overflow-auto p-3 md:p-4 lg:p-6">
         <Outlet />
       </main>
       </div>

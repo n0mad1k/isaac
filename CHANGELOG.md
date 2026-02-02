@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.76.4] - 2026-02-02
+
+### Fixed
+- **Desktop overlapping elements** - Fixed z-index hierarchy so floating action button (z-60), chat panel (z-55), and modals (z-50) no longer overlap each other. Fixed dashboard height to properly fill available viewport space instead of using incorrect hardcoded offset.
+
 ## [1.76.3] - 2026-02-02
 
 ### Fixed

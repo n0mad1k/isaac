@@ -303,7 +303,7 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
       )}
 
       {/* Desktop: Expandable action buttons */}
-      <div ref={menuRef} className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-50">
+      <div ref={menuRef} className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[60]">
         {expanded && (
           <div className="hidden md:flex absolute bottom-16 right-0 flex-col gap-3 items-end">
             <button

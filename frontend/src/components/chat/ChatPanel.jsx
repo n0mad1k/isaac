@@ -262,7 +262,7 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
       {/* Panel */}
       <div
         ref={panelRef}
-        className="fixed inset-0 md:inset-auto md:right-4 md:bottom-20 md:top-auto md:w-[400px] md:h-[600px] md:max-h-[80vh] z-50 flex flex-col md:rounded-xl shadow-2xl overflow-hidden"
+        className="fixed inset-0 md:inset-auto md:right-4 md:bottom-20 md:top-auto md:w-[400px] md:h-[600px] md:max-h-[80vh] z-[55] flex flex-col md:rounded-xl shadow-2xl overflow-hidden"
         style={{
           backgroundColor: 'var(--color-bg-surface)',
           border: '1px solid var(--color-border-default)',
