@@ -253,6 +253,42 @@ async def _normalize_case_data():
             await session.rollback()
 
 
+async def _fix_stale_observations():
+    """Mark observations as discussed if their AAR has been completed"""
+    async with async_session() as session:
+        try:
+            # Check if tables exist
+            result = await session.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name='weekly_aars'")
+            )
+            if not result.fetchone():
+                return
+            result = await session.execute(
+                text("SELECT name FROM sqlite_master WHERE type='table' AND name='weekly_observations'")
+            )
+            if not result.fetchone():
+                return
+
+            # For each completed AAR, mark observations from that week and earlier as discussed
+            result = await session.execute(
+                text("""
+                    UPDATE weekly_observations SET discussed_in_aar = 1
+                    WHERE discussed_in_aar = 0
+                    AND week_start <= (
+                        SELECT MAX(datetime(week_start, '+6 days'))
+                        FROM weekly_aars
+                        WHERE completed_at IS NOT NULL
+                    )
+                """)
+            )
+            if result.rowcount > 0:
+                logger.info(f"Fixed {result.rowcount} stale observations (marked as discussed for completed AARs)")
+            await session.commit()
+        except Exception as e:
+            logger.warning(f"Could not fix stale observations: {e}")
+            await session.rollback()
+
+
 async def init_db():
     """Initialize database tables and migrate schema"""
     async with engine.begin() as conn:
@@ -272,6 +308,9 @@ async def init_db():
 
     # Normalize case on categorical string columns
     await _normalize_case_data()
+
+    # Mark stale observations as discussed for completed AARs
+    await _fix_stale_observations()
 
 
 async def get_db() -> AsyncSession:
