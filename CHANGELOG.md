@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.70.1] - 2026-02-01
+
+### Fixed
+- **Month-pinned starting balance for rollover** - Starting balance is now tied to a specific month via `start_date`. Viewing months before the start date shows rollover as $0 (no historical data). Viewing the start date month uses the starting balance directly. Viewing later months carries forward the starting balance plus net from intervening periods.
+
 ## [1.70.0] - 2026-02-01
 
 ### Added

@@ -1229,14 +1229,49 @@ async def get_period_summary(
                 month_start = date(current_year, current_month, 1)
 
                 # Calculate rollover from prior months
-                # If starting_balance is set, use it directly instead of computing from history
-                if transfer_cat.starting_balance is not None:
-                    # Use the seeded starting balance, then add net from months
-                    # BETWEEN the starting_balance set date and current month
-                    # For now, starting_balance represents the rollover into THIS month
+                # starting_balance is pinned to start_date month (YYYY-MM)
+                # For months before start_date: rollover = 0 (no historical data)
+                # For start_date month: rollover = starting_balance
+                # For months after start_date: starting_balance + net from intervening months
+                viewed_ym = f"{current_year}-{current_month:02d}"
+                sb_month = transfer_cat.start_date if transfer_cat.starting_balance is not None else None
+
+                if sb_month and viewed_ym >= sb_month:
+                    # Starting balance applies: use it as base
                     rollover = transfer_cat.starting_balance
+                    # If viewing a month AFTER the starting_balance month,
+                    # add net from the months between sb_month and viewed month
+                    sb_y, sb_m = int(sb_month[:4]), int(sb_month[5:7])
+                    if (current_year, current_month) > (sb_y, sb_m):
+                        # Walk half-periods from sb_month to current_month
+                        y, m, d = sb_y, sb_m, 1
+                        while (y, m) < (current_year, current_month):
+                            is_first_half = (d == 1)
+                            rollover += deposit_per_period
+                            rollover -= calc_half_bills(y, m, is_first_half)
+                            if d == 1:
+                                d = 15
+                            else:
+                                d = 1
+                                if m == 12: m = 1; y += 1
+                                else: m += 1
+                        # Subtract transactions from sb_month to current month
+                        sb_start = date(sb_y, sb_m, 1)
+                        txn_result = await db.execute(
+                            select(func.sum(BudgetTransaction.amount))
+                            .where(
+                                BudgetTransaction.category_id == transfer_cat.id,
+                                BudgetTransaction.transaction_date >= sb_start,
+                                BudgetTransaction.transaction_date < month_start,
+                            )
+                        )
+                        intervening_txns = txn_result.scalar() or 0.0
+                        rollover += intervening_txns
+                elif sb_month:
+                    # Viewing a month before starting_balance month: no historical data
+                    rollover = 0.0
                 else:
-                    # Compute from all historical half-periods before current month
+                    # No starting_balance: compute from all historical half-periods
                     budget_start = first_date or start_date
                     s_y, s_m = budget_start.year, budget_start.month
                     s_d = 1 if budget_start.day <= 14 else 15
