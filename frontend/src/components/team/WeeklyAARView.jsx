@@ -51,14 +51,19 @@ function WeeklyAARView({ settings, members }) {
   const loadData = async () => {
     setLoading(true)
     try {
-      const monday = getMondayOfWeek(new Date())
-      const dateStr = monday.toISOString().split('T')[0]
-
-      const [aarRes, obsRes, pastRes] = await Promise.all([
+      // First get the current AAR (backend returns incomplete AAR if one exists, or current week)
+      const [aarRes, pastRes] = await Promise.all([
         getCurrentAAR(),
-        getWeekObservations(dateStr),
         getAARs({ limit: 5 })
       ])
+
+      // Use the AAR's week_start to fetch matching observations
+      const weekStart = aarRes.data?.week_start
+      const dateStr = weekStart
+        ? weekStart.split('T')[0]
+        : getMondayOfWeek(new Date()).toISOString().split('T')[0]
+
+      const obsRes = await getWeekObservations(dateStr)
 
       setCurrentAAR(aarRes.data)
       setWeekObservations(obsRes.data)

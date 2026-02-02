@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.70.5] - 2026-02-01
+
+### Fixed
+- **Weekly AAR observations now display correctly** - Fixed timezone bug where observations added on Sunday evening (EST) were assigned to next week's AAR instead of the current week. Backend now uses app timezone setting instead of UTC for week calculations
+- **AAR persists until marked complete** - AAR no longer auto-advances to next week. It stays on the current week until "Mark Complete" is clicked, then archives and starts fresh for the next week
+- **Fixed 6 misassigned observations** - Corrected existing observations that were placed in the wrong week due to the UTC timezone bug
+
 ## [1.70.4] - 2026-02-01
 
 ### Added

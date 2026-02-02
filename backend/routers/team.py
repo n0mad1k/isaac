@@ -16,6 +16,7 @@ import os
 import re
 import uuid
 import shutil
+import pytz
 from loguru import logger
 
 from models.database import get_db
@@ -531,6 +532,22 @@ def get_monday_of_week(dt: datetime) -> datetime:
     days_since_monday = dt.weekday()
     monday = dt - timedelta(days=days_since_monday)
     return monday.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+async def get_local_now(db: AsyncSession) -> datetime:
+    """Get current datetime in the app's configured timezone (naive)"""
+    tz_name = "America/New_York"
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "timezone")
+    )
+    tz_setting = result.scalar_one_or_none()
+    if tz_setting and tz_setting.value:
+        tz_name = tz_setting.value
+    try:
+        app_tz = pytz.timezone(tz_name)
+    except Exception:
+        app_tz = pytz.timezone("America/New_York")
+    return datetime.now(app_tz).replace(tzinfo=None)
 
 
 def serialize_member(member: TeamMember) -> dict:
@@ -2381,7 +2398,8 @@ async def get_member_observations(
     current_user: User = Depends(require_auth)
 ):
     """Get observations for a specific member"""
-    cutoff = datetime.utcnow() - timedelta(weeks=weeks)
+    local_now = await get_local_now(db)
+    cutoff = local_now - timedelta(weeks=weeks)
 
     result = await db.execute(
         select(WeeklyObservation)
@@ -2425,10 +2443,11 @@ async def create_observation(
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    # Calculate week start if not provided
+    # Calculate week start if not provided - use app timezone
     week_start = data.week_start
     if not week_start:
-        week_start = get_monday_of_week(datetime.utcnow())
+        local_now = await get_local_now(db)
+        week_start = get_monday_of_week(local_now)
 
     observation = WeeklyObservation(
         member_id=member_id,
@@ -2540,20 +2559,38 @@ async def get_current_aar(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_auth)
 ):
-    """Get or create current week's AAR"""
-    now = datetime.utcnow()
-    week_start = get_monday_of_week(now)
+    """Get or create current week's AAR.
 
+    Returns the most recent incomplete AAR if one exists (persists until marked complete).
+    Otherwise returns the current week's AAR or a blank state for the current week.
+    """
+    local_now = await get_local_now(db)
+    current_week_start = get_monday_of_week(local_now)
+
+    # First check for any incomplete AAR (persists until user marks complete)
     result = await db.execute(
-        select(WeeklyAAR).where(WeeklyAAR.week_start == week_start)
+        select(WeeklyAAR)
+        .where(WeeklyAAR.is_completed == False)
+        .order_by(desc(WeeklyAAR.week_start))
+        .limit(1)
     )
     aar = result.scalar_one_or_none()
 
-    # Get observations for this week
-    week_end = week_start + timedelta(days=7)
+    # If no incomplete AAR, check if one exists for current week (already completed)
+    if not aar:
+        result = await db.execute(
+            select(WeeklyAAR).where(WeeklyAAR.week_start == current_week_start)
+        )
+        aar = result.scalar_one_or_none()
+
+    # Determine which week to show observations for
+    target_week_start = aar.week_start if aar else current_week_start
+
+    # Get observations for the target week
+    week_end = target_week_start + timedelta(days=7)
     obs_result = await db.execute(
         select(WeeklyObservation)
-        .where(WeeklyObservation.week_start >= week_start)
+        .where(WeeklyObservation.week_start >= target_week_start)
         .where(WeeklyObservation.week_start < week_end)
     )
     observations = obs_result.scalars().all()
@@ -2579,7 +2616,7 @@ async def get_current_aar(
 
     return {
         "exists": False,
-        "week_start": week_start.isoformat(),
+        "week_start": current_week_start.isoformat(),
         "observations_count": {
             "went_well": len(went_well),
             "needs_improvement": len(needs_improvement)
@@ -2640,10 +2677,11 @@ async def update_aar(
     for key, value in update_data.items():
         setattr(aar, key, value)
 
+    local_now = await get_local_now(db)
     if data.is_completed and not aar.completed_at:
-        aar.completed_at = datetime.utcnow()
+        aar.completed_at = local_now
 
-    aar.updated_at = datetime.utcnow()
+    aar.updated_at = local_now
     await db.commit()
 
     return {"message": "AAR updated", "id": aar.id}
