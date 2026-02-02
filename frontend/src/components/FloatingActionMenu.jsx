@@ -196,14 +196,15 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `flex flex-col items-center justify-center p-3 rounded-lg transition-colors ${
+                    `flex flex-col items-center justify-center p-3 rounded-lg transition-colors touch-manipulation ${
                       isActive ? '' : 'hover:opacity-80'
                     }`
                   }
                   style={({ isActive }) => ({
                     backgroundColor: isActive ? 'var(--color-nav-item-bg-active)' : 'var(--color-bg-surface)',
                     color: isActive ? 'var(--color-nav-item-text-active)' : 'var(--color-nav-item-text)',
-                    border: '1px solid var(--color-border-default)'
+                    border: '1px solid var(--color-border-default)',
+                    minHeight: '56px'
                   })}
                 >
                   <item.icon className="w-6 h-6 mb-1" />
@@ -217,10 +218,11 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={handleOpenQuickAdd}
-                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors"
+                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
                   style={{
                     backgroundColor: 'var(--color-green-600)',
-                    color: 'white'
+                    color: 'white',
+                    minHeight: '48px'
                   }}
                 >
                   <Plus className="w-5 h-5" />
@@ -229,11 +231,12 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
                 {onChatToggle && (
                   <button
                     onClick={handleOpenChat}
-                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors relative"
+                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors relative touch-manipulation"
                     style={{
                       backgroundColor: 'var(--color-bg-surface)',
                       border: '1px solid var(--color-border-default)',
-                      color: 'var(--color-text-primary)'
+                      color: 'var(--color-text-primary)',
+                      minHeight: '48px'
                     }}
                   >
                     <Bot className="w-5 h-5" />
@@ -251,11 +254,12 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
                 {showHardRefresh && (
                   <button
                     onClick={handleHardRefresh}
-                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors"
+                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
                     style={{
                       backgroundColor: 'var(--color-bg-surface)',
                       border: '1px solid var(--color-border-default)',
-                      color: 'var(--color-text-primary)'
+                      color: 'var(--color-text-primary)',
+                      minHeight: '48px'
                     }}
                   >
                     <RotateCcw className="w-5 h-5" />
@@ -265,11 +269,12 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
                 {feedbackEnabled && (
                   <button
                     onClick={handleOpenFeedback}
-                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors"
+                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
                     style={{
                       backgroundColor: 'var(--color-bg-surface)',
                       border: '1px solid var(--color-border-default)',
-                      color: 'var(--color-text-primary)'
+                      color: 'var(--color-text-primary)',
+                      minHeight: '48px'
                     }}
                   >
                     <MessageSquarePlus className="w-5 h-5" />
@@ -279,11 +284,12 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
                 {showKeyboard && (
                   <button
                     onClick={handleToggleKeyboard}
-                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors"
+                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
                     style={{
                       backgroundColor: 'var(--color-bg-surface)',
                       border: '1px solid var(--color-border-default)',
-                      color: 'var(--color-text-primary)'
+                      color: 'var(--color-text-primary)',
+                      minHeight: '48px'
                     }}
                   >
                     <Keyboard className="w-5 h-5" />
@@ -387,7 +393,7 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
         {/* Main toggle button - 3 lines on mobile, 3 dots on desktop */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="p-3 rounded-full shadow-lg transition-all duration-200 active:scale-95 touch-manipulation"
+          className="p-3.5 rounded-full shadow-lg transition-all duration-200 active:scale-95 touch-manipulation"
           style={{
             backgroundColor: expanded ? 'var(--color-green-700)' : 'var(--color-nav-bg)',
             border: '2px solid var(--color-border-strong)',

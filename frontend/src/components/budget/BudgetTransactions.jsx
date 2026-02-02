@@ -210,7 +210,7 @@ function BudgetTransactions() {
               <X className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
             </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Date</label>
               <input
@@ -287,8 +287,8 @@ function BudgetTransactions() {
 
       {/* Transaction List */}
       <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-        {/* Header */}
-        <div className="grid grid-cols-[90px_1fr_100px_90px_120px_60px] text-xs font-semibold py-2 px-3" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+        {/* Desktop Header - hidden on mobile */}
+        <div className="hidden md:grid grid-cols-[90px_1fr_100px_90px_120px_60px] text-xs font-semibold py-2 px-3" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
           <span>Date</span>
           <span>Description</span>
           <span className="text-right">Amount</span>
@@ -306,60 +306,125 @@ function BudgetTransactions() {
             <p className="text-sm">No transactions yet. Click "Add Transaction" to get started.</p>
           </div>
         ) : (
-          transactions.map(txn => (
-            <div
-              key={txn.id}
-              className="grid grid-cols-[90px_1fr_100px_90px_120px_60px] text-xs py-2 px-3 items-center hover:bg-gray-800/30 transition-colors"
-              style={{ borderBottom: '1px solid var(--color-border-default)' }}
-            >
-              <span style={{ color: 'var(--color-text-muted)' }}>
-                {formatDate ? formatDate(txn.transaction_date) : txn.transaction_date}
-              </span>
-              <span style={{ color: 'var(--color-text-primary)' }}>{txn.description}</span>
-              <span className="text-right font-medium" style={{ color: txn.amount < 0 ? '#ef4444' : '#22c55e' }}>
-                {fmt(txn.amount)}
-              </span>
-              <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
-                {accounts.find(a => a.id === txn.account_id)?.name || ''}
-              </span>
-              <span className="text-right">
-                <select
-                  value={txn.category_id || ''}
-                  onChange={(e) => handleCategoryChange(txn.id, e.target.value ? parseInt(e.target.value) : null)}
-                  className="px-1 py-0.5 bg-transparent border border-transparent hover:border-gray-600 rounded text-xs text-right cursor-pointer"
-                  style={{ color: 'var(--color-text-secondary)' }}
+          <>
+            {/* Desktop Table Rows - hidden on mobile */}
+            <div className="hidden md:block">
+              {transactions.map(txn => (
+                <div
+                  key={txn.id}
+                  className="grid grid-cols-[90px_1fr_100px_90px_120px_60px] text-xs py-2 px-3 items-center hover:bg-gray-800/30 transition-colors"
+                  style={{ borderBottom: '1px solid var(--color-border-default)' }}
                 >
-                  <option value="">--</option>
-                  {variableCategories.length > 0 && <optgroup label="Spending">
-                    {variableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </optgroup>}
-                  {transferCategories.length > 0 && <optgroup label="Transfers">
-                    {transferCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </optgroup>}
-                  {fixedCategories.length > 0 && <optgroup label="Bills">
-                    {fixedCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </optgroup>}
-                </select>
-              </span>
-              <span className="flex justify-end gap-1">
-                <button
-                  onClick={() => handleEdit(txn)}
-                  className="p-0.5 rounded hover:bg-gray-700"
-                  style={{ color: 'var(--color-text-muted)' }}
-                  title="Edit"
-                >
-                  <Pencil className="w-3 h-3" />
-                </button>
-                <button
-                  onClick={() => handleDelete(txn.id)}
-                  className="p-0.5 rounded hover:bg-red-900/50 text-red-500"
-                  title="Delete"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </span>
+                  <span style={{ color: 'var(--color-text-muted)' }}>
+                    {formatDate ? formatDate(txn.transaction_date) : txn.transaction_date}
+                  </span>
+                  <span style={{ color: 'var(--color-text-primary)' }}>{txn.description}</span>
+                  <span className="text-right font-medium" style={{ color: txn.amount < 0 ? '#ef4444' : '#22c55e' }}>
+                    {fmt(txn.amount)}
+                  </span>
+                  <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
+                    {accounts.find(a => a.id === txn.account_id)?.name || ''}
+                  </span>
+                  <span className="text-right">
+                    <select
+                      value={txn.category_id || ''}
+                      onChange={(e) => handleCategoryChange(txn.id, e.target.value ? parseInt(e.target.value) : null)}
+                      className="px-1 py-0.5 bg-transparent border border-transparent hover:border-gray-600 rounded text-xs text-right cursor-pointer"
+                      style={{ color: 'var(--color-text-secondary)' }}
+                    >
+                      <option value="">--</option>
+                      {variableCategories.length > 0 && <optgroup label="Spending">
+                        {variableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </optgroup>}
+                      {transferCategories.length > 0 && <optgroup label="Transfers">
+                        {transferCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </optgroup>}
+                      {fixedCategories.length > 0 && <optgroup label="Bills">
+                        {fixedCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </optgroup>}
+                    </select>
+                  </span>
+                  <span className="flex justify-end gap-1">
+                    <button
+                      onClick={() => handleEdit(txn)}
+                      className="p-0.5 rounded hover:bg-gray-700"
+                      style={{ color: 'var(--color-text-muted)' }}
+                      title="Edit"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(txn.id)}
+                      className="p-0.5 rounded hover:bg-red-900/50 text-red-500"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </span>
+                </div>
+              ))}
             </div>
-          ))
+
+            {/* Mobile Card View - visible only on mobile */}
+            <div className="md:hidden divide-y" style={{ borderColor: 'var(--color-border-default)' }}>
+              {transactions.map(txn => (
+                <div key={txn.id} className="p-3 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{txn.description}</div>
+                      <div className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                        {formatDate ? formatDate(txn.transaction_date) : txn.transaction_date}
+                        {accounts.find(a => a.id === txn.account_id)?.name && (
+                          <span> &middot; {accounts.find(a => a.id === txn.account_id)?.name}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-sm font-bold" style={{ color: txn.amount < 0 ? '#ef4444' : '#22c55e' }}>
+                        {fmt(txn.amount)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <select
+                      value={txn.category_id || ''}
+                      onChange={(e) => handleCategoryChange(txn.id, e.target.value ? parseInt(e.target.value) : null)}
+                      className="flex-1 min-w-0 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs cursor-pointer"
+                      style={{ color: 'var(--color-text-secondary)' }}
+                    >
+                      <option value="">Uncategorized</option>
+                      {variableCategories.length > 0 && <optgroup label="Spending">
+                        {variableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </optgroup>}
+                      {transferCategories.length > 0 && <optgroup label="Transfers">
+                        {transferCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </optgroup>}
+                      {fixedCategories.length > 0 && <optgroup label="Bills">
+                        {fixedCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </optgroup>}
+                    </select>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => handleEdit(txn)}
+                        className="p-1 rounded hover:bg-gray-700"
+                        style={{ color: 'var(--color-text-muted)' }}
+                        title="Edit"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(txn.id)}
+                        className="p-1 rounded hover:bg-red-900/50 text-red-500"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

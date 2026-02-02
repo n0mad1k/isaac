@@ -113,7 +113,7 @@ function MonthlyBudget() {
     setNewLine({
       type, name: '', amount: '', bill_day: '',
       account_id: '', frequency: 'semimonthly', end_date: '',
-      billing_months: ''
+      billing_months: '', bill_frequency: 'per_period'
     })
   }
 
@@ -142,6 +142,7 @@ function MonthlyBudget() {
         let category_type = 'fixed'
         let owner = null
         let bill_day = parseInt(newLine.bill_day) || null
+        const isPerPeriod = (type === 'bill' || type === 'payment_plan') && newLine.bill_frequency === 'per_period'
 
         if (type === 'spending') category_type = 'variable'
         else if (type === 'transfer') category_type = 'transfer'
@@ -149,17 +150,36 @@ function MonthlyBudget() {
         if (addingTo.startsWith('dane')) owner = 'dane'
         else if (addingTo.startsWith('kelly')) owner = 'kelly'
 
-        // Set bill_day for all non-income types to control which half they appear in
-        if (type !== 'income') {
+        // For per-period bills, do NOT set bill_day (they appear in both halves)
+        // For monthly bills and other types, auto-assign bill_day based on which half they're added to
+        if (isPerPeriod) {
+          bill_day = null
+        } else if (type !== 'income') {
           if (addingTo.includes('first') && !bill_day) bill_day = 1
           else if (addingTo.includes('second') && !bill_day) bill_day = 15
+        }
+
+        let monthly_budget = null
+        let budget_amount = 0
+
+        if (isPerPeriod) {
+          // Per-period bill: amount is per pay period, stored in budget_amount
+          budget_amount = amount
+          monthly_budget = null
+        } else if (type === 'bill' || type === 'payment_plan') {
+          // Monthly bill: full monthly amount
+          monthly_budget = amount
+          budget_amount = 0
+        } else {
+          // Spending/transfer: per-period amount in budget_amount
+          budget_amount = amount
         }
 
         const data = {
           name: newLine.name,
           category_type,
-          monthly_budget: (type === 'bill' || type === 'payment_plan') ? amount : null,
-          budget_amount: (type === 'spending' || type === 'transfer') ? amount : 0,
+          monthly_budget,
+          budget_amount,
           owner,
           bill_day,
           account_id: acctId,
@@ -326,11 +346,11 @@ function MonthlyBudget() {
     }
 
     return (
-      <div key={`${type}-${id}`} className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-1 px-2 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+      <div key={`${type}-${id}`} className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs py-1 px-2 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
         <span style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>{day ? ordinal(day) : ''}</span>
         <span className="text-left truncate" style={{ color: 'var(--color-text-primary)' }}>{name}</span>
         <span className="text-right" style={{ color: amtColor }}>{displayAmt}</span>
-        <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>{accountName}</span>
+        <span className="hidden sm:inline text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>{accountName}</span>
         <span className="flex justify-center gap-0.5">
           <button onClick={openEdit} className="p-0.5 text-gray-600 hover:text-blue-400 flex-shrink-0" title="Edit">
             <Pencil className="w-2.5 h-2.5" />
@@ -351,15 +371,16 @@ function MonthlyBudget() {
     if (addingTo !== sectionKey) return null
     const { type } = newLine
     const isBillType = type === 'bill' || type === 'payment_plan'
-    const showDay = true // Show for all types; day controls which half the item appears in
+    const isPerPeriodBill = isBillType && newLine.bill_frequency === 'per_period'
+    const showDay = !isPerPeriodBill // Hide day for per-period bills
     const showFreq = type === 'income'
     const showEndDate = isBillType
-    const showBillingMonths = isBillType
+    const showBillingMonths = isBillType && !isPerPeriodBill
     const showAccount = true
 
     return (
       <div className="text-xs py-2 px-2 space-y-1.5" style={{ borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <select value={type} onChange={(e) => setNewLine(f => ({ ...f, type: e.target.value }))}
             className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
             <option value="bill">Bill</option>
@@ -368,13 +389,20 @@ function MonthlyBudget() {
             <option value="transfer">Transfer</option>
             <option value="payment_plan">Payment Plan</option>
           </select>
+          {isBillType && (
+            <select value={newLine.bill_frequency || 'per_period'} onChange={(e) => setNewLine(f => ({ ...f, bill_frequency: e.target.value, bill_day: '' }))}
+              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+              <option value="per_period">Each Half</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          )}
           {showDay && (
             <input type="number" placeholder="Day" min="1" max="31" value={newLine.bill_day} onChange={(e) => setNewLine(f => ({ ...f, bill_day: e.target.value }))}
               className="w-12 px-1 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} title="Day of month (1-31)" />
           )}
           <input type="text" placeholder="Name" value={newLine.name} onChange={(e) => setNewLine(f => ({ ...f, name: e.target.value }))}
             className="flex-1 min-w-0 px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} autoFocus />
-          <input type="number" step="0.01" placeholder="Amt" value={newLine.amount} onChange={(e) => setNewLine(f => ({ ...f, amount: e.target.value }))}
+          <input type="number" step="0.01" placeholder={isPerPeriodBill ? 'Per half' : 'Amt'} value={newLine.amount} onChange={(e) => setNewLine(f => ({ ...f, amount: e.target.value }))}
             className="w-20 px-1 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-right" style={{ color: 'var(--color-text-primary)' }}
             onKeyDown={(e) => { if (e.key === 'Enter') saveNewLine() }} />
         </div>
@@ -441,8 +469,8 @@ function MonthlyBudget() {
   }
 
   const colHeader = (bgColor = '#3b82f6') => (
-    <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-1.5 px-2" style={{ backgroundColor: bgColor, color: '#fff' }}>
-      <span>Date</span><span>Item</span><span className="text-right">Amount</span><span className="text-right">Account</span><span />
+    <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-1.5 px-2" style={{ backgroundColor: bgColor, color: '#fff' }}>
+      <span>Date</span><span>Item</span><span className="text-right">Amount</span><span className="hidden sm:inline text-right">Account</span><span />
     </div>
   )
 
@@ -710,7 +738,11 @@ function MonthlyBudget() {
         {firstDeposits.map(cat => lineRow('category', cat.id, cat.bill_day, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bFirst.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {addForm(`${ownerKey}-first`)}
-        <div className="flex justify-end px-2 py-0.5">
+        <div className="flex items-center justify-between px-2 py-0.5">
+          <div className="flex items-center gap-3 text-xs">
+            <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span style={{ color: '#ef4444' }}>-{fmt(firstBillTotal)}</span></span>
+            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Total: <span style={{ color: (apiFhRemaining != null ? apiFhRemaining : firstHalfRemaining) >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(apiFhRemaining != null ? apiFhRemaining : firstHalfRemaining)}</span></span>
+          </div>
           <button onClick={() => openAddForm(`${ownerKey}-first`, 'bill')}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
@@ -721,7 +753,11 @@ function MonthlyBudget() {
         {secondDeposits.map(cat => lineRow('category', cat.id, cat.bill_day, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bSecond.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {addForm(`${ownerKey}-second`)}
-        <div className="flex justify-end px-2 py-0.5">
+        <div className="flex items-center justify-between px-2 py-0.5">
+          <div className="flex items-center gap-3 text-xs">
+            <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span style={{ color: '#ef4444' }}>-{fmt(secondBillTotal)}</span></span>
+            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Total: <span style={{ color: secondHalfCumulative >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfCumulative)}</span></span>
+          </div>
           <button onClick={() => openAddForm(`${ownerKey}-second`, 'bill')}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
@@ -729,77 +765,35 @@ function MonthlyBudget() {
         </div>
 
         <div className="py-1" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
-          {/* 1st Half Summary */}
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
-            <span /><span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>1st - 14th</span>
-            <span /><span /><span />
-          </div>
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
-            <span /><span style={{ color: 'var(--color-text-muted)' }}>Deposit</span>
-            <span className="text-right" style={{ color: '#22c55e' }}>+{fmt(firstDepositTotal)}</span>
-            <span /><span />
-          </div>
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
-            <span /><span style={{ color: 'var(--color-text-muted)' }}>Bills</span>
-            <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(firstBillTotal)}</span>
-            <span /><span />
-          </div>
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2" style={{ borderTop: '1px solid var(--color-border-default)' }}>
-            <span /><span style={{ color: 'var(--color-text-primary)' }}>Total</span>
-            <span className="text-right" style={{ color: firstHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(apiFhRemaining != null ? apiFhRemaining : firstHalfRemaining)}</span>
-            <span /><span />
-          </div>
-
-          {/* 2nd Half Summary */}
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2 mt-1">
-            <span /><span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>15th - End</span>
-            <span /><span /><span />
-          </div>
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
-            <span /><span style={{ color: 'var(--color-text-muted)' }}>Deposit</span>
-            <span className="text-right" style={{ color: '#22c55e' }}>+{fmt(secondDepositTotal)}</span>
-            <span /><span />
-          </div>
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
-            <span /><span style={{ color: 'var(--color-text-muted)' }}>Bills</span>
-            <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(secondBillTotal)}</span>
-            <span /><span />
-          </div>
-          <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2" style={{ borderTop: '1px solid var(--color-border-default)' }}>
-            <span /><span style={{ color: 'var(--color-text-primary)' }}>Total</span>
-            <span className="text-right" style={{ color: secondHalfCumulative >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfCumulative)}</span>
-            <span /><span />
-          </div>
-
           {/* Bottom totals */}
-          <div className="mt-1 pt-1" style={{ borderTop: '2px solid var(--color-border-default)' }}>
+          <div>
             {/* Monthly remaining (after bills) */}
-            <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2">
+            <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2">
               <span /><span style={{ color: 'var(--color-text-primary)' }}>Monthly Remaining</span>
               <span className="text-right" style={{ color: monthlyNet >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(monthlyNet)}</span>
-              <span /><span />
+              <span className="hidden sm:inline" /><span />
             </div>
             {/* Rollover from prior months */}
             {rollover !== 0 && (
-              <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
+              <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
                 <span /><span style={{ color: 'var(--color-text-muted)' }}>Rollover</span>
                 <span className="text-right" style={{ color: rollover >= 0 ? '#22c55e' : '#ef4444' }}>{rollover >= 0 ? '+' : ''}{fmt(rollover)}</span>
-                <span /><span />
+                <span className="hidden sm:inline" /><span />
               </div>
             )}
             {/* This month's spending */}
             {periodSpent > 0 && (
-              <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
+              <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
                 <span /><span style={{ color: 'var(--color-text-muted)' }}>Spending</span>
                 <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(periodSpent)}</span>
-                <span /><span />
+                <span className="hidden sm:inline" /><span />
               </div>
             )}
             {/* Available to Spend */}
-            <div className="grid grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
+            <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
               <span /><span style={{ color: 'var(--color-text-primary)' }}>Available to Spend</span>
               <span className="text-right text-sm" style={{ color: fullMonthAvailable >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(fullMonthAvailable)}</span>
-              <span /><span />
+              <span className="hidden sm:inline" /><span />
             </div>
           </div>
         </div>
@@ -828,7 +822,7 @@ function MonthlyBudget() {
       <div className="text-xs text-center mb-1" style={{ color: 'var(--color-text-muted)' }}>
         {isCurrentMonth ? (inFirstHalf ? '1st - 14th (current)' : '15th - End (current)') : (inFirstHalf ? '1st - 14th' : '15th - End')}
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
         <div className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Income</div>
           <span className="text-sm font-bold" style={{ color: '#22c55e' }}>{fmt(cardIncome)}</span>

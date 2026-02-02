@@ -2,6 +2,20 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.70.4] - 2026-02-01
+
+### Added
+- **Per-period bill frequency** - When adding or editing bills in Monthly Budget, choose "Each Half" (appears in both pay periods) or "Monthly" (specific day of month). Makes it easy to add recurring expenses like "Sarah Massage $110 every half month"
+- **Bill totals inline per half** - Each half of a person's budget now shows the bill total and half total inline, instead of only at the bottom
+
+### Changed
+- **Mobile responsive overhaul** - Improved mobile layout across all pages: Dashboard, Budget, Plants, Animals, Settings, Team, ToDo, Calendar, DevTracker, Home Maintenance, and FloatingActionMenu
+- **Pie chart shows budget allocation** - When no spending has been recorded, the Actual Summary donut chart now shows budget allocation breakdown instead of a blank state
+
+### Fixed
+- **Bill editing now works correctly** - Fixed per-period bills (no bill_day) showing wrong field in edit modal. Edit modal now shows correct amount field based on frequency type
+- **Error display in edit modal** - Save errors are now shown to the user instead of being silently swallowed
+
 ## [1.70.3] - 2026-02-01
 
 ### Added

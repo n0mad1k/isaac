@@ -16,7 +16,7 @@ import MottoDisplay from '../components/MottoDisplay'
 
 // Inline editable field component
 function EditableField({ label, value, field, type = 'text', options, onChange, placeholder, rows = 3, editing = true, displayValue }) {
-  const inputClass = "w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+  const inputClass = "w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500 min-h-[44px]"
   const readOnlyClass = "text-sm text-gray-300"
 
   // Read-only mode
@@ -1852,7 +1852,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between z-10">
           <h2 className="text-xl font-semibold">{initialData ? 'Duplicate Plant' : 'Add New Plant'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -1860,7 +1860,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6" id="plant-form">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4 md:p-6 space-y-6" id="plant-form">
           {/* Basic Info */}
           <div>
             <h3 className="text-sm font-medium text-gray-400 mb-3">Basic Information</h3>
@@ -2416,7 +2416,7 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-sm" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-sm" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Edit {label}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -2509,7 +2509,7 @@ function HarvestFormModal({ plant, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -2666,7 +2666,7 @@ function SellPlantModal({ plant, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -3082,7 +3082,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
   if (step === 'fetch') {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-xl" onClick={e => e.stopPropagation()}>
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-xl" onClick={e => e.stopPropagation()}>
           <div className="p-4 border-b border-gray-700 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -3209,7 +3209,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
   // Edit step - full form with imported data
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 w-full max-w-[92vw] sm:max-w-xl md:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold">

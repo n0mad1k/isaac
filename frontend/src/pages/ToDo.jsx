@@ -340,9 +340,9 @@ function ToDo() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0">
-          <ListTodo className="w-7 h-7 text-yellow-500" />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 flex-shrink-0">
+          <ListTodo className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-500" />
           To Do
         </h1>
         <MottoDisplay />
@@ -350,24 +350,28 @@ function ToDo() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 text-white rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 bg-cyan-700 hover:bg-cyan-600 text-white rounded-lg transition-colors disabled:opacity-50 touch-manipulation"
             title="Sync with phone"
+            style={{ minHeight: '44px' }}
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing...' : 'Sync'}
+            <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync'}</span>
+            <span className="sm:hidden">{syncing ? '...' : 'Sync'}</span>
           </button>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors touch-manipulation"
+            style={{ minHeight: '44px' }}
           >
             <Plus className="w-5 h-5" />
-            Add To Do
+            <span className="hidden sm:inline">Add To Do</span>
+            <span className="sm:hidden">Add</span>
           </button>
         </div>
       </div>
 
       {/* View Tabs */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-x-visible sm:pb-0 -mx-3 px-3 sm:mx-0 sm:px-0">
         {[
           { key: 'upcoming', label: 'Upcoming', icon: Clock, description: 'Today & Tomorrow' },
           { key: 'today', label: 'Today', icon: Calendar },
@@ -381,12 +385,13 @@ function ToDo() {
           <button
             key={tab.key}
             onClick={() => { setView(tab.key); setDisplayLimit(INITIAL_DISPLAY_LIMIT); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg transition-colors whitespace-nowrap flex-shrink-0 sm:flex-shrink touch-manipulation ${
               view === tab.key
                 ? 'bg-farm-green text-white'
                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
             }`}
             title={tab.description}
+            style={{ minHeight: '44px' }}
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
@@ -500,11 +505,11 @@ function ToDo() {
                 todo.priority
               )} ${todo.is_completed ? 'opacity-60' : ''}`}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-2 sm:gap-4">
                 {/* Checkbox */}
                 <button
                   onClick={() => handleToggle(todo)}
-                  className="mt-1 flex-shrink-0"
+                  className="mt-1 flex-shrink-0 touch-manipulation"
                 >
                   <div
                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
@@ -645,8 +650,8 @@ function ToDo() {
 
       {/* Add/Edit To Do Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">
                 {editingTodo ? 'Edit To Do' : 'Add New To Do'}
@@ -798,7 +803,7 @@ function ToDo() {
               {/* Alerts */}
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2">
                   {[
                     { value: 0, label: 'At time' },
                     { value: 5, label: '5 min' },
@@ -823,7 +828,7 @@ function ToDo() {
                               : [...prev, opt.value].sort((a, b) => b - a)
                           )
                         }}
-                        className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                        className={`px-2 py-1.5 rounded text-xs font-medium transition-all touch-manipulation ${
                           isSelected
                             ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
                             : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'

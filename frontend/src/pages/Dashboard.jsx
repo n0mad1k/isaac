@@ -181,15 +181,15 @@ function Dashboard() {
   }
 
   return (
-    <div ref={containerRef} className="flex flex-col gap-2 md:gap-3 min-h-0 md:h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] overflow-auto md:overflow-hidden">
+    <div ref={containerRef} className="flex flex-col gap-2 md:gap-3 min-h-0 h-auto md:h-[calc(100vh-4rem)] lg:h-[calc(100vh-4rem)] overflow-auto md:overflow-hidden">
       {/* Header Row: Date/Time, Motto, Budget Ticker */}
-      <div className="flex items-start justify-between gap-4 flex-shrink-0">
+      <div className="flex items-start justify-between gap-2 sm:gap-4 flex-shrink-0">
         {/* Left - Date/Time */}
         <div className="flex-shrink-0 min-w-0">
-          <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
+          <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>
             {formatTimeInTz(currentTime, { weekday: 'short', month: 'short', day: 'numeric' })}
           </h1>
-          <div className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-mono" style={{ color: 'var(--color-text-primary)' }}>
+          <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-mono" style={{ color: 'var(--color-text-primary)' }}>
             {formatTimeInTz(currentTime, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s*(AM|PM)$/i, '')}
             <span className="text-sm sm:text-lg md:text-base lg:text-xl">:{formatTimeInTz(currentTime, { second: '2-digit' })} {formatTimeInTz(currentTime, { hour: 'numeric', hour12: true }).match(/(AM|PM)/i)?.[0] || ''}</span>
           </div>
@@ -275,7 +275,7 @@ function Dashboard() {
                         borderLeft: '3px solid var(--color-border-default)'
                       }}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <button
                           onClick={async () => {
                             try {

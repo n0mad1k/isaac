@@ -167,13 +167,13 @@ function AccountsSection({ accounts, onRefresh }) {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-4 p-3 bg-gray-800 rounded-lg space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" placeholder="Account Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
             <select value={form.account_type} onChange={(e) => setForm(p => ({ ...p, account_type: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
               {ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <input type="text" placeholder="Institution" value={form.institution} onChange={(e) => setForm(p => ({ ...p, institution: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} maxLength={100} />
             <input type="text" placeholder="Last 4" value={form.last_four} onChange={(e) => setForm(p => ({ ...p, last_four: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} maxLength={4} />
             <input type="number" placeholder="Sort Order" value={form.sort_order} onChange={(e) => setForm(p => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
@@ -421,13 +421,13 @@ function CategoriesSection({ categories, onRefresh }) {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-4 p-3 bg-gray-800 rounded-lg space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" placeholder="Category Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
             <select value={form.category_type} onChange={(e) => setForm(p => ({ ...p, category_type: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
               {CATEGORY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div>
               <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Per Period Budget</label>
               <input type="number" step="0.01" placeholder="0.00" value={form.budget_amount} onChange={(e) => setForm(p => ({ ...p, budget_amount: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
@@ -588,11 +588,11 @@ function IncomeSection({ incomes, accounts, onRefresh }) {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-4 p-3 bg-gray-800 rounded-lg space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" placeholder="Income Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
             <input type="number" step="0.01" placeholder="Amount" value={form.amount} onChange={(e) => setForm(p => ({ ...p, amount: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required />
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div>
               <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Frequency</label>
               <select value={form.frequency} onChange={(e) => {
@@ -719,13 +719,13 @@ function RulesSection({ rules, categories, onRefresh }) {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-4 p-3 bg-gray-800 rounded-lg space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" placeholder="Pattern (e.g., COSTCO)" value={form.pattern} onChange={(e) => setForm(p => ({ ...p, pattern: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={200} />
             <select value={form.match_type} onChange={(e) => setForm(p => ({ ...p, match_type: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
               {MATCH_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <select value={form.category_id} onChange={(e) => setForm(p => ({ ...p, category_id: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required>
               <option value="">Select Category...</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

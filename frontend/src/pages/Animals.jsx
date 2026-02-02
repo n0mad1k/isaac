@@ -2161,7 +2161,7 @@ function CareScheduleFormModal({ schedule, animalName, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
             {schedule ? 'Edit Care Item' : 'Add Care Item'} {animalName && `for ${animalName}`}
@@ -2377,7 +2377,7 @@ function BulkCareScheduleModal({ animals, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-semibold">Add Care Item to Multiple Animals</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -2849,7 +2849,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-xl font-semibold">{isDuplicate ? 'Duplicate Animal' : (animal ? 'Edit Animal' : 'Add New Animal')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -3401,7 +3401,7 @@ function ExpenseFormModal({ animalId, animalName, animals, onClose, onSave, onSp
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Add Expense for {animalName}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -3711,7 +3711,7 @@ function SplitExpenseFormModal({ animals, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Split Expense Across Animals</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -3984,7 +3984,7 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-sm" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-sm" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Edit {label}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -4068,7 +4068,7 @@ function FeedFormModal({ feed, animalName, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
             {feed ? 'Edit Feed' : 'Add Feed'} {animalName && `for ${animalName}`}
@@ -4195,7 +4195,7 @@ function ArchiveFormModal({ animal, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -4579,7 +4579,7 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold">Expenses for {animal.name}</h2>

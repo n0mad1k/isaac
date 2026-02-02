@@ -955,7 +955,7 @@ function Settings() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-6 ml-12">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-6 ml-0 sm:ml-12">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -999,7 +999,7 @@ function Settings() {
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0">
           <SettingsIcon className="w-7 h-7 text-gray-400" />
           Settings
@@ -1306,7 +1306,7 @@ function Settings() {
           {/* Password Reset Modal */}
           {resetPasswordUser && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md mx-4">
+              <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 w-full max-w-[92vw] sm:max-w-md mx-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Key className="w-5 h-5 text-yellow-400" />
                   Reset Password for {resetPasswordUser.username}

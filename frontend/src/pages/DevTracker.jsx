@@ -839,7 +839,7 @@ function DevTracker() {
       )}
 
       {/* Add New Item */}
-      <form onSubmit={handleAdd} className="flex gap-2 items-center">
+      <form onSubmit={handleAdd} className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
         <input
           type="text"
           value={newItem}
@@ -1327,7 +1327,7 @@ function DevTracker() {
               <div className="text-xs text-gray-400">Avg/Day</div>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-4 gap-2 text-center text-sm">
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-sm">
             <div className="text-red-400">
               <span className="font-semibold">{metrics.by_priority?.critical || 0}</span>
               <span className="text-xs text-gray-500 block">Critical</span>

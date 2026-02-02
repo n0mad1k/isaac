@@ -17,8 +17,10 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
 
   const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const [billingMode, setBillingMode] = useState('') // '', preset value, or 'custom'
   const [customMonths, setCustomMonths] = useState([])
+  const [billFrequency, setBillFrequency] = useState('monthly') // 'monthly' | 'per_period'
 
   useEffect(() => {
     if (!item) return
@@ -32,6 +34,10 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
         is_active: item.is_active !== false,
       })
     } else {
+      // Determine if this is a per-period bill (fixed with no bill_day, budget_amount > 0)
+      const isPerPeriodBill = item.category_type === 'fixed' && !item.bill_day && (item.budget_amount || 0) > 0
+      setBillFrequency(isPerPeriodBill ? 'per_period' : 'monthly')
+
       setForm({
         name: item.name || '',
         category_type: item.category_type || 'fixed',
@@ -67,6 +73,7 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
   const handleSave = async () => {
     if (saving) return
     setSaving(true)
+    setError('')
     try {
       const data = { ...form }
 
@@ -75,13 +82,28 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
         data.pay_day = parseInt(data.pay_day) || 1
         data.account_id = parseInt(data.account_id) || undefined
       } else {
-        data.monthly_budget = parseFloat(data.monthly_budget) || 0
-        data.budget_amount = parseFloat(data.budget_amount) || 0
-        data.bill_day = data.bill_day ? parseInt(data.bill_day) : null
         data.account_id = data.account_id ? parseInt(data.account_id) : null
         data.owner = data.owner || null
         data.start_date = data.start_date || null
         data.end_date = data.end_date || null
+
+        // Handle per-period vs monthly for fixed bills
+        if (data.category_type === 'fixed' && billFrequency === 'per_period') {
+          // Per-period bill: amount goes in budget_amount, no bill_day
+          data.budget_amount = parseFloat(data.budget_amount) || 0
+          data.monthly_budget = 0
+          data.bill_day = null
+        } else if (data.category_type === 'fixed') {
+          // Monthly bill: amount goes in monthly_budget, with bill_day
+          data.monthly_budget = parseFloat(data.monthly_budget) || 0
+          data.budget_amount = 0
+          data.bill_day = data.bill_day ? parseInt(data.bill_day) : null
+        } else {
+          // Variable/transfer: use budget_amount
+          data.monthly_budget = parseFloat(data.monthly_budget) || 0
+          data.budget_amount = parseFloat(data.budget_amount) || 0
+          data.bill_day = data.bill_day ? parseInt(data.bill_day) : null
+        }
 
         // Handle billing months
         if (billingMode === 'custom') {
@@ -97,6 +119,8 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
       onClose()
     } catch (err) {
       console.error('Failed to save:', err)
+      const msg = err?.response?.data?.detail || err?.message || 'Failed to save changes'
+      setError(typeof msg === 'string' ? msg : 'Failed to save changes')
     } finally {
       setSaving(false)
     }
@@ -203,18 +227,39 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
 
               {/* Amount fields based on type */}
               {isFixed && (
-                <div className="grid grid-cols-2 gap-3">
+                <>
+                  {/* Frequency toggle for fixed bills */}
                   <div>
-                    <label className={labelClass} style={labelStyle}>Monthly Amount</label>
-                    <input type="number" step="0.01" value={form.monthly_budget || ''} onChange={e => update('monthly_budget', e.target.value)}
-                      className={inputClass} style={inputStyle} />
+                    <label className={labelClass} style={labelStyle}>Frequency</label>
+                    <select value={billFrequency} onChange={e => setBillFrequency(e.target.value)}
+                      className={inputClass} style={inputStyle}>
+                      <option value="per_period">Every Pay Period (each half)</option>
+                      <option value="monthly">Once Per Month (specific day)</option>
+                    </select>
                   </div>
-                  <div>
-                    <label className={labelClass} style={labelStyle}>Bill Day</label>
-                    <input type="number" min="1" max="31" value={form.bill_day || ''} onChange={e => update('bill_day', e.target.value)}
-                      className={inputClass} style={inputStyle} placeholder="None" />
-                  </div>
-                </div>
+
+                  {billFrequency === 'per_period' ? (
+                    <div>
+                      <label className={labelClass} style={labelStyle}>Amount (per pay period)</label>
+                      <input type="number" step="0.01" value={form.budget_amount || ''} onChange={e => update('budget_amount', e.target.value)}
+                        className={inputClass} style={inputStyle} />
+                      <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>This amount appears in both halves of the month</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={labelClass} style={labelStyle}>Monthly Amount</label>
+                        <input type="number" step="0.01" value={form.monthly_budget || ''} onChange={e => update('monthly_budget', e.target.value)}
+                          className={inputClass} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelClass} style={labelStyle}>Bill Day</label>
+                        <input type="number" min="1" max="31" value={form.bill_day || ''} onChange={e => update('bill_day', e.target.value)}
+                          className={inputClass} style={inputStyle} placeholder="Day of month" />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {(isVariable || isTransfer) && (
@@ -308,15 +353,20 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 px-5 py-3" style={{ borderTop: '1px solid var(--color-border-default)' }}>
-          <button onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg hover:bg-gray-700" style={{ color: 'var(--color-text-secondary)' }}>
-            Cancel
-          </button>
-          <button onClick={handleSave} disabled={saving}
-            className="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
+        <div className="px-5 py-3" style={{ borderTop: '1px solid var(--color-border-default)' }}>
+          {error && (
+            <div className="text-sm text-red-400 mb-2 px-1">{error}</div>
+          )}
+          <div className="flex justify-end gap-2">
+            <button onClick={onClose}
+              className="px-4 py-2 text-sm rounded-lg hover:bg-gray-700" style={{ color: 'var(--color-text-secondary)' }}>
+              Cancel
+            </button>
+            <button onClick={handleSave} disabled={saving}
+              className="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

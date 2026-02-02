@@ -280,7 +280,7 @@ function HomeMaintenance() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div className="flex items-center gap-3 flex-shrink-0">
           <Home className="w-8 h-8" style={{ color: 'var(--color-green-600)' }} />
           <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Home Maintenance</h1>
@@ -288,7 +288,7 @@ function HomeMaintenance() {
         <MottoDisplay />
         <button
           onClick={() => { setShowAddForm(true); setEditingTask(null); resetForm(); }}
-          className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+          className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg transition-colors self-start sm:self-auto"
           style={{ backgroundColor: 'var(--color-green-600)', color: '#ffffff' }}
         >
           <Plus className="w-5 h-5" />
@@ -382,10 +382,10 @@ function HomeMaintenance() {
                   {categoryTasks.map(task => (
                     <div
                       key={task.id}
-                      className="flex items-center justify-between p-4"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 gap-2 sm:gap-0"
                       style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
                     >
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full" style={{
                             backgroundColor: task.status === 'overdue' ? 'var(--color-error-600)' :
@@ -455,7 +455,7 @@ function HomeMaintenance() {
       {/* Add/Edit Form Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+          <div className="rounded-lg p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
             <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>
               {editingTask ? 'Edit Task' : 'Add Maintenance Task'}
             </h2>
@@ -514,7 +514,7 @@ function HomeMaintenance() {
               </div>
               <div>
                 <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Category Icon</label>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 gap-2">
                   {Object.entries(AVAILABLE_ICONS).map(([name, config]) => {
                     const IconComponent = config.icon
                     const isSelected = formData.category_icon === name
@@ -691,7 +691,7 @@ function HomeMaintenance() {
       {/* Complete Modal */}
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+          <div className="rounded-lg p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
             <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text-primary)' }}>Complete: {completeModal.name}</h2>
             <div className="space-y-4">
               <div>

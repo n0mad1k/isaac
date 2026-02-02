@@ -174,7 +174,7 @@ function BudgetOverview() {
 
       {/* Summary Cards: Income, Bills, spending categories, Roll Over */}
       {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
           <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
             <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Income</div>
             <div className="text-base font-bold" style={{ color: '#22c55e' }}>{fmt(summary.expected_income)}</div>
@@ -323,11 +323,17 @@ function BudgetOverview() {
 
 
 function DonutChart({ categories }) {
-  const total = categories.reduce((sum, c) => sum + (c.spent || 0), 0)
+  const totalSpent = categories.reduce((sum, c) => sum + (c.spent || 0), 0)
+  const totalBudgeted = categories.reduce((sum, c) => sum + (c.budgeted || 0), 0)
+
+  // Use spending data if available, otherwise show budget allocations
+  const useSpent = totalSpent > 0
+  const total = useSpent ? totalSpent : totalBudgeted
+
   if (total === 0) {
     return (
       <div className="flex items-center justify-center h-48">
-        <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>No spending data</span>
+        <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>No budget data</span>
       </div>
     )
   }
@@ -339,8 +345,10 @@ function DonutChart({ categories }) {
   const labelRadius = outerRadius + 25
   let currentAngle = -90
 
-  const slices = categories.filter(c => c.spent > 0).map(cat => {
-    const percentage = (cat.spent / total) * 100
+  const dataKey = useSpent ? 'spent' : 'budgeted'
+  const slices = categories.filter(c => (c[dataKey] || 0) > 0).map(cat => {
+    const value = cat[dataKey] || 0
+    const percentage = (value / total) * 100
     const angle = (percentage / 100) * 360
     const startAngle = currentAngle
     const endAngle = currentAngle + angle
@@ -377,9 +385,13 @@ function DonutChart({ categories }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
+      {!useSpent && (
+        <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Showing budget allocation (no spending yet)</div>
+      )}
       <svg width="100%" viewBox={`0 0 ${size} ${size}`} style={{ maxWidth: size, overflow: 'visible' }}>
         {slices.map((slice, i) => (
-          <path key={i} d={slice.path} fill={slice.color} stroke="var(--color-bg-surface)" strokeWidth="2" />
+          <path key={i} d={slice.path} fill={slice.color} stroke="var(--color-bg-surface)" strokeWidth="2"
+            opacity={useSpent ? 1 : 0.6} />
         ))}
         {slices.filter(s => s.percentage >= 5).map((slice, i) => (
           <text key={`lbl-${i}`} x={slice.labelX} y={slice.labelY} textAnchor="middle" dominantBaseline="middle"
