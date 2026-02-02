@@ -76,6 +76,7 @@ class TrainingLoadAnalysis:
     risk_level: str                     # LOW, MODERATE, HIGH
     spike_detected: bool = False
     monotony: Optional[float] = None    # Training monotony score
+    weeks_of_data: int = 4              # Actual weeks of chronic data available
     notes: List[str] = field(default_factory=list)
 
 
@@ -926,6 +927,7 @@ def _analyze_training_load(workouts: List[MemberWorkout]) -> TrainingLoadAnalysi
         risk_level=risk_level,
         spike_detected=spike_detected,
         monotony=round(monotony, 1) if monotony else None,
+        weeks_of_data=weeks_of_data,
         notes=notes
     )
 
@@ -1094,7 +1096,7 @@ def _generate_risk_flags(
                 code="training_spike",
                 severity="moderate",
                 title="Training Load Spike",
-                explanation=f"Your Acute-to-Chronic Workload Ratio (ACWR) is {training_load.acwr:.2f}. This means your training this week is {training_load.acwr:.1f}x higher than your 4-week average. Research shows ratios above 1.5 correlate with increased soft-tissue injury risk.",
+                explanation=f"Your Acute-to-Chronic Workload Ratio (ACWR) is {training_load.acwr:.2f}. This means your training this week is {training_load.acwr:.1f}x higher than your {training_load.weeks_of_data}-week average. Research shows ratios above 1.5 correlate with increased soft-tissue injury risk.",
                 recommendation="Reduce training intensity for 2-3 days. Focus on recovery (sleep, hydration, light movement). Gradual load increases of 10-15% per week are safer.",
                 source="physical"
             ))

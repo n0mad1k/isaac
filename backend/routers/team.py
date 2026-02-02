@@ -1323,7 +1323,13 @@ async def _compute_health_data_hash(member_id: int, db: AsyncSession) -> str:
     )
     subj_count, latest_subj = subj_result.one()
 
+    # Include today's date so ACWR recalculates daily
+    # (acute/chronic windows shift even without new data)
+    local_now = await get_local_now(db)
+    today_str = local_now.strftime("%Y-%m-%d")
+
     parts = [
+        today_str,
         str(vital_count or 0),
         str(latest_vital or ''),
         str(workout_count or 0),
