@@ -2,6 +2,20 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.77.0] - 2026-02-02
+
+### Added
+- **Steps and stairs now affect health & fitness scores** - New "Activity Level" indicator in physical breakdown uses research-backed thresholds to score daily activity:
+  - Step count scoring: Sedentary (<2k), Low (2-4k), Moderate (4-7k), Active (7-10k), Very Active (10k+)
+  - Stair climbing bonus: 5+ flights/day linked to ~20% lower CVD risk
+  - Workout frequency bonus on top of daily movement
+  - Shows avg steps/day, stairs/day, weekly totals, and evidence-based recommendations
+  - Activity level contributes 15% to overall readiness score (Lancet, JACC, ESC research)
+- **Dev tracker now shows full fail note history** in `dev-tracker.sh show` output
+
+### Changed
+- Readiness score weights rebalanced: Autonomic 35%, Illness 25%, Cardiovascular 25%, Activity 15%
+
 ## [1.76.6] - 2026-02-02
 
 ### Changed

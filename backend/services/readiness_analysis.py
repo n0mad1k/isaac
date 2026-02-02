@@ -937,6 +937,172 @@ def _steps_to_load(steps: float, stairs: float = 0) -> float:
     return steps_load + stairs_load
 
 
+def _analyze_activity_level(
+    step_data: Optional[dict],
+    workouts: Optional[List[MemberWorkout]] = None
+) -> PerformanceIndicator:
+    """
+    Assess physical activity level from steps, stairs, and workouts.
+
+    Research-backed thresholds (Lancet Public Health 2025, JACC 2023):
+      - <2,000 steps/day: Sedentary
+      - 2,000-4,000: Low activity (minimal health benefit begins ~2,600)
+      - 4,000-7,000: Moderate (significant CVD/mortality reduction)
+      - 7,000-10,000: Active (optimal range, ~47% lower all-cause mortality)
+      - 10,000+: Very active (diminishing returns above ~8,800)
+
+    Stair climbing (Atherosclerosis 2023, ESC 2024):
+      - 5+ flights/day: ~20% lower CVD risk, improves VO2 max
+      - Even brief bouts improve cardiorespiratory fitness
+
+    This indicator reflects the HEALTH BENEFITS of daily movement,
+    separate from ACWR which tracks overtraining risk.
+    """
+    factors = []
+    details = {"actual_values": [], "normal_ranges": []}
+    score = 50  # Default: no data = uncertain
+    confidence = "LOW"
+
+    now = datetime.utcnow()
+    seven_days_ago = (now - timedelta(days=7)).date()
+
+    # Calculate 7-day averages from step data
+    recent_days = {}
+    if step_data:
+        for day_key, data in step_data.items():
+            if day_key >= seven_days_ago:
+                recent_days[day_key] = data
+
+    if not recent_days:
+        # No step data at all
+        if workouts:
+            recent_workouts = [w for w in workouts if w.workout_date and w.workout_date >= now - timedelta(days=7)]
+            if recent_workouts:
+                score = 60
+                factors.append(f"{len(recent_workouts)} workout(s) this week but no step data logged")
+                details["recommendation"] = "Log daily steps in your check-in to get a full activity picture."
+            else:
+                factors.append("No activity data available — log steps in daily check-in")
+                details["recommendation"] = "Start logging daily steps and stairs in your check-in to track activity levels."
+        else:
+            factors.append("No activity data available — log steps in daily check-in")
+            details["recommendation"] = "Start logging daily steps and stairs in your check-in to track activity levels."
+
+        return PerformanceIndicator(
+            name="Activity Level",
+            category="activity",
+            value=score,
+            trend="stable",
+            explanation="No activity data — log steps in daily check-in",
+            confidence="LOW",
+            contributing_factors=factors,
+            details=details
+        )
+
+    days_logged = len(recent_days)
+    avg_steps = sum(d.get("steps", 0) for d in recent_days.values()) / days_logged
+    avg_stairs = sum(d.get("stairs", 0) for d in recent_days.values()) / days_logged
+    total_steps_week = sum(d.get("steps", 0) for d in recent_days.values())
+
+    # Step-based score (research thresholds)
+    if avg_steps >= 10000:
+        score = 92
+        step_label = "Very Active"
+    elif avg_steps >= 7000:
+        score = 82
+        step_label = "Active"
+    elif avg_steps >= 4000:
+        score = 68
+        step_label = "Moderate"
+    elif avg_steps >= 2000:
+        score = 52
+        step_label = "Low Activity"
+    else:
+        score = 35
+        step_label = "Sedentary"
+
+    factors.append(f"Avg {avg_steps:,.0f} steps/day ({step_label})")
+
+    # Stair climbing bonus
+    stairs_bonus = 0
+    if avg_stairs >= 10:
+        stairs_bonus = 8
+        factors.append(f"Avg {avg_stairs:.0f} flights/day — excellent cardiovascular stimulus")
+    elif avg_stairs >= 5:
+        stairs_bonus = 5
+        factors.append(f"Avg {avg_stairs:.0f} flights/day — reduces CVD risk ~20%")
+    elif avg_stairs >= 3:
+        stairs_bonus = 3
+        factors.append(f"Avg {avg_stairs:.0f} flights/day — moderate cardiovascular benefit")
+    elif avg_stairs >= 1:
+        stairs_bonus = 1
+        factors.append(f"Avg {avg_stairs:.0f} flights/day")
+
+    score = min(100, score + stairs_bonus)
+
+    # Workout bonus (structured exercise on top of daily movement)
+    if workouts:
+        recent_workouts = [w for w in workouts if w.workout_date and w.workout_date >= now - timedelta(days=7)]
+        if len(recent_workouts) >= 5:
+            score = min(100, score + 5)
+            factors.append(f"{len(recent_workouts)} workouts this week — very consistent")
+        elif len(recent_workouts) >= 3:
+            score = min(100, score + 3)
+            factors.append(f"{len(recent_workouts)} workouts this week")
+        elif len(recent_workouts) >= 1:
+            score = min(100, score + 1)
+
+    # Confidence based on days logged
+    if days_logged >= 5:
+        confidence = "HIGH"
+    elif days_logged >= 3:
+        confidence = "MEDIUM"
+    else:
+        confidence = "LOW"
+
+    # Trend
+    if score >= 80:
+        trend = "improving"
+    elif score >= 60:
+        trend = "stable"
+    else:
+        trend = "declining"
+
+    # Details
+    details["actual_values"].append(f"Avg steps: {avg_steps:,.0f}/day")
+    if avg_stairs > 0:
+        details["actual_values"].append(f"Avg stairs: {avg_stairs:.0f} flights/day")
+    details["actual_values"].append(f"Days logged: {days_logged}/7")
+    details["actual_values"].append(f"Weekly total: {total_steps_week:,.0f} steps")
+
+    details["normal_ranges"].append("Sedentary: <2,000 | Low: 2-4k | Moderate: 4-7k | Active: 7-10k | Very Active: 10k+")
+    details["normal_ranges"].append("Stair goal: 5+ flights/day for cardiovascular benefit")
+
+    if score >= 80:
+        explanation = f"{avg_steps:,.0f} steps/day — active lifestyle with strong health benefits"
+        details["recommendation"] = "Excellent activity level. Research shows 7,000+ steps/day is associated with ~47% lower all-cause mortality. Keep it up."
+    elif score >= 65:
+        explanation = f"{avg_steps:,.0f} steps/day — moderate activity with meaningful health benefits"
+        details["recommendation"] = "Good baseline. Adding 2,000-3,000 more steps/day would reach the optimal 7,000+ range for maximum cardiovascular benefit."
+    elif score >= 50:
+        explanation = f"{avg_steps:,.0f} steps/day — below recommended activity levels"
+        details["recommendation"] = "Low activity. Even small increases matter — each additional 1,000 steps/day reduces all-cause mortality risk by ~15%."
+    else:
+        explanation = f"{avg_steps:,.0f} steps/day — sedentary level, health risks increased"
+        details["recommendation"] = "Sedentary activity level. Walking just 4,000 steps/day can reduce cardiovascular risk by ~25%. Start with short walks after meals."
+
+    return PerformanceIndicator(
+        name="Activity Level",
+        category="activity",
+        value=score,
+        trend=trend,
+        explanation=explanation,
+        confidence=confidence,
+        contributing_factors=factors,
+        details=details
+    )
+
+
 def _analyze_training_load(workouts: List[MemberWorkout], step_data: Optional[dict] = None) -> TrainingLoadAnalysis:
     """
     Analyze training load using Acute:Chronic Workload Ratio (ACWR).
@@ -1351,7 +1517,7 @@ async def analyze_readiness(
     cardiovascular = _analyze_cardiovascular(recent_vitals, age=member_age)
     illness = _detect_illness_pattern(recent_vitals, all_vitals, age=member_age)
 
-    # Gather step/stair data for training load
+    # Gather step/stair data for training load and activity indicator
     step_data = {}
     for v in all_vitals:
         if v.vital_type in (VitalType.STEPS, VitalType.STAIRS_CLIMBED):
@@ -1364,20 +1530,24 @@ async def analyze_readiness(
                 elif v.vital_type == VitalType.STAIRS_CLIMBED:
                     step_data[day_key]["stairs"] = max(step_data[day_key]["stairs"], v.value or 0)
 
-    # Training load analysis (workouts + steps/stairs)
+    # Activity level indicator (health benefits of steps/stairs)
+    activity = _analyze_activity_level(step_data if step_data else None, workouts)
+
+    # Training load analysis (workouts + steps/stairs — overtraining risk)
     training_load = None
     has_activity_data = workouts or step_data
     if has_activity_data:
         training_load = _analyze_training_load(workouts, step_data=step_data if step_data else None)
 
-    indicators = [autonomic, cardiovascular, illness]
+    indicators = [autonomic, cardiovascular, illness, activity]
 
     # Calculate performance score (weighted)
-    # Autonomic: 45%, Illness: 30%, Cardiovascular: 25%
+    # Autonomic: 35%, Illness: 25%, Cardiovascular: 25%, Activity: 15%
     performance_score = (
-        autonomic.value * 0.45 +
-        illness.value * 0.30 +
-        cardiovascular.value * 0.25
+        autonomic.value * 0.35 +
+        illness.value * 0.25 +
+        cardiovascular.value * 0.25 +
+        activity.value * 0.15
     )
 
     # Apply training load penalty if spike detected

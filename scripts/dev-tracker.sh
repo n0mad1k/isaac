@@ -73,6 +73,12 @@ try:
     print(f\"Fail Count: {item.get('fail_count', 0)}\")
     if item.get('fail_note'):
         print(f\"Fail Note: {item['fail_note']}\")
+    if item.get('fail_note_history'):
+        try:
+            history = json.loads(item['fail_note_history']) if isinstance(item['fail_note_history'], str) else item['fail_note_history']
+            for entry in history:
+                print(f\"Fail Note #{entry.get('attempt',0)} ({entry.get('date','')[:10]}): {entry.get('note','')}\")
+        except: pass
     print(f\"---\")
     print(f\"Title: {item['title']}\")
     if item.get('test_notes'):

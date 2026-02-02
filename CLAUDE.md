@@ -172,9 +172,10 @@ When the user asks you to work on something that's NOT already in the dev tracke
 - Items with `fail_count > 0` mean a PREVIOUS ATTEMPT FAILED - they are NOT fixed
 - NEVER assume a failed item is "already done" or "already fixed"
 - You MUST actually implement the fix and test it before moving to testing
-- The fail_note explains what went wrong in the previous attempt — use it to guide your fix
+- **Every failed item has a fail_note** — ALWAYS read it before starting work. The fail_note explains what went wrong in the previous attempt and guides your fix
 - Do not say "this should already be fixed" for failed items - it clearly wasn't
 - Failed items with fail notes do NOT need user involvement — read the notes and fix autonomously
+- If a fail_note is missing or empty, ask the user what went wrong before attempting a fix
 
 **[COLLAB] Flag - IMPORTANT:**
 Items marked `[COLLAB]` require interactive step-by-step fixing WITH the user. Do NOT attempt to fix these autonomously.

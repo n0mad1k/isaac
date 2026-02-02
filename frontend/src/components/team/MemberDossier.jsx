@@ -1558,7 +1558,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                     <div className="text-xs text-gray-400 mb-2">PHYSICAL BREAKDOWN:</div>
                     <div className="space-y-2">
                       {readinessAnalysis.indicators
-                        .filter(ind => ['autonomic', 'cardiovascular', 'illness', 'body_composition'].includes(ind.category))
+                        .filter(ind => ['autonomic', 'cardiovascular', 'illness', 'body_composition', 'activity'].includes(ind.category))
                         .map(ind => (
                           <div key={ind.category} className="bg-gray-800/50 rounded p-2">
                             <div className="flex items-center gap-2">
