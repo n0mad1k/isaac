@@ -215,7 +215,7 @@ function BudgetOverview() {
           })}
           <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
             <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Roll Over</div>
-            <div className="text-base font-bold" style={{ color: (summary.rollover_balance || 0) > 0 ? '#22c55e' : 'var(--color-text-muted)' }}>
+            <div className="text-base font-bold" style={{ color: (summary.rollover_balance || 0) > 0 ? '#22c55e' : (summary.rollover_balance || 0) < 0 ? '#ef4444' : 'var(--color-text-muted)' }}>
               {fmt(summary.rollover_balance || 0)}
             </div>
           </div>

@@ -1073,9 +1073,11 @@ async def get_period_summary(
         # Get uncategorized spending
         uncategorized_spent = spending_by_cat.get(None, 0.0)
 
-        # Calculate accumulated rollover balance from all completed months
+        # Calculate accumulated rollover balance from completed months
         # Only tracks: Gas, Groceries, Main Spending
         # Reduced by any Roll Over category transactions (money moved elsewhere)
+        # NOTE: The first month of tracking is the "setup" month and does NOT
+        # contribute to rollover. Rollover starts accumulating from month 2+.
         rollover_balance = 0.0
         rollover_cats = {"Gas", "Groceries", "Main Spending"}
         try:
@@ -1090,19 +1092,23 @@ async def get_period_summary(
                 rollover_cat_ids = [c.id for c in categories if c.name in rollover_cats]
                 roll_over_cat = next((c for c in categories if c.name == "Roll Over"), None)
 
-                # Only calculate for completed months before the current period
+                # Skip the first month (setup month) — rollover starts from month 2
                 first_month_start = date(first_date.year, first_date.month, 1)
+                if first_month_start.month == 12:
+                    rollover_start = date(first_month_start.year + 1, 1, 1)
+                else:
+                    rollover_start = date(first_month_start.year, first_month_start.month + 1, 1)
                 current_month_start = date(start_date.year, start_date.month, 1)
 
-                if first_month_start < current_month_start:
-                    # Get total spent on rollover categories in all previous months
+                if rollover_start < current_month_start:
+                    # Get total spent on rollover categories from rollover_start to current month
                     prev_spending_result = await db.execute(
                         select(
                             BudgetTransaction.category_id,
                             func.sum(BudgetTransaction.amount).label("total")
                         )
                         .where(
-                            BudgetTransaction.transaction_date >= first_month_start,
+                            BudgetTransaction.transaction_date >= rollover_start,
                             BudgetTransaction.transaction_date < current_month_start,
                             BudgetTransaction.category_id.in_(rollover_cat_ids),
                         )
@@ -1110,15 +1116,14 @@ async def get_period_summary(
                     )
                     prev_spending_map = {row[0]: row[1] for row in prev_spending_result.all()}
 
-                    # Count how many completed months
-                    m_cursor = first_month_start
+                    # Count completed months from rollover_start to current month
+                    m_cursor = rollover_start
                     while m_cursor < current_month_start:
                         for cat in categories:
                             if cat.name not in rollover_cats:
                                 continue
                             month_budget = cat.monthly_budget if cat.monthly_budget else (cat.budget_amount * 2)
                             rollover_balance += month_budget
-                        # Advance to next month
                         if m_cursor.month == 12:
                             m_cursor = date(m_cursor.year + 1, 1, 1)
                         else:
@@ -1134,14 +1139,14 @@ async def get_period_summary(
                             select(func.sum(BudgetTransaction.amount))
                             .where(
                                 BudgetTransaction.category_id == roll_over_cat.id,
+                                BudgetTransaction.transaction_date >= rollover_start,
                                 BudgetTransaction.transaction_date < current_month_start,
                             )
                         )
                         ro_spent = ro_result.scalar() or 0.0
                         rollover_balance += ro_spent  # negative spending reduces balance
 
-                # If viewing the second half, also include the first half's surplus
-                # so rollover carries across half-periods, not just full months
+                # If viewing the second half, also include the first half's surplus/deficit
                 if is_second_half and rollover_cat_ids:
                     first_half_start = date(start_date.year, start_date.month, 1)
                     first_half_end = date(start_date.year, start_date.month, 14)
@@ -1176,7 +1181,7 @@ async def get_period_summary(
                         fh_ro_spent = fh_ro_result.scalar() or 0.0
                         rollover_balance += fh_ro_spent
 
-                rollover_balance = round(max(rollover_balance, 0), 2)
+                rollover_balance = round(rollover_balance, 2)
         except Exception as e:
             logger.warning(f"Could not calculate rollover: {e}")
 

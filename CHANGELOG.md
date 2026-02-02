@@ -2,10 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
-## [1.70.1] - 2026-02-01
+## [1.70.2] - 2026-02-01
 
 ### Fixed
-- **Month-pinned starting balance for rollover** - Starting balance is now tied to a specific month via `start_date`. Viewing months before the start date shows rollover as $0 (no historical data). Viewing the start date month uses the starting balance directly. Viewing later months carries forward the starting balance plus net from intervening periods.
+- **Main rollover skips setup month** - The first month of budget tracking is treated as a setup month and does not contribute to the Roll Over balance. Rollover accumulates starting from month 2 of tracking.
+- **Rollover can show deficits** - Removed the floor that capped rollover at $0. If you overspent in prior months, the Roll Over now correctly shows as negative (in red).
+- **Month-pinned starting balance for person spending** - Starting balance is now tied to a specific month via `start_date`. Viewing months before the start date shows rollover as $0 (no historical data).
 
 ## [1.70.0] - 2026-02-01
 
