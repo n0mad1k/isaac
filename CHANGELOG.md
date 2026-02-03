@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.12] - 2026-02-03
+
+### Fixed
+- **Chat AI provider label now correctly shows configured provider** - The chat panel header now properly displays "Claude", "ChatGPT", or "Ollama" based on your ai_provider setting. Hover over the provider name to see the specific model being used. The label updates when you close and reopen the chat panel after changing settings.
+
 ## [1.79.11] - 2026-02-03
 
 ### Fixed

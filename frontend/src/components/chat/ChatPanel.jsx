@@ -16,6 +16,7 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
   const [streamingContent, setStreamingContent] = useState('')
   const [aiStatus, setAiStatus] = useState('checking') // checking, online, offline
   const [aiProvider, setAiProvider] = useState('')
+  const [aiModel, setAiModel] = useState('')
   const [insights, setInsights] = useState([])
   const [loading, setLoading] = useState(false)
   const [showConversationList, setShowConversationList] = useState(true)
@@ -40,12 +41,13 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
     }
   }, [isOpen, tab])
 
-  // Check Ollama health (with retry)
+  // Check AI provider health (with retry)
   const checkHealth = async () => {
     setAiStatus('checking')
     try {
       const res = await getAiHealth()
       if (res.data.provider) setAiProvider(res.data.provider)
+      if (res.data.model) setAiModel(res.data.model)
       if (res.data.status === 'online') {
         setAiStatus('online')
         return
@@ -56,6 +58,7 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
     try {
       const res = await getAiHealth()
       if (res.data.provider) setAiProvider(res.data.provider)
+      if (res.data.model) setAiModel(res.data.model)
       setAiStatus(res.data.status || 'offline')
     } catch {
       setAiStatus('offline')
@@ -278,7 +281,15 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
               </button>
             )}
             <Bot className="w-5 h-5" style={{ color: 'var(--color-green-600)' }} />
-            <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Isaac AI {aiProvider && <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>{aiProvider === 'claude' ? 'Claude' : aiProvider === 'openai' ? 'ChatGPT' : aiProvider === 'ollama' ? 'Ollama' : aiProvider}</span>}</span>
+            <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Isaac AI</span>
+            {aiProvider && (
+              <span
+                style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 400, marginLeft: '4px' }}
+                title={aiModel || ''}
+              >
+                {aiProvider === 'claude' ? 'Claude' : aiProvider === 'openai' ? 'ChatGPT' : aiProvider === 'ollama' ? 'Ollama' : aiProvider}
+              </span>
+            )}
             <span
               className="w-2 h-2 rounded-full"
               style={{ backgroundColor: aiStatus === 'online' ? 'var(--color-success-600)' : aiStatus === 'offline' ? 'var(--color-error-600)' : 'var(--color-warning-600)' }}
