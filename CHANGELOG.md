@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.78.4] - 2026-02-02
+
+### Fixed
+- **Budget per-person totals now correct** - Each half (1st-14th and 15th-End) now shows its own bill total and remaining independently. Monthly Remaining is the sum of both halves' remaining (not affected by rollover). Available to Spend is current half remaining + rollover - spending.
+
 ## [1.78.3] - 2026-02-02
 
 ### Changed

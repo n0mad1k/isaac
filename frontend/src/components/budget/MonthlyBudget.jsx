@@ -708,24 +708,11 @@ function MonthlyBudget() {
     const firstHalfRemaining = firstDepositTotal - firstBillTotal
     const secondHalfRemaining = secondDepositTotal - secondBillTotal
 
-    // Monthly total: per-period deposits count twice, single-half deposits count once
-    const totalDeposits = personTransfers.reduce((s, c) => s + (c.bill_day ? (c.budget_amount || 0) : (c.budget_amount || 0) * 2), 0)
-    const totalBillsForPerson = firstBillTotal + secondBillTotal
-    const net = totalDeposits - totalBillsForPerson
-
-    // Person spending data from API (includes rollover, per-half margins, spending)
-    // Use firstHalf data for the monthly view since it has rollover from prior months
+    // Person spending data from API (includes rollover and spending)
     const personData = getPersonData(ownerKey, firstHalf)
     const secondPersonData = getPersonData(ownerKey, secondHalf)
     const rollover = personData.rollover || 0
-    const monthlyNet = personData.monthly_net || (personData.first_half_remaining || 0) + (personData.second_half_remaining || 0)
     const periodSpent = (personData.period_spent || 0) + (secondPersonData.period_spent || 0)
-    // For full month available: rollover + full monthly net - all month spending
-    const fullMonthAvailable = rollover + monthlyNet - periodSpent
-    const apiFhRemaining = personData.first_half_remaining
-    const apiShRemaining = personData.second_half_remaining
-    // 2nd half cumulative total (like the Excel): 1st half remaining + 2nd half remaining
-    const secondHalfCumulative = (apiFhRemaining || firstHalfRemaining) + (apiShRemaining != null ? apiShRemaining : secondHalfRemaining)
 
     return (
       <div className="rounded-xl overflow-hidden min-w-0" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
@@ -741,7 +728,7 @@ function MonthlyBudget() {
         <div className="flex items-center justify-between px-2 py-0.5">
           <div className="flex items-center gap-3 text-xs">
             <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span style={{ color: '#ef4444' }}>-{fmt(firstBillTotal)}</span></span>
-            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Total: <span style={{ color: (apiFhRemaining != null ? apiFhRemaining : firstHalfRemaining) >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(apiFhRemaining != null ? apiFhRemaining : firstHalfRemaining)}</span></span>
+            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Total: <span style={{ color: firstHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(firstHalfRemaining)}</span></span>
           </div>
           <button onClick={() => openAddForm(`${ownerKey}-first`, 'bill')}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
@@ -756,7 +743,7 @@ function MonthlyBudget() {
         <div className="flex items-center justify-between px-2 py-0.5">
           <div className="flex items-center gap-3 text-xs">
             <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span style={{ color: '#ef4444' }}>-{fmt(secondBillTotal)}</span></span>
-            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Total: <span style={{ color: secondHalfCumulative >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfCumulative)}</span></span>
+            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Total: <span style={{ color: secondHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfRemaining)}</span></span>
           </div>
           <button onClick={() => openAddForm(`${ownerKey}-second`, 'bill')}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
@@ -767,10 +754,10 @@ function MonthlyBudget() {
         <div className="py-1" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
           {/* Bottom totals */}
           <div>
-            {/* Monthly remaining (after bills) */}
+            {/* Monthly remaining = first half remaining + second half remaining (pure budget math, no rollover) */}
             <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2">
               <span /><span style={{ color: 'var(--color-text-primary)' }}>Monthly Remaining</span>
-              <span className="text-right" style={{ color: monthlyNet >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(monthlyNet)}</span>
+              <span className="text-right" style={{ color: (firstHalfRemaining + secondHalfRemaining) >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(firstHalfRemaining + secondHalfRemaining)}</span>
               <span className="hidden sm:inline" /><span />
             </div>
             {/* Rollover from prior months */}
@@ -781,20 +768,21 @@ function MonthlyBudget() {
                 <span className="hidden sm:inline" /><span />
               </div>
             )}
-            {/* This month's spending */}
-            {periodSpent > 0 && (
-              <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
-                <span /><span style={{ color: 'var(--color-text-muted)' }}>Spending</span>
-                <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(periodSpent)}</span>
-                <span className="hidden sm:inline" /><span />
-              </div>
-            )}
-            {/* Available to Spend */}
-            <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
-              <span /><span style={{ color: 'var(--color-text-primary)' }}>Available to Spend</span>
-              <span className="text-right text-sm" style={{ color: fullMonthAvailable >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(fullMonthAvailable)}</span>
-              <span className="hidden sm:inline" /><span />
-            </div>
+            {/* Available to Spend = current half remaining + rollover - spending this period */}
+            {(() => {
+              // Determine current half based on today's date
+              const isViewingCurrentMonth = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth
+              const viewingFirstHalf = isViewingCurrentMonth ? today.getDate() <= 14 : true
+              const currentHalfRemaining = viewingFirstHalf ? firstHalfRemaining : secondHalfRemaining
+              const available = currentHalfRemaining + rollover - periodSpent
+              return (
+                <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
+                  <span /><span style={{ color: 'var(--color-text-primary)' }}>Available to Spend</span>
+                  <span className="text-right text-sm" style={{ color: available >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(available)}</span>
+                  <span className="hidden sm:inline" /><span />
+                </div>
+              )
+            })()}
           </div>
         </div>
       </div>
