@@ -2594,17 +2594,27 @@ function Settings() {
                               {healthSummary.latest.overall_status?.toUpperCase()}
                             </span>
                           </div>
-                          {/* Warning/Critical reason banner */}
+                          {/* Warning/Critical/Unknown reason banner */}
                           {healthSummary.latest.overall_status !== 'healthy' && (() => {
                             const allCheckKeys = ['api', 'database', 'caldav', 'memory', 'disk', 'cpu', 'calendar_sync']
                             const issueChecks = allCheckKeys
-                              .filter(k => healthSummary.latest[k] && (healthSummary.latest[k].status === 'warning' || healthSummary.latest[k].status === 'critical'))
-                              .map(k => healthSummary.latest[k].message || k)
+                              .filter(k => healthSummary.latest[k] && (healthSummary.latest[k].status === 'warning' || healthSummary.latest[k].status === 'critical' || healthSummary.latest[k].status === 'unknown'))
+                              .map(k => {
+                                const data = healthSummary.latest[k]
+                                const label = k === 'calendar_sync' ? 'Cal Sync' : k
+                                const statusLabel = data.status === 'unknown' ? '[Unknown]' : data.status === 'warning' ? '[Warning]' : '[Critical]'
+                                return `${statusLabel} ${label}: ${data.message || 'No details'}`
+                              })
                             return issueChecks.length > 0 ? (
-                              <div className={`rounded-lg px-4 py-3 mb-3 ${healthSummary.latest.overall_status === 'critical' ? 'bg-red-900/30 border border-red-700/50' : 'bg-yellow-900/30 border border-yellow-700/50'}`}>
-                                <p className={`text-sm font-medium ${healthSummary.latest.overall_status === 'critical' ? 'text-red-200' : 'text-yellow-200'}`}>
-                                  {issueChecks.join(' | ')}
+                              <div className={`rounded-lg px-4 py-3 mb-3 ${healthSummary.latest.overall_status === 'critical' ? 'bg-red-900/30 border border-red-700/50' : healthSummary.latest.overall_status === 'warning' ? 'bg-yellow-900/30 border border-yellow-700/50' : 'bg-gray-700/50 border border-gray-600/50'}`}>
+                                <p className="text-xs font-semibold mb-1" style={{ color: healthSummary.latest.overall_status === 'critical' ? '#fca5a5' : healthSummary.latest.overall_status === 'warning' ? '#fcd34d' : '#9ca3af' }}>
+                                  Why {healthSummary.latest.overall_status.toUpperCase()}?
                                 </p>
+                                {issueChecks.map((issue, i) => (
+                                  <p key={i} className={`text-sm ${healthSummary.latest.overall_status === 'critical' ? 'text-red-200' : healthSummary.latest.overall_status === 'warning' ? 'text-yellow-200' : 'text-gray-300'}`}>
+                                    {issue}
+                                  </p>
+                                ))}
                               </div>
                             ) : null
                           })()}
@@ -2612,10 +2622,10 @@ function Settings() {
                             {['api', 'database', 'caldav', 'calendar_sync', 'memory', 'disk', 'cpu'].map(check => {
                               const data = healthSummary.latest[check]
                               if (!data) return null
-                              const isIssue = data.status === 'warning' || data.status === 'critical'
+                              const isIssue = data.status === 'warning' || data.status === 'critical' || data.status === 'unknown'
                               const label = check === 'calendar_sync' ? 'Cal Sync' : check
                               return (
-                                <div key={check} className={`bg-gray-800/50 rounded px-3 py-2 ${isIssue ? (data.status === 'critical' ? 'border border-red-700/50' : 'border border-yellow-700/50') : ''}`}>
+                                <div key={check} className={`bg-gray-800/50 rounded px-3 py-2 ${isIssue ? (data.status === 'critical' ? 'border border-red-700/50' : data.status === 'warning' ? 'border border-yellow-700/50' : 'border border-gray-600') : ''}`}>
                                   <div className="flex items-center justify-between">
                                     <span className="text-gray-400 capitalize">{label}</span>
                                     <span className={`text-xs font-medium ${
@@ -2628,10 +2638,11 @@ function Settings() {
                                       {data.percent !== undefined && ` ${data.percent?.toFixed(0)}%`}
                                       {data.latency_ms !== undefined && ` ${data.latency_ms?.toFixed(0)}ms`}
                                       {data.load !== undefined && ` ${data.load?.toFixed(1)}`}
+                                      {check === 'calendar_sync' && data.value !== undefined && data.value !== null && ` ${data.value?.toFixed(1)}s`}
                                     </span>
                                   </div>
                                   {data.message && (
-                                    <p className={`mt-1 ${isIssue ? `text-sm font-medium ${data.status === 'critical' ? 'text-red-300' : 'text-yellow-300'}` : 'text-xs text-gray-500'}`}>
+                                    <p className={`mt-1 ${isIssue ? `text-sm font-medium ${data.status === 'critical' ? 'text-red-300' : 'text-yellow-300'}` : data.status === 'unknown' ? 'text-xs text-gray-400' : 'text-xs text-gray-500'}`}>
                                       {data.message}
                                     </p>
                                   )}
@@ -2696,7 +2707,10 @@ function Settings() {
                   {/* Health Logs */}
                   <div className="border-t border-gray-700 pt-4">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-medium">Recent Health Logs</h3>
+                      <div>
+                        <h3 className="text-sm font-medium">Health Check History</h3>
+                        <p className="text-xs text-gray-500">Periodic system health snapshots (not application logs)</p>
+                      </div>
                       <select
                         value={healthFilter.status}
                         onChange={(e) => {
@@ -2757,7 +2771,7 @@ function Settings() {
                                   {allChecks.map(check => {
                                     const data = log[check]
                                     if (!data) return null
-                                    const isIssue = data.status === 'warning' || data.status === 'critical'
+                                    const isIssue = data.status === 'warning' || data.status === 'critical' || data.status === 'unknown'
                                     const statusIcon = data.status === 'healthy' ? '✓' : data.status === 'warning' ? '⚠' : data.status === 'critical' ? '✗' : '?'
                                     const statusColor = data.status === 'healthy' ? 'text-green-400' : data.status === 'warning' ? 'text-yellow-400' : data.status === 'critical' ? 'text-red-400' : 'text-gray-400'
                                     const label = check === 'calendar_sync' ? 'Cal Sync' : check

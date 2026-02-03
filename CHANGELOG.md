@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.78.6] - 2026-02-03
+
+### Fixed
+- **Health monitor now explains why status is warning/unknown** - Added "Why WARNING?" banner showing exactly which checks are causing issues with their messages. Includes unknown status checks (like "No sync data yet" for Cal Sync).
+- **Unknown status checks now visible** - Health check cards with unknown status (e.g., Cal Sync when not configured) now have a border and show their message to explain why.
+- **Cal Sync duration now displayed** - Calendar sync performance shows duration in seconds in the status card.
+
+### Changed
+- Renamed "Recent Health Logs" to "Health Check History" with subtitle clarifying these are periodic health snapshots (not application logs).
+
 ## [1.78.5] - 2026-02-03
 
 ### Fixed
