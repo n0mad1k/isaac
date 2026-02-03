@@ -2,14 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react'
 import {
   TrendingUp, TrendingDown, Minus, Plus, Check, ChevronDown, ChevronUp,
   AlertTriangle, CheckCircle, Activity, Ruler, Scale, Baby, Brain,
-  MessageSquare, Hand, Users, CheckCheck
+  MessageSquare, Hand, Users, CheckCheck, Pencil, Trash2, X
 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Area, ComposedChart, Legend
 } from 'recharts'
 import {
-  getGrowthData, getGrowthCurves, getMemberMilestones, toggleMilestone, bulkToggleMilestones, logWeight
+  getGrowthData, getGrowthCurves, getMemberMilestones, toggleMilestone, bulkToggleMilestones, logWeight,
+  updateWeightLog, deleteWeightLog
 } from '../../services/api'
 
 const STATUS_COLORS = {
@@ -53,6 +54,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
   const [expandedGroups, setExpandedGroups] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [weightForm, setWeightForm] = useState({ weight: '', height_inches: '', notes: '' })
+  const [editingEntry, setEditingEntry] = useState(null) // { id, weight, height_inches, notes }
 
   const ageMonths = useMemo(() => {
     if (!member.birth_date) return 0
@@ -106,26 +108,64 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
 
   const handleLogWeight = async (e) => {
     e.preventDefault()
-    if (!weightForm.weight) return
+    // At least one of weight or height required
+    if (!weightForm.weight && !weightForm.height_inches) return
     setSubmitting(true)
     try {
       const data = {
-        weight: parseFloat(weightForm.weight),
         notes: weightForm.notes || undefined
+      }
+      if (weightForm.weight) {
+        data.weight = parseFloat(weightForm.weight)
       }
       if (weightForm.height_inches) {
         data.height_inches = parseFloat(weightForm.height_inches)
       }
-      await logWeight(member.id, data)
+
+      if (editingEntry) {
+        // Update existing entry
+        await updateWeightLog(member.id, editingEntry.id, data)
+      } else {
+        // Create new entry
+        await logWeight(member.id, data)
+      }
       setWeightForm({ weight: '', height_inches: '', notes: '' })
       setShowAddWeight(false)
+      setEditingEntry(null)
       await loadData()
       if (onUpdate) onUpdate()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to log weight')
+      setError(err.response?.data?.detail || 'Failed to save entry')
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleEditEntry = (entry) => {
+    setEditingEntry(entry)
+    setWeightForm({
+      weight: entry.weight_lbs?.toString() || '',
+      height_inches: entry.height_inches?.toString() || '',
+      notes: entry.notes || ''
+    })
+    setShowAddWeight(true)
+  }
+
+  const handleDeleteEntry = async (entryId) => {
+    if (!confirm('Delete this entry?')) return
+    try {
+      await deleteWeightLog(member.id, entryId)
+      await loadData()
+      if (onUpdate) onUpdate()
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to delete entry')
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingEntry(null)
+    setWeightForm({ weight: '', height_inches: '', notes: '' })
+    setShowAddWeight(false)
   }
 
   const handleToggleMilestone = async (milestoneId, currentAchieved) => {
@@ -375,27 +415,33 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold text-white">Log Weight & Height</h3>
-          <button
-            onClick={() => setShowAddWeight(!showAddWeight)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
-          >
-            <Plus className="w-4 h-4" />
-            Add Entry
-          </button>
+          {!showAddWeight && (
+            <button
+              onClick={() => { setEditingEntry(null); setWeightForm({ weight: '', height_inches: '', notes: '' }); setShowAddWeight(true) }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+            >
+              <Plus className="w-4 h-4" />
+              Add Entry
+            </button>
+          )}
         </div>
 
         {showAddWeight && (
           <form onSubmit={handleLogWeight} className="mb-4 p-3 bg-gray-900/50 rounded-lg space-y-3">
+            <div className="text-sm font-medium text-gray-300 mb-2">
+              {editingEntry ? 'Edit Entry' : 'New Entry'}
+              <span className="text-xs text-gray-500 ml-2">(at least one measurement required)</span>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Weight (lbs) *</label>
+                <label className="block text-xs text-gray-400 mb-1">Weight (lbs)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={weightForm.weight}
                   onChange={(e) => setWeightForm(f => ({ ...f, weight: e.target.value }))}
                   className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
-                  required
+                  placeholder="e.g., 25.5"
                 />
               </div>
               <div>
@@ -406,6 +452,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                   value={weightForm.height_inches}
                   onChange={(e) => setWeightForm(f => ({ ...f, height_inches: e.target.value }))}
                   className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                  placeholder="e.g., 36.5"
                 />
               </div>
             </div>
@@ -422,14 +469,14 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
             <div className="flex gap-2">
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || (!weightForm.weight && !weightForm.height_inches)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded disabled:opacity-50"
               >
-                {submitting ? 'Saving...' : 'Save'}
+                {submitting ? 'Saving...' : editingEntry ? 'Update' : 'Save'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowAddWeight(false)}
+                onClick={handleCancelEdit}
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded"
               >
                 Cancel
@@ -444,10 +491,11 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
             <h4 className="text-sm font-medium text-gray-400">Recent Entries</h4>
             <div className="space-y-1">
               {growthData.weight_history.slice(-10).reverse().map((entry, idx) => (
-                <div key={entry.id || idx} className="flex items-center justify-between py-2 px-3 bg-gray-900/30 rounded text-sm">
-                  <div className="flex items-center gap-3">
+                <div key={entry.id || idx} className="flex items-center justify-between py-2 px-3 bg-gray-900/30 rounded text-sm group">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-gray-400">{entry.recorded_at ? formatDate(new Date(entry.recorded_at)) : '—'}</span>
-                    <span className="text-white font-medium">{entry.weight_lbs} lbs</span>
+                    {entry.weight_lbs && <span className="text-white font-medium">{entry.weight_lbs} lbs</span>}
+                    {entry.height_inches && <span className="text-white font-medium">{formatHeight ? formatHeight(entry.height_inches) : `${entry.height_inches}"`}</span>}
                     {entry.percentile && (
                       <span className={`text-xs px-2 py-0.5 rounded ${
                         STATUS_COLORS[entry.percentile.status]?.bg || 'bg-gray-700'
@@ -455,8 +503,24 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                         {entry.percentile.percentile}th percentile
                       </span>
                     )}
+                    {entry.notes && <span className="text-gray-500 text-xs">({entry.notes})</span>}
                   </div>
-                  {entry.notes && <span className="text-gray-500 text-xs">{entry.notes}</span>}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleEditEntry(entry)}
+                      className="p-1 text-gray-400 hover:text-blue-400"
+                      title="Edit"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEntry(entry.id)}
+                      className="p-1 text-gray-400 hover:text-red-400"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

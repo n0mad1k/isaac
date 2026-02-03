@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.0] - 2026-02-03
+
+### Added
+- **Edit and delete growth records** - You can now edit or delete height/weight entries in the Growth tab. Hover over an entry to see edit/delete buttons.
+- **Add height-only or weight-only entries** - Weight is no longer required when logging growth. You can add just a height measurement, just a weight, or both.
+
 ## [1.78.9] - 2026-02-03
 
 ### Added

@@ -161,9 +161,16 @@ class TeamMemberUpdate(BaseModel):
 
 
 class WeightLogCreate(BaseModel):
-    weight: float
+    weight: Optional[float] = None  # At least one of weight or height_inches required
     height_inches: Optional[float] = None
     notes: Optional[str] = None
+
+
+class WeightLogUpdate(BaseModel):
+    weight: Optional[float] = None
+    height_inches: Optional[float] = None
+    notes: Optional[str] = None
+    recorded_at: Optional[datetime] = None
 
 
 class VitalsLogCreate(BaseModel):
@@ -1168,7 +1175,11 @@ async def log_weight(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_auth)
 ):
-    """Log a weight entry for a member"""
+    """Log a weight/height entry for a member. At least one of weight or height_inches required."""
+    # Validate at least one measurement provided
+    if data.weight is None and data.height_inches is None:
+        raise HTTPException(status_code=400, detail="At least one of weight or height_inches is required")
+
     result = await db.execute(
         select(TeamMember).where(TeamMember.id == member_id)
     )
@@ -1185,9 +1196,10 @@ async def log_weight(
     )
     db.add(log)
 
-    # Update current weight on member
-    member.current_weight = data.weight
-    if data.height_inches:
+    # Update current weight/height on member
+    if data.weight is not None:
+        member.current_weight = data.weight
+    if data.height_inches is not None:
         member.height_inches = data.height_inches
     member.updated_at = datetime.utcnow()
 
@@ -1206,10 +1218,11 @@ async def log_weight(
     if member.birth_date and member.gender:
         age_months = calculate_age_months(member.birth_date)
         gender = member.gender.value if hasattr(member.gender, 'value') else member.gender
-        weight_kg = lbs_to_kg(log.weight)
-        weight_pct = calculate_percentile(gender, age_months, "weight", weight_kg)
-        if weight_pct:
-            response["weight_percentile"] = weight_pct
+        if log.weight:
+            weight_kg = lbs_to_kg(log.weight)
+            weight_pct = calculate_percentile(gender, age_months, "weight", weight_kg)
+            if weight_pct:
+                response["weight_percentile"] = weight_pct
 
         if log.height_inches:
             height_cm = inches_to_cm(log.height_inches)
@@ -1218,6 +1231,75 @@ async def log_weight(
                 response["height_percentile"] = height_pct
 
     return response
+
+
+@router.put("/members/{member_id}/weight/{log_id}/")
+async def update_weight_log(
+    member_id: int,
+    log_id: int,
+    data: WeightLogUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update a weight/height log entry"""
+    result = await db.execute(
+        select(MemberWeightLog).where(
+            MemberWeightLog.id == log_id,
+            MemberWeightLog.member_id == member_id
+        )
+    )
+    log = result.scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Weight log not found")
+
+    # Update fields if provided
+    if data.weight is not None:
+        log.weight = data.weight
+    if data.height_inches is not None:
+        log.height_inches = data.height_inches
+    if data.notes is not None:
+        log.notes = data.notes
+    if data.recorded_at is not None:
+        log.recorded_at = data.recorded_at
+
+    # Validate at least one measurement remains
+    if log.weight is None and log.height_inches is None:
+        raise HTTPException(status_code=400, detail="At least one of weight or height_inches is required")
+
+    await db.commit()
+    await db.refresh(log)
+
+    return {
+        "id": log.id,
+        "weight": log.weight,
+        "height_inches": log.height_inches,
+        "notes": log.notes,
+        "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None
+    }
+
+
+@router.delete("/members/{member_id}/weight/{log_id}/")
+async def delete_weight_log(
+    member_id: int,
+    log_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Delete a weight/height log entry"""
+    result = await db.execute(
+        select(MemberWeightLog).where(
+            MemberWeightLog.id == log_id,
+            MemberWeightLog.member_id == member_id
+        )
+    )
+    log = result.scalar_one_or_none()
+    if not log:
+        raise HTTPException(status_code=404, detail="Weight log not found")
+
+    await db.delete(log)
+    await db.commit()
+
+    return {"message": "Weight log deleted"}
 
 
 # ============================================

@@ -589,6 +589,8 @@ export const uploadTeamLogo = (formData) =>
 // Weight Tracking
 export const getWeightHistory = (memberId) => api.get(`/team/members/${memberId}/weight-history/`)
 export const logWeight = (memberId, data) => api.post(`/team/members/${memberId}/weight/`, data)
+export const updateWeightLog = (memberId, logId, data) => api.put(`/team/members/${memberId}/weight/${logId}/`, data)
+export const deleteWeightLog = (memberId, logId) => api.delete(`/team/members/${memberId}/weight/${logId}/`)
 
 // Vitals Tracking
 export const getVitalsHistory = (memberId, vitalType = null) => {
