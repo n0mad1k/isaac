@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search, Upload, Image, Bot } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, testDailyDigest, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs, getAllInsights, createInsight, updateInsight, deleteInsight, regenerateInsights } from '../services/api'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, testDailyDigest, testGearAlerts, testTrainingAlerts, testMedicalAlerts, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs, getAllInsights, createInsight, updateInsight, deleteInsight, regenerateInsights } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -12,6 +12,9 @@ function Settings() {
   const [saving, setSaving] = useState(false)
   const [sendingTest, setSendingTest] = useState(false)
   const [sendingDigestTest, setSendingDigestTest] = useState(false)
+  const [sendingGearTest, setSendingGearTest] = useState(false)
+  const [sendingTrainingTest, setSendingTrainingTest] = useState(false)
+  const [sendingMedicalTest, setSendingMedicalTest] = useState(false)
   const [syncingCalendar, setSyncingCalendar] = useState(false)
   const [message, setMessage] = useState(null)
   const [hasChanges, setHasChanges] = useState(false)
@@ -721,6 +724,60 @@ function Settings() {
       setMessage({ type: 'error', text: detail })
     } finally {
       setSendingDigestTest(false)
+    }
+  }
+
+  const handleTestGearAlerts = async () => {
+    setSendingGearTest(true)
+    try {
+      const response = await testGearAlerts()
+      setMessage({
+        type: 'success',
+        text: response.data.message
+      })
+      setTimeout(() => setMessage(null), 5000)
+    } catch (error) {
+      console.error('Failed to send gear alerts test:', error)
+      const detail = error.response?.data?.detail || 'Failed to send gear alerts'
+      setMessage({ type: 'error', text: detail })
+    } finally {
+      setSendingGearTest(false)
+    }
+  }
+
+  const handleTestTrainingAlerts = async () => {
+    setSendingTrainingTest(true)
+    try {
+      const response = await testTrainingAlerts()
+      setMessage({
+        type: 'success',
+        text: response.data.message
+      })
+      setTimeout(() => setMessage(null), 5000)
+    } catch (error) {
+      console.error('Failed to send training alerts test:', error)
+      const detail = error.response?.data?.detail || 'Failed to send training alerts'
+      setMessage({ type: 'error', text: detail })
+    } finally {
+      setSendingTrainingTest(false)
+    }
+  }
+
+  const handleTestMedicalAlerts = async () => {
+    setSendingMedicalTest(true)
+    try {
+      const response = await testMedicalAlerts()
+      setMessage({
+        type: 'success',
+        text: response.data.message
+      })
+      setTimeout(() => setMessage(null), 5000)
+    } catch (error) {
+      console.error('Failed to send medical alerts test:', error)
+      const detail = error.response?.data?.detail || 'Failed to send medical alerts'
+      setMessage({ type: 'error', text: detail })
+    } finally {
+      setSendingMedicalTest(false)
     }
   }
 
@@ -1909,7 +1966,7 @@ function Settings() {
             Email Notifications
           </h2>
           {expandedSections.email && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={(e) => { e.stopPropagation(); handleTestEmail(); }}
                 disabled={sendingTest}
@@ -1925,6 +1982,30 @@ function Settings() {
               >
                 <Send className="w-4 h-4" />
                 {sendingDigestTest ? 'Sending...' : 'Test Digest'}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleTestGearAlerts(); }}
+                disabled={sendingGearTest}
+                className="flex items-center gap-2 px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white disabled:bg-orange-800 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
+              >
+                <Send className="w-4 h-4" />
+                {sendingGearTest ? 'Sending...' : 'Test Gear'}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleTestTrainingAlerts(); }}
+                disabled={sendingTrainingTest}
+                className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white disabled:bg-purple-800 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
+              >
+                <Send className="w-4 h-4" />
+                {sendingTrainingTest ? 'Sending...' : 'Test Training'}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleTestMedicalAlerts(); }}
+                disabled={sendingMedicalTest}
+                className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white disabled:bg-red-800 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
+              >
+                <Send className="w-4 h-4" />
+                {sendingMedicalTest ? 'Sending...' : 'Test Medical'}
               </button>
             </div>
           )}

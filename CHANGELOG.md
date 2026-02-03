@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.52] - 2026-02-03
+
+### Added
+- **Separate test buttons for team alerts** - The Email Notifications section now has individual test buttons for each alert type: Test Gear (orange), Test Training (purple), and Test Medical (red). This lets you test each alert category independently instead of only through the daily digest.
+
 ## [1.79.51] - 2026-02-03
 
 ### Fixed

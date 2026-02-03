@@ -1901,3 +1901,194 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
         }
     else:
         raise HTTPException(status_code=500, detail="Failed to send test daily digest")
+
+
+@router.post("/test-gear-alerts/")
+async def test_gear_alerts(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
+    """Send a test email with only gear alerts (low stock, expired, expiring items)."""
+    from services.email import EmailService, ConfigurationError
+    from models.database import TeamMember, MemberGear, MemberGearContents
+    from sqlalchemy.orm import joinedload
+    from datetime import datetime, timedelta
+
+    recipients = await get_setting(db, "email_recipients")
+    if not recipients:
+        raise HTTPException(status_code=400, detail="No email recipients configured")
+
+    gear_alerts = []
+
+    # Get all active gear contents
+    gear_contents_result = await db.execute(
+        select(MemberGearContents)
+        .join(MemberGear)
+        .join(TeamMember)
+        .options(joinedload(MemberGearContents.gear).joinedload(MemberGear.member))
+        .where(MemberGearContents.is_active == True)
+        .where(MemberGear.is_active == True)
+        .where(TeamMember.is_active == True)
+    )
+    all_gear_contents = gear_contents_result.scalars().unique().all()
+
+    for content in all_gear_contents:
+        member_name = content.gear.member.display_name if content.gear.member else "Unknown"
+
+        # Check for low stock
+        if content.min_quantity and content.quantity < content.min_quantity:
+            gear_alerts.append({
+                "type": "low_stock",
+                "member": member_name,
+                "item": content.item_name,
+                "message": f"Below minimum: {content.quantity} / {content.min_quantity} ({content.gear.gear_name})"
+            })
+
+        # Check for expiring items
+        if content.expiration_date:
+            alert_days = content.expiration_alert_days or 30
+            alert_threshold = datetime.now() + timedelta(days=alert_days)
+            if content.expiration_date <= datetime.now():
+                gear_alerts.append({
+                    "type": "expired",
+                    "member": member_name,
+                    "item": content.item_name,
+                    "message": f"EXPIRED on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                })
+            elif content.expiration_date <= alert_threshold:
+                days_left = (content.expiration_date - datetime.now()).days
+                gear_alerts.append({
+                    "type": "expiring",
+                    "member": member_name,
+                    "item": content.item_name,
+                    "message": f"Expires in {days_left} days on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                })
+
+    if not gear_alerts:
+        return {"message": "No gear alerts found - all items are stocked and not expired", "alerts_count": 0}
+
+    try:
+        email_service = await EmailService.get_configured_service(db)
+        success = await email_service.send_team_alert_email(
+            recipient=recipients,
+            alert_type="Gear",
+            alerts=gear_alerts,
+        )
+    except ConfigurationError as e:
+        logger.error(f"Email send configuration error: {e}")
+        raise HTTPException(status_code=400, detail="Email service not properly configured")
+
+    if success:
+        return {"message": f"Gear alerts test sent to {recipients}", "alerts_count": len(gear_alerts), "alerts": gear_alerts}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send gear alerts email")
+
+
+@router.post("/test-training-alerts/")
+async def test_training_alerts(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
+    """Send a test email with only training alerts (overdue training)."""
+    from services.email import EmailService, ConfigurationError
+    from models.database import TeamMember, MemberTraining
+    from sqlalchemy.orm import joinedload
+    from datetime import datetime
+
+    recipients = await get_setting(db, "email_recipients")
+    if not recipients:
+        raise HTTPException(status_code=400, detail="No email recipients configured")
+
+    training_alerts = []
+
+    # Check for overdue training
+    training_result = await db.execute(
+        select(MemberTraining)
+        .join(TeamMember)
+        .options(joinedload(MemberTraining.member))
+        .where(MemberTraining.is_active == True)
+        .where(TeamMember.is_active == True)
+        .where(MemberTraining.next_due.isnot(None))
+        .where(MemberTraining.next_due < datetime.now())
+    )
+    overdue_training = training_result.scalars().unique().all()
+
+    for training in overdue_training:
+        member_name = training.member.display_name if training.member else "Unknown"
+        days_overdue = (datetime.now() - training.next_due).days
+        training_alerts.append({
+            "type": "expired",
+            "member": member_name,
+            "item": training.name,
+            "message": f"Overdue by {days_overdue} days (due {training.next_due.strftime('%m/%d/%Y')})"
+        })
+
+    if not training_alerts:
+        return {"message": "No training alerts found - all training is current", "alerts_count": 0}
+
+    try:
+        email_service = await EmailService.get_configured_service(db)
+        success = await email_service.send_team_alert_email(
+            recipient=recipients,
+            alert_type="Training",
+            alerts=training_alerts,
+        )
+    except ConfigurationError as e:
+        logger.error(f"Email send configuration error: {e}")
+        raise HTTPException(status_code=400, detail="Email service not properly configured")
+
+    if success:
+        return {"message": f"Training alerts test sent to {recipients}", "alerts_count": len(training_alerts), "alerts": training_alerts}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send training alerts email")
+
+
+@router.post("/test-medical-alerts/")
+async def test_medical_alerts(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
+    """Send a test email with only medical alerts (overdue appointments)."""
+    from services.email import EmailService, ConfigurationError
+    from models.database import TeamMember, MemberMedicalAppointment
+    from sqlalchemy.orm import joinedload
+    from datetime import datetime
+
+    recipients = await get_setting(db, "email_recipients")
+    if not recipients:
+        raise HTTPException(status_code=400, detail="No email recipients configured")
+
+    medical_alerts = []
+
+    # Check for overdue medical appointments
+    medical_result = await db.execute(
+        select(MemberMedicalAppointment)
+        .join(TeamMember)
+        .options(joinedload(MemberMedicalAppointment.member))
+        .where(MemberMedicalAppointment.is_active == True)
+        .where(TeamMember.is_active == True)
+        .where(MemberMedicalAppointment.next_due.isnot(None))
+        .where(MemberMedicalAppointment.next_due < datetime.now())
+    )
+    overdue_medical = medical_result.scalars().unique().all()
+
+    for appt in overdue_medical:
+        member_name = appt.member.display_name if appt.member else "Unknown"
+        type_name = appt.custom_type_name if appt.appointment_type.value == "custom" else appt.appointment_type.value.replace("_", " ").title()
+        days_overdue = (datetime.now() - appt.next_due).days
+        medical_alerts.append({
+            "type": "expired",
+            "member": member_name,
+            "item": type_name,
+            "message": f"Overdue by {days_overdue} days (due {appt.next_due.strftime('%m/%d/%Y')})"
+        })
+
+    if not medical_alerts:
+        return {"message": "No medical alerts found - all appointments are current", "alerts_count": 0}
+
+    try:
+        email_service = await EmailService.get_configured_service(db)
+        success = await email_service.send_team_alert_email(
+            recipient=recipients,
+            alert_type="Medical",
+            alerts=medical_alerts,
+        )
+    except ConfigurationError as e:
+        logger.error(f"Email send configuration error: {e}")
+        raise HTTPException(status_code=400, detail="Email service not properly configured")
+
+    if success:
+        return {"message": f"Medical alerts test sent to {recipients}", "alerts_count": len(medical_alerts), "alerts": medical_alerts}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send medical alerts email")
