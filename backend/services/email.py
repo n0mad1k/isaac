@@ -722,3 +722,96 @@ class EmailService:
         """
 
         return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name)
+
+    async def send_invoice(
+        self,
+        to: str,
+        order: dict,
+        farm_name: str = "Isaac Farm",
+        payment_instructions: str = "",
+    ) -> bool:
+        """Send an invoice email for an order requesting payment.
+
+        Args:
+            to: Customer email address
+            order: Dict with order details including balance due
+            farm_name: Farm/business name for the invoice header
+            payment_instructions: Optional payment instructions (Venmo, Zelle, etc.)
+        """
+        subject = f"Invoice - Order #{order['id']}"
+
+        desc = _escape_html(order.get("description", ""))
+        customer_name = _escape_html(order.get("customer_name", ""))
+        order_date = _escape_html(order.get("order_date", ""))
+        status = _escape_html(order.get("status", "")).replace("_", " ").title()
+        portion = _escape_html(order.get("portion_type", "")).title()
+        notes = _escape_html(order.get("notes", ""))
+
+        total = order.get("final_total") or order.get("estimated_total") or 0
+        total_paid = order.get("total_paid", 0)
+        balance = order.get("balance_due", 0)
+
+        weight_section = ""
+        actual_weight = order.get("actual_weight")
+        estimated_weight = order.get("estimated_weight")
+        price_per_pound = order.get("price_per_pound")
+        if actual_weight or estimated_weight or price_per_pound:
+            weight_rows = ""
+            if estimated_weight:
+                weight_rows += f'<div><span style="color: #666;">Est. Weight:</span> {estimated_weight} lbs</div>'
+            if actual_weight:
+                weight_rows += f'<div><span style="color: #666;">Actual Weight:</span> {actual_weight} lbs</div>'
+            if price_per_pound:
+                weight_rows += f'<div><span style="color: #666;">Price/lb:</span> ${price_per_pound:,.2f}</div>'
+            weight_section = f'<div style="margin-top: 8px; font-size: 13px;">{weight_rows}</div>'
+
+        payment_section = ""
+        if payment_instructions:
+            payment_section = f"""
+                <div style="padding: 16px 24px; background: #fef9e7; border-bottom: 1px solid #eee;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #333;">Payment Instructions</h3>
+                    <div style="font-size: 13px; color: #666; white-space: pre-wrap;">{_escape_html(payment_instructions)}</div>
+                </div>
+            """
+
+        body = f"""
+        <html>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="background: #c0392b; color: white; padding: 20px 24px;">
+                    <h1 style="margin: 0; font-size: 20px;">{_escape_html(farm_name)}</h1>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">INVOICE - Order #{order['id']}</p>
+                </div>
+                <div style="padding: 20px 24px; border-bottom: 1px solid #eee;">
+                    <div style="font-weight: 600; font-size: 15px;">{customer_name}</div>
+                    <div style="color: #666; font-size: 13px; margin-top: 4px;">Order Date: {order_date}</div>
+                    <div style="color: #666; font-size: 13px;">Status: {status}</div>
+                </div>
+                <div style="padding: 16px 24px; border-bottom: 1px solid #eee;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #333;">Order Details</h3>
+                    <div style="font-size: 14px;">
+                        <div><strong>{desc}</strong></div>
+                        {f'<div style="color: #666; font-size: 13px;">Portion: {portion}</div>' if portion and portion != 'None' else ''}
+                        {weight_section}
+                        {f'<div style="color: #666; font-size: 13px; margin-top: 4px;">Notes: {notes}</div>' if notes else ''}
+                    </div>
+                </div>
+                {payment_section}
+                <div style="padding: 20px 24px; background: #f8f9fa;">
+                    <div style="text-align: right; font-size: 14px;">
+                        <div style="margin-bottom: 6px;"><span style="color: #666;">Order Total:</span> <strong style="margin-left: 20px;">${total:,.2f}</strong></div>
+                        <div style="margin-bottom: 6px;"><span style="color: #666;">Total Paid:</span> <strong style="margin-left: 20px;">${total_paid:,.2f}</strong></div>
+                        <div style="font-size: 18px; font-weight: 700; color: #c0392b; border-top: 2px solid #333; padding-top: 8px; margin-top: 8px;">
+                            AMOUNT DUE: <span style="margin-left: 20px;">${balance:,.2f}</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="background: #2c3e50; padding: 12px 24px; text-align: center; font-size: 11px; color: #ccc;">
+                    Invoice generated on {datetime.now().strftime('%m/%d/%Y')} | Thank you for your business!
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name)

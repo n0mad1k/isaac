@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.24] - 2026-02-03
+
+### Added
+- **Send Invoice for orders** - Orders with a balance due now have a "Send Invoice" button (red file icon) that emails the customer an invoice requesting payment. The invoice shows order details, payment summary, and amount due. Configure payment instructions in Settings > Team (coming soon).
+
 ## [1.79.23] - 2026-02-03
 
 ### Fixed

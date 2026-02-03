@@ -1309,6 +1309,83 @@ async def send_order_receipt(
         raise HTTPException(status_code=500, detail="Failed to send receipt email. Check email configuration.")
 
 
+@router.post("/orders/{order_id}/send-invoice/")
+async def send_order_invoice(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
+):
+    """Send an invoice email for an order to the customer requesting payment"""
+    from services.email import EmailService
+    from models.settings import AppSetting
+
+    result = await db.execute(
+        select(LivestockOrder).where(LivestockOrder.id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Check if there's a balance due
+    if (order.balance_due or 0) <= 0:
+        raise HTTPException(status_code=400, detail="No balance due on this order")
+
+    # Get customer email
+    customer_email = None
+    if order.customer_id:
+        cust_result = await db.execute(select(Customer).where(Customer.id == order.customer_id))
+        customer = cust_result.scalar_one_or_none()
+        if customer and customer.email:
+            customer_email = customer.email
+
+    if not customer_email:
+        raise HTTPException(status_code=400, detail="Customer has no email address on file")
+
+    # Get farm name and payment instructions from settings
+    settings_result = await db.execute(
+        select(AppSetting).where(AppSetting.key.in_(["farm_name", "payment_instructions"]))
+    )
+    settings = {s.key: s.value for s in settings_result.scalars().all()}
+    farm_name = settings.get("farm_name") or "Isaac Farm"
+    payment_instructions = settings.get("payment_instructions") or ""
+
+    # Build order dict for email template
+    order_dict = {
+        "id": order.id,
+        "customer_name": order.customer_name or "",
+        "description": order.description or "",
+        "portion_type": order.portion_type.value if order.portion_type else None,
+        "order_date": order.order_date.strftime("%m/%d/%Y") if order.order_date else "",
+        "status": order.status.value if order.status else "",
+        "estimated_weight": order.estimated_weight,
+        "actual_weight": order.actual_weight,
+        "price_per_pound": order.price_per_pound,
+        "estimated_total": order.estimated_total,
+        "final_total": order.final_total,
+        "total_paid": order.total_paid or 0,
+        "balance_due": order.balance_due or 0,
+        "notes": order.notes or "",
+    }
+
+    # Send invoice
+    email_service = await EmailService.get_configured_service(db)
+    try:
+        success = await email_service.send_invoice(
+            to=customer_email,
+            order=order_dict,
+            farm_name=farm_name,
+            payment_instructions=payment_instructions,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send invoice: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+    if success:
+        return {"message": f"Invoice sent to {customer_email}"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send invoice email. Check email configuration.")
+
+
 # ==================== Production Allocation Routes ====================
 
 @router.get("/livestock/{production_id}/allocations/", response_model=List[ProductionAllocationResponse])
