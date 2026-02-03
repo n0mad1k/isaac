@@ -37,6 +37,8 @@ DEFAULT_SETTINGS = {
     "email_alerts_enabled": "true",
     "email_daily_digest": "true",
     "email_digest_time": "06:00",
+    "email_team_alerts_digest": "false",
+    "email_team_alerts_time": "06:30",
     "frost_warning_temp": "35.0",
     "freeze_warning_temp": "32.0",
     "heat_warning_temp": "95.0",
@@ -590,6 +592,39 @@ class SchedulerService:
             logger.info(f"Missed daily digest time ({hour:02d}:{minute:02d}), attempting catchup...")
             await self.send_daily_digest()
 
+        # Schedule team alerts digest - runs 30 minutes after daily digest
+        # This separate email only sends if there are team alerts to report
+        team_alerts_enabled = await get_setting_value("email_team_alerts_digest")
+        if team_alerts_enabled == "true":
+            team_alerts_time = await get_setting_value("email_team_alerts_time")
+            try:
+                ta_hour, ta_minute = map(int, team_alerts_time.split(":"))
+            except (ValueError, AttributeError):
+                # Default to 30 minutes after daily digest
+                ta_hour = hour
+                ta_minute = minute + 30
+                if ta_minute >= 60:
+                    ta_minute -= 60
+                    ta_hour = (ta_hour + 1) % 24
+
+            self.scheduler.add_job(
+                self.send_team_alerts_digest,
+                CronTrigger(hour=ta_hour, minute=ta_minute),
+                id="team_alerts_digest",
+                name=f"Send Team Alerts Digest ({ta_hour:02d}:{ta_minute:02d})",
+                replace_existing=True,
+            )
+            logger.info(f"Team alerts digest scheduled for {ta_hour:02d}:{ta_minute:02d}")
+
+            # Check if we missed today's team alerts (similar catchup logic)
+            ta_scheduled_time = now.replace(hour=ta_hour, minute=ta_minute, second=0, microsecond=0)
+            ta_catchup_cutoff = ta_scheduled_time + timedelta(hours=6)
+            ta_grace_period = ta_scheduled_time + timedelta(minutes=2)
+
+            if ta_grace_period < now < ta_catchup_cutoff:
+                logger.info(f"Missed team alerts digest time ({ta_hour:02d}:{ta_minute:02d}), attempting catchup...")
+                await self.send_team_alerts_digest()
+
     async def stop(self):
         """Stop the scheduler"""
         self.scheduler.shutdown()
@@ -949,6 +984,197 @@ class SchedulerService:
                 )
         except Exception as e:
             logger.error(f"Error sending daily digest: {e}")
+
+    async def send_team_alerts_digest(self):
+        """Send a separate daily email with team alerts (gear, training, medical).
+
+        This runs separately from the main daily digest and ONLY sends if there
+        are alerts to report. This allows users to get focused attention on
+        team readiness issues.
+        """
+        import pytz
+
+        # Skip on dev instances to avoid duplicate emails
+        if settings.is_dev_instance:
+            logger.info("Skipping team alerts digest on dev instance (is_dev_instance=True)")
+            return
+
+        # Check if team alerts digest is enabled
+        team_alerts_enabled = await get_setting_value("email_team_alerts_digest")
+        if team_alerts_enabled != "true":
+            logger.info("Team alerts digest is disabled in settings, skipping")
+            return
+
+        # Get recipient email (fall back to general alert recipients)
+        recipient = await get_setting_value("email_team_alerts_recipient")
+        if not recipient:
+            recipient = await get_setting_value("email_recipients")
+            if recipient:
+                # Use first email from comma-separated list
+                recipient = recipient.split(",")[0].strip()
+        if not recipient:
+            logger.warning("Team alerts digest recipient not configured, skipping")
+            return
+
+        # Atomic check-and-set to prevent duplicate sends
+        tz = pytz.timezone(settings.timezone)
+        today_str = datetime.now(tz).strftime("%Y-%m-%d")
+
+        async with async_session() as db:
+            # Use atomic UPDATE with WHERE clause
+            from sqlalchemy import update
+
+            result = await db.execute(
+                update(AppSetting)
+                .where(AppSetting.key == "_last_team_alerts_date")
+                .where(AppSetting.value != today_str)
+                .values(value=today_str)
+            )
+
+            if result.rowcount == 0:
+                # Either already sent today, or row doesn't exist
+                check = await db.execute(
+                    select(AppSetting).where(AppSetting.key == "_last_team_alerts_date")
+                )
+                existing = check.scalar_one_or_none()
+
+                if existing:
+                    logger.info(f"Team alerts digest already sent today ({today_str}), skipping duplicate")
+                    return
+                else:
+                    # Row doesn't exist - try to insert
+                    try:
+                        db.add(AppSetting(key="_last_team_alerts_date", value=today_str))
+                        await db.commit()
+                    except Exception:
+                        await db.rollback()
+                        recheck = await db.execute(
+                            select(AppSetting).where(AppSetting.key == "_last_team_alerts_date")
+                        )
+                        if recheck.scalar_one_or_none():
+                            logger.info(f"Team alerts digest already sent today ({today_str}), skipping duplicate")
+                            return
+            else:
+                await db.commit()
+
+            logger.info(f"Claimed team alerts digest send for {today_str}")
+
+        logger.info(f"Checking for team alerts to send to {recipient}...")
+        try:
+            async with async_session() as db:
+                from sqlalchemy.orm import joinedload
+
+                gear_alerts = []
+                training_alerts = []
+                medical_alerts = []
+
+                # Get all active gear contents with their gear and member info
+                gear_contents_result = await db.execute(
+                    select(MemberGearContents)
+                    .join(MemberGear)
+                    .join(TeamMember)
+                    .options(joinedload(MemberGearContents.gear).joinedload(MemberGear.member))
+                    .where(MemberGearContents.is_active == True)
+                    .where(MemberGear.is_active == True)
+                    .where(TeamMember.is_active == True)
+                )
+                all_gear_contents = gear_contents_result.scalars().unique().all()
+
+                for content in all_gear_contents:
+                    member_name = content.gear.member.display_name if content.gear.member else "Unknown"
+
+                    # Check for low stock
+                    if content.min_quantity and content.quantity < content.min_quantity:
+                        gear_alerts.append({
+                            "type": "low_stock",
+                            "member": member_name,
+                            "item": content.item_name,
+                            "message": f"Below minimum: {content.quantity} / {content.min_quantity} ({content.gear.gear_name})"
+                        })
+
+                    # Check for expiring items
+                    if content.expiration_date:
+                        alert_days = content.expiration_alert_days or 30
+                        alert_threshold = datetime.now() + timedelta(days=alert_days)
+                        if content.expiration_date <= datetime.now():
+                            gear_alerts.append({
+                                "type": "expired",
+                                "member": member_name,
+                                "item": content.item_name,
+                                "message": f"EXPIRED on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                            })
+                        elif content.expiration_date <= alert_threshold:
+                            days_left = (content.expiration_date - datetime.now()).days
+                            gear_alerts.append({
+                                "type": "expiring",
+                                "member": member_name,
+                                "item": content.item_name,
+                                "message": f"Expires in {days_left} days on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                            })
+
+                # Check for overdue training
+                training_result = await db.execute(
+                    select(MemberTraining)
+                    .join(TeamMember)
+                    .options(joinedload(MemberTraining.member))
+                    .where(MemberTraining.is_active == True)
+                    .where(TeamMember.is_active == True)
+                    .where(MemberTraining.next_due.isnot(None))
+                    .where(MemberTraining.next_due < datetime.now())
+                )
+                overdue_training = training_result.scalars().unique().all()
+
+                for training in overdue_training:
+                    member_name = training.member.display_name if training.member else "Unknown"
+                    days_overdue = (datetime.now() - training.next_due).days
+                    training_alerts.append({
+                        "type": "expired",
+                        "member": member_name,
+                        "item": f"Training: {training.name}",
+                        "message": f"Overdue by {days_overdue} days (due {training.next_due.strftime('%m/%d/%Y')})"
+                    })
+
+                # Check for overdue medical appointments
+                medical_result = await db.execute(
+                    select(MemberMedicalAppointment)
+                    .join(TeamMember)
+                    .options(joinedload(MemberMedicalAppointment.member))
+                    .where(MemberMedicalAppointment.is_active == True)
+                    .where(TeamMember.is_active == True)
+                    .where(MemberMedicalAppointment.next_due.isnot(None))
+                    .where(MemberMedicalAppointment.next_due < datetime.now())
+                )
+                overdue_medical = medical_result.scalars().unique().all()
+
+                for appt in overdue_medical:
+                    member_name = appt.member.display_name if appt.member else "Unknown"
+                    type_name = appt.custom_type_name if appt.appointment_type.value == "custom" else appt.appointment_type.value.replace("_", " ").title()
+                    days_overdue = (datetime.now() - appt.next_due).days
+                    medical_alerts.append({
+                        "type": "expired",
+                        "member": member_name,
+                        "item": f"Appointment: {type_name}",
+                        "message": f"Overdue by {days_overdue} days (due {appt.next_due.strftime('%m/%d/%Y')})"
+                    })
+
+                # Only send if there are alerts
+                total_alerts = len(gear_alerts) + len(training_alerts) + len(medical_alerts)
+                if total_alerts == 0:
+                    logger.info("No team alerts to send today")
+                    return
+
+                logger.info(f"Sending team alerts digest: {len(gear_alerts)} gear, {len(training_alerts)} training, {len(medical_alerts)} medical")
+
+                # Get configured email service from database
+                email_service = await self.get_email_service(db)
+                await email_service.send_team_alerts_digest(
+                    recipient=recipient,
+                    gear_alerts=gear_alerts if gear_alerts else None,
+                    training_alerts=training_alerts if training_alerts else None,
+                    medical_alerts=medical_alerts if medical_alerts else None,
+                )
+        except Exception as e:
+            logger.error(f"Error sending team alerts digest: {e}")
 
     async def check_upcoming_tasks(self):
         """Check for tasks due soon and send reminders"""

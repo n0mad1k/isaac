@@ -269,6 +269,7 @@ export const testDailyDigest = () => api.post('/settings/test-daily-digest/')
 export const testGearAlerts = () => api.post('/settings/test-gear-alerts/')
 export const testTrainingAlerts = () => api.post('/settings/test-training-alerts/')
 export const testMedicalAlerts = () => api.post('/settings/test-medical-alerts/')
+export const testTeamAlertsDigest = () => api.post('/settings/test-team-alerts-digest/')
 export const syncCalendar = () => api.post('/settings/sync-calendar/', {}, { timeout: 15000 }) // 15sec timeout for CalDAV connection
 export const getVersionInfo = () => api.get('/settings/version/')
 export const toggleKeyboard = () => api.post('/settings/keyboard/toggle/')

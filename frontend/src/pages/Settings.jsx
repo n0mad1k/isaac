@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search, Upload, Image, Bot } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, testDailyDigest, testGearAlerts, testTrainingAlerts, testMedicalAlerts, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs, getAllInsights, createInsight, updateInsight, deleteInsight, regenerateInsights } from '../services/api'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, testDailyDigest, testGearAlerts, testTrainingAlerts, testMedicalAlerts, testTeamAlertsDigest, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs, getAllInsights, createInsight, updateInsight, deleteInsight, regenerateInsights } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -15,6 +15,7 @@ function Settings() {
   const [sendingGearTest, setSendingGearTest] = useState(false)
   const [sendingTrainingTest, setSendingTrainingTest] = useState(false)
   const [sendingMedicalTest, setSendingMedicalTest] = useState(false)
+  const [sendingTeamAlertsDigestTest, setSendingTeamAlertsDigestTest] = useState(false)
   const [syncingCalendar, setSyncingCalendar] = useState(false)
   const [message, setMessage] = useState(null)
   const [hasChanges, setHasChanges] = useState(false)
@@ -781,6 +782,25 @@ function Settings() {
     }
   }
 
+  const handleTestTeamAlertsDigest = async () => {
+    setSendingTeamAlertsDigestTest(true)
+    try {
+      const response = await testTeamAlertsDigest()
+      const data = response.data
+      setMessage({
+        type: 'success',
+        text: `Team alerts digest sent! ${data.gear_count} gear, ${data.training_count} training, ${data.medical_count} medical alerts.`
+      })
+      setTimeout(() => setMessage(null), 5000)
+    } catch (error) {
+      console.error('Failed to send team alerts digest test:', error)
+      const detail = error.response?.data?.detail || 'Failed to send team alerts digest'
+      setMessage({ type: 'error', text: detail })
+    } finally {
+      setSendingTeamAlertsDigestTest(false)
+    }
+  }
+
   const handleCalendarSync = async () => {
     setSyncingCalendar(true)
     try {
@@ -945,7 +965,7 @@ function Settings() {
   const locationSettings = ['timezone', 'latitude', 'longitude', 'usda_zone']
   const weatherApiSettings = ['awn_api_key', 'awn_app_key']
   const emailServerSettings = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from']
-  const emailSettings = ['email_alerts_enabled', 'email_recipients', 'email_daily_digest', 'email_digest_time']
+  const emailSettings = ['email_alerts_enabled', 'email_recipients', 'email_daily_digest', 'email_digest_time', 'email_team_alerts_digest', 'email_team_alerts_time', 'email_team_alerts_recipient']
   const alertSettings = ['frost_warning_temp', 'freeze_warning_temp', 'heat_warning_temp', 'wind_warning_speed', 'rain_warning_inches', 'cold_protection_buffer']
   const calendarSettings = ['calendar_enabled', 'calendar_url', 'calendar_username', 'calendar_password', 'calendar_name', 'calendar_sync_interval']
   const cloudflareSettings = ['cloudflare_api_token', 'cloudflare_account_id', 'cloudflare_app_id']
@@ -2006,6 +2026,15 @@ function Settings() {
               >
                 <Send className="w-4 h-4" />
                 {sendingMedicalTest ? 'Sending...' : 'Test Medical'}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleTestTeamAlertsDigest(); }}
+                disabled={sendingTeamAlertsDigestTest}
+                className="flex items-center gap-2 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white disabled:bg-amber-800 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
+                title="Test combined team alerts digest (gear + training + medical)"
+              >
+                <Send className="w-4 h-4" />
+                {sendingTeamAlertsDigestTest ? 'Sending...' : 'Test All Alerts'}
               </button>
             </div>
           )}

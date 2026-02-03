@@ -435,6 +435,137 @@ class EmailService:
 
         return await self.send_email(subject, html, to=recipient, html=True)
 
+    async def send_team_alerts_digest(
+        self,
+        recipient: str,
+        gear_alerts: List[dict] = None,
+        training_alerts: List[dict] = None,
+        medical_alerts: List[dict] = None,
+    ) -> bool:
+        """Send a combined team alerts digest email with all alert categories.
+
+        This is a separate daily email that ONLY sends if there are alerts to report.
+        Unlike the main daily digest, this focuses purely on team readiness issues.
+
+        Args:
+            recipient: Email recipient
+            gear_alerts: List of gear alerts (low stock, expired, expiring)
+            training_alerts: List of overdue training alerts
+            medical_alerts: List of overdue medical appointment alerts
+
+        Returns:
+            True if sent successfully, False otherwise
+        """
+        if not recipient:
+            logger.error("No recipient specified for team alerts digest")
+            return False
+
+        # Count total alerts
+        all_alerts = (gear_alerts or []) + (training_alerts or []) + (medical_alerts or [])
+        if not all_alerts:
+            logger.info("No team alerts to send")
+            return False
+
+        subject = f"⚠️ Team Alerts Digest - {len(all_alerts)} Items Need Attention - {datetime.now().strftime('%m/%d/%Y')}"
+
+        html = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }}
+                .header {{ background: #dc2626; color: white; padding: 20px; text-align: center; }}
+                .section {{ padding: 15px; border-bottom: 1px solid #eee; }}
+                .section h2 {{ margin-top: 0; }}
+                .alert {{ padding: 10px; margin: 5px 0; border-radius: 4px; background: #f9f9f9; }}
+                .alert.expired {{ border-left: 4px solid #e74c3c; background: #fadbd8; }}
+                .alert.low_stock {{ border-left: 4px solid #f39c12; background: #fef9e7; }}
+                .alert.expiring {{ border-left: 4px solid #f39c12; background: #fef9e7; }}
+                .summary {{ background: #fef2f2; padding: 15px; border-radius: 8px; margin: 15px 0; }}
+                .summary-item {{ display: inline-block; padding: 5px 15px; margin: 5px; border-radius: 20px; color: white; font-weight: bold; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>⚠️ Team Alerts Digest</h1>
+                <p>{datetime.now().strftime('%m/%d/%Y')}</p>
+            </div>
+
+            <div class="section">
+                <div class="summary">
+                    <strong>Summary:</strong>
+        """
+
+        # Summary badges
+        if gear_alerts:
+            html += f'<span class="summary-item" style="background: #3498db;">🎒 {len(gear_alerts)} Gear</span>'
+        if training_alerts:
+            html += f'<span class="summary-item" style="background: #9b59b6;">📚 {len(training_alerts)} Training</span>'
+        if medical_alerts:
+            html += f'<span class="summary-item" style="background: #e74c3c;">🏥 {len(medical_alerts)} Medical</span>'
+
+        html += """
+                </div>
+            </div>
+        """
+
+        # Gear alerts section
+        if gear_alerts:
+            html += """
+            <div class="section">
+                <h2>🎒 Gear Alerts</h2>
+            """
+            for alert in gear_alerts:
+                alert_class = alert.get("type", "info")
+                icon = "⚠️" if alert_class == "expired" else "📉" if alert_class == "low_stock" else "📅"
+                html += f"""
+                <div class="alert {alert_class}">
+                    {icon} <strong>{_escape_html(alert.get('member', 'Team'))}</strong> - {_escape_html(alert.get('item', 'Item'))}<br>
+                    <small>{_escape_html(alert.get('message', ''))}</small>
+                </div>
+                """
+            html += "</div>"
+
+        # Training alerts section
+        if training_alerts:
+            html += """
+            <div class="section">
+                <h2>📚 Training Alerts</h2>
+            """
+            for alert in training_alerts:
+                html += f"""
+                <div class="alert expired">
+                    ⚠️ <strong>{_escape_html(alert.get('member', 'Team'))}</strong> - {_escape_html(alert.get('item', 'Item'))}<br>
+                    <small>{_escape_html(alert.get('message', ''))}</small>
+                </div>
+                """
+            html += "</div>"
+
+        # Medical alerts section
+        if medical_alerts:
+            html += """
+            <div class="section">
+                <h2>🏥 Medical Alerts</h2>
+            """
+            for alert in medical_alerts:
+                html += f"""
+                <div class="alert expired">
+                    ⚠️ <strong>{_escape_html(alert.get('member', 'Team'))}</strong> - {_escape_html(alert.get('item', 'Item'))}<br>
+                    <small>{_escape_html(alert.get('message', ''))}</small>
+                </div>
+                """
+            html += "</div>"
+
+        html += """
+            <div class="section" style="text-align: center; color: #666; font-size: 12px;">
+                <p>Generated by Isaac - Your Farm Assistant</p>
+                <p><small>This alert is sent separately from the daily digest when team items need attention.</small></p>
+            </div>
+        </body>
+        </html>
+        """
+
+        return await self.send_email(subject, html, to=recipient, html=True)
+
     async def send_task_reminder(self, task: dict, to: str = None) -> bool:
         """Send a task reminder email
 

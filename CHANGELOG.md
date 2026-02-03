@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.59] - 2026-02-03
+
+### Added
+- **Separate daily email for team alerts** - New option in Email Notifications to receive a separate daily email specifically for team readiness alerts (gear/training/medical). Enable "Team Alerts Digest" in settings to receive this focused alert email. Unlike the main daily digest, this email ONLY sends when there are actual issues to report. Includes a "Test All Alerts" button to preview the combined alert format.
+
 ## [1.79.58] - 2026-02-03
 
 ### Changed
