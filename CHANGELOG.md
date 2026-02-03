@@ -5,10 +5,7 @@ All notable changes to Isaac will be documented in this file.
 ## [1.79.45] - 2026-02-03
 
 ### Added
-- **Dedicated Farm Settings section in Settings** - Farm name and payment instructions now have their own collapsible section, always visible (not dependent on Team being enabled)
-
-### Changed
-- **All emails now use your farm name** - Email subject prefixes, From headers, daily digest headers, and email footers now all use your configured farm name instead of "Isaac". Set your farm name in Settings > Farm Settings.
+- **Dedicated Farm Settings section in Settings** - Farm name and payment instructions now have their own collapsible section (Settings > Farm Settings), always visible regardless of whether Team is enabled. This makes it easier to configure your farm identity for customer communications.
 
 ## [1.79.44] - 2026-02-03
 
