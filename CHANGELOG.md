@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.57] - 2026-02-03
+
+### Added
+- **Mark animal as slaughtered without archiving** - Livestock animals now have a "Mark Slaughtered" button that sets the animal's status to "slaughtered" while keeping it active. This lets you track animals that are at the butcher but not yet processed. A red "SLAUGHTERED" badge appears on the animal card. When ready to record production and archive, use "Complete Archive".
+
 ## [1.79.56] - 2026-02-03
 
 ### Changed

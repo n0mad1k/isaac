@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
-  Plus, Search, PawPrint, Calendar, AlertCircle, ChevronDown, ChevronUp,
+  Plus, Search, PawPrint, Calendar, AlertCircle, AlertTriangle, ChevronDown, ChevronUp,
   MapPin, DollarSign, Scale, Clock, Check, X, Syringe, Scissors,
   Heart, Beef, Dog, Cat, Pencil, Save, Package, Copy, CalendarPlus,
   Trash2, Download, FileText, Bird, Rabbit, Egg, Upload, Clipboard, Receipt, Image
@@ -449,6 +449,17 @@ function Animals() {
     }
   }
 
+  const markAsSlaughtered = async (animalId, animalName) => {
+    if (!confirm(`Mark ${animalName} as slaughtered? This will set the status to "slaughtered" but keep the animal active until you archive it.`)) return
+    try {
+      await updateAnimal(animalId, { status: 'slaughtered' })
+      fetchAnimals()
+    } catch (error) {
+      console.error('Failed to mark as slaughtered:', error)
+      alert('Failed to mark animal as slaughtered')
+    }
+  }
+
   const updateCareDate = async (animalId, field, dateValue) => {
     try {
       await updateAnimal(animalId, { [field]: dateValue })
@@ -773,6 +784,7 @@ function Animals() {
                       onDeleteFeed={(feedId) => handleDeleteFeed(animal.id, feedId)}
                       onSave={fetchAnimals}
                       onArchive={(animal) => setShowArchiveForm(animal)}
+                      onMarkSlaughtered={() => markAsSlaughtered(animal.id, animal.name)}
                       onAddReminder={(animal) => setShowReminderFor(animal)}
                       getAnimalIcon={getAnimalIcon}
                       getDaysUntil={getDaysUntil}
@@ -811,6 +823,7 @@ function Animals() {
               onSave={fetchAnimals}
               onAddReminder={(animal) => setShowReminderFor(animal)}
               onArchive={(animal) => setShowArchiveForm(animal)}
+              onMarkSlaughtered={() => markAsSlaughtered(animal.id, animal.name)}
               getAnimalIcon={getAnimalIcon}
               getDaysUntil={getDaysUntil}
               getUrgencyStyle={getUrgencyStyle}
@@ -1118,7 +1131,7 @@ const getSexOptions = (animalType) => {
 function AnimalCard({
   animal, farmAreas = [], expanded, onToggle, onLogCare, onDelete, onDuplicate, onAddExpense, onViewExpenses, onEditDate, onToggleTag,
   onAddCareSchedule, onCompleteCareSchedule, onDeleteCareSchedule, onEditCareSchedule,
-  onAddFeed, onEditFeed, onDeleteFeed, onSave, onArchive, onAddReminder, getAnimalIcon, getDaysUntil, getUrgencyStyle
+  onAddFeed, onEditFeed, onDeleteFeed, onSave, onArchive, onMarkSlaughtered, onAddReminder, getAnimalIcon, getDaysUntil, getUrgencyStyle
 }) {
   // Local state for inline editing
   const [editData, setEditData] = useState(null)
@@ -1295,6 +1308,13 @@ function AnimalCard({
         <div className="flex items-center gap-2">
           <span className="text-lg flex-shrink-0">{getAnimalIcon(animal.animal_type)}</span>
           <span className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{animal.name}</span>
+
+          {/* Slaughtered badge */}
+          {animal.status === 'slaughtered' && (
+            <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0 bg-red-700 text-white font-medium">
+              SLAUGHTERED
+            </span>
+          )}
 
           {/* Tags inline with name */}
           {animalTags.slice(0, 2).map(tag => {
@@ -1958,14 +1978,25 @@ function AnimalCard({
                 </div>
               </div>
 
-              {/* Archive Button */}
-              <div className="md:col-span-2">
+              {/* Action Buttons */}
+              <div className="md:col-span-2 flex gap-2">
+                {/* Mark as Slaughtered - only show if not already slaughtered */}
+                {animal.status !== 'slaughtered' && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onMarkSlaughtered && onMarkSlaughtered() }}
+                    className="flex-1 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    Mark Slaughtered
+                  </button>
+                )}
+                {/* Archive Button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); onArchive(animal) }}
-                  className="w-full px-4 py-2 bg-orange-700 hover:bg-orange-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
+                  className={`${animal.status !== 'slaughtered' ? 'flex-1' : 'w-full'} px-4 py-2 bg-orange-700 hover:bg-orange-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors`}
                 >
                   <Package className="w-4 h-4" />
-                  Archive & Record Production
+                  {animal.status === 'slaughtered' ? 'Complete Archive' : 'Archive & Record Production'}
                 </button>
               </div>
             </div>
