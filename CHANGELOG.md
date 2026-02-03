@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.36] - 2026-02-03
+
+### Added
+- **AI Insights Management** - New section in Settings > AI Assistant for managing AI-generated insights. You can now:
+  - View all insights (including dismissed)
+  - Create manual insights with custom domain, title, content, and priority
+  - Edit existing insight title and content
+  - Delete insights permanently
+  - Regenerate all insights on demand with one click
+  - See insight priority, domain, read status, and creation date
+
 ## [1.79.35] - 2026-02-03
 
 ### Fixed

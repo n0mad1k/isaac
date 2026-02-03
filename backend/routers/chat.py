@@ -512,3 +512,195 @@ async def dismiss_insight(
 
     insight.is_dismissed = True
     return {"status": "dismissed"}
+
+
+# --- Insight Management (CRUD) ---
+
+class InsightCreate(BaseModel):
+    """Create a new manual insight"""
+    domain: str = Field(..., max_length=50)
+    insight_type: str = Field(default="analysis", max_length=50)
+    title: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=1, max_length=10000)
+    priority: str = Field(default="medium")  # low, medium, high
+    expires_hours: Optional[int] = Field(default=168, ge=1, le=8760)  # default 1 week, max 1 year
+
+
+class InsightUpdate(BaseModel):
+    """Update an existing insight"""
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    content: Optional[str] = Field(None, min_length=1, max_length=10000)
+    priority: Optional[str] = Field(None)
+    is_read: Optional[bool] = None
+    is_dismissed: Optional[bool] = None
+
+
+@router.get("/insights/all/")
+async def list_all_insights(
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(default=100, ge=1, le=500),
+):
+    """List ALL insights including dismissed (for management UI)"""
+    query = select(AiInsight).order_by(desc(AiInsight.created_at)).limit(limit)
+    result = await db.execute(query)
+    insights = result.scalars().all()
+
+    return {
+        "insights": [
+            {
+                "id": i.id,
+                "domain": i.domain,
+                "insight_type": i.insight_type,
+                "title": i.title,
+                "content": i.content,
+                "priority": i.priority.value if i.priority else "medium",
+                "is_read": i.is_read,
+                "is_dismissed": i.is_dismissed,
+                "created_at": i.created_at.isoformat() if i.created_at else None,
+                "expires_at": i.expires_at.isoformat() if i.expires_at else None,
+            }
+            for i in insights
+        ]
+    }
+
+
+@router.post("/insights/")
+async def create_insight(
+    data: InsightCreate,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a manual insight"""
+    from datetime import timedelta
+
+    # Validate priority
+    try:
+        priority = InsightPriority(data.priority.lower())
+    except ValueError:
+        priority = InsightPriority.MEDIUM
+
+    insight = AiInsight(
+        domain=data.domain,
+        insight_type=data.insight_type,
+        title=data.title,
+        content=data.content,
+        priority=priority,
+        expires_at=datetime.utcnow() + timedelta(hours=data.expires_hours) if data.expires_hours else None,
+    )
+    db.add(insight)
+    await db.commit()
+    await db.refresh(insight)
+
+    logger.info(f"Manual insight created: {insight.title}")
+    return {
+        "id": insight.id,
+        "title": insight.title,
+        "status": "created",
+    }
+
+
+@router.put("/insights/{insight_id}/")
+async def update_insight(
+    insight_id: int,
+    data: InsightUpdate,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update an existing insight"""
+    result = await db.execute(
+        select(AiInsight).where(AiInsight.id == insight_id)
+    )
+    insight = result.scalar_one_or_none()
+    if not insight:
+        raise HTTPException(status_code=404, detail="Insight not found")
+
+    if data.title is not None:
+        insight.title = data.title
+    if data.content is not None:
+        insight.content = data.content
+    if data.priority is not None:
+        try:
+            insight.priority = InsightPriority(data.priority.lower())
+        except ValueError:
+            pass
+    if data.is_read is not None:
+        insight.is_read = data.is_read
+    if data.is_dismissed is not None:
+        insight.is_dismissed = data.is_dismissed
+
+    await db.commit()
+    logger.info(f"Insight updated: {insight.id}")
+    return {"status": "updated", "id": insight.id}
+
+
+@router.delete("/insights/{insight_id}/")
+async def delete_insight(
+    insight_id: int,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Permanently delete an insight"""
+    from sqlalchemy import delete
+
+    result = await db.execute(
+        select(AiInsight).where(AiInsight.id == insight_id)
+    )
+    insight = result.scalar_one_or_none()
+    if not insight:
+        raise HTTPException(status_code=404, detail="Insight not found")
+
+    await db.execute(delete(AiInsight).where(AiInsight.id == insight_id))
+    await db.commit()
+    logger.info(f"Insight deleted: {insight_id}")
+    return {"status": "deleted", "id": insight_id}
+
+
+@router.post("/insights/regenerate/")
+async def regenerate_insights(
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+    insight_type: Optional[str] = Query(None, description="Type to regenerate: digest, fitness, garden, budget, or 'all'"),
+):
+    """Regenerate AI insights on demand"""
+    from services.ai_insights import (
+        generate_morning_digest,
+        generate_weekly_fitness_review,
+        generate_monthly_garden_review,
+        generate_weekly_budget_review,
+    )
+
+    generated = []
+    errors = []
+
+    types_to_run = []
+    if insight_type == "all" or insight_type is None:
+        types_to_run = ["digest", "fitness", "garden", "budget"]
+    else:
+        types_to_run = [insight_type]
+
+    for t in types_to_run:
+        try:
+            if t == "digest":
+                await generate_morning_digest()
+                generated.append("Morning Digest")
+            elif t == "fitness":
+                await generate_weekly_fitness_review()
+                generated.append("Weekly Fitness Review")
+            elif t == "garden":
+                await generate_monthly_garden_review()
+                generated.append("Monthly Garden Review")
+            elif t == "budget":
+                await generate_weekly_budget_review()
+                generated.append("Weekly Budget Review")
+            else:
+                errors.append(f"Unknown type: {t}")
+        except Exception as e:
+            logger.error(f"Failed to regenerate {t}: {e}")
+            errors.append(f"{t}: {str(e)}")
+
+    return {
+        "status": "completed",
+        "generated": generated,
+        "errors": errors if errors else None,
+    }

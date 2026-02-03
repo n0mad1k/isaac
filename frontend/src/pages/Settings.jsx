@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search, Upload, Image, Bot } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs } from '../services/api'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs, getAllInsights, createInsight, updateInsight, deleteInsight, regenerateInsights } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -80,6 +80,14 @@ function Settings() {
   const [showNewFeedback, setShowNewFeedback] = useState(false)
   const [newFeedback, setNewFeedback] = useState({ title: '', description: '', feedback_type: 'feature' })
   const [submittingFeedback, setSubmittingFeedback] = useState(false)
+
+  // AI Insights state
+  const [insights, setInsights] = useState([])
+  const [loadingInsights, setLoadingInsights] = useState(false)
+  const [regeneratingInsights, setRegeneratingInsights] = useState(false)
+  const [editingInsight, setEditingInsight] = useState(null)
+  const [showNewInsight, setShowNewInsight] = useState(false)
+  const [newInsight, setNewInsight] = useState({ domain: 'tasks', insight_type: 'analysis', title: '', content: '', priority: 'medium' })
 
   // Collapsible sections state - all collapsed by default
   const [expandedSections, setExpandedSections] = useState({
@@ -170,6 +178,13 @@ function Settings() {
     }
   }, [expandedSections.myFeedback])
 
+  // Fetch insights when AI section expands
+  useEffect(() => {
+    if (expandedSections.ai && isAdmin) {
+      fetchInsights()
+    }
+  }, [expandedSections.ai])
+
   const fetchMyFeedback = async () => {
     setLoadingFeedback(true)
     try {
@@ -232,6 +247,70 @@ function Settings() {
       setMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to submit feedback' })
     } finally {
       setSubmittingFeedback(false)
+    }
+  }
+
+  // AI Insights functions
+  const fetchInsights = async () => {
+    setLoadingInsights(true)
+    try {
+      const response = await getAllInsights(100)
+      setInsights(response.data.insights || [])
+    } catch (error) {
+      console.error('Failed to fetch insights:', error)
+    } finally {
+      setLoadingInsights(false)
+    }
+  }
+
+  const handleRegenerateInsights = async (type = 'all') => {
+    setRegeneratingInsights(true)
+    try {
+      const response = await regenerateInsights(type)
+      setMessage({ type: 'success', text: `Generated: ${response.data.generated?.join(', ') || 'None'}` })
+      fetchInsights()
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to regenerate insights' })
+    } finally {
+      setRegeneratingInsights(false)
+    }
+  }
+
+  const handleSaveInsight = async (id) => {
+    try {
+      await updateInsight(id, editingInsight)
+      setEditingInsight(null)
+      fetchInsights()
+      setMessage({ type: 'success', text: 'Insight updated' })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to update insight' })
+    }
+  }
+
+  const handleDeleteInsight = async (id) => {
+    if (!confirm('Delete this insight permanently?')) return
+    try {
+      await deleteInsight(id)
+      fetchInsights()
+      setMessage({ type: 'success', text: 'Insight deleted' })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to delete insight' })
+    }
+  }
+
+  const handleCreateInsight = async () => {
+    if (!newInsight.title.trim() || !newInsight.content.trim()) {
+      setMessage({ type: 'error', text: 'Please enter title and content' })
+      return
+    }
+    try {
+      await createInsight(newInsight)
+      setNewInsight({ domain: 'tasks', insight_type: 'analysis', title: '', content: '', priority: 'medium' })
+      setShowNewInsight(false)
+      fetchInsights()
+      setMessage({ type: 'success', text: 'Insight created' })
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to create insight' })
     }
   }
 
@@ -2104,6 +2183,170 @@ function Settings() {
                 if (provider === 'openai') return ['openai_api_key', 'openai_model'].includes(key)
                 return false
               }).map(key => renderSettingCard(key))}
+            </div>
+
+            {/* AI Insights Management */}
+            <div className="mt-6 border-t border-gray-700 pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-md font-semibold text-purple-400">AI Insights</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowNewInsight(true)}
+                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 rounded text-sm flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" /> New
+                  </button>
+                  <button
+                    onClick={() => handleRegenerateInsights('all')}
+                    disabled={regeneratingInsights}
+                    className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${regeneratingInsights ? 'animate-spin' : ''}`} />
+                    {regeneratingInsights ? 'Generating...' : 'Regenerate All'}
+                  </button>
+                </div>
+              </div>
+
+              {/* New Insight Form */}
+              {showNewInsight && (
+                <div className="mb-4 p-4 bg-gray-700 rounded-lg">
+                  <h4 className="font-medium mb-3">Create New Insight</h4>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Domain</label>
+                      <select
+                        value={newInsight.domain}
+                        onChange={e => setNewInsight({ ...newInsight, domain: e.target.value })}
+                        className="w-full bg-gray-600 rounded px-3 py-2 text-sm"
+                      >
+                        <option value="tasks">Tasks</option>
+                        <option value="garden">Garden</option>
+                        <option value="fitness">Fitness</option>
+                        <option value="budget">Budget</option>
+                        <option value="animals">Animals</option>
+                        <option value="weather">Weather</option>
+                        <option value="production">Production</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Priority</label>
+                      <select
+                        value={newInsight.priority}
+                        onChange={e => setNewInsight({ ...newInsight, priority: e.target.value })}
+                        className="w-full bg-gray-600 rounded px-3 py-2 text-sm"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="mb-3">
+                    <label className="block text-xs text-gray-400 mb-1">Title</label>
+                    <input
+                      type="text"
+                      value={newInsight.title}
+                      onChange={e => setNewInsight({ ...newInsight, title: e.target.value })}
+                      className="w-full bg-gray-600 rounded px-3 py-2 text-sm"
+                      placeholder="Insight title"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="block text-xs text-gray-400 mb-1">Content</label>
+                    <textarea
+                      value={newInsight.content}
+                      onChange={e => setNewInsight({ ...newInsight, content: e.target.value })}
+                      className="w-full bg-gray-600 rounded px-3 py-2 text-sm h-24"
+                      placeholder="Insight content (supports markdown)"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => setShowNewInsight(false)}
+                      className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleCreateInsight}
+                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 rounded text-sm"
+                    >
+                      Create
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Insights List */}
+              {loadingInsights ? (
+                <div className="text-center py-4 text-gray-400">Loading insights...</div>
+              ) : insights.length === 0 ? (
+                <div className="text-center py-4 text-gray-400">No insights yet. Click "Regenerate All" to generate.</div>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {insights.map(insight => (
+                    <div key={insight.id} className={`p-3 rounded-lg ${insight.is_dismissed ? 'bg-gray-800 opacity-60' : 'bg-gray-700'}`}>
+                      {editingInsight?.id === insight.id ? (
+                        // Editing mode
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={editingInsight.title}
+                            onChange={e => setEditingInsight({ ...editingInsight, title: e.target.value })}
+                            className="w-full bg-gray-600 rounded px-3 py-1.5 text-sm"
+                          />
+                          <textarea
+                            value={editingInsight.content}
+                            onChange={e => setEditingInsight({ ...editingInsight, content: e.target.value })}
+                            className="w-full bg-gray-600 rounded px-3 py-1.5 text-sm h-20"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => setEditingInsight(null)} className="px-2 py-1 text-xs bg-gray-600 rounded">Cancel</button>
+                            <button onClick={() => handleSaveInsight(insight.id)} className="px-2 py-1 text-xs bg-purple-600 rounded">Save</button>
+                          </div>
+                        </div>
+                      ) : (
+                        // View mode
+                        <>
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                insight.priority === 'high' ? 'bg-red-500/30 text-red-300' :
+                                insight.priority === 'low' ? 'bg-gray-500/30 text-gray-300' :
+                                'bg-yellow-500/30 text-yellow-300'
+                              }`}>{insight.priority}</span>
+                              <span className="text-xs text-gray-400">{insight.domain}</span>
+                              {insight.is_dismissed && <span className="text-xs text-gray-500">(dismissed)</span>}
+                              {!insight.is_read && <span className="w-2 h-2 bg-blue-400 rounded-full" title="Unread" />}
+                            </div>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => setEditingInsight({ ...insight })}
+                                className="p-1 hover:bg-gray-600 rounded"
+                                title="Edit"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 text-gray-400" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteInsight(insight.id)}
+                                className="p-1 hover:bg-gray-600 rounded"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                              </button>
+                            </div>
+                          </div>
+                          <h4 className="font-medium text-sm mb-1">{insight.title}</h4>
+                          <p className="text-xs text-gray-300 whitespace-pre-wrap line-clamp-3">{insight.content}</p>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {insight.created_at && new Date(insight.created_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

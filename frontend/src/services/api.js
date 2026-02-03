@@ -845,8 +845,13 @@ export const sendMessage = async (conversationId, content) => {
   return response
 }
 export const getInsights = (params) => api.get('/chat/insights/', { params })
+export const getAllInsights = (limit = 100) => api.get('/chat/insights/all/', { params: { limit } })
 export const getUnreadInsightCount = () => api.get('/chat/insights/unread-count/')
 export const markInsightRead = (id) => api.put(`/chat/insights/${id}/read/`)
 export const dismissInsight = (id) => api.put(`/chat/insights/${id}/dismiss/`)
+export const createInsight = (data) => api.post('/chat/insights/', data)
+export const updateInsight = (id, data) => api.put(`/chat/insights/${id}/`, data)
+export const deleteInsight = (id) => api.delete(`/chat/insights/${id}/`)
+export const regenerateInsights = (type = 'all') => api.post('/chat/insights/regenerate/', null, { params: { insight_type: type } })
 
 export default api
