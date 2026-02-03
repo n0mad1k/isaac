@@ -5023,6 +5023,7 @@ async def get_growth_data(
             "age_months": log_age,
             "weight_lbs": log.weight,
             "weight_kg": round(weight_kg, 2),
+            "height_inches": log.height_inches,  # Include height for edit functionality
             "percentile": weight_pct,
             "recorded_at": log.recorded_at.isoformat() if log.recorded_at else None,
             "notes": log.notes

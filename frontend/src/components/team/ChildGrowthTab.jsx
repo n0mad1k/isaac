@@ -248,6 +248,8 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
   }
 
   const handleEditEntry = (entry) => {
+    // Can only edit entries with an ID (not seeded/placeholder entries)
+    if (!entry.id) return
     setEditingEntry(entry)
     setWeightForm({
       weight: entry.weight_lbs?.toString() || '',
@@ -661,22 +663,24 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                     )}
                     {entry.notes && <span className="text-gray-500 text-xs">({entry.notes})</span>}
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleEditEntry(entry)}
-                      className="p-1 text-gray-400 hover:text-blue-400"
-                      title="Edit"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteEntry(entry.id)}
-                      className="p-1 text-gray-400 hover:text-red-400"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  {entry.id && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleEditEntry(entry)}
+                        className="p-1 text-gray-400 hover:text-blue-400"
+                        title="Edit"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEntry(entry.id)}
+                        className="p-1 text-gray-400 hover:text-red-400"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

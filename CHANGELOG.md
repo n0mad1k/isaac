@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.13] - 2026-02-03
+
+### Fixed
+- **Growth record edit/delete no longer causes white screen** - Fixed an issue where editing growth records would crash the page. The backend now includes height_inches in weight_history data, and edit/delete buttons are properly hidden for placeholder entries.
+
 ## [1.79.12] - 2026-02-03
 
 ### Fixed
