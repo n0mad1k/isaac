@@ -329,14 +329,14 @@ async def gather_weather_context(db: AsyncSession) -> str:
 
         if reading:
             lines.append("Current conditions:")
-            if hasattr(reading, 'temp_f') and reading.temp_f is not None:
-                lines.append(f"  Temperature: {reading.temp_f:.1f}°F")
-            if hasattr(reading, 'humidity') and reading.humidity is not None:
-                lines.append(f"  Humidity: {reading.humidity}%")
+            if hasattr(reading, 'temp_outdoor') and reading.temp_outdoor is not None:
+                lines.append(f"  Temperature: {reading.temp_outdoor:.1f}°F")
+            if hasattr(reading, 'humidity_outdoor') and reading.humidity_outdoor is not None:
+                lines.append(f"  Humidity: {reading.humidity_outdoor}%")
             if hasattr(reading, 'wind_speed') and reading.wind_speed is not None:
                 lines.append(f"  Wind: {reading.wind_speed} mph")
-            if hasattr(reading, 'daily_rain') and reading.daily_rain is not None:
-                lines.append(f"  Rain today: {reading.daily_rain} in")
+            if hasattr(reading, 'rain_daily') and reading.rain_daily is not None:
+                lines.append(f"  Rain today: {reading.rain_daily} in")
         else:
             lines.append("No current weather data available.")
 

@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.34] - 2026-02-03
+
+### Fixed
+- **AI insights now include weather data** - Fixed weather context gathering which was looking for wrong database column names (temp_f vs temp_outdoor, humidity vs humidity_outdoor, daily_rain vs rain_daily). Morning briefings now correctly include current temperature, humidity, wind speed, and daily rainfall.
+- **Added "tasks" to AI shared domains** - Morning briefings now include task data (overdue, due today, upcoming) which was previously missing from the shared domains configuration.
+
 ## [1.79.33] - 2026-02-03
 
 ### Fixed
