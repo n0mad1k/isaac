@@ -235,6 +235,7 @@ class CustomInvoiceInput(BaseModel):
     """Optional custom fields for invoice/receipt emails."""
     to_email: Optional[str] = Field(None, max_length=200)
     subject: Optional[str] = Field(None, max_length=200)
+    from_name: Optional[str] = Field(None, max_length=200, description="Override the From header display name")
     customer_name: Optional[str] = Field(None, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
     total: Optional[float] = Field(None, ge=0)
@@ -884,6 +885,9 @@ async def send_sale_receipt(
     # Custom subject if provided
     subject = custom.subject if custom and custom.subject else None
 
+    # Use custom from_name if provided, otherwise use farm_name
+    from_name = (custom.from_name if custom and custom.from_name else None) or farm_name
+
     email_service = await EmailService.get_configured_service(db)
     try:
         success = await email_service.send_sale_receipt(
@@ -891,6 +895,7 @@ async def send_sale_receipt(
             sale=sale_dict,
             farm_name=farm_name,
             subject=subject,
+            from_name=from_name,
         )
     except Exception as e:
         logger.error(f"Failed to send sale receipt: {e}")
@@ -1307,7 +1312,7 @@ async def send_order_receipt(
         "estimated_total": order.estimated_total,
         "final_total": (custom.total if custom and custom.total is not None else None) or order.final_total,
         "total_paid": (custom.total_paid if custom and custom.total_paid is not None else None) or order.total_paid or 0,
-        "balance_due": order.balance_due or 0,
+        "balance_due": (custom.balance_due if custom and custom.balance_due is not None else None) or order.balance_due or 0,
         "notes": order.notes or "",
         "custom_message": custom.custom_message if custom else None,
         "payments": [
@@ -1322,8 +1327,9 @@ async def send_order_receipt(
         ],
     }
 
-    # Custom subject if provided
+    # Custom subject and from_name if provided
     subject = custom.subject if custom and custom.subject else None
+    from_name = (custom.from_name if custom and custom.from_name else None) or farm_name
 
     # Send receipt
     email_service = await EmailService.get_configured_service(db)
@@ -1332,6 +1338,7 @@ async def send_order_receipt(
         order=order_dict,
         farm_name=farm_name,
         subject=subject,
+        from_name=from_name,
     )
 
     if success:
@@ -1407,8 +1414,9 @@ async def send_order_invoice(
     # Use custom payment instructions if provided, else default from settings
     payment_instructions = (custom.payment_instructions if custom and custom.payment_instructions else None) or default_payment_instructions
 
-    # Custom subject if provided
+    # Custom subject and from_name if provided
     subject = custom.subject if custom and custom.subject else None
+    from_name = (custom.from_name if custom and custom.from_name else None) or farm_name
 
     # Send invoice
     email_service = await EmailService.get_configured_service(db)
@@ -1419,6 +1427,7 @@ async def send_order_invoice(
             farm_name=farm_name,
             payment_instructions=payment_instructions,
             subject=subject,
+            from_name=from_name,
         )
     except Exception as e:
         logger.error(f"Failed to send invoice: {e}")

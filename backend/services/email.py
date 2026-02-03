@@ -106,6 +106,7 @@ class EmailService:
         to: Optional[str] = None,
         html: bool = False,
         subject_prefix: Optional[str] = None,
+        from_name: Optional[str] = None,
     ) -> bool:
         """Send an email notification.
 
@@ -115,6 +116,7 @@ class EmailService:
             to: Recipient email address
             html: Whether body is HTML
             subject_prefix: Override the default [Isaac] prefix (e.g. farm name for receipts)
+            from_name: Override the From header display name (e.g. farm name for receipts)
         """
         if not self.is_configured():
             logger.warning("Email not configured, skipping notification")
@@ -132,7 +134,15 @@ class EmailService:
             # Sanitize subject to prevent header injection
             prefix = f"[{_sanitize_header(subject_prefix)}]" if subject_prefix else "[Isaac]"
             message["Subject"] = f"{prefix} {_sanitize_header(subject)}"
-            message["From"] = self.from_addr
+
+            # Use from_name if provided to override the From header display name
+            if from_name:
+                # Extract just the email from self.from_addr (handles "Name <email>" format)
+                email_match = re.search(r'<(.+)>', self.from_addr)
+                actual_email = email_match.group(1) if email_match else self.from_addr
+                message["From"] = f"{_sanitize_header(from_name)} <{actual_email}>"
+            else:
+                message["From"] = self.from_addr
             message["To"] = recipient
 
             if html:
@@ -496,6 +506,7 @@ class EmailService:
         order: dict,
         farm_name: str = "Isaac Farm",
         subject: str = None,
+        from_name: str = None,
     ) -> bool:
         """Send a receipt email for an order.
 
@@ -504,8 +515,10 @@ class EmailService:
             order: Dict with order details including payments
             farm_name: Farm/business name for the receipt header
             subject: Custom email subject (optional)
+            from_name: Override From header display name (defaults to farm_name)
         """
         subject = subject or f"Receipt - Order #{order['id']}"
+        from_name = from_name or farm_name
 
         # Build payment rows
         payment_rows = ""
@@ -628,6 +641,8 @@ class EmailService:
                     </div>
                 </div>
 
+                {f'<div style="padding: 16px 24px; border-top: 1px solid #eee;"><div style="font-size: 14px; color: #333; white-space: pre-wrap;">{_escape_html(order.get("custom_message", ""))}</div></div>' if order.get("custom_message") else ''}
+
                 <!-- Footer -->
                 <div style="background: #f8f9fa; padding: 12px 24px; text-align: center; font-size: 11px; color: #999;">
                     Receipt generated on {datetime.now().strftime('%m/%d/%Y at %I:%M %p')}
@@ -637,7 +652,7 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name)
+        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name, from_name=from_name)
 
     async def send_sale_receipt(
         self,
@@ -645,6 +660,7 @@ class EmailService:
         sale: dict,
         farm_name: str = "Isaac Farm",
         subject: str = None,
+        from_name: str = None,
     ) -> bool:
         """Send a receipt email for a direct sale.
 
@@ -653,7 +669,9 @@ class EmailService:
             sale: Dict with sale details
             farm_name: Farm/business name for the receipt header
             subject: Custom email subject (optional)
+            from_name: Override From header display name (defaults to farm_name)
         """
+        from_name = from_name or farm_name
         subject = subject or f"Receipt - Sale #{sale['id']}"
 
         customer_name = _escape_html(sale.get("customer_name", ""))
@@ -716,6 +734,8 @@ class EmailService:
                     </div>
                 </div>
 
+                {f'<div style="padding: 16px 24px; border-top: 1px solid #eee;"><div style="font-size: 14px; color: #333; white-space: pre-wrap;">{_escape_html(sale.get("custom_message", ""))}</div></div>' if sale.get("custom_message") else ''}
+
                 <!-- Footer -->
                 <div style="background: #f8f9fa; padding: 12px 24px; text-align: center; font-size: 11px; color: #999;">
                     Receipt generated on {datetime.now().strftime('%m/%d/%Y at %I:%M %p')}
@@ -725,7 +745,7 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name)
+        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name, from_name=from_name)
 
     async def send_invoice(
         self,
@@ -734,6 +754,7 @@ class EmailService:
         farm_name: str = "Isaac Farm",
         payment_instructions: str = "",
         subject: str = None,
+        from_name: str = None,
     ) -> bool:
         """Send an invoice email for an order requesting payment.
 
@@ -743,8 +764,10 @@ class EmailService:
             farm_name: Farm/business name for the invoice header
             payment_instructions: Optional payment instructions (Venmo, Zelle, etc.)
             subject: Custom email subject (optional)
+            from_name: Override From header display name (defaults to farm_name)
         """
         subject = subject or f"Invoice - Order #{order['id']}"
+        from_name = from_name or farm_name
 
         desc = _escape_html(order.get("description", ""))
         customer_name = _escape_html(order.get("customer_name", ""))
@@ -803,6 +826,7 @@ class EmailService:
                     </div>
                 </div>
                 {payment_section}
+                {f'<div style="padding: 16px 24px; border-bottom: 1px solid #eee;"><div style="font-size: 14px; color: #333; white-space: pre-wrap;">{_escape_html(order.get("custom_message", ""))}</div></div>' if order.get("custom_message") else ''}
                 <div style="padding: 20px 24px; background: #f8f9fa;">
                     <div style="text-align: right; font-size: 14px;">
                         <div style="margin-bottom: 6px;"><span style="color: #666;">Order Total:</span> <strong style="margin-left: 20px;">${total:,.2f}</strong></div>
@@ -820,4 +844,4 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name)
+        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name, from_name=from_name)

@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.39] - 2026-02-03
+
+### Fixed
+- **Custom invoice/receipt emails now work correctly**:
+  - "From" header now displays farm name (instead of just the email address)
+  - Custom message field is now rendered in receipt and invoice emails
+  - Balance due can now be customized in order receipts (was already working in invoices)
+  - Added optional `from_name` field to override the sender display name
+
 ## [1.79.38] - 2026-02-03
 
 ### Fixed
