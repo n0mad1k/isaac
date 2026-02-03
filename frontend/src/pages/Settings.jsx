@@ -2704,7 +2704,7 @@ function Settings() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
                       onClick={handleRunHealthCheck}
                       disabled={runningHealthCheck}
@@ -2727,6 +2727,19 @@ function Settings() {
                     >
                       <Trash2 className="w-4 h-4" />
                       Clear Old Logs
+                    </button>
+                    <button
+                      onClick={() => {
+                        setExpandedSections(prev => ({ ...prev, logs: true }))
+                        setLogFilter(prev => ({ ...prev, level: 'ERROR' }))
+                        setTimeout(() => {
+                          document.getElementById('logs-section')?.scrollIntoView({ behavior: 'smooth' })
+                        }, 100)
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg transition-colors text-sm"
+                    >
+                      <FileText className="w-4 h-4" />
+                      View Application Logs
                     </button>
                   </div>
 
@@ -2837,7 +2850,7 @@ function Settings() {
 
       {/* Application Logs - Admin Only */}
       {isAdmin && (
-        <div className="rounded-xl p-4 sm:p-6" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+        <div id="logs-section" className="rounded-xl p-4 sm:p-6" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('logs')}

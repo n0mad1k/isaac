@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.29] - 2026-02-03
+
+### Added
+- **View Application Logs button in Health Monitoring** - Health monitoring section now has a "View Application Logs" button that scrolls to the Application Logs section and filters to show ERROR level logs. This helps quickly access raw backend logs when troubleshooting health issues.
+
 ## [1.79.28] - 2026-02-03
 
 ### Added
