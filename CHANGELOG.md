@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.6] - 2026-02-03
+
+### Fixed
+- **BMI median no longer shown** - The BMI percentile card in Growth tab no longer shows the median value in kg/m². Median is only shown for Weight (lbs) and Height (inches) where imperial units are more useful.
+
 ## [1.79.5] - 2026-02-03
 
 ### Fixed
