@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.5] - 2026-02-03
+
+### Fixed
+- **Available to Spend now matches spending cards** - The "Available to Spend" row in each person's budget section now uses the same backend-calculated value as the spending cards (Dane Spending / Kelly Spending), ensuring they always match.
+
 ## [1.79.4] - 2026-02-03
 
 ### Fixed

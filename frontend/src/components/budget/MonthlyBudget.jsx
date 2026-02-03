@@ -774,13 +774,10 @@ function MonthlyBudget() {
                 <span className="hidden sm:inline" /><span />
               </div>
             )}
-            {/* Available to Spend = current half remaining + rollover - spending this period */}
+            {/* Available to Spend - use the same calculation as spending cards (from backend) */}
             {(() => {
-              // Determine current half based on today's date
-              const isViewingCurrentMonth = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth
-              const viewingFirstHalf = isViewingCurrentMonth ? today.getDate() <= 14 : true
-              const currentHalfRemaining = viewingFirstHalf ? firstHalfRemaining : secondHalfRemaining
-              const available = currentHalfRemaining + rollover - periodSpent
+              // Use the backend-calculated available amount (same as spending cards)
+              const available = personData.available || 0
               return (
                 <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
                   <span /><span style={{ color: 'var(--color-text-primary)' }}>Available to Spend</span>
