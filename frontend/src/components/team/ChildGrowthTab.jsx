@@ -713,18 +713,18 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                 <Baby className="w-5 h-5 text-purple-400" />
                 Developmental Milestones
               </h3>
-              {milestones.progress && (
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex-1 max-w-[200px] bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-purple-500 h-2 rounded-full transition-all"
-                      style={{ width: `${milestones.progress.percentage}%` }}
-                    />
-                  </div>
-                  <span className="text-xs text-gray-400">
-                    {milestones.progress.achieved}/{milestones.progress.total} ({milestones.progress.percentage}%)
-                  </span>
-                </div>
+              {milestones.developmental_assessment && (
+                <span className={`text-sm font-medium mt-1 inline-block ${
+                  milestones.developmental_assessment.overall_status === 'advanced' ? 'text-green-400' :
+                  milestones.developmental_assessment.overall_status === 'on_track' ? 'text-blue-400' :
+                  milestones.developmental_assessment.overall_status === 'monitor' ? 'text-yellow-400' :
+                  'text-red-400'
+                }`}>
+                  {milestones.developmental_assessment.overall_status === 'advanced' ? 'Exceeding Expectations' :
+                   milestones.developmental_assessment.overall_status === 'on_track' ? 'Meeting Expectations' :
+                   milestones.developmental_assessment.overall_status === 'monitor' ? 'Below Expectations' :
+                   'Needs Attention'}
+                </span>
               )}
             </div>
           </div>

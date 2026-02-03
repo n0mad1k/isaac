@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.50] - 2026-02-03
+
+### Changed
+- **Child milestones now show clear expectations status** - Replaced confusing percentage display with clear labels: "Exceeding Expectations" (green), "Meeting Expectations" (blue), "Below Expectations" (yellow), or "Needs Attention" (red). This makes it immediately clear how the child is developing relative to their age.
+
 ## [1.79.49] - 2026-02-03
 
 ### Added
