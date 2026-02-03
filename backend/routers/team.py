@@ -5304,8 +5304,9 @@ async def get_member_milestones(
     achieved_count = 0
 
     # Track per-category and per-age-group stats for developmental assessment
-    category_stats = {"motor": {"total": 0, "achieved": 0}, "language": {"total": 0, "achieved": 0},
-                      "social": {"total": 0, "achieved": 0}, "cognitive": {"total": 0, "achieved": 0}}
+    # Also track the highest age where each category has achievements (for advanced detection)
+    category_stats = {"motor": {"total": 0, "achieved": 0, "highest_age": 0}, "language": {"total": 0, "achieved": 0, "highest_age": 0},
+                      "social": {"total": 0, "achieved": 0, "highest_age": 0}, "cognitive": {"total": 0, "achieved": 0, "highest_age": 0}}
     age_group_completion = []  # List of (age_months, completion_pct)
 
     for group in reference:
@@ -5317,6 +5318,7 @@ async def get_member_milestones(
 
         group_total = 0
         group_achieved = 0
+        group_age = group["age_months"]
 
         for category, items in group["milestones"].items():
             cat_items = []
@@ -5328,6 +5330,9 @@ async def get_member_milestones(
                     group_achieved += 1
                     if category in category_stats:
                         category_stats[category]["achieved"] += 1
+                        # Track highest age with achievement for this category
+                        if group_age > category_stats[category]["highest_age"]:
+                            category_stats[category]["highest_age"] = group_age
                 total += 1
                 group_total += 1
                 if category in category_stats:
@@ -5357,11 +5362,17 @@ async def get_member_milestones(
             highest_age_with_achievements = grp_age
 
     # Calculate category-level assessments
+    # If child has achievements in milestones ABOVE their age for this category, mark as advanced
     category_assessment = {}
     for cat, stats in category_stats.items():
         if stats["total"] > 0:
             pct = stats["achieved"] / stats["total"] * 100
-            if pct >= 90:
+            above_age_for_category = stats["highest_age"] > age_months
+
+            # Advanced if: achieving milestones above age OR very high completion
+            if above_age_for_category:
+                status = "advanced"
+            elif pct >= 90:
                 status = "advanced"
             elif pct >= 70:
                 status = "on_track"
@@ -5373,7 +5384,8 @@ async def get_member_milestones(
                 "total": stats["total"],
                 "achieved": stats["achieved"],
                 "percentage": round(pct, 1),
-                "status": status
+                "status": status,
+                "highest_age_achieved": stats["highest_age"]
             }
 
     # Overall developmental status

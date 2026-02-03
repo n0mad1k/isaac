@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.19] - 2026-02-03
+
+### Fixed
+- **Milestone categories now show "Advanced" when achieving above-age milestones** - Each category (Physical, Cognitive, Language, Social) now correctly shows "Advanced" if the child has completed milestones from age groups above their current age, not just the overall status.
+
 ## [1.79.18] - 2026-02-03
 
 ### Fixed
