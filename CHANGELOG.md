@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.78.9] - 2026-02-03
+
+### Added
+- **Receipt upload during animal expense creation** - You can now upload or paste a receipt image/PDF when adding a new animal expense (not just after the fact). Upload and Paste buttons appear in the Add Expense form.
+
 ## [1.78.8] - 2026-02-03
 
 ### Fixed

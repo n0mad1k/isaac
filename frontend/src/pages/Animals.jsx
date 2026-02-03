@@ -414,12 +414,14 @@ function Animals() {
 
   const addExpense = async (animalId, expenseData) => {
     try {
-      await addAnimalExpense(animalId, expenseData)
+      const response = await addAnimalExpense(animalId, expenseData)
       setShowExpenseForm(null)
       fetchAnimals()
+      return response.data // Return the new expense for receipt upload
     } catch (error) {
       console.error('Failed to add expense:', error)
       alert('Failed to add expense')
+      throw error // Re-throw so modal knows it failed
     }
   }
 
@@ -3296,6 +3298,8 @@ function ExpenseFormModal({ animalId, animalName, animals, onClose, onSave, onSp
     }
   })
   const [saving, setSaving] = useState(false)
+  const [pendingReceipt, setPendingReceipt] = useState(null)
+  const fileInputRef = React.useRef(null)
   // Split allocations: [{animalId, mode: 'percent'|'dollar', value: ''}]
   // Note: The initial animal (animalId) is NOT in this array - they get the remainder
   const [splitAllocations, setSplitAllocations] = useState([])
@@ -3347,10 +3351,21 @@ function ExpenseFormModal({ animalId, animalName, animals, onClose, onSave, onSp
     try {
       if (splitAllocations.length === 0) {
         // Single animal expense - use original save
-        await onSave({
+        const newExpense = await onSave({
           ...formData,
           amount: parseFloat(formData.amount),
         })
+        // Upload receipt if pending
+        if (pendingReceipt && newExpense?.id) {
+          try {
+            const fd = new FormData()
+            fd.append('file', pendingReceipt)
+            await uploadAnimalExpenseReceipt(newExpense.id, fd)
+          } catch (err) {
+            console.error('Failed to upload receipt:', err)
+            // Expense was created, just receipt failed - don't re-throw
+          }
+        }
       } else {
         // Multi-animal split expense
         // Build splits array: initial animal gets remaining, others get their allocated amounts
@@ -3564,6 +3579,60 @@ function ExpenseFormModal({ animalId, animalName, animals, onClose, onSave, onSp
               )}
             </div>
           )}
+
+          {/* Receipt Section */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Receipt</label>
+            {pendingReceipt ? (
+              <div className="flex items-center gap-2 bg-gray-700 rounded-lg p-3">
+                <Receipt className="w-4 h-4 text-green-400 flex-shrink-0" />
+                <span className="text-sm text-gray-300 truncate flex-1">{pendingReceipt.name}</span>
+                <button type="button" onClick={() => setPendingReceipt(null)}
+                  className="text-red-400 hover:text-red-300">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0]
+                    if (file) setPendingReceipt(file)
+                    e.target.value = ''
+                  }}
+                />
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
+                  <Upload className="w-4 h-4" /> Upload
+                </button>
+                <button type="button" onClick={async () => {
+                  try {
+                    const clipboardItems = await navigator.clipboard.read()
+                    for (const item of clipboardItems) {
+                      for (const type of item.types) {
+                        if (type.startsWith('image/')) {
+                          const blob = await item.getType(type)
+                          const ext = type.split('/')[1] || 'png'
+                          setPendingReceipt(new File([blob], `pasted-receipt.${ext}`, { type }))
+                          return
+                        }
+                      }
+                    }
+                    alert('No image found in clipboard')
+                  } catch (err) {
+                    alert('Could not read clipboard. Try uploading instead.')
+                  }
+                }}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
+                  <Clipboard className="w-4 h-4" /> Paste
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">
             <button
