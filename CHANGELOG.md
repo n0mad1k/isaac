@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.23] - 2026-02-03
+
+### Fixed
+- **Activity level now shows classification badge** - The Activity Level indicator in health data now shows the actual classification (Sedentary/Low/Moderate/Active/Very Active) next to the score, instead of the confusing "(LOW)" confidence indicator. The classification is based on your step count according to research-backed thresholds.
+
 ## [1.79.22] - 2026-02-03
 
 ### Fixed

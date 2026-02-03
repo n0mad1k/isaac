@@ -1723,7 +1723,14 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                                 <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${c.badge}`}>
                                   {ind.value?.toFixed(0) || '-'}
                                 </span>
-                                <span className="text-xs text-gray-500">({ind.confidence})</span>
+                                {/* Show classification for activity, confidence for others */}
+                                {ind.category === 'activity' && ind.details?.classification ? (
+                                  <span className={`text-xs px-1.5 py-0.5 rounded ${c.badge}`}>
+                                    {ind.details.classification}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-500" title="Data confidence">({ind.confidence})</span>
+                                )}
                                 {hasDetails && (
                                   <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                 )}

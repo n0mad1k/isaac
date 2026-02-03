@@ -1077,6 +1077,7 @@ def _analyze_activity_level(
 
     details["normal_ranges"].append("Sedentary: <2,000 | Low: 2-4k | Moderate: 4-7k | Active: 7-10k | Very Active: 10k+")
     details["normal_ranges"].append("Stair goal: 5+ flights/day for cardiovascular benefit")
+    details["classification"] = step_label  # Activity level classification for display
 
     if score >= 80:
         explanation = f"{avg_steps:,.0f} steps/day — active lifestyle with strong health benefits"
