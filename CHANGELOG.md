@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.78.5] - 2026-02-03
+
+### Fixed
+- **Chat now shows correct AI provider name** - Chatbot header now properly displays "Claude", "ChatGPT", or "Ollama" based on the configured provider instead of always defaulting to "Ollama".
+
 ## [1.78.4] - 2026-02-02
 
 ### Fixed

@@ -278,7 +278,7 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
               </button>
             )}
             <Bot className="w-5 h-5" style={{ color: 'var(--color-green-600)' }} />
-            <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Isaac AI {aiProvider && <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>{aiProvider === 'claude' ? 'Claude' : aiProvider === 'openai' ? 'ChatGPT' : 'Ollama'}</span>}</span>
+            <span className="font-semibold text-sm" style={{ color: 'var(--color-text-primary)' }}>Isaac AI {aiProvider && <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>{aiProvider === 'claude' ? 'Claude' : aiProvider === 'openai' ? 'ChatGPT' : aiProvider === 'ollama' ? 'Ollama' : aiProvider}</span>}</span>
             <span
               className="w-2 h-2 rounded-full"
               style={{ backgroundColor: aiStatus === 'online' ? 'var(--color-success-600)' : aiStatus === 'offline' ? 'var(--color-error-600)' : 'var(--color-warning-600)' }}
