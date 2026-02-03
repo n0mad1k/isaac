@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.11] - 2026-02-03
+
+### Fixed
+- **Health Monitoring colors now readable on both themes** - The Health Monitoring section in Settings now uses theme tokens instead of hardcoded dark-mode colors. Warning messages, status badges, check cards, and health history logs all use proper contrast colors that adapt to both light and dark themes. The "Why WARNING?" banner, Cal Sync warnings, and all status indicators are now clearly visible.
+
 ## [1.79.10] - 2026-02-03
 
 ### Changed

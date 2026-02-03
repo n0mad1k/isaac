@@ -2606,12 +2606,20 @@ function Settings() {
                                 return `${statusLabel} ${label}: ${data.message || 'No details'}`
                               })
                             return issueChecks.length > 0 ? (
-                              <div className={`rounded-lg px-4 py-3 mb-3 ${healthSummary.latest.overall_status === 'critical' ? 'bg-red-950 border border-red-600' : healthSummary.latest.overall_status === 'warning' ? 'bg-amber-950 border border-amber-600' : 'bg-gray-800 border border-gray-600'}`}>
-                                <p className={`text-sm font-bold mb-2 ${healthSummary.latest.overall_status === 'critical' ? 'text-red-300' : healthSummary.latest.overall_status === 'warning' ? 'text-amber-300' : 'text-gray-300'}`}>
+                              <div className="rounded-lg px-4 py-3 mb-3" style={{
+                                backgroundColor: healthSummary.latest.overall_status === 'critical' ? 'var(--color-error-bg)' :
+                                  healthSummary.latest.overall_status === 'warning' ? 'var(--color-warning-bg)' : 'var(--color-bg-surface-muted)',
+                                border: `1px solid ${healthSummary.latest.overall_status === 'critical' ? 'var(--color-error-border)' :
+                                  healthSummary.latest.overall_status === 'warning' ? 'var(--color-warning-border)' : 'var(--color-border-default)'}`
+                              }}>
+                                <p className="text-sm font-bold mb-2" style={{
+                                  color: healthSummary.latest.overall_status === 'critical' ? 'var(--color-error-700)' :
+                                    healthSummary.latest.overall_status === 'warning' ? 'var(--color-warning-700)' : 'var(--color-text-secondary)'
+                                }}>
                                   Why {healthSummary.latest.overall_status.toUpperCase()}?
                                 </p>
                                 {issueChecks.map((issue, i) => (
-                                  <p key={i} className="text-sm text-white">
+                                  <p key={i} className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
                                     {issue}
                                   </p>
                                 ))}
@@ -2625,15 +2633,17 @@ function Settings() {
                               const isIssue = data.status === 'warning' || data.status === 'critical' || data.status === 'unknown'
                               const label = check === 'calendar_sync' ? 'Cal Sync' : check
                               return (
-                                <div key={check} className={`bg-gray-800 rounded px-3 py-2 ${isIssue ? (data.status === 'critical' ? 'border-2 border-red-500' : data.status === 'warning' ? 'border-2 border-amber-500' : 'border border-gray-600') : 'border border-gray-700'}`}>
+                                <div key={check} className="rounded px-3 py-2" style={{
+                                  backgroundColor: 'var(--color-bg-surface)',
+                                  border: isIssue ? (data.status === 'critical' ? '2px solid var(--color-error-border)' : data.status === 'warning' ? '2px solid var(--color-warning-border)' : '1px solid var(--color-border-default)') : '1px solid var(--color-border-subtle)'
+                                }}>
                                   <div className="flex items-center justify-between">
-                                    <span className="text-white capitalize font-medium">{label}</span>
-                                    <span className={`text-sm font-bold ${
-                                      data.status === 'healthy' ? 'text-green-400' :
-                                      data.status === 'warning' ? 'text-amber-400' :
-                                      data.status === 'critical' ? 'text-red-400' :
-                                      'text-gray-400'
-                                    }`}>
+                                    <span className="capitalize font-medium" style={{ color: 'var(--color-text-primary)' }}>{label}</span>
+                                    <span className="text-sm font-bold" style={{
+                                      color: data.status === 'healthy' ? 'var(--color-success-600)' :
+                                        data.status === 'warning' ? 'var(--color-warning-700)' :
+                                        data.status === 'critical' ? 'var(--color-error-600)' : 'var(--color-text-muted)'
+                                    }}>
                                       {data.status === 'healthy' ? '✓' : data.status === 'warning' ? '⚠' : data.status === 'critical' ? '✗' : '?'}
                                       {data.percent !== undefined && ` ${data.percent?.toFixed(0)}%`}
                                       {data.latency_ms !== undefined && ` ${data.latency_ms?.toFixed(0)}ms`}
@@ -2642,7 +2652,10 @@ function Settings() {
                                     </span>
                                   </div>
                                   {data.message && (
-                                    <p className={`mt-1 text-sm ${isIssue ? `font-medium ${data.status === 'critical' ? 'text-red-300' : 'text-amber-300'}` : 'text-gray-400'}`}>
+                                    <p className="mt-1 text-sm" style={{
+                                      color: isIssue ? (data.status === 'critical' ? 'var(--color-error-600)' : 'var(--color-warning-700)') : 'var(--color-text-muted)',
+                                      fontWeight: isIssue ? 500 : 400
+                                    }}>
                                       {data.message}
                                     </p>
                                   )}
@@ -2734,12 +2747,11 @@ function Settings() {
                           const issues = allChecks.filter(check => log[check] && (log[check].status === 'warning' || log[check].status === 'critical'))
                           const isExpanded = expandedLogs[idx]
                           return (
-                            <div key={idx} className={`rounded text-sm cursor-pointer transition-colors ${
-                              log.overall_status === 'healthy' ? 'bg-gray-800/50 hover:bg-gray-800/70' :
-                              log.overall_status === 'warning' ? 'bg-gray-800/50 hover:bg-gray-800/70 border-l-4 border-yellow-500' :
-                              log.overall_status === 'critical' ? 'bg-gray-800/50 hover:bg-gray-800/70 border-l-4 border-red-500' :
-                              'bg-gray-800/50 hover:bg-gray-800/70'
-                            }`}
+                            <div key={idx} className="rounded text-sm cursor-pointer transition-colors" style={{
+                              backgroundColor: 'var(--color-bg-surface)',
+                              borderLeft: log.overall_status === 'warning' ? '4px solid var(--color-warning-border)' :
+                                log.overall_status === 'critical' ? '4px solid var(--color-error-border)' : 'none'
+                            }}
                               onClick={() => setExpandedLogs(prev => ({ ...prev, [idx]: !prev[idx] }))}
                             >
                               <div className="flex items-center justify-between px-3 py-2">
@@ -2749,7 +2761,7 @@ function Settings() {
                                     {new Date(log.checked_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </span>
                                   {issues.length > 0 && !isExpanded && (
-                                    <span className="text-yellow-300 text-xs truncate">
+                                    <span className="text-xs truncate" style={{ color: 'var(--color-warning-700)' }}>
                                       {issues.map(check => {
                                         const d = log[check]
                                         return d?.message || check
@@ -2757,12 +2769,12 @@ function Settings() {
                                     </span>
                                   )}
                                 </div>
-                                <span className={`font-medium text-xs flex-shrink-0 ${
-                                  log.overall_status === 'healthy' ? 'text-green-400' :
-                                  log.overall_status === 'warning' ? 'text-yellow-300' :
-                                  log.overall_status === 'critical' ? 'text-red-400' :
-                                  'text-gray-400'
-                                }`}>
+                                <span className="font-medium text-xs flex-shrink-0" style={{
+                                  color: log.overall_status === 'healthy' ? 'var(--color-success-600)' :
+                                    log.overall_status === 'warning' ? 'var(--color-warning-700)' :
+                                    log.overall_status === 'critical' ? 'var(--color-error-600)' :
+                                    'var(--color-text-muted)'
+                                }}>
                                   {log.overall_status?.toUpperCase()}
                                 </span>
                               </div>
@@ -2773,19 +2785,22 @@ function Settings() {
                                     if (!data) return null
                                     const isIssue = data.status === 'warning' || data.status === 'critical' || data.status === 'unknown'
                                     const statusIcon = data.status === 'healthy' ? '✓' : data.status === 'warning' ? '⚠' : data.status === 'critical' ? '✗' : '?'
-                                    const statusColor = data.status === 'healthy' ? 'text-green-400' : data.status === 'warning' ? 'text-yellow-400' : data.status === 'critical' ? 'text-red-400' : 'text-gray-400'
+                                    const statusColorStyle = data.status === 'healthy' ? 'var(--color-success-600)' : data.status === 'warning' ? 'var(--color-warning-700)' : data.status === 'critical' ? 'var(--color-error-600)' : 'var(--color-text-muted)'
                                     const label = check === 'calendar_sync' ? 'Cal Sync' : check
                                     const valueStr = data.percent !== undefined ? `${data.percent?.toFixed(0)}%` : data.latency_ms !== undefined ? `${data.latency_ms?.toFixed(0)}ms` : data.load !== undefined ? `load ${data.load?.toFixed(1)}` : ''
                                     return (
-                                      <div key={check} className={`rounded px-3 py-2 ${isIssue ? (data.status === 'critical' ? 'bg-red-900/20 border border-red-800/40' : 'bg-yellow-900/20 border border-yellow-800/40') : 'bg-gray-700/30'}`}>
+                                      <div key={check} className="rounded px-3 py-2" style={{
+                                        backgroundColor: isIssue ? (data.status === 'critical' ? 'var(--color-error-bg)' : 'var(--color-warning-bg)') : 'var(--color-bg-surface-soft)',
+                                        border: isIssue ? (data.status === 'critical' ? '1px solid var(--color-error-border)' : '1px solid var(--color-warning-border)') : 'none'
+                                      }}>
                                         <div className="flex items-center gap-2 text-sm">
-                                          <span className={statusColor}>{statusIcon}</span>
+                                          <span style={{ color: statusColorStyle }}>{statusIcon}</span>
                                           <span className="text-gray-200 capitalize font-medium">{label}</span>
                                           {valueStr && <span className="text-gray-400">{valueStr}</span>}
                                           {data.message && !isIssue && <span className="text-gray-500 text-xs ml-auto">{data.message}</span>}
                                         </div>
                                         {data.message && isIssue && (
-                                          <p className={`text-sm mt-1 ml-6 ${data.status === 'critical' ? 'text-red-300' : 'text-yellow-200'}`}>
+                                          <p className="text-sm mt-1 ml-6" style={{ color: data.status === 'critical' ? 'var(--color-error-600)' : 'var(--color-warning-700)' }}>
                                             {data.message}
                                           </p>
                                         )}
