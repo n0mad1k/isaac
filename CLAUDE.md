@@ -105,36 +105,14 @@ Then pick the next highest-priority pending item (skip `[COLLAB]`) and work on i
 
 ## Session Log (Clear at midnight daily)
 
-**2026-01-29:**
-- #255: Plant & seed photo support (v1.48.0) - upload/display/delete photos, auto-import from PictureThis
-- #253: PictureThis import missing fields (v1.48.1) - water/fertilize/prune/harvest schedules from howTos and careGuide text
-- #257: Clarified grow zones vs plant zone labels (v1.48.2)
-- Updated CLAUDE.md with unmissable #1 rule for continuous work loop
-- Security audit fixes (v1.45.1): Added auth to workers/supply-requests/weather/dashboard/settings routers, hardened CORS, added CSP header, fixed exception detail leaks, fixed cookie inconsistency, fixed hardcoded timezone
-
-**2026-01-28:**
-- #230: Standardized all date formats to MM/DD/YYYY across frontend and backend
-- #178: Added water overview to plants page
-- Recurring event single-occurrence edit/delete (v1.45.0): RecurrenceChoiceModal, exception_dates column, delete-occurrence/edit-occurrence endpoints
-
-**2026-01-27:**
-- #182: Added custom gear categories + removed "Pool" label for unassigned gear
-- #176: Added testing description requirement - descriptions now required when moving to testing
-- Production database restore after migration corrupted member_gear table
-
-**2026-01-14:**
-- #127 UI Changes:
-  - Weather widget: static background `#c2c9cd` (removed dynamic gradients)
-  - Sun/moon widget: background `#c2c9cd` (matches weather)
-  - Forecast cards: `#b3bac0` (darker shade to match weather widget)
-  - Feeding guide cards: `#d4e5d0` (matches feeding guide widget)
-  - Backlog cards: `#d4e5d0` (matches backlog widget)
-  - Task/reminder cards in Today's Schedule: `#cab1a2` (NOT the widget background)
-  - Event blocks in Today's Schedule: `#cb936a`
-- #126 Feedback system: implemented approve/decline/kickback, auto-refresh
-- #128 Security fix: user feedback cross-account vulnerability
-- #129 ToDo page defaults to Today tab
-- Updated CLAUDE.md with task tracking rules, git requirements, deploy mode
+**2026-02-03:**
+- #264: Health monitor colors improved for readability (v1.79.7)
+- #299: Health indicator reference ranges/recommendations now readable with color-coded backgrounds (v1.79.8, v1.79.11)
+- #307: BMI median displays without metric units (v1.79.9)
+- #308: Budget colors updated to use theme tokens instead of hardcoded values (v1.79.10)
+- #301: Chat AI provider label now shows configured provider (Claude/ChatGPT/Ollama) with model tooltip (v1.79.12)
+- #306: Growth record edit/delete fixed - backend now includes height_inches, guards prevent editing entries without ID (v1.79.13)
+- #304: Child milestone tracker now detects advanced development (v1.79.14)
 
 ## Dev Tracker Workflow
 

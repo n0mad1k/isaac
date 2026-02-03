@@ -20,6 +20,12 @@ A self-hosted farm management dashboard designed to run on a Raspberry Pi. Track
 | **Calendar** | Day/Week/Month views, events & reminders, CalDAV sync |
 | **Weather** | Ambient Weather integration, automatic frost/freeze/heat alerts |
 | **Production** | Harvest records, livestock processing, yield tracking |
+| **Team** | Household member profiles, chores, health metrics, growth tracking |
+| **Budget** | Income/expense tracking, monthly budgets, bill management |
+| **Garden** | Bed layouts, crop rotation planning, companion planting |
+| **Seeds** | Seed inventory, germination tracking, planting schedules |
+| **Home Maintenance** | Recurring home tasks, seasonal checklists, cost tracking |
+| **AI Assistant** | Built-in chat with Claude, ChatGPT, or Ollama for farm questions |
 | **Multi-User** | Role-based access (Admin/Editor/Viewer), kiosk mode |
 
 ## Quick Feature Overview
@@ -39,8 +45,17 @@ Three views (day, week, month) showing both events and reminders. Visual distinc
 ### Maintenance Tracking
 Vehicles, equipment, home, and farm areas - all with customizable maintenance schedules, completion logging, and cost tracking.
 
+### Team Management
+Track your household members with profiles, assigned chores, and personal gear. For children, monitor growth with percentile charts, track developmental milestones by age group, and log health observations.
+
+### Budget & Finance
+Full budgeting system with income and expense tracking, monthly budget templates, bill due dates, and spending analysis. Track farm expenses separately from household costs.
+
 ### Weather Integration
 Connect your Ambient Weather station for real-time local conditions. Automatic alerts for frost, freeze, heat, wind, and rain with configurable thresholds.
+
+### AI Assistant
+Built-in chat assistant for farm and homestead questions. Supports multiple providers: Anthropic Claude, OpenAI ChatGPT, or self-hosted Ollama. Ask about plant care, animal health, gardening tips, and more.
 
 ## Hardware Requirements
 
