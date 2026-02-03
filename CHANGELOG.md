@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.37] - 2026-02-03
+
+### Added
+- **AI Task Creation** - The AI assistant can now create tasks and reminders for you. Enable "AI Can Create Tasks" in Settings > AI Assistant. When enabled:
+  - Ask the AI to "create a reminder for X" or "add a task for Y"
+  - AI will suggest the task with title, date, and time
+  - Click "Create Task" to confirm and add it to your task list
+  - Tasks are marked as AI-created for easy tracking
+
 ## [1.79.36] - 2026-02-03
 
 ### Added

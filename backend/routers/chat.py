@@ -268,6 +268,7 @@ async def get_ai_restrictions(db: AsyncSession) -> dict:
         "require_confirmation": (await get_setting_value(db, "ai_require_confirmation", "false")) == "true",
         "max_tokens": int(await get_setting_value(db, "ai_max_response_tokens", "2000")),
         "guardrails_enabled": (await get_setting_value(db, "ai_guardrails_enabled", "true")) == "true",
+        "can_create_tasks": (await get_setting_value(db, "ai_can_create_tasks", "false")) == "true",
     }
 
 
@@ -340,7 +341,9 @@ async def send_message(
     if kb_context:
         context_data = context_data + "\n\n" + kb_context if context_data else kb_context
 
-    system_prompt = build_system_prompt(effective_topic)
+    # Pass task creation capability (only if not read-only)
+    can_create = restrictions["can_create_tasks"] and not restrictions["read_only"]
+    system_prompt = build_system_prompt(effective_topic, can_create_tasks=can_create)
 
     # Add restriction notices to system prompt
     if restrictions["read_only"]:
@@ -420,6 +423,71 @@ async def send_message(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# --- Task Creation from Chat ---
+
+class ChatTaskCreate(BaseModel):
+    """Create a task from AI chat suggestion"""
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=2000)
+    due_date: Optional[str] = Field(None, pattern=r'^\d{4}-\d{2}-\d{2}$')  # YYYY-MM-DD
+    due_time: Optional[str] = Field(None, pattern=r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')  # HH:MM
+
+
+@router.post("/create-task/")
+async def create_task_from_chat(
+    data: ChatTaskCreate,
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a task from an AI chat suggestion"""
+    from services.ollama_service import get_setting_value
+    from models.tasks import Task, TaskType, TaskCategory, TaskRecurrence
+    from datetime import date as date_type
+
+    # Check if AI can create tasks
+    can_create = await get_setting_value(db, "ai_can_create_tasks", "false")
+    if can_create != "true":
+        raise HTTPException(status_code=403, detail="AI task creation is not enabled in settings")
+
+    # Check if read-only mode
+    read_only = await get_setting_value(db, "ai_read_only", "false")
+    if read_only == "true":
+        raise HTTPException(status_code=403, detail="AI is in read-only mode")
+
+    # Parse due date if provided
+    parsed_date = None
+    if data.due_date:
+        try:
+            parsed_date = date_type.fromisoformat(data.due_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+    # Create task
+    task = Task(
+        title=data.title,
+        description=data.description,
+        task_type=TaskType.REMINDER,
+        category=TaskCategory.CUSTOM,
+        due_date=parsed_date,
+        due_time=data.due_time,
+        recurrence=TaskRecurrence.ONCE,
+        priority=2,
+        notes="ai:chat",  # Mark as created from AI chat
+    )
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+
+    logger.info(f"AI created task: {task.title} (ID: {task.id})")
+    return {
+        "id": task.id,
+        "title": task.title,
+        "due_date": task.due_date.isoformat() if task.due_date else None,
+        "due_time": task.due_time,
+        "status": "created",
+    }
 
 
 # --- Insights ---

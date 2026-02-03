@@ -875,7 +875,7 @@ function Settings() {
   const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
   const displaySettings = ['dashboard_refresh_interval', 'hide_completed_today', 'time_format']
   const teamSettings = ['team_name', 'farm_name', 'team_mission', 'team_units', 'mentoring_day', 'aar_day']
-  const aiSettings = ['ai_enabled', 'ai_provider', 'ai_proactive_insights', 'ollama_url', 'ollama_model', 'anthropic_api_key', 'claude_model', 'openai_api_key', 'openai_model', 'ai_shared_domains', 'knowledge_base_enabled']
+  const aiSettings = ['ai_enabled', 'ai_provider', 'ai_proactive_insights', 'ai_can_create_tasks', 'ollama_url', 'ollama_model', 'anthropic_api_key', 'claude_model', 'openai_api_key', 'openai_model', 'ai_shared_domains', 'knowledge_base_enabled']
 
   // Simplified notification categories - one setting per category
   const notifyCategories = [
@@ -2175,8 +2175,8 @@ function Settings() {
             <div className="space-y-4">
               {aiSettings.filter(key => {
                 const provider = (settings?.ai_provider?.value || 'ollama').toLowerCase()
-                // Always show: ai_enabled, ai_provider, ai_proactive_insights, ai_shared_domains
-                if (['ai_enabled', 'ai_provider', 'ai_proactive_insights', 'ai_shared_domains', 'knowledge_base_enabled'].includes(key)) return true
+                // Always show: ai_enabled, ai_provider, ai_proactive_insights, ai_can_create_tasks, ai_shared_domains
+                if (['ai_enabled', 'ai_provider', 'ai_proactive_insights', 'ai_can_create_tasks', 'ai_shared_domains', 'knowledge_base_enabled'].includes(key)) return true
                 // Provider-specific
                 if (provider === 'ollama') return ['ollama_url', 'ollama_model'].includes(key)
                 if (provider === 'claude') return ['anthropic_api_key', 'claude_model'].includes(key)

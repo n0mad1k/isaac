@@ -406,6 +406,10 @@ DEFAULT_SETTINGS = {
         "value": "true",
         "description": "Enable scheduled AI insights (morning digest, weekly reviews)"
     },
+    "ai_can_create_tasks": {
+        "value": "false",
+        "description": "Allow AI to create tasks and reminders when you ask. AI will suggest tasks which you can confirm with one click."
+    },
     "ollama_url": {
         "value": "http://localhost:11434",
         "description": "Ollama server URL (for self-hosted provider)"

@@ -853,5 +853,6 @@ export const createInsight = (data) => api.post('/chat/insights/', data)
 export const updateInsight = (id, data) => api.put(`/chat/insights/${id}/`, data)
 export const deleteInsight = (id) => api.delete(`/chat/insights/${id}/`)
 export const regenerateInsights = (type = 'all') => api.post('/chat/insights/regenerate/', null, { params: { insight_type: type } })
+export const createTaskFromChat = (data) => api.post('/chat/create-task/', data)
 
 export default api

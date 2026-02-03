@@ -465,7 +465,7 @@ async def gather_context(db: AsyncSession, topic: Optional[str]) -> str:
         return ""
 
 
-def build_system_prompt(topic: Optional[str] = None) -> str:
+def build_system_prompt(topic: Optional[str] = None, can_create_tasks: bool = False) -> str:
     """Build the system prompt including domain-specific instructions"""
     import pytz
     tz = pytz.timezone(settings.timezone)
@@ -481,6 +481,19 @@ def build_system_prompt(topic: Optional[str] = None) -> str:
         "production, equipment, vehicles, and daily tasks. Answer from the data provided. "
         "If you don't have enough data, say so briefly — don't guess."
     )
+
+    # Add task creation capability if enabled
+    if can_create_tasks:
+        base += (
+            "\n\n**TASK CREATION CAPABILITY:**\n"
+            "When the user asks you to create a reminder, task, or event, or when you think "
+            "one would be helpful, respond with a JSON block using this exact format:\n"
+            "```task\n"
+            '{"title": "Task title", "due_date": "YYYY-MM-DD", "due_time": "HH:MM", "description": "Optional details"}\n'
+            "```\n"
+            "Only include due_time if a specific time is mentioned. The user's interface will "
+            "detect this and create the task. After the task block, confirm what you're creating."
+        )
 
     domain_prompts = {
         "garden": (
