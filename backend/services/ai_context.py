@@ -71,10 +71,12 @@ async def gather_garden_context(db: AsyncSession) -> str:
                 if p.growth_stage:
                     parts.append(f"({p.growth_stage})")
                 if p.last_watered:
-                    days_ago = (date.today() - p.last_watered).days
+                    last_water_date = p.last_watered.date() if hasattr(p.last_watered, 'date') else p.last_watered
+                    days_ago = (date.today() - last_water_date).days
                     parts.append(f"watered {days_ago}d ago")
                 if p.last_fertilized:
-                    days_ago = (date.today() - p.last_fertilized).days
+                    last_fert_date = p.last_fertilized.date() if hasattr(p.last_fertilized, 'date') else p.last_fertilized
+                    days_ago = (date.today() - last_fert_date).days
                     parts.append(f"fertilized {days_ago}d ago")
                 lines.append(" ".join(parts))
             if len(plants) > 20:
@@ -110,7 +112,7 @@ async def gather_garden_context(db: AsyncSession) -> str:
 
 async def gather_fitness_context(db: AsyncSession) -> str:
     """Gather fitness/health context data"""
-    from models.team import TeamMember, MemberWeightLog, MemberVitalsLog, VitalType
+    from models.team import TeamMember, MemberWeightLog, MemberSubjectiveInput
 
     lines = []
 
@@ -142,32 +144,26 @@ async def gather_fitness_context(db: AsyncSession) -> str:
                 direction = "up" if change > 0 else "down" if change < 0 else "stable"
                 lines.append(f"7-day trend: {direction} {abs(change):.1f} lbs")
 
-        # Recent readiness scores (from vitals)
+        # Recent subjective inputs (energy, sleep quality, etc.)
         result = await db.execute(
-            select(MemberVitalsLog)
-            .where(MemberVitalsLog.member_id == member.id)
-            .where(MemberVitalsLog.vital_type == VitalType.READINESS)
-            .order_by(desc(MemberVitalsLog.recorded_at))
+            select(MemberSubjectiveInput)
+            .where(MemberSubjectiveInput.member_id == member.id)
+            .order_by(desc(MemberSubjectiveInput.input_date))
             .limit(7)
         )
-        readiness = result.scalars().all()
-        if readiness:
-            latest_r = readiness[0]
-            avg = sum(r.value for r in readiness) / len(readiness)
-            lines.append(f"Latest readiness: {latest_r.value}/10 (7-day avg: {avg:.1f})")
-
-        # Recent sleep quality
-        result = await db.execute(
-            select(MemberVitalsLog)
-            .where(MemberVitalsLog.member_id == member.id)
-            .where(MemberVitalsLog.vital_type == VitalType.SLEEP_QUALITY)
-            .order_by(desc(MemberVitalsLog.recorded_at))
-            .limit(7)
-        )
-        sleep = result.scalars().all()
-        if sleep:
-            avg_sleep = sum(s.value for s in sleep) / len(sleep)
-            lines.append(f"7-day sleep quality avg: {avg_sleep:.1f}/10")
+        subjective = result.scalars().all()
+        if subjective:
+            latest_s = subjective[0]
+            if latest_s.energy_level:
+                lines.append(f"Latest energy level: {latest_s.energy_level}/10")
+            if latest_s.sleep_quality:
+                avg_sleep = sum(s.sleep_quality for s in subjective if s.sleep_quality) / len([s for s in subjective if s.sleep_quality])
+                lines.append(f"7-day sleep quality avg: {avg_sleep:.1f}/10")
+            if latest_s.sleep_hours:
+                avg_hours = sum(s.sleep_hours for s in subjective if s.sleep_hours) / len([s for s in subjective if s.sleep_hours])
+                lines.append(f"7-day sleep hours avg: {avg_hours:.1f}")
+            if latest_s.soreness:
+                lines.append(f"Current soreness: {latest_s.soreness}/10")
 
     except Exception as e:
         logger.error(f"Error gathering fitness context: {e}")
@@ -207,7 +203,7 @@ async def gather_budget_context(db: AsyncSession) -> str:
                 lines.append(f"  - {cat.name}: ${budget_amt:,.2f} budgeted")
 
         # Income sources
-        result = await db.execute(select(BudgetIncome).order_by(BudgetIncome.source))
+        result = await db.execute(select(BudgetIncome).order_by(BudgetIncome.name))
         incomes = result.scalars().all()
         if incomes:
             total_income = sum(i.amount for i in incomes if hasattr(i, 'amount') and i.amount)
@@ -322,7 +318,7 @@ async def gather_weather_context(db: AsyncSession) -> str:
         # Latest weather reading
         result = await db.execute(
             select(WeatherReading)
-            .order_by(desc(WeatherReading.timestamp))
+            .order_by(desc(WeatherReading.reading_time))
             .limit(1)
         )
         reading = result.scalar_one_or_none()

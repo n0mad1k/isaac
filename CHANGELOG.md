@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.35] - 2026-02-03
+
+### Fixed
+- **AI insights context gathering fully fixed** - Fixed remaining context errors: weather query column (timestamp→reading_time), garden date comparison (datetime vs date), fitness data source (switched from non-existent vital types to subjective inputs for energy/sleep), and budget income ordering column (source→name). All insight types now gather data correctly.
+
 ## [1.79.34] - 2026-02-03
 
 ### Fixed
