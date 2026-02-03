@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.46] - 2026-02-03
+
+### Added
+- **Test Daily Digest endpoint** - New endpoint to send a test daily digest email with team readiness alerts. Use this to verify gear, training, and medical alerts are working correctly. Available in Settings > Email.
+
 ## [1.79.45] - 2026-02-03
 
 ### Added

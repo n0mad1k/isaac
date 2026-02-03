@@ -1735,3 +1735,169 @@ async def sync_calendar(db: AsyncSession = Depends(get_db), admin: User = Depend
         "events_updated": sync_result.get("updated", 0),
         "events_deleted": sync_result.get("deleted", 0),
     }
+
+
+@router.post("/test-daily-digest/")
+async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
+    """Send a test daily digest email to verify it's working correctly.
+
+    Includes team readiness alerts for gear, training, and medical.
+    """
+    from services.email import EmailService, ConfigurationError
+    from models.database import WeatherAlert, Task, TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment
+    from sqlalchemy.orm import joinedload
+    from datetime import datetime, timedelta
+
+    recipients = await get_setting(db, "email_recipients")
+    if not recipients:
+        raise HTTPException(status_code=400, detail="No email recipients configured")
+
+    # Get today's tasks
+    today = datetime.now().date()
+    tasks_result = await db.execute(
+        select(Task)
+        .where(Task.is_completed == False)
+        .where(Task.due_date <= today)
+        .limit(10)
+    )
+    tasks = tasks_result.scalars().all()
+    task_dicts = [
+        {"title": t.title, "description": t.description, "priority": t.priority}
+        for t in tasks
+    ]
+
+    # Mock weather (or get real if available)
+    weather = {
+        "high": 75,
+        "low": 55,
+        "rain_chance": 20,
+        "conditions": "Test weather data"
+    }
+
+    # Get alerts
+    alerts_result = await db.execute(
+        select(WeatherAlert)
+        .where(WeatherAlert.is_active == True)
+        .limit(5)
+    )
+    alerts = alerts_result.scalars().all()
+    alert_dicts = [
+        {"title": a.title, "message": a.message, "severity": a.severity.value}
+        for a in alerts
+    ]
+
+    # Get team alerts: gear below min, expiring items, overdue training/medical
+    team_alerts = []
+
+    # Get all active gear contents
+    gear_contents_result = await db.execute(
+        select(MemberGearContents)
+        .join(MemberGear)
+        .join(TeamMember)
+        .options(joinedload(MemberGearContents.gear).joinedload(MemberGear.member))
+        .where(MemberGearContents.is_active == True)
+        .where(MemberGear.is_active == True)
+        .where(TeamMember.is_active == True)
+    )
+    all_gear_contents = gear_contents_result.scalars().unique().all()
+
+    for content in all_gear_contents:
+        member_name = content.gear.member.display_name if content.gear.member else "Unknown"
+
+        # Check for low stock
+        if content.min_quantity and content.quantity < content.min_quantity:
+            team_alerts.append({
+                "type": "low_stock",
+                "member": member_name,
+                "item": content.item_name,
+                "message": f"Below minimum: {content.quantity} / {content.min_quantity} ({content.gear.gear_name})"
+            })
+
+        # Check for expiring items
+        if content.expiration_date:
+            alert_days = content.expiration_alert_days or 30
+            alert_threshold = datetime.now() + timedelta(days=alert_days)
+            if content.expiration_date <= datetime.now():
+                team_alerts.append({
+                    "type": "expired",
+                    "member": member_name,
+                    "item": content.item_name,
+                    "message": f"EXPIRED on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                })
+            elif content.expiration_date <= alert_threshold:
+                days_left = (content.expiration_date - datetime.now()).days
+                team_alerts.append({
+                    "type": "expiring",
+                    "member": member_name,
+                    "item": content.item_name,
+                    "message": f"Expires in {days_left} days on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                })
+
+    # Check for overdue training
+    training_result = await db.execute(
+        select(MemberTraining)
+        .join(TeamMember)
+        .options(joinedload(MemberTraining.member))
+        .where(MemberTraining.is_active == True)
+        .where(TeamMember.is_active == True)
+        .where(MemberTraining.next_due.isnot(None))
+        .where(MemberTraining.next_due < datetime.now())
+    )
+    overdue_training = training_result.scalars().unique().all()
+
+    for training in overdue_training:
+        member_name = training.member.display_name if training.member else "Unknown"
+        days_overdue = (datetime.now() - training.next_due).days
+        team_alerts.append({
+            "type": "expired",
+            "member": member_name,
+            "item": f"Training: {training.name}",
+            "message": f"Overdue by {days_overdue} days (due {training.next_due.strftime('%m/%d/%Y')})"
+        })
+
+    # Check for overdue medical appointments
+    medical_result = await db.execute(
+        select(MemberMedicalAppointment)
+        .join(TeamMember)
+        .options(joinedload(MemberMedicalAppointment.member))
+        .where(MemberMedicalAppointment.is_active == True)
+        .where(TeamMember.is_active == True)
+        .where(MemberMedicalAppointment.next_due.isnot(None))
+        .where(MemberMedicalAppointment.next_due < datetime.now())
+    )
+    overdue_medical = medical_result.scalars().unique().all()
+
+    for appt in overdue_medical:
+        member_name = appt.member.display_name if appt.member else "Unknown"
+        type_name = appt.custom_type_name if appt.appointment_type.value == "custom" else appt.appointment_type.value.replace("_", " ").title()
+        days_overdue = (datetime.now() - appt.next_due).days
+        team_alerts.append({
+            "type": "expired",
+            "member": member_name,
+            "item": f"Appointment: {type_name}",
+            "message": f"Overdue by {days_overdue} days (due {appt.next_due.strftime('%m/%d/%Y')})"
+        })
+
+    try:
+        email_service = await EmailService.get_configured_service(db)
+        success = await email_service.send_daily_digest(
+            tasks=task_dicts,
+            weather=weather,
+            alerts=alert_dicts,
+            recipient=recipients,
+            team_alerts=team_alerts if team_alerts else None,
+        )
+    except ConfigurationError as e:
+        logger.error(f"Email send configuration error: {e}")
+        raise HTTPException(status_code=400, detail="Email service not properly configured")
+
+    if success:
+        return {
+            "message": f"Test daily digest sent to {recipients}",
+            "tasks_count": len(task_dicts),
+            "alerts_count": len(alert_dicts),
+            "team_alerts_count": len(team_alerts),
+            "team_alerts": team_alerts,
+        }
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send test daily digest")
