@@ -333,6 +333,7 @@ function BillsSummary() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Bills Section (Fixed only) */}
