@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.48] - 2026-02-03
+
+### Added
+- **AI Insights debug endpoint** - New `/api/chat/insights/debug-context/` endpoint (admin only) to view exactly what context data the AI sees. Shows raw task, weather, animal, and garden data along with task counts. Use this to diagnose data issues with AI insights.
+- **Enhanced insight logging** - Morning digest now logs what domains are being used and context sizes to help diagnose issues.
+
 ## [1.79.47] - 2026-02-03
 
 ### Fixed

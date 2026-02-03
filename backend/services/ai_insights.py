@@ -96,12 +96,16 @@ async def generate_morning_digest():
     logger.info("Generating AI morning digest...")
     try:
         allowed = await _get_shared_domains()
+        logger.info(f"Morning digest shared domains: {allowed}")
         # Morning digest uses tasks, weather, animals, garden — only include allowed
         async with async_session() as db:
             tasks_ctx = await gather_tasks_context(db) if "tasks" in allowed else ""
             weather_ctx = await gather_weather_context(db) if "weather" in allowed else ""
             animals_ctx = await gather_animals_context(db) if "animals" in allowed else ""
             garden_ctx = await gather_garden_context(db) if "garden" in allowed else ""
+
+        # Log the gathered context for debugging
+        logger.info(f"Morning digest context lengths - tasks: {len(tasks_ctx)}, weather: {len(weather_ctx)}, animals: {len(animals_ctx)}, garden: {len(garden_ctx)}")
 
         # If no domains are enabled, skip generation entirely
         if not any([tasks_ctx, weather_ctx, animals_ctx, garden_ctx]):
@@ -111,13 +115,17 @@ async def generate_morning_digest():
         parts = []
         if tasks_ctx:
             parts.append(f"TASKS:\n{tasks_ctx}")
+            logger.debug(f"Tasks context:\n{tasks_ctx}")
         if weather_ctx:
             parts.append(f"WEATHER:\n{weather_ctx}")
+            logger.debug(f"Weather context:\n{weather_ctx}")
         if animals_ctx:
             parts.append(f"ANIMALS:\n{animals_ctx}")
+            logger.debug(f"Animals context:\n{animals_ctx}")
         if garden_ctx:
             parts.append(f"GARDEN:\n{garden_ctx}")
         context = "\n\n".join(parts)
+        logger.info(f"Total morning digest context length: {len(context)} chars")
         system = build_system_prompt("tasks")
 
         prompt = (

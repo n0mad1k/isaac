@@ -772,3 +772,81 @@ async def regenerate_insights(
         "generated": generated,
         "errors": errors if errors else None,
     }
+
+
+@router.get("/insights/debug-context/")
+async def debug_insight_context(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_admin),
+):
+    """Show raw context data that would be used for AI insights.
+
+    This helps diagnose data issues by showing exactly what the AI sees.
+    """
+    from services.ai_context import (
+        gather_tasks_context,
+        gather_weather_context,
+        gather_animals_context,
+        gather_garden_context,
+    )
+    from routers.settings import get_setting
+    from datetime import datetime, date
+
+    # Get shared domains
+    shared_str = await get_setting(db, "ai_shared_domains")
+    allowed = [d.strip().lower() for d in shared_str.split(",")] if shared_str else []
+
+    # Gather context from each domain
+    result = {
+        "timestamp": datetime.now().isoformat(),
+        "date_today": date.today().isoformat(),
+        "shared_domains_setting": shared_str,
+        "allowed_domains": allowed,
+        "context": {}
+    }
+
+    if "tasks" in allowed:
+        result["context"]["tasks"] = await gather_tasks_context(db)
+    if "weather" in allowed:
+        result["context"]["weather"] = await gather_weather_context(db)
+    if "animals" in allowed:
+        result["context"]["animals"] = await gather_animals_context(db)
+    if "garden" in allowed:
+        result["context"]["garden"] = await gather_garden_context(db)
+
+    # Also show counts for validation
+    from models.tasks import Task
+    from sqlalchemy import select, func
+
+    today = date.today()
+
+    # Count pending tasks
+    pending_result = await db.execute(
+        select(func.count(Task.id))
+        .where(Task.is_active == True)
+        .where(Task.is_completed == False)
+    )
+    result["task_counts"] = {
+        "total_pending": pending_result.scalar(),
+    }
+
+    # Count overdue
+    overdue_result = await db.execute(
+        select(func.count(Task.id))
+        .where(Task.is_active == True)
+        .where(Task.is_completed == False)
+        .where(Task.due_date < today)
+        .where(Task.due_date.isnot(None))
+    )
+    result["task_counts"]["overdue"] = overdue_result.scalar()
+
+    # Count due today
+    today_result = await db.execute(
+        select(func.count(Task.id))
+        .where(Task.is_active == True)
+        .where(Task.is_completed == False)
+        .where(Task.due_date == today)
+    )
+    result["task_counts"]["due_today"] = today_result.scalar()
+
+    return result
