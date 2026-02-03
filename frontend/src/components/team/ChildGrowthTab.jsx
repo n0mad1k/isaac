@@ -358,10 +358,17 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
   }
 
   if (error) {
+    // Check if it's a missing gender/birth_date error
+    const isMissingInfo = error.includes('birth date') || error.includes('gender')
     return (
-      <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-400">
+      <div className={`rounded-lg p-4 border ${isMissingInfo ? 'bg-yellow-900/20 border-yellow-700 text-yellow-400' : 'bg-red-900/20 border-red-700 text-red-400'}`}>
         <AlertTriangle className="w-5 h-5 inline mr-2" />
-        {error}
+        {isMissingInfo ? (
+          <span>
+            <strong>Birth date and gender required</strong> — CDC growth charts use different percentiles for boys vs girls.
+            Please update this member's profile to include both birth date and gender.
+          </span>
+        ) : error}
       </div>
     )
   }
@@ -469,7 +476,14 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
       {/* Growth Chart */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">{chartTitle}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-white">{chartTitle}</h3>
+            {growthData?.gender && (
+              <span className={`text-xs px-2 py-0.5 rounded ${growthData.gender === 'male' ? 'bg-blue-600/30 text-blue-300' : 'bg-pink-600/30 text-pink-300'}`}>
+                {growthData.gender === 'male' ? '♂ Boys' : '♀ Girls'} Chart
+              </span>
+            )}
+          </div>
           <div className="flex gap-2">
             {['weight', 'height', ...(ageMonths >= 24 ? ['bmi'] : [])].map(type => (
               <button

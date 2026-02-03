@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.28] - 2026-02-03
+
+### Added
+- **Growth charts now show gender indicator** - The growth chart header displays a badge (♂ Boys Chart / ♀ Girls Chart) showing which gender's CDC percentiles are being used. CDC growth charts have different percentiles for boys and girls, and now it's clear which data set is being applied.
+- **Improved error message for missing gender** - If a child's profile is missing birth date or gender, the growth tab now shows a helpful message explaining that CDC growth charts require both and uses different percentiles for boys vs girls.
+
 ## [1.79.27] - 2026-02-03
 
 ### Fixed
