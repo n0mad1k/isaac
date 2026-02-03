@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.25] - 2026-02-03
+
+### Fixed
+- **Budget colors now use theme tokens across all tabs** - Replaced hardcoded colors in all budget components (Bills Summary, Budget Overview, Settings, Transactions, Statement Import) with CSS variables for consistent theming. Income shows green, bills show red, spending shows amber, and distributions/transfers show blue.
+
 ## [1.79.24] - 2026-02-03
 
 ### Added

@@ -288,7 +288,7 @@ function BudgetTransactions() {
       {/* Transaction List */}
       <div className="rounded-xl overflow-x-auto" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         {/* Desktop Header - hidden on mobile */}
-        <div className="hidden md:grid grid-cols-[90px_1fr_100px_110px_140px_50px] text-xs font-semibold py-2 px-3" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+        <div className="hidden md:grid grid-cols-[90px_1fr_100px_110px_140px_50px] text-xs font-semibold py-2 px-3" style={{ backgroundColor: 'var(--color-blue-600)', color: '#fff' }}>
           <span>Date</span>
           <span>Description</span>
           <span className="text-right">Amount</span>
@@ -319,7 +319,7 @@ function BudgetTransactions() {
                     {formatDate ? formatDate(txn.transaction_date) : txn.transaction_date}
                   </span>
                   <span className="min-w-0 truncate" style={{ color: 'var(--color-text-primary)' }}>{txn.description}</span>
-                  <span className="text-right font-medium" style={{ color: txn.amount < 0 ? '#ef4444' : '#22c55e' }}>
+                  <span className="text-right font-medium" style={{ color: txn.amount < 0 ? 'var(--color-error-500)' : 'var(--color-success-500)' }}>
                     {fmt(txn.amount)}
                   </span>
                   <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
@@ -380,7 +380,7 @@ function BudgetTransactions() {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="text-sm font-bold" style={{ color: txn.amount < 0 ? '#ef4444' : '#22c55e' }}>
+                      <div className="text-sm font-bold" style={{ color: txn.amount < 0 ? 'var(--color-error-500)' : 'var(--color-success-500)' }}>
                         {fmt(txn.amount)}
                       </div>
                     </div>

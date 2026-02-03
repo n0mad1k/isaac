@@ -340,7 +340,7 @@ function StatementImport() {
                   <div className="md:hidden">
                     <div className="flex justify-between">
                       <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{txn.date}</span>
-                      <span className={`text-xs font-medium ${txn.amount < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                      <span className="text-xs font-medium" style={{ color: txn.amount < 0 ? 'var(--color-error-500)' : 'var(--color-success-500)' }}>
                         {formatCurrency(txn.amount)}
                       </span>
                     </div>
@@ -378,7 +378,7 @@ function StatementImport() {
                     <option value="">Uncategorized</option>
                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
-                  <span className={`hidden md:block text-xs text-right ${txn.amount < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                  <span className="hidden md:block text-xs text-right" style={{ color: txn.amount < 0 ? 'var(--color-error-500)' : 'var(--color-success-500)' }}>
                     {formatCurrency(txn.amount)}
                   </span>
                   <div className="hidden md:flex justify-center">

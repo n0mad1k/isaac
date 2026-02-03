@@ -267,7 +267,7 @@ function BillsSummary() {
 
       {/* Income Section */}
       <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#22c55e', color: '#fff' }}>
+        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--color-success-600)', color: '#fff' }}>
           <span className="text-xs font-semibold">Income</span>
           <button onClick={() => { setAddingIncome(true); resetAddForm() }} className="p-0.5 hover:bg-green-600 rounded" title="Add income">
             <Plus className="w-4 h-4" />
@@ -290,9 +290,9 @@ function BillsSummary() {
               </span>
               <span className="flex items-center gap-1" style={{ color: 'var(--color-text-primary)' }}>
                 {inc.name}
-                <span className="text-xs px-1 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', fontSize: '9px' }}>{freqLabel}</span>
+                <span className="text-xs px-1 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--color-success-500)', fontSize: '9px' }}>{freqLabel}</span>
               </span>
-              <span className="text-right" style={{ color: '#22c55e' }}>
+              <span className="text-right" style={{ color: 'var(--color-success-500)' }}>
                 {fmt(monthlyAmt)}
               </span>
               <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
@@ -338,7 +338,7 @@ function BillsSummary() {
 
       {/* Bills Section (Fixed only) */}
       <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#ef4444', color: '#fff' }}>
+        <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--color-error-600)', color: '#fff' }}>
           <span className="text-xs font-semibold">Bills</span>
           <button onClick={() => { setAddingBill(true); resetAddForm() }} className="p-0.5 hover:bg-red-600 rounded" title="Add bill">
             <Plus className="w-4 h-4" />
@@ -360,7 +360,7 @@ function BillsSummary() {
                 {cat.name}
                 {cat.owner && <span className="text-xs px-1 rounded hidden sm:inline" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: '9px' }}>{cat.owner}</span>}
               </span>
-              <span className="text-right text-xs sm:text-sm" style={{ color: '#ef4444' }}>
+              <span className="text-right text-xs sm:text-sm" style={{ color: 'var(--color-error-500)' }}>
                 -{fmt(amt)}
               </span>
               <span className="text-right truncate hidden sm:block" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
@@ -423,7 +423,7 @@ function BillsSummary() {
         )}
         <div className="grid grid-cols-[40px_1fr_80px_60px_40px] sm:grid-cols-[40px_1fr_80px_80px_60px_52px] text-xs font-bold py-1.5 px-3 min-w-[300px]" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
           <span /><span style={{ color: 'var(--color-text-primary)' }}>Total Bills</span>
-          <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(totalBillsAmt)}</span>
+          <span className="text-right" style={{ color: 'var(--color-error-500)' }}>-{fmt(totalBillsAmt)}</span>
           <span className="hidden sm:block" /><span /><span />
         </div>
         </div>
@@ -432,7 +432,7 @@ function BillsSummary() {
       {/* Spending Budgets Section (Variable) */}
       {(spendingCats.length > 0 || addingSpending) && (
         <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#f59e0b', color: '#fff' }}>
+          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--color-warning-600)', color: '#fff' }}>
             <span className="text-xs font-semibold">Spending Budgets</span>
             <button onClick={() => { setAddingSpending(true); resetAddForm() }} className="p-0.5 hover:bg-yellow-600 rounded" title="Add spending budget">
               <Plus className="w-4 h-4" />
@@ -446,7 +446,7 @@ function BillsSummary() {
               <span style={{ color: 'var(--color-text-primary)' }}>
                 {cat.name}
               </span>
-              <span className="text-right" style={{ color: '#f59e0b' }}>
+              <span className="text-right" style={{ color: 'var(--color-warning-500)' }}>
                 {fmt(cat.budget_amount)}
               </span>
               <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
@@ -481,7 +481,7 @@ function BillsSummary() {
           )}
           <div className="grid grid-cols-[1fr_90px_80px_52px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
             <span style={{ color: 'var(--color-text-primary)' }}>Total Spending</span>
-            <span className="text-right" style={{ color: '#f59e0b' }}>-{fmt(totalSpendingAmt)}/mo</span>
+            <span className="text-right" style={{ color: 'var(--color-warning-500)' }}>-{fmt(totalSpendingAmt)}/mo</span>
             <span /><span />
           </div>
         </div>
@@ -490,7 +490,7 @@ function BillsSummary() {
       {/* Distributions Section (Transfers) */}
       {(transferCats.length > 0 || addingTransfer) && (
         <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+          <div className="flex items-center justify-between px-3 py-2" style={{ backgroundColor: 'var(--color-blue-600)', color: '#fff' }}>
             <span className="text-xs font-semibold">Distributions</span>
             <button onClick={() => { setAddingTransfer(true); resetAddForm() }} className="p-0.5 hover:bg-blue-600 rounded" title="Add transfer">
               <Plus className="w-4 h-4" />
@@ -504,7 +504,7 @@ function BillsSummary() {
               <span style={{ color: 'var(--color-text-primary)' }}>
                 {cat.name}
               </span>
-              <span className="text-right" style={{ color: '#3b82f6' }}>
+              <span className="text-right" style={{ color: 'var(--color-blue-500)' }}>
                 {fmt(cat.budget_amount)}
               </span>
               <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
@@ -539,7 +539,7 @@ function BillsSummary() {
           )}
           <div className="grid grid-cols-[1fr_90px_80px_52px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
             <span style={{ color: 'var(--color-text-primary)' }}>Total Distributions</span>
-            <span className="text-right" style={{ color: '#3b82f6' }}>-{fmt(totalTransferAmt)}/mo</span>
+            <span className="text-right" style={{ color: 'var(--color-blue-500)' }}>-{fmt(totalTransferAmt)}/mo</span>
             <span /><span />
           </div>
         </div>
@@ -549,23 +549,23 @@ function BillsSummary() {
       <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         <div className="grid grid-cols-2 text-sm py-2 px-3" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
           <span style={{ color: 'var(--color-text-primary)' }}>Total Income</span>
-          <span className="text-right font-bold" style={{ color: '#22c55e' }}>{fmt(totalMoneyIn)}</span>
+          <span className="text-right font-bold" style={{ color: 'var(--color-success-500)' }}>{fmt(totalMoneyIn)}</span>
         </div>
         <div className="grid grid-cols-2 text-sm py-2 px-3" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
           <span style={{ color: 'var(--color-text-primary)' }}>Bills</span>
-          <span className="text-right font-bold" style={{ color: '#ef4444' }}>-{fmt(totalBillsAmt)}</span>
+          <span className="text-right font-bold" style={{ color: 'var(--color-error-500)' }}>-{fmt(totalBillsAmt)}</span>
         </div>
         <div className="grid grid-cols-2 text-sm py-2 px-3" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
           <span style={{ color: 'var(--color-text-primary)' }}>Spending</span>
-          <span className="text-right font-bold" style={{ color: '#f59e0b' }}>-{fmt(totalSpendingAmt)}</span>
+          <span className="text-right font-bold" style={{ color: 'var(--color-warning-500)' }}>-{fmt(totalSpendingAmt)}</span>
         </div>
         <div className="grid grid-cols-2 text-sm py-2 px-3" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
           <span style={{ color: 'var(--color-text-primary)' }}>Distributions</span>
-          <span className="text-right font-bold" style={{ color: '#3b82f6' }}>-{fmt(totalTransferAmt)}</span>
+          <span className="text-right font-bold" style={{ color: 'var(--color-blue-500)' }}>-{fmt(totalTransferAmt)}</span>
         </div>
         <div className="grid grid-cols-2 text-sm font-bold py-2.5 px-3" style={{ borderTop: '2px solid var(--color-border-default)' }}>
           <span style={{ color: 'var(--color-text-primary)' }}>{remaining >= 0 ? 'Surplus' : 'Overage'}</span>
-          <span className="text-right" style={{ color: remaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remaining)}</span>
+          <span className="text-right" style={{ color: remaining >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(remaining)}</span>
         </div>
       </div>
       {editModal && (

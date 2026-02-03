@@ -177,11 +177,11 @@ function BudgetOverview() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
           <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
             <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Income</div>
-            <div className="text-base font-bold" style={{ color: '#22c55e' }}>{fmt(summary.expected_income)}</div>
+            <div className="text-base font-bold" style={{ color: 'var(--color-success-500)' }}>{fmt(summary.expected_income)}</div>
           </div>
           <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
             <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Bills</div>
-            <div className="text-base font-bold" style={{ color: '#ef4444' }}>{fmt(billsBudgeted)}</div>
+            <div className="text-base font-bold" style={{ color: 'var(--color-error-500)' }}>{fmt(billsBudgeted)}</div>
           </div>
           {spendingCardCats.map(name => {
             const isDaneKelly = name.toLowerCase().includes('dane') || name.toLowerCase().includes('kelly')
@@ -193,7 +193,7 @@ function BudgetOverview() {
               return (
                 <div key={name} className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
                   <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</div>
-                  <div className="text-base font-bold" style={{ color: available >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(available)}</div>
+                  <div className="text-base font-bold" style={{ color: available >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(available)}</div>
                   {personData.period_spent > 0 && (
                     <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                       spent: {fmt(personData.period_spent)}
@@ -209,13 +209,13 @@ function BudgetOverview() {
             return (
               <div key={name} className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
                 <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</div>
-                <div className="text-base font-bold" style={{ color: remaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remaining)}</div>
+                <div className="text-base font-bold" style={{ color: remaining >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(remaining)}</div>
               </div>
             )
           })}
           <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
             <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Roll Over</div>
-            <div className="text-base font-bold" style={{ color: (summary.rollover_balance || 0) > 0 ? '#22c55e' : (summary.rollover_balance || 0) < 0 ? '#ef4444' : 'var(--color-text-muted)' }}>
+            <div className="text-base font-bold" style={{ color: (summary.rollover_balance || 0) > 0 ? 'var(--color-success-500)' : (summary.rollover_balance || 0) < 0 ? 'var(--color-error-500)' : 'var(--color-text-muted)' }}>
               {fmt(summary.rollover_balance || 0)}
             </div>
           </div>
@@ -251,7 +251,7 @@ function BudgetOverview() {
               Summary by Category
             </h4>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 text-xs font-semibold py-2 px-2 rounded-t" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 text-xs font-semibold py-2 px-2 rounded-t" style={{ backgroundColor: 'var(--color-blue-600)', color: '#fff' }}>
               <span>Category</span>
               <span className="text-right hidden sm:block">Budget</span>
               <span className="text-right hidden sm:block">Spent</span>
@@ -292,7 +292,7 @@ function BudgetOverview() {
                       </span>
                     )}
                     <span className="text-right hidden sm:block" style={{ color: 'var(--color-text-primary)' }}>{fmt(cat.spent)}</span>
-                    <span className="text-right" style={{ color: remaining < 0 ? '#ef4444' : 'var(--color-text-primary)' }}>
+                    <span className="text-right" style={{ color: remaining < 0 ? 'var(--color-error-500)' : 'var(--color-text-primary)' }}>
                       {fmtAccounting(remaining)}
                     </span>
                   </div>
@@ -300,7 +300,7 @@ function BudgetOverview() {
               })}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 text-xs font-bold py-2 px-2 rounded-b" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 text-xs font-bold py-2 px-2 rounded-b" style={{ backgroundColor: 'var(--color-blue-600)', color: '#fff' }}>
               <span>Total</span>
               <span className="text-right hidden sm:block">{fmt(totalBudget)}</span>
               <span className="text-right hidden sm:block">{fmt(totalSpent)}</span>

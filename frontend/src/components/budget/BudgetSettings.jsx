@@ -477,7 +477,7 @@ function CategoriesSection({ categories, onRefresh }) {
                 className="p-1 rounded hover:bg-gray-700"
                 title={cat.show_on_dashboard ? 'Shown on dashboard' : 'Not on dashboard'}
               >
-                <LayoutDashboard className="w-3.5 h-3.5" style={{ color: cat.show_on_dashboard ? '#22c55e' : 'var(--color-text-muted)', opacity: cat.show_on_dashboard ? 1 : 0.4 }} />
+                <LayoutDashboard className="w-3.5 h-3.5" style={{ color: cat.show_on_dashboard ? 'var(--color-success-500)' : 'var(--color-text-muted)', opacity: cat.show_on_dashboard ? 1 : 0.4 }} />
               </button>
               <button onClick={() => handleEdit(cat)} className="p-1 rounded hover:bg-gray-700"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
               <button onClick={() => handleDelete(cat.id)} className="p-1 rounded hover:bg-red-900/50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
