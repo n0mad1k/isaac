@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.15] - 2026-02-03
+
+### Added
+- **Farm/Business Name setting visible in Settings** - Go to Settings > Team to set your farm or business name. This name is used in receipt emails sent to customers.
+
 ## [1.79.14] - 2026-02-03
 
 ### Fixed

@@ -795,7 +795,7 @@ function Settings() {
   const cloudflareSettings = ['cloudflare_api_token', 'cloudflare_account_id', 'cloudflare_app_id']
   const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
   const displaySettings = ['dashboard_refresh_interval', 'hide_completed_today', 'time_format']
-  const teamSettings = ['team_name', 'team_mission', 'team_units', 'mentoring_day', 'aar_day']
+  const teamSettings = ['team_name', 'farm_name', 'team_mission', 'team_units', 'mentoring_day', 'aar_day']
   const aiSettings = ['ai_enabled', 'ai_provider', 'ai_proactive_insights', 'ollama_url', 'ollama_model', 'anthropic_api_key', 'claude_model', 'openai_api_key', 'openai_model', 'ai_shared_domains', 'knowledge_base_enabled']
 
   // Simplified notification categories - one setting per category
@@ -2237,15 +2237,28 @@ function Settings() {
 
               {/* Basic Team Info */}
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Team Name</label>
-                  <input
-                    type="text"
-                    value={settings.team_name?.value || ''}
-                    onChange={(e) => handleChange('team_name', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
-                    placeholder="Smith Family"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Team Name</label>
+                    <input
+                      type="text"
+                      value={settings.team_name?.value || ''}
+                      onChange={(e) => handleChange('team_name', e.target.value)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                      placeholder="Smith Family"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Farm/Business Name</label>
+                    <input
+                      type="text"
+                      value={settings.farm_name?.value || ''}
+                      onChange={(e) => handleChange('farm_name', e.target.value)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                      placeholder="Green Acres Farm"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Used in receipts and customer emails</p>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Team Mission</label>
