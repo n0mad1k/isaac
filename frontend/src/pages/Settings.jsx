@@ -3073,8 +3073,8 @@ function Settings() {
                         <h3 className="text-sm font-medium mb-3">Last 24 Hours</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                           <div>
-                            <p className="text-2xl font-bold text-green-400">{healthSummary.last_24h?.uptime_percent || 0}%</p>
-                            <p className="text-xs text-gray-400">Uptime</p>
+                            <p className="text-2xl font-bold text-green-400">{healthSummary.last_24h?.by_status?.healthy || 0}/{healthSummary.last_24h?.total_checks || 0}</p>
+                            <p className="text-xs text-gray-400">Healthy Checks</p>
                           </div>
                           <div>
                             <p className="text-2xl font-bold">{healthSummary.last_24h?.total_checks || 0}</p>

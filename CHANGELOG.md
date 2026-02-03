@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.53] - 2026-02-03
+
+### Changed
+- **Health monitor now shows healthy checks as fraction** - The "Last 24 Hours" section now displays "Healthy Checks: 5/5" instead of a confusing "Uptime: 100%" percentage. This makes it immediately clear how many health checks passed out of the total.
+
 ## [1.79.52] - 2026-02-03
 
 ### Added
