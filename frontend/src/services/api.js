@@ -265,6 +265,7 @@ export const resetSetting = (key) => api.post(`/settings/${key}/reset/`)
 export const resetAllSettings = () => api.post('/settings/reset-all/')
 export const testColdProtectionEmail = () => api.post('/settings/test-cold-protection-email/')
 export const testCalendarSync = () => api.post('/settings/test-calendar-sync/', {}, { timeout: 15000 })
+export const testDailyDigest = () => api.post('/settings/test-daily-digest/')
 export const syncCalendar = () => api.post('/settings/sync-calendar/', {}, { timeout: 15000 }) // 15sec timeout for CalDAV connection
 export const getVersionInfo = () => api.get('/settings/version/')
 export const toggleKeyboard = () => api.post('/settings/keyboard/toggle/')
