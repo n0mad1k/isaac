@@ -125,8 +125,22 @@ class HealthMonitor:
         """Check if calendar sync is running slowly"""
         from services.scheduler import scheduler_service
 
-        if not scheduler_service or not scheduler_service.last_calendar_sync_time:
-            return HealthCheck("calendar_sync", HealthStatus.CRITICAL, "No sync data available — scheduler may not be running")
+        if not scheduler_service:
+            return HealthCheck("calendar_sync", HealthStatus.CRITICAL, "Scheduler not initialized — app may need restart")
+
+        # Check if sync has ever been attempted
+        if not scheduler_service.last_calendar_sync_attempt:
+            # First sync runs 30s after startup, so this is expected briefly after start
+            return HealthCheck("calendar_sync", HealthStatus.WARNING, "Awaiting first sync — runs 30s after startup")
+
+        # Check if last sync attempt failed
+        if scheduler_service.last_calendar_sync_error:
+            return HealthCheck("calendar_sync", HealthStatus.WARNING,
+                f"Sync error: {scheduler_service.last_calendar_sync_error}")
+
+        if not scheduler_service.last_calendar_sync_time:
+            # Sync attempted but no successful completion yet
+            return HealthCheck("calendar_sync", HealthStatus.WARNING, "Sync attempted but not completed")
 
         duration = scheduler_service.last_calendar_sync_duration
         last_sync = scheduler_service.last_calendar_sync_time

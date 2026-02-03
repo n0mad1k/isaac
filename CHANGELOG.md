@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.47] - 2026-02-03
+
+### Fixed
+- **Calendar sync health monitor improvements** - Fixed timezone mismatch that could cause incorrect "stale sync" warnings. Health monitor now shows more helpful messages: "Awaiting first sync" instead of critical error on startup, and displays specific error messages if sync fails (e.g., "Failed to connect to calendar").
+
 ## [1.79.46] - 2026-02-03
 
 ### Added

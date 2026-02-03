@@ -256,6 +256,8 @@ class SchedulerService:
         # Calendar sync health tracking
         self.last_calendar_sync_duration: float = 0
         self.last_calendar_sync_time: datetime = None
+        self.last_calendar_sync_attempt: datetime = None
+        self.last_calendar_sync_error: str = None
         # Set module-level reference
         scheduler_service = self
 
@@ -508,14 +510,18 @@ class SchedulerService:
         import time
 
         start_time = time.time()
+        self.last_calendar_sync_attempt = datetime.utcnow()
+        self.last_calendar_sync_error = None
+
         try:
             async with async_session() as db:
                 service = await get_calendar_service(db)
                 if not service:
+                    self.last_calendar_sync_error = "Calendar service not configured"
                     return
 
-
                 if not service.connect():
+                    self.last_calendar_sync_error = "Failed to connect to calendar"
                     logger.error("Failed to connect to calendar for sync")
                     return
 
@@ -533,9 +539,9 @@ class SchedulerService:
                 tasks_synced = await service.sync_all_tasks_to_calendar(db, calendar_uids)
 
                 duration = time.time() - start_time
-                # Store sync stats for health monitoring
+                # Store sync stats for health monitoring (use UTC for consistency with health check)
                 self.last_calendar_sync_duration = duration
-                self.last_calendar_sync_time = datetime.now()
+                self.last_calendar_sync_time = datetime.utcnow()
 
                 if duration > 60:
                     logger.warning(f"Calendar sync slow: {duration:.1f}s - {tasks_synced} tasks, {events_synced} events")
@@ -543,6 +549,7 @@ class SchedulerService:
                     logger.info(f"Calendar sync complete in {duration:.1f}s: {tasks_synced} tasks synced, {events_synced} events imported")
 
         except Exception as e:
+            self.last_calendar_sync_error = str(e)[:100]
             logger.error(f"Calendar sync failed: {e}")
 
     async def schedule_daily_digest(self):
