@@ -2584,12 +2584,12 @@ function Settings() {
                       {healthSummary.latest && (
                         <div className="bg-gray-700/50 rounded-lg p-4">
                           <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-medium">Current Status</span>
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${
-                              healthSummary.latest.overall_status === 'healthy' ? 'bg-green-600 text-green-100' :
-                              healthSummary.latest.overall_status === 'warning' ? 'bg-yellow-600 text-yellow-100' :
-                              healthSummary.latest.overall_status === 'critical' ? 'bg-red-600 text-red-100' :
-                              'bg-gray-600 text-gray-100'
+                            <span className="text-sm font-medium text-white">Current Status</span>
+                            <span className={`px-3 py-1.5 rounded text-xs font-bold ${
+                              healthSummary.latest.overall_status === 'healthy' ? 'bg-green-700 text-white' :
+                              healthSummary.latest.overall_status === 'warning' ? 'bg-amber-600 text-black' :
+                              healthSummary.latest.overall_status === 'critical' ? 'bg-red-600 text-white' :
+                              'bg-gray-600 text-white'
                             }`}>
                               {healthSummary.latest.overall_status?.toUpperCase()}
                             </span>
@@ -2606,12 +2606,12 @@ function Settings() {
                                 return `${statusLabel} ${label}: ${data.message || 'No details'}`
                               })
                             return issueChecks.length > 0 ? (
-                              <div className={`rounded-lg px-4 py-3 mb-3 ${healthSummary.latest.overall_status === 'critical' ? 'bg-red-900/30 border border-red-700/50' : healthSummary.latest.overall_status === 'warning' ? 'bg-yellow-900/30 border border-yellow-700/50' : 'bg-gray-700/50 border border-gray-600/50'}`}>
-                                <p className="text-xs font-semibold mb-1" style={{ color: healthSummary.latest.overall_status === 'critical' ? '#fca5a5' : healthSummary.latest.overall_status === 'warning' ? '#fcd34d' : '#9ca3af' }}>
+                              <div className={`rounded-lg px-4 py-3 mb-3 ${healthSummary.latest.overall_status === 'critical' ? 'bg-red-950 border border-red-600' : healthSummary.latest.overall_status === 'warning' ? 'bg-amber-950 border border-amber-600' : 'bg-gray-800 border border-gray-600'}`}>
+                                <p className={`text-sm font-bold mb-2 ${healthSummary.latest.overall_status === 'critical' ? 'text-red-300' : healthSummary.latest.overall_status === 'warning' ? 'text-amber-300' : 'text-gray-300'}`}>
                                   Why {healthSummary.latest.overall_status.toUpperCase()}?
                                 </p>
                                 {issueChecks.map((issue, i) => (
-                                  <p key={i} className={`text-sm ${healthSummary.latest.overall_status === 'critical' ? 'text-red-200' : healthSummary.latest.overall_status === 'warning' ? 'text-yellow-200' : 'text-gray-300'}`}>
+                                  <p key={i} className="text-sm text-white">
                                     {issue}
                                   </p>
                                 ))}
@@ -2625,12 +2625,12 @@ function Settings() {
                               const isIssue = data.status === 'warning' || data.status === 'critical' || data.status === 'unknown'
                               const label = check === 'calendar_sync' ? 'Cal Sync' : check
                               return (
-                                <div key={check} className={`bg-gray-800/50 rounded px-3 py-2 ${isIssue ? (data.status === 'critical' ? 'border border-red-700/50' : data.status === 'warning' ? 'border border-yellow-700/50' : 'border border-gray-600') : ''}`}>
+                                <div key={check} className={`bg-gray-800 rounded px-3 py-2 ${isIssue ? (data.status === 'critical' ? 'border-2 border-red-500' : data.status === 'warning' ? 'border-2 border-amber-500' : 'border border-gray-600') : 'border border-gray-700'}`}>
                                   <div className="flex items-center justify-between">
-                                    <span className="text-gray-400 capitalize">{label}</span>
-                                    <span className={`text-xs font-medium ${
+                                    <span className="text-white capitalize font-medium">{label}</span>
+                                    <span className={`text-sm font-bold ${
                                       data.status === 'healthy' ? 'text-green-400' :
-                                      data.status === 'warning' ? 'text-yellow-400' :
+                                      data.status === 'warning' ? 'text-amber-400' :
                                       data.status === 'critical' ? 'text-red-400' :
                                       'text-gray-400'
                                     }`}>
@@ -2642,7 +2642,7 @@ function Settings() {
                                     </span>
                                   </div>
                                   {data.message && (
-                                    <p className={`mt-1 ${isIssue ? `text-sm font-medium ${data.status === 'critical' ? 'text-red-300' : 'text-yellow-300'}` : data.status === 'unknown' ? 'text-xs text-gray-400' : 'text-xs text-gray-500'}`}>
+                                    <p className={`mt-1 text-sm ${isIssue ? `font-medium ${data.status === 'critical' ? 'text-red-300' : 'text-amber-300'}` : 'text-gray-400'}`}>
                                       {data.message}
                                     </p>
                                   )}

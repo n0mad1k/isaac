@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.7] - 2026-02-03
+
+### Fixed
+- **Health monitor colors improved for readability** - The health checks section in Settings now uses higher contrast colors that are easier to read. Warning status uses amber colors with darker backgrounds and white/black text for better visibility.
+
 ## [1.79.6] - 2026-02-03
 
 ### Fixed
