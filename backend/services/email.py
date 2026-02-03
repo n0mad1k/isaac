@@ -170,8 +170,9 @@ class EmailService:
         alerts: List[dict],
         recipient: str = None,
         verse: dict = None,
+        team_alerts: List[dict] = None,
     ) -> bool:
-        """Send daily digest email with verse of the day, tasks and weather"""
+        """Send daily digest email with verse of the day, tasks, weather, and team alerts"""
         subject = f"Daily Farm Digest - {datetime.now().strftime('%m/%d/%Y')}"
 
         # Verse of the day section
@@ -250,6 +251,24 @@ class EmailService:
                 <div class="alert {severity}">
                     <strong>{_escape_html(alert.get('title', 'Alert'))}</strong><br>
                     {_escape_html(alert.get('message', ''))}
+                </div>
+                """
+            html += "</div>"
+
+        # Team alerts section (gear, training, medical)
+        if team_alerts:
+            html += """
+            <div class="section">
+                <h2>🎒 Team Readiness Alerts</h2>
+            """
+            for alert in team_alerts:
+                alert_type = alert.get("type", "info")
+                icon = "⚠️" if alert_type == "expired" else "📉" if alert_type == "low_stock" else "📅"
+                severity_class = "critical" if alert_type == "expired" else "warning"
+                html += f"""
+                <div class="alert {severity_class}">
+                    {icon} <strong>{_escape_html(alert.get('member', 'Team'))}</strong> - {_escape_html(alert.get('item', 'Item'))}<br>
+                    <small>{_escape_html(alert.get('message', ''))}</small>
                 </div>
                 """
             html += "</div>"

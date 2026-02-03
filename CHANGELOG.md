@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.16] - 2026-02-03
+
+### Added
+- **Team Readiness Alerts in Daily Digest** - The daily digest email now includes alerts for gear contents below minimum quantity, expiring/expired items, overdue training, and overdue medical appointments. A daily job also automatically updates gear content status to reflect EXPIRED or LOW states.
+
 ## [1.79.15] - 2026-02-03
 
 ### Added

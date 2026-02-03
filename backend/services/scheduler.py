@@ -23,6 +23,7 @@ from models.plants import Plant
 from models.livestock import Animal, AnimalType
 from models.weather import WeatherAlert
 from models.settings import AppSetting
+from models.team import TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment
 from services.weather import WeatherService, NWSForecastService
 from services.email import EmailService
 
@@ -397,6 +398,15 @@ class SchedulerService:
             CronTrigger(day="1,15", hour=1, minute=0),
             id="budget_archive",
             name="Archive Budget Transactions",
+            replace_existing=True,
+        )
+
+        # Update gear content statuses - daily at 5 AM
+        self.scheduler.add_job(
+            self.update_gear_statuses,
+            CronTrigger(hour=5, minute=0),
+            id="update_gear_statuses",
+            name="Update Gear Content Statuses",
             replace_existing=True,
         )
 
@@ -822,6 +832,102 @@ class SchedulerService:
                     for a in alerts
                 ]
 
+                # Get team alerts: gear below min, expiring items, overdue training/medical
+                team_alerts = []
+                try:
+                    # Get all active gear contents with their gear and member info
+                    from sqlalchemy.orm import joinedload
+                    gear_contents_result = await db.execute(
+                        select(MemberGearContents)
+                        .join(MemberGear)
+                        .join(TeamMember)
+                        .options(joinedload(MemberGearContents.gear).joinedload(MemberGear.member))
+                        .where(MemberGearContents.is_active == True)
+                        .where(MemberGear.is_active == True)
+                        .where(TeamMember.is_active == True)
+                    )
+                    all_gear_contents = gear_contents_result.scalars().unique().all()
+
+                    for content in all_gear_contents:
+                        member_name = content.gear.member.display_name if content.gear.member else "Unknown"
+
+                        # Check for low stock
+                        if content.min_quantity and content.quantity < content.min_quantity:
+                            team_alerts.append({
+                                "type": "low_stock",
+                                "member": member_name,
+                                "item": content.item_name,
+                                "message": f"Below minimum: {content.quantity} / {content.min_quantity} ({content.gear.gear_name})"
+                            })
+
+                        # Check for expiring items
+                        if content.expiration_date:
+                            alert_days = content.expiration_alert_days or 30
+                            alert_threshold = datetime.now() + timedelta(days=alert_days)
+                            if content.expiration_date <= datetime.now():
+                                team_alerts.append({
+                                    "type": "expired",
+                                    "member": member_name,
+                                    "item": content.item_name,
+                                    "message": f"EXPIRED on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                                })
+                            elif content.expiration_date <= alert_threshold:
+                                days_left = (content.expiration_date - datetime.now()).days
+                                team_alerts.append({
+                                    "type": "expiring",
+                                    "member": member_name,
+                                    "item": content.item_name,
+                                    "message": f"Expires in {days_left} days on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                                })
+
+                    # Check for overdue training
+                    training_result = await db.execute(
+                        select(MemberTraining)
+                        .join(TeamMember)
+                        .options(joinedload(MemberTraining.member))
+                        .where(MemberTraining.is_active == True)
+                        .where(TeamMember.is_active == True)
+                        .where(MemberTraining.next_due.isnot(None))
+                        .where(MemberTraining.next_due < datetime.now())
+                    )
+                    overdue_training = training_result.scalars().unique().all()
+
+                    for training in overdue_training:
+                        member_name = training.member.display_name if training.member else "Unknown"
+                        days_overdue = (datetime.now() - training.next_due).days
+                        team_alerts.append({
+                            "type": "expired",
+                            "member": member_name,
+                            "item": f"Training: {training.name}",
+                            "message": f"Overdue by {days_overdue} days (due {training.next_due.strftime('%m/%d/%Y')})"
+                        })
+
+                    # Check for overdue medical appointments
+                    medical_result = await db.execute(
+                        select(MemberMedicalAppointment)
+                        .join(TeamMember)
+                        .options(joinedload(MemberMedicalAppointment.member))
+                        .where(MemberMedicalAppointment.is_active == True)
+                        .where(TeamMember.is_active == True)
+                        .where(MemberMedicalAppointment.next_due.isnot(None))
+                        .where(MemberMedicalAppointment.next_due < datetime.now())
+                    )
+                    overdue_medical = medical_result.scalars().unique().all()
+
+                    for appt in overdue_medical:
+                        member_name = appt.member.display_name if appt.member else "Unknown"
+                        type_name = appt.custom_type_name if appt.appointment_type.value == "custom" else appt.appointment_type.value.replace("_", " ").title()
+                        days_overdue = (datetime.now() - appt.next_due).days
+                        team_alerts.append({
+                            "type": "expired",
+                            "member": member_name,
+                            "item": f"Appointment: {type_name}",
+                            "message": f"Overdue by {days_overdue} days (due {appt.next_due.strftime('%m/%d/%Y')})"
+                        })
+
+                except Exception as e:
+                    logger.warning(f"Failed to gather team alerts for daily digest: {e}")
+
                 # Get configured email service from database
                 email_service = await self.get_email_service(db)
                 await email_service.send_daily_digest(
@@ -830,6 +936,7 @@ class SchedulerService:
                     alerts=alert_dicts,
                     recipient=recipient,
                     verse=verse,
+                    team_alerts=team_alerts if team_alerts else None,
                 )
         except Exception as e:
             logger.error(f"Error sending daily digest: {e}")
@@ -1640,6 +1747,40 @@ class SchedulerService:
 
         except Exception as e:
             logger.error(f"Error cleaning up old health data: {e}")
+
+    async def update_gear_statuses(self):
+        """Update gear content statuses based on quantity vs minimum and expiration dates.
+        Sets status to EXPIRED if past expiration, LOW if below minimum, GOOD otherwise."""
+        from models.team import ContentStatus
+        logger.info("Updating gear content statuses...")
+        try:
+            async with async_session() as db:
+                result = await db.execute(
+                    select(MemberGearContents).where(MemberGearContents.is_active == True)
+                )
+                all_contents = result.scalars().all()
+
+                updated_count = 0
+                for content in all_contents:
+                    new_status = ContentStatus.GOOD
+
+                    # Check expiration first (takes priority)
+                    if content.expiration_date and content.expiration_date <= datetime.now():
+                        new_status = ContentStatus.EXPIRED
+                    # Then check low stock
+                    elif content.min_quantity and content.quantity < content.min_quantity:
+                        new_status = ContentStatus.LOW
+
+                    if content.status != new_status:
+                        content.status = new_status
+                        updated_count += 1
+
+                await db.commit()
+                if updated_count > 0:
+                    logger.info(f"Updated {updated_count} gear content statuses")
+
+        except Exception as e:
+            logger.error(f"Error updating gear statuses: {e}")
 
     async def archive_budget_transactions(self):
         """Archive old budget transactions and snapshot period summaries.
