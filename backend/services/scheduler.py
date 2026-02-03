@@ -491,14 +491,16 @@ class SchedulerService:
             return
 
         # Frequent sync every 10 minutes for near real-time phone sync
+        # Run first sync immediately (30s delay), then every 10 minutes
         self.scheduler.add_job(
             self.sync_calendar,
             IntervalTrigger(minutes=10),
             id="calendar_sync_interval",
             name="Calendar Sync (every 10 min)",
             replace_existing=True,
+            next_run_time=datetime.now() + timedelta(seconds=30),
         )
-        logger.info("Calendar sync scheduled every 10 minutes")
+        logger.info("Calendar sync scheduled: first run in 30s, then every 10 minutes")
 
     async def sync_calendar(self):
         """Perform bi-directional calendar sync"""

@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.38] - 2026-02-03
+
+### Fixed
+- **Calendar sync now runs immediately after startup** - Previously, the calendar sync health check showed "No sync data yet" for up to 10 minutes after each restart because it waited for the first scheduled sync. Now the first sync runs 30 seconds after startup, so health monitoring shows real data almost immediately.
+
 ## [1.79.37] - 2026-02-03
 
 ### Added
