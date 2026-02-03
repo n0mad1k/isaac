@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.14] - 2026-02-03
+
+### Fixed
+- **Child milestone tracker now detects advanced development** - The milestone assessment now correctly identifies when a child is achieving milestones above their age level. A 2-year-old accomplishing 3-5 year old milestones will now show as "advanced" rather than "on track".
+
 ## [1.79.13] - 2026-02-03
 
 ### Fixed

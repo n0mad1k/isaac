@@ -5347,13 +5347,14 @@ async def get_member_milestones(
             age_group_completion.append((group["age_months"], group_achieved / group_total * 100))
 
     # Calculate developmental assessment
-    # Find the highest age group where 80%+ milestones are achieved
+    # Track: 1) highest age with 80%+ completion, 2) highest age with ANY achievements
     developmental_age = 0
+    highest_age_with_achievements = 0
     for grp_age, pct in age_group_completion:
         if pct >= 80:
             developmental_age = grp_age
-        else:
-            break
+        if pct > 0:
+            highest_age_with_achievements = grp_age
 
     # Calculate category-level assessments
     category_assessment = {}
@@ -5376,8 +5377,15 @@ async def get_member_milestones(
             }
 
     # Overall developmental status
+    # Consider both percentage AND if child is achieving milestones above their age
     overall_pct = (achieved_count / total * 100) if total > 0 else 0
-    if overall_pct >= 90:
+    above_age_achievements = highest_age_with_achievements > age_months
+
+    if above_age_achievements:
+        # Child is achieving milestones from ABOVE their age group - definitely advanced!
+        overall_status = "advanced"
+        status_message = f"Ahead of typical development - achieving {highest_age_with_achievements}+ month milestones"
+    elif overall_pct >= 90:
         overall_status = "advanced"
         status_message = "Ahead of typical development"
     elif overall_pct >= 70:
@@ -5390,11 +5398,16 @@ async def get_member_milestones(
         overall_status = "behind"
         status_message = "May benefit from developmental support"
 
-    # Age comparison
+    # Age comparison - consider both developmental age and achievements above current age
     age_diff = developmental_age - age_months
-    if age_diff >= 6:
+    above_age_achievements = highest_age_with_achievements > age_months
+
+    if above_age_achievements or age_diff >= 6:
         age_comparison = "advanced"
-        age_message = f"Performing at ~{developmental_age} month level (ahead)"
+        if highest_age_with_achievements > age_months:
+            age_message = f"Achieving milestones from {highest_age_with_achievements}+ month level (ahead of age)"
+        else:
+            age_message = f"Performing at ~{developmental_age} month level (ahead)"
     elif age_diff >= -3:
         age_comparison = "on_track"
         age_message = f"Performing at expected level"
