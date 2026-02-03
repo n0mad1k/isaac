@@ -321,28 +321,30 @@ function PotsSection({ categories, onRefresh }) {
         </form>
       )}
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {pots.map(cat => (
-          <div key={cat.id} className="flex items-start sm:items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg flex-wrap">
-            <div className="w-3 h-3 rounded-full flex-shrink-0 mt-1 sm:mt-0" style={{ backgroundColor: cat.color }} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+          <div key={cat.id} className="px-3 py-2 bg-gray-800 rounded-lg">
+            {/* Top row: Color, Name, Actions */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                <span className="text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
                   {cat.category_type === 'variable' ? 'Spending' : 'Fund'}
                 </span>
               </div>
-              {(cat.budget_amount > 0 || cat.monthly_budget > 0) && (
-                <div className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
-                  {cat.budget_amount > 0 && <span>{formatCurrency(cat.budget_amount)}/half</span>}
-                  {cat.monthly_budget > 0 && <span className="ml-1">({formatCurrency(cat.monthly_budget)}/mo)</span>}
-                </div>
-              )}
+              <div className="flex gap-1 flex-shrink-0">
+                <button onClick={() => handleEdit(cat)} className="p-1.5 rounded hover:bg-gray-700"><Edit className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} /></button>
+                <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded hover:bg-red-900/50"><Trash2 className="w-4 h-4 text-red-500" /></button>
+              </div>
             </div>
-            <div className="flex gap-1 flex-shrink-0">
-              <button onClick={() => handleEdit(cat)} className="p-1 rounded hover:bg-gray-700"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
-              <button onClick={() => handleDelete(cat.id)} className="p-1 rounded hover:bg-red-900/50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
-            </div>
+            {/* Bottom row: Amounts */}
+            {(cat.budget_amount > 0 || cat.monthly_budget > 0) && (
+              <div className="text-xs mt-1 pl-5" style={{ color: 'var(--color-text-muted)' }}>
+                {cat.budget_amount > 0 && <span>{formatCurrency(cat.budget_amount)}/half</span>}
+                {cat.monthly_budget > 0 && <span className="ml-2">({formatCurrency(cat.monthly_budget)}/mo)</span>}
+              </div>
+            )}
           </div>
         ))}
         {pots.length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--color-text-muted)' }}>No pots yet. Add a spending pot or savings fund to get started.</p>}
@@ -461,34 +463,42 @@ function CategoriesSection({ categories, onRefresh }) {
         </form>
       )}
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {categories.map(cat => (
-          <div key={cat.id} className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg">
-            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-            <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
-            <div className="flex gap-0.5 flex-shrink-0">
-              <button
-                onClick={async () => {
-                  try {
-                    await updateBudgetCategory(cat.id, { show_on_dashboard: !cat.show_on_dashboard })
-                    onRefresh()
-                  } catch (err) { console.error('Failed to toggle dashboard:', err) }
-                }}
-                className="p-1 rounded hover:bg-gray-700"
-                title={cat.show_on_dashboard ? 'Shown on dashboard' : 'Not on dashboard'}
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" style={{ color: cat.show_on_dashboard ? 'var(--color-success-500)' : 'var(--color-text-muted)', opacity: cat.show_on_dashboard ? 1 : 0.4 }} />
-              </button>
-              <button onClick={() => handleEdit(cat)} className="p-1 rounded hover:bg-gray-700"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
-              <button onClick={() => handleDelete(cat.id)} className="p-1 rounded hover:bg-red-900/50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
+          <div key={cat.id} className="px-3 py-2 bg-gray-800 rounded-lg">
+            {/* Top row: Color, Name, Actions */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                <span className="text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
+              </div>
+              <div className="flex gap-1 flex-shrink-0">
+                <button
+                  onClick={async () => {
+                    try {
+                      await updateBudgetCategory(cat.id, { show_on_dashboard: !cat.show_on_dashboard })
+                      onRefresh()
+                    } catch (err) { console.error('Failed to toggle dashboard:', err) }
+                  }}
+                  className="p-1.5 rounded hover:bg-gray-700"
+                  title={cat.show_on_dashboard ? 'Shown on dashboard' : 'Not on dashboard'}
+                >
+                  <LayoutDashboard className="w-4 h-4" style={{ color: cat.show_on_dashboard ? 'var(--color-success-500)' : 'var(--color-text-muted)', opacity: cat.show_on_dashboard ? 1 : 0.4 }} />
+                </button>
+                <button onClick={() => handleEdit(cat)} className="p-1.5 rounded hover:bg-gray-700"><Edit className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} /></button>
+                <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded hover:bg-red-900/50"><Trash2 className="w-4 h-4 text-red-500" /></button>
+              </div>
             </div>
-            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>{cat.category_type}</span>
-            {cat.budget_amount > 0 && (
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.budget_amount)}/period</span>
-            )}
-            {cat.monthly_budget > 0 && (
-              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.monthly_budget)}/mo</span>
-            )}
+            {/* Bottom row: Type badge and amounts */}
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>{cat.category_type}</span>
+              {cat.budget_amount > 0 && (
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.budget_amount)}/period</span>
+              )}
+              {cat.monthly_budget > 0 && (
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.monthly_budget)}/mo</span>
+              )}
+            </div>
           </div>
         ))}
         {categories.length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--color-text-muted)' }}>No categories yet</p>}

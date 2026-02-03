@@ -1,0 +1,38 @@
+{
+  "name": "Isaac - Farm Assistant",
+  "short_name": "Isaac",
+  "description": "Homestead management assistant for garden, animals, budget, and more",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#4d7c0f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Tasks",
+      "url": "/tasks",
+      "description": "View today's tasks"
+    },
+    {
+      "name": "Budget",
+      "url": "/budget",
+      "description": "Check your budget"
+    }
+  ]
+}

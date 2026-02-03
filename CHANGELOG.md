@@ -2,6 +2,20 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.80.0] - 2026-02-03
+
+### Added
+- **Progressive Web App (PWA) support** - Isaac can now be installed on your iPhone home screen for a native app-like experience. Visit Isaac in Safari, tap the Share button, and select "Add to Home Screen". The app works offline for cached pages and has an improved mobile interface.
+  - Custom app icon
+  - Offline fallback page
+  - Service worker for caching
+  - iOS meta tags for proper home screen display
+
+### Improved
+- **Mobile-optimized Budget Settings** - Categories and Pots of Money now display in a stacked card layout on mobile with larger touch targets for edit/delete buttons. Information is no longer cut off on small screens.
+- **Mobile-optimized Worker Tasks** - Action buttons now show icons only on mobile with larger touch targets (44px minimum as per Apple guidelines). Text labels appear on larger screens.
+- **useIsMobile hook** - New React hook for mobile detection available to all components.
+
 ## [1.79.61] - 2026-02-03
 
 ### Fixed

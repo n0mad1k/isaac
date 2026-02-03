@@ -624,22 +624,22 @@ function WorkerTasks() {
                 {t('showCompleted')}
               </label>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-shrink-0">
               <button
                 onClick={openAssignModal}
-                className="flex items-center gap-1.5 px-2 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 text-sm"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 text-sm min-w-[44px] min-h-[44px]"
                 title={t('assignExisting')}
               >
-                <Link className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('assignExisting')}</span>
+                <Link className="w-5 h-5" />
+                <span className="hidden md:inline">{t('assignExisting')}</span>
               </button>
               <button
                 onClick={() => setShowEventModal(true)}
-                className="flex items-center gap-1.5 px-2 sm:px-4 py-1.5 sm:py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light text-sm"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light text-sm min-w-[44px] min-h-[44px]"
                 title={t('newTask')}
               >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('newTask')}</span>
+                <Plus className="w-5 h-5" />
+                <span className="hidden md:inline">{t('newTask')}</span>
               </button>
             </div>
           </div>
