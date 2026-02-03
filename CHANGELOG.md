@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.40] - 2026-02-03
+
+### Changed
+- **Health monitor no longer shows "Unknown" status** - All health checks now show either Healthy, Warning, or Critical. If status cannot be determined, it's treated as Critical (something is wrong). Disabled services like CalDAV now show as "Healthy (disabled)" instead of "Unknown".
+
 ## [1.79.39] - 2026-02-03
 
 ### Fixed

@@ -2850,15 +2850,15 @@ function Settings() {
                               {healthSummary.latest.overall_status?.toUpperCase()}
                             </span>
                           </div>
-                          {/* Warning/Critical/Unknown reason banner */}
+                          {/* Warning/Critical reason banner */}
                           {healthSummary.latest.overall_status !== 'healthy' && (() => {
                             const allCheckKeys = ['api', 'database', 'caldav', 'memory', 'disk', 'cpu', 'calendar_sync']
                             const issueChecks = allCheckKeys
-                              .filter(k => healthSummary.latest[k] && (healthSummary.latest[k].status === 'warning' || healthSummary.latest[k].status === 'critical' || healthSummary.latest[k].status === 'unknown'))
+                              .filter(k => healthSummary.latest[k] && (healthSummary.latest[k].status === 'warning' || healthSummary.latest[k].status === 'critical'))
                               .map(k => {
                                 const data = healthSummary.latest[k]
                                 const label = k === 'calendar_sync' ? 'Cal Sync' : k
-                                const statusLabel = data.status === 'unknown' ? '[Unknown]' : data.status === 'warning' ? '[Warning]' : '[Critical]'
+                                const statusLabel = data.status === 'warning' ? '[Warning]' : '[Critical]'
                                 return `${statusLabel} ${label}: ${data.message || 'No details'}`
                               })
                             return issueChecks.length > 0 ? (
@@ -2886,7 +2886,7 @@ function Settings() {
                             {['api', 'database', 'caldav', 'calendar_sync', 'memory', 'disk', 'cpu'].map(check => {
                               const data = healthSummary.latest[check]
                               if (!data) return null
-                              const isIssue = data.status === 'warning' || data.status === 'critical' || data.status === 'unknown'
+                              const isIssue = data.status === 'warning' || data.status === 'critical'
                               const label = check === 'calendar_sync' ? 'Cal Sync' : check
                               return (
                                 <div key={check} className="rounded px-3 py-2" style={{
@@ -2897,10 +2897,9 @@ function Settings() {
                                     <span className="capitalize font-medium" style={{ color: 'var(--color-text-primary)' }}>{label}</span>
                                     <span className="text-sm font-bold" style={{
                                       color: data.status === 'healthy' ? 'var(--color-success-600)' :
-                                        data.status === 'warning' ? 'var(--color-warning-700)' :
-                                        data.status === 'critical' ? 'var(--color-error-600)' : 'var(--color-text-muted)'
+                                        data.status === 'warning' ? 'var(--color-warning-700)' : 'var(--color-error-600)'
                                     }}>
-                                      {data.status === 'healthy' ? '✓' : data.status === 'warning' ? '⚠' : data.status === 'critical' ? '✗' : '?'}
+                                      {data.status === 'healthy' ? '✓' : data.status === 'warning' ? '⚠' : '✗'}
                                       {data.percent !== undefined && ` ${data.percent?.toFixed(0)}%`}
                                       {data.latency_ms !== undefined && ` ${data.latency_ms?.toFixed(0)}ms`}
                                       {data.load !== undefined && ` ${data.load?.toFixed(1)}`}
@@ -3052,7 +3051,7 @@ function Settings() {
                                   {allChecks.map(check => {
                                     const data = log[check]
                                     if (!data) return null
-                                    const isIssue = data.status === 'warning' || data.status === 'critical' || data.status === 'unknown'
+                                    const isIssue = data.status === 'warning' || data.status === 'critical'
                                     const statusIcon = data.status === 'healthy' ? '✓' : data.status === 'warning' ? '⚠' : data.status === 'critical' ? '✗' : '?'
                                     const statusColorStyle = data.status === 'healthy' ? 'var(--color-success-600)' : data.status === 'warning' ? 'var(--color-warning-700)' : data.status === 'critical' ? 'var(--color-error-600)' : 'var(--color-text-muted)'
                                     const label = check === 'calendar_sync' ? 'Cal Sync' : check

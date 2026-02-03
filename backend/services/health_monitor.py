@@ -21,7 +21,8 @@ class HealthStatus:
     HEALTHY = "healthy"
     WARNING = "warning"
     CRITICAL = "critical"
-    UNKNOWN = "unknown"
+    # Note: UNKNOWN has been removed - if status cannot be determined, use CRITICAL
+    # For disabled/not-configured services, use HEALTHY with appropriate message
 
 
 class HealthCheck:
@@ -95,14 +96,14 @@ class HealthMonitor:
         # Read settings from database
         enabled = await get_calendar_setting(db, "calendar_enabled")
         if enabled != "true":
-            return HealthCheck("caldav", HealthStatus.UNKNOWN, "CalDAV not enabled")
+            return HealthCheck("caldav", HealthStatus.HEALTHY, "CalDAV disabled")
 
         url = await get_calendar_setting(db, "calendar_url")
         username = await get_calendar_setting(db, "calendar_username")
         password = await get_calendar_setting(db, "calendar_password")
 
         if not url or not username or not password:
-            return HealthCheck("caldav", HealthStatus.UNKNOWN, "CalDAV not fully configured — set URL, username, and password in Settings")
+            return HealthCheck("caldav", HealthStatus.WARNING, "CalDAV enabled but not fully configured — set URL, username, and password in Settings")
 
         try:
             timeout = aiohttp.ClientTimeout(total=10)
@@ -125,7 +126,7 @@ class HealthMonitor:
         from services.scheduler import scheduler_service
 
         if not scheduler_service or not scheduler_service.last_calendar_sync_time:
-            return HealthCheck("calendar_sync", HealthStatus.UNKNOWN, "No sync data yet")
+            return HealthCheck("calendar_sync", HealthStatus.CRITICAL, "No sync data available — scheduler may not be running")
 
         duration = scheduler_service.last_calendar_sync_duration
         last_sync = scheduler_service.last_calendar_sync_time
@@ -212,9 +213,11 @@ class HealthMonitor:
             return HealthStatus.CRITICAL
         if HealthStatus.WARNING in statuses:
             return HealthStatus.WARNING
+        # If all checks are healthy, return healthy
         if all(s == HealthStatus.HEALTHY for s in statuses):
             return HealthStatus.HEALTHY
-        return HealthStatus.UNKNOWN
+        # If we can't determine status (shouldn't happen), treat as critical
+        return HealthStatus.CRITICAL
 
     def should_send_alert(self, check_name: str, status: str) -> bool:
         """Determine if an alert should be sent based on cooldown and consecutive failures"""
@@ -250,23 +253,23 @@ async def log_health_check(db: AsyncSession, checks: List[HealthCheck], overall_
 
     log = HealthLog(
         overall_status=overall_status,
-        api_status=next((c.status for c in checks if c.name == "api"), "unknown"),
+        api_status=next((c.status for c in checks if c.name == "api"), "critical"),
         api_message=next((c.message for c in checks if c.name == "api"), ""),
-        database_status=next((c.status for c in checks if c.name == "database"), "unknown"),
+        database_status=next((c.status for c in checks if c.name == "database"), "critical"),
         database_message=next((c.message for c in checks if c.name == "database"), ""),
         database_latency_ms=next((c.value for c in checks if c.name == "database"), None),
-        caldav_status=next((c.status for c in checks if c.name == "caldav"), "unknown"),
+        caldav_status=next((c.status for c in checks if c.name == "caldav"), "critical"),
         caldav_message=next((c.message for c in checks if c.name == "caldav"), ""),
-        memory_status=next((c.status for c in checks if c.name == "memory"), "unknown"),
+        memory_status=next((c.status for c in checks if c.name == "memory"), "critical"),
         memory_message=next((c.message for c in checks if c.name == "memory"), ""),
         memory_percent=next((c.value for c in checks if c.name == "memory"), None),
-        disk_status=next((c.status for c in checks if c.name == "disk"), "unknown"),
+        disk_status=next((c.status for c in checks if c.name == "disk"), "critical"),
         disk_message=next((c.message for c in checks if c.name == "disk"), ""),
         disk_percent=next((c.value for c in checks if c.name == "disk"), None),
-        cpu_status=next((c.status for c in checks if c.name == "cpu"), "unknown"),
+        cpu_status=next((c.status for c in checks if c.name == "cpu"), "critical"),
         cpu_message=next((c.message for c in checks if c.name == "cpu"), ""),
         cpu_load=next((c.value for c in checks if c.name == "cpu"), None),
-        calendar_sync_status=next((c.status for c in checks if c.name == "calendar_sync"), "unknown"),
+        calendar_sync_status=next((c.status for c in checks if c.name == "calendar_sync"), "critical"),
         calendar_sync_message=next((c.message for c in checks if c.name == "calendar_sync"), ""),
         calendar_sync_value=next((c.value for c in checks if c.name == "calendar_sync"), None),
     )
