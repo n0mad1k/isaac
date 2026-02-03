@@ -381,7 +381,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
             label="Height"
             icon={Ruler}
             data={growthData.current_summary.height}
-            currentValue={member.height_inches ? formatHeight(member.height_inches) : null}
+            currentValue={member.height_inches ? `${member.height_inches} in` : null}
           />
           {growthData.current_summary.bmi && (
             <PercentileCard
@@ -655,7 +655,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-gray-400">{entry.recorded_at ? formatDate(new Date(entry.recorded_at)) : '—'}</span>
                     {entry.weight_lbs && <span className="text-white font-medium">{entry.weight_lbs} lbs</span>}
-                    {entry.height_inches && <span className="text-white font-medium">{formatHeight ? formatHeight(entry.height_inches) : `${entry.height_inches}"`}</span>}
+                    {entry.height_inches && <span className="text-white font-medium">{entry.height_inches} in</span>}
                     {entry.percentile && (
                       <span className={`text-xs px-2 py-0.5 rounded ${
                         STATUS_COLORS[entry.percentile.status]?.bg || 'bg-gray-700'
@@ -900,14 +900,6 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
 }
 
 function PercentileCard({ label, icon: Icon, data, currentValue }) {
-  // Helper to format height inches to feet-inches format
-  const formatHeightInches = (inches) => {
-    if (!inches) return ''
-    const feet = Math.floor(inches / 12)
-    const remainingInches = Math.round(inches % 12)
-    return `${feet}'${remainingInches}"`
-  }
-
   if (!data) {
     return (
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
@@ -926,7 +918,7 @@ function PercentileCard({ label, icon: Icon, data, currentValue }) {
   const formatMedian = () => {
     if (!data.median) return null
     if (label === 'Weight') return `${data.median} lbs`
-    if (label === 'Height') return formatHeightInches(data.median)
+    if (label === 'Height') return `${data.median} in`
     return data.median // BMI has no units
   }
 

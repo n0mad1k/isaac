@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.27] - 2026-02-03
+
+### Fixed
+- **Height in growth tracking now displays in inches only** - Changed all height displays in child growth tracking to show inches (e.g., "38 in") instead of feet-inches format (e.g., "3'2""). This applies to current height, median height, and weight/height history entries.
+
 ## [1.79.26] - 2026-02-03
 
 ### Fixed
