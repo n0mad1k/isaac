@@ -90,6 +90,29 @@ async def get_kb_status(
     }
 
 
+# --- AI Restrictions Status ---
+
+@router.get("/restrictions/")
+async def get_ai_restrictions_status(
+    user: User = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get current AI restriction settings for display in the UI"""
+    from services.ollama_service import get_setting_value
+
+    blocked_topics = await get_setting_value(db, "ai_blocked_topics", "")
+    topics_list = [t.strip() for t in blocked_topics.split(",") if t.strip()] if blocked_topics else []
+
+    return {
+        "read_only": (await get_setting_value(db, "ai_read_only", "false")) == "true",
+        "require_confirmation": (await get_setting_value(db, "ai_require_confirmation", "false")) == "true",
+        "max_tokens": int(await get_setting_value(db, "ai_max_response_tokens", "2000")),
+        "guardrails_enabled": (await get_setting_value(db, "ai_guardrails_enabled", "true")) == "true",
+        "blocked_topics": topics_list,
+        "knowledge_base_read_only": True,  # KB is always read-only by design
+    }
+
+
 # --- Conversations ---
 
 @router.post("/conversations/")
@@ -202,6 +225,43 @@ async def delete_conversation(
     return {"status": "deleted"}
 
 
+# --- AI Guardrails ---
+
+async def check_guardrails(db: AsyncSession, message: str) -> Optional[str]:
+    """
+    Check message against AI guardrails. Returns an error message if blocked, None if OK.
+    """
+    from services.ollama_service import get_setting_value
+
+    # Check if guardrails are enabled
+    guardrails_enabled = await get_setting_value(db, "ai_guardrails_enabled", "true")
+    if guardrails_enabled != "true":
+        return None
+
+    # Check blocked topics
+    blocked_topics = await get_setting_value(db, "ai_blocked_topics", "")
+    if blocked_topics:
+        topics = [t.strip().lower() for t in blocked_topics.split(",") if t.strip()]
+        message_lower = message.lower()
+        for topic in topics:
+            if topic in message_lower:
+                return f"I'm configured to not discuss topics related to '{topic}'. Please ask about something else."
+
+    return None
+
+
+async def get_ai_restrictions(db: AsyncSession) -> dict:
+    """Get current AI restriction settings."""
+    from services.ollama_service import get_setting_value
+
+    return {
+        "read_only": (await get_setting_value(db, "ai_read_only", "false")) == "true",
+        "require_confirmation": (await get_setting_value(db, "ai_require_confirmation", "false")) == "true",
+        "max_tokens": int(await get_setting_value(db, "ai_max_response_tokens", "2000")),
+        "guardrails_enabled": (await get_setting_value(db, "ai_guardrails_enabled", "true")) == "true",
+    }
+
+
 # --- Messages (SSE Streaming) ---
 
 @router.post("/conversations/{conversation_id}/messages/")
@@ -225,6 +285,18 @@ async def send_message(
     ai_enabled = await get_setting_value(db, "ai_enabled", "true")
     if ai_enabled != "true":
         raise HTTPException(status_code=503, detail="AI assistant is disabled in settings")
+
+    # Check guardrails
+    guardrail_error = await check_guardrails(db, data.content)
+    if guardrail_error:
+        # Return a polite refusal instead of an error
+        async def blocked_stream():
+            yield f"data: {json.dumps({'token': guardrail_error})}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        return StreamingResponse(blocked_stream(), media_type="text/event-stream")
+
+    # Get AI restrictions
+    restrictions = await get_ai_restrictions(db)
 
     # Save user message
     user_msg = ChatMessage(
@@ -260,6 +332,12 @@ async def send_message(
         context_data = context_data + "\n\n" + kb_context if context_data else kb_context
 
     system_prompt = build_system_prompt(effective_topic)
+
+    # Add restriction notices to system prompt
+    if restrictions["read_only"]:
+        system_prompt += "\n\nIMPORTANT: You are in READ-ONLY mode. You can answer questions and provide information, but you CANNOT create, modify, or delete any data. If the user asks you to make changes, politely explain that you're in read-only mode and can only provide guidance."
+    if restrictions["require_confirmation"]:
+        system_prompt += "\n\nIMPORTANT: All actions that modify data require explicit user confirmation. Always ask 'Would you like me to proceed with this change?' before taking any action."
 
     # Build conversation history (last N messages for context)
     result = await db.execute(

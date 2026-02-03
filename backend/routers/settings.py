@@ -438,6 +438,26 @@ DEFAULT_SETTINGS = {
         "value": "false",
         "description": "Enable knowledge base search. When enabled, AI chat will search your ingested documents (PDFs, books) for relevant reference material."
     },
+    "ai_read_only": {
+        "value": "false",
+        "description": "Read-only mode: AI cannot create, modify, or delete any data - only answer questions and provide suggestions."
+    },
+    "ai_require_confirmation": {
+        "value": "false",
+        "description": "Require explicit user confirmation before AI can execute any action that modifies data."
+    },
+    "ai_blocked_topics": {
+        "value": "",
+        "description": "Comma-separated topics the AI should not discuss (e.g., politics,religion,medical-advice). AI will politely decline these topics."
+    },
+    "ai_max_response_tokens": {
+        "value": "2000",
+        "description": "Maximum response length in tokens. Longer responses will be truncated."
+    },
+    "ai_guardrails_enabled": {
+        "value": "true",
+        "description": "Enable safety guardrails: prevent harmful content, enforce topic restrictions, and maintain appropriate tone."
+    },
 }
 
 

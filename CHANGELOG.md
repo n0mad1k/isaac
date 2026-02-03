@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.3] - 2026-02-03
+
+### Added
+- **AI Restrictions & Guardrails** - New settings to control AI behavior:
+  - **Read-Only Mode**: AI can only answer questions, cannot modify any data
+  - **Require Confirmation**: AI must ask for confirmation before any data changes
+  - **Blocked Topics**: Comma-separated list of topics the AI will refuse to discuss
+  - **Max Response Tokens**: Limit response length
+  - **Guardrails Enabled**: Master toggle for safety guardrails
+- **Knowledge Base is always read-only** - The RAG knowledge base uses PRAGMA query_only for database-level read protection
+
 ## [1.79.2] - 2026-02-03
 
 ### Added
