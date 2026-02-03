@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import {
   TrendingUp, TrendingDown, Minus, Plus, Check, ChevronDown, ChevronUp,
   AlertTriangle, CheckCircle, Activity, Ruler, Scale, Baby, Brain,
-  MessageSquare, Hand, Users, CheckCheck, Pencil, Trash2, X
+  MessageSquare, Hand, Users, CheckCheck, Pencil, Trash2, X, Shirt, Footprints
 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -41,6 +41,112 @@ const PERCENTILE_COLORS = {
   '75': '#eab308',
   '90': '#f97316',
   '97': '#ef4444'
+}
+
+// Size charts for clothing, diapers, and shoes
+// Based on typical US sizing standards
+const DIAPER_SIZES = [
+  { size: 'N', minWeight: 0, maxWeight: 10, label: 'Newborn' },
+  { size: '1', minWeight: 8, maxWeight: 14, label: 'Size 1' },
+  { size: '2', minWeight: 12, maxWeight: 18, label: 'Size 2' },
+  { size: '3', minWeight: 16, maxWeight: 28, label: 'Size 3' },
+  { size: '4', minWeight: 22, maxWeight: 37, label: 'Size 4' },
+  { size: '5', minWeight: 27, maxWeight: 45, label: 'Size 5' },
+  { size: '6', minWeight: 35, maxWeight: 50, label: 'Size 6' },
+  { size: '7', minWeight: 41, maxWeight: 999, label: 'Size 7' }
+]
+
+// Clothing sizes by height (inches) - typical US children's sizing
+const CLOTHING_SIZES = [
+  { size: 'Newborn', minHeight: 0, maxHeight: 21.5, ageRange: '0-3m' },
+  { size: '3M', minHeight: 21.5, maxHeight: 24, ageRange: '0-3m' },
+  { size: '6M', minHeight: 24, maxHeight: 26.5, ageRange: '3-6m' },
+  { size: '9M', minHeight: 26.5, maxHeight: 28.5, ageRange: '6-9m' },
+  { size: '12M', minHeight: 28.5, maxHeight: 30, ageRange: '9-12m' },
+  { size: '18M', minHeight: 30, maxHeight: 32, ageRange: '12-18m' },
+  { size: '24M/2T', minHeight: 32, maxHeight: 34, ageRange: '18-24m' },
+  { size: '3T', minHeight: 34, maxHeight: 38, ageRange: '2-3y' },
+  { size: '4T', minHeight: 38, maxHeight: 41, ageRange: '3-4y' },
+  { size: '5T', minHeight: 41, maxHeight: 44, ageRange: '4-5y' },
+  { size: '6', minHeight: 44, maxHeight: 47, ageRange: '5-6y' },
+  { size: '7', minHeight: 47, maxHeight: 50, ageRange: '6-7y' },
+  { size: '8', minHeight: 50, maxHeight: 53, ageRange: '7-8y' }
+]
+
+// Shoe sizes by age and approximate foot length
+const SHOE_SIZES = [
+  { size: '0-1', minAge: 0, maxAge: 3, label: 'Newborn (0-1)' },
+  { size: '2', minAge: 3, maxAge: 6, label: 'Size 2' },
+  { size: '3', minAge: 6, maxAge: 12, label: 'Size 3' },
+  { size: '4', minAge: 12, maxAge: 18, label: 'Size 4' },
+  { size: '5', minAge: 18, maxAge: 24, label: 'Size 5' },
+  { size: '6', minAge: 24, maxAge: 30, label: 'Size 6' },
+  { size: '7', minAge: 30, maxAge: 36, label: 'Size 7' },
+  { size: '8', minAge: 36, maxAge: 42, label: 'Size 8' },
+  { size: '9', minAge: 42, maxAge: 48, label: 'Size 9' },
+  { size: '10', minAge: 48, maxAge: 54, label: 'Size 10' },
+  { size: '11', minAge: 54, maxAge: 60, label: 'Size 11' },
+  { size: '12', minAge: 60, maxAge: 72, label: 'Size 12' },
+  { size: '13', minAge: 72, maxAge: 84, label: 'Size 13' }
+]
+
+function getSizeRecommendations(weightLbs, heightInches, ageMonths) {
+  const recs = []
+
+  // Diaper recommendation (only for kids under ~4 years / 48 months)
+  if (ageMonths < 48 && weightLbs) {
+    const currentDiaper = DIAPER_SIZES.find(d => weightLbs >= d.minWeight && weightLbs <= d.maxWeight)
+    const nextDiaper = DIAPER_SIZES.find(d => d.minWeight > (currentDiaper?.minWeight || 0))
+    if (currentDiaper) {
+      const percentToMax = ((weightLbs - currentDiaper.minWeight) / (currentDiaper.maxWeight - currentDiaper.minWeight)) * 100
+      recs.push({
+        category: 'Diapers',
+        current: currentDiaper.label,
+        next: nextDiaper?.label || 'Potty training!',
+        percentUsed: Math.min(percentToMax, 100),
+        sizeUp: percentToMax > 80,
+        note: percentToMax > 80 ? 'Consider sizing up soon' : null
+      })
+    }
+  }
+
+  // Clothing recommendation
+  if (heightInches) {
+    const currentClothing = CLOTHING_SIZES.find(c => heightInches >= c.minHeight && heightInches < c.maxHeight)
+    const currentIdx = CLOTHING_SIZES.findIndex(c => c === currentClothing)
+    const nextClothing = currentIdx >= 0 ? CLOTHING_SIZES[currentIdx + 1] : null
+    if (currentClothing) {
+      const percentToMax = ((heightInches - currentClothing.minHeight) / (currentClothing.maxHeight - currentClothing.minHeight)) * 100
+      recs.push({
+        category: 'Clothing',
+        current: currentClothing.size,
+        next: nextClothing?.size || 'Youth sizes',
+        percentUsed: Math.min(percentToMax, 100),
+        sizeUp: percentToMax > 75,
+        note: percentToMax > 75 ? 'May need next size soon' : null
+      })
+    }
+  }
+
+  // Shoe recommendation
+  if (ageMonths) {
+    const currentShoe = SHOE_SIZES.find(s => ageMonths >= s.minAge && ageMonths < s.maxAge)
+    const currentIdx = SHOE_SIZES.findIndex(s => s === currentShoe)
+    const nextShoe = currentIdx >= 0 ? SHOE_SIZES[currentIdx + 1] : null
+    if (currentShoe) {
+      const percentToMax = ((ageMonths - currentShoe.minAge) / (currentShoe.maxAge - currentShoe.minAge)) * 100
+      recs.push({
+        category: 'Shoes',
+        current: currentShoe.label,
+        next: nextShoe?.label || 'Youth sizes',
+        percentUsed: Math.min(percentToMax, 100),
+        sizeUp: percentToMax > 80,
+        note: 'Based on age - check actual foot size'
+      })
+    }
+  }
+
+  return recs
 }
 
 function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpdate }) {
@@ -305,6 +411,56 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
           </div>
         </div>
       )}
+
+      {/* Size Guide */}
+      {(member.current_weight || member.height_inches) && ageMonths < 96 && (() => {
+        const sizeRecs = getSizeRecommendations(member.current_weight, member.height_inches, ageMonths)
+        if (sizeRecs.length === 0) return null
+        return (
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+            <h3 className="text-base font-semibold text-white mb-3 flex items-center gap-2">
+              <Shirt className="w-5 h-5 text-purple-400" />
+              Size Guide
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {sizeRecs.map(rec => (
+                <div key={rec.category} className={`rounded-lg p-3 border ${
+                  rec.sizeUp ? 'bg-yellow-900/20 border-yellow-700' : 'bg-gray-900/50 border-gray-700'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-300">{rec.category}</span>
+                    {rec.sizeUp && (
+                      <span className="text-xs px-2 py-0.5 bg-yellow-600/30 text-yellow-400 rounded">Size Up Soon</span>
+                    )}
+                  </div>
+                  <div className="text-lg font-bold text-white">{rec.current}</div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Progress to next size</span>
+                      <span>{Math.round(rec.percentUsed)}%</span>
+                    </div>
+                    <div className="bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          rec.percentUsed > 80 ? 'bg-yellow-500' : rec.percentUsed > 50 ? 'bg-blue-500' : 'bg-green-500'
+                        }`}
+                        style={{ width: `${rec.percentUsed}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs mt-1">
+                      <span className="text-gray-500">Next: {rec.next}</span>
+                      {rec.note && <span className="text-gray-400 italic">{rec.note}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
+              * Sizes are estimates based on typical US standards. Actual sizing varies by brand.
+            </p>
+          </div>
+        )
+      })()}
 
       {/* Growth Chart */}
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">

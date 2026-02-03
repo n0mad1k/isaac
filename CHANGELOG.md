@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.1] - 2026-02-03
+
+### Added
+- **Size Guide for children** - New "Size Guide" section in the Growth tab shows recommended diaper, clothing, and shoe sizes based on current weight/height/age. Progress bars show when it's time to size up. Sizes are based on typical US standards.
+
 ## [1.79.0] - 2026-02-03
 
 ### Added
