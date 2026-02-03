@@ -342,7 +342,9 @@ async def get_configured_service(db: AsyncSession) -> AiService:
     """Create the AI service configured from database settings."""
     from services.encryption import decrypt_value, ENCRYPTED_PREFIX
 
-    provider = await get_setting_value(db, "ai_provider", "ollama")
+    raw_provider = await get_setting_value(db, "ai_provider", "ollama")
+    provider = raw_provider.strip().lower() if raw_provider else "ollama"
+    logger.debug(f"AI provider configured: '{provider}' (raw: '{raw_provider}')")
 
     if provider == "claude":
         raw_key = await get_setting_value(db, "anthropic_api_key", "")

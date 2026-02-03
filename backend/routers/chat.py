@@ -41,18 +41,27 @@ async def check_ai_health(
     db: AsyncSession = Depends(get_db),
 ):
     """Check if AI provider is healthy (Ollama running, or API key valid)"""
+    from fastapi.responses import JSONResponse
     try:
         service = await get_configured_service(db)
+        logger.debug(f"AI health check: service type={type(service).__name__}, provider={service.provider}, model={service.model}")
         healthy = await service.check_health()
         await service.close()
-        return {
-            "status": "online" if healthy else "offline",
-            "model": service.model,
-            "provider": service.provider,
-        }
+        # Return with no-cache headers to ensure fresh data on each check
+        return JSONResponse(
+            content={
+                "status": "online" if healthy else "offline",
+                "model": service.model,
+                "provider": service.provider,
+            },
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+        )
     except Exception as e:
         logger.error(f"AI health check failed: {e}")
-        return {"status": "offline", "model": "", "provider": ""}
+        return JSONResponse(
+            content={"status": "offline", "model": "", "provider": ""},
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+        )
 
 
 @router.get("/models/")

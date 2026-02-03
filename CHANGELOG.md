@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.26] - 2026-02-03
+
+### Fixed
+- **Chat AI provider display now always reflects current setting** - Fixed issue where the chat header would sometimes show "Ollama" even when configured for Claude or OpenAI. Added cache-prevention headers and normalized provider detection to ensure the displayed provider always matches your configured AI provider in Settings.
+
 ## [1.79.25] - 2026-02-03
 
 ### Fixed
