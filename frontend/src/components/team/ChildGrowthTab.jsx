@@ -900,6 +900,14 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
 }
 
 function PercentileCard({ label, icon: Icon, data, currentValue }) {
+  // Helper to format height inches to feet-inches format
+  const formatHeightInches = (inches) => {
+    if (!inches) return ''
+    const feet = Math.floor(inches / 12)
+    const remainingInches = Math.round(inches % 12)
+    return `${feet}'${remainingInches}"`
+  }
+
   if (!data) {
     return (
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
@@ -913,6 +921,14 @@ function PercentileCard({ label, icon: Icon, data, currentValue }) {
   }
 
   const status = STATUS_COLORS[data.status] || STATUS_COLORS.on_track
+
+  // Format median value based on label type
+  const formatMedian = () => {
+    if (!data.median) return null
+    if (label === 'Weight') return `${data.median} lbs`
+    if (label === 'Height') return formatHeightInches(data.median)
+    return data.median // BMI has no units
+  }
 
   return (
     <div className={`bg-gray-800 rounded-lg border p-4 ${status.border}`}>
@@ -930,10 +946,9 @@ function PercentileCard({ label, icon: Icon, data, currentValue }) {
       </div>
       <div className="text-xs text-gray-400 mt-1">
         {currentValue && <span>{currentValue}</span>}
-        {/* Show median for all metrics - Weight with lbs, Height with in, BMI without units */}
         {currentValue && data.median && <span> · </span>}
         {data.median && (
-          <span>Median: {data.median}{label === 'Weight' ? ' lbs' : label === 'Height' ? ' in' : ''}</span>
+          <span>Median: {formatMedian()}</span>
         )}
       </div>
     </div>

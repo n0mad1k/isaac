@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.22] - 2026-02-03
+
+### Fixed
+- **Height display format consistency** - Median height in growth tracking now displays in feet-inches format (e.g., 3'2") to match the current height display
+- **Tall children no longer flagged as concerning** - Height percentiles above 90th/97th no longer show "Monitor" or "Concern" status. Being tall is not a medical concern for children; only unusually short stature (low percentiles) is monitored
+
 ## [1.79.21] - 2026-02-03
 
 ### Fixed

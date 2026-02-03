@@ -153,7 +153,7 @@ def calculate_percentile(
     z = max(-4.0, min(4.0, z))
 
     percentile = round(_normal_cdf(z) * 100, 1)
-    status = get_growth_status(percentile)
+    status = get_growth_status(percentile, measurement_type)
 
     return {
         "z_score": round(z, 2),
@@ -163,11 +163,25 @@ def calculate_percentile(
     }
 
 
-def get_growth_status(percentile: float) -> str:
+def get_growth_status(percentile: float, measurement_type: str = None) -> str:
     """
     Determine growth status from percentile.
     Returns: "on_track", "monitor", or "concern"
+
+    For height: Only low percentiles are concerning (short stature may indicate growth issues).
+                High percentiles (tall) are generally not a medical concern for children.
+    For weight/BMI: Both low and high percentiles are concerning.
     """
+    # For height, only flag LOW percentiles as concerning
+    if measurement_type == "height":
+        if percentile < 3:
+            return "concern"
+        elif percentile < 10:
+            return "monitor"
+        else:
+            return "on_track"
+
+    # For weight and BMI, flag both extremes
     if percentile < 3 or percentile > 97:
         return "concern"
     elif percentile < 10 or percentile > 90:
