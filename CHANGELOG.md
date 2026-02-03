@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.51] - 2026-02-03
+
+### Fixed
+- **Invoice/receipt email subject now uses exact user input** - Email subjects for customer invoices and receipts are now sent exactly as you enter them, without any automatic prefix. If you want "[Farm Name] Invoice", type it yourself; otherwise just "Invoice - Order #1" works.
+
 ## [1.79.50] - 2026-02-03
 
 ### Changed

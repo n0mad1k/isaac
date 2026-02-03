@@ -400,7 +400,6 @@ function FarmFinances() {
 
   // Open invoice/receipt modal with pre-filled data
   const openInvoiceModal = (type, order = null, sale = null) => {
-    const farmName = getSetting('farm_name', 'Our Farm')
     if (type === 'invoice' && order) {
       // Get customer email from customers list
       const customer = customers.find(c => c.id === order.customer_id)
@@ -409,7 +408,7 @@ function FarmFinances() {
         orderId: order.id,
         saleId: null,
         toEmail: customer?.email || order.customer_email || '',
-        subject: `[${farmName}] Invoice - Order #${order.id}`,
+        subject: `Invoice - Order #${order.id}`,
         customerName: order.customer_name || '',
         description: order.description || '',
         total: order.final_total || order.estimated_total || 0,
@@ -425,7 +424,7 @@ function FarmFinances() {
         orderId: order.id,
         saleId: null,
         toEmail: customer?.email || order.customer_email || '',
-        subject: `[${farmName}] Receipt - Order #${order.id}`,
+        subject: `Receipt - Order #${order.id}`,
         customerName: order.customer_name || '',
         description: order.description || '',
         total: order.final_total || order.estimated_total || 0,
@@ -440,7 +439,7 @@ function FarmFinances() {
         orderId: null,
         saleId: sale.id,
         toEmail: sale.customer_email || '',
-        subject: `[${farmName}] Receipt - ${sale.item_name}`,
+        subject: `Receipt - ${sale.item_name}`,
         customerName: sale.customer_name || '',
         description: sale.description || sale.item_name || '',
         total: (sale.quantity * sale.unit_price) || 0,
@@ -523,10 +522,7 @@ function FarmFinances() {
   const handleSendPaymentReceipt = async (orderId, paymentId) => {
     if (!confirm('Send a receipt for this payment?')) return
     try {
-      const farmName = getSetting('farm_name', 'Our Farm')
-      const res = await sendPaymentReceipt(orderId, paymentId, {
-        subject: `[${farmName}] Payment Receipt`,
-      })
+      const res = await sendPaymentReceipt(orderId, paymentId)
       alert(res?.data?.message || 'Payment receipt sent!')
     } catch (error) {
       const msg = error.response?.data?.detail || 'Failed to send payment receipt'

@@ -111,6 +111,7 @@ class EmailService:
         html: bool = False,
         subject_prefix: Optional[str] = None,
         from_name: Optional[str] = None,
+        no_prefix: bool = False,
     ) -> bool:
         """Send an email notification.
 
@@ -121,6 +122,7 @@ class EmailService:
             html: Whether body is HTML
             subject_prefix: Override the default [Isaac] prefix (e.g., farm name for customer receipts)
             from_name: Override the From header display name (e.g., farm name for customer receipts)
+            no_prefix: If True, don't add any prefix to the subject (for customer emails)
         """
         if not self.is_configured():
             logger.warning("Email not configured, skipping notification")
@@ -136,9 +138,12 @@ class EmailService:
         try:
             message = MIMEMultipart("alternative")
             # Sanitize subject to prevent header injection
-            # subject_prefix can be passed for customer emails (e.g., farm name for receipts)
-            prefix = f"[{_sanitize_header(subject_prefix)}]" if subject_prefix else "[Isaac]"
-            message["Subject"] = f"{prefix} {_sanitize_header(subject)}"
+            # no_prefix=True for customer emails where subject should be used as-is
+            if no_prefix:
+                message["Subject"] = _sanitize_header(subject)
+            else:
+                prefix = f"[{_sanitize_header(subject_prefix)}]" if subject_prefix else "[Isaac]"
+                message["Subject"] = f"{prefix} {_sanitize_header(subject)}"
 
             # Use from_name if provided to override the From header display name (e.g., for customer emails)
             if from_name:
@@ -675,7 +680,7 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name, from_name=from_name)
+        return await self.send_email(subject, body, to=to, html=True, no_prefix=True, from_name=from_name)
 
     async def send_payment_receipt(
         self,
@@ -781,7 +786,7 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name, from_name=from_name)
+        return await self.send_email(subject, body, to=to, html=True, no_prefix=True, from_name=from_name)
 
     async def send_sale_receipt(
         self,
@@ -874,7 +879,7 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name, from_name=from_name)
+        return await self.send_email(subject, body, to=to, html=True, no_prefix=True, from_name=from_name)
 
     async def send_invoice(
         self,
@@ -973,4 +978,4 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name, from_name=from_name)
+        return await self.send_email(subject, body, to=to, html=True, no_prefix=True, from_name=from_name)
