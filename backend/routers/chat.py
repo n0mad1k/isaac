@@ -16,7 +16,7 @@ from loguru import logger
 from models.database import get_db
 from models.users import User
 from models.chat import ChatConversation, ChatMessage, AiInsight, InsightPriority
-from routers.auth import require_auth
+from routers.auth import require_auth, require_admin
 from services.ollama_service import get_configured_service
 from services.ai_context import detect_topic, gather_context, build_system_prompt
 
