@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.30] - 2026-02-03
+
+### Fixed
+- **Height and weight decimal precision in growth tracking** - All measurements (current height, median height, weight, BMI) now consistently show one decimal place (e.g., "38.0 in", "25.5 lbs"). This fixes the inconsistency where current height showed as a whole number while median showed decimals.
+
 ## [1.79.29] - 2026-02-03
 
 ### Added
