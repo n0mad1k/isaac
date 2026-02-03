@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.20] - 2026-02-03
+
+### Fixed
+- **Comprehensive mobile responsiveness improvements**
+  - Budget Overview: Category summary table shows 2 columns on mobile (Category + Remaining)
+  - Bills Summary: Responsive grids with hidden account column on mobile
+  - Worker Tasks: Info bar stacks on mobile with smaller icons
+  - Team page: Header title responsive size, narrower tab area
+  - Member Dossier: Tabs show icons only on mobile with tooltips
+
 ## [1.79.19] - 2026-02-03
 
 ### Fixed

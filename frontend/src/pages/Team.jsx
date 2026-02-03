@@ -250,12 +250,12 @@ function Team() {
       {/* Header Row: Tabs (left) + Team Name (center) + Actions (right) */}
       <div className="relative flex items-center border-b border-gray-700 pb-2">
         {/* Team Name - Absolutely centered */}
-        <h1 className="absolute left-1/2 -translate-x-1/2 text-2xl font-bold text-white pointer-events-none">
+        <h1 className="absolute left-1/2 -translate-x-1/2 text-lg sm:text-2xl font-bold text-white pointer-events-none truncate max-w-[40%] sm:max-w-none">
           {settings?.team_name || 'Team'}
         </h1>
 
         {/* Tab Navigation - Left */}
-        <div className="flex items-center gap-1 flex-shrink-0 max-w-[50%] sm:max-w-[35%]">
+        <div className="flex items-center gap-1 flex-shrink-0 max-w-[35%] sm:max-w-[35%]">
           {showLeftArrow && (
             <button
               onClick={() => scrollTabs('left')}

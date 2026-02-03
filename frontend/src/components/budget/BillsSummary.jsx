@@ -344,25 +344,26 @@ function BillsSummary() {
             <Plus className="w-4 h-4" />
           </button>
         </div>
-        <div className="grid grid-cols-[40px_1fr_80px_80px_60px_52px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
-          <span>Day</span><span>Name</span><span className="text-right">Amount</span><span className="text-right">Account</span><span className="text-center">Recur</span><span />
+        <div className="overflow-x-auto">
+        <div className="grid grid-cols-[40px_1fr_80px_60px_40px] sm:grid-cols-[40px_1fr_80px_80px_60px_52px] text-xs py-1 px-3 min-w-[300px]" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+          <span>Day</span><span>Name</span><span className="text-right">Amount</span><span className="text-right hidden sm:block">Acct</span><span className="text-center">Recur</span><span />
         </div>
         {fixedBills.map(cat => {
           const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
           const recLabel = getRecurrenceLabel(cat)
           return (
-            <div key={cat.id} className="grid grid-cols-[40px_1fr_80px_80px_60px_52px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+            <div key={cat.id} className="grid grid-cols-[40px_1fr_80px_60px_40px] sm:grid-cols-[40px_1fr_80px_80px_60px_52px] text-sm py-2 px-3 items-center min-w-[300px]" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
               <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
                 {cat.bill_day ? ordinal(cat.bill_day) : '—'}
               </span>
               <span className="flex items-center gap-1 truncate" style={{ color: 'var(--color-text-primary)' }}>
                 {cat.name}
-                {cat.owner && <span className="text-xs px-1 rounded" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: '9px' }}>{cat.owner}</span>}
+                {cat.owner && <span className="text-xs px-1 rounded hidden sm:inline" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: '9px' }}>{cat.owner}</span>}
               </span>
-              <span className="text-right" style={{ color: '#ef4444' }}>
+              <span className="text-right text-xs sm:text-sm" style={{ color: '#ef4444' }}>
                 -{fmt(amt)}
               </span>
-              <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
+              <span className="text-right truncate hidden sm:block" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
                 {getAcctName(cat.account_id) || '—'}
               </span>
               <span className="text-center">
@@ -372,15 +373,15 @@ function BillsSummary() {
                     {recLabel}
                   </span>
                 ) : (
-                  <span className="text-xs" style={{ color: 'var(--color-text-muted)', fontSize: '9px' }}>monthly</span>
+                  <span className="text-xs hidden sm:inline" style={{ color: 'var(--color-text-muted)', fontSize: '9px' }}>monthly</span>
                 )}
               </span>
-              <span className="flex justify-center gap-1">
+              <span className="flex justify-center gap-0.5 sm:gap-1">
                 <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
-                  <Pencil className="w-3.5 h-3.5" />
+                  <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
                 <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
               </span>
             </div>
@@ -420,10 +421,11 @@ function BillsSummary() {
             </div>
           </div>
         )}
-        <div className="grid grid-cols-[40px_1fr_80px_80px_60px_52px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
+        <div className="grid grid-cols-[40px_1fr_80px_60px_40px] sm:grid-cols-[40px_1fr_80px_80px_60px_52px] text-xs font-bold py-1.5 px-3 min-w-[300px]" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
           <span /><span style={{ color: 'var(--color-text-primary)' }}>Total Bills</span>
           <span className="text-right" style={{ color: '#ef4444' }}>-{fmt(totalBillsAmt)}</span>
-          <span /><span /><span />
+          <span className="hidden sm:block" /><span /><span />
+        </div>
         </div>
       </div>
 

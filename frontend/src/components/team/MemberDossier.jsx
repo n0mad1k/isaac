@@ -363,20 +363,21 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
         </div>
       </div>
 
-      {/* Sub-tabs */}
-      <div className="flex gap-1 border-b border-gray-700 pb-1 overflow-x-auto">
+      {/* Sub-tabs - icons only on mobile */}
+      <div className="flex gap-1 border-b border-gray-700 pb-1 overflow-x-auto scrollbar-hide">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-3 py-2 rounded-t-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
+            title={tab.label}
+            className={`px-2 sm:px-3 py-2 rounded-t-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1 sm:gap-2 flex-shrink-0 ${
               activeTab === tab.id
                 ? 'bg-gray-700 text-white'
                 : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
             }`}
           >
             <tab.icon className="w-4 h-4" />
-            {tab.label}
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
       </div>

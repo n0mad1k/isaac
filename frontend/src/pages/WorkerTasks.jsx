@@ -532,28 +532,29 @@ function WorkerTasks() {
       {/* Selected Worker Content */}
       {selectedWorker ? (
         <div className="space-y-4">
-          {/* Worker Info Bar */}
-          <div className="flex items-center justify-between bg-gray-800 rounded-lg p-4">
-            <div className="flex items-center gap-4">
-              <span className="text-3xl">{getRoleIcon(selectedWorker.role, 'text-3xl')}</span>
-              <div>
-                <h2 className="text-xl font-bold">{selectedWorker.name}</h2>
-                <p className="text-gray-400 text-sm">{selectedWorker.role || 'No role specified'}</p>
+          {/* Worker Info Bar - stacks on mobile */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-800 rounded-lg p-3 sm:p-4 gap-2 sm:gap-0">
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+              <span className="text-2xl sm:text-3xl">{getRoleIcon(selectedWorker.role, 'text-2xl sm:text-3xl')}</span>
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-xl font-bold truncate">{selectedWorker.name}</h2>
+                <p className="text-gray-400 text-xs sm:text-sm">{selectedWorker.role || 'No role specified'}</p>
               </div>
               {selectedWorker.phone && (
-                <div className="flex items-center gap-1 text-sm text-gray-400">
-                  <Phone className="w-4 h-4" />
-                  {displayPhone(selectedWorker.phone)}
+                <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-400">
+                  <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">{displayPhone(selectedWorker.phone)}</span>
+                  <span className="sm:hidden">{selectedWorker.phone.slice(-4)}</span>
                 </div>
               )}
               {selectedWorker.email && (
-                <div className="flex items-center gap-1 text-sm text-gray-400">
+                <div className="hidden sm:flex items-center gap-1 text-sm text-gray-400">
                   <Mail className="w-4 h-4" />
                   {selectedWorker.email}
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               <button
                 onClick={() => startEditWorker(selectedWorker)}
                 className="p-2 rounded-lg"

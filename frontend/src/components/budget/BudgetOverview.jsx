@@ -251,10 +251,10 @@ function BudgetOverview() {
               Summary by Category
             </h4>
 
-            <div className="grid grid-cols-4 text-xs font-semibold py-2 px-2 rounded-t" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 text-xs font-semibold py-2 px-2 rounded-t" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
               <span>Category</span>
-              <span className="text-right">Budget</span>
-              <span className="text-right">Spent</span>
+              <span className="text-right hidden sm:block">Budget</span>
+              <span className="text-right hidden sm:block">Spent</span>
               <span className="text-right">Remaining</span>
             </div>
 
@@ -263,10 +263,10 @@ function BudgetOverview() {
                 const remaining = (cat.budgeted || 0) - (cat.spent || 0)
                 const isEditing = editingBudget === cat.id
                 return (
-                  <div key={cat.id} className="grid grid-cols-4 text-xs py-2 px-2 items-center" style={{ backgroundColor: i % 2 === 0 ? 'var(--color-bg-surface)' : 'var(--color-bg-surface-soft)', borderBottom: '1px solid var(--color-border-default)' }}>
-                    <span style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
+                  <div key={cat.id} className="grid grid-cols-2 sm:grid-cols-4 text-xs py-2 px-2 items-center" style={{ backgroundColor: i % 2 === 0 ? 'var(--color-bg-surface)' : 'var(--color-bg-surface-soft)', borderBottom: '1px solid var(--color-border-default)' }}>
+                    <span className="truncate" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
                     {isEditing ? (
-                      <span className="text-right flex items-center justify-end gap-1">
+                      <span className="text-right hidden sm:flex items-center justify-end gap-1">
                         <input
                           type="number"
                           step="0.01"
@@ -280,7 +280,7 @@ function BudgetOverview() {
                       </span>
                     ) : (
                       <span
-                        className="text-right cursor-pointer hover:underline"
+                        className="text-right cursor-pointer hover:underline hidden sm:block"
                         style={{ color: 'var(--color-text-primary)' }}
                         onClick={() => {
                           const fullCat = categories.find(c => c.id === cat.id)
@@ -291,7 +291,7 @@ function BudgetOverview() {
                         {fmt(cat.budgeted)}
                       </span>
                     )}
-                    <span className="text-right" style={{ color: 'var(--color-text-primary)' }}>{fmt(cat.spent)}</span>
+                    <span className="text-right hidden sm:block" style={{ color: 'var(--color-text-primary)' }}>{fmt(cat.spent)}</span>
                     <span className="text-right" style={{ color: remaining < 0 ? '#ef4444' : 'var(--color-text-primary)' }}>
                       {fmtAccounting(remaining)}
                     </span>
@@ -300,10 +300,10 @@ function BudgetOverview() {
               })}
             </div>
 
-            <div className="grid grid-cols-4 text-xs font-bold py-2 px-2 rounded-b" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 text-xs font-bold py-2 px-2 rounded-b" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
               <span>Total</span>
-              <span className="text-right">{fmt(totalBudget)}</span>
-              <span className="text-right">{fmt(totalSpent)}</span>
+              <span className="text-right hidden sm:block">{fmt(totalBudget)}</span>
+              <span className="text-right hidden sm:block">{fmt(totalSpent)}</span>
               <span className="text-right">{fmtAccounting(totalRemaining)}</span>
             </div>
           </div>
