@@ -1266,6 +1266,28 @@ async def update_weight_log(
     if log.weight is None and log.height_inches is None:
         raise HTTPException(status_code=400, detail="At least one of weight or height_inches is required")
 
+    # Check if this is the latest log entry - if so, update member's current values
+    latest_result = await db.execute(
+        select(MemberWeightLog)
+        .where(MemberWeightLog.member_id == member_id)
+        .order_by(desc(MemberWeightLog.recorded_at))
+        .limit(1)
+    )
+    latest_log = latest_result.scalar_one_or_none()
+
+    if latest_log and latest_log.id == log.id:
+        # This is the most recent log, update member's current values
+        member_result = await db.execute(
+            select(TeamMember).where(TeamMember.id == member_id)
+        )
+        member = member_result.scalar_one_or_none()
+        if member:
+            if log.weight is not None:
+                member.current_weight = log.weight
+            if log.height_inches is not None:
+                member.height_inches = log.height_inches
+            member.updated_at = datetime.utcnow()
+
     await db.commit()
     await db.refresh(log)
 

@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.55] - 2026-02-03
+
+### Fixed
+- **Editing weight/height log now updates member's current values** - When you edit a weight or height measurement in the Growth tab, and it's the most recent entry, the member's displayed height/weight now updates correctly. Previously, edits would only update the log entry but not the member's current value, causing stale data to display.
+
 ## [1.79.54] - 2026-02-03
 
 ### Fixed
