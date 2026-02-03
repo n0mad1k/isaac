@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.31] - 2026-02-03
+
+### Fixed
+- **Activity Level indicator now shows classification instead of confidence** - The Activity Level indicator now correctly displays your activity classification (Sedentary/Low Activity/Moderate/Active/Very Active) instead of the misleading "(LOW)" data confidence indicator. For example, 6,664 steps/day now shows "Moderate" badge instead of "(LOW)".
+
 ## [1.79.30] - 2026-02-03
 
 ### Fixed

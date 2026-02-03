@@ -975,10 +975,12 @@ def _analyze_activity_level(
 
     if not recent_days:
         # No step data at all
+        step_label = "Unknown"  # Default classification when no data
         if workouts:
             recent_workouts = [w for w in workouts if w.workout_date and w.workout_date >= now - timedelta(days=7)]
             if recent_workouts:
                 score = 60
+                step_label = "Unknown (workouts only)"
                 factors.append(f"{len(recent_workouts)} workout(s) this week but no step data logged")
                 details["recommendation"] = "Log daily steps in your check-in to get a full activity picture."
             else:
@@ -988,6 +990,7 @@ def _analyze_activity_level(
             factors.append("No activity data available — log steps in daily check-in")
             details["recommendation"] = "Start logging daily steps and stairs in your check-in to track activity levels."
 
+        details["classification"] = step_label  # Always set classification
         return PerformanceIndicator(
             name="Activity Level",
             category="activity",

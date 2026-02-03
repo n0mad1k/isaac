@@ -1724,10 +1724,21 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                                   {ind.value?.toFixed(0) || '-'}
                                 </span>
                                 {/* Show classification for activity, confidence for others */}
-                                {ind.category === 'activity' && ind.details?.classification ? (
-                                  <span className={`text-xs px-1.5 py-0.5 rounded ${c.badge}`}>
-                                    {ind.details.classification}
-                                  </span>
+                                {ind.category === 'activity' ? (
+                                  // For activity: show classification badge, extract from factors if details.classification missing
+                                  (() => {
+                                    let classification = ind.details?.classification
+                                    // Fallback: extract from factors like "Avg 6,664 steps/day (Moderate)"
+                                    if (!classification && ind.contributing_factors?.length > 0) {
+                                      const match = ind.contributing_factors[0]?.match(/\((Sedentary|Low Activity|Moderate|Active|Very Active)\)/)
+                                      if (match) classification = match[1]
+                                    }
+                                    return classification ? (
+                                      <span className={`text-xs px-1.5 py-0.5 rounded ${c.badge}`}>
+                                        {classification}
+                                      </span>
+                                    ) : null
+                                  })()
                                 ) : (
                                   <span className="text-xs text-gray-500" title="Data confidence">({ind.confidence})</span>
                                 )}
