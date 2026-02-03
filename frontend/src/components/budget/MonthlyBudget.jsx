@@ -332,7 +332,7 @@ function MonthlyBudget() {
 
   const lineRow = (type, id, day, name, amount, accountName, isIncome = false, canDelete = true) => {
     const displayAmt = isIncome ? fmt(amount) : `-${fmt(Math.abs(amount))}`
-    const amtColor = isIncome ? '#22c55e' : '#ef4444'
+    const amtColor = isIncome ? 'var(--color-success-500)' : 'var(--color-error-500)'
 
     // Find full item for edit modal
     const openEdit = () => {
@@ -379,7 +379,7 @@ function MonthlyBudget() {
     const showAccount = true
 
     return (
-      <div className="text-xs py-2 px-2 space-y-1.5" style={{ borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
+      <div className="text-xs py-2 px-2 space-y-1.5" style={{ borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-success-bg)' }}>
         <div className="flex items-center gap-1.5 flex-wrap">
           <select value={type} onChange={(e) => setNewLine(f => ({ ...f, type: e.target.value }))}
             className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
@@ -468,7 +468,7 @@ function MonthlyBudget() {
     )
   }
 
-  const colHeader = (bgColor = '#3b82f6') => (
+  const colHeader = (bgColor = 'var(--color-blue-600)') => (
     <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-1.5 px-2" style={{ backgroundColor: bgColor, color: '#fff' }}>
       <span>Date</span><span>Item</span><span className="text-right">Amount</span><span className="hidden sm:inline text-right">Account</span><span />
     </div>
@@ -606,7 +606,7 @@ function MonthlyBudget() {
         <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
           <h4 className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{label}</h4>
         </div>
-        {colHeader('#3b82f6')}
+        {colHeader('var(--color-blue-600)')}
 
         {halfIncome.map(inc => {
           let halfAmt = inc.amount
@@ -625,7 +625,7 @@ function MonthlyBudget() {
 
         {(halfDist.length > 0 || distributions.length > 0) && (
           <>
-            <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(59, 130, 246, 0.08)', color: 'var(--color-text-primary)' }}>Distributions</div>
+            <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'var(--color-info-bg)', color: 'var(--color-text-primary)' }}>Distributions</div>
             {halfDist.map(cat => {
               const amt = getPerPeriodAmount(cat)
               if (amt <= 0) return null
@@ -644,7 +644,7 @@ function MonthlyBudget() {
 
         {(halfVar.length > 0 || variablePerHalf.length > 0) && (
           <>
-            <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(245, 158, 11, 0.08)', color: 'var(--color-text-primary)' }}>Spending</div>
+            <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-text-primary)' }}>Spending</div>
             {halfVar.map(cat => {
               const amt = getPerPeriodAmount(cat)
               if (amt <= 0) return null
@@ -662,7 +662,7 @@ function MonthlyBudget() {
 
         {halfBills.length > 0 && (
           <>
-            <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', color: 'var(--color-text-primary)' }}>Bills</div>
+            <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'var(--color-error-bg)', color: 'var(--color-text-primary)' }}>Bills</div>
             {halfBills.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
           </>
         )}
@@ -719,16 +719,16 @@ function MonthlyBudget() {
         <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
           <h4 className="text-xs font-semibold" style={{ color: 'var(--color-text-primary)' }}>{personName}'s Budget</h4>
         </div>
-        {colHeader('#8b5cf6')}
+        {colHeader('var(--color-purple-600)')}
 
-        <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: 'var(--color-text-primary)' }}>1st - 14th</div>
+        <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'var(--color-purple-100)', color: 'var(--color-text-primary)' }}>1st - 14th</div>
         {firstDeposits.map(cat => lineRow('category', cat.id, cat.bill_day, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bFirst.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {/* Inline Half Summary */}
         <div className="bg-gray-700/30 px-2 py-1.5 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-4">
-            <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span className="font-semibold" style={{ color: '#ef4444' }}>-{fmt(firstBillTotal)}</span></span>
-            <span style={{ color: 'var(--color-text-muted)' }}>Total: <span className="font-semibold" style={{ color: firstHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(firstHalfRemaining)}</span></span>
+            <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span className="font-semibold" style={{ color: 'var(--color-error-500)' }}>-{fmt(firstBillTotal)}</span></span>
+            <span style={{ color: 'var(--color-text-muted)' }}>Total: <span className="font-semibold" style={{ color: firstHalfRemaining >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(firstHalfRemaining)}</span></span>
           </div>
         </div>
         {addForm(`${ownerKey}-first`)}
@@ -739,14 +739,14 @@ function MonthlyBudget() {
           </button>
         </div>
 
-        <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: 'var(--color-text-primary)' }}>15th - End</div>
+        <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'var(--color-purple-100)', color: 'var(--color-text-primary)' }}>15th - End</div>
         {secondDeposits.map(cat => lineRow('category', cat.id, cat.bill_day, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bSecond.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {/* Inline Half Summary */}
         <div className="bg-gray-700/30 px-2 py-1.5 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-4">
-            <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span className="font-semibold" style={{ color: '#ef4444' }}>-{fmt(secondBillTotal)}</span></span>
-            <span style={{ color: 'var(--color-text-muted)' }}>Total: <span className="font-semibold" style={{ color: secondHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfRemaining)}</span></span>
+            <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span className="font-semibold" style={{ color: 'var(--color-error-500)' }}>-{fmt(secondBillTotal)}</span></span>
+            <span style={{ color: 'var(--color-text-muted)' }}>Total: <span className="font-semibold" style={{ color: secondHalfRemaining >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(secondHalfRemaining)}</span></span>
           </div>
         </div>
         {addForm(`${ownerKey}-second`)}
@@ -763,14 +763,14 @@ function MonthlyBudget() {
             {/* Monthly remaining = first half remaining + second half remaining (pure budget math, no rollover) */}
             <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-semibold py-0.5 px-2">
               <span /><span style={{ color: 'var(--color-text-primary)' }}>Monthly Remaining</span>
-              <span className="text-right" style={{ color: (firstHalfRemaining + secondHalfRemaining) >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(firstHalfRemaining + secondHalfRemaining)}</span>
+              <span className="text-right" style={{ color: (firstHalfRemaining + secondHalfRemaining) >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(firstHalfRemaining + secondHalfRemaining)}</span>
               <span className="hidden sm:inline" /><span />
             </div>
             {/* Rollover from prior months */}
             {rollover !== 0 && (
               <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs py-0.5 px-2">
                 <span /><span style={{ color: 'var(--color-text-muted)' }}>Rollover</span>
-                <span className="text-right" style={{ color: rollover >= 0 ? '#22c55e' : '#ef4444' }}>{rollover >= 0 ? '+' : ''}{fmt(rollover)}</span>
+                <span className="text-right" style={{ color: rollover >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{rollover >= 0 ? '+' : ''}{fmt(rollover)}</span>
                 <span className="hidden sm:inline" /><span />
               </div>
             )}
@@ -779,9 +779,9 @@ function MonthlyBudget() {
               // Use the backend-calculated available amount (same as spending cards)
               const available = personData.available || 0
               return (
-                <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
+                <div className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs font-bold py-1.5 px-2" style={{ borderTop: '2px solid var(--color-border-default)', backgroundColor: 'var(--color-success-bg)' }}>
                   <span /><span style={{ color: 'var(--color-text-primary)' }}>Available to Spend</span>
-                  <span className="text-right text-sm" style={{ color: available >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(available)}</span>
+                  <span className="text-right text-sm" style={{ color: available >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(available)}</span>
                   <span className="hidden sm:inline" /><span />
                 </div>
               )
@@ -816,11 +816,11 @@ function MonthlyBudget() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
         <div className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Income</div>
-          <span className="text-sm font-bold" style={{ color: '#22c55e' }}>{fmt(cardIncome)}</span>
+          <span className="text-sm font-bold" style={{ color: 'var(--color-success-500)' }}>{fmt(cardIncome)}</span>
         </div>
         <div className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Bills</div>
-          <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{fmt(cardBills)}</span>
+          <span className="text-sm font-bold" style={{ color: 'var(--color-error-500)' }}>{fmt(cardBills)}</span>
         </div>
         {spendingCardCats.map(name => {
           const isDaneKelly = name.toLowerCase().includes('dane') || name.toLowerCase().includes('kelly')
@@ -831,7 +831,7 @@ function MonthlyBudget() {
             return (
               <div key={name} className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
                 <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{name}</div>
-                <span className="text-sm font-bold" style={{ color: available >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(available)}</span>
+                <span className="text-sm font-bold" style={{ color: available >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(available)}</span>
                 {personData.period_spent > 0 && (
                   <div className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>spent: {fmt(personData.period_spent)}</div>
                 )}
@@ -842,13 +842,13 @@ function MonthlyBudget() {
           return (
             <div key={name} className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
               <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>{name}</div>
-              <span className="text-sm font-bold" style={{ color: remaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(remaining)}</span>
+              <span className="text-sm font-bold" style={{ color: remaining >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(remaining)}</span>
             </div>
           )
         })}
         <div className="rounded-xl p-2.5" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Surplus</div>
-          <span className="text-sm font-bold" style={{ color: cardSurplus >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(cardSurplus)}</span>
+          <span className="text-sm font-bold" style={{ color: cardSurplus >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(cardSurplus)}</span>
         </div>
       </div>
 
@@ -870,7 +870,7 @@ function MonthlyBudget() {
           <div className="px-4 py-2.5" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
             <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Account Overview</h4>
           </div>
-          <div className="grid grid-cols-4 text-xs font-semibold py-1.5 px-4" style={{ backgroundColor: '#3b82f6', color: '#fff' }}>
+          <div className="grid grid-cols-4 text-xs font-semibold py-1.5 px-4" style={{ backgroundColor: 'var(--color-blue-600)', color: '#fff' }}>
             <span>Account</span>
             <span className="text-right">Money In</span>
             <span className="text-right">Money Out</span>
@@ -881,9 +881,9 @@ function MonthlyBudget() {
             return (
               <div key={i} className="grid grid-cols-4 text-xs py-1.5 px-4" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
                 <span style={{ color: 'var(--color-text-primary)' }}>{acct.name}</span>
-                <span className="text-right" style={{ color: '#22c55e' }}>{fmt(acct.moneyIn)}</span>
-                <span className="text-right" style={{ color: '#ef4444' }}>{fmt(acct.moneyOut)}</span>
-                <span className="text-right font-semibold" style={{ color: net >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(net)}</span>
+                <span className="text-right" style={{ color: 'var(--color-success-500)' }}>{fmt(acct.moneyIn)}</span>
+                <span className="text-right" style={{ color: 'var(--color-error-500)' }}>{fmt(acct.moneyOut)}</span>
+                <span className="text-right font-semibold" style={{ color: net >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(net)}</span>
               </div>
             )
           })}
@@ -897,10 +897,10 @@ function MonthlyBudget() {
         </div>
         <div className="py-1">
           {[
-            ['Total Money In', totalIncome, '#22c55e', false],
-            ['Bills', totalBills, '#ef4444', true],
-            ['Spending', totalSpending, '#ef4444', true],
-            ['Distributions', totalDistributions, '#ef4444', true],
+            ['Total Money In', totalIncome, 'var(--color-success-500)', false],
+            ['Bills', totalBills, 'var(--color-error-500)', true],
+            ['Spending', totalSpending, 'var(--color-error-500)', true],
+            ['Distributions', totalDistributions, 'var(--color-error-500)', true],
           ].map(([label, val, color, neg]) => (
             <div key={label} className="grid grid-cols-2 text-sm py-1.5 px-4">
               <span style={{ color: 'var(--color-text-primary)' }}>{label}</span>
@@ -909,11 +909,11 @@ function MonthlyBudget() {
           ))}
           <div className="grid grid-cols-2 text-sm py-1.5 px-4" style={{ borderTop: '1px solid var(--color-border-default)' }}>
             <span style={{ color: 'var(--color-text-primary)' }}>Total Outgoing</span>
-            <span className="text-right font-bold" style={{ color: '#ef4444' }}>-{fmt(totalOutgoing)}</span>
+            <span className="text-right font-bold" style={{ color: 'var(--color-error-500)' }}>-{fmt(totalOutgoing)}</span>
           </div>
           <div className="grid grid-cols-2 text-sm font-bold py-2.5 px-4" style={{ borderTop: '2px solid var(--color-border-default)' }}>
             <span style={{ color: 'var(--color-text-primary)' }}>{surplus >= 0 ? 'Surplus' : 'Overage'}</span>
-            <span className="text-right" style={{ color: surplus >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(surplus)}</span>
+            <span className="text-right" style={{ color: surplus >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(surplus)}</span>
           </div>
         </div>
       </div>

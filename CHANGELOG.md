@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.10] - 2026-02-03
+
+### Changed
+- **Budget colors now match app theme** - All hardcoded colors in the Monthly Budget have been replaced with theme tokens. Income headers, section backgrounds (Distributions, Spending, Bills), and positive/negative amount colors now adapt to the app's theme and provide consistent styling across the application.
+
 ## [1.79.9] - 2026-02-03
 
 ### Fixed
