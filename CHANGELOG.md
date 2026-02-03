@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.78.7] - 2026-02-03
+
+### Changed
+- **Health indicators restructured** - PHYSICAL BREAKDOWN section now shows compact cards with just score and progress bar. Detailed info (readings, reference ranges, factors, recommendations) moved inside "Show Details" area with expandable cards. Keeps the quick glance minimal, detailed info available on expand.
+
 ## [1.78.6] - 2026-02-03
 
 ### Fixed

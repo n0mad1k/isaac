@@ -1570,110 +1570,28 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                   </div>
                 )}
 
-                {/* Physical Breakdown - Expandable Cards */}
+                {/* Physical Breakdown - Compact View */}
                 {readinessAnalysis.indicators?.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-gray-600">
                     <div className="text-xs text-gray-400 mb-2">PHYSICAL BREAKDOWN:</div>
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {readinessAnalysis.indicators
                         .filter(ind => ['autonomic', 'cardiovascular', 'illness', 'body_composition', 'activity'].includes(ind.category))
                         .map(ind => {
                           const scoreColor = ind.value >= 80 ? 'green' : ind.value >= 60 ? 'yellow' : 'red'
-                          const colorMap = { green: { text: 'text-green-400', bg: 'bg-green-500', badge: 'bg-green-900/30 text-green-400', bar: 'bg-green-500' }, yellow: { text: 'text-yellow-400', bg: 'bg-yellow-500', badge: 'bg-yellow-900/30 text-yellow-400', bar: 'bg-yellow-500' }, red: { text: 'text-red-400', bg: 'bg-red-500', badge: 'bg-red-900/30 text-red-400', bar: 'bg-red-500' } }
+                          const colorMap = { green: { badge: 'bg-green-900/30 text-green-400', bar: 'bg-green-500' }, yellow: { badge: 'bg-yellow-900/30 text-yellow-400', bar: 'bg-yellow-500' }, red: { badge: 'bg-red-900/30 text-red-400', bar: 'bg-red-500' } }
                           const c = colorMap[scoreColor]
-                          const hasDetails = (ind.details?.actual_values?.length > 0) || (ind.details?.normal_ranges?.length > 0) || ind.details?.recommendation || (ind.contributing_factors?.length > 0)
-                          const isExpanded = expandedIndicators?.[ind.category]
-
                           return (
-                            <div key={ind.category} className="bg-gray-800/50 rounded-lg overflow-hidden">
-                              {/* Collapsed Header - always visible */}
-                              <button
-                                onClick={() => setExpandedIndicators(prev => ({ ...prev, [ind.category]: !prev?.[ind.category] }))}
-                                className="w-full p-3 text-left"
-                              >
-                                <div className="flex items-center gap-2 mb-1.5">
-                                  <span className="text-sm text-white font-semibold flex-1">{ind.name}</span>
-                                  <span className={`text-xs px-2 py-0.5 rounded font-bold ${c.badge}`}>
-                                    {ind.value?.toFixed(0) || '-'}
-                                  </span>
-                                  {getTrendIcon(ind.trend)}
-                                  {hasDetails && (
-                                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="flex-grow bg-gray-700 rounded-full h-2 overflow-hidden">
-                                    <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${ind.value}%` }} />
-                                  </div>
-                                </div>
-                                {ind.explanation && (
-                                  <div className={`text-xs mt-1.5 ${c.text}`}>{ind.explanation}</div>
-                                )}
-                              </button>
-
-                              {/* Expanded Details */}
-                              {isExpanded && (
-                                <div className="px-3 pb-3 space-y-3 border-t border-gray-700/50">
-                                  {/* Your Readings */}
-                                  {(ind.details?.actual_values?.length > 0 || ind.contributing_factors?.length > 0) && (
-                                    <div className="mt-2">
-                                      <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">YOUR READINGS</div>
-                                      <div className="flex flex-wrap gap-2">
-                                        {ind.details?.actual_values?.length > 0 ? (
-                                          ind.details.actual_values.map((val, vi) => (
-                                            <span key={vi} className="text-xs text-white bg-gray-700 px-2 py-1 rounded font-medium">{val}</span>
-                                          ))
-                                        ) : (
-                                          ind.contributing_factors?.map((factor, fi) => (
-                                            <span key={fi} className="text-xs text-white bg-gray-700 px-2 py-1 rounded font-medium">{factor}</span>
-                                          ))
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Normal Ranges */}
-                                  {ind.details?.normal_ranges?.length > 0 && (
-                                    <div>
-                                      <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">REFERENCE RANGES</div>
-                                      <div className="space-y-1">
-                                        {ind.details.normal_ranges.map((range, ri) => (
-                                          <div key={ri} className="text-xs text-gray-400 bg-gray-900/40 px-2 py-1 rounded">{range}</div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Contributing Factors (show alongside actual_values if both exist) */}
-                                  {ind.details?.actual_values?.length > 0 && ind.contributing_factors?.length > 0 && (
-                                    <div>
-                                      <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">FACTORS</div>
-                                      <div className="space-y-0.5">
-                                        {ind.contributing_factors.map((factor, fi) => (
-                                          <div key={fi} className="text-xs text-gray-400 flex items-start gap-1.5">
-                                            <span className="text-gray-600 mt-0.5">•</span>
-                                            <span>{factor}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Recommendation */}
-                                  {ind.details?.recommendation && (
-                                    <div>
-                                      <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">RECOMMENDATION</div>
-                                      <div className={`text-xs px-2.5 py-2 rounded-lg border ${
-                                        scoreColor === 'green' ? 'bg-green-900/20 border-green-800/40 text-green-300' :
-                                        scoreColor === 'yellow' ? 'bg-yellow-900/20 border-yellow-800/40 text-yellow-300' :
-                                        'bg-red-900/20 border-red-800/40 text-red-300'
-                                      }`}>
-                                        {ind.details.recommendation}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                            <div key={ind.category} className="bg-gray-800/50 rounded-lg p-2">
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span className="text-xs text-white font-medium truncate">{ind.name}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${c.badge}`}>
+                                  {ind.value?.toFixed(0) || '-'}
+                                </span>
+                              </div>
+                              <div className="bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${ind.value}%` }} />
+                              </div>
                             </div>
                           )
                         })}
@@ -1775,29 +1693,112 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                   )}
                 </div>
 
-                {/* All Indicators */}
+                {/* All Indicators - Detailed Expandable Cards */}
                 <div className="bg-gray-800 rounded p-3">
-                  <div className="text-xs text-gray-400 mb-2">ALL INDICATORS</div>
+                  <div className="text-xs text-gray-400 mb-2">ALL INDICATORS (click to expand)</div>
                   <div className="space-y-2">
-                    {readinessAnalysis.indicators.map(ind => (
-                      <div key={ind.name} className="text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-300">{ind.name}</span>
-                          <div className="flex items-center gap-2">
-                            {getTrendIcon(ind.trend)}
-                            <span className={ind.value >= 80 ? 'text-green-400' : ind.value >= 60 ? 'text-yellow-400' : 'text-red-400'}>
-                              {ind.value.toFixed(0)}
-                            </span>
-                            <span className="text-xs text-gray-500">({ind.confidence} conf)</span>
-                          </div>
+                    {readinessAnalysis.indicators.map(ind => {
+                      const scoreColor = ind.value >= 80 ? 'green' : ind.value >= 60 ? 'yellow' : 'red'
+                      const colorMap = { green: { text: 'text-green-400', badge: 'bg-green-900/30 text-green-400' }, yellow: { text: 'text-yellow-400', badge: 'bg-yellow-900/30 text-yellow-400' }, red: { text: 'text-red-400', badge: 'bg-red-900/30 text-red-400' } }
+                      const c = colorMap[scoreColor]
+                      const hasDetails = (ind.details?.actual_values?.length > 0) || (ind.details?.normal_ranges?.length > 0) || ind.details?.recommendation || (ind.contributing_factors?.length > 0)
+                      const isExpanded = expandedIndicators?.[ind.category]
+
+                      return (
+                        <div key={ind.category} className="bg-gray-700/50 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => setExpandedIndicators(prev => ({ ...prev, [ind.category]: !prev?.[ind.category] }))}
+                            className="w-full p-2.5 text-left"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-white font-medium">{ind.name}</span>
+                              <div className="flex items-center gap-2">
+                                {getTrendIcon(ind.trend)}
+                                <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${c.badge}`}>
+                                  {ind.value?.toFixed(0) || '-'}
+                                </span>
+                                <span className="text-xs text-gray-500">({ind.confidence})</span>
+                                {hasDetails && (
+                                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                )}
+                              </div>
+                            </div>
+                            {ind.explanation && !isExpanded && (
+                              <div className={`text-xs mt-1 ${c.text}`}>{ind.explanation}</div>
+                            )}
+                          </button>
+
+                          {/* Expanded Details */}
+                          {isExpanded && (
+                            <div className="px-2.5 pb-2.5 space-y-2.5 border-t border-gray-600/50">
+                              {/* Summary */}
+                              {ind.explanation && (
+                                <div className={`text-xs mt-2 ${c.text}`}>{ind.explanation}</div>
+                              )}
+
+                              {/* Your Readings */}
+                              {(ind.details?.actual_values?.length > 0 || ind.contributing_factors?.length > 0) && (
+                                <div>
+                                  <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">YOUR READINGS</div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {ind.details?.actual_values?.length > 0 ? (
+                                      ind.details.actual_values.map((val, vi) => (
+                                        <span key={vi} className="text-xs text-white bg-gray-600 px-2 py-0.5 rounded font-medium">{val}</span>
+                                      ))
+                                    ) : (
+                                      ind.contributing_factors?.map((factor, fi) => (
+                                        <span key={fi} className="text-xs text-white bg-gray-600 px-2 py-0.5 rounded font-medium">{factor}</span>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Normal Ranges */}
+                              {ind.details?.normal_ranges?.length > 0 && (
+                                <div>
+                                  <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">REFERENCE RANGES</div>
+                                  <div className="space-y-0.5">
+                                    {ind.details.normal_ranges.map((range, ri) => (
+                                      <div key={ri} className="text-xs text-gray-400 bg-gray-800/60 px-2 py-0.5 rounded">{range}</div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Contributing Factors */}
+                              {ind.details?.actual_values?.length > 0 && ind.contributing_factors?.length > 0 && (
+                                <div>
+                                  <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">FACTORS</div>
+                                  <div className="space-y-0.5">
+                                    {ind.contributing_factors.map((factor, fi) => (
+                                      <div key={fi} className="text-xs text-gray-400 flex items-start gap-1">
+                                        <span className="text-gray-600">•</span>
+                                        <span>{factor}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Recommendation */}
+                              {ind.details?.recommendation && (
+                                <div>
+                                  <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">RECOMMENDATION</div>
+                                  <div className={`text-xs px-2 py-1.5 rounded border ${
+                                    scoreColor === 'green' ? 'bg-green-900/20 border-green-800/40 text-green-300' :
+                                    scoreColor === 'yellow' ? 'bg-yellow-900/20 border-yellow-800/40 text-yellow-300' :
+                                    'bg-red-900/20 border-red-800/40 text-red-300'
+                                  }`}>
+                                    {ind.details.recommendation}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {ind.contributing_factors?.length > 0 && (
-                          <div className="text-xs text-gray-500 ml-2">
-                            {ind.contributing_factors.join('; ')}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
 
