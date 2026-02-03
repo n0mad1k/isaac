@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.8] - 2026-02-03
+
+### Fixed
+- **Health indicator reference ranges and recommendations now readable** - In Team > Health Data > ALL INDICATORS expanded cards, the REFERENCE RANGES and RECOMMENDATION sections now use color-coded backgrounds with proper contrast (white text on darker backgrounds instead of faint colored text). Green, amber, and red status colors are clearly visible.
+
 ## [1.79.7] - 2026-02-03
 
 ### Fixed

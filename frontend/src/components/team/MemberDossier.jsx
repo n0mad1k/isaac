@@ -1765,7 +1765,11 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                                   <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">REFERENCE RANGES</div>
                                   <div className="space-y-0.5">
                                     {ind.details.normal_ranges.map((range, ri) => (
-                                      <div key={ri} className="text-xs text-gray-400 bg-gray-800/60 px-2 py-0.5 rounded">{range}</div>
+                                      <div key={ri} className={`text-xs px-2 py-1 rounded border ${
+                                        scoreColor === 'green' ? 'bg-green-900/40 border-green-700 text-green-100' :
+                                        scoreColor === 'yellow' ? 'bg-amber-900/40 border-amber-700 text-amber-100' :
+                                        'bg-red-900/40 border-red-700 text-red-100'
+                                      }`}>{range}</div>
                                     ))}
                                   </div>
                                 </div>
@@ -1791,9 +1795,9 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                                 <div>
                                   <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">RECOMMENDATION</div>
                                   <div className={`text-xs px-2 py-1.5 rounded border ${
-                                    scoreColor === 'green' ? 'bg-green-900/20 border-green-800/40 text-green-300' :
-                                    scoreColor === 'yellow' ? 'bg-yellow-900/20 border-yellow-800/40 text-yellow-300' :
-                                    'bg-red-900/20 border-red-800/40 text-red-300'
+                                    scoreColor === 'green' ? 'bg-green-800/60 border-green-600 text-white' :
+                                    scoreColor === 'yellow' ? 'bg-amber-800/60 border-amber-600 text-white' :
+                                    'bg-red-800/60 border-red-600 text-white'
                                   }`}>
                                     {ind.details.recommendation}
                                   </div>
