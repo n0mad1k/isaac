@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.78.8] - 2026-02-03
+
+### Fixed
+- **Per-person budget inline totals now clearly visible** - Bill totals and remaining now displayed in a separate highlighted row after each half's bills, making them obvious instead of blending with the Add Line button.
+
 ## [1.78.7] - 2026-02-03
 
 ### Changed

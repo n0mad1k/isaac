@@ -724,12 +724,15 @@ function MonthlyBudget() {
         <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: 'var(--color-text-primary)' }}>1st - 14th</div>
         {firstDeposits.map(cat => lineRow('category', cat.id, cat.bill_day, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bFirst.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
-        {addForm(`${ownerKey}-first`)}
-        <div className="flex items-center justify-between px-2 py-0.5">
-          <div className="flex items-center gap-3 text-xs">
-            <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span style={{ color: '#ef4444' }}>-{fmt(firstBillTotal)}</span></span>
-            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Total: <span style={{ color: firstHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(firstHalfRemaining)}</span></span>
+        {/* Inline Half Summary */}
+        <div className="bg-gray-700/30 px-2 py-1.5 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--color-border-default)' }}>
+          <div className="flex items-center gap-4">
+            <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span className="font-semibold" style={{ color: '#ef4444' }}>-{fmt(firstBillTotal)}</span></span>
+            <span style={{ color: 'var(--color-text-muted)' }}>Total: <span className="font-semibold" style={{ color: firstHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(firstHalfRemaining)}</span></span>
           </div>
+        </div>
+        {addForm(`${ownerKey}-first`)}
+        <div className="flex justify-end px-2 py-0.5">
           <button onClick={() => openAddForm(`${ownerKey}-first`, 'bill')}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
@@ -739,12 +742,15 @@ function MonthlyBudget() {
         <div className="text-xs font-semibold py-1 px-2" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: 'var(--color-text-primary)' }}>15th - End</div>
         {secondDeposits.map(cat => lineRow('category', cat.id, cat.bill_day, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bSecond.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
-        {addForm(`${ownerKey}-second`)}
-        <div className="flex items-center justify-between px-2 py-0.5">
-          <div className="flex items-center gap-3 text-xs">
-            <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span style={{ color: '#ef4444' }}>-{fmt(secondBillTotal)}</span></span>
-            <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>Total: <span style={{ color: secondHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfRemaining)}</span></span>
+        {/* Inline Half Summary */}
+        <div className="bg-gray-700/30 px-2 py-1.5 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--color-border-default)' }}>
+          <div className="flex items-center gap-4">
+            <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span className="font-semibold" style={{ color: '#ef4444' }}>-{fmt(secondBillTotal)}</span></span>
+            <span style={{ color: 'var(--color-text-muted)' }}>Total: <span className="font-semibold" style={{ color: secondHalfRemaining >= 0 ? '#22c55e' : '#ef4444' }}>{fmt(secondHalfRemaining)}</span></span>
           </div>
+        </div>
+        {addForm(`${ownerKey}-second`)}
+        <div className="flex justify-end px-2 py-0.5">
           <button onClick={() => openAddForm(`${ownerKey}-second`, 'bill')}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
