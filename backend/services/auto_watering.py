@@ -56,7 +56,14 @@ async def get_daily_rain_totals(db: AsyncSession, since_date: datetime) -> Dict[
         .group_by(func.date(WeatherReading.reading_time))
     )
 
-    return {row.day: row.daily_rain or 0.0 for row in result.all()}
+    # SQLite date() returns string 'YYYY-MM-DD', convert to Python date objects
+    daily_totals = {}
+    for row in result.all():
+        day_val = row.day
+        if isinstance(day_val, str):
+            day_val = date.fromisoformat(day_val)
+        daily_totals[day_val] = row.daily_rain or 0.0
+    return daily_totals
 
 
 def calculate_rain_since(daily_totals: Dict[date, float], since_date: date) -> float:

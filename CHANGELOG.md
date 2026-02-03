@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.41] - 2026-02-03
+
+### Fixed
+- **Multiple backend error fixes**:
+  - Fixed "No recipient specified" email errors - Task reminders and animal schedule emails now properly get recipients from settings
+  - Fixed auto-watering date comparison error - SQLite date strings are now properly converted to Python date objects
+  - Fixed Animal schedule checks failing when columns don't exist - Wrapped legacy checks in try/except to handle gracefully
+
 ## [1.79.40] - 2026-02-03
 
 ### Changed

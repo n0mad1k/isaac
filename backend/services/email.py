@@ -317,8 +317,17 @@ class EmailService:
 
         return await self.send_email(subject, html, to=recipient, html=True)
 
-    async def send_weather_alert(self, alert: dict) -> bool:
-        """Send an immediate weather alert"""
+    async def send_weather_alert(self, alert: dict, to: str = None) -> bool:
+        """Send an immediate weather alert
+
+        Args:
+            alert: Dict with alert details (title, severity, message, recommended_actions)
+            to: Recipient email address (required)
+        """
+        if not to:
+            logger.error("No recipient specified for weather alert")
+            return False
+
         severity = _escape_html(alert.get("severity", "warning")).upper()
         subject = f"{severity}: {_escape_html(alert.get('title', 'Weather Alert'))}"
 
@@ -344,10 +353,19 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, html, html=True)
+        return await self.send_email(subject, html, to=to, html=True)
 
-    async def send_task_reminder(self, task: dict) -> bool:
-        """Send a task reminder email"""
+    async def send_task_reminder(self, task: dict, to: str = None) -> bool:
+        """Send a task reminder email
+
+        Args:
+            task: Dict with task details (title, description, due_date, category, notes)
+            to: Recipient email address (required)
+        """
+        if not to:
+            logger.error("No recipient specified for task reminder")
+            return False
+
         subject = f"Reminder: {_escape_html(task.get('title', 'Task Due'))}"
 
         due_date = task.get("due_date", "Soon")
@@ -373,7 +391,7 @@ class EmailService:
         </html>
         """
 
-        return await self.send_email(subject, html, html=True)
+        return await self.send_email(subject, html, to=to, html=True)
 
     async def send_cold_protection_reminder(
         self,

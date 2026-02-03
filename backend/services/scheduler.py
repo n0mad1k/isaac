@@ -971,6 +971,11 @@ class SchedulerService:
                 tasks = result.scalars().all()
 
                 email_service = await self.get_email_service(db)
+                recipients = await get_setting_value("email_recipients")
+                if not recipients:
+                    logger.debug("No email recipients configured, skipping task reminders")
+                    return
+
                 sent_count = 0
                 for task in tasks:
                     # Atomic update: only proceed if last_notified hasn't changed
@@ -999,7 +1004,7 @@ class SchedulerService:
                         "due_date": task.due_date,
                         "category": task.category.value if task.category else "General",
                         "notes": task.notes,
-                    })
+                    }, to=recipients)
                     sent_count += 1
 
                 if sent_count:
@@ -1027,65 +1032,79 @@ class SchedulerService:
                 logger.info(f"Animal care schedule sync: {stats}")
 
                 email_service = await self.get_email_service(db)
+                recipients = await get_setting_value("email_recipients")
+                if not recipients:
+                    logger.debug("No email recipients configured, skipping animal schedule emails")
+                    return
 
                 # Check horses for farrier (legacy - for email alerts)
-                result = await db.execute(
-                    select(Animal)
-                    .where(Animal.animal_type == AnimalType.HORSE)
-                    .where(Animal.is_active == True)
-                    .where(Animal.next_farrier_date.isnot(None))
-                    .where(Animal.next_farrier_date <= week_ahead)
-                )
-                horses_need_farrier = result.scalars().all()
+                # Note: next_farrier_date may not exist on all Animal records
+                try:
+                    result = await db.execute(
+                        select(Animal)
+                        .where(Animal.animal_type == AnimalType.HORSE)
+                        .where(Animal.is_active == True)
+                        .where(Animal.next_farrier_date.isnot(None))
+                        .where(Animal.next_farrier_date <= week_ahead)
+                    )
+                    horses_need_farrier = result.scalars().all()
 
-                for horse in horses_need_farrier:
-                    days_until = (horse.next_farrier_date - today).days
-                    await email_service.send_task_reminder({
-                        "title": f"Farrier needed for {horse.name}",
-                        "description": f"{horse.name} is due for hoof trimming",
-                        "due_date": horse.next_farrier_date,
-                        "category": "Animal Care",
-                        "notes": f"Due in {days_until} days" if days_until > 0 else "Overdue!",
-                    })
+                    for horse in horses_need_farrier:
+                        days_until = (horse.next_farrier_date - today).days
+                        await email_service.send_task_reminder({
+                            "title": f"Farrier needed for {horse.name}",
+                            "description": f"{horse.name} is due for hoof trimming",
+                            "due_date": horse.next_farrier_date,
+                            "category": "Animal Care",
+                            "notes": f"Due in {days_until} days" if days_until > 0 else "Overdue!",
+                        }, to=recipients)
+                except Exception as e:
+                    logger.warning(f"Skipping farrier check (column may not exist): {e}")
 
                 # Check all animals for worming
-                result = await db.execute(
-                    select(Animal)
-                    .where(Animal.is_active == True)
-                    .where(Animal.next_worming_date.isnot(None))
-                    .where(Animal.next_worming_date <= week_ahead)
-                )
-                animals_need_worming = result.scalars().all()
+                try:
+                    result = await db.execute(
+                        select(Animal)
+                        .where(Animal.is_active == True)
+                        .where(Animal.next_worming_date.isnot(None))
+                        .where(Animal.next_worming_date <= week_ahead)
+                    )
+                    animals_need_worming = result.scalars().all()
 
-                for animal in animals_need_worming:
-                    days_until = (animal.next_worming_date - today).days
-                    await email_service.send_task_reminder({
-                        "title": f"Worming due for {animal.name}",
-                        "description": f"{animal.name} ({animal.animal_type.value}) needs worming",
-                        "due_date": animal.next_worming_date,
-                        "category": "Animal Care",
-                        "notes": f"Rotation: {animal.wormer_rotation}" if animal.wormer_rotation else "",
-                    })
+                    for animal in animals_need_worming:
+                        days_until = (animal.next_worming_date - today).days
+                        await email_service.send_task_reminder({
+                            "title": f"Worming due for {animal.name}",
+                            "description": f"{animal.name} ({animal.animal_type.value}) needs worming",
+                            "due_date": animal.next_worming_date,
+                            "category": "Animal Care",
+                            "notes": f"Rotation: {animal.wormer_rotation}" if animal.wormer_rotation else "",
+                        }, to=recipients)
+                except Exception as e:
+                    logger.warning(f"Skipping worming check (column may not exist): {e}")
 
                 # Check cattle for slaughter scheduling
-                result = await db.execute(
-                    select(Animal)
-                    .where(Animal.animal_type == AnimalType.CATTLE)
-                    .where(Animal.is_active == True)
-                    .where(Animal.estimated_slaughter_date.isnot(None))
-                    .where(Animal.estimated_slaughter_date <= today + timedelta(days=30))
-                )
-                cattle_ready = result.scalars().all()
+                try:
+                    result = await db.execute(
+                        select(Animal)
+                        .where(Animal.animal_type == AnimalType.CATTLE)
+                        .where(Animal.is_active == True)
+                        .where(Animal.estimated_slaughter_date.isnot(None))
+                        .where(Animal.estimated_slaughter_date <= today + timedelta(days=30))
+                    )
+                    cattle_ready = result.scalars().all()
 
-                for steer in cattle_ready:
-                    days_until = (steer.estimated_slaughter_date - today).days
-                    await email_service.send_task_reminder({
-                        "title": f"Schedule slaughter for {steer.name}",
-                        "description": f"Steer {steer.name} approaching target date",
-                        "due_date": steer.estimated_slaughter_date,
-                        "category": "Animal Care",
-                        "notes": f"Processor: {steer.processor}" if steer.processor else "Contact processor to schedule",
-                    })
+                    for steer in cattle_ready:
+                        days_until = (steer.estimated_slaughter_date - today).days
+                        await email_service.send_task_reminder({
+                            "title": f"Schedule slaughter for {steer.name}",
+                            "description": f"Steer {steer.name} approaching target date",
+                            "due_date": steer.estimated_slaughter_date,
+                            "category": "Animal Care",
+                            "notes": f"Processor: {steer.processor}" if steer.processor else "Contact processor to schedule",
+                        }, to=recipients)
+                except Exception as e:
+                    logger.warning(f"Skipping slaughter check (column may not exist): {e}")
 
         except Exception as e:
             logger.error(f"Error checking animal schedules: {e}")
