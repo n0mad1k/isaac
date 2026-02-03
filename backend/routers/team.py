@@ -5302,12 +5302,20 @@ async def get_member_milestones(
     total = 0
     achieved_count = 0
 
+    # Track per-category and per-age-group stats for developmental assessment
+    category_stats = {"motor": {"total": 0, "achieved": 0}, "language": {"total": 0, "achieved": 0},
+                      "social": {"total": 0, "achieved": 0}, "cognitive": {"total": 0, "achieved": 0}}
+    age_group_completion = []  # List of (age_months, completion_pct)
+
     for group in reference:
         group_data = {
             "age_months": group["age_months"],
             "label": group["label"],
             "categories": {}
         }
+
+        group_total = 0
+        group_achieved = 0
 
         for category, items in group["milestones"].items():
             cat_items = []
@@ -5316,7 +5324,13 @@ async def get_member_milestones(
                 is_achieved = record.achieved if record else False
                 if is_achieved:
                     achieved_count += 1
+                    group_achieved += 1
+                    if category in category_stats:
+                        category_stats[category]["achieved"] += 1
                 total += 1
+                group_total += 1
+                if category in category_stats:
+                    category_stats[category]["total"] += 1
 
                 cat_items.append({
                     "id": item["id"],
@@ -5328,6 +5342,67 @@ async def get_member_milestones(
             group_data["categories"][category] = cat_items
 
         milestone_groups.append(group_data)
+        if group_total > 0:
+            age_group_completion.append((group["age_months"], group_achieved / group_total * 100))
+
+    # Calculate developmental assessment
+    # Find the highest age group where 80%+ milestones are achieved
+    developmental_age = 0
+    for grp_age, pct in age_group_completion:
+        if pct >= 80:
+            developmental_age = grp_age
+        else:
+            break
+
+    # Calculate category-level assessments
+    category_assessment = {}
+    for cat, stats in category_stats.items():
+        if stats["total"] > 0:
+            pct = stats["achieved"] / stats["total"] * 100
+            if pct >= 90:
+                status = "advanced"
+            elif pct >= 70:
+                status = "on_track"
+            elif pct >= 50:
+                status = "monitor"
+            else:
+                status = "behind"
+            category_assessment[cat] = {
+                "total": stats["total"],
+                "achieved": stats["achieved"],
+                "percentage": round(pct, 1),
+                "status": status
+            }
+
+    # Overall developmental status
+    overall_pct = (achieved_count / total * 100) if total > 0 else 0
+    if overall_pct >= 90:
+        overall_status = "advanced"
+        status_message = "Ahead of typical development"
+    elif overall_pct >= 70:
+        overall_status = "on_track"
+        status_message = "On track with typical development"
+    elif overall_pct >= 50:
+        overall_status = "monitor"
+        status_message = "Some areas may need attention"
+    else:
+        overall_status = "behind"
+        status_message = "May benefit from developmental support"
+
+    # Age comparison
+    age_diff = developmental_age - age_months
+    if age_diff >= 6:
+        age_comparison = "advanced"
+        age_message = f"Performing at ~{developmental_age} month level (ahead)"
+    elif age_diff >= -3:
+        age_comparison = "on_track"
+        age_message = f"Performing at expected level"
+    elif age_diff >= -6:
+        age_comparison = "monitor"
+        age_message = f"Some milestones from earlier stages not yet achieved"
+    else:
+        age_comparison = "behind"
+        age_message = f"May need developmental assessment"
 
     return {
         "age_months": age_months,
@@ -5335,7 +5410,15 @@ async def get_member_milestones(
         "progress": {
             "total": total,
             "achieved": achieved_count,
-            "percentage": round(achieved_count / total * 100, 1) if total > 0 else 0
+            "percentage": round(overall_pct, 1)
+        },
+        "developmental_assessment": {
+            "overall_status": overall_status,
+            "status_message": status_message,
+            "developmental_age_months": developmental_age,
+            "age_comparison": age_comparison,
+            "age_message": age_message,
+            "category_breakdown": category_assessment
         }
     }
 

@@ -709,6 +709,70 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
             </div>
           </div>
 
+          {/* Developmental Assessment Summary */}
+          {milestones.developmental_assessment && (
+            <div className="mb-4 space-y-3">
+              {/* Overall Status Banner */}
+              <div className={`rounded-lg p-3 border ${
+                milestones.developmental_assessment.overall_status === 'advanced' ? 'bg-green-900/30 border-green-600' :
+                milestones.developmental_assessment.overall_status === 'on_track' ? 'bg-blue-900/30 border-blue-600' :
+                milestones.developmental_assessment.overall_status === 'monitor' ? 'bg-yellow-900/30 border-yellow-600' :
+                'bg-red-900/30 border-red-600'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className={`text-sm font-medium ${
+                      milestones.developmental_assessment.overall_status === 'advanced' ? 'text-green-400' :
+                      milestones.developmental_assessment.overall_status === 'on_track' ? 'text-blue-400' :
+                      milestones.developmental_assessment.overall_status === 'monitor' ? 'text-yellow-400' :
+                      'text-red-400'
+                    }`}>
+                      {milestones.developmental_assessment.overall_status === 'advanced' ? '🌟 Advanced' :
+                       milestones.developmental_assessment.overall_status === 'on_track' ? '✓ On Track' :
+                       milestones.developmental_assessment.overall_status === 'monitor' ? '⚠ Monitor' :
+                       '⚠ Needs Attention'}
+                    </span>
+                    <p className="text-xs text-gray-400 mt-0.5">{milestones.developmental_assessment.status_message}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500">Age Level</div>
+                    <div className="text-sm text-white font-medium">{milestones.developmental_assessment.age_message}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Breakdown */}
+              {milestones.developmental_assessment.category_breakdown && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {Object.entries(milestones.developmental_assessment.category_breakdown).map(([cat, data]) => {
+                    const catLabels = { motor: 'Motor', language: 'Language', social: 'Social', cognitive: 'Cognitive' }
+                    const statusColors = {
+                      advanced: { bg: 'bg-green-900/30', text: 'text-green-400', bar: 'bg-green-500' },
+                      on_track: { bg: 'bg-blue-900/30', text: 'text-blue-400', bar: 'bg-blue-500' },
+                      monitor: { bg: 'bg-yellow-900/30', text: 'text-yellow-400', bar: 'bg-yellow-500' },
+                      behind: { bg: 'bg-red-900/30', text: 'text-red-400', bar: 'bg-red-500' }
+                    }
+                    const c = statusColors[data.status] || statusColors.on_track
+                    return (
+                      <div key={cat} className={`rounded-lg p-2 ${c.bg}`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-gray-300 font-medium">{catLabels[cat] || cat}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${c.text} font-semibold`}>
+                            {data.percentage}%
+                          </span>
+                        </div>
+                        <div className="bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                          <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${data.percentage}%` }} />
+                        </div>
+                        <div className="text-[10px] text-gray-500 mt-1 text-center capitalize">{data.status.replace('_', ' ')}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-3">
             {milestones.milestone_groups?.map((group) => {
               const groupKey = `group_${group.age_months}`

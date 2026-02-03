@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.2] - 2026-02-03
+
+### Added
+- **Developmental Assessment for children** - Milestones section now shows comprehensive developmental assessment:
+  - Overall status (Advanced, On Track, Monitor, Needs Attention) with explanation
+  - Category breakdown showing Motor, Language, Social, and Cognitive progress individually
+  - Age-level comparison to help gauge if child is ahead, on-track, or behind
+  - Visual progress bars for each developmental category
+
 ## [1.79.1] - 2026-02-03
 
 ### Added
