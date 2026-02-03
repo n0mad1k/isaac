@@ -258,7 +258,7 @@ function StatementImport() {
             <CheckCircle2 className="w-5 h-5 text-green-400" />
             <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Import Complete</h4>
           </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
             <div>
               <div className="text-lg font-bold text-green-400">{result.imported}</div>
               <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Imported</div>

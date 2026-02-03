@@ -567,7 +567,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     <Shield className="w-4 h-4 text-farm-green" />
                     Gear Sizing
                   </h3>
-                  <div className="grid grid-cols-5 gap-4 text-sm">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 text-sm">
                     <div>
                       <span className="text-gray-400">Shoe</span>
                       <p className="font-medium">{member.shoe_size || 'N/A'}</p>
@@ -2791,7 +2791,7 @@ function FitnessTab({ member, settings, formatDate }) {
                                     {Object.entries(details.lift_thresholds).map(([lift, entries]) => (
                                       <div key={lift} className="mb-2">
                                         <div className="text-xs text-gray-400 font-medium mb-0.5">{lift}</div>
-                                        <div className="grid grid-cols-3 gap-1">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
                                           {entries.filter((_, i) => [0, 2, 5, 8].includes(i)).map((e, i) => (
                                             <div key={i} className="text-[11px] bg-gray-900 rounded px-1.5 py-0.5 text-center">
                                               <span className={
@@ -3192,7 +3192,7 @@ function FitnessTab({ member, settings, formatDate }) {
               {/* Workout Type Selection */}
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Workout Type *</label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {WORKOUT_TYPES.map(type => (
                     <button
                       key={type.value}

@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.21] - 2026-02-03
+
+### Fixed
+- **Extended mobile responsiveness across all pages**
+  - Monthly Budget: Account Overview section now scrollable with condensed headers on mobile
+  - Animals: Processing modal date/time fields stack on mobile
+  - Farm Finances: Order form quantity/unit/price fields stack on mobile
+  - Member Dossier: Gear sizing wraps to 3 columns on mobile, workout type selector shows 2 columns, fitness standards stack vertically
+  - Calendar pages: Month view now scrollable with single-letter day headers on mobile, smaller cell heights
+  - Navigation menu: Grid shows 3 columns on small screens, 4 on larger
+
 ## [1.79.20] - 2026-02-03
 
 ### Fixed

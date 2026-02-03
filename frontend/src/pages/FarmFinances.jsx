@@ -1695,7 +1695,7 @@ function SaleModal({ formData, setFormData, customers, onSubmit, onClose, format
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Quantity *</label>
               <input

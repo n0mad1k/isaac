@@ -59,9 +59,10 @@ function Calendar({ events, onMonthChange }) {
         {days.map((day) => (
           <div
             key={day}
-            className="text-center text-sm font-medium text-gray-500 py-2"
+            className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 sm:py-2"
           >
-            {day}
+            <span className="sm:hidden">{day.substring(0, 1)}</span>
+            <span className="hidden sm:inline">{day}</span>
           </div>
         ))}
       </div>
@@ -91,7 +92,7 @@ function Calendar({ events, onMonthChange }) {
         days.push(
           <div
             key={day.toString()}
-            className={`min-h-[80px] p-1 border border-gray-700 ${
+            className={`min-h-[60px] sm:min-h-[80px] p-0.5 sm:p-1 border border-gray-700 ${
               !isCurrentMonth ? 'bg-gray-900/50' : 'bg-gray-800/50'
             } ${isToday ? 'ring-2 ring-farm-green' : ''}`}
           >
@@ -145,10 +146,12 @@ function Calendar({ events, onMonthChange }) {
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl p-4">
-      {renderHeader()}
-      {renderDays()}
-      {renderCells()}
+    <div className="bg-gray-800 rounded-xl p-2 sm:p-4 overflow-x-auto">
+      <div className="min-w-[280px]">
+        {renderHeader()}
+        {renderDays()}
+        {renderCells()}
+      </div>
     </div>
   )
 }

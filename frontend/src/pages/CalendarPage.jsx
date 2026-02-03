@@ -451,18 +451,19 @@ function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent, 
   const paddedDays = [...Array(startDay).fill(null), ...days]
 
   return (
-    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-      {/* Day Headers */}
-      <div className="grid grid-cols-7 gap-2 mb-2">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div key={day} className="text-center text-sm font-medium py-2" style={{ color: 'var(--color-text-muted)' }}>
-            {day}
+    <div className="rounded-xl p-2 sm:p-4 overflow-x-auto" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+      <div className="min-w-[320px]">
+        {/* Day Headers */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+            <div key={day} className="text-center text-xs sm:text-sm font-medium py-1 sm:py-2" style={{ color: 'var(--color-text-muted)' }}>
+              {day.substring(0, 1)}<span className="hidden sm:inline">{day.substring(1)}</span>
           </div>
         ))}
       </div>
 
-      {/* Calendar Days */}
-      <div className="grid grid-cols-7 gap-2">
+        {/* Calendar Days */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {paddedDays.map((day, index) => {
           if (!day) {
             return <div key={`empty-${index}`} className="h-20" />
@@ -477,7 +478,7 @@ function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent, 
             <div
               key={dateKey}
               onClick={() => onDayClick(day)}
-              className="h-20 p-1 sm:p-2 rounded-lg border transition-colors cursor-pointer"
+              className="h-16 sm:h-20 p-1 sm:p-2 rounded-lg border transition-colors cursor-pointer"
               style={{
                 borderColor: isSelected || isCurrentDay ? 'var(--color-green-600)' : 'var(--color-border-subtle)',
                 backgroundColor: isSelected ? 'var(--color-green-100)' : isCurrentDay ? 'var(--color-green-100)' : 'var(--color-bg-surface-soft)'
@@ -526,6 +527,7 @@ function MonthView({ currentDate, events, selectedDate, onDayClick, onAddEvent, 
             </div>
           )
         })}
+        </div>
       </div>
     </div>
   )

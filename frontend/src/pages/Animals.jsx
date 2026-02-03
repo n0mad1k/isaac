@@ -3071,7 +3071,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
 
               {/* Slaughter Event */}
               <h4 className="text-xs font-medium text-gray-500 mb-2">Slaughter Event</h4>
-              <div className="grid grid-cols-3 gap-4 mb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Slaughter Date</label>
                   <input
@@ -3113,7 +3113,7 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
 
               {/* Pickup Event */}
               <h4 className="text-xs font-medium text-gray-500 mb-2">Pickup Event</h4>
-              <div className="grid grid-cols-3 gap-4 mb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Pickup Date</label>
                   <input

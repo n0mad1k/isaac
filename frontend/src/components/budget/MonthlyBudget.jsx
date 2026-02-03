@@ -870,23 +870,25 @@ function MonthlyBudget() {
           <div className="px-4 py-2.5" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
             <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Account Overview</h4>
           </div>
-          <div className="grid grid-cols-4 text-xs font-semibold py-1.5 px-4" style={{ backgroundColor: 'var(--color-blue-600)', color: '#fff' }}>
-            <span>Account</span>
-            <span className="text-right">Money In</span>
-            <span className="text-right">Money Out</span>
-            <span className="text-right">Net</span>
+          <div className="overflow-x-auto">
+            <div className="grid grid-cols-[1fr_70px_70px_70px] sm:grid-cols-[1fr_90px_90px_90px] text-xs font-semibold py-1.5 px-3 sm:px-4 min-w-[280px]" style={{ backgroundColor: 'var(--color-blue-600)', color: '#fff' }}>
+              <span>Account</span>
+              <span className="text-right">In</span>
+              <span className="text-right">Out</span>
+              <span className="text-right">Net</span>
+            </div>
+            {accountList.map((acct, i) => {
+              const net = acct.moneyIn - acct.moneyOut
+              return (
+                <div key={i} className="grid grid-cols-[1fr_70px_70px_70px] sm:grid-cols-[1fr_90px_90px_90px] text-xs py-1.5 px-3 sm:px-4 min-w-[280px]" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+                  <span className="truncate" style={{ color: 'var(--color-text-primary)' }}>{acct.name}</span>
+                  <span className="text-right" style={{ color: 'var(--color-success-500)' }}>{fmt(acct.moneyIn)}</span>
+                  <span className="text-right" style={{ color: 'var(--color-error-500)' }}>{fmt(acct.moneyOut)}</span>
+                  <span className="text-right font-semibold" style={{ color: net >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(net)}</span>
+                </div>
+              )
+            })}
           </div>
-          {accountList.map((acct, i) => {
-            const net = acct.moneyIn - acct.moneyOut
-            return (
-              <div key={i} className="grid grid-cols-4 text-xs py-1.5 px-4" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
-                <span style={{ color: 'var(--color-text-primary)' }}>{acct.name}</span>
-                <span className="text-right" style={{ color: 'var(--color-success-500)' }}>{fmt(acct.moneyIn)}</span>
-                <span className="text-right" style={{ color: 'var(--color-error-500)' }}>{fmt(acct.moneyOut)}</span>
-                <span className="text-right font-semibold" style={{ color: net >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(net)}</span>
-              </div>
-            )
-          })}
         </div>
       )}
 

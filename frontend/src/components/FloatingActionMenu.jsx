@@ -190,7 +190,7 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
 
           {/* Navigation Grid */}
           <nav className="flex-1 overflow-y-auto p-3">
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {navigation.map((item) => (
                 <NavLink
                   key={item.to}
