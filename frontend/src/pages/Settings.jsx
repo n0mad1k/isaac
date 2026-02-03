@@ -3073,12 +3073,20 @@ function Settings() {
                         <h3 className="text-sm font-medium mb-3">Last 24 Hours</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                           <div>
-                            <p className="text-2xl font-bold text-green-400">{healthSummary.last_24h?.by_status?.healthy || 0}/{healthSummary.last_24h?.total_checks || 0}</p>
-                            <p className="text-xs text-gray-400">Healthy Checks</p>
+                            <p className="text-2xl font-bold text-green-400">
+                              {(() => {
+                                const hours = healthSummary.last_24h?.uptime_hours
+                                if (hours === null || hours === undefined) return '—'
+                                if (hours >= 24) return `${Math.floor(hours / 24)}d ${Math.round(hours % 24)}h`
+                                if (hours >= 1) return `${Math.round(hours)}h`
+                                return `${Math.round(hours * 60)}m`
+                              })()}
+                            </p>
+                            <p className="text-xs text-gray-400">Uptime</p>
                           </div>
                           <div>
                             <p className="text-2xl font-bold">{healthSummary.last_24h?.total_checks || 0}</p>
-                            <p className="text-xs text-gray-400">Total Checks</p>
+                            <p className="text-xs text-gray-400">Checks (24h)</p>
                           </div>
                           <div>
                             <p className="text-2xl font-bold text-red-400">{healthSummary.last_24h?.by_status?.critical || 0}</p>

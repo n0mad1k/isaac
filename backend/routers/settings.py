@@ -1403,12 +1403,38 @@ async def get_health_summary(db: AsyncSession = Depends(get_db), user: User = De
     healthy_count = status_counts.get("healthy", 0)
     uptime_percent = (healthy_count / total_24h * 100) if total_24h > 0 else 0
 
+    # Calculate actual uptime - time since last non-healthy check
+    last_issue_result = await db.execute(
+        select(HealthLog)
+        .where(HealthLog.overall_status.in_(["warning", "critical"]))
+        .order_by(desc(HealthLog.checked_at))
+        .limit(1)
+    )
+    last_issue = last_issue_result.scalar_one_or_none()
+
+    # Calculate uptime in hours
+    uptime_hours = None
+    if last_issue:
+        uptime_delta = datetime.utcnow() - last_issue.checked_at
+        uptime_hours = round(uptime_delta.total_seconds() / 3600, 1)
+    elif latest:
+        # No issues ever - uptime since first check
+        first_result = await db.execute(
+            select(HealthLog).order_by(HealthLog.checked_at).limit(1)
+        )
+        first_check = first_result.scalar_one_or_none()
+        if first_check:
+            uptime_delta = datetime.utcnow() - first_check.checked_at
+            uptime_hours = round(uptime_delta.total_seconds() / 3600, 1)
+
     return {
         "latest": latest.to_dict() if latest else None,
         "last_24h": {
             "total_checks": total_24h,
             "by_status": status_counts,
-            "uptime_percent": round(uptime_percent, 1)
+            "uptime_percent": round(uptime_percent, 1),
+            "uptime_hours": uptime_hours,
+            "last_issue_at": last_issue.checked_at.isoformat() if last_issue else None
         }
     }
 

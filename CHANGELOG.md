@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.56] - 2026-02-03
+
+### Changed
+- **Health monitor now shows uptime as time** - The "Uptime" stat now displays actual time since the last issue (e.g., "3d 12h", "5h", "30m") instead of a fraction or percentage. If there have been no issues, it shows time since the first health check. This is the traditional meaning of "uptime" that users expect.
+
 ## [1.79.55] - 2026-02-03
 
 ### Fixed
