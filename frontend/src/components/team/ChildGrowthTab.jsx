@@ -773,18 +773,21 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                       behind: { bg: 'bg-red-900/30', text: 'text-red-400', bar: 'bg-red-500' }
                     }
                     const c = statusColors[data.status] || statusColors.on_track
+                    const statusLabels = {
+                      advanced: 'Ahead',
+                      on_track: 'On Track',
+                      monitor: 'Monitor',
+                      behind: 'Behind'
+                    }
                     return (
                       <div key={cat} className={`rounded-lg p-2 ${c.bg}`}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-gray-300 font-medium">{catLabels[cat] || cat}</span>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded ${c.text} font-semibold`}>
-                            {data.percentage}%
+                            {statusLabels[data.status] || data.status}
                           </span>
                         </div>
-                        <div className="bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                          <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${data.percentage}%` }} />
-                        </div>
-                        <div className="text-[10px] text-gray-500 mt-1 text-center capitalize">{data.status.replace('_', ' ')}</div>
+                        <div className="text-[10px] text-gray-400 mt-1 text-center">{data.achieved}/{data.total} achieved</div>
                       </div>
                     )
                   })}

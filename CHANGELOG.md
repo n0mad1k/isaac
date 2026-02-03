@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.58] - 2026-02-03
+
+### Changed
+- **Milestones now show clear status instead of confusing percentages** - The developmental milestone category breakdown now shows status labels like "Ahead", "On Track", "Monitor", or "Behind" with achieved/total counts (e.g., "3/5 achieved") instead of percentage numbers. This makes it clearer how the child is developing in each area.
+
 ## [1.79.57] - 2026-02-03
 
 ### Added
