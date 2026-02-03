@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.44] - 2026-02-03
+
+### Added
+- **AI restriction settings now visible in Settings UI** - New AI guardrail settings are now accessible in Settings > AI Assistant:
+  - Read-only mode (prevents AI from taking actions)
+  - Require confirmation for actions
+  - Blocked topics (comma-separated list)
+  - Max response tokens limit
+  - Guardrails enabled toggle
+
 ## [1.79.43] - 2026-02-03
 
 ### Fixed
