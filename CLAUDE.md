@@ -113,6 +113,10 @@ Then pick the next highest-priority pending item (skip `[COLLAB]`) and work on i
 - #301: Chat AI provider label now shows configured provider (Claude/ChatGPT/Ollama) with model tooltip (v1.79.12)
 - #306: Growth record edit/delete fixed - backend now includes height_inches, guards prevent editing entries without ID (v1.79.13)
 - #304: Child milestone tracker now detects advanced development (v1.79.14)
+- #302: Updated CLAUDE.md session log and README.md features list
+- #290: Security audit review - added identified issues to backlog (#309-312)
+- #235: Farm/Business Name setting now visible in Settings > Team (v1.79.15)
+- #175: Team Readiness Alerts added to daily digest - gear low/expired, overdue training/medical (v1.79.16)
 
 ## Dev Tracker Workflow
 

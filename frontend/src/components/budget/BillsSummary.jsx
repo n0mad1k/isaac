@@ -273,8 +273,9 @@ function BillsSummary() {
             <Plus className="w-4 h-4" />
           </button>
         </div>
-        <div className="grid grid-cols-[45px_1fr_90px_80px_52px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
-          <span>Day</span><span>Name</span><span className="text-right">Amount</span><span className="text-right">Account</span><span />
+        <div className="overflow-x-auto">
+        <div className="grid grid-cols-[40px_minmax(80px,1fr)_70px_70px_40px] sm:grid-cols-[45px_1fr_90px_80px_52px] text-xs py-1 px-3 min-w-[320px]" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+          <span>Day</span><span>Name</span><span className="text-right">Amt</span><span className="text-right hidden sm:block">Account</span><span />
         </div>
         {activeIncome.map(inc => {
           const monthlyAmt = inc.frequency === 'weekly' ? inc.amount * 4.33

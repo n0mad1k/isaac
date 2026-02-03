@@ -1286,78 +1286,95 @@ function AnimalCard({
         borderLeft: isPet ? '4px solid var(--color-pink-600)' : isLivestock ? '4px solid var(--color-orange-600)' : undefined
       }}
     >
-      {/* Compact Card Header - flows naturally */}
+      {/* Compact Card Header - mobile-friendly with wrapping */}
       <div
-        className="px-4 py-2 flex items-center gap-2 cursor-pointer"
+        className="px-3 py-2 cursor-pointer"
         onClick={onToggle}
       >
-        {/* Icon */}
-        <span className="text-xl flex-shrink-0">{getAnimalIcon(animal.animal_type)}</span>
+        {/* Primary row: Icon, Name, Tags, Expand */}
+        <div className="flex items-center gap-2">
+          <span className="text-lg flex-shrink-0">{getAnimalIcon(animal.animal_type)}</span>
+          <span className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{animal.name}</span>
 
-        {/* 1. Name */}
-        <span className="font-semibold truncate" style={{ color: 'var(--color-text-primary)' }}>{animal.name}</span>
+          {/* Tags inline with name */}
+          {animalTags.slice(0, 2).map(tag => {
+            const tagInfo = ANIMAL_TAGS[tag] || { label: tag, bgVar: '--color-bg-tertiary', textColor: 'var(--color-text-primary)' }
+            return (
+              <span
+                key={tag}
+                className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
+                style={{ backgroundColor: `var(${tagInfo.bgVar})`, color: tagInfo.textColor }}
+              >
+                {tagInfo.label}
+              </span>
+            )
+          })}
 
-        {/* 2. Color + Type together (grey) like "Black Horse" */}
-        {(animal.color || animal.animal_type) && (
-          <>
-            <span style={{ color: 'var(--color-border-strong)' }}>·</span>
-            <span className="text-xs truncate capitalize" style={{ color: 'var(--color-text-muted)' }}>
+          <span className="flex-1"></span>
+
+          {/* Cost badge */}
+          {animal.total_expenses > 0 && (
+            <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}>
+              ${Math.round(animal.total_expenses)}
+            </span>
+          )}
+        </div>
+
+        {/* Secondary row: Details (hidden on very small screens if too long) */}
+        <div className="flex items-center gap-1.5 mt-1 text-xs flex-wrap" style={{ color: 'var(--color-text-muted)' }}>
+          {/* Color + Type */}
+          {(animal.color || animal.animal_type) && (
+            <span className="capitalize">
               {[animal.color, animal.animal_type?.replace('_', ' ')].filter(Boolean).join(' ')}
             </span>
-          </>
-        )}
+          )}
 
-        {/* 3. Location: Farm Area or Pasture */}
-        {(animal.farm_area || animal.pasture) && (
-          <>
-            <span className="text-gray-600">·</span>
-            <span className="text-xs flex items-center gap-1" style={{ color: 'var(--color-green-600)' }}>
-              <MapPin className="w-3 h-3" />
-              {animal.farm_area?.name || animal.pasture}
-            </span>
-          </>
-        )}
+          {/* Location */}
+          {(animal.farm_area || animal.pasture) && (
+            <>
+              <span>·</span>
+              <span className="flex items-center gap-0.5" style={{ color: 'var(--color-green-600)' }}>
+                <MapPin className="w-3 h-3" />
+                {animal.farm_area?.name || animal.pasture}
+              </span>
+            </>
+          )}
 
-        {/* 4. Feeding Info: amount, type, frequency */}
-        {(animal.feeds?.length > 0 || animal.feed_type) && (
-          <>
-            <span className="text-gray-600">·</span>
-            <span className="text-sm truncate" style={{ color: 'var(--color-teal-600)' }}>
-              {animal.feeds && animal.feeds.length > 0
-                ? animal.feeds.map(f => [f.amount, f.feed_type, f.frequency].filter(Boolean).join(' ')).join(' | ')
-                : [animal.feed_amount, animal.feed_type, animal.feed_frequency].filter(Boolean).join(' ')
-              }
-            </span>
-          </>
-        )}
+          {/* Feeding - abbreviated */}
+          {(animal.feeds?.length > 0 || animal.feed_type) && (
+            <>
+              <span>·</span>
+              <span className="truncate max-w-[100px]" style={{ color: 'var(--color-teal-600)' }}>
+                {animal.feeds && animal.feeds.length > 0
+                  ? animal.feeds[0].feed_type || 'Feed'
+                  : animal.feed_type || 'Feed'
+                }
+              </span>
+            </>
+          )}
 
-        {/* 5. Tags */}
-        {animalTags.slice(0, 2).map(tag => {
-          const tagInfo = ANIMAL_TAGS[tag] || { label: tag, bgVar: '--color-bg-tertiary', textColor: 'var(--color-text-primary)' }
-          return (
-            <span
-              key={tag}
-              className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
-              style={{ backgroundColor: `var(${tagInfo.bgVar})`, color: tagInfo.textColor }}
-            >
-              {tagInfo.label}
-            </span>
-          )
-        })}
+          {/* Slaughter countdown for livestock */}
+          {isLivestock && slaughterDays !== null && (
+            <>
+              <span>·</span>
+              <span style={getUrgencyStyle(slaughterDays)}>
+                {slaughterDays <= 0 ? 'Ready' : `${slaughterDays}d`}
+              </span>
+            </>
+          )}
 
-        {/* 6. Special Instructions if present */}
-        {animal.special_instructions && (
-          <>
-            <span className="text-gray-600">·</span>
-            <span className="text-xs truncate max-w-[200px]" style={{ color: 'var(--color-warning-600)' }}>
-              {animal.special_instructions}
-            </span>
-          </>
-        )}
+          {/* Overdue indicator */}
+          {overdueItems.length > 0 && (
+            <>
+              <span>·</span>
+              <span style={{ color: 'var(--color-error-600)' }}>Overdue</span>
+            </>
+          )}
+        </div>
+      </div>
 
-        {/* Spacer to push status indicators right */}
-        <span className="flex-1"></span>
-
+      {/* Hidden elements that were previously in header - keeping for expanded view compatibility */}
+      <div className="hidden">
         {/* Status Indicators - right side: notes, slaughter, cost, overdue */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {animal.notes && (

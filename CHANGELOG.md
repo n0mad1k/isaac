@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.17] - 2026-02-03
+
+### Fixed
+- **Mobile layout improvements** - Animals page cards now use 2-row layout showing key info clearly. Garden tabs show icons only on mobile. Worker Tasks buttons stack and show icons on small screens. Budget Settings pots section wraps properly.
+
 ## [1.79.16] - 2026-02-03
 
 ### Added

@@ -275,12 +275,12 @@ function PotsSection({ categories, onRefresh }) {
 
   return (
     <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-      <div className="flex items-center justify-between mb-3">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+        <div className="min-w-0">
           <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Pots of Money</h4>
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Spending categories and funds that transactions are tracked against</p>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Spending categories and funds</p>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(!showForm) }} className="flex items-center gap-1 px-2 py-1 bg-farm-green text-white rounded text-xs hover:bg-green-700">
+        <button onClick={() => { resetForm(); setShowForm(!showForm) }} className="flex items-center gap-1 px-2 py-1 bg-farm-green text-white rounded text-xs hover:bg-green-700 flex-shrink-0 self-start sm:self-auto">
           <Plus className="w-3 h-3" /> Add Pot
         </button>
       </div>
@@ -323,18 +323,20 @@ function PotsSection({ categories, onRefresh }) {
 
       <div className="space-y-1.5">
         {pots.map(cat => (
-          <div key={cat.id} className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg">
-            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+          <div key={cat.id} className="flex items-start sm:items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg flex-wrap">
+            <div className="w-3 h-3 rounded-full flex-shrink-0 mt-1 sm:mt-0" style={{ backgroundColor: cat.color }} />
             <div className="flex-1 min-w-0">
-              <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
-              <span className="text-xs ml-2 px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
-                {cat.category_type === 'variable' ? 'Spending' : 'Fund'}
-              </span>
-              {cat.budget_amount > 0 && (
-                <span className="text-xs ml-2" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.budget_amount)}/half</span>
-              )}
-              {cat.monthly_budget > 0 && (
-                <span className="text-xs ml-1" style={{ color: 'var(--color-text-muted)' }}>({formatCurrency(cat.monthly_budget)}/mo)</span>
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+                  {cat.category_type === 'variable' ? 'Spending' : 'Fund'}
+                </span>
+              </div>
+              {(cat.budget_amount > 0 || cat.monthly_budget > 0) && (
+                <div className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                  {cat.budget_amount > 0 && <span>{formatCurrency(cat.budget_amount)}/half</span>}
+                  {cat.monthly_budget > 0 && <span className="ml-1">({formatCurrency(cat.monthly_budget)}/mo)</span>}
+                </div>
               )}
             </div>
             <div className="flex gap-1 flex-shrink-0">

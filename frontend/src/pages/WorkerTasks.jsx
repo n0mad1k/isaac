@@ -608,12 +608,12 @@ function WorkerTasks() {
             </button>
           </div>
 
-          {/* Tasks Header */}
+          {/* Tasks Header - stacks on mobile */}
           {viewMode === 'tasks' && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h3 className="text-lg font-semibold">{t('tasksFor')} {selectedWorker.name}</h3>
-              <label className="flex items-center gap-2 text-sm text-gray-400">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base sm:text-lg font-semibold">{t('tasksFor')} {selectedWorker.name}</h3>
+              <label className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
                 <input
                   type="checkbox"
                   checked={includeCompleted}
@@ -626,17 +626,19 @@ function WorkerTasks() {
             <div className="flex gap-2">
               <button
                 onClick={openAssignModal}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+                className="flex items-center gap-1.5 px-2 sm:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 text-sm"
+                title={t('assignExisting')}
               >
                 <Link className="w-4 h-4" />
-                {t('assignExisting')}
+                <span className="hidden sm:inline">{t('assignExisting')}</span>
               </button>
               <button
                 onClick={() => setShowEventModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light"
+                className="flex items-center gap-1.5 px-2 sm:px-4 py-1.5 sm:py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light text-sm"
+                title={t('newTask')}
               >
                 <Plus className="w-4 h-4" />
-                {t('newTask')}
+                <span className="hidden sm:inline">{t('newTask')}</span>
               </button>
             </div>
           </div>
