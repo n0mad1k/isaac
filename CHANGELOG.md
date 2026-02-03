@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.54] - 2026-02-03
+
+### Fixed
+- **AI insights now correctly show budget category amounts** - Fixed a bug where budget categories always showed "$0 budgeted" in AI insights because the code was looking for the wrong column name. Budget amounts now display correctly in morning briefings and budget reviews.
+
 ## [1.79.53] - 2026-02-03
 
 ### Changed

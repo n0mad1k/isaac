@@ -199,7 +199,7 @@ async def gather_budget_context(db: AsyncSession) -> str:
         if categories:
             lines.append(f"\nBudget categories (month of {month_start.strftime('%m/%Y')}):")
             for cat in categories[:15]:
-                budget_amt = cat.budgeted_amount if hasattr(cat, 'budgeted_amount') and cat.budgeted_amount else 0
+                budget_amt = cat.budget_amount if hasattr(cat, 'budget_amount') and cat.budget_amount else 0
                 lines.append(f"  - {cat.name}: ${budget_amt:,.2f} budgeted")
 
         # Income sources
