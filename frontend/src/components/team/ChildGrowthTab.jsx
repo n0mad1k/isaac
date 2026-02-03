@@ -924,10 +924,10 @@ function PercentileCard({ label, icon: Icon, data, currentValue }) {
       </div>
       <div className="text-xs text-gray-400 mt-1">
         {currentValue && <span>{currentValue}</span>}
-        {/* Only show median for weight and height (imperial units), not BMI (kg/m² is less useful to display) */}
-        {currentValue && data.median && (label === 'Weight' || label === 'Height') && <span> · </span>}
-        {data.median && (label === 'Weight' || label === 'Height') && (
-          <span>Median: {data.median} {label === 'Weight' ? 'lbs' : 'in'}</span>
+        {/* Show median for all metrics - Weight with lbs, Height with in, BMI without units */}
+        {currentValue && data.median && <span> · </span>}
+        {data.median && (
+          <span>Median: {data.median}{label === 'Weight' ? ' lbs' : label === 'Height' ? ' in' : ''}</span>
         )}
       </div>
     </div>
