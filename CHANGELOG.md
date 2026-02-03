@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.43] - 2026-02-03
+
+### Fixed
+- **Calendar sync no longer resets task completion status** - Fixed a critical bug where editing any field of a task on your phone (title, time, location) would reset the completion status back to incomplete. Calendar sync now only marks tasks as complete (from phone), never resets them to incomplete.
+
 ## [1.79.42] - 2026-02-03
 
 ### Fixed

@@ -947,9 +947,14 @@ class CalendarSyncService:
                 if event_dict.get('recurrence_interval') and existing_task.recurrence_interval != event_dict.get('recurrence_interval'):
                     existing_task.recurrence_interval = event_dict['recurrence_interval']
                     changed = True
-                if event_dict.get('is_completed') is not None and existing_task.is_completed != event_dict['is_completed']:
-                    existing_task.is_completed = event_dict['is_completed']
+                # IMPORTANT: Only sync is_completed=True from calendar to task (phone completion)
+                # Never reset is_completed to False based on calendar data - this prevents
+                # calendar edits from accidentally resetting completion status
+                if event_dict.get('is_completed') and not existing_task.is_completed:
+                    existing_task.is_completed = True
+                    existing_task.completed_at = datetime.now(pytz.UTC)
                     changed = True
+                    logger.info(f"Task '{existing_task.title}' marked complete from calendar sync")
                 if changed:
                     logger.info(f"Updated existing task '{existing_task.title}' from calendar (uid={calendar_uid})")
                     updated += 1
