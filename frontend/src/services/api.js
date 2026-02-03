@@ -414,9 +414,9 @@ export const deleteOrder = (id) => api.delete(`/production/orders/${id}/`)
 export const addOrderPayment = (orderId, data) => api.post(`/production/orders/${orderId}/payments/`, data)
 export const deleteOrderPayment = (orderId, paymentId) => api.delete(`/production/orders/${orderId}/payments/${paymentId}/`)
 export const completeOrder = (id) => api.post(`/production/orders/${id}/complete/`)
-export const sendOrderReceipt = (id) => api.post(`/production/orders/${id}/send-receipt/`)
-export const sendOrderInvoice = (id) => api.post(`/production/orders/${id}/send-invoice/`)
-export const sendSaleReceipt = (id) => api.post(`/production/sales/${id}/send-receipt/`)
+export const sendOrderReceipt = (id, data = null) => api.post(`/production/orders/${id}/send-receipt/`, data)
+export const sendOrderInvoice = (id, data = null) => api.post(`/production/orders/${id}/send-invoice/`, data)
+export const sendSaleReceipt = (id, data = null) => api.post(`/production/sales/${id}/send-receipt/`, data)
 
 // Production Allocations
 export const getLivestockAllocations = (productionId) => api.get(`/production/livestock/${productionId}/allocations/`)

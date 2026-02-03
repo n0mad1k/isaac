@@ -181,6 +181,23 @@ function FarmFinances() {
   const [showAllocationModal, setShowAllocationModal] = useState(false)
   const [showHarvestAllocationModal, setShowHarvestAllocationModal] = useState(false)
   const [showExpenseModal, setShowExpenseModal] = useState(false)
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+
+  // Invoice/Receipt editor state
+  const [invoiceFormData, setInvoiceFormData] = useState({
+    type: 'invoice', // 'invoice' | 'receipt' | 'sale_receipt'
+    orderId: null,
+    saleId: null,
+    toEmail: '',
+    subject: '',
+    customerName: '',
+    description: '',
+    total: 0,
+    totalPaid: 0,
+    balanceDue: 0,
+    customMessage: '',
+    paymentInstructions: '',
+  })
 
   // Edit states
   const [editingCustomer, setEditingCustomer] = useState(null)
@@ -378,32 +395,122 @@ function FarmFinances() {
     }
   }
 
-  const handleSendReceipt = async (id) => {
-    try {
-      const res = await sendOrderReceipt(id)
-      alert(res.data.message || 'Receipt sent!')
-    } catch (error) {
-      const msg = error.response?.data?.detail || 'Failed to send receipt'
-      alert(msg)
+  // Open invoice/receipt modal with pre-filled data
+  const openInvoiceModal = (type, order = null, sale = null) => {
+    if (type === 'invoice' && order) {
+      // Get customer email from customers list
+      const customer = customers.find(c => c.id === order.customer_id)
+      setInvoiceFormData({
+        type: 'invoice',
+        orderId: order.id,
+        saleId: null,
+        toEmail: customer?.email || order.customer_email || '',
+        subject: `Invoice - Order #${order.id}`,
+        customerName: order.customer_name || '',
+        description: order.description || '',
+        total: order.final_total || order.estimated_total || 0,
+        totalPaid: order.total_paid || 0,
+        balanceDue: order.balance_due || 0,
+        customMessage: '',
+        paymentInstructions: '',
+      })
+    } else if (type === 'receipt' && order) {
+      const customer = customers.find(c => c.id === order.customer_id)
+      setInvoiceFormData({
+        type: 'receipt',
+        orderId: order.id,
+        saleId: null,
+        toEmail: customer?.email || order.customer_email || '',
+        subject: `Receipt - Order #${order.id}`,
+        customerName: order.customer_name || '',
+        description: order.description || '',
+        total: order.final_total || order.estimated_total || 0,
+        totalPaid: order.total_paid || 0,
+        balanceDue: order.balance_due || 0,
+        customMessage: '',
+        paymentInstructions: '',
+      })
+    } else if (type === 'sale_receipt' && sale) {
+      setInvoiceFormData({
+        type: 'sale_receipt',
+        orderId: null,
+        saleId: sale.id,
+        toEmail: sale.customer_email || '',
+        subject: `Receipt - ${sale.item_name}`,
+        customerName: sale.customer_name || '',
+        description: sale.description || sale.item_name || '',
+        total: (sale.quantity * sale.unit_price) || 0,
+        totalPaid: (sale.quantity * sale.unit_price) || 0,
+        balanceDue: 0,
+        customMessage: '',
+        paymentInstructions: '',
+      })
+    }
+    setShowInvoiceModal(true)
+  }
+
+  const handleSendReceipt = (id) => {
+    const order = orders.find(o => o.id === id)
+    if (order) {
+      openInvoiceModal('receipt', order)
     }
   }
 
-  const handleSendInvoice = async (id) => {
-    try {
-      const res = await sendOrderInvoice(id)
-      alert(res.data.message || 'Invoice sent!')
-    } catch (error) {
-      const msg = error.response?.data?.detail || 'Failed to send invoice'
-      alert(msg)
+  const handleSendInvoice = (id) => {
+    const order = orders.find(o => o.id === id)
+    if (order) {
+      openInvoiceModal('invoice', order)
     }
   }
 
-  const handleSendSaleReceipt = async (id) => {
+  const handleSendSaleReceipt = (id) => {
+    const sale = sales.find(s => s.id === id)
+    if (sale) {
+      openInvoiceModal('sale_receipt', null, sale)
+    }
+  }
+
+  // Actually send the customized invoice/receipt
+  const handleSubmitInvoice = async (e) => {
+    e.preventDefault()
     try {
-      const res = await sendSaleReceipt(id)
-      alert(res.data.message || 'Receipt sent!')
+      let res
+      if (invoiceFormData.type === 'invoice') {
+        res = await sendOrderInvoice(invoiceFormData.orderId, {
+          to_email: invoiceFormData.toEmail,
+          subject: invoiceFormData.subject,
+          customer_name: invoiceFormData.customerName,
+          description: invoiceFormData.description,
+          total: invoiceFormData.total,
+          total_paid: invoiceFormData.totalPaid,
+          balance_due: invoiceFormData.balanceDue,
+          custom_message: invoiceFormData.customMessage,
+          payment_instructions: invoiceFormData.paymentInstructions,
+        })
+      } else if (invoiceFormData.type === 'receipt') {
+        res = await sendOrderReceipt(invoiceFormData.orderId, {
+          to_email: invoiceFormData.toEmail,
+          subject: invoiceFormData.subject,
+          customer_name: invoiceFormData.customerName,
+          description: invoiceFormData.description,
+          total: invoiceFormData.total,
+          total_paid: invoiceFormData.totalPaid,
+          custom_message: invoiceFormData.customMessage,
+        })
+      } else if (invoiceFormData.type === 'sale_receipt') {
+        res = await sendSaleReceipt(invoiceFormData.saleId, {
+          to_email: invoiceFormData.toEmail,
+          subject: invoiceFormData.subject,
+          customer_name: invoiceFormData.customerName,
+          description: invoiceFormData.description,
+          total: invoiceFormData.total,
+          custom_message: invoiceFormData.customMessage,
+        })
+      }
+      alert(res?.data?.message || 'Sent successfully!')
+      setShowInvoiceModal(false)
     } catch (error) {
-      const msg = error.response?.data?.detail || 'Failed to send receipt'
+      const msg = error.response?.data?.detail || 'Failed to send'
       alert(msg)
     }
   }
@@ -991,6 +1098,162 @@ function FarmFinances() {
             }
           }}
         />
+      )}
+
+      {/* Invoice/Receipt Editor Modal */}
+      {showInvoiceModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="text-lg font-semibold">
+                {invoiceFormData.type === 'invoice' ? 'Send Invoice' : 'Send Receipt'}
+              </h3>
+              <button onClick={() => setShowInvoiceModal(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitInvoice} className="p-4 space-y-4">
+              {/* Recipient Email */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Recipient Email *</label>
+                <input
+                  type="email"
+                  required
+                  value={invoiceFormData.toEmail}
+                  onChange={(e) => setInvoiceFormData(prev => ({ ...prev, toEmail: e.target.value }))}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  placeholder="customer@email.com"
+                />
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Subject *</label>
+                <input
+                  type="text"
+                  required
+                  value={invoiceFormData.subject}
+                  onChange={(e) => setInvoiceFormData(prev => ({ ...prev, subject: e.target.value }))}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                />
+              </div>
+
+              {/* Customer Name */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Customer Name</label>
+                <input
+                  type="text"
+                  value={invoiceFormData.customerName}
+                  onChange={(e) => setInvoiceFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <textarea
+                  value={invoiceFormData.description}
+                  onChange={(e) => setInvoiceFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  rows={2}
+                />
+              </div>
+
+              {/* Amount Fields */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Total</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={invoiceFormData.total}
+                    onChange={(e) => {
+                      const total = parseFloat(e.target.value) || 0
+                      setInvoiceFormData(prev => ({
+                        ...prev,
+                        total,
+                        balanceDue: total - prev.totalPaid
+                      }))
+                    }}
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Paid</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={invoiceFormData.totalPaid}
+                    onChange={(e) => {
+                      const paid = parseFloat(e.target.value) || 0
+                      setInvoiceFormData(prev => ({
+                        ...prev,
+                        totalPaid: paid,
+                        balanceDue: prev.total - paid
+                      }))
+                    }}
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Balance Due</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={invoiceFormData.balanceDue}
+                    onChange={(e) => setInvoiceFormData(prev => ({ ...prev, balanceDue: parseFloat(e.target.value) || 0 }))}
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Custom Message */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Custom Message (optional)</label>
+                <textarea
+                  value={invoiceFormData.customMessage}
+                  onChange={(e) => setInvoiceFormData(prev => ({ ...prev, customMessage: e.target.value }))}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  rows={3}
+                  placeholder="Add a personal note to include in the email..."
+                />
+              </div>
+
+              {/* Payment Instructions (invoice only) */}
+              {invoiceFormData.type === 'invoice' && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Payment Instructions</label>
+                  <textarea
+                    value={invoiceFormData.paymentInstructions}
+                    onChange={(e) => setInvoiceFormData(prev => ({ ...prev, paymentInstructions: e.target.value }))}
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    rows={2}
+                    placeholder="Venmo: @username, Zelle: phone@email.com, etc."
+                  />
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInvoiceModal(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded transition-colors flex items-center gap-2"
+                >
+                  <Receipt className="w-4 h-4" />
+                  Send {invoiceFormData.type === 'invoice' ? 'Invoice' : 'Receipt'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   )

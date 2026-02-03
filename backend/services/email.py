@@ -495,6 +495,7 @@ class EmailService:
         to: str,
         order: dict,
         farm_name: str = "Isaac Farm",
+        subject: str = None,
     ) -> bool:
         """Send a receipt email for an order.
 
@@ -502,8 +503,9 @@ class EmailService:
             to: Customer email address
             order: Dict with order details including payments
             farm_name: Farm/business name for the receipt header
+            subject: Custom email subject (optional)
         """
-        subject = f"Receipt - Order #{order['id']}"
+        subject = subject or f"Receipt - Order #{order['id']}"
 
         # Build payment rows
         payment_rows = ""
@@ -642,6 +644,7 @@ class EmailService:
         to: str,
         sale: dict,
         farm_name: str = "Isaac Farm",
+        subject: str = None,
     ) -> bool:
         """Send a receipt email for a direct sale.
 
@@ -649,8 +652,9 @@ class EmailService:
             to: Customer email address
             sale: Dict with sale details
             farm_name: Farm/business name for the receipt header
+            subject: Custom email subject (optional)
         """
-        subject = f"Receipt - Sale #{sale['id']}"
+        subject = subject or f"Receipt - Sale #{sale['id']}"
 
         customer_name = _escape_html(sale.get("customer_name", ""))
         item_name = _escape_html(sale.get("item_name", ""))
@@ -729,6 +733,7 @@ class EmailService:
         order: dict,
         farm_name: str = "Isaac Farm",
         payment_instructions: str = "",
+        subject: str = None,
     ) -> bool:
         """Send an invoice email for an order requesting payment.
 
@@ -737,8 +742,9 @@ class EmailService:
             order: Dict with order details including balance due
             farm_name: Farm/business name for the invoice header
             payment_instructions: Optional payment instructions (Venmo, Zelle, etc.)
+            subject: Custom email subject (optional)
         """
-        subject = f"Invoice - Order #{order['id']}"
+        subject = subject or f"Invoice - Order #{order['id']}"
 
         desc = _escape_html(order.get("description", ""))
         customer_name = _escape_html(order.get("customer_name", ""))

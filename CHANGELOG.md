@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.32] - 2026-02-03
+
+### Added
+- **Custom invoice and receipt editor** - When sending invoices or receipts from Farm Finances, a preview/edit form now appears allowing you to customize the email before sending. You can edit: recipient email, subject line, customer name, description, total/paid/balance amounts, add a custom message, and payment instructions (for invoices). This applies to order invoices, order receipts, and sale receipts.
+
 ## [1.79.31] - 2026-02-03
 
 ### Fixed
