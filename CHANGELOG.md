@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.60] - 2026-02-03
+
+### Fixed
+- **Per-payment receipt buttons now work** - Fixed the receipt buttons next to individual payments in Orders. Click the receipt icon to send a receipt for that specific payment.
+- **Receipt balance due is now editable** - When sending a receipt, you can now edit the balance due amount and it will be reflected in the email.
+
+### Added
+- **Optional receipt when adding payment** - When adding a payment to an order, there's now a checkbox to "Send receipt email after adding payment". If checked, a receipt for that payment will be automatically emailed to the customer.
+
 ## [1.79.59] - 2026-02-03
 
 ### Added

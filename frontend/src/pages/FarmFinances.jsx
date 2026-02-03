@@ -256,6 +256,7 @@ function FarmFinances() {
     amount: '',
     payment_date: format(new Date(), 'yyyy-MM-dd'),
     reference: '',
+    sendReceipt: false,
     notes: '',
   })
 
@@ -498,6 +499,7 @@ function FarmFinances() {
           description: invoiceFormData.description,
           total: invoiceFormData.total,
           total_paid: invoiceFormData.totalPaid,
+          balance_due: invoiceFormData.balanceDue,
           custom_message: invoiceFormData.customMessage,
         })
       } else if (invoiceFormData.type === 'sale_receipt') {
@@ -534,10 +536,30 @@ function FarmFinances() {
   const handlePaymentSubmit = async (e) => {
     e.preventDefault()
     try {
-      await addOrderPayment(selectedOrderForPayment.id, {
-        ...paymentFormData,
+      const shouldSendReceipt = paymentFormData.sendReceipt
+      const orderId = selectedOrderForPayment.id
+
+      // Create the payment
+      const response = await addOrderPayment(orderId, {
+        payment_type: paymentFormData.payment_type,
+        payment_method: paymentFormData.payment_method,
         amount: parseFloat(paymentFormData.amount),
+        payment_date: paymentFormData.payment_date,
+        reference: paymentFormData.reference,
+        notes: paymentFormData.notes,
       })
+
+      // Send receipt if requested
+      if (shouldSendReceipt && response?.data?.id) {
+        try {
+          await sendPaymentReceipt(orderId, response.data.id)
+          alert('Payment added and receipt sent!')
+        } catch (receiptError) {
+          console.error('Failed to send receipt:', receiptError)
+          alert('Payment added but failed to send receipt. You can send it manually later.')
+        }
+      }
+
       setShowPaymentModal(false)
       setSelectedOrderForPayment(null)
       setPaymentFormData({
@@ -547,6 +569,7 @@ function FarmFinances() {
         payment_date: format(new Date(), 'yyyy-MM-dd'),
         reference: '',
         notes: '',
+        sendReceipt: false,
       })
       fetchData()
     } catch (error) {
@@ -893,6 +916,7 @@ function FarmFinances() {
           handleDeleteCustomer={handleDeleteCustomer}
           handleDeleteExpense={handleDeleteExpense}
           handleDeletePayment={handleDeletePayment}
+          handleSendPaymentReceipt={handleSendPaymentReceipt}
           onAddSale={() => setShowSaleModal(true)}
           onAddOrder={() => {
             setEditingOrder(null)
@@ -1487,7 +1511,7 @@ function BusinessTab({
   sales, livestock, orders, customers, expenses,
   formatCurrency, formatAnimalType, getCategoryColor, getStatusBadge, getPaymentProgress,
   handleDeleteSale, handleDeleteLivestock, handleDeleteOrder, handleCompleteOrder, handleSendReceipt, handleSendInvoice,
-  handleDeleteCustomer, handleDeleteExpense, handleDeletePayment,
+  handleDeleteCustomer, handleDeleteExpense, handleDeletePayment, handleSendPaymentReceipt,
   onAddSale, onAddOrder, onAddCustomer, onAddExpense,
   onEditCustomer, onEditOrder, onEditExpense,
   onAddPayment, onAllocate,
@@ -2280,6 +2304,17 @@ function PaymentModal({ order, formData, setFormData, onSubmit, onClose, formatC
           <div>
             <label className="block text-sm text-gray-400 mb-1">Notes</label>
             <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="sendReceipt"
+              checked={formData.sendReceipt || false}
+              onChange={(e) => setFormData({ ...formData, sendReceipt: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-farm-green focus:ring-farm-green"
+            />
+            <label htmlFor="sendReceipt" className="text-sm text-gray-400">Send receipt email after adding payment</label>
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-gray-700">
