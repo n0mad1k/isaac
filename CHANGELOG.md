@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.4] - 2026-02-03
+
+### Fixed
+- **Health indicators now expanded by default** - Detailed indicator cards in the Show Details area are now expanded by default instead of collapsed. Click to collapse if needed.
+- **Indicator names no longer truncated** - PHYSICAL BREAKDOWN card names now display fully instead of being cut off.
+
 ## [1.79.3] - 2026-02-03
 
 ### Added

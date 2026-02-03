@@ -1584,7 +1584,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                           return (
                             <div key={ind.category} className="bg-gray-800/50 rounded-lg p-2">
                               <div className="flex items-center justify-between gap-1 mb-1">
-                                <span className="text-xs text-white font-medium truncate">{ind.name}</span>
+                                <span className="text-xs text-white font-medium">{ind.name}</span>
                                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${c.badge}`}>
                                   {ind.value?.toFixed(0) || '-'}
                                 </span>
@@ -1702,12 +1702,17 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                       const colorMap = { green: { text: 'text-green-400', badge: 'bg-green-900/30 text-green-400' }, yellow: { text: 'text-yellow-400', badge: 'bg-yellow-900/30 text-yellow-400' }, red: { text: 'text-red-400', badge: 'bg-red-900/30 text-red-400' } }
                       const c = colorMap[scoreColor]
                       const hasDetails = (ind.details?.actual_values?.length > 0) || (ind.details?.normal_ranges?.length > 0) || ind.details?.recommendation || (ind.contributing_factors?.length > 0)
-                      const isExpanded = expandedIndicators?.[ind.category]
+                      // Default to expanded (true) unless explicitly collapsed
+                      const isExpanded = expandedIndicators?.[ind.category] !== false
 
                       return (
                         <div key={ind.category} className="bg-gray-700/50 rounded-lg overflow-hidden">
                           <button
-                            onClick={() => setExpandedIndicators(prev => ({ ...prev, [ind.category]: !prev?.[ind.category] }))}
+                            onClick={() => setExpandedIndicators(prev => ({
+                              ...prev,
+                              // Toggle: if not set or true, set to false; if false, set to true
+                              [ind.category]: prev?.[ind.category] === false ? true : false
+                            }))}
                             className="w-full p-2.5 text-left"
                           >
                             <div className="flex items-center justify-between">
