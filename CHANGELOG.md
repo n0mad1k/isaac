@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.61] - 2026-02-03
+
+### Fixed
+- **AI insights sales data now works correctly** - Fixed a second column name mismatch in the AI context gathering code. Sales totals were always showing $0 because the code was looking for `total_amount` instead of the correct `total_price` column. Combined with the budget fix, AI insights should now display accurate financial data.
+
 ## [1.79.60] - 2026-02-03
 
 ### Fixed

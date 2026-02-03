@@ -255,7 +255,7 @@ async def gather_production_context(db: AsyncSession) -> str:
         )
         sales = result.scalars().all()
         if sales:
-            total = sum(s.total_amount for s in sales if hasattr(s, 'total_amount') and s.total_amount)
+            total = sum(s.total_price for s in sales if hasattr(s, 'total_price') and s.total_price)
             lines.append(f"Recent sales (last 7 days): {len(sales)} sales, ${total:,.2f} total")
 
         if not lines:
