@@ -34,6 +34,7 @@ import {
   Image,
 } from 'lucide-react'
 import MottoDisplay from '../components/MottoDisplay'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   getProductionStats,
   getLivestockProductions,
@@ -57,6 +58,7 @@ import {
   sendOrderReceipt,
   sendOrderInvoice,
   sendSaleReceipt,
+  sendPaymentReceipt,
   getFinancialSummary,
   getOutstandingPayments,
   getLivestockAllocations,
@@ -157,6 +159,7 @@ const EXPENSE_SCOPES = [
 const MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function FarmFinances() {
+  const { getSetting } = useSettings()
   const [searchParams] = useSearchParams()
   const initialTab = useMemo(() => searchParams.get('tab') || 'overview', [])
   const [activeTab, setActiveTab] = useState(initialTab)
@@ -397,6 +400,7 @@ function FarmFinances() {
 
   // Open invoice/receipt modal with pre-filled data
   const openInvoiceModal = (type, order = null, sale = null) => {
+    const farmName = getSetting('farm_name', 'Our Farm')
     if (type === 'invoice' && order) {
       // Get customer email from customers list
       const customer = customers.find(c => c.id === order.customer_id)
@@ -405,7 +409,7 @@ function FarmFinances() {
         orderId: order.id,
         saleId: null,
         toEmail: customer?.email || order.customer_email || '',
-        subject: `Invoice - Order #${order.id}`,
+        subject: `[${farmName}] Invoice - Order #${order.id}`,
         customerName: order.customer_name || '',
         description: order.description || '',
         total: order.final_total || order.estimated_total || 0,
@@ -421,7 +425,7 @@ function FarmFinances() {
         orderId: order.id,
         saleId: null,
         toEmail: customer?.email || order.customer_email || '',
-        subject: `Receipt - Order #${order.id}`,
+        subject: `[${farmName}] Receipt - Order #${order.id}`,
         customerName: order.customer_name || '',
         description: order.description || '',
         total: order.final_total || order.estimated_total || 0,
@@ -436,7 +440,7 @@ function FarmFinances() {
         orderId: null,
         saleId: sale.id,
         toEmail: sale.customer_email || '',
-        subject: `Receipt - ${sale.item_name}`,
+        subject: `[${farmName}] Receipt - ${sale.item_name}`,
         customerName: sale.customer_name || '',
         description: sale.description || sale.item_name || '',
         total: (sale.quantity * sale.unit_price) || 0,
@@ -511,6 +515,21 @@ function FarmFinances() {
       setShowInvoiceModal(false)
     } catch (error) {
       const msg = error.response?.data?.detail || 'Failed to send'
+      alert(msg)
+    }
+  }
+
+  // Send receipt for a single payment
+  const handleSendPaymentReceipt = async (orderId, paymentId) => {
+    if (!confirm('Send a receipt for this payment?')) return
+    try {
+      const farmName = getSetting('farm_name', 'Our Farm')
+      const res = await sendPaymentReceipt(orderId, paymentId, {
+        subject: `[${farmName}] Payment Receipt`,
+      })
+      alert(res?.data?.message || 'Payment receipt sent!')
+    } catch (error) {
+      const msg = error.response?.data?.detail || 'Failed to send payment receipt'
       alert(msg)
     }
   }
@@ -1659,7 +1678,8 @@ function BusinessTab({
                               {payment.payment_type === 'refund' ? '-' : '+'}{formatCurrency(payment.amount)}
                             </span>
                             <span className="text-gray-500">{format(new Date(payment.payment_date), 'MM/dd/yyyy')}</span>
-                            <button onClick={() => handleDeletePayment(order.id, payment.id)} className="text-gray-500 hover:text-red-400"><X className="w-3 h-3" /></button>
+                            <button onClick={() => handleSendPaymentReceipt(order.id, payment.id)} className="text-gray-500 hover:text-amber-400" title="Send Receipt"><Receipt className="w-3 h-3" /></button>
+                            <button onClick={() => handleDeletePayment(order.id, payment.id)} className="text-gray-500 hover:text-red-400" title="Delete Payment"><X className="w-3 h-3" /></button>
                           </div>
                         </div>
                       ))}

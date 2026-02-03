@@ -1232,6 +1232,99 @@ async def delete_payment(
     return {"message": "Payment deleted"}
 
 
+@router.post("/orders/{order_id}/payments/{payment_id}/send-receipt/")
+async def send_payment_receipt(
+    order_id: int,
+    payment_id: int,
+    custom: Optional[CustomInvoiceInput] = None,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
+):
+    """Send a receipt email for a specific payment.
+
+    Accepts optional custom fields to override default values.
+    """
+    from services.email import EmailService
+    from models.settings import AppSetting
+
+    # Get the payment
+    result = await db.execute(
+        select(OrderPayment).where(OrderPayment.id == payment_id, OrderPayment.order_id == order_id)
+    )
+    payment = result.scalar_one_or_none()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    # Get the order
+    order_result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
+    order = order_result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Get customer email (use custom if provided)
+    customer_email = custom.to_email if custom and custom.to_email else None
+    if not customer_email and order.customer_id:
+        cust_result = await db.execute(select(Customer).where(Customer.id == order.customer_id))
+        customer = cust_result.scalar_one_or_none()
+        if customer and customer.email:
+            customer_email = customer.email
+
+    if not customer_email:
+        raise HTTPException(status_code=400, detail="Customer has no email address on file")
+
+    # Get farm name from settings
+    farm_name_setting = await db.execute(
+        select(AppSetting).where(AppSetting.key == "farm_name")
+    )
+    farm_name_row = farm_name_setting.scalar_one_or_none()
+    farm_name = farm_name_row.value if farm_name_row and farm_name_row.value else "Isaac Farm"
+
+    # Build payment dict
+    payment_dict = {
+        "id": payment.id,
+        "payment_type": payment.payment_type.value if payment.payment_type else "",
+        "payment_method": payment.payment_method.value if payment.payment_method else "",
+        "amount": payment.amount or 0,
+        "payment_date": payment.payment_date.strftime("%m/%d/%Y") if payment.payment_date else "",
+        "reference": payment.reference or "",
+    }
+
+    # Build order dict
+    order_dict = {
+        "id": order.id,
+        "customer_name": (custom.customer_name if custom and custom.customer_name else None) or order.customer_name or "",
+        "description": (custom.description if custom and custom.description else None) or order.description or "",
+        "final_total": order.final_total,
+        "estimated_total": order.estimated_total,
+        "total_paid": order.total_paid or 0,
+        "balance_due": order.balance_due or 0,
+    }
+
+    # Custom subject and from_name if provided
+    subject = custom.subject if custom and custom.subject else None
+    from_name = (custom.from_name if custom and custom.from_name else None) or farm_name
+
+    # Send receipt
+    try:
+        email_service = await EmailService.get_configured_service(db)
+        success = await email_service.send_payment_receipt(
+            to=customer_email,
+            payment=payment_dict,
+            order=order_dict,
+            farm_name=farm_name,
+            subject=subject,
+            from_name=from_name,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send payment receipt: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+    if success:
+        return {"message": f"Payment receipt sent to {customer_email}"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send payment receipt email. Check email configuration.")
+
+
 @router.post("/orders/{order_id}/complete/")
 async def complete_order(
     order_id: int,
@@ -1310,9 +1403,9 @@ async def send_order_receipt(
         "actual_weight": order.actual_weight,
         "price_per_pound": order.price_per_pound,
         "estimated_total": order.estimated_total,
-        "final_total": (custom.total if custom and custom.total is not None else None) or order.final_total,
-        "total_paid": (custom.total_paid if custom and custom.total_paid is not None else None) or order.total_paid or 0,
-        "balance_due": (custom.balance_due if custom and custom.balance_due is not None else None) or order.balance_due or 0,
+        "final_total": custom.total if custom and custom.total is not None else order.final_total,
+        "total_paid": custom.total_paid if custom and custom.total_paid is not None else (order.total_paid or 0),
+        "balance_due": custom.balance_due if custom and custom.balance_due is not None else (order.balance_due or 0),
         "notes": order.notes or "",
         "custom_message": custom.custom_message if custom else None,
         "payments": [
@@ -1404,9 +1497,9 @@ async def send_order_invoice(
         "actual_weight": order.actual_weight,
         "price_per_pound": order.price_per_pound,
         "estimated_total": order.estimated_total,
-        "final_total": (custom.total if custom and custom.total is not None else None) or order.final_total,
-        "total_paid": (custom.total_paid if custom and custom.total_paid is not None else None) or order.total_paid or 0,
-        "balance_due": (custom.balance_due if custom and custom.balance_due is not None else None) or order.balance_due or 0,
+        "final_total": custom.total if custom and custom.total is not None else order.final_total,
+        "total_paid": custom.total_paid if custom and custom.total_paid is not None else (order.total_paid or 0),
+        "balance_due": custom.balance_due if custom and custom.balance_due is not None else (order.balance_due or 0),
         "notes": order.notes or "",
         "custom_message": custom.custom_message if custom else None,
     }

@@ -677,6 +677,112 @@ class EmailService:
 
         return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name, from_name=from_name)
 
+    async def send_payment_receipt(
+        self,
+        to: str,
+        payment: dict,
+        order: dict,
+        farm_name: str = "Isaac Farm",
+        subject: str = None,
+        from_name: str = None,
+    ) -> bool:
+        """Send a receipt email for a single payment.
+
+        Args:
+            to: Customer email address
+            payment: Dict with payment details (amount, payment_type, payment_method, payment_date, reference)
+            order: Dict with order details (id, customer_name, description)
+            farm_name: Farm/business name for the receipt header
+            subject: Custom email subject (optional)
+            from_name: Override From header display name (defaults to farm_name)
+        """
+        subject = subject or f"Payment Receipt - Order #{order['id']}"
+        from_name = from_name or farm_name
+
+        # Payment details
+        ptype = _escape_html(payment.get("payment_type", "")).replace("_", " ").title()
+        method = _escape_html(payment.get("payment_method", "")).replace("_", " ").title()
+        pdate = _escape_html(payment.get("payment_date", ""))
+        ref = _escape_html(payment.get("reference", "")) or "-"
+        amount = payment.get("amount", 0)
+        sign = "-" if ptype.lower() == "refund" else ""
+
+        # Order info
+        customer_name = _escape_html(order.get("customer_name", ""))
+        description = _escape_html(order.get("description", ""))
+        order_total = order.get("final_total") or order.get("estimated_total") or 0
+        total_paid = order.get("total_paid", 0)
+        balance = order.get("balance_due", 0)
+
+        balance_color = "#c0392b" if balance > 0 else "#27ae60"
+        balance_label = f"Balance Due: ${balance:,.2f}" if balance > 0 else "PAID IN FULL"
+
+        body = f"""
+        <html>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <!-- Header -->
+                <div style="background: #2c3e50; color: white; padding: 20px 24px;">
+                    <h1 style="margin: 0; font-size: 20px;">{_escape_html(farm_name)}</h1>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">Payment Receipt - Order #{order['id']}</p>
+                </div>
+
+                <!-- Customer Info -->
+                <div style="padding: 20px 24px; border-bottom: 1px solid #eee;">
+                    <div style="font-weight: 600; font-size: 15px;">{customer_name}</div>
+                    <div style="color: #666; font-size: 13px; margin-top: 4px;">{description}</div>
+                </div>
+
+                <!-- Payment Details -->
+                <div style="padding: 16px 24px; border-bottom: 1px solid #eee;">
+                    <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #333;">Payment Details</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <tr>
+                            <td style="padding: 8px 0; color: #666;">Payment Date:</td>
+                            <td style="padding: 8px 0; font-weight: 500;">{pdate}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #666;">Payment Type:</td>
+                            <td style="padding: 8px 0; font-weight: 500;">{ptype}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #666;">Method:</td>
+                            <td style="padding: 8px 0; font-weight: 500;">{method}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #666;">Reference:</td>
+                            <td style="padding: 8px 0; font-weight: 500;">{ref}</td>
+                        </tr>
+                        <tr style="background: #f8f9fa;">
+                            <td style="padding: 12px 8px; color: #333; font-weight: 600;">Amount Received:</td>
+                            <td style="padding: 12px 8px; font-weight: 700; font-size: 18px; color: #27ae60;">{sign}${amount:,.2f}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Order Summary -->
+                <div style="padding: 16px 24px;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #333;">Order Summary</h3>
+                    <div style="text-align: right; font-size: 14px;">
+                        <div style="margin-bottom: 4px;"><span style="color: #666;">Order Total:</span> <strong>${order_total:,.2f}</strong></div>
+                        <div style="margin-bottom: 4px;"><span style="color: #666;">Total Paid:</span> <strong>${total_paid:,.2f}</strong></div>
+                        <div style="font-size: 16px; font-weight: 700; color: {balance_color}; border-top: 2px solid #333; padding-top: 6px; margin-top: 4px;">
+                            {balance_label}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div style="background: #f8f9fa; padding: 12px 24px; text-align: center; font-size: 11px; color: #999;">
+                    Receipt generated on {datetime.now().strftime('%m/%d/%Y at %I:%M %p')}
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        return await self.send_email(subject, body, to=to, html=True, subject_prefix=farm_name, from_name=from_name)
+
     async def send_sale_receipt(
         self,
         to: str,

@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.49] - 2026-02-03
+
+### Added
+- **Per-payment receipts** - Send receipts for individual payments on orders. Each payment in the order detail now has a receipt icon button to email a receipt for just that payment. Useful for customers who want confirmation of their deposit or partial payment.
+
+### Fixed
+- **Invoice/receipt email subject now uses farm name** - Invoice and receipt emails now include your farm name in the subject line (e.g., "[Smith Family Farm] Receipt - Order #123") instead of generic text. Farm name is pulled from Settings > Farm Settings.
+- **Balance due customization now works correctly** - Fixed a bug where setting balance due to $0 in the invoice editor would be ignored and show the original balance. Custom amounts (including zero) are now respected.
+
 ## [1.79.48] - 2026-02-03
 
 ### Added
