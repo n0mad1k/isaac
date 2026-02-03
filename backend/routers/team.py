@@ -5302,11 +5302,16 @@ async def get_member_milestones(
     milestone_groups = []
     total = 0
     achieved_count = 0
+    # Track age-appropriate progress (milestones up to child's current age)
+    age_appropriate_total = 0
+    age_appropriate_achieved = 0
 
     # Track per-category and per-age-group stats for developmental assessment
     # Also track the highest age where each category has achievements (for advanced detection)
-    category_stats = {"motor": {"total": 0, "achieved": 0, "highest_age": 0}, "language": {"total": 0, "achieved": 0, "highest_age": 0},
-                      "social": {"total": 0, "achieved": 0, "highest_age": 0}, "cognitive": {"total": 0, "achieved": 0, "highest_age": 0}}
+    category_stats = {"motor": {"total": 0, "achieved": 0, "highest_age": 0, "age_appropriate_total": 0, "age_appropriate_achieved": 0},
+                      "language": {"total": 0, "achieved": 0, "highest_age": 0, "age_appropriate_total": 0, "age_appropriate_achieved": 0},
+                      "social": {"total": 0, "achieved": 0, "highest_age": 0, "age_appropriate_total": 0, "age_appropriate_achieved": 0},
+                      "cognitive": {"total": 0, "achieved": 0, "highest_age": 0, "age_appropriate_total": 0, "age_appropriate_achieved": 0}}
     age_group_completion = []  # List of (age_months, completion_pct)
 
     for group in reference:
@@ -5319,6 +5324,9 @@ async def get_member_milestones(
         group_total = 0
         group_achieved = 0
         group_age = group["age_months"]
+
+        # Check if this group is age-appropriate (milestone age <= child's age)
+        is_age_appropriate = group_age <= age_months
 
         for category, items in group["milestones"].items():
             cat_items = []
@@ -5333,10 +5341,20 @@ async def get_member_milestones(
                         # Track highest age with achievement for this category
                         if group_age > category_stats[category]["highest_age"]:
                             category_stats[category]["highest_age"] = group_age
+                    # Track age-appropriate achievements
+                    if is_age_appropriate:
+                        age_appropriate_achieved += 1
+                        if category in category_stats:
+                            category_stats[category]["age_appropriate_achieved"] += 1
                 total += 1
                 group_total += 1
                 if category in category_stats:
                     category_stats[category]["total"] += 1
+                # Track age-appropriate totals
+                if is_age_appropriate:
+                    age_appropriate_total += 1
+                    if category in category_stats:
+                        category_stats[category]["age_appropriate_total"] += 1
 
                 cat_items.append({
                     "id": item["id"],
@@ -5361,15 +5379,18 @@ async def get_member_milestones(
         if pct > 0:
             highest_age_with_achievements = grp_age
 
-    # Calculate category-level assessments
+    # Calculate category-level assessments using AGE-APPROPRIATE milestones
     # If child has achievements in milestones ABOVE their age for this category, mark as advanced
     category_assessment = {}
     for cat, stats in category_stats.items():
-        if stats["total"] > 0:
-            pct = stats["achieved"] / stats["total"] * 100
+        # Use age-appropriate values for percentage calculation
+        aa_total = stats["age_appropriate_total"]
+        aa_achieved = stats["age_appropriate_achieved"]
+        if aa_total > 0:
+            pct = aa_achieved / aa_total * 100
             above_age_for_category = stats["highest_age"] > age_months
 
-            # Advanced if: achieving milestones above age OR very high completion
+            # Advanced if: achieving milestones above age OR very high completion of age-appropriate
             if above_age_for_category:
                 status = "advanced"
             elif pct >= 90:
@@ -5381,29 +5402,29 @@ async def get_member_milestones(
             else:
                 status = "behind"
             category_assessment[cat] = {
-                "total": stats["total"],
-                "achieved": stats["achieved"],
+                "total": aa_total,  # Age-appropriate total
+                "achieved": aa_achieved,  # Age-appropriate achieved
                 "percentage": round(pct, 1),
                 "status": status,
                 "highest_age_achieved": stats["highest_age"]
             }
 
-    # Overall developmental status
+    # Overall developmental status using AGE-APPROPRIATE milestones
     # Consider both percentage AND if child is achieving milestones above their age
-    overall_pct = (achieved_count / total * 100) if total > 0 else 0
+    age_appropriate_pct = (age_appropriate_achieved / age_appropriate_total * 100) if age_appropriate_total > 0 else 0
     above_age_achievements = highest_age_with_achievements > age_months
 
     if above_age_achievements:
         # Child is achieving milestones from ABOVE their age group - definitely advanced!
         overall_status = "advanced"
         status_message = f"Ahead of typical development - achieving {highest_age_with_achievements}+ month milestones"
-    elif overall_pct >= 90:
+    elif age_appropriate_pct >= 90:
         overall_status = "advanced"
         status_message = "Ahead of typical development"
-    elif overall_pct >= 70:
+    elif age_appropriate_pct >= 70:
         overall_status = "on_track"
         status_message = "On track with typical development"
-    elif overall_pct >= 50:
+    elif age_appropriate_pct >= 50:
         overall_status = "monitor"
         status_message = "Some areas may need attention"
     else:
@@ -5434,9 +5455,13 @@ async def get_member_milestones(
         "age_months": age_months,
         "milestone_groups": milestone_groups,
         "progress": {
-            "total": total,
-            "achieved": achieved_count,
-            "percentage": round(overall_pct, 1)
+            # Age-appropriate progress (milestones up to child's current age)
+            "total": age_appropriate_total,
+            "achieved": age_appropriate_achieved,
+            "percentage": round(age_appropriate_pct, 1),
+            # Overall totals for reference
+            "lifetime_total": total,
+            "lifetime_achieved": achieved_count
         },
         "developmental_assessment": {
             "overall_status": overall_status,

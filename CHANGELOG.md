@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.33] - 2026-02-03
+
+### Fixed
+- **Milestone percentages now show age-appropriate progress** - Children's developmental milestone progress now calculates based on milestones expected by their current age, not total lifetime milestones. A 12-month-old who has achieved all 0-12 month milestones will now show 100% (instead of 20% of all milestones through age 5). This provides more meaningful feedback on developmental progress.
+
 ## [1.79.32] - 2026-02-03
 
 ### Added
