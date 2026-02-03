@@ -336,10 +336,12 @@ async def gather_weather_context(db: AsyncSession) -> str:
         else:
             lines.append("No current weather data available.")
 
-        # Active alerts
+        # Active alerts (only show recent ones - within last 24 hours)
+        alert_cutoff = datetime.now() - timedelta(hours=24)
         result = await db.execute(
             select(WeatherAlert)
             .where(WeatherAlert.is_active == True)
+            .where(WeatherAlert.created_at >= alert_cutoff)
             .order_by(desc(WeatherAlert.created_at))
             .limit(5)
         )

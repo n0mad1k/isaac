@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.42] - 2026-02-03
+
+### Fixed
+- **Weather alerts in AI insights now expire after 24 hours** - Stale weather alerts older than 24 hours are no longer included in AI morning briefings and insights, preventing outdated information.
+
 ## [1.79.41] - 2026-02-03
 
 ### Fixed
