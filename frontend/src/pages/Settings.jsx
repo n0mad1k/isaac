@@ -103,6 +103,7 @@ function Settings() {
     calendar: false,
     cloudflare: false,
     display: false,
+    farm: false,
     team: false,
     translation: false,
     bible: false,
@@ -874,7 +875,8 @@ function Settings() {
   const cloudflareSettings = ['cloudflare_api_token', 'cloudflare_account_id', 'cloudflare_app_id']
   const storageSettings = ['storage_warning_percent', 'storage_critical_percent']
   const displaySettings = ['dashboard_refresh_interval', 'hide_completed_today', 'time_format']
-  const teamSettings = ['team_name', 'farm_name', 'team_mission', 'team_units', 'mentoring_day', 'aar_day']
+  const farmSettings = ['farm_name', 'payment_instructions']
+  const teamSettings = ['team_name', 'team_mission', 'team_units', 'mentoring_day', 'aar_day']
   const aiSettings = ['ai_enabled', 'ai_provider', 'ai_proactive_insights', 'ai_can_create_tasks', 'ollama_url', 'ollama_model', 'anthropic_api_key', 'claude_model', 'openai_api_key', 'openai_model', 'ai_shared_domains', 'knowledge_base_enabled', 'ai_read_only', 'ai_require_confirmation', 'ai_blocked_topics', 'ai_max_response_tokens', 'ai_guardrails_enabled']
 
   // Simplified notification categories - one setting per category
@@ -2416,6 +2418,51 @@ function Settings() {
         )}
       </div>
 
+      {/* Farm Settings - Always visible */}
+      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => toggleSection('farm')}
+        >
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            {expandedSections.farm ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            <Leaf className="w-5 h-5 text-green-400" />
+            Farm Settings
+          </h2>
+        </div>
+        {expandedSections.farm && (
+          <div className="mt-4 space-y-6">
+            <p className="text-sm text-gray-400">
+              Configure your farm name and business settings. The farm name is used in emails, receipts, and notifications.
+            </p>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Farm/Business Name</label>
+                <input
+                  type="text"
+                  value={settings.farm_name?.value || ''}
+                  onChange={(e) => handleChange('farm_name', e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                  placeholder="Green Acres Farm"
+                />
+                <p className="text-xs text-gray-400 mt-1">Used in email From headers, subject lines, receipts, and customer communications</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Payment Instructions</label>
+                <textarea
+                  value={settings.payment_instructions?.value || ''}
+                  onChange={(e) => handleChange('payment_instructions', e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 h-24"
+                  placeholder="Payment accepted via Venmo @farmname, Zelle, or check made out to..."
+                />
+                <p className="text-xs text-gray-400 mt-1">Included in invoice emails to customers</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Team Configuration - Only show when team is enabled */}
       {settings.team_enabled?.value === 'true' && (
         <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
@@ -2480,28 +2527,15 @@ function Settings() {
 
               {/* Basic Team Info */}
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Team Name</label>
-                    <input
-                      type="text"
-                      value={settings.team_name?.value || ''}
-                      onChange={(e) => handleChange('team_name', e.target.value)}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
-                      placeholder="Smith Family"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Farm/Business Name</label>
-                    <input
-                      type="text"
-                      value={settings.farm_name?.value || ''}
-                      onChange={(e) => handleChange('farm_name', e.target.value)}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
-                      placeholder="Green Acres Farm"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">Used in receipts and customer emails</p>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Team Name</label>
+                  <input
+                    type="text"
+                    value={settings.team_name?.value || ''}
+                    onChange={(e) => handleChange('team_name', e.target.value)}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                    placeholder="Smith Family"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Team Mission</label>
