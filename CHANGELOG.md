@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.79.18] - 2026-02-03
+
+### Fixed
+- **BMI card now shows child's current BMI value** - The Growth tab now displays the calculated BMI (from weight and height) alongside the median for comparison.
+
 ## [1.79.17] - 2026-02-03
 
 ### Fixed

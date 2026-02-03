@@ -388,7 +388,9 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
               label="BMI"
               icon={Activity}
               data={growthData.current_summary.bmi}
-              currentValue={null}
+              currentValue={member.current_weight && member.height_inches
+                ? ((member.current_weight * 703) / (member.height_inches * member.height_inches)).toFixed(1)
+                : null}
             />
           )}
         </div>
