@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.80.1] - 2026-02-03
+
+### Changed
+- **Milestone categories now show visual gauges** - Each developmental category (Motor, Language, Social, Cognitive) now displays a color-coded gauge showing where the child falls on the spectrum from Behind → Monitor → On Track → Ahead. A white indicator dot shows the current position on each gauge. This provides at-a-glance visual feedback for developmental progress.
+
 ## [1.80.0] - 2026-02-03
 
 ### Added

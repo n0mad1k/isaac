@@ -761,33 +761,51 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                 </div>
               </div>
 
-              {/* Category Breakdown */}
+              {/* Category Breakdown - Visual Gauges */}
               {milestones.developmental_assessment.category_breakdown && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {Object.entries(milestones.developmental_assessment.category_breakdown).map(([cat, data]) => {
-                    const catLabels = { motor: 'Motor', language: 'Language', social: 'Social', cognitive: 'Cognitive' }
-                    const statusColors = {
-                      advanced: { bg: 'bg-green-900/30', text: 'text-green-400', bar: 'bg-green-500' },
-                      on_track: { bg: 'bg-blue-900/30', text: 'text-blue-400', bar: 'bg-blue-500' },
-                      monitor: { bg: 'bg-yellow-900/30', text: 'text-yellow-400', bar: 'bg-yellow-500' },
-                      behind: { bg: 'bg-red-900/30', text: 'text-red-400', bar: 'bg-red-500' }
-                    }
-                    const c = statusColors[data.status] || statusColors.on_track
-                    const statusLabels = {
-                      advanced: 'Ahead',
-                      on_track: 'On Track',
-                      monitor: 'Monitor',
-                      behind: 'Behind'
-                    }
+                    const catLabels = { motor: 'Motor Skills', language: 'Language', social: 'Social & Emotional', cognitive: 'Cognitive' }
+                    const Icon = CATEGORY_ICONS[cat] || Brain
+                    // Calculate gauge position (0-100)
+                    // behind = 0-25, monitor = 25-50, on_track = 50-75, advanced = 75-100
+                    let gaugePosition = 50 // default to center
+                    if (data.status === 'behind') gaugePosition = 12.5
+                    else if (data.status === 'monitor') gaugePosition = 37.5
+                    else if (data.status === 'on_track') gaugePosition = 62.5
+                    else if (data.status === 'advanced') gaugePosition = 87.5
+
                     return (
-                      <div key={cat} className={`rounded-lg p-2 ${c.bg}`}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-gray-300 font-medium">{catLabels[cat] || cat}</span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${c.text} font-semibold`}>
-                            {statusLabels[data.status] || data.status}
-                          </span>
+                      <div key={cat} className="bg-gray-900/50 rounded-lg p-3 border border-gray-700">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Icon className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-200 font-medium">{catLabels[cat] || cat}</span>
+                          <span className="text-xs text-gray-500 ml-auto">{data.achieved}/{data.total}</span>
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-1 text-center">{data.achieved}/{data.total} achieved</div>
+                        {/* Gauge visualization */}
+                        <div className="relative mt-2">
+                          {/* Gauge track with colored sections */}
+                          <div className="flex h-3 rounded-full overflow-hidden">
+                            <div className="w-1/4 bg-red-600/60" title="Behind" />
+                            <div className="w-1/4 bg-yellow-600/60" title="Monitor" />
+                            <div className="w-1/4 bg-blue-600/60" title="On Track" />
+                            <div className="w-1/4 bg-green-600/60" title="Ahead" />
+                          </div>
+                          {/* Indicator arrow */}
+                          <div
+                            className="absolute -top-1 transition-all duration-300"
+                            style={{ left: `calc(${gaugePosition}% - 6px)` }}
+                          >
+                            <div className="w-3 h-3 bg-white rounded-full border-2 border-gray-800 shadow-lg" />
+                          </div>
+                        </div>
+                        {/* Labels */}
+                        <div className="flex justify-between mt-1.5 text-[10px] text-gray-500">
+                          <span>Behind</span>
+                          <span>Monitor</span>
+                          <span>On Track</span>
+                          <span>Ahead</span>
+                        </div>
                       </div>
                     )
                   })}
