@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.80.8] - 2026-02-04
+
+### Fixed
+- **Duplicate email reminders eliminated** - The reminder alert scheduler was sending the same alert twice due to an overlapping time window. The window now strictly only fires before or at the alert time, not after. This prevents the same "now due" alert from being sent by consecutive scheduler runs.
+
 ## [1.80.7] - 2026-02-04
 
 ### Fixed

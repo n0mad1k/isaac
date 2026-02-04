@@ -1746,10 +1746,11 @@ class SchedulerService:
                             continue
 
                         # Check if it's time to send this alert
-                        # Window: from 1 minute past due to 4 minutes before (scheduler runs every 5 min)
-                        # This prevents overlap between scheduler runs
+                        # Window: from exactly at time to 5 minutes before (scheduler runs every 5 min)
+                        # Only allow 0 or positive values to prevent sending AFTER the alert time
+                        # This prevents overlap between scheduler runs at the boundaries
                         time_until_alert = (alert_time - now).total_seconds() / 60  # minutes
-                        if -1 <= time_until_alert <= 4:  # 5 minute window, no overlap
+                        if 0 <= time_until_alert <= 5:  # 5 minute window, strictly before or at alert time
                             # Mark as sent FIRST to prevent duplicates on rapid restarts
                             task_alerts_sent[alert_key] = now.isoformat()
                             task.alerts_sent = task_alerts_sent
