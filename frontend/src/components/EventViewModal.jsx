@@ -57,6 +57,15 @@ export default function EventViewModal({ event, onClose, onEdit, onCompleted, on
   const isRecurring = event.is_recurring && event.recurrence && event.recurrence !== 'once'
   const isTodo = event.task_type === 'todo'
 
+  // Debug logging - remove after fix
+  console.log('[EventViewModal Debug]', {
+    id: event?.id,
+    title: event?.title,
+    recurrence: event?.recurrence,
+    is_recurring: event?.is_recurring,
+    isRecurringResult: isRecurring
+  })
+
   const handleComplete = async () => {
     if (event.is_care_projection) return
     setCompleting(true)
