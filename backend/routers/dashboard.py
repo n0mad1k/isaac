@@ -883,6 +883,7 @@ async def get_calendar_month(
                 "priority": task.priority,
                 "is_completed": False,
                 "due_date": projected_date.isoformat(),
+                "original_due_date": task.due_date.isoformat(),  # Parent's actual start date for editing
                 "end_date": None,
                 "due_time": task.due_time,
                 "end_time": task.end_time,
@@ -1241,6 +1242,7 @@ async def get_calendar_week(
                 "priority": task.priority,
                 "is_completed": False,  # Projected instances are not completed
                 "due_date": projected_date.isoformat(),  # Use projected date
+                "original_due_date": task.due_date.isoformat(),  # Parent's actual start date for editing
                 "end_date": None,
                 "due_time": task.due_time,
                 "end_time": task.end_time,
