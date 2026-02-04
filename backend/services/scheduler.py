@@ -1403,6 +1403,29 @@ class SchedulerService:
         try:
             async with async_session() as db:
                 today = date.today()
+                today_start = datetime.combine(today, datetime.min.time())
+                today_end = datetime.combine(today, datetime.max.time())
+
+                # Fix: Correct any completed events where completed_at is today but due_date is in the past
+                # This fixes events that were incorrectly auto-completed with current timestamp
+                fix_result = await db.execute(
+                    select(Task)
+                    .where(Task.is_completed == True)
+                    .where(Task.task_type == TaskType.EVENT)
+                    .where(Task.due_date < today)
+                    .where(Task.completed_at >= today_start)
+                    .where(Task.completed_at <= today_end)
+                )
+                events_to_fix = fix_result.scalars().all()
+                if events_to_fix:
+                    for event in events_to_fix:
+                        if event.due_time:
+                            hours, minutes = map(int, event.due_time.split(':')[:2])
+                            event.completed_at = datetime.combine(event.due_date, datetime.min.time().replace(hour=hours, minute=minutes))
+                        else:
+                            event.completed_at = datetime.combine(event.due_date, datetime.max.time().replace(microsecond=0))
+                    await db.commit()
+                    logger.info(f"Fixed completed_at for {len(events_to_fix)} events that were incorrectly timestamped")
 
                 # Find all active, incomplete events from before today
                 result = await db.execute(
@@ -1418,7 +1441,14 @@ class SchedulerService:
                 if past_events:
                     for event in past_events:
                         event.is_completed = True
-                        event.completed_at = datetime.utcnow()
+                        # Set completed_at to the event's due date/time, NOT current time
+                        # This prevents old events from showing up as "completed today"
+                        if event.due_time:
+                            hours, minutes = map(int, event.due_time.split(':')[:2])
+                            event.completed_at = datetime.combine(event.due_date, datetime.min.time().replace(hour=hours, minute=minutes))
+                        else:
+                            # End of day if no specific time
+                            event.completed_at = datetime.combine(event.due_date, datetime.max.time().replace(microsecond=0))
                         logger.info(f"Auto-completed past event: {event.title} (was due {event.due_date})")
 
                     await db.commit()
