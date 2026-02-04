@@ -1641,7 +1641,8 @@ class SchedulerService:
                 for task in tasks:
                     # Skip tasks without a specific due_time - they shouldn't get alerts
                     # (They appear in daily digest and dashboard instead)
-                    if not task.due_time:
+                    # Also skip "00:00" as that typically means "no specific time" rather than "midnight"
+                    if not task.due_time or task.due_time == "00:00":
                         continue
 
                     # Calculate task due datetime
@@ -1652,6 +1653,11 @@ class SchedulerService:
                         continue  # Invalid time format, skip
 
                     due_datetime = tz.localize(datetime.combine(due_date, datetime.min.time().replace(hour=hour, minute=minute)))
+
+                    # Skip tasks whose due_datetime has already passed by more than 1 hour
+                    # This prevents sending reminders for old/past tasks
+                    if due_datetime < now - timedelta(hours=1):
+                        continue
 
                     # Get task-specific alerts or use defaults
                     task_alerts = task.reminder_alerts if task.reminder_alerts else default_alerts

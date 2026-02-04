@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.80.2] - 2026-02-04
+
+### Fixed
+- **Email reminders no longer fire at midnight for tasks without specific times** - Tasks with `due_time = "00:00"` (meaning "anytime today" rather than "at midnight") are now excluded from reminder alerts. These tasks appear in the daily digest instead. Also added protection against sending reminders for tasks whose due time has already passed.
+
 ## [1.80.1] - 2026-02-03
 
 ### Changed
