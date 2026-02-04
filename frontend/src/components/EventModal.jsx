@@ -298,7 +298,8 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
         // Edit only this occurrence - create a one-off task with overrides
         const occurrenceDate = projectedDate || event.due_date
         await editTaskOccurrence(event.id, {
-          date: occurrenceDate,
+          date: occurrenceDate,  // Original date (will be added to exceptions)
+          new_date: dataToSave.due_date,  // New date for the one-off task (may be rescheduled)
           title: dataToSave.title,
           description: dataToSave.description,
           task_type: dataToSave.task_type,

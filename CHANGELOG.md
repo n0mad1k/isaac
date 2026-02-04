@@ -6,6 +6,7 @@ All notable changes to Isaac will be documented in this file.
 
 ### Fixed
 - **Editing "All Occurrences" of recurring events no longer deletes past occurrences** - When editing a projected occurrence of a recurring event and selecting "All occurrences", the series start date is now preserved. Previously, editing a future occurrence would move the entire series forward, making past occurrences disappear.
+- **Rescheduling single occurrences now works correctly** - When editing "This occurrence only" and changing the date to reschedule, the one-off task is now created on the new date. Previously, it would stay on the original date, making rescheduling impossible.
 
 ## [1.80.5] - 2026-02-04
 

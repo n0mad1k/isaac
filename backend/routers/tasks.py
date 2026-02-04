@@ -490,7 +490,8 @@ class OccurrenceDate(BaseModel):
 
 class OccurrenceEdit(BaseModel):
     """Schema for editing a single occurrence of a recurring task"""
-    date: date  # The occurrence date being edited
+    date: date  # The occurrence date being edited (will be added to exceptions)
+    new_date: Optional[date] = None  # New date for the one-off task (if rescheduling)
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=5000)
     task_type: Optional[TaskType] = None
@@ -1186,12 +1187,14 @@ async def edit_task_occurrence(
     task.updated_at = datetime.utcnow()
 
     # Create a new one-off task for this date, copying fields from parent
+    # Use new_date if provided (for rescheduling), otherwise use the original date
+    task_due_date = data.new_date if data.new_date else data.date
     new_task = Task(
         title=data.title or task.title,
         description=data.description if data.description is not None else task.description,
         task_type=data.task_type or task.task_type,
         category=data.category or task.category,
-        due_date=data.date,
+        due_date=task_due_date,
         due_time=data.due_time if data.due_time is not None else task.due_time,
         end_time=data.end_time if data.end_time is not None else task.end_time,
         location=data.location if data.location is not None else task.location,
