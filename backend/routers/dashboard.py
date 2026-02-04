@@ -341,6 +341,17 @@ async def get_dashboard(
     )
     tasks = result.scalars().all()
 
+    # Filter out recurring tasks where today is in exception_dates
+    # (Exception dates are created when a single occurrence is edited/deleted)
+    today_str = today.isoformat()
+    tasks = [
+        t for t in tasks
+        if not (
+            t.recurrence and t.recurrence != TaskRecurrence.ONCE
+            and t.exception_dates and today_str in t.exception_dates.split(',')
+        )
+    ]
+
     # Filter for farm hand users - only show tasks marked visible_to_farmhands
     if is_farmhand:
         tasks = [t for t in tasks if t.visible_to_farmhands]
