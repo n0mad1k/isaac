@@ -444,6 +444,7 @@ async def gather_tasks_context(db: AsyncSession) -> str:
         today = date.today()
 
         # Overdue tasks (exclude events - they auto-expire, don't show as "overdue")
+        # Also exclude worker-assigned tasks - they show on Worker Tasks page only
         result = await db.execute(
             select(Task)
             .where(Task.is_active == True)
@@ -451,6 +452,7 @@ async def gather_tasks_context(db: AsyncSession) -> str:
             .where(Task.due_date < today)
             .where(Task.due_date.isnot(None))
             .where(Task.task_type != TaskType.EVENT)
+            .where(Task.assigned_to_worker_id.is_(None))
             .order_by(Task.due_date)
             .limit(10)
         )
@@ -461,12 +463,13 @@ async def gather_tasks_context(db: AsyncSession) -> str:
                 days = (today - t.due_date).days
                 lines.append(f"  - {t.title} ({days}d overdue)")
 
-        # Today's tasks
+        # Today's tasks (exclude worker-assigned tasks)
         result = await db.execute(
             select(Task)
             .where(Task.is_active == True)
             .where(Task.is_completed == False)
             .where(Task.due_date == today)
+            .where(Task.assigned_to_worker_id.is_(None))
             .order_by(Task.priority, Task.due_time)
             .limit(15)
         )
@@ -477,13 +480,14 @@ async def gather_tasks_context(db: AsyncSession) -> str:
                 time_str = f" at {t.due_time}" if t.due_time else ""
                 lines.append(f"  - {t.title}{time_str}")
 
-        # Upcoming week
+        # Upcoming week (exclude worker-assigned tasks)
         result = await db.execute(
             select(Task)
             .where(Task.is_active == True)
             .where(Task.is_completed == False)
             .where(Task.due_date > today)
             .where(Task.due_date <= today + timedelta(days=7))
+            .where(Task.assigned_to_worker_id.is_(None))
             .order_by(Task.due_date, Task.priority)
             .limit(10)
         )

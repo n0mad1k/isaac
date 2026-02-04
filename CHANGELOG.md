@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.80.9] - 2026-02-04
+
+### Fixed
+- **AI morning briefing no longer includes worker tasks** - Tasks assigned to workers are now excluded from the AI morning briefing context. They belong on the Worker Tasks page and shouldn't clutter your personal briefing.
+
 ## [1.80.8] - 2026-02-04
 
 ### Fixed
