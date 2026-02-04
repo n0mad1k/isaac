@@ -273,9 +273,10 @@ function BillsSummary() {
             <Plus className="w-4 h-4" />
           </button>
         </div>
-        <div className="overflow-x-auto">
-        <div className="grid grid-cols-[40px_minmax(80px,1fr)_70px_70px_40px] sm:grid-cols-[45px_1fr_90px_80px_52px] text-xs py-1 px-3 min-w-[320px]" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
-          <span>Day</span><span>Name</span><span className="text-right">Amt</span><span className="text-right hidden sm:block">Account</span><span />
+        <div>
+        {/* Table header - hidden on mobile */}
+        <div className="hidden md:grid grid-cols-[45px_1fr_90px_80px_52px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+          <span>Day</span><span>Name</span><span className="text-right">Amt</span><span className="text-right">Account</span><span />
         </div>
         {activeIncome.map(inc => {
           const monthlyAmt = inc.frequency === 'weekly' ? inc.amount * 4.33
@@ -284,21 +285,45 @@ function BillsSummary() {
             : inc.amount
           const freqLabel = inc.frequency === 'weekly' ? '/wk' : inc.frequency === 'biweekly' ? '/2wk' : inc.frequency === 'semimonthly' ? '2x/mo' : '/mo'
           return (
-            <div key={`inc-${inc.id}`} className="grid grid-cols-[45px_1fr_90px_80px_52px] text-sm py-2 px-3 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
-              <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
+            <div key={`inc-${inc.id}`} className="md:grid md:grid-cols-[45px_1fr_90px_80px_52px] text-sm py-2 px-3 md:items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+              {/* Mobile: Card layout */}
+              <div className="md:hidden flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{inc.name}</span>
+                    <span className="text-xs px-1 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--color-success-500)' }}>{freqLabel}</span>
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                    {ordinal(inc.pay_day)} · {getAcctName(inc.account_id) || 'No account'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold" style={{ color: 'var(--color-success-500)' }}>{fmt(monthlyAmt)}</span>
+                  <div className="flex gap-1">
+                    <button onClick={() => setEditModal({ item: inc, type: 'income' })} className="p-1.5 text-gray-500 hover:text-blue-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Edit">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => deleteIncomeItem(inc.id)} className="p-1.5 text-gray-500 hover:text-red-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Delete">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {/* Desktop: Grid layout */}
+              <span className="hidden md:block" style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
                 {ordinal(inc.pay_day)}
               </span>
-              <span className="flex items-center gap-1" style={{ color: 'var(--color-text-primary)' }}>
+              <span className="hidden md:flex items-center gap-1" style={{ color: 'var(--color-text-primary)' }}>
                 {inc.name}
                 <span className="text-xs px-1 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--color-success-500)', fontSize: '9px' }}>{freqLabel}</span>
               </span>
-              <span className="text-right" style={{ color: 'var(--color-success-500)' }}>
+              <span className="hidden md:block text-right" style={{ color: 'var(--color-success-500)' }}>
                 {fmt(monthlyAmt)}
               </span>
-              <span className="text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
+              <span className="hidden md:block text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
                 {getAcctName(inc.account_id)}
               </span>
-              <span className="flex justify-center gap-1">
+              <span className="hidden md:flex justify-center gap-1">
                 <button onClick={() => setEditModal({ item: inc, type: 'income' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
@@ -344,44 +369,70 @@ function BillsSummary() {
             <Plus className="w-4 h-4" />
           </button>
         </div>
-        <div className="overflow-x-auto">
-        <div className="grid grid-cols-[40px_1fr_80px_60px_40px] sm:grid-cols-[40px_1fr_80px_80px_60px_52px] text-xs py-1 px-3 min-w-[300px]" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
-          <span>Day</span><span>Name</span><span className="text-right">Amount</span><span className="text-right hidden sm:block">Acct</span><span className="text-center">Recur</span><span />
+        <div>
+        {/* Table header - hidden on mobile */}
+        <div className="hidden md:grid grid-cols-[40px_1fr_80px_80px_60px_52px] text-xs py-1 px-3" style={{ color: 'var(--color-text-secondary)', borderBottom: '1px solid var(--color-border-default)' }}>
+          <span>Day</span><span>Name</span><span className="text-right">Amount</span><span className="text-right">Acct</span><span className="text-center">Recur</span><span />
         </div>
         {fixedBills.map(cat => {
           const amt = cat.monthly_budget || cat.budget_amount * 2 || 0
           const recLabel = getRecurrenceLabel(cat)
           return (
-            <div key={cat.id} className="grid grid-cols-[40px_1fr_80px_60px_40px] sm:grid-cols-[40px_1fr_80px_80px_60px_52px] text-sm py-2 px-3 items-center min-w-[300px]" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
-              <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
+            <div key={cat.id} className="md:grid md:grid-cols-[40px_1fr_80px_80px_60px_52px] text-sm py-2 px-3 md:items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+              {/* Mobile: Card layout */}
+              <div className="md:hidden flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
+                    {cat.owner && <span className="text-xs px-1 rounded" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa' }}>{cat.owner}</span>}
+                    {recLabel && <span className="text-xs px-1 rounded" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa' }}>{recLabel}</span>}
+                  </div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
+                    {cat.bill_day ? `Due ${ordinal(cat.bill_day)}` : 'No due date'} · {getAcctName(cat.account_id) || 'No account'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold" style={{ color: 'var(--color-error-500)' }}>-{fmt(amt)}</span>
+                  <div className="flex gap-1">
+                    <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-1.5 text-gray-500 hover:text-blue-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Edit">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => deleteCatItem(cat.id)} className="p-1.5 text-gray-500 hover:text-red-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Delete">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              {/* Desktop: Grid layout */}
+              <span className="hidden md:block" style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
                 {cat.bill_day ? ordinal(cat.bill_day) : '—'}
               </span>
-              <span className="flex items-center gap-1 truncate" style={{ color: 'var(--color-text-primary)' }}>
+              <span className="hidden md:flex items-center gap-1 truncate" style={{ color: 'var(--color-text-primary)' }}>
                 {cat.name}
-                {cat.owner && <span className="text-xs px-1 rounded hidden sm:inline" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: '9px' }}>{cat.owner}</span>}
+                {cat.owner && <span className="text-xs px-1 rounded" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: '9px' }}>{cat.owner}</span>}
               </span>
-              <span className="text-right text-xs sm:text-sm" style={{ color: 'var(--color-error-500)' }}>
+              <span className="hidden md:block text-right" style={{ color: 'var(--color-error-500)' }}>
                 -{fmt(amt)}
               </span>
-              <span className="text-right truncate hidden sm:block" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
+              <span className="hidden md:block text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
                 {getAcctName(cat.account_id) || '—'}
               </span>
-              <span className="text-center">
+              <span className="hidden md:block text-center">
                 {recLabel ? (
                   <span className="text-xs px-1 py-0 rounded" style={{ backgroundColor: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontSize: '9px' }}
                     title={cat.end_date ? `Ends ${cat.end_date}` : cat.billing_months ? `Months: ${cat.billing_months}` : ''}>
                     {recLabel}
                   </span>
                 ) : (
-                  <span className="text-xs hidden sm:inline" style={{ color: 'var(--color-text-muted)', fontSize: '9px' }}>monthly</span>
+                  <span className="text-xs" style={{ color: 'var(--color-text-muted)', fontSize: '9px' }}>monthly</span>
                 )}
               </span>
-              <span className="flex justify-center gap-0.5 sm:gap-1">
+              <span className="hidden md:flex justify-center gap-1">
                 <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
-                  <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <Pencil className="w-3.5 h-3.5" />
                 </button>
                 <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
-                  <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </span>
             </div>

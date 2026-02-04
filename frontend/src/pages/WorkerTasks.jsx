@@ -624,22 +624,22 @@ function WorkerTasks() {
                 {t('showCompleted')}
               </label>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={openAssignModal}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 text-sm min-w-[44px] min-h-[44px]"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 text-sm min-h-[44px]"
                 title={t('assignExisting')}
               >
-                <Link className="w-5 h-5" />
-                <span className="hidden md:inline">{t('assignExisting')}</span>
+                <Link className="w-5 h-5 flex-shrink-0" />
+                <span className="hidden lg:inline whitespace-nowrap">{t('assignExisting')}</span>
               </button>
               <button
                 onClick={() => setShowEventModal(true)}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light text-sm min-w-[44px] min-h-[44px]"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-farm-green text-white rounded-lg hover:bg-farm-green-light text-sm min-h-[44px]"
                 title={t('newTask')}
               >
-                <Plus className="w-5 h-5" />
-                <span className="hidden md:inline">{t('newTask')}</span>
+                <Plus className="w-5 h-5 flex-shrink-0" />
+                <span className="hidden lg:inline whitespace-nowrap">{t('newTask')}</span>
               </button>
             </div>
           </div>

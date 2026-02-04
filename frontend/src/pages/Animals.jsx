@@ -1299,97 +1299,98 @@ function AnimalCard({
         borderLeft: isPet ? '4px solid var(--color-pink-600)' : isLivestock ? '4px solid var(--color-orange-600)' : undefined
       }}
     >
-      {/* Compact Card Header - mobile-friendly with wrapping */}
+      {/* Compact Card Header - mobile-friendly with stacked layout */}
       <div
-        className="px-3 py-2 cursor-pointer"
+        className="px-3 py-3 cursor-pointer"
         onClick={onToggle}
       >
-        {/* Primary row: Icon, Name, Tags, Expand */}
-        <div className="flex items-center gap-2">
-          <span className="text-lg flex-shrink-0">{getAnimalIcon(animal.animal_type)}</span>
-          <span className="font-semibold text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{animal.name}</span>
+        {/* Top row: Icon + Name + Chevron */}
+        <div className="flex items-start gap-2">
+          <span className="text-xl flex-shrink-0 mt-0.5">{getAnimalIcon(animal.animal_type)}</span>
+          <div className="flex-1 min-w-0">
+            {/* Name - full width, no truncation on mobile */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-base" style={{ color: 'var(--color-text-primary)' }}>{animal.name}</span>
 
-          {/* Slaughtered badge */}
-          {animal.status === 'slaughtered' && (
-            <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0 bg-red-700 text-white font-medium">
-              SLAUGHTERED
-            </span>
-          )}
+              {/* Slaughtered badge */}
+              {animal.status === 'slaughtered' && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-red-700 text-white font-medium">
+                  SLAUGHTERED
+                </span>
+              )}
 
-          {/* Tags inline with name */}
-          {animalTags.slice(0, 2).map(tag => {
-            const tagInfo = ANIMAL_TAGS[tag] || { label: tag, bgVar: '--color-bg-tertiary', textColor: 'var(--color-text-primary)' }
-            return (
-              <span
-                key={tag}
-                className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
-                style={{ backgroundColor: `var(${tagInfo.bgVar})`, color: tagInfo.textColor }}
-              >
-                {tagInfo.label}
-              </span>
-            )
-          })}
+              {/* Cost badge */}
+              {animal.total_expenses > 0 && (
+                <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}>
+                  ${Math.round(animal.total_expenses)}
+                </span>
+              )}
+            </div>
 
-          <span className="flex-1"></span>
+            {/* Details row - stacked info */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              {/* Type + Color */}
+              {(animal.color || animal.animal_type) && (
+                <span className="capitalize">
+                  {[animal.color, animal.animal_type?.replace('_', ' ')].filter(Boolean).join(' ')}
+                </span>
+              )}
 
-          {/* Cost badge */}
-          {animal.total_expenses > 0 && (
-            <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)' }}>
-              ${Math.round(animal.total_expenses)}
-            </span>
-          )}
-        </div>
+              {/* Location - full display */}
+              {(animal.farm_area || animal.pasture) && (
+                <span className="flex items-center gap-1" style={{ color: 'var(--color-green-600)' }}>
+                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                  <span>{animal.farm_area?.name || animal.pasture}</span>
+                </span>
+              )}
 
-        {/* Secondary row: Details (hidden on very small screens if too long) */}
-        <div className="flex items-center gap-1.5 mt-1 text-xs flex-wrap" style={{ color: 'var(--color-text-muted)' }}>
-          {/* Color + Type */}
-          {(animal.color || animal.animal_type) && (
-            <span className="capitalize">
-              {[animal.color, animal.animal_type?.replace('_', ' ')].filter(Boolean).join(' ')}
-            </span>
-          )}
+              {/* Feeding info */}
+              {(animal.feeds?.length > 0 || animal.feed_type) && (
+                <span style={{ color: 'var(--color-teal-600)' }}>
+                  {animal.feeds && animal.feeds.length > 0
+                    ? animal.feeds[0].feed_type || 'Feed'
+                    : animal.feed_type || 'Feed'
+                  }
+                </span>
+              )}
 
-          {/* Location */}
-          {(animal.farm_area || animal.pasture) && (
-            <>
-              <span>·</span>
-              <span className="flex items-center gap-0.5" style={{ color: 'var(--color-green-600)' }}>
-                <MapPin className="w-3 h-3" />
-                {animal.farm_area?.name || animal.pasture}
-              </span>
-            </>
-          )}
+              {/* Slaughter countdown for livestock */}
+              {isLivestock && slaughterDays !== null && (
+                <span className="font-medium" style={getUrgencyStyle(slaughterDays)}>
+                  {slaughterDays <= 0 ? 'Ready' : `${slaughterDays}d`}
+                </span>
+              )}
 
-          {/* Feeding - abbreviated */}
-          {(animal.feeds?.length > 0 || animal.feed_type) && (
-            <>
-              <span>·</span>
-              <span className="truncate max-w-[100px]" style={{ color: 'var(--color-teal-600)' }}>
-                {animal.feeds && animal.feeds.length > 0
-                  ? animal.feeds[0].feed_type || 'Feed'
-                  : animal.feed_type || 'Feed'
-                }
-              </span>
-            </>
-          )}
+              {/* Overdue indicator */}
+              {overdueItems.length > 0 && (
+                <span className="font-medium" style={{ color: 'var(--color-error-600)' }}>Overdue</span>
+              )}
+            </div>
 
-          {/* Slaughter countdown for livestock */}
-          {isLivestock && slaughterDays !== null && (
-            <>
-              <span>·</span>
-              <span style={getUrgencyStyle(slaughterDays)}>
-                {slaughterDays <= 0 ? 'Ready' : `${slaughterDays}d`}
-              </span>
-            </>
-          )}
+            {/* Tags row - separate line for better visibility */}
+            {animalTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {animalTags.map(tag => {
+                  const tagInfo = ANIMAL_TAGS[tag] || { label: tag, bgVar: '--color-bg-tertiary', textColor: 'var(--color-text-primary)' }
+                  return (
+                    <span
+                      key={tag}
+                      className="text-xs px-1.5 py-0.5 rounded"
+                      style={{ backgroundColor: `var(${tagInfo.bgVar})`, color: tagInfo.textColor }}
+                    >
+                      {tagInfo.label}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </div>
 
-          {/* Overdue indicator */}
-          {overdueItems.length > 0 && (
-            <>
-              <span>·</span>
-              <span style={{ color: 'var(--color-error-600)' }}>Overdue</span>
-            </>
-          )}
+          {/* Expand indicator */}
+          <ChevronDown
+            className={`w-5 h-5 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            style={{ color: 'var(--color-text-muted)' }}
+          />
         </div>
       </div>
 

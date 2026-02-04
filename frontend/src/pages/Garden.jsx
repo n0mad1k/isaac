@@ -1364,7 +1364,7 @@ function Garden() {
   return (
     <div>
       {/* Tab bar - scrollable on mobile, icons only on small screens */}
-      <div className="flex gap-1 mb-4 border-b border-gray-700 pb-1 overflow-x-auto scrollbar-hide">
+      <div className="flex gap-1 mb-4 border-b border-gray-700 pb-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         {tabs.map((tab) => {
           const Icon = tab.icon
           return (
@@ -1372,14 +1372,14 @@ function Garden() {
               key={tab.id}
               onClick={() => switchTab(tab.id)}
               title={tab.label}
-              className={`flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-t-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 min-h-[44px] ${
                 activeTab === tab.id
                   ? 'bg-gray-800 text-green-400 border-b-2 border-green-400'
                   : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
               }`}
             >
-              <Icon className="w-4 h-4" />
-              <span className="hidden sm:inline">{tab.label}</span>
+              <Icon className="w-5 h-5" />
+              <span className="hidden md:inline">{tab.label}</span>
             </button>
           )
         })}

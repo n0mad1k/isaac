@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.80.5] - 2026-02-04
+
+### Improved
+- **Mobile layouts significantly improved** - Multiple pages now display properly on mobile devices:
+  - **Animals page**: Card layout now stacks info vertically with full names visible, better touch targets
+  - **Garden page**: Tabs show icons-only on mobile with proper horizontal scrolling
+  - **Worker Tasks**: Buttons show icons-only on mobile to prevent cutoff
+  - **Budget Bills/Income**: Tables convert to card layouts on mobile with all info visible and larger touch targets
+  - All buttons and icons now meet 44px minimum touch target guidelines
+
 ## [1.80.4] - 2026-02-04
 
 ### Improved
