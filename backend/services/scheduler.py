@@ -330,6 +330,15 @@ class SchedulerService:
             replace_existing=True,
         )
 
+        # Auto-complete past events - daily at 00:10
+        self.scheduler.add_job(
+            self.auto_complete_past_events,
+            CronTrigger(hour=0, minute=10),
+            id="auto_complete_events",
+            name="Auto-Complete Past Events",
+            replace_existing=True,
+        )
+
         # Schedule sunset cold protection check - runs at noon to schedule for today
         self.scheduler.add_job(
             self.schedule_sunset_reminder,
@@ -420,8 +429,9 @@ class SchedulerService:
         self.scheduler.start()
         logger.info("Scheduler started with all jobs")
 
-        # Schedule today's sunset reminder if needed (on startup)
-        await self.schedule_sunset_reminder()
+        # Run startup tasks
+        await self.schedule_sunset_reminder()  # Schedule today's sunset reminder if needed
+        await self.auto_complete_past_events()  # Clean up any past events on startup
 
     async def schedule_ai_insights(self):
         """Schedule AI insight generation jobs if enabled"""
@@ -1386,6 +1396,35 @@ class SchedulerService:
                 await db.commit()
         except Exception as e:
             logger.error(f"Error generating recurring tasks: {e}")
+
+    async def auto_complete_past_events(self):
+        """Auto-complete events whose date has passed (events don't need manual completion)"""
+        logger.debug("Auto-completing past events...")
+        try:
+            async with async_session() as db:
+                today = date.today()
+
+                # Find all active, incomplete events from before today
+                result = await db.execute(
+                    select(Task)
+                    .where(Task.is_active == True)
+                    .where(Task.is_completed == False)
+                    .where(Task.task_type == TaskType.EVENT)
+                    .where(Task.due_date < today)
+                    .where(Task.due_date.isnot(None))
+                )
+                past_events = result.scalars().all()
+
+                if past_events:
+                    for event in past_events:
+                        event.is_completed = True
+                        event.completed_at = datetime.utcnow()
+                        logger.info(f"Auto-completed past event: {event.title} (was due {event.due_date})")
+
+                    await db.commit()
+                    logger.info(f"Auto-completed {len(past_events)} past events")
+        except Exception as e:
+            logger.error(f"Error auto-completing past events: {e}")
 
     async def get_todays_tasks(self, db: AsyncSession) -> List[Task]:
         """Get all tasks due today"""

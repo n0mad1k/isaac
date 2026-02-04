@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.80.3] - 2026-02-04
+
+### Fixed
+- **Events no longer show as "overdue" after they pass** - Calendar events (like appointments, dinners, activities) now auto-complete once their date passes. They won't clutter your overdue list or AI morning briefing. Events are time-bound by nature - once they pass, they're done.
+- **AI morning briefing no longer includes past events** - The AI context now properly excludes events from the overdue tasks list, so your morning briefing focuses on actual incomplete tasks.
+
 ## [1.80.2] - 2026-02-04
 
 ### Fixed

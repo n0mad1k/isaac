@@ -360,20 +360,21 @@ async def gather_weather_context(db: AsyncSession) -> str:
 
 async def gather_tasks_context(db: AsyncSession) -> str:
     """Gather tasks/calendar context data"""
-    from models.tasks import Task
+    from models.tasks import Task, TaskType
 
     lines = []
 
     try:
         today = date.today()
 
-        # Overdue tasks
+        # Overdue tasks (exclude events - they auto-expire, don't show as "overdue")
         result = await db.execute(
             select(Task)
             .where(Task.is_active == True)
             .where(Task.is_completed == False)
             .where(Task.due_date < today)
             .where(Task.due_date.isnot(None))
+            .where(Task.task_type != TaskType.EVENT)
             .order_by(Task.due_date)
             .limit(10)
         )
