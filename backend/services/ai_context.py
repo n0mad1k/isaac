@@ -173,41 +173,117 @@ async def gather_fitness_context(db: AsyncSession) -> str:
 
 
 async def gather_budget_context(db: AsyncSession) -> str:
-    """Gather budget/finance context data"""
+    """Gather budget/finance context data including actual spending"""
     from models.budget import BudgetAccount, BudgetCategory, BudgetTransaction, BudgetIncome
+    from sqlalchemy import func
 
     lines = []
 
     try:
-        # Account balances
-        result = await db.execute(select(BudgetAccount).order_by(BudgetAccount.name))
-        accounts = result.scalars().all()
-        if accounts:
-            lines.append("Accounts:")
-            for a in accounts:
-                lines.append(f"  - {a.name}: ${a.balance:,.2f}" if hasattr(a, 'balance') and a.balance is not None else f"  - {a.name}")
-
-        # Budget categories with current period spending
         today = date.today()
+        week_start = today - timedelta(days=today.weekday())  # Monday of this week
         month_start = today.replace(day=1)
 
+        # Get all active categories with their budgets
         result = await db.execute(
-            select(BudgetCategory).order_by(BudgetCategory.name)
+            select(BudgetCategory)
+            .where(BudgetCategory.is_active == True)
+            .order_by(BudgetCategory.name)
         )
         categories = result.scalars().all()
+        category_map = {c.id: c for c in categories}
 
+        # Get this week's transactions with spending by category
+        result = await db.execute(
+            select(
+                BudgetTransaction.category_id,
+                func.sum(BudgetTransaction.amount).label('total')
+            )
+            .where(BudgetTransaction.transaction_date >= week_start)
+            .where(BudgetTransaction.transaction_date <= today)
+            .where(BudgetTransaction.amount < 0)  # Only expenses (negative amounts)
+            .group_by(BudgetTransaction.category_id)
+        )
+        week_spending = {row.category_id: abs(row.total) for row in result.all()}
+
+        # Get this month's transactions for monthly comparison
+        result = await db.execute(
+            select(
+                BudgetTransaction.category_id,
+                func.sum(BudgetTransaction.amount).label('total')
+            )
+            .where(BudgetTransaction.transaction_date >= month_start)
+            .where(BudgetTransaction.transaction_date <= today)
+            .where(BudgetTransaction.amount < 0)  # Only expenses
+            .group_by(BudgetTransaction.category_id)
+        )
+        month_spending = {row.category_id: abs(row.total) for row in result.all()}
+
+        # Budget vs Actual comparison
         if categories:
-            lines.append(f"\nBudget categories (month of {month_start.strftime('%m/%Y')}):")
-            for cat in categories[:15]:
-                budget_amt = cat.budget_amount if hasattr(cat, 'budget_amount') and cat.budget_amount else 0
-                lines.append(f"  - {cat.name}: ${budget_amt:,.2f} budgeted")
+            lines.append(f"BUDGET VS ACTUAL (week of {week_start.strftime('%m/%d')}):")
+            over_budget = []
+            under_budget = []
 
-        # Income sources
-        result = await db.execute(select(BudgetIncome).order_by(BudgetIncome.name))
+            for cat in categories:
+                if cat.budget_amount and cat.budget_amount > 0:
+                    # Weekly budget = monthly / 4 (approximate)
+                    weekly_budget = cat.budget_amount / 4
+                    spent = week_spending.get(cat.id, 0)
+                    diff = spent - weekly_budget
+
+                    if spent > 0 or weekly_budget > 0:
+                        status = ""
+                        if diff > 0:
+                            status = f"OVER by ${diff:,.2f}"
+                            over_budget.append((cat.name, spent, weekly_budget, diff))
+                        elif spent > weekly_budget * 0.8:
+                            status = f"near limit"
+                        lines.append(f"  - {cat.name}: ${spent:,.2f} / ${weekly_budget:,.2f} weekly {status}")
+
+            # Highlight categories that are over budget
+            if over_budget:
+                lines.append(f"\n⚠️ OVER BUDGET ({len(over_budget)} categories):")
+                for name, spent, budget, diff in sorted(over_budget, key=lambda x: -x[3]):
+                    lines.append(f"  - {name}: ${diff:,.2f} over (${spent:,.2f} spent vs ${budget:,.2f} budget)")
+
+        # Recent transactions (last 7 days)
+        result = await db.execute(
+            select(BudgetTransaction)
+            .where(BudgetTransaction.transaction_date >= week_start)
+            .where(BudgetTransaction.amount < 0)  # Only expenses
+            .order_by(desc(BudgetTransaction.transaction_date), desc(BudgetTransaction.amount))
+            .limit(15)
+        )
+        recent_txns = result.scalars().all()
+
+        if recent_txns:
+            lines.append(f"\nRECENT TRANSACTIONS (this week):")
+            for txn in recent_txns:
+                cat_name = category_map.get(txn.category_id, {})
+                cat_name = cat_name.name if hasattr(cat_name, 'name') else "Uncategorized"
+                lines.append(f"  - {txn.transaction_date.strftime('%m/%d')}: {txn.description[:30]} ${abs(txn.amount):,.2f} [{cat_name}]")
+
+        # Total spending summary
+        total_week = sum(week_spending.values())
+        total_month = sum(month_spending.values())
+        lines.append(f"\nSPENDING TOTALS:")
+        lines.append(f"  - This week: ${total_week:,.2f}")
+        lines.append(f"  - This month: ${total_month:,.2f}")
+
+        # Income sources for context
+        result = await db.execute(
+            select(BudgetIncome)
+            .where(BudgetIncome.is_active == True)
+            .order_by(BudgetIncome.name)
+        )
         incomes = result.scalars().all()
         if incomes:
-            total_income = sum(i.amount for i in incomes if hasattr(i, 'amount') and i.amount)
-            lines.append(f"\nTotal monthly income: ${total_income:,.2f}")
+            total_income = sum(i.amount for i in incomes if i.amount)
+            lines.append(f"  - Monthly income: ${total_income:,.2f}")
+
+        if not recent_txns and not week_spending:
+            lines.append("\nNo transactions recorded this week.")
 
     except Exception as e:
         logger.error(f"Error gathering budget context: {e}")

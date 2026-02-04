@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.80.4] - 2026-02-04
+
+### Improved
+- **AI Weekly Budget Review now includes actual spending data** - The AI budget insights now have access to your real transaction data including: spending by category vs budget (with over/under status), recent transactions from the past week, and total spending summaries. This enables the AI to give specific, actionable budget advice instead of asking for data.
+
 ## [1.80.3] - 2026-02-04
 
 ### Fixed
