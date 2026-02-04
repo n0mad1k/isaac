@@ -144,12 +144,6 @@ function CalendarPage() {
   }
 
   const handleEditFromView = (event) => {
-    // Debug logging - remove after fix
-    console.log('[CalendarPage Debug] handleEditFromView called with:', {
-      id: event?.id,
-      recurrence: event?.recurrence,
-      is_recurring: event?.is_recurring
-    })
     setViewingEvent(null)
     setEditingEvent(event)
     setShowEventModal(true)

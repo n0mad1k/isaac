@@ -45,7 +45,7 @@ DEFAULT_SETTINGS = {
     "wind_warning_speed": "25.0",
     "rain_warning_inches": "2.0",
     "cold_protection_buffer": "7",
-    "default_reminder_alerts": "0,60,1440",  # at time, 1 hour, 1 day before
+    "default_reminder_alerts": "",  # No default alerts - users must explicitly set them
     "storage_warning_percent": "80",
     "storage_critical_percent": "95",
     "timezone": "America/New_York",

@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.80.7] - 2026-02-04
+
+### Fixed
+- **Auto-completed events no longer show as "completed today"** - When past events are auto-completed, they now retain their original date rather than being timestamped with the current time. This prevents old events from cluttering the "completed today" section.
+- **Dashboard now respects exception dates for recurring tasks** - When you edit a single occurrence of a recurring event, the original date is now properly hidden from the dashboard. Previously, edited occurrences would still show on the original day.
+- **Default reminder alerts changed to none** - New events no longer have any email alerts by default. You must explicitly add alerts when creating events.
+
 ## [1.80.6] - 2026-02-04
 
 ### Fixed

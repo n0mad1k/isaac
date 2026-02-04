@@ -203,14 +203,6 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
 
   const isRecurring = event && event.recurrence && event.recurrence !== 'once'
 
-  // Debug logging - remove after fix
-  console.log('[EventModal Debug]', {
-    hasEvent: !!event,
-    recurrence: event?.recurrence,
-    is_recurring: event?.is_recurring,
-    isRecurringResult: isRecurring
-  })
-
   const handleDelete = async () => {
     if (!event?.id) return
 
