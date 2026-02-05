@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.81.4] - 2026-02-05
+
+### Fixed
+- **No more premature email alerts for timed events** - Events with a specific time (e.g., "Dane makes dinner" at 5pm) were receiving generic "upcoming task" emails hours before they were due. Timed events now only send alerts based on their explicit reminder settings. All-day tasks (no time set) still get the daily upcoming reminder.
+
 ## [1.81.3] - 2026-02-05
 
 ### Fixed

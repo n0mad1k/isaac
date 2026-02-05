@@ -1225,6 +1225,12 @@ class SchedulerService:
 
                 sent_count = 0
                 for task in tasks:
+                    # Skip tasks with a specific due_time - they should use the
+                    # check_reminder_alerts system instead (which respects reminder_alerts settings).
+                    # This prevents generic "upcoming task" emails for timed events hours before they're due.
+                    if task.due_time and task.due_time != "00:00":
+                        continue
+
                     # Determine the correct recipient for this task
                     task_recipients = recipients
                     if task.assigned_to_worker_id:
