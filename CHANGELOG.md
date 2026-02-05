@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.3] - 2026-02-05
+
+### Fixed
+- **Duplicate task reminder emails eliminated** - Task alert emails (e.g., "Feed Animals - now due") were being sent twice, 5 minutes apart. Root cause: SQLAlchemy does not detect in-place mutations on JSON columns. The `alerts_sent` dict was modified but the ORM never wrote the change to the database, so the next scheduler run didn't see the alert as already sent. Fixed by creating a new dict object and using `flag_modified()` to ensure the change is persisted.
+
 ## [1.82.2] - 2026-02-05
 
 ### Fixed

@@ -1782,6 +1782,7 @@ class SchedulerService:
             import pytz
             import json
             from datetime import datetime, timedelta
+            from sqlalchemy.orm.attributes import flag_modified
 
             tz = pytz.timezone(settings.timezone)
             now = datetime.now(tz)
@@ -1847,10 +1848,14 @@ class SchedulerService:
                         time_until_alert = (alert_time - now).total_seconds() / 60  # minutes
                         if 0 <= time_until_alert <= 5:  # 5 minute window, strictly before or at alert time
                             # Mark as sent FIRST to prevent duplicates on rapid restarts
-                            task_alerts_sent[alert_key] = now.isoformat()
-                            task.alerts_sent = task_alerts_sent
+                            # IMPORTANT: Create a NEW dict so SQLAlchemy detects the change.
+                            # In-place mutation of JSON columns is not detected by the ORM.
+                            new_alerts_sent = dict(task_alerts_sent)
+                            new_alerts_sent[alert_key] = now.isoformat()
+                            task.alerts_sent = new_alerts_sent
                             # Also update last_notified to prevent check_upcoming_tasks from sending duplicate
                             task.last_notified = datetime.utcnow()
+                            flag_modified(task, "alerts_sent")
                             await db.commit()
 
                             # Now send the alert email
