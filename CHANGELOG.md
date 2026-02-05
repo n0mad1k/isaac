@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.10] - 2026-02-05
+
+### Fixed
+- **Security: Encryption key derivation upgraded to PBKDF2** - Settings encryption now uses PBKDF2-HMAC-SHA256 with 100,000 iterations instead of a single SHA256 hash. Existing encrypted values are automatically decrypted with the legacy key and re-encrypted with the new key on next write.
+
 ## [1.82.9] - 2026-02-05
 
 ### Fixed
