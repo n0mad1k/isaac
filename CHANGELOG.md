@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.1] - 2026-02-05
+
+### Added
+- **Create tasks directly from team member pages** - New "New Task" button on the Tasks tab of each team member. Opens the full task form with the member pre-assigned. Supports all task fields: priority, recurrence, alerts, entity links, and more.
+
 ## [1.82.0] - 2026-02-05
 
 ### Changed

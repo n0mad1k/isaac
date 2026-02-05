@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import {
   CheckCircle, Circle, Clock, AlertTriangle, ChevronDown, ChevronUp,
-  Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check, X, User, Bell
+  Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check, X, User, Bell, Plus
 } from 'lucide-react'
-import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask, getTeamMembers, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas } from '../../services/api'
+import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask, createTask, getTeamMembers, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas } from '../../services/api'
 
 // Alert options matching ToDo.jsx
 const ALERT_OPTIONS = [
@@ -174,36 +174,69 @@ function MemberTasksTab({ member, onUpdate }) {
     setLinkType('none')
   }
 
+  const handleNewTask = () => {
+    const today = new Date().toISOString().split('T')[0]
+    setEditingTask({
+      title: '',
+      description: '',
+      priority: 2,
+      due_date: today,
+      due_time: null,
+      category: 'custom',
+      location: '',
+      is_backlog: false,
+      visible_to_farmhands: false,
+      animal_id: null,
+      plant_id: null,
+      vehicle_id: null,
+      equipment_id: null,
+      farm_area_id: null,
+    })
+    setIsAllDay(true)
+    setSelectedAlerts([])
+    setSelectedRecurrence('once')
+    setCustomInterval('')
+    setSelectedDaysOfWeek([])
+    setSelectedMemberIds([member.id])
+    setShowMemberDropdown(false)
+    setLinkType('none')
+  }
+
   const handleSaveEdit = async () => {
+    if (!editingTask.title?.trim()) return
+    const isCreating = !editingTask.id
+    const payload = {
+      title: editingTask.title,
+      description: editingTask.description,
+      priority: editingTask.priority,
+      due_date: editingTask.due_date || null,
+      due_time: isAllDay ? null : (editingTask.due_time || null),
+      category: editingTask.category || 'custom',
+      location: editingTask.location || null,
+      is_backlog: editingTask.is_backlog || false,
+      visible_to_farmhands: editingTask.visible_to_farmhands || false,
+      assigned_member_ids: selectedMemberIds.length > 0 ? selectedMemberIds : [],
+      alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
+      recurrence: selectedRecurrence,
+      recurrence_interval: selectedRecurrence === 'custom' ? parseInt(customInterval) || null : null,
+      recurrence_days_of_week: selectedRecurrence === 'custom_weekly' && selectedDaysOfWeek.length > 0 ? selectedDaysOfWeek : null,
+      animal_id: linkType === 'animal' ? editingTask.animal_id : null,
+      plant_id: linkType === 'plant' ? editingTask.plant_id : null,
+      vehicle_id: linkType === 'vehicle' ? editingTask.vehicle_id : null,
+      equipment_id: linkType === 'equipment' ? editingTask.equipment_id : null,
+      farm_area_id: linkType === 'farm_area' ? editingTask.farm_area_id : null,
+    }
     try {
-      await updateTask(editingTask.id, {
-        title: editingTask.title,
-        description: editingTask.description,
-        priority: editingTask.priority,
-        due_date: editingTask.due_date || null,
-        due_time: isAllDay ? null : (editingTask.due_time || null),
-        category: editingTask.category || 'custom',
-        location: editingTask.location || null,
-        is_backlog: editingTask.is_backlog || false,
-        visible_to_farmhands: editingTask.visible_to_farmhands || false,
-        assigned_member_ids: selectedMemberIds.length > 0 ? selectedMemberIds : [],
-        alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
-        recurrence: selectedRecurrence,
-        recurrence_interval: selectedRecurrence === 'custom' ? parseInt(customInterval) || null : null,
-        recurrence_days_of_week: selectedRecurrence === 'custom_weekly' && selectedDaysOfWeek.length > 0 ? selectedDaysOfWeek : null,
-        animal_id: linkType === 'animal' ? editingTask.animal_id : null,
-        plant_id: linkType === 'plant' ? editingTask.plant_id : null,
-        vehicle_id: linkType === 'vehicle' ? editingTask.vehicle_id : null,
-        equipment_id: linkType === 'equipment' ? editingTask.equipment_id : null,
-        farm_area_id: linkType === 'farm_area' ? editingTask.farm_area_id : null,
-      })
+      if (isCreating) {
+        await createTask(payload)
+      } else {
+        await updateTask(editingTask.id, payload)
+      }
       closeEditModal()
-      setSelectedAlerts([])
-      setIsAllDay(true)
       await loadTasks()
       if (onUpdate) onUpdate()
     } catch (err) {
-      console.error('Failed to update task:', err)
+      console.error(`Failed to ${isCreating ? 'create' : 'update'} task:`, err)
     }
   }
 
@@ -378,6 +411,13 @@ function MemberTasksTab({ member, onUpdate }) {
             <ListTodo className="w-5 h-5" />
             Active Tasks ({activeTasks.length})
           </h3>
+          <button
+            onClick={handleNewTask}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-farm-green text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            New Task
+          </button>
         </div>
 
         {activeTasks.length === 0 ? (
@@ -445,7 +485,7 @@ function MemberTasksTab({ member, onUpdate }) {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              <h3 className="text-xl font-semibold">Edit Task</h3>
+              <h3 className="text-xl font-semibold">{editingTask.id ? 'Edit Task' : 'New Task'}</h3>
               <button onClick={() => closeEditModal()} className="p-1 hover:bg-gray-700 rounded">
                 <X className="w-5 h-5" />
               </button>
@@ -850,9 +890,10 @@ function MemberTasksTab({ member, onUpdate }) {
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-green-600 transition-colors"
+                disabled={!editingTask.title?.trim()}
+                className="px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Save Changes
+                {editingTask.id ? 'Save Changes' : 'Create Task'}
               </button>
             </div>
           </div>
