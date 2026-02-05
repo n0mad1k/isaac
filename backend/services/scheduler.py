@@ -1885,6 +1885,8 @@ class SchedulerService:
             from models.database import async_session
             from models.workers import Worker
             from models.users import User
+            from models.team import TeamMember
+            from models.tasks import task_member_assignments
 
             async with async_session() as db:
                 recipient_list = []
@@ -1902,7 +1904,7 @@ class SchedulerService:
                         logger.debug(f"Skipping reminder for worker task '{task.title}' - no worker email on file")
                         return
                 else:
-                    # Non-worker tasks: use global recipients + assigned user email
+                    # Non-worker tasks: use global recipients + assigned user/member emails
                     recipients = await get_setting_value("email_recipients")
                     recipient_list = [r.strip() for r in (recipients or "").split(",") if r.strip()]
 
@@ -1915,6 +1917,29 @@ class SchedulerService:
                         if user and user.email and user.email not in recipient_list:
                             recipient_list.append(user.email)
                             logger.debug(f"Added user email {user.email} to reminder recipients")
+
+                    # Add assigned team members' emails (M2M relationship)
+                    member_result = await db.execute(
+                        select(TeamMember.email)
+                        .join(task_member_assignments, TeamMember.id == task_member_assignments.c.member_id)
+                        .where(task_member_assignments.c.task_id == task.id)
+                        .where(TeamMember.email.isnot(None))
+                        .where(TeamMember.email != "")
+                    )
+                    for (member_email,) in member_result:
+                        if member_email and member_email not in recipient_list:
+                            recipient_list.append(member_email)
+                            logger.debug(f"Added team member email {member_email} to reminder recipients")
+
+                    # Also check legacy single member assignment
+                    if task.assigned_to_member_id:
+                        result = await db.execute(
+                            select(TeamMember).where(TeamMember.id == task.assigned_to_member_id)
+                        )
+                        member = result.scalar_one_or_none()
+                        if member and member.email and member.email not in recipient_list:
+                            recipient_list.append(member.email)
+                            logger.debug(f"Added legacy member email {member.email} to reminder recipients")
 
             if not recipient_list:
                 logger.warning("No email recipients configured for task reminder")

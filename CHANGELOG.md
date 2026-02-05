@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.0] - 2026-02-05
+
+### Added
+- **Task reminder emails now sent to assigned team members** - When a task has alert reminders configured, emails are now sent to assigned team members who have email addresses on file, in addition to the existing worker/user/global recipient logic. Supports both the multi-member assignment (M2M) and legacy single-member assignment fields.
+
 ## [1.82.10] - 2026-02-05
 
 ### Fixed
