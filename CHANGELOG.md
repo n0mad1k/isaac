@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.81.1] - 2026-02-05
+
+### Fixed
+- **AI budget insights now use correct pay periods** - Budget analysis was dividing budget amounts by 4 (weekly), but the budget system uses bi-weekly pay periods (1st-14th, 15th-end). Budget vs actual comparisons now correctly use per-period amounts and show remaining balance per category for the current pay period.
+- **AI fitness insights now include readiness data** - Fitness context now includes overall readiness status, readiness scores, performance readiness, medical readiness, and fitness tier for all active team members. Previously only showed weight and subjective inputs.
+
 ## [1.81.0] - 2026-02-05
 
 ### Fixed

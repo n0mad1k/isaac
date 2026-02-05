@@ -111,59 +111,86 @@ async def gather_garden_context(db: AsyncSession) -> str:
 
 
 async def gather_fitness_context(db: AsyncSession) -> str:
-    """Gather fitness/health context data"""
+    """Gather fitness/health context data including readiness scores"""
     from models.team import TeamMember, MemberWeightLog, MemberSubjectiveInput
 
     lines = []
 
     try:
-        # Get first team member (primary user)
+        # Get all active team members
         result = await db.execute(
-            select(TeamMember).order_by(TeamMember.id).limit(1)
+            select(TeamMember)
+            .where(TeamMember.is_active == True)
+            .order_by(TeamMember.id)
         )
-        member = result.scalar_one_or_none()
-        if not member:
+        members = result.scalars().all()
+        if not members:
             return "No fitness data available."
 
-        lines.append(f"Member: {member.name}")
+        for member in members:
+            lines.append(f"\n--- {member.name} ---")
 
-        # Recent weight
-        result = await db.execute(
-            select(MemberWeightLog)
-            .where(MemberWeightLog.member_id == member.id)
-            .order_by(desc(MemberWeightLog.recorded_at))
-            .limit(7)
-        )
-        weights = result.scalars().all()
-        if weights:
-            latest = weights[0]
-            lines.append(f"Current weight: {latest.weight} lbs (as of {latest.recorded_at.strftime('%m/%d')})")
-            if len(weights) > 1:
-                oldest = weights[-1]
-                change = latest.weight - oldest.weight
-                direction = "up" if change > 0 else "down" if change < 0 else "stable"
-                lines.append(f"7-day trend: {direction} {abs(change):.1f} lbs")
+            # Readiness data from TeamMember model
+            if member.overall_readiness:
+                lines.append(f"Overall readiness: {member.overall_readiness.value if hasattr(member.overall_readiness, 'value') else member.overall_readiness}")
+            if member.readiness_score is not None:
+                lines.append(f"Readiness score: {member.readiness_score:.0f}/100")
+            if member.performance_readiness_score is not None:
+                lines.append(f"Performance readiness: {member.performance_readiness_score:.0f}/100")
+            if member.medical_readiness:
+                lines.append(f"Medical readiness: {member.medical_readiness.value if hasattr(member.medical_readiness, 'value') else member.medical_readiness}")
+            if member.fitness_tier:
+                tier_label = member.fitness_tier
+                if member.fitness_sub_tier:
+                    tier_label += f" ({member.fitness_sub_tier})"
+                lines.append(f"Fitness tier: {tier_label}")
 
-        # Recent subjective inputs (energy, sleep quality, etc.)
-        result = await db.execute(
-            select(MemberSubjectiveInput)
-            .where(MemberSubjectiveInput.member_id == member.id)
-            .order_by(desc(MemberSubjectiveInput.input_date))
-            .limit(7)
-        )
-        subjective = result.scalars().all()
-        if subjective:
-            latest_s = subjective[0]
-            if latest_s.energy_level:
-                lines.append(f"Latest energy level: {latest_s.energy_level}/10")
-            if latest_s.sleep_quality:
-                avg_sleep = sum(s.sleep_quality for s in subjective if s.sleep_quality) / len([s for s in subjective if s.sleep_quality])
-                lines.append(f"7-day sleep quality avg: {avg_sleep:.1f}/10")
-            if latest_s.sleep_hours:
-                avg_hours = sum(s.sleep_hours for s in subjective if s.sleep_hours) / len([s for s in subjective if s.sleep_hours])
-                lines.append(f"7-day sleep hours avg: {avg_hours:.1f}")
-            if latest_s.soreness:
-                lines.append(f"Current soreness: {latest_s.soreness}/10")
+            # Recent weight
+            result = await db.execute(
+                select(MemberWeightLog)
+                .where(MemberWeightLog.member_id == member.id)
+                .order_by(desc(MemberWeightLog.recorded_at))
+                .limit(7)
+            )
+            weights = result.scalars().all()
+            if weights:
+                latest = weights[0]
+                lines.append(f"Current weight: {latest.weight} lbs (as of {latest.recorded_at.strftime('%m/%d')})")
+                if len(weights) > 1:
+                    oldest = weights[-1]
+                    change = latest.weight - oldest.weight
+                    direction = "up" if change > 0 else "down" if change < 0 else "stable"
+                    lines.append(f"7-day trend: {direction} {abs(change):.1f} lbs")
+
+            # Recent subjective inputs (energy, sleep quality, etc.)
+            result = await db.execute(
+                select(MemberSubjectiveInput)
+                .where(MemberSubjectiveInput.member_id == member.id)
+                .order_by(desc(MemberSubjectiveInput.input_date))
+                .limit(7)
+            )
+            subjective = result.scalars().all()
+            if subjective:
+                latest_s = subjective[0]
+                if latest_s.energy_level is not None:
+                    lines.append(f"Latest energy level: {latest_s.energy_level}/10")
+                if latest_s.sleep_quality is not None:
+                    sleep_vals = [s.sleep_quality for s in subjective if s.sleep_quality is not None]
+                    if sleep_vals:
+                        avg_sleep = sum(sleep_vals) / len(sleep_vals)
+                        lines.append(f"7-day sleep quality avg: {avg_sleep:.1f}/10")
+                if latest_s.sleep_hours is not None:
+                    hour_vals = [s.sleep_hours for s in subjective if s.sleep_hours is not None]
+                    if hour_vals:
+                        avg_hours = sum(hour_vals) / len(hour_vals)
+                        lines.append(f"7-day sleep hours avg: {avg_hours:.1f}")
+                if latest_s.soreness is not None:
+                    lines.append(f"Current soreness: {latest_s.soreness}/10")
+                if latest_s.pain_severity is not None and latest_s.pain_severity > 0:
+                    pain_info = f"Pain: {latest_s.pain_severity}/10"
+                    if latest_s.pain_location:
+                        pain_info += f" ({latest_s.pain_location})"
+                    lines.append(pain_info)
 
     except Exception as e:
         logger.error(f"Error gathering fitness context: {e}")
@@ -173,16 +200,30 @@ async def gather_fitness_context(db: AsyncSession) -> str:
 
 
 async def gather_budget_context(db: AsyncSession) -> str:
-    """Gather budget/finance context data including actual spending"""
-    from models.budget import BudgetAccount, BudgetCategory, BudgetTransaction, BudgetIncome
+    """Gather budget/finance context data including actual spending.
+    Uses bi-weekly pay periods (1st-14th, 15th-end) matching the budget system."""
+    from models.budget import BudgetCategory, BudgetTransaction, BudgetIncome, CategoryType
+    from calendar import monthrange
     from sqlalchemy import func
 
     lines = []
 
     try:
         today = date.today()
-        week_start = today - timedelta(days=today.weekday())  # Monday of this week
         month_start = today.replace(day=1)
+        last_day = monthrange(today.year, today.month)[1]
+
+        # Determine current pay period (1st-14th or 15th-end)
+        if today.day <= 14:
+            period_start = date(today.year, today.month, 1)
+            period_end = date(today.year, today.month, 14)
+            period_label = "1st - 14th"
+            is_first_half = True
+        else:
+            period_start = date(today.year, today.month, 15)
+            period_end = date(today.year, today.month, last_day)
+            period_label = f"15th - {last_day}th"
+            is_first_half = False
 
         # Get all active categories with their budgets
         result = await db.execute(
@@ -193,20 +234,20 @@ async def gather_budget_context(db: AsyncSession) -> str:
         categories = result.scalars().all()
         category_map = {c.id: c for c in categories}
 
-        # Get this week's transactions with spending by category
+        # Get current period's transactions (spending by category)
         result = await db.execute(
             select(
                 BudgetTransaction.category_id,
                 func.sum(BudgetTransaction.amount).label('total')
             )
-            .where(BudgetTransaction.transaction_date >= week_start)
+            .where(BudgetTransaction.transaction_date >= period_start)
             .where(BudgetTransaction.transaction_date <= today)
             .where(BudgetTransaction.amount < 0)  # Only expenses (negative amounts)
             .group_by(BudgetTransaction.category_id)
         )
-        week_spending = {row.category_id: abs(row.total) for row in result.all()}
+        period_spending = {row.category_id: abs(row.total) for row in result.all()}
 
-        # Get this month's transactions for monthly comparison
+        # Get this month's total transactions for monthly comparison
         result = await db.execute(
             select(
                 BudgetTransaction.category_id,
@@ -214,61 +255,91 @@ async def gather_budget_context(db: AsyncSession) -> str:
             )
             .where(BudgetTransaction.transaction_date >= month_start)
             .where(BudgetTransaction.transaction_date <= today)
-            .where(BudgetTransaction.amount < 0)  # Only expenses
+            .where(BudgetTransaction.amount < 0)
             .group_by(BudgetTransaction.category_id)
         )
         month_spending = {row.category_id: abs(row.total) for row in result.all()}
 
-        # Budget vs Actual comparison
+        # Current year-month for start/end date filtering
+        current_ym = f"{today.year}-{today.month:02d}"
+
+        # Budget vs Actual comparison for current pay period
         if categories:
-            lines.append(f"BUDGET VS ACTUAL (week of {week_start.strftime('%m/%d')}):")
+            lines.append(f"BUDGET VS ACTUAL (pay period {period_label}, {today.strftime('%B %Y')}):")
             over_budget = []
-            under_budget = []
 
             for cat in categories:
-                if cat.budget_amount and cat.budget_amount > 0:
-                    # Weekly budget = monthly / 4 (approximate)
-                    weekly_budget = cat.budget_amount / 4
-                    spent = week_spending.get(cat.id, 0)
-                    diff = spent - weekly_budget
+                # Skip categories outside their active date range
+                if cat.start_date and current_ym < cat.start_date:
+                    continue
+                if cat.end_date and current_ym > cat.end_date:
+                    continue
+                # Skip Roll Over category
+                if cat.name == "Roll Over":
+                    continue
 
-                    if spent > 0 or weekly_budget > 0:
-                        status = ""
-                        if diff > 0:
-                            status = f"OVER by ${diff:,.2f}"
-                            over_budget.append((cat.name, spent, weekly_budget, diff))
-                        elif spent > weekly_budget * 0.8:
-                            status = f"near limit"
-                        lines.append(f"  - {cat.name}: ${spent:,.2f} / ${weekly_budget:,.2f} weekly {status}")
+                # Determine budgeted amount for this period
+                if cat.category_type == CategoryType.FIXED:
+                    if cat.bill_day:
+                        # Fixed bill with a specific due day - only count in the half it falls in
+                        bill_in_first = (cat.bill_day <= 14)
+                        if is_first_half != bill_in_first:
+                            continue  # Bill not due in this period
+                        budgeted = cat.monthly_budget if cat.monthly_budget else cat.budget_amount
+                    else:
+                        # Per-period fixed bill (no specific bill_day)
+                        budgeted = cat.budget_amount or 0
+                else:
+                    # Variable/Transfer categories: budget_amount is per-period
+                    budgeted = cat.budget_amount or 0
 
-            # Highlight categories that are over budget
+                if budgeted <= 0:
+                    continue
+
+                spent = period_spending.get(cat.id, 0)
+                remaining = budgeted - spent
+                pct = (spent / budgeted * 100) if budgeted > 0 else 0
+
+                status = ""
+                if remaining < 0:
+                    status = f"OVER by ${abs(remaining):,.2f}"
+                    over_budget.append((cat.name, spent, budgeted, abs(remaining)))
+                elif pct >= 80:
+                    status = f"near limit (${remaining:,.2f} left)"
+                else:
+                    status = f"${remaining:,.2f} remaining"
+
+                if spent > 0 or budgeted > 0:
+                    lines.append(f"  - {cat.name}: ${spent:,.2f} / ${budgeted:,.2f} {status}")
+
             if over_budget:
                 lines.append(f"\n⚠️ OVER BUDGET ({len(over_budget)} categories):")
                 for name, spent, budget, diff in sorted(over_budget, key=lambda x: -x[3]):
                     lines.append(f"  - {name}: ${diff:,.2f} over (${spent:,.2f} spent vs ${budget:,.2f} budget)")
 
         # Recent transactions (last 7 days)
+        week_start = today - timedelta(days=7)
         result = await db.execute(
             select(BudgetTransaction)
             .where(BudgetTransaction.transaction_date >= week_start)
-            .where(BudgetTransaction.amount < 0)  # Only expenses
+            .where(BudgetTransaction.amount < 0)
             .order_by(desc(BudgetTransaction.transaction_date), desc(BudgetTransaction.amount))
             .limit(15)
         )
         recent_txns = result.scalars().all()
 
         if recent_txns:
-            lines.append(f"\nRECENT TRANSACTIONS (this week):")
+            lines.append(f"\nRECENT TRANSACTIONS (last 7 days):")
             for txn in recent_txns:
                 cat_name = category_map.get(txn.category_id, {})
                 cat_name = cat_name.name if hasattr(cat_name, 'name') else "Uncategorized"
                 lines.append(f"  - {txn.transaction_date.strftime('%m/%d')}: {txn.description[:30]} ${abs(txn.amount):,.2f} [{cat_name}]")
 
         # Total spending summary
-        total_week = sum(week_spending.values())
+        total_period = sum(period_spending.values())
         total_month = sum(month_spending.values())
         lines.append(f"\nSPENDING TOTALS:")
-        lines.append(f"  - This week: ${total_week:,.2f}")
+        lines.append(f"  - This pay period ({period_label}): ${total_period:,.2f}")
         lines.append(f"  - This month: ${total_month:,.2f}")
 
         # Income sources for context
@@ -282,8 +353,8 @@ async def gather_budget_context(db: AsyncSession) -> str:
             total_income = sum(i.amount for i in incomes if i.amount)
             lines.append(f"  - Monthly income: ${total_income:,.2f}")
 
-        if not recent_txns and not week_spending:
-            lines.append("\nNo transactions recorded this week.")
+        if not recent_txns and not period_spending:
+            lines.append("\nNo transactions recorded this period.")
 
     except Exception as e:
         logger.error(f"Error gathering budget context: {e}")
