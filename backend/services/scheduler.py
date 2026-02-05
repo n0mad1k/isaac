@@ -1375,22 +1375,35 @@ class SchedulerService:
             async with async_session() as db:
                 today = date.today()
 
-                # ONE-TIME FIX: Reactivate recurring tasks incorrectly deactivated by CalDAV sync
-                # The CalDAV sync was marking recycled recurring tasks as "deleted on phone"
-                # because it found their UIDs missing from the calendar after completion deletion.
+                # Safety net: Reactivate recurring tasks deactivated in the last 48 hours
+                # The CalDAV sync could incorrectly mark recycled tasks as "deleted on phone".
+                # Only reactivate if no active duplicate exists (same title + same recurrence).
+                cutoff = today - timedelta(days=2)
                 fix_result = await db.execute(
                     select(Task)
                     .where(Task.is_active == False)
                     .where(Task.recurrence != TaskRecurrence.ONCE)
                     .where(Task.recurrence.isnot(None))
+                    .where(Task.updated_at >= datetime.combine(cutoff, datetime.min.time()))
                 )
                 deactivated_recurring = fix_result.scalars().all()
                 if deactivated_recurring:
+                    # Get active recurring task titles to avoid creating duplicates
+                    active_result = await db.execute(
+                        select(Task.title, Task.recurrence)
+                        .where(Task.is_active == True)
+                        .where(Task.recurrence != TaskRecurrence.ONCE)
+                        .where(Task.recurrence.isnot(None))
+                    )
+                    active_titles = {(r[0], r[1]) for r in active_result.all()}
+
                     for t in deactivated_recurring:
-                        t.is_active = True
-                        t.calendar_synced_at = None
-                        t.calendar_content_hash = None
-                        logger.info(f"Reactivated incorrectly deactivated recurring task: {t.title} (id={t.id})")
+                        if (t.title, t.recurrence) not in active_titles:
+                            t.is_active = True
+                            t.calendar_synced_at = None
+                            t.calendar_content_hash = None
+                            active_titles.add((t.title, t.recurrence))
+                            logger.info(f"Reactivated recurring task: {t.title} (id={t.id})")
                     await db.commit()
 
                 # Get all active recurring tasks
