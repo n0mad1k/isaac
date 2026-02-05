@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.81.6] - 2026-02-05
+
+### Fixed
+- **Phone-linked tasks now sync with RRULEs** - Tasks that were linked to existing phone calendar events (e.g., "Dane - Mobility") were being skipped during sync, so they never received RRULE updates. Removed the overly-broad skip that treated all non-app UIDs as phone-imported. Hash-based change detection now handles all tasks correctly.
+- **CalDAV sync detects hash algorithm changes** - When new fields are added to the sync hash (like recurrence data), all tasks are now re-evaluated instead of being skipped by a stale `updated_at` filter. This ensures code-level changes to the sync format are picked up automatically.
+
 ## [1.81.5] - 2026-02-05
 
 ### Fixed

@@ -632,32 +632,25 @@ class CalendarSyncService:
             )
         )
 
-        # For incremental sync, only get tasks that need syncing
-        if not force_full:
-            base_query = base_query.where(
-                or_(
-                    Task.calendar_synced_at.is_(None),  # Never synced
-                    Task.updated_at > Task.calendar_synced_at,  # Changed since last sync
-                )
-            )
+        # For incremental sync, the hash-based check below handles skipping unchanged tasks.
+        # We load all active tasks so that hash algorithm changes (e.g. adding RRULE fields)
+        # are detected even without a task update. This is cheap (~50 tasks) vs CalDAV writes.
+        # force_full just controls whether we bypass the hash check too.
 
         result = await db.execute(base_query)
         tasks = result.scalars().all()
 
         for task in tasks:
-            # Skip tasks that were imported from phone (have a non-app UID)
             is_app_uid = (
                 task.calendar_uid and
                 (task.calendar_uid.startswith('isaac-task-') or task.calendar_uid.startswith('levi-task-'))
             )
-            if task.calendar_uid and not is_app_uid:
-                skipped += 1
-                continue
 
             # Check if this task was deleted on the phone
             # Only consider "deleted on phone" if the task was previously synced successfully.
             # Tasks that haven't been synced yet (calendar_synced_at is None) should not be
             # deactivated - they just haven't been pushed to the calendar server yet.
+            # Only check app-created UIDs for deletion detection (not phone-linked tasks).
             if calendar_uids is not None and task.calendar_uid:
                 if is_app_uid and task.calendar_uid not in calendar_uids:
                     if task.calendar_synced_at is not None:
@@ -671,9 +664,9 @@ class CalendarSyncService:
                     else:
                         logger.debug(f"Task '{task.title}' not in calendar but never synced - will push instead of deactivating")
 
-            # Hash-based change detection - skip if content unchanged
+            # Hash-based change detection - skip if content unchanged (unless force_full)
             current_hash = compute_task_sync_hash(task)
-            if task.calendar_content_hash == current_hash and task.calendar_uid:
+            if not force_full and task.calendar_content_hash == current_hash and task.calendar_uid:
                 skipped += 1
                 continue
 
