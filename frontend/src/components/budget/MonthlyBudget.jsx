@@ -346,12 +346,12 @@ function MonthlyBudget() {
     }
 
     return (
-      <div key={`${type}-${id}`} className="grid grid-cols-[40px_1fr_80px_44px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs py-1 px-2 items-center" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
-        <span style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>{day ? ordinal(day) : ''}</span>
-        <span className="text-left truncate" style={{ color: 'var(--color-text-primary)' }}>{name}</span>
-        <span className="text-right" style={{ color: amtColor }}>{displayAmt}</span>
+      <div key={`${type}-${id}`} className="grid grid-cols-[32px_1fr_auto_36px] sm:grid-cols-[40px_1fr_80px_80px_44px] text-xs py-1 px-2 items-center gap-x-1" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+        <span className="overflow-hidden" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>{day ? ordinal(day) : ''}</span>
+        <span className="text-left truncate min-w-0" style={{ color: 'var(--color-text-primary)' }}>{name}</span>
+        <span className="text-right whitespace-nowrap overflow-hidden" style={{ color: amtColor }}>{displayAmt}</span>
         <span className="hidden sm:inline text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>{accountName}</span>
-        <span className="flex justify-center gap-0.5">
+        <span className="flex justify-end gap-0.5 flex-shrink-0">
           <button onClick={openEdit} className="p-0.5 text-gray-600 hover:text-blue-400 flex-shrink-0" title="Edit">
             <Pencil className="w-2.5 h-2.5" />
           </button>

@@ -247,19 +247,129 @@ function Team() {
 
   return (
     <div className="space-y-4">
-      {/* Header Row: Tabs (left) + Team Name (center) + Actions (right) */}
-      <div className="relative flex items-center border-b border-gray-700 pb-2">
-        {/* Team Name - Absolutely centered */}
-        <h1 className="absolute left-1/2 -translate-x-1/2 text-lg sm:text-2xl font-bold text-white pointer-events-none truncate max-w-[40%] sm:max-w-none">
-          {settings?.team_name || 'Team'}
-        </h1>
+      {/* Header: Team Name + Actions (top) + Tabs (below) */}
+      <div className="border-b border-gray-700 pb-2 space-y-2">
+        {/* Top row: Team name + action buttons */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg sm:text-2xl font-bold text-white truncate">
+            {settings?.team_name || 'Team'}
+          </h1>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={loadData}
+              className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800"
+              title="Refresh"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
 
-        {/* Tab Navigation - Left */}
-        <div className="flex items-center gap-1 flex-shrink-0 max-w-[35%] sm:max-w-[35%]">
+            {/* Add Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowAddMenu(!showAddMenu)}
+                className="flex items-center gap-1 px-2 py-2 sm:px-3 bg-farm-green text-white rounded-lg hover:bg-green-600 text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Add</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+
+              {showAddMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowAddMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                    {/* Health Data Entry */}
+                    <div className="px-3 py-2 text-xs text-gray-500 uppercase border-b border-gray-700">Health Data</div>
+                    <button
+                      onClick={() => {
+                        setShowAddMenu(false)
+                        setShowDailyCheckin(true)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                    >
+                      <ClipboardCheck className="w-4 h-4 text-blue-400" />
+                      Daily Check-in
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddMenu(false)
+                        setShowQuickWorkout(true)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                    >
+                      <Dumbbell className="w-4 h-4 text-green-400" />
+                      Log Workout
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddMenu(false)
+                        setShowQuickVital(true)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                    >
+                      <Heart className="w-4 h-4 text-red-400" />
+                      Log Vital
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddMenu(false)
+                        setShowQuickWeight(true)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                    >
+                      <Scale className="w-4 h-4 text-purple-400" />
+                      Log Weight
+                    </button>
+
+                    {/* Team Management */}
+                    <div className="px-3 py-2 text-xs text-gray-500 uppercase border-b border-t border-gray-700 mt-1">Team</div>
+                    <button
+                      onClick={() => {
+                        setShowAddMenu(false)
+                        setEditingMember(null)
+                        setShowMemberForm(true)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                    >
+                      <UserPlus className="w-4 h-4 text-farm-green" />
+                      Add Member
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddMenu(false)
+                        setShowObservationModal(true)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                    >
+                      <MessageSquare className="w-4 h-4 text-blue-400" />
+                      Add Observation
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddMenu(false)
+                        setShowSessionModal(true)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                    >
+                      <Calendar className="w-4 h-4 text-purple-400" />
+                      Add Session
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation - Full width scrollable row */}
+        <div className="flex items-center gap-1">
           {showLeftArrow && (
             <button
               onClick={() => scrollTabs('left')}
-              className="p-1 text-gray-400 hover:text-white"
+              className="p-1 text-gray-400 hover:text-white flex-shrink-0"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -267,7 +377,7 @@ function Team() {
           <div
             ref={tabsRef}
             onScroll={checkTabsOverflow}
-            className="flex gap-1 overflow-x-auto sm:overflow-x-hidden scrollbar-hide"
+            className="flex gap-1 overflow-x-auto scrollbar-hide flex-1"
           >
             <button
               onClick={() => setActiveTab('overview')}
@@ -332,124 +442,11 @@ function Team() {
           {showRightArrow && (
             <button
               onClick={() => scrollTabs('right')}
-              className="p-1 text-gray-400 hover:text-white"
+              className="p-1 text-gray-400 hover:text-white flex-shrink-0"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           )}
-        </div>
-
-        {/* Spacer to push actions to right */}
-        <div className="flex-1"></div>
-
-        {/* Actions - Right */}
-        <div className="flex gap-2 flex-shrink-0">
-          <button
-            onClick={loadData}
-            className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800"
-            title="Refresh"
-          >
-            <RefreshCw className="w-5 h-5" />
-          </button>
-
-          {/* Add Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setShowAddMenu(!showAddMenu)}
-              className="flex items-center gap-2 px-3 py-2 bg-farm-green text-white rounded-lg hover:bg-green-600"
-            >
-              <Plus className="w-4 h-4" />
-              Add
-              <ChevronDown className="w-4 h-4" />
-            </button>
-
-            {showAddMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowAddMenu(false)}
-                />
-                <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
-                  {/* Health Data Entry */}
-                  <div className="px-3 py-2 text-xs text-gray-500 uppercase border-b border-gray-700">Health Data</div>
-                  <button
-                    onClick={() => {
-                      setShowAddMenu(false)
-                      setShowDailyCheckin(true)
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
-                  >
-                    <ClipboardCheck className="w-4 h-4 text-blue-400" />
-                    Daily Check-in
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddMenu(false)
-                      setShowQuickWorkout(true)
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
-                  >
-                    <Dumbbell className="w-4 h-4 text-green-400" />
-                    Log Workout
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddMenu(false)
-                      setShowQuickVital(true)
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
-                  >
-                    <Heart className="w-4 h-4 text-red-400" />
-                    Log Vital
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddMenu(false)
-                      setShowQuickWeight(true)
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
-                  >
-                    <Scale className="w-4 h-4 text-purple-400" />
-                    Log Weight
-                  </button>
-
-                  {/* Team Management */}
-                  <div className="px-3 py-2 text-xs text-gray-500 uppercase border-b border-t border-gray-700 mt-1">Team</div>
-                  <button
-                    onClick={() => {
-                      setShowAddMenu(false)
-                      setEditingMember(null)
-                      setShowMemberForm(true)
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
-                  >
-                    <UserPlus className="w-4 h-4 text-farm-green" />
-                    Add Member
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddMenu(false)
-                      setShowObservationModal(true)
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
-                  >
-                    <MessageSquare className="w-4 h-4 text-blue-400" />
-                    Add Observation
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowAddMenu(false)
-                      setShowSessionModal(true)
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
-                  >
-                    <Calendar className="w-4 h-4 text-purple-400" />
-                    Add Session
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
         </div>
       </div>
 

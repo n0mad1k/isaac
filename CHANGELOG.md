@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.0] - 2026-02-05
+
+### Changed
+- **Mobile layout improvements across multiple pages:**
+  - **Monthly Budget**: Improved grid layout so edit/delete icons no longer overlap with amounts on narrow screens. Amount column uses auto-width with proper overflow containment.
+  - **Team Page**: Restructured header into two rows on mobile - team name + actions on top, scrollable tab navigation below. Previously all elements competed for one line causing overlap and unusability.
+  - **Team Member Form**: Section tabs now show icons-only on mobile with hidden scrollbar for cleaner look.
+  - **Calendar**: Defaults to day view on mobile (< 640px). Header buttons use icons-only on small screens. Day view time column is narrower on mobile. Week view min-width reduced from 800px to 640px for less horizontal scrolling. Navigation bar more compact.
+
 ## [1.81.7] - 2026-02-05
 
 ### Fixed

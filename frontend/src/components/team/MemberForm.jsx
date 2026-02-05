@@ -196,19 +196,19 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
         </div>
 
         {/* Section tabs */}
-        <div className="flex gap-1 p-2 border-b border-gray-700 overflow-x-auto">
+        <div className="flex gap-1 p-2 border-b border-gray-700 overflow-x-auto scrollbar-hide">
           {sections.map(section => (
             <button
               key={section.id}
               onClick={() => setActiveSection(section.id)}
-              className={`px-3 py-2 rounded text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium whitespace-nowrap flex items-center gap-1 sm:gap-2 transition-colors ${
                 activeSection === section.id
                   ? 'bg-farm-green text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-700'
               }`}
             >
               <section.icon className="w-4 h-4" />
-              {section.label}
+              <span className="hidden sm:inline">{section.label}</span>
             </button>
           ))}
         </div>
