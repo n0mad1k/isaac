@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.81.0] - 2026-02-05
+
+### Fixed
+- **CalDAV sync no longer deletes recurring tasks** - When recurring tasks were completed and regenerated for the next occurrence, CalDAV sync was incorrectly detecting them as "deleted on phone" and marking them inactive. This caused tasks like "Take out trash" to disappear from the calendar. Calendar sync metadata is now properly cleared when recycling recurring tasks.
+- **Recurring tasks auto-recovered** - Any recurring tasks that were incorrectly deactivated by the CalDAV bug are automatically reactivated on next startup.
+- **No more midnight email alerts** - Task reminder emails now only send during waking hours (6 AM - 10 PM) instead of every hour including midnight.
+- **Worker task emails now go to workers only** - Email alerts for worker-assigned tasks are now sent only to the worker's email address (if on file), not to the global email recipients. If no worker email is configured, the alert is skipped entirely.
+- **All recurrence types now properly generate** - Added support for biweekly, custom weekly (specific days), quarterly, bi-annually, and custom interval recurring tasks in the task generator. Previously only daily, weekly, monthly, and annual were handled.
+
 ## [1.80.9] - 2026-02-04
 
 ### Fixed

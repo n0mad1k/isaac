@@ -294,10 +294,11 @@ class SchedulerService:
         # Daily digest email - time from settings
         await self.schedule_daily_digest()
 
-        # Check for upcoming tasks - every hour
+        # Check for upcoming tasks - every hour during waking hours (6 AM - 10 PM)
+        # Avoids sending email reminders at midnight/early morning
         self.scheduler.add_job(
             self.check_upcoming_tasks,
-            CronTrigger(minute=0),
+            CronTrigger(minute=0, hour='6-22'),
             id="check_tasks",
             name="Check Upcoming Tasks",
             replace_existing=True,
@@ -1221,6 +1222,21 @@ class SchedulerService:
 
                 sent_count = 0
                 for task in tasks:
+                    # Determine the correct recipient for this task
+                    task_recipients = recipients
+                    if task.assigned_to_worker_id:
+                        # Worker tasks only go to worker's email, NOT global recipients
+                        from models.workers import Worker
+                        worker_result = await db.execute(
+                            select(Worker).where(Worker.id == task.assigned_to_worker_id)
+                        )
+                        worker = worker_result.scalar_one_or_none()
+                        if worker and worker.email:
+                            task_recipients = worker.email
+                        else:
+                            # No worker email on file - skip this task entirely
+                            continue
+
                     # Atomic update: only proceed if last_notified hasn't changed
                     from sqlalchemy import update
                     result = await db.execute(
@@ -1247,7 +1263,7 @@ class SchedulerService:
                         "due_date": task.due_date,
                         "category": task.category.value if task.category else "General",
                         "notes": task.notes,
-                    }, to=recipients)
+                    }, to=task_recipients)
                     sent_count += 1
 
                 if sent_count:
@@ -1359,6 +1375,24 @@ class SchedulerService:
             async with async_session() as db:
                 today = date.today()
 
+                # ONE-TIME FIX: Reactivate recurring tasks incorrectly deactivated by CalDAV sync
+                # The CalDAV sync was marking recycled recurring tasks as "deleted on phone"
+                # because it found their UIDs missing from the calendar after completion deletion.
+                fix_result = await db.execute(
+                    select(Task)
+                    .where(Task.is_active == False)
+                    .where(Task.recurrence != TaskRecurrence.ONCE)
+                    .where(Task.recurrence.isnot(None))
+                )
+                deactivated_recurring = fix_result.scalars().all()
+                if deactivated_recurring:
+                    for t in deactivated_recurring:
+                        t.is_active = True
+                        t.calendar_synced_at = None
+                        t.calendar_content_hash = None
+                        logger.info(f"Reactivated incorrectly deactivated recurring task: {t.title} (id={t.id})")
+                    await db.commit()
+
                 # Get all active recurring tasks
                 result = await db.execute(
                     select(Task)
@@ -1377,20 +1411,59 @@ class SchedulerService:
                         # Schedule on same day of week as original
                         if task.due_date and task.due_date.weekday() == today.weekday():
                             should_schedule = True
+                    elif task.recurrence == TaskRecurrence.BIWEEKLY:
+                        # Schedule every 2 weeks on the same day of week
+                        if task.due_date and task.due_date.weekday() == today.weekday():
+                            days_diff = (today - task.due_date).days
+                            if days_diff >= 0 and days_diff % 14 == 0:
+                                should_schedule = True
+                    elif task.recurrence == TaskRecurrence.CUSTOM_WEEKLY:
+                        # Schedule on specific days of week (e.g., Mon/Wed/Fri)
+                        if task.recurrence_days_of_week:
+                            # recurrence_days_of_week is a list like [0,2,4] (0=Mon, 6=Sun)
+                            if today.weekday() in task.recurrence_days_of_week:
+                                should_schedule = True
                     elif task.recurrence == TaskRecurrence.MONTHLY:
                         # Schedule on same day of month
                         if task.recurrence_day == today.day:
                             should_schedule = True
+                    elif task.recurrence == TaskRecurrence.QUARTERLY:
+                        # Schedule every 3 months on same day
+                        if task.due_date and today.day == task.due_date.day:
+                            month_diff = (today.year - task.due_date.year) * 12 + (today.month - task.due_date.month)
+                            if month_diff >= 0 and month_diff % 3 == 0:
+                                should_schedule = True
+                    elif task.recurrence == TaskRecurrence.BIANNUALLY:
+                        # Schedule every 6 months on same day
+                        if task.due_date and today.day == task.due_date.day:
+                            month_diff = (today.year - task.due_date.year) * 12 + (today.month - task.due_date.month)
+                            if month_diff >= 0 and month_diff % 6 == 0:
+                                should_schedule = True
                     elif task.recurrence == TaskRecurrence.ANNUALLY:
                         # Schedule on same month and day
                         if (task.recurrence_month == today.month and
                             task.recurrence_day == today.day):
                             should_schedule = True
+                    elif task.recurrence == TaskRecurrence.CUSTOM:
+                        # Custom interval in days
+                        if task.due_date and task.recurrence_interval:
+                            days_diff = (today - task.due_date).days
+                            if days_diff >= 0 and days_diff % task.recurrence_interval == 0:
+                                should_schedule = True
 
                     if should_schedule:
                         # Update the task's due date to today
                         task.due_date = today
                         task.is_completed = False
+                        task.completed_at = None
+                        # Clear calendar sync metadata so the task is pushed fresh
+                        # to the calendar. Without this, the CalDAV sync detects the
+                        # UID is missing from the calendar (deleted when completed)
+                        # and incorrectly marks the task as "deleted on phone".
+                        task.calendar_synced_at = None
+                        task.calendar_content_hash = None
+                        # Clear alerts_sent so reminders fire for the new occurrence
+                        task.alerts_sent = None
                         logger.info(f"Scheduled recurring task: {task.title}")
 
                 await db.commit()
@@ -1781,30 +1854,35 @@ class SchedulerService:
             from models.workers import Worker
             from models.users import User
 
-            # Start with global recipients
-            recipients = await get_setting_value("email_recipients")
-            recipient_list = [r.strip() for r in (recipients or "").split(",") if r.strip()]
-
-            # Add assigned worker's email if available
             async with async_session() as db:
+                recipient_list = []
+
                 if task.assigned_to_worker_id:
+                    # Worker tasks ONLY go to the worker's email, not global recipients
                     result = await db.execute(
                         select(Worker).where(Worker.id == task.assigned_to_worker_id)
                     )
                     worker = result.scalar_one_or_none()
-                    if worker and worker.email and worker.email not in recipient_list:
+                    if worker and worker.email:
                         recipient_list.append(worker.email)
-                        logger.debug(f"Added worker email {worker.email} to reminder recipients")
+                        logger.debug(f"Worker task reminder -> worker email {worker.email}")
+                    else:
+                        logger.debug(f"Skipping reminder for worker task '{task.title}' - no worker email on file")
+                        return
+                else:
+                    # Non-worker tasks: use global recipients + assigned user email
+                    recipients = await get_setting_value("email_recipients")
+                    recipient_list = [r.strip() for r in (recipients or "").split(",") if r.strip()]
 
-                # Add assigned user's email if available
-                if task.assigned_to_user_id:
-                    result = await db.execute(
-                        select(User).where(User.id == task.assigned_to_user_id)
-                    )
-                    user = result.scalar_one_or_none()
-                    if user and user.email and user.email not in recipient_list:
-                        recipient_list.append(user.email)
-                        logger.debug(f"Added user email {user.email} to reminder recipients")
+                    # Add assigned user's email if available
+                    if task.assigned_to_user_id:
+                        result = await db.execute(
+                            select(User).where(User.id == task.assigned_to_user_id)
+                        )
+                        user = result.scalar_one_or_none()
+                        if user and user.email and user.email not in recipient_list:
+                            recipient_list.append(user.email)
+                            logger.debug(f"Added user email {user.email} to reminder recipients")
 
             if not recipient_list:
                 logger.warning("No email recipients configured for task reminder")

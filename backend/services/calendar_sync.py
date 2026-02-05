@@ -681,7 +681,10 @@ class CalendarSyncService:
                 if await self.delete_task_from_calendar(task.id, task.calendar_uid, cached_todos=cached_todos):
                     # Update hash - task won't be processed again unless it changes
                     task.calendar_content_hash = current_hash
-                    task.calendar_synced_at = now
+                    # Clear calendar_synced_at so that if this task is later reactivated
+                    # (e.g., by generate_recurring_tasks), it won't be detected as
+                    # "deleted on phone" — it was deleted by the app, not the phone.
+                    task.calendar_synced_at = None
                     deleted += 1
                     logger.debug(f"Deleted completed/inactive task '{task.title}' from calendar")
 
