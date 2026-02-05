@@ -3,6 +3,7 @@ Statement Parser Service
 Parses bank/credit card PDF statements and auto-categorizes transactions
 """
 
+import concurrent.futures
 import hashlib
 import logging
 import re
@@ -15,6 +16,30 @@ from sqlalchemy import select
 from models.budget import BudgetCategoryRule, MatchType
 
 logger = logging.getLogger(__name__)
+
+# Shared executor for regex timeouts (single thread, reused)
+_regex_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="regex")
+
+
+def _safe_regex_search(pattern: str, text: str, timeout: float = 1.0) -> bool:
+    """Run regex search with a timeout to prevent ReDoS.
+
+    Returns True if pattern matches, False otherwise.
+    Times out after `timeout` seconds and returns False.
+    """
+    try:
+        compiled = re.compile(pattern, re.IGNORECASE)
+    except re.error:
+        return False
+
+    future = _regex_executor.submit(compiled.search, text)
+    try:
+        result = future.result(timeout=timeout)
+        return bool(result)
+    except concurrent.futures.TimeoutError:
+        logger.warning(f"Regex timed out after {timeout}s for pattern: {pattern[:100]}")
+        future.cancel()
+        return False
 
 
 def parse_chase_statement(pdf_bytes: bytes, statement_year: Optional[int] = None) -> List[Dict]:
@@ -271,8 +296,8 @@ async def auto_categorize_transaction(
             matched = desc_upper.startswith(rule.pattern.upper())
         elif rule.match_type == MatchType.REGEX:
             try:
-                # Use re.search with a compiled pattern; limit description length to prevent ReDoS
-                matched = bool(re.search(rule.pattern, description[:500], re.IGNORECASE))
+                # Run regex with timeout to prevent ReDoS; input limited to 500 chars
+                matched = _safe_regex_search(rule.pattern, description[:500])
             except (re.error, RecursionError):
                 logger.warning(f"Invalid or pathological regex in rule {rule.id}")
                 continue

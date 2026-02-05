@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.8] - 2026-02-05
+
+### Fixed
+- **Security: Statement parser regex now has timeout protection** - User-configurable regex rules for budget auto-categorization are now wrapped in a 1-second timeout to prevent ReDoS (Regular Expression Denial of Service). Previously a pathological regex pattern could hang the request indefinitely.
+
 ## [1.82.7] - 2026-02-05
 
 ### Fixed
