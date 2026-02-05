@@ -1669,7 +1669,7 @@ async def test_cold_protection_email(db: AsyncSession = Depends(get_db), admin: 
         email_service = await EmailService.get_configured_service(db)
     except ConfigurationError as e:
         logger.error(f"Email configuration error: {e}")
-        raise HTTPException(status_code=400, detail="Email service not properly configured")
+        raise HTTPException(status_code=400, detail=str(e))
 
     plant_dicts = [
         {
@@ -1693,7 +1693,7 @@ async def test_cold_protection_email(db: AsyncSession = Depends(get_db), admin: 
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail="Email service not properly configured")
+        raise HTTPException(status_code=400, detail=str(e))
 
     if success:
         return {
@@ -1850,7 +1850,7 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
     all_gear_contents = gear_contents_result.scalars().unique().all()
 
     for content in all_gear_contents:
-        member_name = content.gear.member.display_name if content.gear.member else "Unknown"
+        member_name = content.gear.member.name if content.gear.member else "Unknown"
 
         # Check for low stock
         if content.min_quantity and content.quantity < content.min_quantity:
@@ -1894,7 +1894,7 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
     overdue_training = training_result.scalars().unique().all()
 
     for training in overdue_training:
-        member_name = training.member.display_name if training.member else "Unknown"
+        member_name = training.member.name if training.member else "Unknown"
         days_overdue = (datetime.now() - training.next_due).days
         team_alerts.append({
             "type": "expired",
@@ -1916,7 +1916,7 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
     overdue_medical = medical_result.scalars().unique().all()
 
     for appt in overdue_medical:
-        member_name = appt.member.display_name if appt.member else "Unknown"
+        member_name = appt.member.name if appt.member else "Unknown"
         type_name = appt.custom_type_name if appt.appointment_type.value == "custom" else appt.appointment_type.value.replace("_", " ").title()
         days_overdue = (datetime.now() - appt.next_due).days
         team_alerts.append({
@@ -1937,7 +1937,7 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail="Email service not properly configured")
+        raise HTTPException(status_code=400, detail=str(e))
 
     if success:
         return {
@@ -1978,7 +1978,7 @@ async def test_gear_alerts(db: AsyncSession = Depends(get_db), admin: User = Dep
     all_gear_contents = gear_contents_result.scalars().unique().all()
 
     for content in all_gear_contents:
-        member_name = content.gear.member.display_name if content.gear.member else "Unknown"
+        member_name = content.gear.member.name if content.gear.member else "Unknown"
 
         # Check for low stock
         if content.min_quantity and content.quantity < content.min_quantity:
@@ -2021,7 +2021,7 @@ async def test_gear_alerts(db: AsyncSession = Depends(get_db), admin: User = Dep
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail="Email service not properly configured")
+        raise HTTPException(status_code=400, detail=str(e))
 
     if success:
         return {"message": f"Gear alerts test sent to {recipients}", "alerts_count": len(gear_alerts), "alerts": gear_alerts}
@@ -2056,7 +2056,7 @@ async def test_training_alerts(db: AsyncSession = Depends(get_db), admin: User =
     overdue_training = training_result.scalars().unique().all()
 
     for training in overdue_training:
-        member_name = training.member.display_name if training.member else "Unknown"
+        member_name = training.member.name if training.member else "Unknown"
         days_overdue = (datetime.now() - training.next_due).days
         training_alerts.append({
             "type": "expired",
@@ -2077,7 +2077,7 @@ async def test_training_alerts(db: AsyncSession = Depends(get_db), admin: User =
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail="Email service not properly configured")
+        raise HTTPException(status_code=400, detail=str(e))
 
     if success:
         return {"message": f"Training alerts test sent to {recipients}", "alerts_count": len(training_alerts), "alerts": training_alerts}
@@ -2112,7 +2112,7 @@ async def test_medical_alerts(db: AsyncSession = Depends(get_db), admin: User = 
     overdue_medical = medical_result.scalars().unique().all()
 
     for appt in overdue_medical:
-        member_name = appt.member.display_name if appt.member else "Unknown"
+        member_name = appt.member.name if appt.member else "Unknown"
         type_name = appt.custom_type_name if appt.appointment_type.value == "custom" else appt.appointment_type.value.replace("_", " ").title()
         days_overdue = (datetime.now() - appt.next_due).days
         medical_alerts.append({
@@ -2134,7 +2134,7 @@ async def test_medical_alerts(db: AsyncSession = Depends(get_db), admin: User = 
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail="Email service not properly configured")
+        raise HTTPException(status_code=400, detail=str(e))
 
     if success:
         return {"message": f"Medical alerts test sent to {recipients}", "alerts_count": len(medical_alerts), "alerts": medical_alerts}
@@ -2175,7 +2175,7 @@ async def test_team_alerts_digest(db: AsyncSession = Depends(get_db), admin: Use
     all_gear_contents = gear_contents_result.scalars().unique().all()
 
     for content in all_gear_contents:
-        member_name = content.gear.member.display_name if content.gear.member else "Unknown"
+        member_name = content.gear.member.name if content.gear.member else "Unknown"
 
         # Check for low stock
         if content.min_quantity and content.quantity < content.min_quantity:
@@ -2219,7 +2219,7 @@ async def test_team_alerts_digest(db: AsyncSession = Depends(get_db), admin: Use
     overdue_training = training_result.scalars().unique().all()
 
     for training in overdue_training:
-        member_name = training.member.display_name if training.member else "Unknown"
+        member_name = training.member.name if training.member else "Unknown"
         days_overdue = (datetime.now() - training.next_due).days
         training_alerts.append({
             "type": "expired",
@@ -2241,7 +2241,7 @@ async def test_team_alerts_digest(db: AsyncSession = Depends(get_db), admin: Use
     overdue_medical = medical_result.scalars().unique().all()
 
     for appt in overdue_medical:
-        member_name = appt.member.display_name if appt.member else "Unknown"
+        member_name = appt.member.name if appt.member else "Unknown"
         type_name = appt.custom_type_name if appt.appointment_type.value == "custom" else appt.appointment_type.value.replace("_", " ").title()
         days_overdue = (datetime.now() - appt.next_due).days
         medical_alerts.append({
@@ -2272,7 +2272,7 @@ async def test_team_alerts_digest(db: AsyncSession = Depends(get_db), admin: Use
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail="Email service not properly configured")
+        raise HTTPException(status_code=400, detail=str(e))
 
     if success:
         return {

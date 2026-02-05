@@ -904,7 +904,7 @@ class SchedulerService:
                     all_gear_contents = gear_contents_result.scalars().unique().all()
 
                     for content in all_gear_contents:
-                        member_name = content.gear.member.display_name if content.gear.member else "Unknown"
+                        member_name = content.gear.member.name if content.gear.member else "Unknown"
 
                         # Check for low stock
                         if content.min_quantity and content.quantity < content.min_quantity:
@@ -948,7 +948,7 @@ class SchedulerService:
                     overdue_training = training_result.scalars().unique().all()
 
                     for training in overdue_training:
-                        member_name = training.member.display_name if training.member else "Unknown"
+                        member_name = training.member.name if training.member else "Unknown"
                         days_overdue = (datetime.now() - training.next_due).days
                         team_alerts.append({
                             "type": "expired",
@@ -970,7 +970,7 @@ class SchedulerService:
                     overdue_medical = medical_result.scalars().unique().all()
 
                     for appt in overdue_medical:
-                        member_name = appt.member.display_name if appt.member else "Unknown"
+                        member_name = appt.member.name if appt.member else "Unknown"
                         type_name = appt.custom_type_name if appt.appointment_type.value == "custom" else appt.appointment_type.value.replace("_", " ").title()
                         days_overdue = (datetime.now() - appt.next_due).days
                         team_alerts.append({
@@ -1092,7 +1092,7 @@ class SchedulerService:
                 all_gear_contents = gear_contents_result.scalars().unique().all()
 
                 for content in all_gear_contents:
-                    member_name = content.gear.member.display_name if content.gear.member else "Unknown"
+                    member_name = content.gear.member.name if content.gear.member else "Unknown"
 
                     # Check for low stock
                     if content.min_quantity and content.quantity < content.min_quantity:
@@ -1136,7 +1136,7 @@ class SchedulerService:
                 overdue_training = training_result.scalars().unique().all()
 
                 for training in overdue_training:
-                    member_name = training.member.display_name if training.member else "Unknown"
+                    member_name = training.member.name if training.member else "Unknown"
                     days_overdue = (datetime.now() - training.next_due).days
                     training_alerts.append({
                         "type": "expired",
@@ -1158,7 +1158,7 @@ class SchedulerService:
                 overdue_medical = medical_result.scalars().unique().all()
 
                 for appt in overdue_medical:
-                    member_name = appt.member.display_name if appt.member else "Unknown"
+                    member_name = appt.member.name if appt.member else "Unknown"
                     type_name = appt.custom_type_name if appt.appointment_type.value == "custom" else appt.appointment_type.value.replace("_", " ").title()
                     days_overdue = (datetime.now() - appt.next_due).days
                     medical_alerts.append({

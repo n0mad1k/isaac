@@ -167,7 +167,7 @@ class EmailService:
                 username=self.user,
                 password=self.password,
                 start_tls=True,
-                timeout=30,
+                timeout=60,
             )
 
             logger.info(f"Email sent: {subject} to {recipient}")
