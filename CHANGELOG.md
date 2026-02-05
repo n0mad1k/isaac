@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.5] - 2026-02-05
+
+### Fixed
+- **Fitness tracking "Total Time" now displays correctly** - Previously showed "0h" for workouts under 30 minutes because `Math.round(minutes/60)` rounded down to zero. Now shows "14m" for sub-hour durations and "1h 30m" for longer workouts. Also fixed the by-type breakdown which used `Math.round` instead of `Math.floor`, causing 90 minutes to display as "2h 30m" instead of "1h 30m".
+
 ## [1.82.4] - 2026-02-05
 
 ### Fixed

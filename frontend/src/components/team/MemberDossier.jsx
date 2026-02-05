@@ -3006,7 +3006,11 @@ function FitnessTab({ member, settings, formatDate }) {
               <div className="text-sm text-gray-400">Miles</div>
             </div>
             <div className="bg-gray-700/50 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-orange-400">{Math.round(stats.total_duration_minutes / 60)}h</div>
+              <div className="text-3xl font-bold text-orange-400">
+                {stats.total_duration_minutes >= 60
+                  ? `${Math.floor(stats.total_duration_minutes / 60)}h ${stats.total_duration_minutes % 60}m`
+                  : `${stats.total_duration_minutes}m`}
+              </div>
               <div className="text-sm text-gray-400">Total Time</div>
             </div>
           </div>
@@ -3057,7 +3061,11 @@ function FitnessTab({ member, settings, formatDate }) {
                         {data.distance_miles > 0 && (
                           <div>{data.distance_miles.toFixed(1)} miles</div>
                         )}
-                        <div>{Math.round(data.duration_minutes / 60)}h {data.duration_minutes % 60}m</div>
+                        <div>
+                          {data.duration_minutes >= 60
+                            ? `${Math.floor(data.duration_minutes / 60)}h ${data.duration_minutes % 60}m`
+                            : `${data.duration_minutes}m`}
+                        </div>
                       </div>
                     </div>
                   )
