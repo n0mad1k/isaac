@@ -21,7 +21,8 @@ def compute_task_sync_hash(task) -> str:
 
     If this hash matches the stored hash, no sync is needed.
     Includes: title, due_date, due_time, end_date, end_time, location,
-              description, is_completed, is_active, task_type
+              description, is_completed, is_active, task_type,
+              recurrence, recurrence_interval, recurrence_days_of_week, exception_dates
     """
     # Build a string of all sync-relevant fields
     parts = [
@@ -35,6 +36,10 @@ def compute_task_sync_hash(task) -> str:
         str(task.is_completed),
         str(task.is_active),
         str(task.task_type.value if task.task_type else ''),
+        str(task.recurrence.value if task.recurrence else ''),
+        str(task.recurrence_interval or ''),
+        str(task.recurrence_days_of_week or ''),
+        str(task.exception_dates or ''),
     ]
     content = '|'.join(parts)
     return hashlib.sha256(content.encode()).hexdigest()[:32]
@@ -262,6 +267,53 @@ class CalendarSyncService:
                         component.add('due', task.due_date)
                 else:
                     component.add('due', task.due_date)
+
+        # Add RRULE for recurring tasks so they appear on all dates in the calendar
+        if task.recurrence and task.recurrence != TaskRecurrence.ONCE:
+            rrule_params = {}
+            if task.recurrence == TaskRecurrence.DAILY:
+                rrule_params = {'FREQ': 'DAILY'}
+            elif task.recurrence == TaskRecurrence.WEEKLY:
+                rrule_params = {'FREQ': 'WEEKLY'}
+            elif task.recurrence == TaskRecurrence.BIWEEKLY:
+                rrule_params = {'FREQ': 'WEEKLY', 'INTERVAL': 2}
+            elif task.recurrence == TaskRecurrence.MONTHLY:
+                rrule_params = {'FREQ': 'MONTHLY'}
+            elif task.recurrence == TaskRecurrence.QUARTERLY:
+                rrule_params = {'FREQ': 'MONTHLY', 'INTERVAL': 3}
+            elif task.recurrence == TaskRecurrence.BIANNUALLY:
+                rrule_params = {'FREQ': 'MONTHLY', 'INTERVAL': 6}
+            elif task.recurrence == TaskRecurrence.ANNUALLY:
+                rrule_params = {'FREQ': 'YEARLY'}
+            elif task.recurrence == TaskRecurrence.CUSTOM and task.recurrence_interval:
+                rrule_params = {'FREQ': 'DAILY', 'INTERVAL': task.recurrence_interval}
+            elif task.recurrence == TaskRecurrence.CUSTOM_WEEKLY and task.recurrence_days_of_week:
+                day_map = {0: 'MO', 1: 'TU', 2: 'WE', 3: 'TH', 4: 'FR', 5: 'SA', 6: 'SU'}
+                days = [day_map[d] for d in task.recurrence_days_of_week if d in day_map]
+                if days:
+                    rrule_params = {'FREQ': 'WEEKLY', 'BYDAY': days}
+
+            if rrule_params:
+                component.add('rrule', rrule_params)
+
+            # Add EXDATE for exception dates (skipped occurrences)
+            if task.exception_dates:
+                for exc_str in task.exception_dates.split(','):
+                    exc_str = exc_str.strip()
+                    if exc_str:
+                        try:
+                            exc_date = date.fromisoformat(exc_str)
+                            if task.due_time:
+                                hour, minute = map(int, task.due_time.split(':')[:2])
+                                exc_dt = local_tz.localize(datetime(
+                                    exc_date.year, exc_date.month, exc_date.day,
+                                    hour, minute
+                                ))
+                                component.add('exdate', [exc_dt])
+                            else:
+                                component.add('exdate', [exc_date])
+                        except (ValueError, AttributeError):
+                            pass
 
         # Common fields for both types
         if task.category:

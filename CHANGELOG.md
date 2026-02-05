@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.81.5] - 2026-02-05
+
+### Fixed
+- **Recurring events now show on all dates in iPhone calendar** - Recurring tasks (daily, weekly, custom weekly, etc.) were synced to CalDAV as one-off events at their start date only. Now includes proper RRULE so the iPhone calendar shows them on every recurring date. Exception dates (edited single occurrences) are also synced as EXDATE.
+
 ## [1.81.4] - 2026-02-05
 
 ### Fixed
