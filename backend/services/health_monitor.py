@@ -122,7 +122,13 @@ class HealthMonitor:
             return HealthCheck("caldav", HealthStatus.WARNING, f"CalDAV error: {str(e)[:100]}")
 
     def check_calendar_sync_performance(self) -> HealthCheck:
-        """Check if calendar sync is running slowly"""
+        """Check if calendar sync is running properly.
+
+        Checks:
+        - Sync duration (slow sync = network/server issue)
+        - Sync staleness (stale = scheduler may be stuck)
+        - Sync statistics (high skip ratio = sync logic issue)
+        """
         from services.scheduler import scheduler_service
 
         if not scheduler_service:
@@ -157,8 +163,30 @@ class HealthMonitor:
             return HealthCheck("calendar_sync", HealthStatus.WARNING,
                 f"Calendar sync stale ({minutes_ago:.0f}m ago) — scheduler may need restart", minutes_ago)
 
-        return HealthCheck("calendar_sync", HealthStatus.HEALTHY,
-            f"Calendar sync OK: {duration:.1f}s, {minutes_ago:.0f}m ago", duration)
+        # Check sync statistics for silent failures (sync runs but skips many tasks)
+        stats = scheduler_service.last_calendar_sync_stats
+        if stats and isinstance(stats, dict):
+            synced = stats.get("synced", 0)
+            skipped = stats.get("skipped", 0)
+            total_processed = synced + skipped
+            # If many tasks were skipped relative to synced, there may be a sync logic issue
+            if total_processed > 5 and skipped > 0 and synced == 0:
+                return HealthCheck("calendar_sync", HealthStatus.WARNING,
+                    f"Sync ran but all {skipped} tasks were skipped — check calendar sync logs", skipped)
+            elif total_processed > 10 and skipped > synced * 3:
+                return HealthCheck("calendar_sync", HealthStatus.WARNING,
+                    f"High skip ratio: {skipped} skipped vs {synced} synced — check debug.log for details", skipped)
+
+        # Build summary with stats if available
+        summary = f"Calendar sync OK: {duration:.1f}s, {minutes_ago:.0f}m ago"
+        if stats and isinstance(stats, dict):
+            synced = stats.get("synced", 0)
+            linked = stats.get("linked", 0)
+            deleted = stats.get("deleted", 0)
+            skipped = stats.get("skipped", 0)
+            summary += f" (synced:{synced} linked:{linked} deleted:{deleted} skipped:{skipped})"
+
+        return HealthCheck("calendar_sync", HealthStatus.HEALTHY, summary, duration)
 
     def check_memory(self) -> HealthCheck:
         """Check system memory usage"""

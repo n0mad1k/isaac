@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.4] - 2026-02-05
+
+### Fixed
+- **Health monitor now detects CalDAV sync issues** - Previously the health check only verified CalDAV server connectivity (HTTP OPTIONS), so it showed "healthy" even when sync was silently skipping tasks. Now tracks sync statistics (synced, skipped, linked, deleted counts) and alerts when all tasks are skipped or the skip ratio is unusually high.
+- **Always-on debug log for troubleshooting** - Added a dedicated `debug.log` file that always captures DEBUG-level messages (5 MB rotation, 7-day retention), regardless of the app's configured log level. Helps diagnose intermittent issues without needing to enable debug mode first.
+
 ## [1.82.3] - 2026-02-05
 
 ### Fixed

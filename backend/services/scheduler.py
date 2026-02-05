@@ -260,6 +260,8 @@ class SchedulerService:
         self.last_calendar_sync_time: datetime = None
         self.last_calendar_sync_attempt: datetime = None
         self.last_calendar_sync_error: str = None
+        self.last_calendar_sync_stats: dict = None  # {synced, linked, deleted, skipped, deleted_by_phone}
+        self.last_calendar_import_stats: dict = None  # {created, updated, deleted}
         # Set module-level reference
         scheduler_service = self
 
@@ -555,6 +557,9 @@ class SchedulerService:
                 # Store sync stats for health monitoring (use UTC for consistency with health check)
                 self.last_calendar_sync_duration = duration
                 self.last_calendar_sync_time = datetime.utcnow()
+                self.last_calendar_sync_stats = tasks_synced if isinstance(tasks_synced, dict) else None
+                self.last_calendar_import_stats = events_synced if isinstance(events_synced, dict) else None
+                self.last_calendar_sync_error = None  # Clear previous error on success
 
                 if duration > 60:
                     logger.warning(f"Calendar sync slow: {duration:.1f}s - {tasks_synced} tasks, {events_synced} events")

@@ -181,7 +181,8 @@ from routers.settings import get_setting
 
 
 # Configure logging
-# Security: Only enable DEBUG in debug mode, otherwise INFO level only
+# Console and main log: INFO level (DEBUG only if debug=True)
+# Debug log: always captures DEBUG for troubleshooting
 log_level = "DEBUG" if settings.debug else "INFO"
 logger.remove()
 logger.add(
@@ -194,7 +195,15 @@ logger.add(
     rotation="10 MB",
     retention="30 days",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
-    level=log_level,  # Match console level for security
+    level=log_level,
+)
+# Always-on debug log for troubleshooting (smaller rotation, shorter retention)
+logger.add(
+    "logs/debug.log",
+    rotation="5 MB",
+    retention="7 days",
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+    level="DEBUG",
 )
 
 # Scheduler instance
