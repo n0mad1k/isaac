@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.7] - 2026-02-05
+
+### Fixed
+- **Security: Updated vulnerable dependencies** - Updated python-multipart 0.0.20→0.0.22 (CVE-2026-24486), pdfminer.six 20231228→20251230 (CVE-2025-64512, CVE-2025-70559), pdfplumber 0.11.4→0.11.9, react-router 7.1→7.13 (CSRF, XSS, and open redirect fixes).
+
 ## [1.82.6] - 2026-02-05
 
 ### Changed
