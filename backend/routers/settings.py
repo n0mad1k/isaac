@@ -1502,6 +1502,26 @@ NUMERIC_SETTINGS = {
 }
 # Settings that require time format validation (HH:MM)
 TIME_SETTINGS = ['email_digest_time']
+# Settings that require URL validation
+URL_SETTINGS = ['ollama_url', 'calendar_url']
+# Blocked URL hosts/IPs (cloud metadata, link-local)
+BLOCKED_URL_HOSTS = {'169.254.169.254', 'metadata.google.internal', 'metadata.internal'}
+
+
+def validate_url(value: str) -> bool:
+    """Validate URL: must be http/https, not a blocked host"""
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(value)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        if not parsed.hostname:
+            return False
+        if parsed.hostname in BLOCKED_URL_HOSTS:
+            return False
+        return True
+    except Exception:
+        return False
 
 
 def validate_email_list(value: str) -> bool:
@@ -1544,6 +1564,14 @@ async def update_setting(key: str, data: SettingUpdate, db: AsyncSession = Depen
         time_pattern = re.compile(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$')
         if not time_pattern.match(data.value):
             raise HTTPException(status_code=400, detail="Time must be in HH:MM format")
+
+    # Validate URL settings (SSRF prevention)
+    if key in URL_SETTINGS and data.value and data.value.strip():
+        if not validate_url(data.value.strip()):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid URL. Must be http:// or https:// with a valid hostname."
+            )
 
     setting = await set_setting(db, key, data.value)
 

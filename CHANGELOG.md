@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.9] - 2026-02-05
+
+### Fixed
+- **Security: URL settings now validated for SSRF prevention** - Ollama URL and CalDAV URL settings now require valid http/https scheme and block known cloud metadata endpoints (169.254.169.254, etc.). Prevents potential Server-Side Request Forgery if a malicious URL is configured.
+
 ## [1.82.8] - 2026-02-05
 
 ### Fixed
