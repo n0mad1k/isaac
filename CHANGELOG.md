@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.81.3] - 2026-02-05
+
+### Fixed
+- **Recurring event "all occurrences" edit now saves date changes** - When editing a projected recurring event and changing the start date (e.g., moving to today), the original date was always being restored, ignoring the user's change. Now only preserves the original date when the user didn't modify it.
+- **Calendar event data now includes all fields** - Projected recurring events on the dashboard were missing assignment fields (assigned members, worker, user), entity links (animal, plant, vehicle, equipment, farm area), recurrence interval, reminder alerts, backlog status, and visibility. This caused the event modal to initialize with blank/default values, losing data on save.
+
 ## [1.81.2] - 2026-02-05
 
 ### Fixed

@@ -310,11 +310,11 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
           priority: dataToSave.priority,
         })
       } else if (event) {
-        // Update all occurrences - use original_due_date if this is a projected occurrence
-        // to preserve the series start date (otherwise editing a future occurrence would
-        // move the entire series forward, removing past occurrences)
+        // Update all occurrences
         const saveData = { ...dataToSave }
-        if (event.original_due_date) {
+        // Only preserve the original series start date if the user didn't change the date.
+        // If the user explicitly changed the date, honor their change.
+        if (event.original_due_date && dataToSave.due_date === event.due_date) {
           saveData.due_date = event.original_due_date
         }
         await updateTask(event.id, saveData)

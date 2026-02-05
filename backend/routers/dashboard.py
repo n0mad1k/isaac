@@ -876,6 +876,19 @@ async def get_calendar_month(
                 "is_recurring": is_recurring,
                 "recurrence": task.recurrence.value if task.recurrence else None,
                 "recurrence_days_of_week": task.recurrence_days_of_week,
+                "recurrence_interval": task.recurrence_interval,
+                "reminder_alerts": task.reminder_alerts,
+                "assigned_to_member_id": task.assigned_to_member_id,
+                "assigned_member_ids": [m.id for m in task.assigned_members] if task.assigned_members else [],
+                "assigned_to_worker_id": task.assigned_to_worker_id,
+                "assigned_to_user_id": task.assigned_to_user_id,
+                "animal_id": task.animal_id,
+                "plant_id": task.plant_id,
+                "vehicle_id": task.vehicle_id,
+                "equipment_id": task.equipment_id,
+                "farm_area_id": task.farm_area_id,
+                "is_backlog": task.is_backlog,
+                "visible_to_farmhands": task.visible_to_farmhands,
             })
             current += timedelta(days=1)
 
@@ -894,7 +907,7 @@ async def get_calendar_month(
                 "priority": task.priority,
                 "is_completed": False,
                 "due_date": projected_date.isoformat(),
-                "original_due_date": task.due_date.isoformat(),  # Parent's actual start date for editing
+                "original_due_date": task.due_date.isoformat(),
                 "end_date": None,
                 "due_time": task.due_time,
                 "end_time": task.end_time,
@@ -908,6 +921,19 @@ async def get_calendar_month(
                 "is_recurring": True,
                 "recurrence": task.recurrence.value if task.recurrence else None,
                 "recurrence_days_of_week": task.recurrence_days_of_week,
+                "recurrence_interval": task.recurrence_interval,
+                "reminder_alerts": task.reminder_alerts,
+                "assigned_to_member_id": task.assigned_to_member_id,
+                "assigned_member_ids": [m.id for m in task.assigned_members] if task.assigned_members else [],
+                "assigned_to_worker_id": task.assigned_to_worker_id,
+                "assigned_to_user_id": task.assigned_to_user_id,
+                "animal_id": task.animal_id,
+                "plant_id": task.plant_id,
+                "vehicle_id": task.vehicle_id,
+                "equipment_id": task.equipment_id,
+                "farm_area_id": task.farm_area_id,
+                "is_backlog": task.is_backlog,
+                "visible_to_farmhands": task.visible_to_farmhands,
             })
 
     # Project care schedules into future calendar dates
@@ -1234,6 +1260,19 @@ async def get_calendar_week(
                 "is_recurring": is_recurring,
                 "recurrence": task.recurrence.value if task.recurrence else None,
                 "recurrence_days_of_week": task.recurrence_days_of_week,
+                "recurrence_interval": task.recurrence_interval,
+                "reminder_alerts": task.reminder_alerts,
+                "assigned_to_member_id": task.assigned_to_member_id,
+                "assigned_member_ids": [m.id for m in task.assigned_members] if task.assigned_members else [],
+                "assigned_to_worker_id": task.assigned_to_worker_id,
+                "assigned_to_user_id": task.assigned_to_user_id,
+                "animal_id": task.animal_id,
+                "plant_id": task.plant_id,
+                "vehicle_id": task.vehicle_id,
+                "equipment_id": task.equipment_id,
+                "farm_area_id": task.farm_area_id,
+                "is_backlog": task.is_backlog,
+                "visible_to_farmhands": task.visible_to_farmhands,
             })
             current += timedelta(days=1)
 
@@ -1251,9 +1290,9 @@ async def get_calendar_week(
                 "task_type": task.task_type.value if task.task_type else "event",
                 "category": task.category.value if task.category else "custom",
                 "priority": task.priority,
-                "is_completed": False,  # Projected instances are not completed
-                "due_date": projected_date.isoformat(),  # Use projected date
-                "original_due_date": task.due_date.isoformat(),  # Parent's actual start date for editing
+                "is_completed": False,
+                "due_date": projected_date.isoformat(),
+                "original_due_date": task.due_date.isoformat(),
                 "end_date": None,
                 "due_time": task.due_time,
                 "end_time": task.end_time,
@@ -1264,9 +1303,22 @@ async def get_calendar_week(
                 "is_multi_day": False,
                 "is_span_start": True,
                 "is_span_end": True,
-                "is_recurring": True,  # Mark as recurring projection
+                "is_recurring": True,
                 "recurrence": task.recurrence.value if task.recurrence else None,
                 "recurrence_days_of_week": task.recurrence_days_of_week,
+                "recurrence_interval": task.recurrence_interval,
+                "reminder_alerts": task.reminder_alerts,
+                "assigned_to_member_id": task.assigned_to_member_id,
+                "assigned_member_ids": [m.id for m in task.assigned_members] if task.assigned_members else [],
+                "assigned_to_worker_id": task.assigned_to_worker_id,
+                "assigned_to_user_id": task.assigned_to_user_id,
+                "animal_id": task.animal_id,
+                "plant_id": task.plant_id,
+                "vehicle_id": task.vehicle_id,
+                "equipment_id": task.equipment_id,
+                "farm_area_id": task.farm_area_id,
+                "is_backlog": task.is_backlog,
+                "visible_to_farmhands": task.visible_to_farmhands,
             })
 
     # Project care schedules into future calendar dates
