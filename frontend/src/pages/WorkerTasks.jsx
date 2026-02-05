@@ -1469,7 +1469,7 @@ function WorkerTasks() {
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{task.title}</div>
                         <div className="flex items-center gap-2 text-sm text-gray-400">
-                          {task.due_date && <span>{task.due_date}</span>}
+                          {task.due_date && <span>{new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>}
                           {task.category && <span className="px-2 py-0.5 bg-gray-600 rounded text-xs">{task.category}</span>}
                           {task.task_type && <span className="px-2 py-0.5 bg-blue-600/30 rounded text-xs">{task.task_type}</span>}
                         </div>

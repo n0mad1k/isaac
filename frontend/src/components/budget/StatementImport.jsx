@@ -339,7 +339,7 @@ function StatementImport() {
                   {/* Mobile: combined row */}
                   <div className="md:hidden">
                     <div className="flex justify-between">
-                      <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{txn.date}</span>
+                      <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{txn.date ? new Date(txn.date + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}</span>
                       <span className="text-xs font-medium" style={{ color: txn.amount < 0 ? 'var(--color-error-500)' : 'var(--color-success-500)' }}>
                         {formatCurrency(txn.amount)}
                       </span>
@@ -366,7 +366,7 @@ function StatementImport() {
                   </div>
 
                   {/* Desktop columns */}
-                  <span className="hidden md:block text-xs" style={{ color: 'var(--color-text-secondary)' }}>{txn.date}</span>
+                  <span className="hidden md:block text-xs" style={{ color: 'var(--color-text-secondary)' }}>{txn.date ? new Date(txn.date + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}</span>
                   <span className="hidden md:block text-xs truncate" style={{ color: 'var(--color-text-primary)' }}>{txn.description}</span>
                   <select
                     value={txn.suggested_category_id || ''}

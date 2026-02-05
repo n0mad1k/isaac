@@ -4860,7 +4860,7 @@ function ExpenseListModal({ animal, onClose, onUpdate }) {
                               {expense.expense_type}
                             </span>
                             <span className="font-medium text-green-400">${expense.amount.toFixed(2)}</span>
-                            <span className="text-xs text-gray-400">{expense.expense_date}</span>
+                            <span className="text-xs text-gray-400">{expense.expense_date ? new Date(expense.expense_date + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}</span>
                             {expense.receipt_path && (
                               <a
                                 href={getAnimalExpenseReceiptUrl(expense.receipt_path)}

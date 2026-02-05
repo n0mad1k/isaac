@@ -398,7 +398,7 @@ function PlannerTab() {
     for (let i = 0; i < successionForm.num_plantings; i++) {
       const d = new Date(eventForm.start_date)
       d.setDate(d.getDate() + i * successionForm.interval_weeks * 7)
-      dates.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))
+      dates.push(d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }))
     }
     return dates
   }

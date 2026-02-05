@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.81.7] - 2026-02-05
+
+### Fixed
+- **All dates now display as MM/DD/YYYY** - Fixed 5 places where dates were shown in raw ISO format (YYYY-MM-DD) or inconsistent formats: animal expense dates, worker task due dates, bank statement import dates (mobile + desktop), and garden succession planting dates.
+
 ## [1.81.6] - 2026-02-05
 
 ### Fixed
