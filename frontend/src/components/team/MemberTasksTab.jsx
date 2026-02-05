@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import {
   CheckCircle, Circle, Clock, AlertTriangle, ChevronDown, ChevronUp,
-  Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check, X, User, Bell, Plus
+  Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check, X, User, Bell, Plus,
+  Sun, CalendarClock
 } from 'lucide-react'
+import { startOfDay, parseISO, isAfter, isSameDay } from 'date-fns'
 import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask, createTask, getTeamMembers, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas } from '../../services/api'
 
 // Alert options matching ToDo.jsx
@@ -402,31 +404,68 @@ function MemberTasksTab({ member, onUpdate }) {
   const activeTasks = tasks.filter(t => !t.is_completed)
   const completedTasks = tasks.filter(t => t.is_completed)
 
+  // Split active tasks into Do Today (due today or overdue) and Upcoming (future)
+  const today = startOfDay(new Date())
+  const todayTasks = activeTasks.filter(t => {
+    if (!t.due_date) return true  // No due date → show in today
+    const dueDate = startOfDay(parseISO(t.due_date))
+    return isSameDay(dueDate, today) || isAfter(today, dueDate)
+  })
+  const upcomingTasks = activeTasks.filter(t => {
+    if (!t.due_date) return false
+    const dueDate = startOfDay(parseISO(t.due_date))
+    return isAfter(dueDate, today)
+  })
+
   return (
     <div className="space-y-6">
-      {/* Active Tasks */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-medium text-white flex items-center gap-2">
-            <ListTodo className="w-5 h-5" />
-            Active Tasks ({activeTasks.length})
-          </h3>
-          <button
-            onClick={handleNewTask}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-farm-green text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            New Task
-          </button>
-        </div>
+      {/* Header with New Task button */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium text-white flex items-center gap-2">
+          <ListTodo className="w-5 h-5" />
+          Tasks ({activeTasks.length})
+        </h3>
+        <button
+          onClick={handleNewTask}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-farm-green text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+        >
+          <Plus className="w-4 h-4" />
+          New Task
+        </button>
+      </div>
 
-        {activeTasks.length === 0 ? (
-          <div className="text-center py-6 text-gray-400 bg-gray-700/50 rounded-lg">
-            No active tasks assigned
+      {/* Do Today */}
+      <div>
+        <h4 className="text-sm font-medium text-yellow-400 flex items-center gap-2 mb-2">
+          <Sun className="w-4 h-4" />
+          Do Today ({todayTasks.length})
+        </h4>
+        {todayTasks.length === 0 ? (
+          <div className="text-center py-4 text-gray-500 bg-gray-700/30 rounded-lg text-sm">
+            Nothing due today
           </div>
         ) : (
           <div className="space-y-2">
-            {activeTasks.map(task => (
+            {todayTasks.map(task => (
+              <TaskCard key={task.id} task={task} isBacklog={false} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Upcoming */}
+      <div>
+        <h4 className="text-sm font-medium text-blue-400 flex items-center gap-2 mb-2">
+          <CalendarClock className="w-4 h-4" />
+          Upcoming ({upcomingTasks.length})
+        </h4>
+        {upcomingTasks.length === 0 ? (
+          <div className="text-center py-4 text-gray-500 bg-gray-700/30 rounded-lg text-sm">
+            No upcoming tasks
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {upcomingTasks.map(task => (
               <TaskCard key={task.id} task={task} isBacklog={false} />
             ))}
           </div>

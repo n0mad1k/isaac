@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.6] - 2026-02-05
+
+### Changed
+- **Team member tasks split into sections** - Tasks on a team member's Tasks tab are now organized into "Do Today" (due today or overdue), "Upcoming" (future due dates), and "Backlog" sections instead of a single flat list.
+
 ## [1.82.5] - 2026-02-05
 
 ### Fixed
