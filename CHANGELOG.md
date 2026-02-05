@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.82.2] - 2026-02-05
+
+### Fixed
+- **Sale receipt email now sends correctly** - Fixed issue where selling a plant with "Send receipt" checked would fail silently. Root cause: the frontend was sending a `null` JSON body to the receipt endpoint, which could cause a 422 validation error before the endpoint even ran. Also moved email service initialization inside error handling so configuration issues are properly caught and reported. Fixed for all receipt/invoice endpoints (sale receipts, order receipts, payment receipts, invoices).
+
 ## [1.82.1] - 2026-02-05
 
 ### Added

@@ -3,7 +3,7 @@ Farm Production API Routes
 Tracks livestock processing and plant harvests
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile, Body
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, extract
@@ -831,7 +831,7 @@ async def delete_sale(
 @router.post("/sales/{sale_id}/send-receipt/")
 async def send_sale_receipt(
     sale_id: int,
-    custom: Optional[CustomInvoiceInput] = None,
+    custom: Optional[CustomInvoiceInput] = Body(None),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_edit("production")),
 ):
@@ -888,8 +888,8 @@ async def send_sale_receipt(
     # Use custom from_name if provided, otherwise use farm_name
     from_name = (custom.from_name if custom and custom.from_name else None) or farm_name
 
-    email_service = await EmailService.get_configured_service(db)
     try:
+        email_service = await EmailService.get_configured_service(db)
         success = await email_service.send_sale_receipt(
             to=customer_email,
             sale=sale_dict,
@@ -1236,7 +1236,7 @@ async def delete_payment(
 async def send_payment_receipt(
     order_id: int,
     payment_id: int,
-    custom: Optional[CustomInvoiceInput] = None,
+    custom: Optional[CustomInvoiceInput] = Body(None),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_edit("production")),
 ):
@@ -1346,7 +1346,7 @@ async def complete_order(
 @router.post("/orders/{order_id}/send-receipt/")
 async def send_order_receipt(
     order_id: int,
-    custom: Optional[CustomInvoiceInput] = None,
+    custom: Optional[CustomInvoiceInput] = Body(None),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_edit("production")),
 ):
@@ -1425,14 +1425,18 @@ async def send_order_receipt(
     from_name = (custom.from_name if custom and custom.from_name else None) or farm_name
 
     # Send receipt
-    email_service = await EmailService.get_configured_service(db)
-    success = await email_service.send_order_receipt(
-        to=customer_email,
-        order=order_dict,
-        farm_name=farm_name,
-        subject=subject,
-        from_name=from_name,
-    )
+    try:
+        email_service = await EmailService.get_configured_service(db)
+        success = await email_service.send_order_receipt(
+            to=customer_email,
+            order=order_dict,
+            farm_name=farm_name,
+            subject=subject,
+            from_name=from_name,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send order receipt: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
     if success:
         return {"message": f"Receipt sent to {customer_email}"}
@@ -1443,7 +1447,7 @@ async def send_order_receipt(
 @router.post("/orders/{order_id}/send-invoice/")
 async def send_order_invoice(
     order_id: int,
-    custom: Optional[CustomInvoiceInput] = None,
+    custom: Optional[CustomInvoiceInput] = Body(None),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_edit("production")),
 ):
@@ -1512,8 +1516,8 @@ async def send_order_invoice(
     from_name = (custom.from_name if custom and custom.from_name else None) or farm_name
 
     # Send invoice
-    email_service = await EmailService.get_configured_service(db)
     try:
+        email_service = await EmailService.get_configured_service(db)
         success = await email_service.send_invoice(
             to=customer_email,
             order=order_dict,
