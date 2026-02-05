@@ -1197,10 +1197,13 @@ class SchedulerService:
         logger.debug("Checking upcoming tasks...")
         try:
             async with async_session() as db:
-                # Find tasks due in the next 24-48 hours that haven't been notified
-                tomorrow = date.today() + timedelta(days=1)
+                # Find tasks due today or tomorrow that haven't been notified
+                # Only today and tomorrow - NOT overdue/past tasks
+                today = date.today()
+                tomorrow = today + timedelta(days=1)
                 result = await db.execute(
                     select(Task)
+                    .where(Task.due_date >= today)
                     .where(Task.due_date <= tomorrow)
                     .where(Task.is_completed == False)
                     .where(Task.is_active == True)
