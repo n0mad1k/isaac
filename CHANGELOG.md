@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.6] - 2026-02-06
+
+### Fixed
+- **Recurring events now stay on calendar when marked complete** - Completed recurring tasks (weekly fitness, monthly reviews, etc.) were disappearing from iPhone calendars because the sync excluded completed tasks. Now recurring tasks continue to sync with their RRULE so future occurrences still appear on the calendar. Completion for recurring tasks means "this occurrence done", not "cancel entire series".
+
 ## [1.83.5] - 2026-02-06
 
 ### Fixed

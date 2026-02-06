@@ -323,8 +323,16 @@ class CalendarSyncService:
             ical_priority = min(max(task.priority, 1), 9)
             component.add('priority', ical_priority)
 
+        # For recurring events, completion means "this occurrence done" not "cancel series"
+        # Keep recurring events as CONFIRMED so RRULE generates visible future occurrences
+        is_recurring = task.recurrence and task.recurrence != TaskRecurrence.ONCE
         if task.is_completed:
-            component.add('status', 'COMPLETED' if not is_event else 'CANCELLED')
+            if is_recurring and is_event:
+                # Recurring event: keep CONFIRMED so future occurrences still appear
+                component.add('status', 'CONFIRMED')
+            else:
+                # Non-recurring: use COMPLETED/CANCELLED as usual
+                component.add('status', 'COMPLETED' if not is_event else 'CANCELLED')
             if task.completed_at and not is_event:
                 component.add('completed', task.completed_at)
         else:
@@ -619,11 +627,24 @@ class CalendarSyncService:
         except Exception as e:
             logger.warning(f"Could not fetch existing events for duplicate detection: {e}")
 
-        # PART 1: Sync active, incomplete tasks that need syncing
+        # PART 1: Sync active tasks that need syncing
+        # Include:
+        # - Incomplete tasks (normal sync)
+        # - Completed RECURRING tasks (RRULE shows future occurrences on calendar)
         base_query = (
             select(Task)
             .where(Task.is_active == True)
-            .where(Task.is_completed == False)
+            .where(
+                or_(
+                    Task.is_completed == False,
+                    # Recurring tasks sync even when completed - RRULE generates future dates
+                    and_(
+                        Task.is_completed == True,
+                        Task.recurrence.isnot(None),
+                        Task.recurrence != TaskRecurrence.ONCE,
+                    )
+                )
+            )
             .where(
                 or_(
                     Task.due_date >= date.today() - timedelta(days=7),
@@ -682,14 +703,23 @@ class CalendarSyncService:
 
         # PART 2: Delete completed/inactive tasks from calendar
         # Find tasks that were synced to calendar but are now completed or inactive
+        # EXCEPTION: Recurring tasks should NOT be deleted when completed - RRULE shows future dates
         # Only get tasks where the hash might have changed (not already processed)
         delete_query = (
             select(Task)
             .where(Task.calendar_uid.isnot(None))  # Has been synced to calendar
             .where(
                 or_(
-                    Task.is_completed == True,
+                    # Inactive tasks always get deleted
                     Task.is_active == False,
+                    # Completed non-recurring tasks get deleted
+                    and_(
+                        Task.is_completed == True,
+                        or_(
+                            Task.recurrence.is_(None),
+                            Task.recurrence == TaskRecurrence.ONCE,
+                        )
+                    )
                 )
             )
         )
