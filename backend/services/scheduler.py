@@ -1215,6 +1215,11 @@ class SchedulerService:
                     if task.due_time and task.due_time != "00:00":
                         continue
 
+                    # Only send reminders if task has explicit reminder_alerts configured
+                    # If no alerts are set, no emails are sent - this is what the user expects
+                    if not task.reminder_alerts:
+                        continue
+
                     # Determine the correct recipient for this task
                     task_recipients = recipients
                     if task.assigned_to_worker_id:
@@ -1808,8 +1813,11 @@ class SchedulerService:
                     if due_datetime < now - timedelta(hours=1):
                         continue
 
-                    # Get task-specific alerts or use defaults
-                    task_alerts = task.reminder_alerts if task.reminder_alerts else default_alerts
+                    # Only send alerts if task has explicit reminder_alerts configured
+                    # NO default fallback - if no alerts are set, no emails are sent
+                    task_alerts = task.reminder_alerts
+                    if not task_alerts:
+                        continue
                     task_alerts_sent = task.alerts_sent or {}
 
                     # Check each alert interval

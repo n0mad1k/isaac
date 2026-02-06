@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.2] - 2026-02-06
+
+### Fixed
+- **Task email alerts now require explicit reminder_alerts configuration** - Previously, tasks could receive email reminders even without configuring reminder_alerts (either via default settings or the generic "upcoming tasks" hourly check). Now, tasks will only receive email alerts if they have explicit reminder_alerts set. Tasks without alerts configured will still appear in the daily digest and dashboard, but won't generate separate email reminders.
+
 ## [1.83.1] - 2026-02-06
 
 ### Fixed
