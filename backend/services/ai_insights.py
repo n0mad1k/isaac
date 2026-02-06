@@ -256,11 +256,15 @@ async def generate_weekly_budget_review():
         system = build_system_prompt("budget")
 
         prompt = (
-            "Analyze this week's spending against the budget. Format:\n"
-            "- Categories over/under budget (with dollar amounts)\n"
-            "- Account balance changes\n"
-            "- One actionable saving opportunity\n"
-            "Keep it under 100 words. Use specific numbers, not percentages alone."
+            "Analyze the BUDGET VS ACTUAL data provided above. IMPORTANT: Only use the exact "
+            "numbers shown in the data - do not calculate or infer different amounts. "
+            "A category is OVER budget only if it shows 'OVER by $X' in the status. "
+            "If it shows 'remaining' or 'left', it is UNDER budget.\n\n"
+            "Format your response as:\n"
+            "- Categories over budget (only if explicitly marked OVER in the data)\n"
+            "- Categories near their limit (80%+ spent)\n"
+            "- One actionable saving opportunity based on recent transactions\n"
+            "Keep it under 100 words. Use the exact dollar amounts from the data."
         )
 
         response = await _generate_insight(prompt, system, budget_ctx)

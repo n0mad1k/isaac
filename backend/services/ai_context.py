@@ -667,10 +667,11 @@ def build_system_prompt(topic: Optional[str] = None, can_create_tasks: bool = Fa
         ),
         "budget": (
             "\n\nBUDGET INSTRUCTIONS:\n"
-            "You see income, bills, spending allocations, and account flows. Flag overspending "
-            "immediately with the dollar amount over. Identify savings opportunities from the "
-            "actual data. Don't give generic financial advice — reference specific line items "
-            "and accounts."
+            "You see income, bills, spending allocations, and account flows. CRITICAL: Use ONLY "
+            "the exact dollar amounts shown in the data. A category is OVER budget only if it "
+            "explicitly says 'OVER by $X' in the data. If it shows '$X remaining', it is UNDER "
+            "budget. Never calculate or infer different amounts — the data already shows the "
+            "correct spent/budget/remaining values. Reference specific line items and accounts."
         ),
         "production": (
             "\n\nPRODUCTION INSTRUCTIONS:\n"

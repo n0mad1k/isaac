@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.4] - 2026-02-06
+
+### Fixed
+- **AI budget insights no longer hallucinate numbers** - The AI was misinterpreting budget data and reporting incorrect over/under budget amounts. Updated prompts to explicitly instruct the AI to only use exact numbers from the data, and to recognize over-budget status only when explicitly marked. The AI should now accurately reflect the budget vs actual data provided.
+
 ## [1.83.3] - 2026-02-06
 
 ### Fixed
