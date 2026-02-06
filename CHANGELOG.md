@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.8] - 2026-02-06
+
+### Fixed
+- **Reduced calendar sync log noise** - RRULE parsing messages now log at DEBUG level instead of INFO. Previously every sync cycle logged 9 "Parsed RRULE" messages.
+
 ## [1.83.7] - 2026-02-06
 
 ### Fixed

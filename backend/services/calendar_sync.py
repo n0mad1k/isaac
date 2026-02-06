@@ -473,7 +473,7 @@ class CalendarSyncService:
                         task_dict['recurrence'] = TaskRecurrence.ANNUALLY
                     if interval and int(interval) > 1 and freq_upper not in ('WEEKLY',):
                         task_dict['recurrence_interval'] = int(interval)
-                    logger.info(f"Parsed RRULE: FREQ={freq}, INTERVAL={interval} -> {task_dict.get('recurrence')}")
+                    logger.debug(f"Parsed RRULE: FREQ={freq}, INTERVAL={interval} -> {task_dict.get('recurrence')}")
             except Exception as e:
                 logger.warning(f"Failed to parse RRULE: {e}")
 
