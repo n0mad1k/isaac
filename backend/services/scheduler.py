@@ -699,54 +699,19 @@ class SchedulerService:
             logger.warning("Daily digest recipient not configured, skipping")
             return
 
-        # Atomic check-and-set to prevent duplicate sends
+        # Check if already sent today (only mark as sent AFTER successful delivery)
         tz = pytz.timezone(settings.timezone)
         today_str = datetime.now(tz).strftime("%Y-%m-%d")
 
         async with async_session() as db:
-            # Use atomic UPDATE with WHERE clause - only succeeds if value != today
-            # This prevents race conditions between multiple processes
-            from sqlalchemy import update, insert
-            from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-
-            # First try to update existing row (only if not already today)
-            result = await db.execute(
-                update(AppSetting)
-                .where(AppSetting.key == "_last_digest_date")
-                .where(AppSetting.value != today_str)
-                .values(value=today_str)
+            check = await db.execute(
+                select(AppSetting).where(AppSetting.key == "_last_digest_date")
             )
+            existing = check.scalar_one_or_none()
 
-            if result.rowcount == 0:
-                # Either already sent today, or row doesn't exist
-                # Check which case
-                check = await db.execute(
-                    select(AppSetting).where(AppSetting.key == "_last_digest_date")
-                )
-                existing = check.scalar_one_or_none()
-
-                if existing:
-                    # Row exists with today's date - already sent
-                    logger.info(f"Daily digest already sent today ({today_str}), skipping duplicate")
-                    return
-                else:
-                    # Row doesn't exist - try to insert (with conflict handling)
-                    try:
-                        db.add(AppSetting(key="_last_digest_date", value=today_str))
-                        await db.commit()
-                    except Exception:
-                        # Another process inserted first - check if it's today
-                        await db.rollback()
-                        recheck = await db.execute(
-                            select(AppSetting).where(AppSetting.key == "_last_digest_date")
-                        )
-                        if recheck.scalar_one_or_none():
-                            logger.info(f"Daily digest already sent today ({today_str}), skipping duplicate")
-                            return
-            else:
-                await db.commit()
-
-            logger.info(f"Claimed daily digest send for {today_str}")
+            if existing and existing.value == today_str:
+                logger.info(f"Daily digest already sent today ({today_str}), skipping duplicate")
+                return
 
         logger.info(f"Sending daily digest to {recipient}...")
         try:
@@ -917,7 +882,7 @@ class SchedulerService:
                                 "type": "low_stock",
                                 "member": member_name,
                                 "item": content.item_name,
-                                "message": f"Below minimum: {content.quantity} / {content.min_quantity} ({content.gear.gear_name})"
+                                "message": f"Below minimum: {content.quantity} / {content.min_quantity} ({content.gear.name})"
                             })
 
                         # Check for expiring items
@@ -929,7 +894,7 @@ class SchedulerService:
                                     "type": "expired",
                                     "member": member_name,
                                     "item": content.item_name,
-                                    "message": f"EXPIRED on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                                    "message": f"EXPIRED on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.name})"
                                 })
                             elif content.expiration_date <= alert_threshold:
                                 days_left = (content.expiration_date - datetime.now()).days
@@ -937,7 +902,7 @@ class SchedulerService:
                                     "type": "expiring",
                                     "member": member_name,
                                     "item": content.item_name,
-                                    "message": f"Expires in {days_left} days on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                                    "message": f"Expires in {days_left} days on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.name})"
                                 })
 
                     # Check for overdue training
@@ -998,6 +963,20 @@ class SchedulerService:
                     verse=verse,
                     team_alerts=team_alerts if team_alerts else None,
                 )
+
+                # Mark digest as sent ONLY after successful email delivery
+                # This ensures retries happen if sending fails
+                from sqlalchemy import update as sql_update
+                result = await db.execute(
+                    sql_update(AppSetting)
+                    .where(AppSetting.key == "_last_digest_date")
+                    .values(value=today_str)
+                )
+                if result.rowcount == 0:
+                    # Row doesn't exist, create it
+                    db.add(AppSetting(key="_last_digest_date", value=today_str))
+                await db.commit()
+                logger.info(f"Daily digest sent successfully for {today_str}")
         except Exception as e:
             logger.error(f"Error sending daily digest: {e}")
 
@@ -1105,7 +1084,7 @@ class SchedulerService:
                             "type": "low_stock",
                             "member": member_name,
                             "item": content.item_name,
-                            "message": f"Below minimum: {content.quantity} / {content.min_quantity} ({content.gear.gear_name})"
+                            "message": f"Below minimum: {content.quantity} / {content.min_quantity} ({content.gear.name})"
                         })
 
                     # Check for expiring items
@@ -1117,7 +1096,7 @@ class SchedulerService:
                                 "type": "expired",
                                 "member": member_name,
                                 "item": content.item_name,
-                                "message": f"EXPIRED on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                                "message": f"EXPIRED on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.name})"
                             })
                         elif content.expiration_date <= alert_threshold:
                             days_left = (content.expiration_date - datetime.now()).days
@@ -1125,7 +1104,7 @@ class SchedulerService:
                                 "type": "expiring",
                                 "member": member_name,
                                 "item": content.item_name,
-                                "message": f"Expires in {days_left} days on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
+                                "message": f"Expires in {days_left} days on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.name})"
                             })
 
                 # Check for overdue training

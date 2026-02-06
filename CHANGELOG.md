@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.1] - 2026-02-06
+
+### Fixed
+- **Daily digest now retries on SMTP failure** - Previously, if the SMTP server was unreachable at digest time (e.g., network blip), the digest was marked as "sent" even though email delivery failed, preventing retries. Now the sent marker is only set AFTER successful email delivery, so transient SMTP failures trigger an automatic retry on the next scheduler run.
+- **Team alerts gear name display fixed** - The daily digest team alerts section was crashing with "MemberGear has no attribute gear_name". Fixed to use the correct `name` attribute.
+
 ## [1.83.0] - 2026-02-05
 
 ### Added
