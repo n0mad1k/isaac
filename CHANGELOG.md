@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.7] - 2026-02-06
+
+### Fixed
+- **Recurring tasks with old start dates now sync to calendar** - Recurring tasks whose start date is more than 7 days ago were being excluded from calendar sync. Now recurring tasks sync regardless of their start date since the RRULE generates future occurrences.
+
 ## [1.83.6] - 2026-02-06
 
 ### Fixed

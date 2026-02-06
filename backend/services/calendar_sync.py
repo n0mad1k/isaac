@@ -649,6 +649,11 @@ class CalendarSyncService:
                 or_(
                     Task.due_date >= date.today() - timedelta(days=7),
                     Task.due_date.is_(None),
+                    # Recurring tasks sync regardless of due_date - RRULE generates future occurrences
+                    and_(
+                        Task.recurrence.isnot(None),
+                        Task.recurrence != TaskRecurrence.ONCE,
+                    )
                 )
             )
         )
