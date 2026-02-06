@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.5] - 2026-02-06
+
+### Fixed
+- **Health monitor no longer warns about expected calendar skip ratios** - The warning "High skip ratio" was triggering even when skips were expected (recurring task occurrences and worker-assigned tasks are intentionally skipped). Now only warns when ALL tasks are skipped (synced=0), which indicates a real sync problem.
+
 ## [1.83.4] - 2026-02-06
 
 ### Fixed

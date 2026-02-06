@@ -164,18 +164,19 @@ class HealthMonitor:
                 f"Calendar sync stale ({minutes_ago:.0f}m ago) — scheduler may need restart", minutes_ago)
 
         # Check sync statistics for silent failures (sync runs but skips many tasks)
+        # Note: High skip ratios are expected because:
+        # - Recurring task occurrences are skipped (only base event syncs)
+        # - Worker-assigned tasks are skipped (not for family calendar)
+        # Only warn if NO tasks synced at all, which indicates a real issue
         stats = scheduler_service.last_calendar_sync_stats
         if stats and isinstance(stats, dict):
             synced = stats.get("synced", 0)
             skipped = stats.get("skipped", 0)
             total_processed = synced + skipped
-            # If many tasks were skipped relative to synced, there may be a sync logic issue
+            # Only warn if ALL tasks were skipped (none synced) - indicates a real issue
             if total_processed > 5 and skipped > 0 and synced == 0:
                 return HealthCheck("calendar_sync", HealthStatus.WARNING,
                     f"Sync ran but all {skipped} tasks were skipped — check calendar sync logs", skipped)
-            elif total_processed > 10 and skipped > synced * 3:
-                return HealthCheck("calendar_sync", HealthStatus.WARNING,
-                    f"High skip ratio: {skipped} skipped vs {synced} synced — check debug.log for details", skipped)
 
         # Build summary with stats if available
         summary = f"Calendar sync OK: {duration:.1f}s, {minutes_ago:.0f}m ago"
