@@ -129,6 +129,29 @@ export function SettingsProvider({ children }) {
     }
   }
 
+  // Format time from a Date object (or datetime string) - just the time portion
+  const formatTimeFromDate = (date, options = {}) => {
+    if (!date) return ''
+    const tz = getTimezone()
+    const dateObj = date instanceof Date ? date : new Date(date)
+    if (isNaN(dateObj.getTime())) return ''
+    const timeFormat = getSetting('time_format', '12h')
+
+    const defaultOptions = {
+      timeZone: tz,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: timeFormat === '12h',
+      ...options
+    }
+
+    try {
+      return new Intl.DateTimeFormat('en-US', defaultOptions).format(dateObj)
+    } catch (e) {
+      return new Intl.DateTimeFormat('en-US', { ...defaultOptions, timeZone: 'America/New_York' }).format(dateObj)
+    }
+  }
+
   // Format a Date object in the configured timezone (default: mm/dd/yyyy)
   const formatDate = (date, options = {}) => {
     if (!date) return ''
@@ -248,6 +271,7 @@ export function SettingsProvider({ children }) {
       refreshSettings,
       getSetting,
       formatTime,
+      formatTimeFromDate,
       formatDate,
       formatDateISO,
       formatDateTime,

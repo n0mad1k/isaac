@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.3] - 2026-02-06
+
+### Fixed
+- **Time format now respects 12h/24h setting everywhere** - Dashboard clock and Weather widget "Updated" time now use the configured time format setting instead of hardcoded formats. Added `formatTimeFromDate` helper for consistent time formatting from Date objects.
+
 ## [1.83.2] - 2026-02-06
 
 ### Fixed

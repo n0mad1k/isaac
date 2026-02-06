@@ -190,8 +190,17 @@ function Dashboard() {
             {formatTimeInTz(currentTime, { weekday: 'short', month: 'short', day: 'numeric' })}
           </h1>
           <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-mono" style={{ color: 'var(--color-text-primary)' }}>
-            {formatTimeInTz(currentTime, { hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s*(AM|PM)$/i, '')}
-            <span className="text-sm sm:text-lg md:text-base lg:text-xl">:{formatTimeInTz(currentTime, { second: '2-digit' })} {formatTimeInTz(currentTime, { hour: 'numeric', hour12: true }).match(/(AM|PM)/i)?.[0] || ''}</span>
+            {(() => {
+              const is12h = getSetting('time_format', '12h') === '12h'
+              const timeStr = formatTimeInTz(currentTime, { hour: 'numeric', minute: '2-digit', hour12: is12h })
+              const ampm = is12h ? (formatTimeInTz(currentTime, { hour: 'numeric', hour12: true }).match(/(AM|PM)/i)?.[0] || '') : ''
+              return (
+                <>
+                  {timeStr.replace(/\s*(AM|PM)$/i, '')}
+                  <span className="text-sm sm:text-lg md:text-base lg:text-xl">:{formatTimeInTz(currentTime, { second: '2-digit' })} {ampm}</span>
+                </>
+              )
+            })()}
           </div>
         </div>
 

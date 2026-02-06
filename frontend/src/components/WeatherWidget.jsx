@@ -13,8 +13,10 @@ import {
   Clock,
 } from 'lucide-react'
 import { getWeatherForecast, getRainForecast } from '../services/api'
+import { useSettings } from '../contexts/SettingsContext'
 
 function WeatherWidget({ weather, className = '' }) {
+  const { formatTimeFromDate } = useSettings()
   const [forecast, setForecast] = useState(null)
   const [forecastLoading, setForecastLoading] = useState(true)
   const [rainForecast, setRainForecast] = useState(null)
@@ -255,7 +257,7 @@ function WeatherWidget({ weather, className = '' }) {
       <div className="text-[10px] mt-1 text-right flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
         Updated:{' '}
         {weather.reading_time
-          ? new Date(weather.reading_time).toLocaleTimeString()
+          ? formatTimeFromDate(weather.reading_time)
           : 'Unknown'}
       </div>
     </div>
