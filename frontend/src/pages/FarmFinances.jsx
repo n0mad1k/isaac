@@ -32,6 +32,7 @@ import {
   Clipboard,
   FileText,
   Image,
+  Calculator,
 } from 'lucide-react'
 import MottoDisplay from '../components/MottoDisplay'
 import { useSettings } from '../contexts/SettingsContext'
@@ -1516,8 +1517,65 @@ function BusinessTab({
   onEditCustomer, onEditOrder, onEditExpense,
   onAddPayment, onAllocate,
 }) {
+  // Price per pound calculator state
+  const [calcTotalCost, setCalcTotalCost] = useState('')
+  const [calcTotalWeight, setCalcTotalWeight] = useState('')
+
+  const pricePerPound = useMemo(() => {
+    const cost = parseFloat(calcTotalCost) || 0
+    const weight = parseFloat(calcTotalWeight) || 0
+    if (weight > 0) {
+      return cost / weight
+    }
+    return 0
+  }, [calcTotalCost, calcTotalWeight])
+
   return (
     <div className="space-y-4">
+      {/* Price Per Pound Calculator */}
+      <CollapsibleSection
+        title="Price Calculator"
+        icon={Calculator}
+        iconColor="text-cyan-400"
+        defaultOpen={false}
+      >
+        <div className="bg-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-400 mb-3">Calculate price per pound to determine customer pricing</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Total Cost ($)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={calcTotalCost}
+                onChange={(e) => setCalcTotalCost(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Total Weight (lbs)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={calcTotalWeight}
+                onChange={(e) => setCalcTotalWeight(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div className="bg-gray-600 rounded-lg p-3 text-center">
+              <span className="text-sm text-gray-400 block">Price per lb</span>
+              <span className="text-2xl font-bold text-cyan-400">
+                {pricePerPound > 0 ? formatCurrency(pricePerPound) : '$0.00'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </CollapsibleSection>
+
       {/* Sales Section */}
       <CollapsibleSection
         title="Sales"

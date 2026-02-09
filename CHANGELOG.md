@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.13] - 2026-02-09
+
+### Added
+- **Price per pound calculator on Production > Business** - A collapsible calculator section lets you enter total cost and total weight to calculate the price per pound for customer pricing.
+
 ## [1.83.12] - 2026-02-08
 
 ### Fixed
