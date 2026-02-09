@@ -12,6 +12,9 @@ All notable changes to Isaac will be documented in this file.
   - **Revenue Projection**: Calculate expected revenue from price and quantity
   - **Yield per Acre**: Calculate production rate per acre
 
+### Fixed
+- **Email reliability improved** - SMTP now tries multiple DNS-resolved IPs if the first one fails. This fixes intermittent email failures when one of ProtonMail's servers is unreachable.
+
 ## [1.83.12] - 2026-02-08
 
 ### Fixed
