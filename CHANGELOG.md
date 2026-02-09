@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.10] - 2026-02-08
+
+### Fixed
+- **Action items in Weekly AAR can now be edited** - Added a pencil icon to edit action items inline. Click the pencil to edit the item text and assigned person, then press Enter or click the checkmark to save.
+
 ## [1.83.9] - 2026-02-08
 
 ### Added

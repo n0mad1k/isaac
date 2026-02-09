@@ -29,6 +29,8 @@ function WeeklyAARView({ settings, members }) {
   })
   const [newActionItem, setNewActionItem] = useState({ item: '', assigned_to: '' })
   const [saving, setSaving] = useState(false)
+  const [editingActionIdx, setEditingActionIdx] = useState(null)
+  const [editActionItem, setEditActionItem] = useState({ item: '', assigned_to: '' })
 
   // Observation edit/delete state
   const [editingObsId, setEditingObsId] = useState(null)
@@ -238,6 +240,32 @@ function WeeklyAARView({ settings, members }) {
       ...prev,
       action_items: prev.action_items.filter((_, i) => i !== index)
     }))
+  }
+
+  // Handle start editing action item
+  const handleStartEditActionItem = (index) => {
+    const item = formData.action_items[index]
+    setEditingActionIdx(index)
+    setEditActionItem({ item: item.item, assigned_to: item.assigned_to || '' })
+  }
+
+  // Handle save edited action item
+  const handleSaveEditActionItem = () => {
+    if (!editActionItem.item.trim()) return
+    setFormData(prev => ({
+      ...prev,
+      action_items: prev.action_items.map((item, i) =>
+        i === editingActionIdx ? { ...item, item: editActionItem.item, assigned_to: editActionItem.assigned_to } : item
+      )
+    }))
+    setEditingActionIdx(null)
+    setEditActionItem({ item: '', assigned_to: '' })
+  }
+
+  // Handle cancel editing action item
+  const handleCancelEditActionItem = () => {
+    setEditingActionIdx(null)
+    setEditActionItem({ item: '', assigned_to: '' })
   }
 
   if (loading) {
@@ -472,32 +500,77 @@ function WeeklyAARView({ settings, members }) {
               <div className="space-y-2">
                 {formData.action_items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 bg-gray-600/50 rounded px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleActionItem(idx)}
-                      className={`w-5 h-5 rounded border ${
-                        item.completed
-                          ? 'bg-green-500 border-green-500 text-white'
-                          : 'border-gray-500'
-                      } flex items-center justify-center`}
-                    >
-                      {item.completed && <Check className="w-3 h-3" />}
-                    </button>
-                    <span className={`flex-1 ${item.completed ? 'line-through text-gray-500' : ''}`}>
-                      {item.item}
-                    </span>
-                    {item.assigned_to && (
-                      <span className="text-xs text-gray-400 bg-gray-600 px-2 py-0.5 rounded">
-                        {item.assigned_to}
-                      </span>
+                    {editingActionIdx === idx ? (
+                      <>
+                        <input
+                          type="text"
+                          value={editActionItem.item}
+                          onChange={e => setEditActionItem(prev => ({ ...prev, item: e.target.value }))}
+                          className="flex-1 px-2 py-1 bg-gray-700 border border-gray-500 rounded text-sm"
+                          placeholder="Action item..."
+                          autoFocus
+                          onKeyPress={e => e.key === 'Enter' && handleSaveEditActionItem()}
+                        />
+                        <input
+                          type="text"
+                          value={editActionItem.assigned_to}
+                          onChange={e => setEditActionItem(prev => ({ ...prev, assigned_to: e.target.value }))}
+                          className="w-24 px-2 py-1 bg-gray-700 border border-gray-500 rounded text-sm"
+                          placeholder="Assigned"
+                          onKeyPress={e => e.key === 'Enter' && handleSaveEditActionItem()}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveEditActionItem}
+                          className="text-green-400 hover:text-green-300"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelEditActionItem}
+                          className="text-gray-400 hover:text-red-400"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActionItem(idx)}
+                          className={`w-5 h-5 rounded border ${
+                            item.completed
+                              ? 'bg-green-500 border-green-500 text-white'
+                              : 'border-gray-500'
+                          } flex items-center justify-center`}
+                        >
+                          {item.completed && <Check className="w-3 h-3" />}
+                        </button>
+                        <span className={`flex-1 ${item.completed ? 'line-through text-gray-500' : ''}`}>
+                          {item.item}
+                        </span>
+                        {item.assigned_to && (
+                          <span className="text-xs text-gray-400 bg-gray-600 px-2 py-0.5 rounded">
+                            {item.assigned_to}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditActionItem(idx)}
+                          className="text-gray-400 hover:text-blue-400"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveActionItem(idx)}
+                          className="text-gray-400 hover:text-red-400"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveActionItem(idx)}
-                      className="text-gray-400 hover:text-red-400"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
                   </div>
                 ))}
               </div>
