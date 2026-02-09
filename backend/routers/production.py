@@ -1510,12 +1510,6 @@ async def send_order_invoice(
     from services.email import EmailService
     from models.settings import AppSetting
 
-    # Debug logging for invoice fields
-    logger.info(f"send_order_invoice called for order {order_id}")
-    logger.info(f"custom object: {custom}")
-    if custom:
-        logger.info(f"custom.subject: '{custom.subject}'")
-
     result = await db.execute(
         select(LivestockOrder).where(LivestockOrder.id == order_id)
     )
@@ -1572,7 +1566,6 @@ async def send_order_invoice(
     # Custom subject and from_name if provided
     subject = custom.subject if custom and custom.subject else None
     from_name = (custom.from_name if custom and custom.from_name else None) or farm_name
-    logger.info(f"Invoice subject being used: '{subject}'")
 
     # Send invoice
     try:
