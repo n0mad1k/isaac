@@ -60,6 +60,11 @@ import {
   sendOrderInvoice,
   sendSaleReceipt,
   sendPaymentReceipt,
+  getScheduledInvoices,
+  createScheduledInvoice,
+  updateScheduledInvoice,
+  deleteScheduledInvoice,
+  sendScheduledInvoice,
   getFinancialSummary,
   getOutstandingPayments,
   getLivestockAllocations,
@@ -273,6 +278,18 @@ function FarmFinances() {
     notes: '',
   })
 
+  // Scheduled invoice state
+  const [showScheduledInvoiceModal, setShowScheduledInvoiceModal] = useState(false)
+  const [selectedOrderForSchedule, setSelectedOrderForSchedule] = useState(null)
+  const [orderScheduledInvoices, setOrderScheduledInvoices] = useState({}) // { orderId: [invoices] }
+  const [editingScheduledInvoice, setEditingScheduledInvoice] = useState(null)
+  const [scheduledInvoiceFormData, setScheduledInvoiceFormData] = useState({
+    scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+    payment_type: 'partial',
+    amount_due: '',
+    description: '',
+  })
+
   const [expenseFormData, setExpenseFormData] = useState({
     category: 'feed',
     scope: 'business',
@@ -396,6 +413,84 @@ function FarmFinances() {
         fetchData()
       } catch (error) {
         console.error('Failed to complete order:', error)
+      }
+    }
+  }
+
+  // Scheduled Invoice handlers
+  const fetchScheduledInvoices = async (orderId) => {
+    try {
+      const res = await getScheduledInvoices(orderId)
+      setOrderScheduledInvoices(prev => ({ ...prev, [orderId]: res.data }))
+    } catch (error) {
+      console.error('Failed to fetch scheduled invoices:', error)
+    }
+  }
+
+  const handleAddScheduledInvoice = (order) => {
+    setSelectedOrderForSchedule(order)
+    setEditingScheduledInvoice(null)
+    setScheduledInvoiceFormData({
+      scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+      payment_type: 'partial',
+      amount_due: '',
+      description: '',
+    })
+    setShowScheduledInvoiceModal(true)
+  }
+
+  const handleEditScheduledInvoice = (order, invoice) => {
+    setSelectedOrderForSchedule(order)
+    setEditingScheduledInvoice(invoice)
+    setScheduledInvoiceFormData({
+      scheduled_date: invoice.scheduled_date,
+      payment_type: invoice.payment_type,
+      amount_due: invoice.amount_due,
+      description: invoice.description || '',
+    })
+    setShowScheduledInvoiceModal(true)
+  }
+
+  const handleScheduledInvoiceSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const data = {
+        ...scheduledInvoiceFormData,
+        amount_due: parseFloat(scheduledInvoiceFormData.amount_due),
+      }
+      if (editingScheduledInvoice) {
+        await updateScheduledInvoice(editingScheduledInvoice.id, data)
+      } else {
+        await createScheduledInvoice(selectedOrderForSchedule.id, data)
+      }
+      setShowScheduledInvoiceModal(false)
+      fetchScheduledInvoices(selectedOrderForSchedule.id)
+    } catch (error) {
+      console.error('Failed to save scheduled invoice:', error)
+      alert('Failed to save scheduled invoice')
+    }
+  }
+
+  const handleDeleteScheduledInvoice = async (orderId, invoiceId) => {
+    if (confirm('Delete this scheduled invoice?')) {
+      try {
+        await deleteScheduledInvoice(invoiceId)
+        fetchScheduledInvoices(orderId)
+      } catch (error) {
+        console.error('Failed to delete scheduled invoice:', error)
+      }
+    }
+  }
+
+  const handleSendScheduledInvoiceNow = async (orderId, invoiceId) => {
+    if (confirm('Send this invoice now?')) {
+      try {
+        await sendScheduledInvoice(invoiceId)
+        fetchScheduledInvoices(orderId)
+        alert('Invoice sent successfully')
+      } catch (error) {
+        console.error('Failed to send scheduled invoice:', error)
+        alert('Failed to send invoice. Make sure customer has an email address.')
       }
     }
   }
@@ -1108,6 +1203,93 @@ function FarmFinances() {
             setSelectedHarvestForAllocation(null)
           }}
         />
+      )}
+
+      {/* Scheduled Invoice Modal */}
+      {showScheduledInvoiceModal && selectedOrderForSchedule && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="text-lg font-semibold">
+                {editingScheduledInvoice ? 'Edit Scheduled Invoice' : 'Schedule Invoice'}
+              </h3>
+              <button onClick={() => setShowScheduledInvoiceModal(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleScheduledInvoiceSubmit} className="p-4 space-y-4">
+              <div className="bg-gray-700/50 rounded-lg p-3 text-sm">
+                <div className="font-medium">{selectedOrderForSchedule.customer_name}</div>
+                <div className="text-gray-400">{selectedOrderForSchedule.description}</div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Send Date *</label>
+                <input
+                  type="date"
+                  required
+                  value={scheduledInvoiceFormData.scheduled_date}
+                  onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Payment Type</label>
+                <select
+                  value={scheduledInvoiceFormData.payment_type}
+                  onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, payment_type: e.target.value }))}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                >
+                  <option value="deposit">Deposit</option>
+                  <option value="partial">Partial Payment</option>
+                  <option value="final">Final Payment</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Amount Due *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={scheduledInvoiceFormData.amount_due}
+                  onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, amount_due: e.target.value }))}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <input
+                  type="text"
+                  value={scheduledInvoiceFormData.description}
+                  onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  placeholder="e.g., Switch to feed payment"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowScheduledInvoiceModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors"
+                >
+                  {editingScheduledInvoice ? 'Save Changes' : 'Schedule'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Expense Modal */}
@@ -1901,10 +2083,43 @@ function BusinessTab({
                     </div>
                   )}
 
+                  {/* Scheduled Invoices */}
+                  {order.scheduled_invoices && order.scheduled_invoices.length > 0 && (
+                    <div className="border-t border-gray-600 pt-2 mt-2 space-y-1">
+                      <div className="text-xs text-gray-400 mb-1">Scheduled Invoices</div>
+                      {order.scheduled_invoices.map((invoice) => (
+                        <div key={invoice.id} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className={`w-3 h-3 ${invoice.is_sent ? 'text-green-400' : 'text-amber-400'}`} />
+                            <span>{invoice.description || invoice.payment_type}</span>
+                            <span className="text-gray-500">{format(new Date(invoice.scheduled_date), 'MM/dd/yyyy')}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-amber-400">{formatCurrency(invoice.amount_due)}</span>
+                            {invoice.is_sent ? (
+                              <span className="text-xs text-green-400">Sent</span>
+                            ) : (
+                              <>
+                                <button onClick={() => handleSendScheduledInvoiceNow(order.id, invoice.id)} className="text-gray-500 hover:text-green-400" title="Send Now"><FileText className="w-3 h-3" /></button>
+                                <button onClick={() => handleEditScheduledInvoice(order, invoice)} className="text-gray-500 hover:text-blue-400" title="Edit"><Edit className="w-3 h-3" /></button>
+                              </>
+                            )}
+                            <button onClick={() => handleDeleteScheduledInvoice(order.id, invoice.id)} className="text-gray-500 hover:text-red-400" title="Delete"><X className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {order.status !== 'completed' && order.status !== 'cancelled' && (
-                    <button onClick={() => onAddPayment(order)} className="mt-2 text-sm text-farm-green hover:text-farm-green-light flex items-center gap-1">
-                      <Plus className="w-3 h-3" /> Add Payment
-                    </button>
+                    <div className="flex gap-3 mt-2">
+                      <button onClick={() => onAddPayment(order)} className="text-sm text-farm-green hover:text-farm-green-light flex items-center gap-1">
+                        <Plus className="w-3 h-3" /> Add Payment
+                      </button>
+                      <button onClick={() => handleAddScheduledInvoice(order)} className="text-sm text-amber-400 hover:text-amber-300 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" /> Schedule Invoice
+                      </button>
+                    </div>
                   )}
                 </div>
               )

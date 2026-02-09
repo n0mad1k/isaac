@@ -424,6 +424,13 @@ export const sendOrderReceipt = (id, data) => api.post(`/production/orders/${id}
 export const sendOrderInvoice = (id, data) => api.post(`/production/orders/${id}/send-invoice/`, data || undefined)
 export const sendSaleReceipt = (id, data) => api.post(`/production/sales/${id}/send-receipt/`, data || undefined)
 
+// Scheduled Invoices
+export const getScheduledInvoices = (orderId) => api.get(`/production/orders/${orderId}/scheduled-invoices/`)
+export const createScheduledInvoice = (orderId, data) => api.post(`/production/orders/${orderId}/scheduled-invoices/`, data)
+export const updateScheduledInvoice = (invoiceId, data) => api.patch(`/production/scheduled-invoices/${invoiceId}/`, data)
+export const deleteScheduledInvoice = (invoiceId) => api.delete(`/production/scheduled-invoices/${invoiceId}/`)
+export const sendScheduledInvoice = (invoiceId) => api.post(`/production/scheduled-invoices/${invoiceId}/send/`)
+
 // Production Allocations
 export const getLivestockAllocations = (productionId) => api.get(`/production/livestock/${productionId}/allocations/`)
 export const createLivestockAllocation = (productionId, data) => api.post(`/production/livestock/${productionId}/allocations/`, data)

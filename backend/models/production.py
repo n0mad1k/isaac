@@ -254,6 +254,7 @@ class LivestockOrder(Base):
     customer = relationship("Customer", back_populates="orders")
     livestock_production = relationship("LivestockProduction", back_populates="orders")
     payments = relationship("OrderPayment", back_populates="order", cascade="all, delete-orphan", lazy="dynamic")
+    scheduled_invoices = relationship("ScheduledInvoice", back_populates="order", cascade="all, delete-orphan", lazy="dynamic")
 
     def __repr__(self):
         return f"<LivestockOrder {self.id} - {self.customer_name} ({self.status.value})>"
@@ -279,6 +280,37 @@ class OrderPayment(Base):
 
     def __repr__(self):
         return f"<OrderPayment {self.payment_type.value} - ${self.amount}>"
+
+
+class ScheduledInvoice(Base):
+    """Scheduled invoice/payment reminder emails for orders"""
+    __tablename__ = "scheduled_invoices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("livestock_orders.id", ondelete="CASCADE"), nullable=False)
+
+    # When to send
+    scheduled_date = Column(Date, nullable=False)
+
+    # What type of payment this is for
+    payment_type = Column(Enum(PaymentType), default=PaymentType.PARTIAL)
+
+    # Amount due for this scheduled payment
+    amount_due = Column(Float, nullable=False)
+
+    # Description/message to include
+    description = Column(Text)  # e.g., "Feed switch payment due"
+
+    # Tracking
+    is_sent = Column(Boolean, default=False)
+    sent_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    order = relationship("LivestockOrder", back_populates="scheduled_invoices")
+
+    def __repr__(self):
+        return f"<ScheduledInvoice {self.payment_type.value} - ${self.amount_due} on {self.scheduled_date}>"
 
 
 class ProductionAllocation(Base):

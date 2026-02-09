@@ -19,7 +19,8 @@ from models.database import get_db
 from models.production import (
     LivestockProduction, PlantHarvest, HarvestQuality, Sale, SaleCategory,
     Customer, LivestockOrder, OrderPayment, ProductionAllocation, HarvestAllocation,
-    OrderStatus, PaymentType, PaymentMethod, AllocationType, HarvestUseType, PortionType
+    OrderStatus, PaymentType, PaymentMethod, AllocationType, HarvestUseType, PortionType,
+    ScheduledInvoice
 )
 from models.expense import FarmExpense, ExpenseCategory, ExpenseScope
 from models.livestock import Animal, AnimalExpense
@@ -245,6 +246,37 @@ class CustomInvoiceInput(BaseModel):
     payment_instructions: Optional[str] = Field(None, max_length=2000)
 
 
+class ScheduledInvoiceCreate(BaseModel):
+    """Create a scheduled invoice/payment reminder for an order."""
+    scheduled_date: date
+    payment_type: PaymentType = PaymentType.PARTIAL
+    amount_due: float = Field(..., ge=0)
+    description: Optional[str] = Field(None, max_length=2000)
+
+
+class ScheduledInvoiceUpdate(BaseModel):
+    """Update a scheduled invoice."""
+    scheduled_date: Optional[date] = None
+    payment_type: Optional[PaymentType] = None
+    amount_due: Optional[float] = Field(None, ge=0)
+    description: Optional[str] = Field(None, max_length=2000)
+
+
+class ScheduledInvoiceResponse(BaseModel):
+    id: int
+    order_id: int
+    scheduled_date: date
+    payment_type: PaymentType
+    amount_due: float
+    description: Optional[str]
+    is_sent: bool
+    sent_at: Optional[datetime]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class LivestockOrderCreate(BaseModel):
     customer_id: Optional[int] = None
     customer_name: Optional[str] = Field(None, max_length=200)
@@ -304,6 +336,7 @@ class LivestockOrderResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime]
     payments: Optional[List[OrderPaymentResponse]] = None
+    scheduled_invoices: Optional[List[ScheduledInvoiceResponse]] = None
 
     class Config:
         from_attributes = True
@@ -1016,16 +1049,23 @@ async def list_orders(
     result = await db.execute(query)
     orders = result.scalars().all()
 
-    # Load payments for each order
+    # Load payments and scheduled invoices for each order
     response = []
     for order in orders:
         payments_result = await db.execute(
             select(OrderPayment).where(OrderPayment.order_id == order.id).order_by(OrderPayment.payment_date)
         )
         payments = payments_result.scalars().all()
+
+        scheduled_result = await db.execute(
+            select(ScheduledInvoice).where(ScheduledInvoice.order_id == order.id).order_by(ScheduledInvoice.scheduled_date)
+        )
+        scheduled_invoices = scheduled_result.scalars().all()
+
         order_dict = {
             **{c.name: getattr(order, c.name) for c in order.__table__.columns},
-            "payments": payments
+            "payments": payments,
+            "scheduled_invoices": scheduled_invoices
         }
         response.append(LivestockOrderResponse(**order_dict))
 
@@ -1068,7 +1108,7 @@ async def create_order(
     await db.commit()
     await db.refresh(order)
 
-    return LivestockOrderResponse(**{c.name: getattr(order, c.name) for c in order.__table__.columns}, payments=[])
+    return LivestockOrderResponse(**{c.name: getattr(order, c.name) for c in order.__table__.columns}, payments=[], scheduled_invoices=[])
 
 
 @router.get("/orders/{order_id}/", response_model=LivestockOrderResponse)
@@ -1077,7 +1117,7 @@ async def get_order(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_view("production")),
 ):
-    """Get a specific order with payments"""
+    """Get a specific order with payments and scheduled invoices"""
     result = await db.execute(select(LivestockOrder).where(LivestockOrder.id == order_id))
     order = result.scalar_one_or_none()
     if not order:
@@ -1088,9 +1128,15 @@ async def get_order(
     )
     payments = payments_result.scalars().all()
 
+    scheduled_result = await db.execute(
+        select(ScheduledInvoice).where(ScheduledInvoice.order_id == order.id).order_by(ScheduledInvoice.scheduled_date)
+    )
+    scheduled_invoices = scheduled_result.scalars().all()
+
     return LivestockOrderResponse(
         **{c.name: getattr(order, c.name) for c in order.__table__.columns},
-        payments=payments
+        payments=payments,
+        scheduled_invoices=scheduled_invoices
     )
 
 
@@ -1137,9 +1183,15 @@ async def update_order(
     )
     payments = payments_result.scalars().all()
 
+    scheduled_result = await db.execute(
+        select(ScheduledInvoice).where(ScheduledInvoice.order_id == order.id).order_by(ScheduledInvoice.scheduled_date)
+    )
+    scheduled_invoices = scheduled_result.scalars().all()
+
     return LivestockOrderResponse(
         **{c.name: getattr(order, c.name) for c in order.__table__.columns},
-        payments=payments
+        payments=payments,
+        scheduled_invoices=scheduled_invoices
     )
 
 
@@ -2258,3 +2310,182 @@ async def get_outstanding_payments(
         })
 
     return response
+
+
+# ============ SCHEDULED INVOICES ============
+
+@router.get("/orders/{order_id}/scheduled-invoices/", response_model=List[ScheduledInvoiceResponse])
+async def get_scheduled_invoices(
+    order_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("production")),
+):
+    """Get all scheduled invoices for an order."""
+    result = await db.execute(
+        select(ScheduledInvoice)
+        .where(ScheduledInvoice.order_id == order_id)
+        .order_by(ScheduledInvoice.scheduled_date)
+    )
+    return result.scalars().all()
+
+
+@router.post("/orders/{order_id}/scheduled-invoices/", response_model=ScheduledInvoiceResponse)
+async def create_scheduled_invoice(
+    order_id: int,
+    data: ScheduledInvoiceCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("production")),
+):
+    """Schedule a new invoice/payment reminder for an order."""
+    # Verify order exists
+    result = await db.execute(
+        select(LivestockOrder).where(LivestockOrder.id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    scheduled = ScheduledInvoice(
+        order_id=order_id,
+        scheduled_date=data.scheduled_date,
+        payment_type=data.payment_type,
+        amount_due=data.amount_due,
+        description=data.description,
+    )
+    db.add(scheduled)
+    await db.commit()
+    await db.refresh(scheduled)
+    return scheduled
+
+
+@router.put("/scheduled-invoices/{invoice_id}/", response_model=ScheduledInvoiceResponse)
+async def update_scheduled_invoice(
+    invoice_id: int,
+    data: ScheduledInvoiceUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
+):
+    """Update a scheduled invoice."""
+    result = await db.execute(
+        select(ScheduledInvoice).where(ScheduledInvoice.id == invoice_id)
+    )
+    scheduled = result.scalar_one_or_none()
+    if not scheduled:
+        raise HTTPException(status_code=404, detail="Scheduled invoice not found")
+
+    if scheduled.is_sent:
+        raise HTTPException(status_code=400, detail="Cannot update a sent invoice")
+
+    if data.scheduled_date is not None:
+        scheduled.scheduled_date = data.scheduled_date
+    if data.payment_type is not None:
+        scheduled.payment_type = data.payment_type
+    if data.amount_due is not None:
+        scheduled.amount_due = data.amount_due
+    if data.description is not None:
+        scheduled.description = data.description
+
+    await db.commit()
+    await db.refresh(scheduled)
+    return scheduled
+
+
+@router.delete("/scheduled-invoices/{invoice_id}/")
+async def delete_scheduled_invoice(
+    invoice_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("production")),
+):
+    """Delete a scheduled invoice."""
+    result = await db.execute(
+        select(ScheduledInvoice).where(ScheduledInvoice.id == invoice_id)
+    )
+    scheduled = result.scalar_one_or_none()
+    if not scheduled:
+        raise HTTPException(status_code=404, detail="Scheduled invoice not found")
+
+    await db.delete(scheduled)
+    await db.commit()
+    return {"message": "Scheduled invoice deleted"}
+
+
+@router.post("/scheduled-invoices/{invoice_id}/send/")
+async def send_scheduled_invoice_now(
+    invoice_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("production")),
+):
+    """Manually send a scheduled invoice immediately."""
+    from services.email import EmailService
+    from models.settings import AppSetting
+
+    result = await db.execute(
+        select(ScheduledInvoice).where(ScheduledInvoice.id == invoice_id)
+    )
+    scheduled = result.scalar_one_or_none()
+    if not scheduled:
+        raise HTTPException(status_code=404, detail="Scheduled invoice not found")
+
+    # Get the order
+    order_result = await db.execute(
+        select(LivestockOrder).where(LivestockOrder.id == scheduled.order_id)
+    )
+    order = order_result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Get customer email
+    customer_email = None
+    if order.customer_id:
+        cust_result = await db.execute(select(Customer).where(Customer.id == order.customer_id))
+        customer = cust_result.scalar_one_or_none()
+        if customer and customer.email:
+            customer_email = customer.email
+
+    if not customer_email:
+        raise HTTPException(status_code=400, detail="Customer has no email address on file")
+
+    # Get farm name
+    farm_name_setting = await db.execute(
+        select(AppSetting).where(AppSetting.key == "farm_name")
+    )
+    farm_name_row = farm_name_setting.scalar_one_or_none()
+    farm_name = farm_name_row.value if farm_name_row and farm_name_row.value else "Isaac Farm"
+
+    # Build invoice data
+    order_dict = {
+        "id": order.id,
+        "customer_name": order.customer_name or "",
+        "description": order.description or "",
+        "portion_type": order.portion_type.value if order.portion_type else None,
+        "order_date": order.order_date.strftime("%m/%d/%Y") if order.order_date else "",
+        "estimated_weight": order.estimated_weight,
+        "actual_weight": order.actual_weight,
+        "price_per_pound": order.price_per_pound,
+        "estimated_total": order.estimated_total,
+        "final_total": order.final_total,
+        "total_paid": order.total_paid or 0,
+        "balance_due": scheduled.amount_due,  # Use scheduled amount
+        "notes": scheduled.description or f"{scheduled.payment_type.value.title()} payment due",
+    }
+
+    try:
+        email_service = await EmailService.get_configured_service(db)
+        success = await email_service.send_order_invoice(
+            to=customer_email,
+            order=order_dict,
+            farm_name=farm_name,
+            subject=f"Payment Reminder - {scheduled.payment_type.value.title()} Payment Due",
+            from_name=farm_name,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send scheduled invoice: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+    if success:
+        scheduled.is_sent = True
+        scheduled.sent_at = datetime.utcnow()
+        await db.commit()
+        return {"message": f"Invoice sent to {customer_email}"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send invoice email. Check email configuration.")

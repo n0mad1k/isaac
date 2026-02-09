@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.14] - 2026-02-09
+
+### Added
+- **Scheduled Invoice Emails** - Schedule invoice reminder emails for livestock orders. Perfect for multi-payment orders like steer sales with deposit, feed switch payment, and final pickup payment.
+  - Schedule invoices from any order card in Production > Business
+  - Set send date, payment type, amount, and custom description
+  - Emails are automatically sent at 8 AM on the scheduled date
+  - Manually send scheduled invoices early if needed
+  - View sent status and manage scheduled invoices directly on order cards
+
 ## [1.83.13] - 2026-02-09
 
 ### Added

@@ -641,6 +641,16 @@ class SchedulerService:
                 logger.info(f"Missed team alerts digest time ({ta_hour:02d}:{ta_minute:02d}), attempting catchup...")
                 await self.send_team_alerts_digest()
 
+        # Schedule invoice check - runs daily at 8 AM to send any due invoices
+        self.scheduler.add_job(
+            self.send_scheduled_invoices,
+            CronTrigger(hour=8, minute=0),
+            id="scheduled_invoices",
+            name="Send Scheduled Invoices (08:00)",
+            replace_existing=True,
+        )
+        logger.info("Scheduled invoices job set for 08:00")
+
     async def stop(self):
         """Stop the scheduler"""
         self.scheduler.shutdown()
@@ -2391,3 +2401,125 @@ class SchedulerService:
 
         except Exception as e:
             logger.error(f"Error running health check: {e}")
+
+    async def send_scheduled_invoices(self):
+        """Send scheduled invoice emails that are due today or earlier"""
+        # Skip on dev instances to avoid duplicate emails
+        if settings.is_dev_instance:
+            logger.debug("Skipping scheduled invoices on dev instance")
+            return
+
+        logger.info("Checking for scheduled invoices to send...")
+
+        try:
+            import pytz
+            from models.production import ScheduledInvoice, LivestockOrder, Customer
+
+            tz = pytz.timezone(settings.timezone)
+            today = datetime.now(tz).date()
+
+            async with async_session() as db:
+                # Get all unsent scheduled invoices that are due (scheduled_date <= today)
+                result = await db.execute(
+                    select(ScheduledInvoice)
+                    .where(ScheduledInvoice.is_sent == False)
+                    .where(ScheduledInvoice.scheduled_date <= today)
+                )
+                invoices = result.scalars().all()
+
+                if not invoices:
+                    logger.debug("No scheduled invoices to send today")
+                    return
+
+                logger.info(f"Found {len(invoices)} scheduled invoices to send")
+
+                # Get email service
+                email_service = await self.get_email_service(db)
+
+                # Get payment instructions from settings
+                payment_instructions = await get_setting_value("payment_instructions") or ""
+                farm_name = await get_setting_value("farm_name") or "Isaac Farm"
+
+                sent_count = 0
+                for invoice in invoices:
+                    try:
+                        # Load the order and customer
+                        order_result = await db.execute(
+                            select(LivestockOrder).where(LivestockOrder.id == invoice.order_id)
+                        )
+                        order = order_result.scalar_one_or_none()
+
+                        if not order:
+                            logger.warning(f"Scheduled invoice {invoice.id} has no associated order, skipping")
+                            continue
+
+                        # Get customer email
+                        customer_email = None
+                        if order.customer_id:
+                            customer_result = await db.execute(
+                                select(Customer).where(Customer.id == order.customer_id)
+                            )
+                            customer = customer_result.scalar_one_or_none()
+                            if customer and customer.email:
+                                customer_email = customer.email
+
+                        if not customer_email:
+                            logger.warning(f"Order {order.id} has no customer email, skipping scheduled invoice {invoice.id}")
+                            continue
+
+                        # Build order dict for email
+                        order_dict = {
+                            "id": order.id,
+                            "description": order.description or "",
+                            "customer_name": order.customer_name or "",
+                            "order_date": order.order_date.strftime("%m/%d/%Y") if order.order_date else "",
+                            "status": order.status.value if order.status else "",
+                            "portion_type": order.portion_type.value if order.portion_type else "",
+                            "notes": order.notes or "",
+                            "final_total": order.final_total,
+                            "estimated_total": order.estimated_total,
+                            "total_paid": order.total_paid or 0,
+                            "balance_due": order.balance_due or 0,
+                            "actual_weight": order.actual_weight,
+                            "estimated_weight": order.estimated_weight,
+                            "price_per_pound": order.price_per_pound,
+                        }
+
+                        # Add custom message from the scheduled invoice
+                        if invoice.description:
+                            order_dict["custom_message"] = f"Payment Due: {invoice.description}\nAmount: ${invoice.amount_due:,.2f}"
+
+                        # Build custom subject
+                        payment_type_label = invoice.payment_type.value.replace("_", " ").title() if invoice.payment_type else "Payment"
+                        subject = f"{payment_type_label} Due - Order #{order.id}"
+                        if invoice.description:
+                            subject = f"{invoice.description} - Order #{order.id}"
+
+                        # Send the invoice email
+                        success = await email_service.send_invoice(
+                            to=customer_email,
+                            order=order_dict,
+                            farm_name=farm_name,
+                            payment_instructions=payment_instructions,
+                            subject=subject,
+                        )
+
+                        if success:
+                            # Mark as sent
+                            invoice.is_sent = True
+                            invoice.sent_at = datetime.utcnow()
+                            sent_count += 1
+                            logger.info(f"Sent scheduled invoice to {customer_email} for order #{order.id}")
+                        else:
+                            logger.warning(f"Failed to send scheduled invoice {invoice.id} to {customer_email}")
+
+                    except Exception as e:
+                        logger.error(f"Error sending scheduled invoice {invoice.id}: {e}")
+                        continue
+
+                # Commit all changes
+                await db.commit()
+                logger.info(f"Scheduled invoices complete: sent {sent_count} of {len(invoices)}")
+
+        except Exception as e:
+            logger.error(f"Error in send_scheduled_invoices: {e}")
