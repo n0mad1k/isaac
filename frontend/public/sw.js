@@ -1,5 +1,5 @@
 // Isaac PWA Service Worker
-const CACHE_NAME = 'isaac-v1';
+const CACHE_NAME = 'isaac-v2-20260208';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache immediately
