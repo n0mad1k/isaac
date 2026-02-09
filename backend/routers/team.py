@@ -2895,7 +2895,7 @@ async def create_aar(
                 title=item['item'],
                 task_type=TaskType.TODO,
                 category=TaskCategory.CUSTOM,
-                due_date=week_end.date() if week_end else None,
+                due_date=None,  # Action items are reminders without due dates
                 priority=2,
                 is_completed=item.get('completed', False),
                 completed_at=local_now if item.get('completed') else None,
@@ -2992,13 +2992,12 @@ async def update_aar(
                         )
                     active_task_ids.add(task.id)
             elif item.get('item', '').strip():
-                # New action item — create a task
-                week_end = aar.week_start + timedelta(days=13) if aar.week_start else None
+                # New action item — create a task (no due date - just needs to get done)
                 new_task = Task(
                     title=item['item'],
                     task_type=TaskType.TODO,
                     category=TaskCategory.CUSTOM,
-                    due_date=week_end.date() if week_end else None,
+                    due_date=None,  # Action items are reminders without due dates
                     priority=2,
                     is_completed=item.get('completed', False),
                     completed_at=local_now if item.get('completed') else None,

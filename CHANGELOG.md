@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.11] - 2026-02-08
+
+### Changed
+- **Action items from AAR are now reminders without due dates** - Action items created from Weekly AAR no longer have automatic due dates. They appear as tasks that "just need to get done" without a specific deadline.
+
 ## [1.83.10] - 2026-02-08
 
 ### Fixed
