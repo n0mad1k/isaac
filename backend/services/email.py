@@ -163,6 +163,7 @@ class EmailService:
             # Resolve hostname to multiple IPs and try each one
             # This handles DNS round-robin where some servers may be down
             import socket
+            import ssl
             try:
                 addr_info = socket.getaddrinfo(self.host, self.port, socket.AF_INET, socket.SOCK_STREAM)
                 ips = list(set(info[4][0] for info in addr_info))
@@ -172,28 +173,32 @@ class EmailService:
             last_error = None
             for ip in ips:
                 try:
-                    await aiosmtplib.send(
-                        message,
+                    # Create SSL context with proper hostname verification (SNI)
+                    tls_context = ssl.create_default_context()
+
+                    # Use SMTP client directly for more control
+                    smtp = aiosmtplib.SMTP(
                         hostname=ip,
                         port=self.port,
-                        username=self.user,
-                        password=self.password,
-                        start_tls=True,
-                        timeout=30,  # Shorter timeout per IP since we retry
+                        timeout=30,
                     )
+                    await smtp.connect()
+                    # STARTTLS with the original hostname for certificate validation
+                    await smtp.starttls(server_hostname=self.host, tls_context=tls_context)
+                    await smtp.login(self.user, self.password)
+                    await smtp.send_message(message)
+                    await smtp.quit()
+
                     logger.info(f"Email sent: {subject} to {recipient} (via {ip})")
                     return True
-                except (aiosmtplib.SMTPConnectError, aiosmtplib.SMTPConnectTimeoutError) as e:
+                except (aiosmtplib.SMTPConnectError, aiosmtplib.SMTPConnectTimeoutError, TimeoutError, OSError) as e:
                     logger.warning(f"Failed to connect to {ip}:{self.port}, trying next IP: {e}")
                     last_error = e
                     continue
 
             # All IPs failed
             if last_error:
-                raise last_error
-
-            logger.info(f"Email sent: {subject} to {recipient}")
-            return True
+                raise aiosmtplib.SMTPConnectError(str(last_error))
 
         except aiosmtplib.SMTPAuthenticationError as e:
             logger.error(f"SMTP authentication failed: {e}. Check username/password. For Protonmail, you need to use Protonmail Bridge credentials.")
