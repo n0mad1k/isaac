@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.12] - 2026-02-08
+
+### Fixed
+- **Recurring tasks no longer get deactivated by calendar sync** - Previously, when the calendar sync couldn't find a recurring task in the calendar scan (due to how iPhone reports RRULE events), it would incorrectly mark the task as "deleted from phone". Now recurring tasks are protected from this false deletion detection.
+- **Calendar sync no longer creates duplicates for recurring events** - iPhone reports recurring event occurrences with date-suffixed UIDs (e.g., `BASE-UID_2026-01-26`). The sync now detects these as occurrences of existing recurring tasks instead of creating new duplicate tasks.
+
 ## [1.83.11] - 2026-02-08
 
 ### Changed

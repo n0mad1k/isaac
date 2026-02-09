@@ -9,7 +9,8 @@ from datetime import datetime, date, timedelta
 from typing import Optional, List, Dict, Any
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_, and_
+import re
 import icalendar
 import uuid
 import pytz
@@ -598,8 +599,6 @@ class CalendarSyncService:
         Returns:
             dict with counts: synced, deleted, skipped, deleted_by_phone, linked
         """
-        from sqlalchemy import or_, and_
-
         now = datetime.utcnow()
         sync_type = "full" if force_full else "incremental"
         logger.info(f"Starting {sync_type} calendar sync (tasks -> calendar)")
@@ -677,9 +676,14 @@ class CalendarSyncService:
             # Tasks that haven't been synced yet (calendar_synced_at is None) should not be
             # deactivated - they just haven't been pushed to the calendar server yet.
             # Only check app-created UIDs for deletion detection (not phone-linked tasks).
+            # NEVER deactivate recurring tasks - calendar scan may not find them but they should persist.
+            is_recurring = task.recurrence and task.recurrence != TaskRecurrence.ONCE
             if calendar_uids is not None and task.calendar_uid:
                 if is_app_uid and task.calendar_uid not in calendar_uids:
-                    if task.calendar_synced_at is not None:
+                    if is_recurring:
+                        # Recurring tasks should never be deactivated due to calendar sync
+                        logger.debug(f"Recurring task '{task.title}' not in calendar scan - keeping active (RRULE may hide it)")
+                    elif task.calendar_synced_at is not None:
                         task.is_active = False
                         # Clear sync metadata so re-activation won't trigger false deletion detection
                         task.calendar_synced_at = None
@@ -1042,6 +1046,42 @@ class CalendarSyncService:
                     logger.info(f"Updated existing task '{existing_task.title}' from calendar (uid={calendar_uid})")
                     updated += 1
             else:
+                # Before creating a new task, check if this is an occurrence of a recurring event
+                # iPhone returns UIDs like BASE-UID_YYYY-MM-DD for recurring occurrences
+                # We should NOT create duplicates for each occurrence
+                occurrence_match = re.match(r'^(.+)_(\d{4}-\d{2}-\d{2})$', calendar_uid)
+                if occurrence_match:
+                    base_uid = occurrence_match.group(1)
+                    # Check if we already have a task with the base UID or any occurrence of it
+                    result = await db.execute(
+                        select(Task).where(
+                            or_(
+                                Task.calendar_uid == base_uid,
+                                Task.calendar_uid.like(f"{base_uid}_%")
+                            )
+                        ).where(Task.is_active == True)
+                    )
+                    existing_occurrence = result.first()
+                    if existing_occurrence:
+                        logger.debug(f"Skipping recurring occurrence: {calendar_uid} (base: {base_uid} already exists)")
+                        continue
+
+                    # Also check by title for phone-created recurring events that might have different base UIDs
+                    title_to_check = event_dict.get('title', '')
+                    if title_to_check:
+                        result = await db.execute(
+                            select(Task).where(
+                                Task.title == title_to_check,
+                                Task.is_active == True,
+                                Task.recurrence.isnot(None),
+                                Task.recurrence != TaskRecurrence.ONCE
+                            )
+                        )
+                        title_match = result.first()
+                        if title_match:
+                            logger.debug(f"Skipping recurring occurrence by title match: '{title_to_check}' already has a recurring task")
+                            continue
+
                 # Create new task from calendar event
                 logger.info(f"Creating new task from calendar event: '{event_dict.get('title', 'Calendar Event')}' (uid={calendar_uid})")
                 new_task = Task(
