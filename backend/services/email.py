@@ -160,15 +160,37 @@ class EmailService:
             else:
                 message.attach(MIMEText(body, "plain"))
 
-            await aiosmtplib.send(
-                message,
-                hostname=self.host,
-                port=self.port,
-                username=self.user,
-                password=self.password,
-                start_tls=True,
-                timeout=60,
-            )
+            # Resolve hostname to multiple IPs and try each one
+            # This handles DNS round-robin where some servers may be down
+            import socket
+            try:
+                addr_info = socket.getaddrinfo(self.host, self.port, socket.AF_INET, socket.SOCK_STREAM)
+                ips = list(set(info[4][0] for info in addr_info))
+            except socket.gaierror:
+                ips = [self.host]  # Fallback to hostname if resolution fails
+
+            last_error = None
+            for ip in ips:
+                try:
+                    await aiosmtplib.send(
+                        message,
+                        hostname=ip,
+                        port=self.port,
+                        username=self.user,
+                        password=self.password,
+                        start_tls=True,
+                        timeout=30,  # Shorter timeout per IP since we retry
+                    )
+                    logger.info(f"Email sent: {subject} to {recipient} (via {ip})")
+                    return True
+                except (aiosmtplib.SMTPConnectError, aiosmtplib.SMTPConnectTimeoutError) as e:
+                    logger.warning(f"Failed to connect to {ip}:{self.port}, trying next IP: {e}")
+                    last_error = e
+                    continue
+
+            # All IPs failed
+            if last_error:
+                raise last_error
 
             logger.info(f"Email sent: {subject} to {recipient}")
             return True
@@ -176,7 +198,7 @@ class EmailService:
         except aiosmtplib.SMTPAuthenticationError as e:
             logger.error(f"SMTP authentication failed: {e}. Check username/password. For Protonmail, you need to use Protonmail Bridge credentials.")
             raise ConfigurationError("SMTP authentication failed. Check username/password in Settings. For Protonmail, you need Protonmail Bridge credentials.")
-        except aiosmtplib.SMTPConnectError as e:
+        except (aiosmtplib.SMTPConnectError, aiosmtplib.SMTPConnectTimeoutError) as e:
             logger.error(f"Failed to connect to SMTP server: {e}")
             raise ConfigurationError(f"Cannot connect to SMTP server {self.host}:{self.port}. Check server settings.")
         except Exception as e:
