@@ -2136,8 +2136,10 @@ async def get_financial_summary(
             standalone_business += exp.amount * biz_pct
             standalone_homestead += exp.amount * (1 - biz_pct)
 
-    # Calculate totals
-    livestock_expenses = sum((p.total_expenses or 0) + (p.processing_cost or 0) for p in livestock)
+    # Calculate totals - separate animal expenses from processing costs
+    animal_expenses = sum(p.total_expenses or 0 for p in livestock)
+    processing_costs = sum(p.processing_cost or 0 for p in livestock)
+    livestock_expenses = animal_expenses + processing_costs
     total_expenses = livestock_expenses + standalone_business
     total_meat = sum(p.final_weight or 0 for p in livestock)
     avg_cost_per_pound = livestock_expenses / total_meat if total_meat > 0 else 0
@@ -2234,6 +2236,8 @@ async def get_financial_summary(
         "livestock": {
             "total_processed": len(livestock),
             "total_meat_lbs": total_meat,
+            "animal_expenses": animal_expenses,
+            "processing_costs": processing_costs,
             "total_expenses": livestock_expenses,
             "avg_cost_per_pound": avg_cost_per_pound,
             "by_type": livestock_by_type,
@@ -2275,6 +2279,11 @@ async def get_financial_summary(
             "net_profit": total_revenue - total_expenses,
             "outstanding_payments": outstanding_balance,
             "homestead_costs": homestead_costs,
+            "expense_breakdown": {
+                "animal_expenses": animal_expenses,
+                "processing_costs": processing_costs,
+                "business_expenses": standalone_business,
+            },
         }
     }
 

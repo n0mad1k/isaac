@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.15] - 2026-02-09
+
+### Added
+- **Expense Breakdown on Production Overview** - The Expenses card now shows a detailed breakdown:
+  - Animal Costs (feed, medical, etc.)
+  - Processing (butcher fees)
+  - Business Expenses (if any)
+
 ## [1.83.14] - 2026-02-09
 
 ### Added

@@ -1537,6 +1537,24 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
           <div className="text-2xl font-bold text-yellow-400">
             {formatCurrency(summary.summary?.total_expenses)}
           </div>
+          {summary.summary?.expense_breakdown && (
+            <div className="mt-2 text-xs space-y-0.5 border-t border-gray-700 pt-2">
+              <div className="flex justify-between text-gray-400">
+                <span>Animal Costs</span>
+                <span>{formatCurrency(summary.summary.expense_breakdown.animal_expenses)}</span>
+              </div>
+              <div className="flex justify-between text-gray-400">
+                <span>Processing</span>
+                <span>{formatCurrency(summary.summary.expense_breakdown.processing_costs)}</span>
+              </div>
+              {summary.summary.expense_breakdown.business_expenses > 0 && (
+                <div className="flex justify-between text-gray-400">
+                  <span>Business</span>
+                  <span>{formatCurrency(summary.summary.expense_breakdown.business_expenses)}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="bg-gray-800 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-400 mb-1">
