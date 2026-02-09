@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertTriangle, Clock, Archive, Check, Circle, ArrowUp, ChevronDown, ChevronUp, Wrench, MapPin, User } from 'lucide-react'
-import { getDashboard, getAnimals, getSettings, completeTask, toggleBacklog } from '../services/api'
+import { getDashboard, getAnimals, getSettings, completeTask, toggleBacklog, getWorkers, getWorkerTasks } from '../services/api'
 import WeatherWidget from '../components/WeatherWidget'
 import SunMoonWidget from '../components/SunMoonWidget'
 import TaskList from '../components/TaskList'
@@ -18,6 +18,9 @@ function Dashboard() {
   const [data, setData] = useState(null)
   const [animals, setAnimals] = useState([])
   const [hideCompleted, setHideCompleted] = useState(false)
+  const [workers, setWorkers] = useState([])
+  const [selectedWorkerId, setSelectedWorkerId] = useState(null)
+  const [workerTasks, setWorkerTasks] = useState(null)
   const [backlogCollapsed, setBacklogCollapsed] = useState(false)
   const [userToggledBacklog, setUserToggledBacklog] = useState(false)
   const [needsMoreSpace, setNeedsMoreSpace] = useState(false)
@@ -123,6 +126,37 @@ function Dashboard() {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
+
+  // Fetch workers for dropdown
+  useEffect(() => {
+    const fetchWorkersData = async () => {
+      try {
+        const response = await getWorkers()
+        setWorkers(response.data || [])
+      } catch (err) {
+        console.error('Failed to fetch workers:', err)
+      }
+    }
+    fetchWorkersData()
+  }, [])
+
+  // Fetch worker tasks when a worker is selected
+  useEffect(() => {
+    if (!selectedWorkerId) {
+      setWorkerTasks(null)
+      return
+    }
+    const fetchWorkerTasksData = async () => {
+      try {
+        const response = await getWorkerTasks(selectedWorkerId, { include_completed: !hideCompleted })
+        setWorkerTasks(response.data || [])
+      } catch (err) {
+        console.error('Failed to fetch worker tasks:', err)
+        setWorkerTasks([])
+      }
+    }
+    fetchWorkerTasksData()
+  }, [selectedWorkerId, hideCompleted])
 
   // Auto-collapse backlog when page would need to scroll
   useEffect(() => {
@@ -235,12 +269,41 @@ function Dashboard() {
         {/* Right Column - natural sizes, scrolls if needed */}
         <div ref={rightColumnRef} className="flex flex-col gap-2 md:gap-3 md:pr-2">
           <div ref={taskListRef}>
+            {/* Worker filter dropdown */}
+            {workers.length > 0 && (
+              <div className="mb-2 flex items-center gap-2">
+                <User className="w-4 h-4" style={{ color: 'var(--color-text-secondary)' }} />
+                <select
+                  value={selectedWorkerId || ''}
+                  onChange={(e) => setSelectedWorkerId(e.target.value ? parseInt(e.target.value) : null)}
+                  className="text-sm rounded-lg px-2 py-1"
+                  style={{
+                    backgroundColor: 'var(--color-bg-surface)',
+                    color: 'var(--color-text-primary)',
+                    border: '1px solid var(--color-border-default)'
+                  }}
+                >
+                  <option value="">Today's Schedule</option>
+                  {workers.map(worker => (
+                    <option key={worker.id} value={worker.id}>
+                      {worker.name}'s Tasks
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <TaskList
-              title="Today's Schedule"
-              tasks={hideCompleted
-                ? data?.tasks_today?.filter(t => !t.is_completed)
-                : data?.tasks_today}
-              onTaskToggle={fetchData}
+              title={selectedWorkerId ? `${workers.find(w => w.id === selectedWorkerId)?.name || 'Worker'}'s Tasks` : "Today's Schedule"}
+              tasks={selectedWorkerId
+                ? (hideCompleted ? workerTasks?.filter(t => !t.is_completed) : workerTasks)
+                : (hideCompleted ? data?.tasks_today?.filter(t => !t.is_completed) : data?.tasks_today)}
+              onTaskToggle={() => {
+                fetchData()
+                if (selectedWorkerId) {
+                  getWorkerTasks(selectedWorkerId, { include_completed: !hideCompleted })
+                    .then(res => setWorkerTasks(res.data || []))
+                }
+              }}
               showTimeAndLocation={true}
             />
           </div>

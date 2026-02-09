@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.83.9] - 2026-02-08
+
+### Added
+- **Worker task dropdown on Dashboard** - A new dropdown above "Today's Schedule" lets you view tasks assigned to specific workers. Select a worker to see their tasks, or leave on default to see today's schedule.
+
 ## [1.83.8] - 2026-02-06
 
 ### Fixed
