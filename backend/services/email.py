@@ -177,14 +177,16 @@ class EmailService:
                     tls_context = ssl.create_default_context()
 
                     # Use SMTP client directly for more control
+                    # Disable auto STARTTLS so we can manually specify server_hostname for SNI
                     smtp = aiosmtplib.SMTP(
                         hostname=ip,
                         port=self.port,
                         timeout=30,
+                        start_tls=False,  # We'll do STARTTLS manually with proper SNI
                     )
                     await smtp.connect()
-                    # STARTTLS with the original hostname for certificate validation
-                    await smtp.starttls(server_hostname=self.host, tls_context=tls_context)
+                    # STARTTLS with the original hostname for certificate validation (SNI)
+                    await smtp.starttls(tls_context=tls_context, server_hostname=self.host)
                     await smtp.login(self.user, self.password)
                     await smtp.send_message(message)
                     await smtp.quit()
