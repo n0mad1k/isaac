@@ -5,7 +5,12 @@ All notable changes to Isaac will be documented in this file.
 ## [1.83.13] - 2026-02-09
 
 ### Added
-- **Price per pound calculator on Production > Business** - A collapsible calculator section lets you enter total cost and total weight to calculate the price per pound for customer pricing.
+- **Production Calculator on Production > Business** - A multi-purpose calculator with 5 modes:
+  - **Price per Pound**: Calculate $/lb from total cost and weight
+  - **Profit Margin**: Calculate profit and margin % from cost and sell price
+  - **Break Even**: Calculate minimum price needed to cover expenses
+  - **Revenue Projection**: Calculate expected revenue from price and quantity
+  - **Yield per Acre**: Calculate production rate per acre
 
 ## [1.83.12] - 2026-02-08
 

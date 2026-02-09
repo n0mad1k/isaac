@@ -1517,60 +1517,197 @@ function BusinessTab({
   onEditCustomer, onEditOrder, onEditExpense,
   onAddPayment, onAllocate,
 }) {
-  // Price per pound calculator state
-  const [calcTotalCost, setCalcTotalCost] = useState('')
-  const [calcTotalWeight, setCalcTotalWeight] = useState('')
+  // Production calculator state
+  const [calcMode, setCalcMode] = useState('price_per_lb')
+  const [calcInputs, setCalcInputs] = useState({})
 
-  const pricePerPound = useMemo(() => {
-    const cost = parseFloat(calcTotalCost) || 0
-    const weight = parseFloat(calcTotalWeight) || 0
-    if (weight > 0) {
-      return cost / weight
+  const CALC_MODES = [
+    { key: 'price_per_lb', label: 'Price per Pound', desc: 'Calculate $/lb from total cost and weight' },
+    { key: 'profit_margin', label: 'Profit Margin', desc: 'Calculate profit and margin % from cost and sell price' },
+    { key: 'break_even', label: 'Break Even', desc: 'Calculate minimum price to cover expenses' },
+    { key: 'revenue', label: 'Revenue Projection', desc: 'Calculate expected revenue from price and quantity' },
+    { key: 'yield_per_acre', label: 'Yield per Acre', desc: 'Calculate production rate per acre' },
+  ]
+
+  const calcResult = useMemo(() => {
+    const get = (key) => parseFloat(calcInputs[key]) || 0
+
+    switch (calcMode) {
+      case 'price_per_lb': {
+        const cost = get('total_cost')
+        const weight = get('total_weight')
+        return weight > 0 ? { value: cost / weight, label: '$/lb', format: 'currency' } : null
+      }
+      case 'profit_margin': {
+        const cost = get('cost')
+        const sellPrice = get('sell_price')
+        const profit = sellPrice - cost
+        const margin = sellPrice > 0 ? (profit / sellPrice) * 100 : 0
+        return {
+          value: profit,
+          label: 'Profit',
+          format: 'currency',
+          secondary: { value: margin, label: 'Margin', format: 'percent' }
+        }
+      }
+      case 'break_even': {
+        const expenses = get('total_expenses')
+        const expectedYield = get('expected_yield')
+        return expectedYield > 0 ? { value: expenses / expectedYield, label: 'Min $/unit', format: 'currency' } : null
+      }
+      case 'revenue': {
+        const price = get('unit_price')
+        const quantity = get('quantity')
+        return { value: price * quantity, label: 'Revenue', format: 'currency' }
+      }
+      case 'yield_per_acre': {
+        const totalYield = get('total_yield')
+        const acres = get('acres')
+        return acres > 0 ? { value: totalYield / acres, label: 'Yield/acre', format: 'number' } : null
+      }
+      default:
+        return null
     }
-    return 0
-  }, [calcTotalCost, calcTotalWeight])
+  }, [calcMode, calcInputs])
+
+  const formatResult = (val, fmt) => {
+    if (fmt === 'currency') return formatCurrency(val)
+    if (fmt === 'percent') return `${val.toFixed(1)}%`
+    return val.toFixed(2)
+  }
+
+  const renderCalcInputs = () => {
+    const inputClass = "w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+    const labelClass = "block text-sm text-gray-400 mb-1"
+
+    const updateInput = (key, value) => setCalcInputs(prev => ({ ...prev, [key]: value }))
+
+    switch (calcMode) {
+      case 'price_per_lb':
+        return (
+          <>
+            <div>
+              <label className={labelClass}>Total Cost ($)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.total_cost || ''} onChange={(e) => updateInput('total_cost', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Total Weight (lbs)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.total_weight || ''} onChange={(e) => updateInput('total_weight', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+          </>
+        )
+      case 'profit_margin':
+        return (
+          <>
+            <div>
+              <label className={labelClass}>Your Cost ($)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.cost || ''} onChange={(e) => updateInput('cost', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Sell Price ($)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.sell_price || ''} onChange={(e) => updateInput('sell_price', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+          </>
+        )
+      case 'break_even':
+        return (
+          <>
+            <div>
+              <label className={labelClass}>Total Expenses ($)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.total_expenses || ''} onChange={(e) => updateInput('total_expenses', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Expected Yield (units)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.expected_yield || ''} onChange={(e) => updateInput('expected_yield', e.target.value)} placeholder="0" className={inputClass} />
+            </div>
+          </>
+        )
+      case 'revenue':
+        return (
+          <>
+            <div>
+              <label className={labelClass}>Price per Unit ($)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.unit_price || ''} onChange={(e) => updateInput('unit_price', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Quantity</label>
+              <input type="number" min="0" step="1" value={calcInputs.quantity || ''} onChange={(e) => updateInput('quantity', e.target.value)} placeholder="0" className={inputClass} />
+            </div>
+          </>
+        )
+      case 'yield_per_acre':
+        return (
+          <>
+            <div>
+              <label className={labelClass}>Total Yield (lbs/units)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.total_yield || ''} onChange={(e) => updateInput('total_yield', e.target.value)} placeholder="0" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Acres</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.acres || ''} onChange={(e) => updateInput('acres', e.target.value)} placeholder="0" className={inputClass} />
+            </div>
+          </>
+        )
+      default:
+        return null
+    }
+  }
 
   return (
     <div className="space-y-4">
-      {/* Price Per Pound Calculator */}
+      {/* Production Calculator */}
       <CollapsibleSection
-        title="Price Calculator"
+        title="Production Calculator"
         icon={Calculator}
         iconColor="text-cyan-400"
         defaultOpen={false}
       >
-        <div className="bg-gray-700 rounded-lg p-4">
-          <p className="text-sm text-gray-400 mb-3">Calculate price per pound to determine customer pricing</p>
+        <div className="bg-gray-700 rounded-lg p-4 space-y-4">
+          {/* Calculator Mode Selector */}
+          <div className="flex flex-wrap gap-2">
+            {CALC_MODES.map((mode) => (
+              <button
+                key={mode.key}
+                onClick={() => { setCalcMode(mode.key); setCalcInputs({}) }}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  calcMode === mode.key
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-sm text-gray-400">
+            {CALC_MODES.find(m => m.key === calcMode)?.desc}
+          </p>
+
+          {/* Calculator Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Total Cost ($)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={calcTotalCost}
-                onChange={(e) => setCalcTotalCost(e.target.value)}
-                placeholder="0.00"
-                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Total Weight (lbs)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={calcTotalWeight}
-                onChange={(e) => setCalcTotalWeight(e.target.value)}
-                placeholder="0.00"
-                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-              />
-            </div>
+            {renderCalcInputs()}
+
+            {/* Result Display */}
             <div className="bg-gray-600 rounded-lg p-3 text-center">
-              <span className="text-sm text-gray-400 block">Price per lb</span>
-              <span className="text-2xl font-bold text-cyan-400">
-                {pricePerPound > 0 ? formatCurrency(pricePerPound) : '$0.00'}
-              </span>
+              {calcResult ? (
+                <>
+                  <span className="text-sm text-gray-400 block">{calcResult.label}</span>
+                  <span className={`text-2xl font-bold ${calcResult.value >= 0 ? 'text-cyan-400' : 'text-red-400'}`}>
+                    {formatResult(calcResult.value, calcResult.format)}
+                  </span>
+                  {calcResult.secondary && (
+                    <div className="mt-1 pt-1 border-t border-gray-500">
+                      <span className="text-xs text-gray-400">{calcResult.secondary.label}: </span>
+                      <span className={`text-sm font-medium ${calcResult.secondary.value >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatResult(calcResult.secondary.value, calcResult.secondary.format)}
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <span className="text-gray-500">Enter values</span>
+              )}
             </div>
           </div>
         </div>
