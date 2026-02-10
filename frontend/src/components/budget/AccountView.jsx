@@ -387,30 +387,29 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
             No transactions yet
           </div>
         ) : (
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y" style={{ borderColor: 'var(--color-border-default)' }}>
             {visibleTransactions.map((txn) => (
-              <div key={txn.id} className="p-3 flex items-center justify-between hover:bg-gray-800/30">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${txn.amount >= 0 ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
-                    {txn.amount >= 0 ? (
-                      <Plus className="w-4 h-4 text-green-400" />
-                    ) : (
-                      <Minus className="w-4 h-4 text-red-400" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>{txn.description}</p>
-                    <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              <div key={txn.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-800/20 transition-colors">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                       {formatDate(txn.transaction_date)}
-                      {txn.category_name && <span className="ml-2">• {txn.category_name}</span>}
-                    </p>
+                    </span>
+                    <span className="font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
+                      {txn.description}
+                    </span>
                   </div>
+                  {txn.category_name && (
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+                      {txn.category_name}
+                    </p>
+                  )}
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`font-medium ${txn.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <div className="flex items-center gap-4">
+                  <span className={`font-semibold tabular-nums ${txn.amount >= 0 ? 'text-green-500' : ''}`} style={txn.amount < 0 ? { color: 'var(--color-text-primary)' } : {}}>
                     {txn.amount >= 0 ? '+' : ''}{fmt(txn.amount)}
                   </span>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 opacity-50 hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => setEditingTransaction(txn)}
                       className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
