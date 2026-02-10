@@ -406,7 +406,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   )}
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className={`font-semibold tabular-nums ${txn.amount >= 0 ? 'text-green-500' : ''}`} style={txn.amount < 0 ? { color: 'var(--color-text-primary)' } : {}}>
+                  <span className={`font-semibold tabular-nums ${txn.amount >= 0 ? 'text-green-500' : 'text-red-400'}`}>
                     {txn.amount >= 0 ? '+' : ''}{fmt(txn.amount)}
                   </span>
                   <div className="flex gap-1 opacity-50 hover:opacity-100 transition-opacity">
