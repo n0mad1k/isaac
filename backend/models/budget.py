@@ -63,6 +63,8 @@ class BudgetAccount(Base):
     last_four = Column(String(4), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     sort_order = Column(Integer, default=0, nullable=False)
+    initial_balance = Column(Float, nullable=True, default=0.0)  # Starting balance to seed calculation
+    balance_as_of = Column(String(10), nullable=True)  # Date when initial_balance was set (YYYY-MM-DD)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { BarChart3, List, Calendar, Receipt, Upload, Settings } from 'lucide-react'
+import { BarChart3, List, Calendar, Receipt, Upload, Settings, Wallet } from 'lucide-react'
 import BudgetOverview from './BudgetOverview'
 import BudgetTransactions from './BudgetTransactions'
 import MonthlyBudget from './MonthlyBudget'
 import BillsSummary from './BillsSummary'
+import AccountsTab from './AccountsTab'
 import StatementImport from './StatementImport'
 import BudgetSettings from './BudgetSettings'
 
@@ -12,6 +13,7 @@ const SUB_TABS = [
   { key: 'transactions', label: 'Transactions', icon: List },
   { key: 'monthly', label: 'Monthly Budget', icon: Calendar },
   { key: 'bills', label: 'Bills', icon: Receipt },
+  { key: 'accounts', label: 'Accounts', icon: Wallet },
   { key: 'import', label: 'Import', icon: Upload },
   { key: 'settings', label: 'Settings', icon: Settings },
 ]
@@ -44,6 +46,7 @@ function BudgetTab() {
       {activeSubTab === 'transactions' && <BudgetTransactions />}
       {activeSubTab === 'monthly' && <MonthlyBudget />}
       {activeSubTab === 'bills' && <BillsSummary />}
+      {activeSubTab === 'accounts' && <AccountsTab />}
       {activeSubTab === 'import' && <StatementImport />}
       {activeSubTab === 'settings' && <BudgetSettings />}
     </div>

@@ -39,6 +39,8 @@ class AccountCreate(BaseModel):
     last_four: Optional[str] = Field(None, max_length=4, min_length=4)
     is_active: bool = True
     sort_order: int = 0
+    initial_balance: Optional[float] = Field(0.0)
+    balance_as_of: Optional[str] = Field(None, max_length=10)
 
 class AccountUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -47,6 +49,8 @@ class AccountUpdate(BaseModel):
     last_four: Optional[str] = Field(None, max_length=4, min_length=4)
     is_active: Optional[bool] = None
     sort_order: Optional[int] = None
+    initial_balance: Optional[float] = None
+    balance_as_of: Optional[str] = Field(None, max_length=10)
 
 class AccountResponse(BaseModel):
     id: int
@@ -56,6 +60,52 @@ class AccountResponse(BaseModel):
     last_four: Optional[str]
     is_active: bool
     sort_order: int
+    initial_balance: Optional[float] = 0.0
+    balance_as_of: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class AccountWithBalanceResponse(BaseModel):
+    id: int
+    name: str
+    account_type: AccountType
+    institution: Optional[str]
+    last_four: Optional[str]
+    is_active: bool
+    sort_order: int
+    initial_balance: float
+    balance_as_of: Optional[str]
+    current_balance: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class AllocationResponse(BaseModel):
+    id: int
+    name: str
+    starting_balance: Optional[float]
+    current_balance: float
+    budget_amount: float
+
+    class Config:
+        from_attributes = True
+
+class AccountDetailResponse(BaseModel):
+    id: int
+    name: str
+    account_type: AccountType
+    institution: Optional[str]
+    last_four: Optional[str]
+    is_active: bool
+    sort_order: int
+    initial_balance: float
+    balance_as_of: Optional[str]
+    current_balance: float
+    budget_deposit_per_period: float
+    allocations: List[AllocationResponse]
     created_at: datetime
 
     class Config:
@@ -342,6 +392,215 @@ async def delete_account(
         raise
     except Exception as e:
         logger.error(f"Error deleting budget account {account_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+async def _calculate_account_balance(account: BudgetAccount, db: AsyncSession) -> float:
+    """Calculate current balance for an account based on initial_balance + transactions after balance_as_of"""
+    initial = account.initial_balance or 0.0
+
+    # Build query for transactions
+    query = select(func.sum(BudgetTransaction.amount)).where(
+        BudgetTransaction.account_id == account.id
+    )
+
+    # If balance_as_of is set, only sum transactions after that date
+    if account.balance_as_of:
+        try:
+            as_of_date = date.fromisoformat(account.balance_as_of)
+            query = query.where(BudgetTransaction.transaction_date > as_of_date)
+        except ValueError:
+            pass  # Invalid date format, sum all transactions
+
+    result = await db.execute(query)
+    txn_total = result.scalar() or 0.0
+
+    return round(initial + txn_total, 2)
+
+
+@router.get("/accounts/balances/")
+async def list_accounts_with_balances(
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all accounts with their computed current balances"""
+    try:
+        result = await db.execute(
+            select(BudgetAccount).order_by(BudgetAccount.sort_order, BudgetAccount.name)
+        )
+        accounts = result.scalars().all()
+
+        response = []
+        for account in accounts:
+            current_balance = await _calculate_account_balance(account, db)
+            response.append({
+                "id": account.id,
+                "name": account.name,
+                "account_type": account.account_type.value if account.account_type else "checking",
+                "institution": account.institution,
+                "last_four": account.last_four,
+                "is_active": account.is_active,
+                "sort_order": account.sort_order,
+                "initial_balance": account.initial_balance or 0.0,
+                "balance_as_of": account.balance_as_of,
+                "current_balance": current_balance,
+                "created_at": account.created_at.isoformat() if account.created_at else None,
+            })
+
+        return response
+    except Exception as e:
+        logger.error(f"Error listing budget accounts with balances: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.get("/accounts/{account_id}/detail/")
+async def get_account_detail(
+    account_id: int,
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get account detail with current balance and linked allocations (TRANSFER categories)"""
+    try:
+        result = await db.execute(select(BudgetAccount).where(BudgetAccount.id == account_id))
+        account = result.scalar_one_or_none()
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
+
+        current_balance = await _calculate_account_balance(account, db)
+
+        # Find TRANSFER categories linked to this account (allocations)
+        cat_result = await db.execute(
+            select(BudgetCategory).where(
+                BudgetCategory.account_id == account_id,
+                BudgetCategory.category_type == CategoryType.TRANSFER,
+                BudgetCategory.is_active == True,
+            ).order_by(BudgetCategory.sort_order, BudgetCategory.name)
+        )
+        allocation_cats = cat_result.scalars().all()
+
+        # Get budget deposit per period (sum of TRANSFER category budget_amounts linked to this account)
+        budget_deposit_per_period = sum(c.budget_amount or 0 for c in allocation_cats)
+
+        # Calculate current balance for each allocation
+        allocations = []
+        for cat in allocation_cats:
+            # Allocation balance = starting_balance + sum of transactions in this category
+            starting = cat.starting_balance or 0.0
+            txn_result = await db.execute(
+                select(func.sum(BudgetTransaction.amount)).where(
+                    BudgetTransaction.category_id == cat.id
+                )
+            )
+            txn_total = txn_result.scalar() or 0.0
+            alloc_balance = round(starting + txn_total, 2)
+
+            allocations.append({
+                "id": cat.id,
+                "name": cat.name,
+                "starting_balance": starting,
+                "current_balance": alloc_balance,
+                "budget_amount": cat.budget_amount or 0.0,
+            })
+
+        return {
+            "id": account.id,
+            "name": account.name,
+            "account_type": account.account_type.value if account.account_type else "checking",
+            "institution": account.institution,
+            "last_four": account.last_four,
+            "is_active": account.is_active,
+            "sort_order": account.sort_order,
+            "initial_balance": account.initial_balance or 0.0,
+            "balance_as_of": account.balance_as_of,
+            "current_balance": current_balance,
+            "budget_deposit_per_period": budget_deposit_per_period,
+            "allocations": allocations,
+            "created_at": account.created_at.isoformat() if account.created_at else None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting account detail {account_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.get("/accounts/{account_id}/transactions/")
+async def get_account_transactions(
+    account_id: int,
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get transactions for a specific account"""
+    try:
+        # Verify account exists
+        acc_result = await db.execute(select(BudgetAccount).where(BudgetAccount.id == account_id))
+        account = acc_result.scalar_one_or_none()
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found")
+
+        query = select(BudgetTransaction).where(
+            BudgetTransaction.account_id == account_id
+        ).order_by(BudgetTransaction.transaction_date.desc(), BudgetTransaction.id.desc())
+
+        if start_date:
+            query = query.where(BudgetTransaction.transaction_date >= start_date)
+        if end_date:
+            query = query.where(BudgetTransaction.transaction_date <= end_date)
+
+        # Get total count
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total = total_result.scalar()
+
+        # Apply pagination
+        query = query.limit(limit).offset(offset)
+        result = await db.execute(query)
+        transactions = result.scalars().all()
+
+        # Build response with category info
+        response_items = []
+        for txn in transactions:
+            item = {
+                "id": txn.id,
+                "account_id": txn.account_id,
+                "account_name": account.name,
+                "category_id": txn.category_id,
+                "category_name": None,
+                "category_color": None,
+                "transaction_date": txn.transaction_date.isoformat(),
+                "description": txn.description,
+                "original_description": txn.original_description,
+                "amount": txn.amount,
+                "transaction_type": txn.transaction_type.value if txn.transaction_type else None,
+                "is_pending": txn.is_pending,
+                "source": txn.source.value if txn.source else None,
+                "source_reference_id": txn.source_reference_id,
+                "notes": txn.notes,
+                "created_at": txn.created_at.isoformat() if txn.created_at else None,
+            }
+
+            # Fetch category info
+            if txn.category_id:
+                cat_result = await db.execute(
+                    select(BudgetCategory.name, BudgetCategory.color)
+                    .where(BudgetCategory.id == txn.category_id)
+                )
+                cat_row = cat_result.first()
+                if cat_row:
+                    item["category_name"] = cat_row[0]
+                    item["category_color"] = cat_row[1]
+
+            response_items.append(item)
+
+        return {"items": response_items, "total": total}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting account transactions {account_id}: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 

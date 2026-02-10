@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.84.0] - 2026-02-10
+
+### Added
+- **Accounts Tab in Budget** - New dedicated "Accounts" tab for managing external accounts like Trust Funds, House/Travel Funds, etc.
+  - Create accounts with initial balance and "as of" date
+  - Current balance auto-calculates from initial balance + transactions
+  - Sub-tabs for each account with quick balance preview
+  - Add deposits and withdrawals directly to accounts
+  - View full transaction history per account with edit/delete capability
+  - Link TRANSFER budget categories as allocations within accounts
+  - Adjust allocation balances (e.g., divide funds between Travel vs House)
+  - Account settings to update name, institution, and initial balance
+
 ## [1.83.15] - 2026-02-09
 
 ### Added
