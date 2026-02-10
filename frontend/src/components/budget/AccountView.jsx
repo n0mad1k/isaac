@@ -242,9 +242,8 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
     )
   }
 
-  const hasAllocations = account.allocations && account.allocations.length > 0
-  const totalAllocated = hasAllocations ? account.allocations.reduce((sum, a) => sum + (a.current_balance || 0), 0) : 0
-  const unallocated = account.current_balance - totalAllocated
+  // Allocations feature disabled for now - the math doesn't align well with account balances
+  const hasAllocations = false
 
   // Calculate change from initial balance
   const balanceChange = account.current_balance - (account.initial_balance || 0)
@@ -301,12 +300,6 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
               {balanceChange >= 0 ? '+' : ''}{fmt(balanceChange)}
             </p>
           </div>
-          {account.budget_deposit_per_period > 0 && (
-            <div>
-              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Budget/Period</p>
-              <p className="text-lg text-green-400">+{fmt(account.budget_deposit_per_period)}</p>
-            </div>
-          )}
         </div>
       </div>
 
