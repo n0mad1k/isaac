@@ -883,13 +883,11 @@ function MemberTasksTab({ member, onUpdate }) {
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   <option value="schedule">Today's Schedule</option>
-                  <option value="member_reminders">Member's Reminders/Events</option>
                   <option value="backlog">Main Backlog</option>
                   <option value="member_only">Member Only (private)</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
                   {selectedVisibility === 'schedule' && 'Task appears in main Today\'s Tasks for everyone'}
-                  {selectedVisibility === 'member_reminders' && 'Task appears in member\'s reminders/events only'}
                   {selectedVisibility === 'backlog' && 'Task will appear in the main Backlog section'}
                   {selectedVisibility === 'member_only' && 'Task only visible on this member\'s task page'}
                 </p>

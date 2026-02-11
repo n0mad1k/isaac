@@ -457,7 +457,7 @@ class TaskCreate(BaseModel):
     assigned_to_member_id: Optional[int] = Field(None, ge=1)  # Assign to single team member (legacy)
     assigned_member_ids: Optional[List[int]] = None  # Assign to multiple team members
     visible_to_farmhands: bool = False
-    visibility: Optional[str] = Field("schedule", pattern=r'^(schedule|member_reminders|backlog|member_only)$')  # Where member tasks appear
+    visibility: Optional[str] = Field("schedule", pattern=r'^(schedule|backlog|member_only)$')  # Where member tasks appear
 
 
 class TaskUpdate(BaseModel):
@@ -483,7 +483,7 @@ class TaskUpdate(BaseModel):
     assigned_to_member_id: Optional[int] = Field(None, ge=1)  # Legacy single assignment
     assigned_member_ids: Optional[List[int]] = None  # Multiple team member assignment
     visible_to_farmhands: Optional[bool] = None
-    visibility: Optional[str] = Field(None, pattern=r'^(schedule|member_reminders|backlog|member_only)$')  # Where member tasks appear
+    visibility: Optional[str] = Field(None, pattern=r'^(schedule|backlog|member_only)$')  # Where member tasks appear
 
 
 class OccurrenceDate(BaseModel):
