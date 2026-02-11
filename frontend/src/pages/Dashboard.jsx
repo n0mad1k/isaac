@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertTriangle, Clock, Archive, Check, Circle, ArrowUp, ChevronDown, ChevronUp, Wrench, MapPin, User } from 'lucide-react'
-import { getDashboard, getAnimals, getSettings, completeTask, toggleBacklog, getWorkers, getWorkerTasks } from '../services/api'
+import { getDashboard, getAnimals, getSettings, completeTask, toggleBacklog, getWorkers, getWorkerTasks, getTeamMembers, getMemberTasks } from '../services/api'
 import WeatherWidget from '../components/WeatherWidget'
 import SunMoonWidget from '../components/SunMoonWidget'
 import TaskList from '../components/TaskList'
@@ -21,6 +21,9 @@ function Dashboard() {
   const [workers, setWorkers] = useState([])
   const [selectedWorkerId, setSelectedWorkerId] = useState(null)
   const [workerTasks, setWorkerTasks] = useState(null)
+  const [members, setMembers] = useState([])
+  const [selectedMemberId, setSelectedMemberId] = useState(null)
+  const [memberTasks, setMemberTasks] = useState(null)
   const [backlogCollapsed, setBacklogCollapsed] = useState(false)
   const [userToggledBacklog, setUserToggledBacklog] = useState(false)
   const [needsMoreSpace, setNeedsMoreSpace] = useState(false)
@@ -127,7 +130,7 @@ function Dashboard() {
     return () => clearInterval(timer)
   }, [])
 
-  // Fetch workers for dropdown
+  // Fetch workers and team members for dropdown
   useEffect(() => {
     const fetchWorkersData = async () => {
       try {
@@ -137,7 +140,16 @@ function Dashboard() {
         console.error('Failed to fetch workers:', err)
       }
     }
+    const fetchMembersData = async () => {
+      try {
+        const response = await getTeamMembers()
+        setMembers((response.data || []).filter(m => m.is_active !== false))
+      } catch (err) {
+        console.error('Failed to fetch team members:', err)
+      }
+    }
     fetchWorkersData()
+    fetchMembersData()
   }, [])
 
   // Fetch worker tasks when a worker is selected
@@ -157,6 +169,24 @@ function Dashboard() {
     }
     fetchWorkerTasksData()
   }, [selectedWorkerId, hideCompleted])
+
+  // Fetch member tasks when a member is selected
+  useEffect(() => {
+    if (!selectedMemberId) {
+      setMemberTasks(null)
+      return
+    }
+    const fetchMemberTasksData = async () => {
+      try {
+        const response = await getMemberTasks(selectedMemberId, { include_completed: !hideCompleted })
+        setMemberTasks(response.data || [])
+      } catch (err) {
+        console.error('Failed to fetch member tasks:', err)
+        setMemberTasks([])
+      }
+    }
+    fetchMemberTasksData()
+  }, [selectedMemberId, hideCompleted])
 
   // Auto-collapse backlog when page would need to scroll
   useEffect(() => {
@@ -269,13 +299,25 @@ function Dashboard() {
         {/* Right Column - natural sizes, scrolls if needed */}
         <div ref={rightColumnRef} className="flex flex-col gap-2 md:gap-3 md:pr-2">
           <div ref={taskListRef}>
-            {/* Worker filter dropdown */}
-            {workers.length > 0 && (
+            {/* Worker/Member filter dropdown */}
+            {(workers.length > 0 || members.length > 0) && (
               <div className="mb-2 flex items-center gap-2">
                 <User className="w-4 h-4" style={{ color: 'var(--color-text-secondary)' }} />
                 <select
-                  value={selectedWorkerId || ''}
-                  onChange={(e) => setSelectedWorkerId(e.target.value ? parseInt(e.target.value) : null)}
+                  value={selectedWorkerId ? `worker:${selectedWorkerId}` : selectedMemberId ? `member:${selectedMemberId}` : ''}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (!value) {
+                      setSelectedWorkerId(null)
+                      setSelectedMemberId(null)
+                    } else if (value.startsWith('worker:')) {
+                      setSelectedWorkerId(parseInt(value.split(':')[1]))
+                      setSelectedMemberId(null)
+                    } else if (value.startsWith('member:')) {
+                      setSelectedMemberId(parseInt(value.split(':')[1]))
+                      setSelectedWorkerId(null)
+                    }
+                  }}
                   className="text-sm rounded-lg px-2 py-1"
                   style={{
                     backgroundColor: 'var(--color-bg-surface)',
@@ -284,24 +326,47 @@ function Dashboard() {
                   }}
                 >
                   <option value="">Today's Schedule</option>
-                  {workers.map(worker => (
-                    <option key={worker.id} value={worker.id}>
-                      {worker.name}'s Tasks
-                    </option>
-                  ))}
+                  {members.length > 0 && (
+                    <optgroup label="Team Members">
+                      {members.map(member => (
+                        <option key={`member:${member.id}`} value={`member:${member.id}`}>
+                          {member.nickname || member.name}'s Reminders
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {workers.length > 0 && (
+                    <optgroup label="Workers">
+                      {workers.map(worker => (
+                        <option key={`worker:${worker.id}`} value={`worker:${worker.id}`}>
+                          {worker.name}'s Tasks
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
             )}
             <TaskList
-              title={selectedWorkerId ? `${workers.find(w => w.id === selectedWorkerId)?.name || 'Worker'}'s Tasks` : "Today's Schedule"}
+              title={selectedWorkerId
+                ? `${workers.find(w => w.id === selectedWorkerId)?.name || 'Worker'}'s Tasks`
+                : selectedMemberId
+                  ? `${members.find(m => m.id === selectedMemberId)?.nickname || members.find(m => m.id === selectedMemberId)?.name || 'Member'}'s Reminders`
+                  : "Today's Schedule"}
               tasks={selectedWorkerId
                 ? (hideCompleted ? workerTasks?.filter(t => !t.is_completed) : workerTasks)
-                : (hideCompleted ? data?.tasks_today?.filter(t => !t.is_completed) : data?.tasks_today)}
+                : selectedMemberId
+                  ? (hideCompleted ? memberTasks?.filter(t => !t.is_completed) : memberTasks)
+                  : (hideCompleted ? data?.tasks_today?.filter(t => !t.is_completed) : data?.tasks_today)}
               onTaskToggle={() => {
                 fetchData()
                 if (selectedWorkerId) {
                   getWorkerTasks(selectedWorkerId, { include_completed: !hideCompleted })
                     .then(res => setWorkerTasks(res.data || []))
+                }
+                if (selectedMemberId) {
+                  getMemberTasks(selectedMemberId, { include_completed: !hideCompleted })
+                    .then(res => setMemberTasks(res.data || []))
                 }
               }}
               showTimeAndLocation={true}
