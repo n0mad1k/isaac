@@ -824,6 +824,8 @@ export const completeWorkerVisit = (workerId, visitId) =>
   api.post(`/workers/${workerId}/visits/${visitId}/complete/`)
 export const duplicateWorkerVisit = (workerId, visitId) =>
   api.post(`/workers/${workerId}/visits/${visitId}/duplicate/`)
+export const toggleWorkerVisitTaskBacklog = (workerId, visitId, taskId) =>
+  api.post(`/workers/${workerId}/visits/${visitId}/tasks/${taskId}/toggle-backlog/`)
 
 // Budget & Finance
 export const getBudgetAccounts = () => api.get('/budget/accounts/')

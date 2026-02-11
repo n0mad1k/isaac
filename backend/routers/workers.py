@@ -937,6 +937,7 @@ async def get_worker_visits(
                     "sort_order": t.sort_order,
                     "is_standard": t.is_standard,
                     "is_completed": t.is_completed,
+                    "is_backlog": t.is_backlog or False,
                     "completed_at": t.completed_at.isoformat() if t.completed_at else None,
                 }
                 for t in tasks
@@ -1060,6 +1061,7 @@ async def get_current_visit(
                 "sort_order": t.sort_order,
                 "is_standard": t.is_standard,
                 "is_completed": t.is_completed,
+                "is_backlog": t.is_backlog or False,
                 "completed_at": t.completed_at.isoformat() if t.completed_at else None,
             }
             for t in tasks
@@ -1262,3 +1264,31 @@ async def duplicate_visit(
 
     logger.info(f"Duplicated visit {visit_id} to new visit {new_visit.id} for worker {worker_id}")
     return {"message": "Visit duplicated", "new_visit_id": new_visit.id}
+
+
+@router.post("/{worker_id}/visits/{visit_id}/tasks/{task_id}/toggle-backlog/")
+async def toggle_visit_task_backlog(
+    worker_id: int,
+    visit_id: int,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("workers"))
+):
+    """Toggle a visit task's backlog status"""
+    result = await db.execute(
+        select(WorkerVisitTask)
+        .where(WorkerVisitTask.id == task_id, WorkerVisitTask.visit_id == visit_id)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task.is_backlog = not (task.is_backlog or False)
+    await db.commit()
+
+    logger.info(f"Task {task_id} {'moved to backlog' if task.is_backlog else 'moved from backlog'}")
+    return {
+        "message": f"Task {'moved to backlog' if task.is_backlog else 'moved from backlog'}",
+        "task_id": task_id,
+        "is_backlog": task.is_backlog
+    }

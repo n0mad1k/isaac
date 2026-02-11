@@ -101,6 +101,8 @@ class WorkerVisitTask(Base):
     is_completed = Column(Boolean, default=False)
     completed_at = Column(DateTime, nullable=True)
 
+    is_backlog = Column(Boolean, default=False)  # True if task is in backlog (do later)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

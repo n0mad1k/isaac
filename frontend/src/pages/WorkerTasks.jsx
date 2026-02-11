@@ -64,7 +64,7 @@ function WorkerTasks() {
   const [supplyRequests, setSupplyRequests] = useState([])
   const [showSupplyModal, setShowSupplyModal] = useState(false)
   const [supplyFormData, setSupplyFormData] = useState({ item_name: '', quantity: 1, notes: '' })
-  const [viewMode, setViewMode] = useState('visits') // 'visits', 'tasks', or 'supplies'
+  const [viewMode, setViewMode] = useState('tasks') // 'tasks' or 'supplies'
   const [editingSupplyRequest, setEditingSupplyRequest] = useState(null)
 
   // Translation helper - uses selected worker's language
@@ -577,15 +577,6 @@ function WorkerTasks() {
           {/* View Mode Toggle */}
           <div className="flex gap-2 bg-gray-800 rounded-lg p-1 w-fit flex-wrap">
             <button
-              onClick={() => setViewMode('visits')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                viewMode === 'visits' ? 'bg-farm-green text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <ListOrdered className="w-4 h-4" />
-              Visit Tasks
-            </button>
-            <button
               onClick={() => setViewMode('tasks')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                 viewMode === 'tasks' ? 'bg-farm-green text-white' : 'text-gray-400 hover:text-white'
@@ -593,13 +584,6 @@ function WorkerTasks() {
             >
               <ClipboardList className="w-4 h-4" />
               {t('tasks')}
-              {workerTasks.length > 0 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  viewMode === 'tasks' ? 'bg-white/20' : 'bg-gray-600'
-                }`}>
-                  {workerTasks.filter(task => !task.is_completed).length}
-                </span>
-              )}
             </button>
             <button
               onClick={() => setViewMode('supplies')}
@@ -619,13 +603,13 @@ function WorkerTasks() {
             </button>
           </div>
 
-          {/* Visit Tasks Section */}
-          {viewMode === 'visits' && (
+          {/* Tasks Section - Visit Tasks Component */}
+          {viewMode === 'tasks' && (
             <WorkerVisitTasksTab worker={selectedWorker} />
           )}
 
-          {/* Tasks Header - stacks on mobile */}
-          {viewMode === 'tasks' && (
+          {/* Old Tasks Header - Removed, using WorkerVisitTasksTab instead */}
+          {false && viewMode === 'tasks_old' && (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base sm:text-lg font-semibold">{t('tasksFor')} {selectedWorker.name}</h3>
@@ -660,8 +644,8 @@ function WorkerTasks() {
           </div>
           )}
 
-          {/* Tasks List */}
-          {viewMode === 'tasks' && (
+          {/* Old Tasks List - Removed, using WorkerVisitTasksTab instead */}
+          {false && viewMode === 'tasks_old' && (
           <>
           {tasksLoading ? (
             <div className="flex justify-center py-8">

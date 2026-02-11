@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react'
 import {
   CheckCircle, Circle, Plus, Trash2, Edit2, X, GripVertical,
   RotateCcw, Clock, ChevronDown, ChevronUp, Copy, AlertTriangle,
-  ListOrdered, Settings, History
+  ListOrdered, Settings, History, Archive, Inbox
 } from 'lucide-react'
 import {
   getWorkerStandardTasks, createWorkerStandardTask, updateWorkerStandardTask,
   deleteWorkerStandardTask, reorderWorkerStandardTasks,
   getCurrentWorkerVisit, getWorkerVisits, addWorkerVisitTask,
   updateWorkerVisitTask, deleteWorkerVisitTask, reorderWorkerVisitTasks,
-  completeWorkerVisit, duplicateWorkerVisit
+  completeWorkerVisit, duplicateWorkerVisit, toggleWorkerVisitTaskBacklog
 } from '../../services/api'
 
 function WorkerVisitTasksTab({ worker }) {
@@ -24,6 +24,7 @@ function WorkerVisitTasksTab({ worker }) {
   const [newOneOffTitle, setNewOneOffTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const [draggedTaskId, setDraggedTaskId] = useState(null)
+  const [showBacklog, setShowBacklog] = useState(true)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -178,6 +179,20 @@ function WorkerVisitTasksTab({ worker }) {
     }
   }
 
+  // Toggle backlog status
+  const handleToggleBacklog = async (task) => {
+    if (!currentVisit || saving) return
+    setSaving(true)
+    try {
+      await toggleWorkerVisitTaskBacklog(worker.id, currentVisit.id, task.id)
+      await loadData()
+    } catch (err) {
+      console.error('Failed to toggle backlog:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // Drag and drop for reordering
   const handleDragStart = (taskId) => {
     setDraggedTaskId(taskId)
@@ -223,9 +238,12 @@ function WorkerVisitTasksTab({ worker }) {
     )
   }
 
-  const incompleteTasks = currentVisit?.tasks?.filter(t => !t.is_completed) || []
+  // Separate tasks into active, backlog, and completed
+  const allIncompleteTasks = currentVisit?.tasks?.filter(t => !t.is_completed) || []
+  const activeTasks = allIncompleteTasks.filter(t => !t.is_backlog)
+  const backlogTasks = allIncompleteTasks.filter(t => t.is_backlog)
   const completedTasks = currentVisit?.tasks?.filter(t => t.is_completed) || []
-  const allTasksComplete = incompleteTasks.length === 0 && completedTasks.length > 0
+  const allTasksComplete = activeTasks.length === 0 && backlogTasks.length === 0 && completedTasks.length > 0
 
   return (
     <div className="space-y-6">
@@ -375,14 +393,14 @@ function WorkerVisitTasksTab({ worker }) {
               </span>
             </div>
 
-            {incompleteTasks.length === 0 && completedTasks.length === 0 ? (
+            {activeTasks.length === 0 && backlogTasks.length === 0 && completedTasks.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 No tasks yet. Add standard tasks or one-off tasks below.
               </div>
             ) : (
               <div className="space-y-2">
-                {/* Incomplete tasks with order numbers */}
-                {incompleteTasks.map((task, idx) => (
+                {/* Active tasks with order numbers */}
+                {activeTasks.map((task, idx) => (
                   <div
                     key={task.id}
                     draggable
@@ -425,6 +443,13 @@ function WorkerVisitTasksTab({ worker }) {
                         </span>
                       )}
                     </div>
+                    <button
+                      onClick={() => handleToggleBacklog(task)}
+                      className="p-1 text-gray-400 hover:text-yellow-400 flex-shrink-0"
+                      title="Move to backlog"
+                    >
+                      <Archive className="w-4 h-4" />
+                    </button>
                     {!task.is_standard && (
                       <button
                         onClick={() => handleDeleteVisitTask(task.id)}
@@ -435,6 +460,67 @@ function WorkerVisitTasksTab({ worker }) {
                     )}
                   </div>
                 ))}
+
+                {/* Backlog section */}
+                {(backlogTasks.length > 0 || showBacklog) && (
+                  <div className="pt-3 mt-3 border-t border-gray-700">
+                    <button
+                      onClick={() => setShowBacklog(!showBacklog)}
+                      className="flex items-center gap-2 text-sm text-gray-400 hover:text-white w-full"
+                    >
+                      <Archive className="w-4 h-4 text-yellow-500" />
+                      Backlog ({backlogTasks.length})
+                      {showBacklog ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
+                    </button>
+                    {showBacklog && backlogTasks.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {backlogTasks.map((task) => (
+                          <div
+                            key={task.id}
+                            className="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50"
+                          >
+                            <div className="w-4" />
+                            <div className="w-7" />
+                            <button
+                              onClick={() => handleToggleTaskComplete(task)}
+                              className="flex-shrink-0"
+                            >
+                              <Circle className="w-5 h-5 text-gray-400 hover:text-green-400" />
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-gray-300">{task.title}</span>
+                              {task.is_standard && (
+                                <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                                  Standard
+                                </span>
+                              )}
+                              {!task.is_standard && (
+                                <span className="ml-2 text-xs px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                                  This Visit
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleToggleBacklog(task)}
+                              className="p-1 text-gray-400 hover:text-green-400 flex-shrink-0"
+                              title="Move to active"
+                            >
+                              <Inbox className="w-4 h-4" />
+                            </button>
+                            {!task.is_standard && (
+                              <button
+                                onClick={() => handleDeleteVisitTask(task.id)}
+                                className="p-1 text-gray-400 hover:text-red-400 flex-shrink-0"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Completed tasks */}
                 {completedTasks.length > 0 && (

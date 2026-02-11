@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.2] - 2026-02-11
+
+### Changed
+- **Worker Tasks** - Unified tasks view with backlog support
+  - Removed separate "Visit Tasks" tab - now all tasks show under "Tasks" tab
+  - Added **Backlog section** - move tasks to backlog to do later (not this visit)
+  - Click Archive icon to move task to backlog, Inbox icon to move back to active
+  - Standard and one-off tasks can be freely reordered together via drag and drop
+  - Backlog tasks shown in collapsible section below active tasks
+
 ## [1.85.1] - 2026-02-11
 
 ### Changed
