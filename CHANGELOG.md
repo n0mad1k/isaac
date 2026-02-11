@@ -2,6 +2,25 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.0] - 2026-02-10
+
+### Added
+- **Worker Visit Tasks** - New "Visit Tasks" tab for workers (team members with SUPPORT role or worker-related title)
+  - **Standard Tasks** - Tasks that reset each visit (cleaning, vacuuming, etc.)
+    - Manage via "Standard Tasks" settings button
+    - Drag to reorder for priority
+  - **Current Visit** - Shows all tasks for this visit with clear priority order
+    - Numbered tasks with "DO NEXT" badge on the first incomplete task
+    - "Complete in Order" notice for clear workflow
+    - Standard tasks auto-populated from templates
+    - Incomplete one-off tasks carry over from previous visits
+  - **One-Off Tasks** - Add visit-specific tasks (deep clean oven, organize pantry)
+    - Purple badge distinguishes from standard tasks
+    - Carry over if not completed
+  - **Visit History** - View past visits with task completion status
+    - Duplicate any past visit to create a new visit with the same tasks
+  - **Complete Visit** - Mark visit as done when all tasks complete
+
 ## [1.84.0] - 2026-02-10
 
 ### Added

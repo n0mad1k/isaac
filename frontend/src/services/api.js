@@ -796,6 +796,35 @@ export const getMemberTasks = (memberId, params) =>
 export const getMemberBacklog = (memberId) =>
   api.get(`/team/members/${memberId}/backlog/`)
 
+// Worker Standard Tasks & Visits
+export const getWorkerStandardTasks = (memberId) =>
+  api.get(`/team/members/${memberId}/standard-tasks/`)
+export const createWorkerStandardTask = (memberId, data) =>
+  api.post(`/team/members/${memberId}/standard-tasks/`, data)
+export const updateWorkerStandardTask = (memberId, taskId, data) =>
+  api.put(`/team/members/${memberId}/standard-tasks/${taskId}/`, data)
+export const deleteWorkerStandardTask = (memberId, taskId) =>
+  api.delete(`/team/members/${memberId}/standard-tasks/${taskId}/`)
+export const reorderWorkerStandardTasks = (memberId, taskIds) =>
+  api.post(`/team/members/${memberId}/standard-tasks/reorder/`, { task_ids: taskIds })
+
+export const getWorkerVisits = (memberId, params) =>
+  api.get(`/team/members/${memberId}/visits/`, { params })
+export const getCurrentWorkerVisit = (memberId) =>
+  api.get(`/team/members/${memberId}/visits/current/`)
+export const addWorkerVisitTask = (memberId, visitId, data) =>
+  api.post(`/team/members/${memberId}/visits/${visitId}/tasks/`, data)
+export const updateWorkerVisitTask = (memberId, visitId, taskId, data) =>
+  api.put(`/team/members/${memberId}/visits/${visitId}/tasks/${taskId}/`, data)
+export const deleteWorkerVisitTask = (memberId, visitId, taskId) =>
+  api.delete(`/team/members/${memberId}/visits/${visitId}/tasks/${taskId}/`)
+export const reorderWorkerVisitTasks = (memberId, visitId, taskIds) =>
+  api.post(`/team/members/${memberId}/visits/${visitId}/tasks/reorder/`, { task_ids: taskIds })
+export const completeWorkerVisit = (memberId, visitId) =>
+  api.post(`/team/members/${memberId}/visits/${visitId}/complete/`)
+export const duplicateWorkerVisit = (memberId, visitId) =>
+  api.post(`/team/members/${memberId}/visits/${visitId}/duplicate/`)
+
 // Budget & Finance
 export const getBudgetAccounts = () => api.get('/budget/accounts/')
 export const createBudgetAccount = (data) => api.post('/budget/accounts/', data)

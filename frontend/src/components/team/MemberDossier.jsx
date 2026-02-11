@@ -4,7 +4,7 @@ import {
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle, AlertTriangle,
   Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus, Target, Check, X,
   ListTodo, Package, RefreshCw, TrendingUp, TrendingDown, Minus, Info, Dumbbell,
-  Clock, Flame, Mountain, Timer, Baby
+  Clock, Flame, Mountain, Timer, Baby, ClipboardList
 } from 'lucide-react'
 import {
   getWeightHistory, logWeight, getMedicalHistory, updateMedicalStatus,
@@ -25,6 +25,7 @@ import MemberTrainingTab from './MemberTrainingTab'
 import MemberTasksTab from './MemberTasksTab'
 import MemberSupplyRequestsTab from './MemberSupplyRequestsTab'
 import ChildGrowthTab from './ChildGrowthTab'
+import WorkerVisitTasksTab from './WorkerVisitTasksTab'
 
 function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [activeTab, setActiveTab] = useState('profile')
@@ -72,7 +73,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   useEffect(() => {
     const loadTabData = async () => {
       // These tabs load their own data
-      if (['gear', 'training', 'tasks', 'supplies', 'fitness', 'growth'].includes(activeTab)) {
+      if (['gear', 'training', 'tasks', 'visit_tasks', 'supplies', 'fitness', 'growth'].includes(activeTab)) {
         setLoading(false)
         return
       }
@@ -205,11 +206,19 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const isChild = memberAge !== null && memberAge < 13
   const isMinor = memberAge !== null && memberAge < 18
 
+  // Check if member is a worker (SUPPORT role or has worker-like role_title)
+  const isWorker = member.role === 'SUPPORT' ||
+    ['housekeeper', 'cleaner', 'helper', 'worker', 'assistant'].some(
+      w => member.role_title?.toLowerCase()?.includes(w)
+    )
+
   // Tab definitions - filter based on age
   // Children under 13 get "Growth" tab instead of "Health Data"
   const allTabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'tasks', label: 'Tasks', icon: ListTodo },
+    // Visit Tasks tab for workers (SUPPORT role or worker-like role_title)
+    ...(isWorker ? [{ id: 'visit_tasks', label: 'Visit Tasks', icon: ClipboardList }] : []),
     { id: 'gear', label: 'Gear', icon: Shield },
     { id: 'supplies', label: 'Supplies', icon: Package },
     { id: 'training', label: 'Training', icon: Target, minAge: 13 },
@@ -596,6 +605,11 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             {/* Tasks Tab */}
             {activeTab === 'tasks' && (
               <MemberTasksTab member={member} onUpdate={onUpdate} />
+            )}
+
+            {/* Visit Tasks Tab (for workers) */}
+            {activeTab === 'visit_tasks' && (
+              <WorkerVisitTasksTab member={member} />
             )}
 
             {/* Gear Tab */}
