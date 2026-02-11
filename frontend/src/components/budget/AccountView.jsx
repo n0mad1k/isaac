@@ -242,8 +242,14 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
     )
   }
 
-  // Allocations feature disabled for now - the math doesn't align well with account balances
-  const hasAllocations = false
+  // Check if account has allocations (TRANSFER categories linked to it)
+  const hasAllocations = account.allocations && account.allocations.length > 0
+
+  // Calculate unallocated amount (account balance minus sum of allocation balances)
+  const totalAllocated = hasAllocations
+    ? account.allocations.reduce((sum, a) => sum + (a.current_balance || 0), 0)
+    : 0
+  const unallocated = account.current_balance - totalAllocated
 
   // Calculate change from initial balance
   const balanceChange = account.current_balance - (account.initial_balance || 0)
