@@ -3,16 +3,16 @@ Workers Router
 Manage external workers (maids, contractors, farm hands) who can be assigned tasks
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
-from pydantic import BaseModel
+from sqlalchemy import select, and_, update, desc
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 from loguru import logger
 
 from models.database import get_db
-from models.workers import Worker
+from models.workers import Worker, WorkerStandardTask, WorkerVisit, WorkerVisitTask, VisitStatus
 from models.tasks import Task
 from services.translation import translate_task
 from models.users import User
@@ -727,3 +727,538 @@ async def toggle_worker_task_backlog(
         "task_id": task_id,
         "is_backlog": task.is_backlog
     }
+
+
+# ============================================
+# Worker Visit Task Management
+# ============================================
+
+class StandardTaskCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    sort_order: int = 0
+
+class StandardTaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+class VisitTaskCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    sort_order: int = 0
+
+class VisitTaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_completed: Optional[bool] = None
+
+class ReorderTasksRequest(BaseModel):
+    task_ids: List[int]
+
+
+# --- Standard Tasks ---
+
+@router.get("/{worker_id}/standard-tasks/")
+async def get_standard_tasks(
+    worker_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("workers"))
+):
+    """Get all standard (recurring) tasks for a worker"""
+    result = await db.execute(
+        select(WorkerStandardTask)
+        .where(WorkerStandardTask.worker_id == worker_id, WorkerStandardTask.is_active == True)
+        .order_by(WorkerStandardTask.sort_order, WorkerStandardTask.id)
+    )
+    tasks = result.scalars().all()
+    return [
+        {
+            "id": t.id,
+            "title": t.title,
+            "description": t.description,
+            "sort_order": t.sort_order,
+        }
+        for t in tasks
+    ]
+
+
+@router.post("/{worker_id}/standard-tasks/")
+async def create_standard_task(
+    worker_id: int,
+    data: StandardTaskCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("workers"))
+):
+    """Create a new standard task for a worker"""
+    # Verify worker exists
+    worker_result = await db.execute(select(Worker).where(Worker.id == worker_id))
+    if not worker_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Worker not found")
+
+    task = WorkerStandardTask(
+        worker_id=worker_id,
+        title=data.title,
+        description=data.description,
+        sort_order=data.sort_order
+    )
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+
+    logger.info(f"Created standard task '{task.title}' for worker {worker_id}")
+
+    return {
+        "id": task.id,
+        "title": task.title,
+        "description": task.description,
+        "sort_order": task.sort_order,
+    }
+
+
+@router.put("/{worker_id}/standard-tasks/{task_id}/")
+async def update_standard_task(
+    worker_id: int,
+    task_id: int,
+    data: StandardTaskUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("workers"))
+):
+    """Update a standard task"""
+    result = await db.execute(
+        select(WorkerStandardTask)
+        .where(WorkerStandardTask.id == task_id, WorkerStandardTask.worker_id == worker_id)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(task, key, value)
+
+    await db.commit()
+    await db.refresh(task)
+
+    return {
+        "id": task.id,
+        "title": task.title,
+        "description": task.description,
+        "sort_order": task.sort_order,
+        "is_active": task.is_active,
+    }
+
+
+@router.delete("/{worker_id}/standard-tasks/{task_id}/")
+async def delete_standard_task(
+    worker_id: int,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("workers"))
+):
+    """Delete a standard task"""
+    result = await db.execute(
+        select(WorkerStandardTask)
+        .where(WorkerStandardTask.id == task_id, WorkerStandardTask.worker_id == worker_id)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    await db.delete(task)
+    await db.commit()
+    logger.info(f"Deleted standard task {task_id} for worker {worker_id}")
+    return {"message": "Task deleted"}
+
+
+@router.post("/{worker_id}/standard-tasks/reorder/")
+async def reorder_standard_tasks(
+    worker_id: int,
+    data: ReorderTasksRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("workers"))
+):
+    """Reorder standard tasks by providing ordered list of task IDs"""
+    for idx, task_id in enumerate(data.task_ids):
+        await db.execute(
+            update(WorkerStandardTask)
+            .where(WorkerStandardTask.id == task_id, WorkerStandardTask.worker_id == worker_id)
+            .values(sort_order=idx)
+        )
+    await db.commit()
+    return {"message": "Tasks reordered"}
+
+
+# --- Worker Visits ---
+
+@router.get("/{worker_id}/visits/")
+async def get_worker_visits(
+    worker_id: int,
+    limit: int = Query(10, ge=1, le=100),
+    include_completed: bool = Query(True),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("workers"))
+):
+    """Get worker visit history"""
+    query = select(WorkerVisit).where(WorkerVisit.worker_id == worker_id)
+    if not include_completed:
+        query = query.where(WorkerVisit.status != VisitStatus.COMPLETED)
+    query = query.order_by(desc(WorkerVisit.visit_date)).limit(limit)
+
+    result = await db.execute(query)
+    visits = result.scalars().all()
+
+    response = []
+    for v in visits:
+        # Get tasks for this visit
+        tasks_result = await db.execute(
+            select(WorkerVisitTask)
+            .where(WorkerVisitTask.visit_id == v.id)
+            .order_by(WorkerVisitTask.sort_order, WorkerVisitTask.id)
+        )
+        tasks = tasks_result.scalars().all()
+
+        completed_count = sum(1 for t in tasks if t.is_completed)
+
+        response.append({
+            "id": v.id,
+            "visit_date": v.visit_date.isoformat() if v.visit_date else None,
+            "status": v.status.value if v.status else "in_progress",
+            "notes": v.notes,
+            "completed_at": v.completed_at.isoformat() if v.completed_at else None,
+            "task_count": len(tasks),
+            "completed_count": completed_count,
+            "tasks": [
+                {
+                    "id": t.id,
+                    "title": t.title,
+                    "description": t.description,
+                    "sort_order": t.sort_order,
+                    "is_standard": t.is_standard,
+                    "is_completed": t.is_completed,
+                    "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+                }
+                for t in tasks
+            ]
+        })
+
+    return response
+
+
+@router.get("/{worker_id}/visits/current/")
+async def get_current_visit(
+    worker_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_view("workers"))
+):
+    """Get the current (in-progress) visit, or create one if none exists"""
+    # Verify worker exists
+    worker_result = await db.execute(select(Worker).where(Worker.id == worker_id))
+    worker = worker_result.scalar_one_or_none()
+    if not worker:
+        raise HTTPException(status_code=404, detail="Worker not found")
+
+    # Check for existing in-progress visit
+    result = await db.execute(
+        select(WorkerVisit)
+        .where(
+            WorkerVisit.worker_id == worker_id,
+            WorkerVisit.status == VisitStatus.IN_PROGRESS
+        )
+    )
+    visit = result.scalar_one_or_none()
+
+    if not visit:
+        # Create a new visit
+        visit = WorkerVisit(
+            worker_id=worker_id,
+            visit_date=datetime.utcnow(),
+            status=VisitStatus.IN_PROGRESS
+        )
+        db.add(visit)
+        await db.flush()
+
+        # Copy standard tasks to this visit
+        std_result = await db.execute(
+            select(WorkerStandardTask)
+            .where(WorkerStandardTask.worker_id == worker_id, WorkerStandardTask.is_active == True)
+            .order_by(WorkerStandardTask.sort_order, WorkerStandardTask.id)
+        )
+        standard_tasks = std_result.scalars().all()
+
+        for st in standard_tasks:
+            vt = WorkerVisitTask(
+                visit_id=visit.id,
+                title=st.title,
+                description=st.description,
+                sort_order=st.sort_order,
+                is_standard=True,
+                standard_task_id=st.id
+            )
+            db.add(vt)
+
+        # Carry over incomplete one-off tasks from previous visits
+        prev_result = await db.execute(
+            select(WorkerVisit)
+            .where(
+                WorkerVisit.worker_id == worker_id,
+                WorkerVisit.status == VisitStatus.COMPLETED
+            )
+            .order_by(desc(WorkerVisit.completed_at))
+            .limit(1)
+        )
+        prev_visit = prev_result.scalar_one_or_none()
+
+        if prev_visit:
+            incomplete_result = await db.execute(
+                select(WorkerVisitTask)
+                .where(
+                    WorkerVisitTask.visit_id == prev_visit.id,
+                    WorkerVisitTask.is_standard == False,
+                    WorkerVisitTask.is_completed == False
+                )
+            )
+            incomplete_tasks = incomplete_result.scalars().all()
+
+            # Get max sort order of current tasks
+            max_sort = len(standard_tasks)
+
+            for it in incomplete_tasks:
+                vt = WorkerVisitTask(
+                    visit_id=visit.id,
+                    title=it.title,
+                    description=it.description,
+                    sort_order=max_sort,
+                    is_standard=False
+                )
+                db.add(vt)
+                max_sort += 1
+
+        await db.commit()
+        await db.refresh(visit)
+        logger.info(f"Created new visit for worker {worker_id}")
+
+    # Get tasks
+    tasks_result = await db.execute(
+        select(WorkerVisitTask)
+        .where(WorkerVisitTask.visit_id == visit.id)
+        .order_by(WorkerVisitTask.sort_order, WorkerVisitTask.id)
+    )
+    tasks = tasks_result.scalars().all()
+
+    return {
+        "id": visit.id,
+        "visit_date": visit.visit_date.isoformat() if visit.visit_date else None,
+        "status": visit.status.value if visit.status else "in_progress",
+        "notes": visit.notes,
+        "tasks": [
+            {
+                "id": t.id,
+                "title": t.title,
+                "description": t.description,
+                "sort_order": t.sort_order,
+                "is_standard": t.is_standard,
+                "is_completed": t.is_completed,
+                "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+            }
+            for t in tasks
+        ]
+    }
+
+
+@router.post("/{worker_id}/visits/{visit_id}/tasks/")
+async def add_visit_task(
+    worker_id: int,
+    visit_id: int,
+    data: VisitTaskCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("workers"))
+):
+    """Add a one-off task to a visit"""
+    result = await db.execute(
+        select(WorkerVisit)
+        .where(WorkerVisit.id == visit_id, WorkerVisit.worker_id == worker_id)
+    )
+    visit = result.scalar_one_or_none()
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found")
+
+    task = WorkerVisitTask(
+        visit_id=visit_id,
+        title=data.title,
+        description=data.description,
+        sort_order=data.sort_order,
+        is_standard=False
+    )
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+
+    return {
+        "id": task.id,
+        "title": task.title,
+        "description": task.description,
+        "sort_order": task.sort_order,
+        "is_standard": task.is_standard,
+        "is_completed": task.is_completed,
+    }
+
+
+@router.put("/{worker_id}/visits/{visit_id}/tasks/{task_id}/")
+async def update_visit_task(
+    worker_id: int,
+    visit_id: int,
+    task_id: int,
+    data: VisitTaskUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("workers"))
+):
+    """Update a visit task (including marking complete)"""
+    result = await db.execute(
+        select(WorkerVisitTask)
+        .where(WorkerVisitTask.id == task_id, WorkerVisitTask.visit_id == visit_id)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    for key, value in data.model_dump(exclude_unset=True).items():
+        if key == "is_completed" and value:
+            task.is_completed = True
+            task.completed_at = datetime.utcnow()
+        elif key == "is_completed" and not value:
+            task.is_completed = False
+            task.completed_at = None
+        else:
+            setattr(task, key, value)
+
+    await db.commit()
+    await db.refresh(task)
+
+    return {
+        "id": task.id,
+        "title": task.title,
+        "description": task.description,
+        "sort_order": task.sort_order,
+        "is_standard": task.is_standard,
+        "is_completed": task.is_completed,
+        "completed_at": task.completed_at.isoformat() if task.completed_at else None,
+    }
+
+
+@router.delete("/{worker_id}/visits/{visit_id}/tasks/{task_id}/")
+async def delete_visit_task(
+    worker_id: int,
+    visit_id: int,
+    task_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_delete("workers"))
+):
+    """Delete a visit task (usually one-off tasks)"""
+    result = await db.execute(
+        select(WorkerVisitTask)
+        .where(WorkerVisitTask.id == task_id, WorkerVisitTask.visit_id == visit_id)
+    )
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    await db.delete(task)
+    await db.commit()
+    return {"message": "Task deleted"}
+
+
+@router.post("/{worker_id}/visits/{visit_id}/tasks/reorder/")
+async def reorder_visit_tasks(
+    worker_id: int,
+    visit_id: int,
+    data: ReorderTasksRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_edit("workers"))
+):
+    """Reorder visit tasks by providing ordered list of task IDs"""
+    for idx, task_id in enumerate(data.task_ids):
+        await db.execute(
+            update(WorkerVisitTask)
+            .where(WorkerVisitTask.id == task_id, WorkerVisitTask.visit_id == visit_id)
+            .values(sort_order=idx)
+        )
+    await db.commit()
+    return {"message": "Tasks reordered"}
+
+
+@router.post("/{worker_id}/visits/{visit_id}/complete/")
+async def complete_visit(
+    worker_id: int,
+    visit_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("workers"))
+):
+    """Mark a visit as completed"""
+    result = await db.execute(
+        select(WorkerVisit)
+        .where(WorkerVisit.id == visit_id, WorkerVisit.worker_id == worker_id)
+    )
+    visit = result.scalar_one_or_none()
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found")
+
+    visit.status = VisitStatus.COMPLETED
+    visit.completed_at = datetime.utcnow()
+
+    await db.commit()
+    logger.info(f"Completed visit {visit_id} for worker {worker_id}")
+    return {"message": "Visit completed", "completed_at": visit.completed_at.isoformat()}
+
+
+@router.post("/{worker_id}/visits/{visit_id}/duplicate/")
+async def duplicate_visit(
+    worker_id: int,
+    visit_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_create("workers"))
+):
+    """Duplicate a past visit's tasks into a new visit"""
+    # Get source visit
+    result = await db.execute(
+        select(WorkerVisit)
+        .where(WorkerVisit.id == visit_id, WorkerVisit.worker_id == worker_id)
+    )
+    source_visit = result.scalar_one_or_none()
+    if not source_visit:
+        raise HTTPException(status_code=404, detail="Visit not found")
+
+    # Create new visit
+    new_visit = WorkerVisit(
+        worker_id=worker_id,
+        visit_date=datetime.utcnow(),
+        status=VisitStatus.IN_PROGRESS
+    )
+    db.add(new_visit)
+    await db.flush()
+
+    # Copy tasks from source visit
+    tasks_result = await db.execute(
+        select(WorkerVisitTask)
+        .where(WorkerVisitTask.visit_id == source_visit.id)
+        .order_by(WorkerVisitTask.sort_order)
+    )
+    tasks = tasks_result.scalars().all()
+
+    for t in tasks:
+        new_task = WorkerVisitTask(
+            visit_id=new_visit.id,
+            title=t.title,
+            description=t.description,
+            sort_order=t.sort_order,
+            is_standard=t.is_standard,
+            standard_task_id=t.standard_task_id
+        )
+        db.add(new_task)
+
+    await db.commit()
+    await db.refresh(new_visit)
+
+    logger.info(f"Duplicated visit {visit_id} to new visit {new_visit.id} for worker {worker_id}")
+    return {"message": "Visit duplicated", "new_visit_id": new_visit.id}

@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.1] - 2026-02-11
+
+### Changed
+- **Worker Visit Tasks** - Moved Visit Tasks feature from Team Members to Workers page
+  - Now accessible in the Workers tab with dedicated "Visit Tasks" view mode
+  - Works with workers in the Workers table (like housekeepers, contractors)
+  - Standard tasks, current visit, visit history all work with the Workers section
+
 ## [1.85.0] - 2026-02-10
 
 ### Added

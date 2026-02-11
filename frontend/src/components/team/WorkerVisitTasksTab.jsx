@@ -12,7 +12,7 @@ import {
   completeWorkerVisit, duplicateWorkerVisit
 } from '../../services/api'
 
-function WorkerVisitTasksTab({ member }) {
+function WorkerVisitTasksTab({ worker }) {
   const [loading, setLoading] = useState(true)
   const [standardTasks, setStandardTasks] = useState([])
   const [currentVisit, setCurrentVisit] = useState(null)
@@ -29,9 +29,9 @@ function WorkerVisitTasksTab({ member }) {
     setLoading(true)
     try {
       const [stdRes, visitRes, historyRes] = await Promise.all([
-        getWorkerStandardTasks(member.id),
-        getCurrentWorkerVisit(member.id),
-        getWorkerVisits(member.id, { limit: 10, include_completed: true })
+        getWorkerStandardTasks(worker.id),
+        getCurrentWorkerVisit(worker.id),
+        getWorkerVisits(worker.id, { limit: 10, include_completed: true })
       ])
       setStandardTasks(stdRes.data || [])
       setCurrentVisit(visitRes.data)
@@ -43,7 +43,7 @@ function WorkerVisitTasksTab({ member }) {
     } finally {
       setLoading(false)
     }
-  }, [member.id])
+  }, [worker.id])
 
   useEffect(() => {
     loadData()
@@ -61,7 +61,7 @@ function WorkerVisitTasksTab({ member }) {
     setSaving(true)
     try {
       const maxOrder = Math.max(0, ...standardTasks.map(t => t.sort_order))
-      await createWorkerStandardTask(member.id, {
+      await createWorkerStandardTask(worker.id, {
         title: newTaskTitle.trim(),
         sort_order: maxOrder + 1
       })
@@ -78,7 +78,7 @@ function WorkerVisitTasksTab({ member }) {
     if (!editingStandardTask?.title?.trim() || saving) return
     setSaving(true)
     try {
-      await updateWorkerStandardTask(member.id, editingStandardTask.id, {
+      await updateWorkerStandardTask(worker.id, editingStandardTask.id, {
         title: editingStandardTask.title,
         description: editingStandardTask.description
       })
@@ -95,7 +95,7 @@ function WorkerVisitTasksTab({ member }) {
     if (saving) return
     setSaving(true)
     try {
-      await deleteWorkerStandardTask(member.id, taskId)
+      await deleteWorkerStandardTask(worker.id, taskId)
       await loadData()
     } catch (err) {
       console.error('Failed to delete standard task:', err)
@@ -110,7 +110,7 @@ function WorkerVisitTasksTab({ member }) {
     setSaving(true)
     try {
       const maxOrder = Math.max(0, ...currentVisit.tasks.map(t => t.sort_order))
-      await addWorkerVisitTask(member.id, currentVisit.id, {
+      await addWorkerVisitTask(worker.id, currentVisit.id, {
         title: newOneOffTitle.trim(),
         sort_order: maxOrder + 1
       })
@@ -127,7 +127,7 @@ function WorkerVisitTasksTab({ member }) {
     if (!currentVisit || saving) return
     setSaving(true)
     try {
-      await updateWorkerVisitTask(member.id, currentVisit.id, task.id, {
+      await updateWorkerVisitTask(worker.id, currentVisit.id, task.id, {
         is_completed: !task.is_completed
       })
       await loadData()
@@ -142,7 +142,7 @@ function WorkerVisitTasksTab({ member }) {
     if (!currentVisit || saving) return
     setSaving(true)
     try {
-      await deleteWorkerVisitTask(member.id, currentVisit.id, taskId)
+      await deleteWorkerVisitTask(worker.id, currentVisit.id, taskId)
       await loadData()
     } catch (err) {
       console.error('Failed to delete task:', err)
@@ -156,7 +156,7 @@ function WorkerVisitTasksTab({ member }) {
     if (!confirm('Complete this visit? Standard tasks will reset for the next visit.')) return
     setSaving(true)
     try {
-      await completeWorkerVisit(member.id, currentVisit.id)
+      await completeWorkerVisit(worker.id, currentVisit.id)
       await loadData()
     } catch (err) {
       console.error('Failed to complete visit:', err)
@@ -169,7 +169,7 @@ function WorkerVisitTasksTab({ member }) {
     if (saving) return
     setSaving(true)
     try {
-      await duplicateWorkerVisit(member.id, visitId)
+      await duplicateWorkerVisit(worker.id, visitId)
       await loadData()
     } catch (err) {
       console.error('Failed to duplicate visit:', err)
@@ -208,7 +208,7 @@ function WorkerVisitTasksTab({ member }) {
 
     // Save to backend
     try {
-      await reorderWorkerVisitTasks(member.id, currentVisit.id, tasks.map(t => t.id))
+      await reorderWorkerVisitTasks(worker.id, currentVisit.id, tasks.map(t => t.id))
     } catch (err) {
       console.error('Failed to reorder tasks:', err)
       await loadData() // Reload on error

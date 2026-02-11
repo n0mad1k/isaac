@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { ClipboardList, Plus, Check, X, AlertCircle, ChevronDown, ChevronUp, Edit, User, Phone, Mail, Trash2, Ban, Link, Unlink, ShoppingCart, Package, StickyNote, Play, RotateCcw, CheckCircle, Circle, Brush, Wheat, Wrench, TreeDeciduous, Hammer, ArrowUp, ArrowDown, Archive, Inbox } from 'lucide-react'
+import { ClipboardList, Plus, Check, X, AlertCircle, ChevronDown, ChevronUp, Edit, User, Phone, Mail, Trash2, Ban, Link, Unlink, ShoppingCart, Package, StickyNote, Play, RotateCcw, CheckCircle, Circle, Brush, Wheat, Wrench, TreeDeciduous, Hammer, ArrowUp, ArrowDown, Archive, Inbox, ListOrdered } from 'lucide-react'
 import { getWorkers, getWorker, createWorker, updateWorker, deleteWorker, getWorkerTasks, completeWorkerTask, uncompleteWorkerTask, blockWorkerTask, unblockWorkerTask, updateWorkerNote, startWorkerTask, stopWorkerTask, getAssignableTasks, assignTaskToWorker, unassignTaskFromWorker, reorderWorkerTasks, toggleWorkerTaskBacklog, getWorkerSupplyRequests, createSupplyRequest, updateSupplyRequest, deleteSupplyRequest } from '../services/api'
+import WorkerVisitTasksTab from '../components/team/WorkerVisitTasksTab'
 import { format } from 'date-fns'
 import { formatPhoneNumber, displayPhone } from '../services/formatPhone'
 import { useSettings } from '../contexts/SettingsContext'
@@ -63,7 +64,7 @@ function WorkerTasks() {
   const [supplyRequests, setSupplyRequests] = useState([])
   const [showSupplyModal, setShowSupplyModal] = useState(false)
   const [supplyFormData, setSupplyFormData] = useState({ item_name: '', quantity: 1, notes: '' })
-  const [viewMode, setViewMode] = useState('tasks') // 'tasks' or 'supplies'
+  const [viewMode, setViewMode] = useState('visits') // 'visits', 'tasks', or 'supplies'
   const [editingSupplyRequest, setEditingSupplyRequest] = useState(null)
 
   // Translation helper - uses selected worker's language
@@ -574,7 +575,16 @@ function WorkerTasks() {
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex gap-2 bg-gray-800 rounded-lg p-1 w-fit">
+          <div className="flex gap-2 bg-gray-800 rounded-lg p-1 w-fit flex-wrap">
+            <button
+              onClick={() => setViewMode('visits')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                viewMode === 'visits' ? 'bg-farm-green text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <ListOrdered className="w-4 h-4" />
+              Visit Tasks
+            </button>
             <button
               onClick={() => setViewMode('tasks')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -608,6 +618,11 @@ function WorkerTasks() {
               )}
             </button>
           </div>
+
+          {/* Visit Tasks Section */}
+          {viewMode === 'visits' && (
+            <WorkerVisitTasksTab worker={selectedWorker} />
+          )}
 
           {/* Tasks Header - stacks on mobile */}
           {viewMode === 'tasks' && (

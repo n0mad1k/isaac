@@ -797,33 +797,33 @@ export const getMemberBacklog = (memberId) =>
   api.get(`/team/members/${memberId}/backlog/`)
 
 // Worker Standard Tasks & Visits
-export const getWorkerStandardTasks = (memberId) =>
-  api.get(`/team/members/${memberId}/standard-tasks/`)
-export const createWorkerStandardTask = (memberId, data) =>
-  api.post(`/team/members/${memberId}/standard-tasks/`, data)
-export const updateWorkerStandardTask = (memberId, taskId, data) =>
-  api.put(`/team/members/${memberId}/standard-tasks/${taskId}/`, data)
-export const deleteWorkerStandardTask = (memberId, taskId) =>
-  api.delete(`/team/members/${memberId}/standard-tasks/${taskId}/`)
-export const reorderWorkerStandardTasks = (memberId, taskIds) =>
-  api.post(`/team/members/${memberId}/standard-tasks/reorder/`, { task_ids: taskIds })
+export const getWorkerStandardTasks = (workerId) =>
+  api.get(`/workers/${workerId}/standard-tasks/`)
+export const createWorkerStandardTask = (workerId, data) =>
+  api.post(`/workers/${workerId}/standard-tasks/`, data)
+export const updateWorkerStandardTask = (workerId, taskId, data) =>
+  api.put(`/workers/${workerId}/standard-tasks/${taskId}/`, data)
+export const deleteWorkerStandardTask = (workerId, taskId) =>
+  api.delete(`/workers/${workerId}/standard-tasks/${taskId}/`)
+export const reorderWorkerStandardTasks = (workerId, taskIds) =>
+  api.post(`/workers/${workerId}/standard-tasks/reorder/`, { task_ids: taskIds })
 
-export const getWorkerVisits = (memberId, params) =>
-  api.get(`/team/members/${memberId}/visits/`, { params })
-export const getCurrentWorkerVisit = (memberId) =>
-  api.get(`/team/members/${memberId}/visits/current/`)
-export const addWorkerVisitTask = (memberId, visitId, data) =>
-  api.post(`/team/members/${memberId}/visits/${visitId}/tasks/`, data)
-export const updateWorkerVisitTask = (memberId, visitId, taskId, data) =>
-  api.put(`/team/members/${memberId}/visits/${visitId}/tasks/${taskId}/`, data)
-export const deleteWorkerVisitTask = (memberId, visitId, taskId) =>
-  api.delete(`/team/members/${memberId}/visits/${visitId}/tasks/${taskId}/`)
-export const reorderWorkerVisitTasks = (memberId, visitId, taskIds) =>
-  api.post(`/team/members/${memberId}/visits/${visitId}/tasks/reorder/`, { task_ids: taskIds })
-export const completeWorkerVisit = (memberId, visitId) =>
-  api.post(`/team/members/${memberId}/visits/${visitId}/complete/`)
-export const duplicateWorkerVisit = (memberId, visitId) =>
-  api.post(`/team/members/${memberId}/visits/${visitId}/duplicate/`)
+export const getWorkerVisits = (workerId, params) =>
+  api.get(`/workers/${workerId}/visits/`, { params })
+export const getCurrentWorkerVisit = (workerId) =>
+  api.get(`/workers/${workerId}/visits/current/`)
+export const addWorkerVisitTask = (workerId, visitId, data) =>
+  api.post(`/workers/${workerId}/visits/${visitId}/tasks/`, data)
+export const updateWorkerVisitTask = (workerId, visitId, taskId, data) =>
+  api.put(`/workers/${workerId}/visits/${visitId}/tasks/${taskId}/`, data)
+export const deleteWorkerVisitTask = (workerId, visitId, taskId) =>
+  api.delete(`/workers/${workerId}/visits/${visitId}/tasks/${taskId}/`)
+export const reorderWorkerVisitTasks = (workerId, visitId, taskIds) =>
+  api.post(`/workers/${workerId}/visits/${visitId}/tasks/reorder/`, { task_ids: taskIds })
+export const completeWorkerVisit = (workerId, visitId) =>
+  api.post(`/workers/${workerId}/visits/${visitId}/complete/`)
+export const duplicateWorkerVisit = (workerId, visitId) =>
+  api.post(`/workers/${workerId}/visits/${visitId}/duplicate/`)
 
 // Budget & Finance
 export const getBudgetAccounts = () => api.get('/budget/accounts/')

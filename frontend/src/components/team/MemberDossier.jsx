@@ -4,7 +4,7 @@ import {
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle, AlertTriangle,
   Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus, Target, Check, X,
   ListTodo, Package, RefreshCw, TrendingUp, TrendingDown, Minus, Info, Dumbbell,
-  Clock, Flame, Mountain, Timer, Baby, ClipboardList
+  Clock, Flame, Mountain, Timer, Baby
 } from 'lucide-react'
 import {
   getWeightHistory, logWeight, getMedicalHistory, updateMedicalStatus,
@@ -25,7 +25,6 @@ import MemberTrainingTab from './MemberTrainingTab'
 import MemberTasksTab from './MemberTasksTab'
 import MemberSupplyRequestsTab from './MemberSupplyRequestsTab'
 import ChildGrowthTab from './ChildGrowthTab'
-import WorkerVisitTasksTab from './WorkerVisitTasksTab'
 
 function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [activeTab, setActiveTab] = useState('profile')
@@ -217,8 +216,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const allTabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'tasks', label: 'Tasks', icon: ListTodo },
-    // Visit Tasks tab for workers (SUPPORT role or worker-like role_title)
-    ...(isWorker ? [{ id: 'visit_tasks', label: 'Visit Tasks', icon: ClipboardList }] : []),
     { id: 'gear', label: 'Gear', icon: Shield },
     { id: 'supplies', label: 'Supplies', icon: Package },
     { id: 'training', label: 'Training', icon: Target, minAge: 13 },
@@ -605,11 +602,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             {/* Tasks Tab */}
             {activeTab === 'tasks' && (
               <MemberTasksTab member={member} onUpdate={onUpdate} />
-            )}
-
-            {/* Visit Tasks Tab (for workers) */}
-            {activeTab === 'visit_tasks' && (
-              <WorkerVisitTasksTab member={member} />
             )}
 
             {/* Gear Tab */}
