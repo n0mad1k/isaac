@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import {
   CheckCircle, Circle, Clock, AlertTriangle, ChevronDown, ChevronUp,
   Calendar, ListTodo, Edit, Trash2, Archive, Play, MoreVertical, Check, X, User, Bell, Plus,
-  Sun, CalendarClock
+  Sun, CalendarClock, Eye
 } from 'lucide-react'
 import { startOfDay, parseISO, isAfter, isSameDay } from 'date-fns'
 import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask, createTask, getTeamMembers, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas } from '../../services/api'
@@ -40,6 +40,7 @@ function MemberTasksTab({ member, onUpdate }) {
   const [showMemberDropdown, setShowMemberDropdown] = useState(false)
   const [linkType, setLinkType] = useState('none')
   const [linkEntities, setLinkEntities] = useState({ animals: [], plants: [], vehicles: [], equipment: [], farmAreas: [] })
+  const [selectedVisibility, setSelectedVisibility] = useState('schedule')
 
   useEffect(() => {
     loadTasks()
@@ -154,6 +155,8 @@ function MemberTasksTab({ member, onUpdate }) {
         ? task.assigned_member_ids
         : task.assigned_to_member_id ? [task.assigned_to_member_id] : []
     )
+    // Set visibility (default to schedule if not set)
+    setSelectedVisibility(task.visibility || 'schedule')
     // Set link type based on existing entity links
     if (task.animal_id) setLinkType('animal')
     else if (task.plant_id) setLinkType('plant')
@@ -174,6 +177,7 @@ function MemberTasksTab({ member, onUpdate }) {
     setSelectedMemberIds([])
     setShowMemberDropdown(false)
     setLinkType('none')
+    setSelectedVisibility('schedule')
   }
 
   const handleNewTask = () => {
@@ -188,6 +192,7 @@ function MemberTasksTab({ member, onUpdate }) {
       location: '',
       is_backlog: false,
       visible_to_farmhands: false,
+      visibility: 'schedule',
       animal_id: null,
       plant_id: null,
       vehicle_id: null,
@@ -202,11 +207,14 @@ function MemberTasksTab({ member, onUpdate }) {
     setSelectedMemberIds([member.id])
     setShowMemberDropdown(false)
     setLinkType('none')
+    setSelectedVisibility('schedule')
   }
 
   const handleSaveEdit = async () => {
     if (!editingTask.title?.trim()) return
     const isCreating = !editingTask.id
+    // Set is_backlog based on visibility selection
+    const isBacklog = selectedVisibility === 'backlog'
     const payload = {
       title: editingTask.title,
       description: editingTask.description,
@@ -215,8 +223,9 @@ function MemberTasksTab({ member, onUpdate }) {
       due_time: isAllDay ? null : (editingTask.due_time || null),
       category: editingTask.category || 'custom',
       location: editingTask.location || null,
-      is_backlog: editingTask.is_backlog || false,
+      is_backlog: isBacklog,
       visible_to_farmhands: editingTask.visible_to_farmhands || false,
+      visibility: selectedVisibility,
       assigned_member_ids: selectedMemberIds.length > 0 ? selectedMemberIds : [],
       alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
       recurrence: selectedRecurrence,
@@ -862,18 +871,26 @@ function MemberTasksTab({ member, onUpdate }) {
                   </>
                 )}
               </div>
-              {/* Options */}
+              {/* Visibility */}
               <div>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-                  <input
-                    type="checkbox"
-                    checked={editingTask.is_backlog || false}
-                    onChange={(e) => setEditingTask({ ...editingTask, is_backlog: e.target.checked })}
-                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
-                  />
-                  In Backlog
-                  <span className="text-xs text-gray-500">(won't appear in Today's Schedule)</span>
+                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                  <Eye className="w-4 h-4" />
+                  Show In
                 </label>
+                <select
+                  value={selectedVisibility}
+                  onChange={(e) => setSelectedVisibility(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                >
+                  <option value="schedule">Today's Schedule</option>
+                  <option value="backlog">Main Backlog</option>
+                  <option value="member_only">Member Only (private)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedVisibility === 'schedule' && 'Task will appear in the main Today\'s Tasks'}
+                  {selectedVisibility === 'backlog' && 'Task will appear in the main Backlog section'}
+                  {selectedVisibility === 'member_only' && 'Task only visible on this member\'s task page'}
+                </p>
               </div>
               <div>
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">

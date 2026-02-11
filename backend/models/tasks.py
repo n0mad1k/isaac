@@ -49,6 +49,13 @@ class TaskType(enum.Enum):
     EVENT = "event"    # Calendar event - syncs as VEVENT to iOS Calendar
 
 
+class TaskVisibility(str, enum.Enum):
+    """Controls where team member tasks appear"""
+    SCHEDULE = "schedule"      # Shows in Today's Tasks on main schedule/dashboard
+    BACKLOG = "backlog"        # Shows in main backlog section
+    MEMBER_ONLY = "member_only"  # Only shows on team member's task page, not in main schedule
+
+
 class Task(Base):
     """Tasks and scheduled reminders"""
     __tablename__ = "tasks"
@@ -110,6 +117,7 @@ class Task(Base):
     is_active = Column(Boolean, default=True)
     is_backlog = Column(Boolean, default=False)  # True = in backlog, not due today
     visible_to_farmhands = Column(Boolean, default=False)  # True = farm hand accounts can see this task
+    visibility = Column(String(20), default="schedule")  # "schedule", "backlog", "member_only" - where member tasks appear
     notes = Column(Text)
     exception_dates = Column(Text, nullable=True)  # Comma-separated ISO dates excluded from recurrence: "2026-01-29,2026-02-15"
 

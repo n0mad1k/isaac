@@ -10,7 +10,7 @@ from datetime import datetime, date, timedelta
 from pydantic import BaseModel, Field, field_validator
 
 from models.database import get_db
-from models.tasks import Task, TaskCategory, TaskRecurrence, TaskType, FLORIDA_MAINTENANCE_TASKS, task_member_assignments
+from models.tasks import Task, TaskCategory, TaskRecurrence, TaskType, TaskVisibility, FLORIDA_MAINTENANCE_TASKS, task_member_assignments
 from models.users import User
 from models.team import TeamMember
 from services.permissions import require_permission, require_view, require_create, require_interact, require_edit, require_delete
@@ -140,6 +140,7 @@ async def enrich_tasks_with_linked_fields(tasks: list, db: AsyncSession) -> list
             "recurrence_interval": task.recurrence_interval if hasattr(task, 'recurrence_interval') else None,
             "recurrence_days_of_week": task.recurrence_days_of_week if hasattr(task, 'recurrence_days_of_week') else None,
             "reminder_alerts": task.reminder_alerts if hasattr(task, 'reminder_alerts') else None,
+            "visibility": task.visibility if hasattr(task, 'visibility') else "schedule",
         }
         enriched.append(task_dict)
     return enriched
@@ -456,6 +457,7 @@ class TaskCreate(BaseModel):
     assigned_to_member_id: Optional[int] = Field(None, ge=1)  # Assign to single team member (legacy)
     assigned_member_ids: Optional[List[int]] = None  # Assign to multiple team members
     visible_to_farmhands: bool = False
+    visibility: Optional[str] = Field("schedule", pattern=r'^(schedule|backlog|member_only)$')  # Where member tasks appear
 
 
 class TaskUpdate(BaseModel):
@@ -481,6 +483,7 @@ class TaskUpdate(BaseModel):
     assigned_to_member_id: Optional[int] = Field(None, ge=1)  # Legacy single assignment
     assigned_member_ids: Optional[List[int]] = None  # Multiple team member assignment
     visible_to_farmhands: Optional[bool] = None
+    visibility: Optional[str] = Field(None, pattern=r'^(schedule|backlog|member_only)$')  # Where member tasks appear
 
 
 class OccurrenceDate(BaseModel):
@@ -541,6 +544,7 @@ class TaskResponse(BaseModel):
     visible_to_farmhands: bool = False
     recurrence_interval: Optional[int] = None
     reminder_alerts: Optional[List[int]] = None
+    visibility: Optional[str] = "schedule"  # schedule, backlog, member_only
 
     class Config:
         from_attributes = True
@@ -598,6 +602,9 @@ async def list_tasks(
     if not include_worker_tasks:
         query = query.where(Task.assigned_to_worker_id == None)
 
+    # Exclude member_only tasks (they only show on team member's task page)
+    query = query.where(or_(Task.visibility == None, Task.visibility != "member_only"))
+
     if category:
         query = query.where(Task.category == category)
     if completed is not None:
@@ -651,13 +658,14 @@ async def create_task(
 
 @router.get("/today/", response_model=List[TaskResponse])
 async def get_todays_tasks(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("tasks"))):
-    """Get all tasks due today (excludes worker-assigned tasks)"""
+    """Get all tasks due today (excludes worker-assigned tasks and member_only tasks)"""
     today = date.today()
     result = await db.execute(
         select(Task)
         .where(Task.due_date == today)
         .where(Task.is_active == True)
         .where(Task.assigned_to_worker_id.is_(None))
+        .where(or_(Task.visibility == None, Task.visibility != "member_only"))
         .order_by(Task.priority, Task.due_time)
     )
     tasks = result.scalars().all()
@@ -670,7 +678,7 @@ async def get_upcoming_tasks(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_view("tasks")),
 ):
-    """Get tasks due in the next X days (excludes worker-assigned tasks)"""
+    """Get tasks due in the next X days (excludes worker-assigned and member_only tasks)"""
     today = date.today()
     end_date = today + timedelta(days=days)
     result = await db.execute(
@@ -680,6 +688,7 @@ async def get_upcoming_tasks(
         .where(Task.is_active == True)
         .where(Task.is_completed == False)
         .where(Task.assigned_to_worker_id.is_(None))
+        .where(or_(Task.visibility == None, Task.visibility != "member_only"))
         .order_by(Task.due_date, Task.priority)
     )
     tasks = result.scalars().all()
@@ -688,7 +697,7 @@ async def get_upcoming_tasks(
 
 @router.get("/overdue/", response_model=List[TaskResponse])
 async def get_overdue_tasks(db: AsyncSession = Depends(get_db), user: User = Depends(require_view("tasks"))):
-    """Get all overdue tasks (includes tasks with past due_time today, excludes worker-assigned tasks)"""
+    """Get all overdue tasks (includes tasks with past due_time today, excludes worker-assigned and member_only tasks)"""
     today = date.today()
     now_time = datetime.now().strftime("%H:%M")
 
@@ -708,6 +717,7 @@ async def get_overdue_tasks(db: AsyncSession = Depends(get_db), user: User = Dep
         .where(Task.is_completed == False)
         .where(Task.is_active == True)
         .where(Task.assigned_to_worker_id.is_(None))
+        .where(or_(Task.visibility == None, Task.visibility != "member_only"))
         .order_by(Task.due_date, Task.priority)
     )
     tasks = result.scalars().all()
@@ -886,13 +896,14 @@ async def get_calendar_tasks(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_view("tasks")),
 ):
-    """Get tasks for a date range (for calendar view, excludes worker-assigned tasks)"""
+    """Get tasks for a date range (for calendar view, excludes worker-assigned and member_only tasks)"""
     result = await db.execute(
         select(Task)
         .where(Task.due_date >= start_date)
         .where(Task.due_date <= end_date)
         .where(Task.is_active == True)
         .where(Task.assigned_to_worker_id.is_(None))
+        .where(or_(Task.visibility == None, Task.visibility != "member_only"))
         .order_by(Task.due_date, Task.priority)
     )
     tasks = result.scalars().all()

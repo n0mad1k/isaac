@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.3] - 2026-02-11
+
+### Added
+- **Team Member Task Visibility** - Control where member-assigned tasks appear
+  - **Today's Schedule** - Task shows in main Today's Tasks and calendar
+  - **Main Backlog** - Task shows in main Backlog section (not today's schedule)
+  - **Member Only** - Task is private to the team member (e.g., "order new underwear")
+  - Select visibility via "Show In" dropdown when creating/editing member tasks
+
 ## [1.85.2] - 2026-02-11
 
 ### Changed
