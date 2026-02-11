@@ -882,12 +882,12 @@ function MemberTasksTab({ member, onUpdate }) {
                   onChange={(e) => setSelectedVisibility(e.target.value)}
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
-                  <option value="schedule">Today's Schedule</option>
+                  <option value="schedule">Today's Schedule + Member Reminders</option>
                   <option value="backlog">Main Backlog</option>
                   <option value="member_only">Member Only (private)</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  {selectedVisibility === 'schedule' && 'Task will appear in the main Today\'s Tasks'}
+                  {selectedVisibility === 'schedule' && 'Task appears in Today\'s Tasks and member\'s reminders/events'}
                   {selectedVisibility === 'backlog' && 'Task will appear in the main Backlog section'}
                   {selectedVisibility === 'member_only' && 'Task only visible on this member\'s task page'}
                 </p>
