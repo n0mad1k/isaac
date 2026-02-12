@@ -12,6 +12,8 @@ import {
   updateBudgetTransaction,
   deleteBudgetTransaction,
   updateBudgetCategory,
+  createBudgetCategory,
+  deleteBudgetCategory,
 } from '../../services/api'
 
 function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
@@ -24,6 +26,8 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
   const [showTransactionModal, setShowTransactionModal] = useState(false)
   const [showAllocationModal, setShowAllocationModal] = useState(false)
   const [selectedAllocation, setSelectedAllocation] = useState(null)
+  const [showNewAllocationModal, setShowNewAllocationModal] = useState(false)
+  const [newAllocation, setNewAllocation] = useState({ name: '', starting_balance: '' })
   const [editingTransaction, setEditingTransaction] = useState(null)
   const [saving, setSaving] = useState(false)
   const [transactionPage, setTransactionPage] = useState(0)
@@ -225,6 +229,45 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
     }
   }
 
+  const handleCreateAllocation = async () => {
+    if (!newAllocation.name.trim() || saving) return
+
+    setSaving(true)
+    try {
+      await createBudgetCategory({
+        name: newAllocation.name.trim(),
+        category_type: 'TRANSFER',
+        account_id: accountId,
+        starting_balance: parseFloat(newAllocation.starting_balance) || 0,
+        is_active: true,
+      })
+      setShowNewAllocationModal(false)
+      setNewAllocation({ name: '', starting_balance: '' })
+      fetchAccountData()
+      onAccountUpdated?.()
+    } catch (err) {
+      console.error('Failed to create allocation:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteAllocation = async (allocId) => {
+    if (saving) return
+    if (!confirm('Delete this allocation? This cannot be undone.')) return
+
+    setSaving(true)
+    try {
+      await deleteBudgetCategory(allocId)
+      fetchAccountData()
+      onAccountUpdated?.()
+    } catch (err) {
+      console.error('Failed to delete allocation:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -309,10 +352,22 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
         </div>
       </div>
 
-      {/* Allocations Section */}
-      {hasAllocations && (
-        <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-          <h3 className="text-lg font-medium mb-3" style={{ color: 'var(--color-text-primary)' }}>Allocations</h3>
+      {/* Allocations Section - Always show so user can add allocations */}
+      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-medium" style={{ color: 'var(--color-text-primary)' }}>Allocations</h3>
+          <button
+            onClick={() => {
+              setNewAllocation({ name: '', starting_balance: '' })
+              setShowNewAllocationModal(true)
+            }}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+          >
+            <Plus className="w-3 h-3" />
+            Add
+          </button>
+        </div>
+        {hasAllocations ? (
           <div className="space-y-2">
             {account.allocations.map((alloc) => (
               <div key={alloc.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
@@ -334,6 +389,13 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   >
                     Adjust
                   </button>
+                  <button
+                    onClick={() => handleDeleteAllocation(alloc.id)}
+                    className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                    title="Delete allocation"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -346,8 +408,12 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
               </div>
             )}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-sm text-gray-500 text-center py-4">
+            No allocations yet. Create allocations to track separate funds within this account (e.g., "Travel Fund", "House Fund").
+          </p>
+        )}
+      </div>
 
       {/* Action Buttons */}
       <div className="flex gap-2">
@@ -676,6 +742,61 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Allocation Modal */}
+      {showNewAllocationModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="rounded-xl w-full max-w-sm" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>New Allocation</h2>
+              <button onClick={() => setShowNewAllocationModal(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-gray-400">
+                Create a sub-fund to track a portion of this account separately (e.g., "Travel Fund", "House Fund").
+              </p>
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Name *</label>
+                <input
+                  type="text"
+                  value={newAllocation.name}
+                  onChange={(e) => setNewAllocation({ ...newAllocation, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  placeholder="e.g., Travel Fund"
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Starting Balance</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={newAllocation.starting_balance}
+                  onChange={(e) => setNewAllocation({ ...newAllocation, starting_balance: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setShowNewAllocationModal(false)}
+                  className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateAllocation}
+                  disabled={saving || !newAllocation.name.trim()}
+                  className="flex-1 px-4 py-2 rounded-lg bg-farm-green text-white hover:bg-green-600 transition-colors disabled:opacity-50"
+                >
+                  {saving ? 'Creating...' : 'Create'}
                 </button>
               </div>
             </div>
