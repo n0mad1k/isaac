@@ -11,9 +11,9 @@ import {
   createBudgetTransaction,
   updateBudgetTransaction,
   deleteBudgetTransaction,
-  updateBudgetCategory,
-  createBudgetCategory,
-  deleteBudgetCategory,
+  createAccountBucket,
+  updateAccountBucket,
+  deleteAccountBucket,
 } from '../../services/api'
 
 function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
@@ -24,10 +24,10 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
   const [showSettings, setShowSettings] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showTransactionModal, setShowTransactionModal] = useState(false)
-  const [showAllocationModal, setShowAllocationModal] = useState(false)
-  const [selectedAllocation, setSelectedAllocation] = useState(null)
-  const [showNewAllocationModal, setShowNewAllocationModal] = useState(false)
-  const [newAllocation, setNewAllocation] = useState({ name: '', starting_balance: '' })
+  const [showBucketModal, setShowBucketModal] = useState(false)
+  const [selectedBucket, setSelectedBucket] = useState(null)
+  const [showNewBucketModal, setShowNewBucketModal] = useState(false)
+  const [newBucket, setNewBucket] = useState({ name: '', balance: '' })
   const [editingTransaction, setEditingTransaction] = useState(null)
   const [saving, setSaving] = useState(false)
   const [transactionPage, setTransactionPage] = useState(0)
@@ -48,7 +48,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
     balance_as_of: '',
   })
 
-  const [allocationAdjust, setAllocationAdjust] = useState({
+  const [bucketAdjust, setBucketAdjust] = useState({
     amount: '',
     operation: 'add', // 'add' or 'subtract'
   })
@@ -205,64 +205,61 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
     }
   }
 
-  const handleAdjustAllocation = async () => {
-    if (!selectedAllocation || !allocationAdjust.amount || saving) return
+  const handleAdjustBucket = async () => {
+    if (!selectedBucket || !bucketAdjust.amount || saving) return
 
     setSaving(true)
     try {
-      const adjustAmount = parseFloat(allocationAdjust.amount)
-      const newBalance = allocationAdjust.operation === 'add'
-        ? (selectedAllocation.starting_balance || 0) + adjustAmount
-        : (selectedAllocation.starting_balance || 0) - adjustAmount
+      const adjustAmount = parseFloat(bucketAdjust.amount)
+      const newBalance = bucketAdjust.operation === 'add'
+        ? (selectedBucket.balance || 0) + adjustAmount
+        : (selectedBucket.balance || 0) - adjustAmount
 
-      await updateBudgetCategory(selectedAllocation.id, {
-        starting_balance: newBalance,
+      await updateAccountBucket(accountId, selectedBucket.id, {
+        balance: newBalance,
       })
-      setShowAllocationModal(false)
-      setSelectedAllocation(null)
-      setAllocationAdjust({ amount: '', operation: 'add' })
+      setShowBucketModal(false)
+      setSelectedBucket(null)
+      setBucketAdjust({ amount: '', operation: 'add' })
       fetchAccountData()
     } catch (err) {
-      console.error('Failed to adjust allocation:', err)
+      console.error('Failed to adjust bucket:', err)
     } finally {
       setSaving(false)
     }
   }
 
-  const handleCreateAllocation = async () => {
-    if (!newAllocation.name.trim() || saving) return
+  const handleCreateBucket = async () => {
+    if (!newBucket.name.trim() || saving) return
 
     setSaving(true)
     try {
-      await createBudgetCategory({
-        name: newAllocation.name.trim(),
-        category_type: 'TRANSFER',
-        account_id: accountId,
-        starting_balance: parseFloat(newAllocation.starting_balance) || 0,
-        is_active: true,
+      await createAccountBucket(accountId, {
+        name: newBucket.name.trim(),
+        balance: parseFloat(newBucket.balance) || 0,
       })
-      setShowNewAllocationModal(false)
-      setNewAllocation({ name: '', starting_balance: '' })
+      setShowNewBucketModal(false)
+      setNewBucket({ name: '', balance: '' })
       fetchAccountData()
       onAccountUpdated?.()
     } catch (err) {
-      console.error('Failed to create allocation:', err)
+      console.error('Failed to create bucket:', err)
     } finally {
       setSaving(false)
     }
   }
 
-  const handleDeleteAllocation = async (allocId) => {
+  const handleDeleteBucket = async (bucketId) => {
     if (saving) return
-    if (!confirm('Delete this allocation? This cannot be undone.')) return
+    if (!confirm('Delete this bucket? This cannot be undone.')) return
 
     setSaving(true)
     try {
-      await deleteBudgetCategory(allocId)
+      await deleteAccountBucket(accountId, bucketId)
       fetchAccountData()
       onAccountUpdated?.()
     } catch (err) {
-      console.error('Failed to delete allocation:', err)
+      console.error('Failed to delete bucket:', err)
     } finally {
       setSaving(false)
     }
@@ -285,14 +282,11 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
     )
   }
 
-  // Check if account has allocations (TRANSFER categories linked to it)
-  const hasAllocations = account.allocations && account.allocations.length > 0
+  // Check if account has buckets
+  const hasBuckets = account.buckets && account.buckets.length > 0
 
-  // Calculate unallocated amount (account balance minus sum of allocation balances)
-  const totalAllocated = hasAllocations
-    ? account.allocations.reduce((sum, a) => sum + (a.current_balance || 0), 0)
-    : 0
-  const unallocated = account.current_balance - totalAllocated
+  // Unallocated amount comes from the API now
+  const unallocated = account.unallocated || 0
 
   // Calculate change from initial balance
   const balanceChange = account.current_balance - (account.initial_balance || 0)
@@ -352,14 +346,14 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
         </div>
       </div>
 
-      {/* Allocations Section - Always show so user can add allocations */}
+      {/* Buckets Section - Separate pots of money within the account */}
       <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-medium" style={{ color: 'var(--color-text-primary)' }}>Allocations</h3>
+          <h3 className="text-lg font-medium" style={{ color: 'var(--color-text-primary)' }}>Buckets</h3>
           <button
             onClick={() => {
-              setNewAllocation({ name: '', starting_balance: '' })
-              setShowNewAllocationModal(true)
+              setNewBucket({ name: '', balance: '' })
+              setShowNewBucketModal(true)
             }}
             className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
           >
@@ -367,50 +361,43 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
             Add
           </button>
         </div>
-        {hasAllocations ? (
+        {hasBuckets ? (
           <div className="space-y-2">
-            {account.allocations.map((alloc) => (
-              <div key={alloc.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
-                <div>
-                  <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{alloc.name}</p>
-                  {alloc.budget_amount > 0 && (
-                    <p className="text-xs text-green-400">+{fmt(alloc.budget_amount)}/period</p>
-                  )}
-                </div>
+            {account.buckets.map((bucket) => (
+              <div key={bucket.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
+                <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{bucket.name}</p>
                 <div className="flex items-center gap-3">
-                  <span className="text-lg font-medium" style={{ color: 'var(--color-text-primary)' }}>{fmt(alloc.current_balance)}</span>
+                  <span className="text-lg font-medium" style={{ color: 'var(--color-text-primary)' }}>{fmt(bucket.balance)}</span>
                   <button
                     onClick={() => {
-                      setSelectedAllocation(alloc)
-                      setAllocationAdjust({ amount: '', operation: 'add' })
-                      setShowAllocationModal(true)
+                      setSelectedBucket(bucket)
+                      setBucketAdjust({ amount: '', operation: 'add' })
+                      setShowBucketModal(true)
                     }}
                     className="px-2 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
                   >
                     Adjust
                   </button>
                   <button
-                    onClick={() => handleDeleteAllocation(alloc.id)}
+                    onClick={() => handleDeleteBucket(bucket.id)}
                     className="p-1 text-gray-500 hover:text-red-400 transition-colors"
-                    title="Delete allocation"
+                    title="Delete bucket"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
             ))}
-            {unallocated !== 0 && (
-              <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/30 border border-dashed border-gray-700">
-                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Unallocated</p>
-                <span className={`text-lg font-medium ${unallocated >= 0 ? 'text-gray-400' : 'text-yellow-400'}`}>
-                  {fmt(unallocated)}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/30 border border-dashed border-gray-700">
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Unallocated</p>
+              <span className={`text-lg font-medium ${unallocated >= 0 ? 'text-gray-400' : 'text-yellow-400'}`}>
+                {fmt(unallocated)}
+              </span>
+            </div>
           </div>
         ) : (
           <p className="text-sm text-gray-500 text-center py-4">
-            No allocations yet. Create allocations to track separate funds within this account (e.g., "Travel Fund", "House Fund").
+            No buckets yet. Create buckets to track separate pots of money within this account (e.g., "Travel", "House").
           </p>
         )}
       </div>
@@ -749,28 +736,28 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
         </div>
       )}
 
-      {/* New Allocation Modal */}
-      {showNewAllocationModal && (
+      {/* New Bucket Modal */}
+      {showNewBucketModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-sm" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-              <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>New Allocation</h2>
-              <button onClick={() => setShowNewAllocationModal(false)} className="text-gray-400 hover:text-white">
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>New Bucket</h2>
+              <button onClick={() => setShowNewBucketModal(false)} className="text-gray-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4 space-y-4">
               <p className="text-sm text-gray-400">
-                Create a sub-fund to track a portion of this account separately (e.g., "Travel Fund", "House Fund").
+                Create a bucket to track a separate pot of money within this account (e.g., "Travel", "House").
               </p>
               <div>
                 <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Name *</label>
                 <input
                   type="text"
-                  value={newAllocation.name}
-                  onChange={(e) => setNewAllocation({ ...newAllocation, name: e.target.value })}
+                  value={newBucket.name}
+                  onChange={(e) => setNewBucket({ ...newBucket, name: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
-                  placeholder="e.g., Travel Fund"
+                  placeholder="e.g., Travel"
                 />
               </div>
               <div>
@@ -778,22 +765,22 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                 <input
                   type="number"
                   step="0.01"
-                  value={newAllocation.starting_balance}
-                  onChange={(e) => setNewAllocation({ ...newAllocation, starting_balance: e.target.value })}
+                  value={newBucket.balance}
+                  onChange={(e) => setNewBucket({ ...newBucket, balance: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
                   placeholder="0.00"
                 />
               </div>
               <div className="flex gap-2 pt-2">
                 <button
-                  onClick={() => setShowNewAllocationModal(false)}
+                  onClick={() => setShowNewBucketModal(false)}
                   className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleCreateAllocation}
-                  disabled={saving || !newAllocation.name.trim()}
+                  onClick={handleCreateBucket}
+                  disabled={saving || !newBucket.name.trim()}
                   className="flex-1 px-4 py-2 rounded-lg bg-farm-green text-white hover:bg-green-600 transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Creating...' : 'Create'}
@@ -804,15 +791,15 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
         </div>
       )}
 
-      {/* Adjust Allocation Modal */}
-      {showAllocationModal && selectedAllocation && (
+      {/* Adjust Bucket Modal */}
+      {showBucketModal && selectedBucket && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-sm" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
               <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-                Adjust {selectedAllocation.name}
+                Adjust {selectedBucket.name}
               </h2>
-              <button onClick={() => setShowAllocationModal(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowBucketModal(false)} className="text-gray-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -820,16 +807,16 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
               <div className="text-center p-3 rounded-lg bg-gray-800/50">
                 <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Current Balance</p>
                 <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-                  {fmt(selectedAllocation.current_balance)}
+                  {fmt(selectedBucket.balance)}
                 </p>
               </div>
 
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setAllocationAdjust({ ...allocationAdjust, operation: 'add' })}
+                  onClick={() => setBucketAdjust({ ...bucketAdjust, operation: 'add' })}
                   className={`flex-1 py-2 rounded-lg transition-colors ${
-                    allocationAdjust.operation === 'add'
+                    bucketAdjust.operation === 'add'
                       ? 'bg-green-600 text-white'
                       : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                   }`}
@@ -838,9 +825,9 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAllocationAdjust({ ...allocationAdjust, operation: 'subtract' })}
+                  onClick={() => setBucketAdjust({ ...bucketAdjust, operation: 'subtract' })}
                   className={`flex-1 py-2 rounded-lg transition-colors ${
-                    allocationAdjust.operation === 'subtract'
+                    bucketAdjust.operation === 'subtract'
                       ? 'bg-red-600 text-white'
                       : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                   }`}
@@ -854,21 +841,21 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                 <input
                   type="number"
                   step="0.01"
-                  value={allocationAdjust.amount}
-                  onChange={(e) => setAllocationAdjust({ ...allocationAdjust, amount: e.target.value })}
+                  value={bucketAdjust.amount}
+                  onChange={(e) => setBucketAdjust({ ...bucketAdjust, amount: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
                   placeholder="0.00"
                 />
               </div>
 
-              {allocationAdjust.amount && (
+              {bucketAdjust.amount && (
                 <div className="text-center p-3 rounded-lg bg-gray-800/30 border border-dashed border-gray-700">
                   <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>New Balance</p>
                   <p className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                     {fmt(
-                      allocationAdjust.operation === 'add'
-                        ? (selectedAllocation.starting_balance || 0) + parseFloat(allocationAdjust.amount || 0)
-                        : (selectedAllocation.starting_balance || 0) - parseFloat(allocationAdjust.amount || 0)
+                      bucketAdjust.operation === 'add'
+                        ? (selectedBucket.balance || 0) + parseFloat(bucketAdjust.amount || 0)
+                        : (selectedBucket.balance || 0) - parseFloat(bucketAdjust.amount || 0)
                     )}
                   </p>
                 </div>
@@ -876,14 +863,14 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
 
               <div className="flex gap-2 pt-2">
                 <button
-                  onClick={() => setShowAllocationModal(false)}
+                  onClick={() => setShowBucketModal(false)}
                   className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleAdjustAllocation}
-                  disabled={saving || !allocationAdjust.amount}
+                  onClick={handleAdjustBucket}
+                  disabled={saving || !bucketAdjust.amount}
                   className="flex-1 px-4 py-2 rounded-lg bg-farm-green text-white hover:bg-green-600 transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save'}

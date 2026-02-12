@@ -15,7 +15,7 @@ import logging
 from models.database import get_db
 from models.budget import (
     BudgetAccount, BudgetCategory, BudgetTransaction, BudgetCategoryRule, BudgetIncome,
-    BudgetPeriodSnapshot,
+    BudgetPeriodSnapshot, AccountBucket,
     AccountType, CategoryType, TransactionType, TransactionSource, MatchType, IncomeFrequency
 )
 from models.users import User
@@ -78,6 +78,29 @@ class AccountWithBalanceResponse(BaseModel):
     initial_balance: float
     balance_as_of: Optional[str]
     current_balance: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# --- Bucket Schemas (pots of money within an account) ---
+class BucketCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    balance: float = 0.0
+    sort_order: int = 0
+
+class BucketUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    balance: Optional[float] = None
+    sort_order: Optional[int] = None
+
+class BucketResponse(BaseModel):
+    id: int
+    account_id: int
+    name: str
+    balance: float
+    sort_order: int
     created_at: datetime
 
     class Config:
@@ -459,7 +482,7 @@ async def get_account_detail(
     user: User = Depends(require_view("budget")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get account detail with current balance and linked allocations (TRANSFER categories)"""
+    """Get account detail with current balance and buckets"""
     try:
         result = await db.execute(select(BudgetAccount).where(BudgetAccount.id == account_id))
         account = result.scalar_one_or_none()
@@ -468,39 +491,17 @@ async def get_account_detail(
 
         current_balance = await _calculate_account_balance(account, db)
 
-        # Find TRANSFER categories linked to this account (allocations)
-        cat_result = await db.execute(
-            select(BudgetCategory).where(
-                BudgetCategory.account_id == account_id,
-                BudgetCategory.category_type == CategoryType.TRANSFER,
-                BudgetCategory.is_active == True,
-            ).order_by(BudgetCategory.sort_order, BudgetCategory.name)
+        # Get buckets for this account
+        bucket_result = await db.execute(
+            select(AccountBucket)
+            .where(AccountBucket.account_id == account_id)
+            .order_by(AccountBucket.sort_order, AccountBucket.name)
         )
-        allocation_cats = cat_result.scalars().all()
+        buckets = bucket_result.scalars().all()
 
-        # Get budget deposit per period (sum of TRANSFER category budget_amounts linked to this account)
-        budget_deposit_per_period = sum(c.budget_amount or 0 for c in allocation_cats)
-
-        # Calculate current balance for each allocation
-        allocations = []
-        for cat in allocation_cats:
-            # Allocation balance = starting_balance + sum of transactions in this category
-            starting = cat.starting_balance or 0.0
-            txn_result = await db.execute(
-                select(func.sum(BudgetTransaction.amount)).where(
-                    BudgetTransaction.category_id == cat.id
-                )
-            )
-            txn_total = txn_result.scalar() or 0.0
-            alloc_balance = round(starting + txn_total, 2)
-
-            allocations.append({
-                "id": cat.id,
-                "name": cat.name,
-                "starting_balance": starting,
-                "current_balance": alloc_balance,
-                "budget_amount": cat.budget_amount or 0.0,
-            })
+        # Calculate total in buckets and unallocated
+        total_in_buckets = sum(b.balance for b in buckets)
+        unallocated = round(current_balance - total_in_buckets, 2)
 
         return {
             "id": account.id,
@@ -513,8 +514,16 @@ async def get_account_detail(
             "initial_balance": account.initial_balance or 0.0,
             "balance_as_of": account.balance_as_of,
             "current_balance": current_balance,
-            "budget_deposit_per_period": budget_deposit_per_period,
-            "allocations": allocations,
+            "buckets": [
+                {
+                    "id": b.id,
+                    "name": b.name,
+                    "balance": b.balance,
+                    "sort_order": b.sort_order,
+                }
+                for b in buckets
+            ],
+            "unallocated": unallocated,
             "created_at": account.created_at.isoformat() if account.created_at else None,
         }
     except HTTPException:
@@ -2101,4 +2110,124 @@ async def get_period_snapshots(
         ]
     except Exception as e:
         logger.error(f"Error getting period snapshots: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+# ========================
+# Bucket Endpoints (pots of money within accounts)
+# ========================
+
+@router.get("/accounts/{account_id}/buckets/", response_model=List[BucketResponse])
+async def get_account_buckets(
+    account_id: int,
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all buckets for an account"""
+    try:
+        result = await db.execute(
+            select(AccountBucket)
+            .where(AccountBucket.account_id == account_id)
+            .order_by(AccountBucket.sort_order, AccountBucket.name)
+        )
+        return result.scalars().all()
+    except Exception as e:
+        logger.error(f"Error getting buckets for account {account_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.post("/accounts/{account_id}/buckets/", response_model=BucketResponse)
+async def create_bucket(
+    account_id: int,
+    data: BucketCreate,
+    user: User = Depends(require_create("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new bucket within an account"""
+    try:
+        # Verify account exists
+        result = await db.execute(select(BudgetAccount).where(BudgetAccount.id == account_id))
+        if not result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Account not found")
+
+        bucket = AccountBucket(
+            account_id=account_id,
+            name=data.name.strip(),
+            balance=data.balance,
+            sort_order=data.sort_order,
+        )
+        db.add(bucket)
+        await db.commit()
+        await db.refresh(bucket)
+        return bucket
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating bucket: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.put("/accounts/{account_id}/buckets/{bucket_id}/", response_model=BucketResponse)
+async def update_bucket(
+    account_id: int,
+    bucket_id: int,
+    data: BucketUpdate,
+    user: User = Depends(require_edit("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a bucket"""
+    try:
+        result = await db.execute(
+            select(AccountBucket).where(
+                AccountBucket.id == bucket_id,
+                AccountBucket.account_id == account_id
+            )
+        )
+        bucket = result.scalar_one_or_none()
+        if not bucket:
+            raise HTTPException(status_code=404, detail="Bucket not found")
+
+        if data.name is not None:
+            bucket.name = data.name.strip()
+        if data.balance is not None:
+            bucket.balance = data.balance
+        if data.sort_order is not None:
+            bucket.sort_order = data.sort_order
+
+        await db.commit()
+        await db.refresh(bucket)
+        return bucket
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating bucket {bucket_id}: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@router.delete("/accounts/{account_id}/buckets/{bucket_id}/")
+async def delete_bucket(
+    account_id: int,
+    bucket_id: int,
+    user: User = Depends(require_delete("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a bucket"""
+    try:
+        result = await db.execute(
+            select(AccountBucket).where(
+                AccountBucket.id == bucket_id,
+                AccountBucket.account_id == account_id
+            )
+        )
+        bucket = result.scalar_one_or_none()
+        if not bucket:
+            raise HTTPException(status_code=404, detail="Bucket not found")
+
+        await db.delete(bucket)
+        await db.commit()
+        return {"message": "Bucket deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting bucket {bucket_id}: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred")

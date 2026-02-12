@@ -841,6 +841,12 @@ export const createBudgetCategory = (data) => api.post('/budget/categories/', da
 export const updateBudgetCategory = (id, data) => api.put(`/budget/categories/${id}/`, data)
 export const deleteBudgetCategory = (id) => api.delete(`/budget/categories/${id}/`)
 
+// Account Buckets (pots of money within accounts)
+export const getAccountBuckets = (accountId) => api.get(`/budget/accounts/${accountId}/buckets/`)
+export const createAccountBucket = (accountId, data) => api.post(`/budget/accounts/${accountId}/buckets/`, data)
+export const updateAccountBucket = (accountId, bucketId, data) => api.put(`/budget/accounts/${accountId}/buckets/${bucketId}/`, data)
+export const deleteAccountBucket = (accountId, bucketId) => api.delete(`/budget/accounts/${accountId}/buckets/${bucketId}/`)
+
 export const getBudgetTransactions = (params) => api.get('/budget/transactions/', { params })
 export const createBudgetTransaction = (data) => api.post('/budget/transactions/', data)
 export const updateBudgetTransaction = (id, data) => api.put(`/budget/transactions/${id}/`, data)

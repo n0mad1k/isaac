@@ -71,9 +71,28 @@ class BudgetAccount(Base):
     transactions = relationship("BudgetTransaction", back_populates="account")
     income_sources = relationship("BudgetIncome", back_populates="account")
     categories = relationship("BudgetCategory", back_populates="account")
+    buckets = relationship("AccountBucket", back_populates="account", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<BudgetAccount {self.name}>"
+
+
+class AccountBucket(Base):
+    """Virtual buckets/pots within an account for tracking separate funds"""
+    __tablename__ = "account_buckets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    account_id = Column(Integer, ForeignKey("budget_accounts.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(100), nullable=False)
+    balance = Column(Float, default=0.0, nullable=False)
+    sort_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    account = relationship("BudgetAccount", back_populates="buckets")
+
+    def __repr__(self):
+        return f"<AccountBucket {self.name}: ${self.balance}>"
 
 
 class BudgetCategory(Base):
