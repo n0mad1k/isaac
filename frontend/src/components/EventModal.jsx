@@ -51,6 +51,92 @@ const DAY_OPTIONS = [
 ]
 
 /**
+ * MM/DD/YYYY date input component
+ * Takes value in ISO format (YYYY-MM-DD) and displays as MM/DD/YYYY
+ */
+function DateInputMMDDYYYY({ value, onChange, required = false, min = null, className = '' }) {
+  // Parse ISO date to components
+  const parseDate = (dateStr) => {
+    if (!dateStr) {
+      const today = new Date()
+      return {
+        month: String(today.getMonth() + 1).padStart(2, '0'),
+        day: String(today.getDate()).padStart(2, '0'),
+        year: String(today.getFullYear())
+      }
+    }
+    const [y, m, d] = dateStr.split('-')
+    return { month: m, day: d, year: y }
+  }
+
+  // Convert components to ISO format
+  const toISO = (month, day, year) => `${year}-${month}-${day}`
+
+  const { month, day, year } = parseDate(value)
+
+  const handleChange = (field, val) => {
+    const newVals = { month, day, year }
+    newVals[field] = val
+    onChange(toISO(newVals.month, newVals.day, newVals.year))
+  }
+
+  const months = [
+    { value: '01', label: 'Jan' },
+    { value: '02', label: 'Feb' },
+    { value: '03', label: 'Mar' },
+    { value: '04', label: 'Apr' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'Jun' },
+    { value: '07', label: 'Jul' },
+    { value: '08', label: 'Aug' },
+    { value: '09', label: 'Sep' },
+    { value: '10', label: 'Oct' },
+    { value: '11', label: 'Nov' },
+    { value: '12', label: 'Dec' },
+  ]
+  const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'))
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: 11 }, (_, i) => String(currentYear - 1 + i))
+
+  return (
+    <div className={`flex gap-1 ${className}`}>
+      <select
+        value={month}
+        onChange={(e) => handleChange('month', e.target.value)}
+        required={required}
+        className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+      >
+        {months.map(m => (
+          <option key={m.value} value={m.value}>{m.label}</option>
+        ))}
+      </select>
+      <span className="flex items-center text-gray-400">/</span>
+      <select
+        value={day}
+        onChange={(e) => handleChange('day', e.target.value)}
+        required={required}
+        className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+      >
+        {days.map(d => (
+          <option key={d} value={d}>{d}</option>
+        ))}
+      </select>
+      <span className="flex items-center text-gray-400">/</span>
+      <select
+        value={year}
+        onChange={(e) => handleChange('year', e.target.value)}
+        required={required}
+        className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+      >
+        {years.map(y => (
+          <option key={y} value={y}>{y}</option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+/**
  * 12-hour time input component
  * Takes value in 24hr format (HH:mm) and displays as 12hr with AM/PM
  */
@@ -520,14 +606,11 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
             <div>
               <label className="block text-sm text-gray-400 mb-1">
                 {isMultiDay ? 'Start Date' : 'Date'} {formData.task_type === 'event' ? '*' : ''}
-                <span className="text-xs text-gray-500 ml-2">(MM/DD/YYYY)</span>
               </label>
-              <input
-                type="date"
-                required={formData.task_type === 'event'}
+              <DateInputMMDDYYYY
                 value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green [&::-webkit-calendar-picker-indicator]:invert"
+                onChange={(date) => setFormData({ ...formData, due_date: date })}
+                required={formData.task_type === 'event'}
               />
             </div>
           )}
@@ -555,15 +638,11 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
             <div>
               <label className="block text-sm text-gray-400 mb-1">
                 End Date *
-                <span className="text-xs text-gray-500 ml-2">(MM/DD/YYYY)</span>
               </label>
-              <input
-                type="date"
-                required
+              <DateInputMMDDYYYY
                 value={formData.end_date}
-                min={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green [&::-webkit-calendar-picker-indicator]:invert"
+                onChange={(date) => setFormData({ ...formData, end_date: date })}
+                required={true}
               />
             </div>
           )}

@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.6] - 2026-02-13
+
+### Fixed
+- **Event Date Format** - Date picker in Add Event now uses MM/DD/YYYY format
+  - Replaced native date input with Month/Day/Year dropdowns
+  - Consistent date display regardless of browser/OS locale settings
+
 ## [1.85.5] - 2026-02-13
 
 ### Fixed
