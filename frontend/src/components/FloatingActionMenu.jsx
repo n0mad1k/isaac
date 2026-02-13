@@ -731,7 +731,7 @@ function QuickGearModal({ onClose }) {
             <div className="text-center py-8" style={{ color: 'var(--color-error-600)' }}>{error}</div>
           ) : gear.length === 0 ? (
             <div className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
-              No containers (bags) found. Add containers in Team > Gear.
+              No containers (bags) found. Add containers in Team {'>'} Gear.
             </div>
           ) : (
             <div className="space-y-2">
