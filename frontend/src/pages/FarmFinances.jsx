@@ -2053,7 +2053,10 @@ function BusinessTab({
                         <button onClick={() => handleSendInvoice(order.id)} className="p-1 text-gray-400 hover:text-red-400" title="Send Invoice"><FileText className="w-4 h-4" /></button>
                       )}
                       {order.status !== 'completed' && order.status !== 'cancelled' && (
-                        <button onClick={() => handleCompleteOrder(order.id)} className="p-1 text-gray-400 hover:text-green-400" title="Complete"><CheckCircle2 className="w-4 h-4" /></button>
+                        <>
+                          <button onClick={() => handleAddScheduledInvoice(order)} className="p-1 text-gray-400 hover:text-amber-400" title="Schedule Invoice"><Calendar className="w-4 h-4" /></button>
+                          <button onClick={() => handleCompleteOrder(order.id)} className="p-1 text-gray-400 hover:text-green-400" title="Complete"><CheckCircle2 className="w-4 h-4" /></button>
+                        </>
                       )}
                       <button onClick={() => handleDeleteOrder(order.id)} className="p-1 text-gray-400 hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
                     </div>

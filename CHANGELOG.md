@@ -2,6 +2,22 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.10] - 2026-02-13
+
+### Added
+- **Quick Gear in Floating Menu** - Adjust gear/bag contents from anywhere
+  - Click the hamburger/dots menu in the bottom-right corner
+  - Select "Quick Gear" to see all containers with +/- buttons
+  - Quickly update item quantities when using supplies on the go
+- **Quick Transaction in Floating Menu** - Add budget transactions from anywhere
+  - Select "Transaction" from the floating menu
+  - Add income or expenses with category selection
+
+### Fixed
+- **Schedule Invoice Button Visibility** - Added calendar icon button to order cards
+  - Schedule Invoice now appears in the action buttons row (top-right of order)
+  - More visible than the text link at the bottom of the card
+
 ## [1.85.9] - 2026-02-13
 
 ### Fixed
