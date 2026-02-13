@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.13] - 2026-02-13
+
+### Fixed
+- **Health Monitor False Warning** - Removed spurious "all tasks skipped" warning
+  - Incremental calendar sync skips unchanged tasks (hash-based change detection)
+  - This is normal behavior, not an error - sync is working correctly
+
 ## [1.85.12] - 2026-02-13
 
 ### Fixed
