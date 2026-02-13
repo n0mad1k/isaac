@@ -449,11 +449,15 @@ function DevTracker() {
     }
   }
 
-  const handleFileSelect = (itemId) => {
+  const handleFileSelect = (itemId, useCamera = false) => {
     // Create a temporary file input
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
+    // On mobile, allow camera capture
+    if (useCamera) {
+      input.capture = 'environment'
+    }
     input.onchange = (e) => {
       const file = e.target.files[0]
       if (file) handleImageUpload(itemId, file)
@@ -461,25 +465,52 @@ function DevTracker() {
     input.click()
   }
 
+  // State for paste modal (mobile-friendly)
+  const [pasteModalItemId, setPasteModalItemId] = useState(null)
+  const pasteTextareaRef = useRef(null)
+
   const handlePasteImage = async (itemId) => {
-    try {
-      const clipboardItems = await navigator.clipboard.read()
-      for (const item of clipboardItems) {
-        for (const type of item.types) {
-          if (type.startsWith('image/')) {
-            const blob = await item.getType(type)
-            const ext = type.split('/')[1] || 'png'
-            const file = new File([blob], `pasted-image.${ext}`, { type })
-            await handleImageUpload(itemId, file)
-            return
+    // Try clipboard API first (works on desktop)
+    if (navigator.clipboard && navigator.clipboard.read) {
+      try {
+        const clipboardItems = await navigator.clipboard.read()
+        for (const item of clipboardItems) {
+          for (const type of item.types) {
+            if (type.startsWith('image/')) {
+              const blob = await item.getType(type)
+              const ext = type.split('/')[1] || 'png'
+              const file = new File([blob], `pasted-image.${ext}`, { type })
+              await handleImageUpload(itemId, file)
+              return
+            }
           }
         }
+        setError('No image found in clipboard')
+        return
+      } catch (err) {
+        // Clipboard API failed, fall back to paste modal
+        console.log('Clipboard API not available, using paste modal')
       }
-      setError('No image found in clipboard')
-    } catch (err) {
-      console.error('Failed to paste image:', err)
-      setError('Could not read clipboard. Try using the upload button instead.')
     }
+    // Open paste modal for mobile
+    setPasteModalItemId(itemId)
+  }
+
+  const handlePasteModalPaste = async (e) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const blob = item.getAsFile()
+        if (blob) {
+          await handleImageUpload(pasteModalItemId, blob)
+          setPasteModalItemId(null)
+          return
+        }
+      }
+    }
+    setError('No image found. Copy an image first, then paste here.')
   }
 
   const handleOpenDeleteModal = (item) => {
@@ -1503,6 +1534,42 @@ function DevTracker() {
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Paste Modal (for mobile) */}
+      {pasteModalItemId && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setPasteModalItemId(null)}
+        >
+          <div className="bg-white rounded-lg p-4 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Paste Image</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Copy an image to your clipboard, then tap and hold below to paste.
+            </p>
+            <textarea
+              ref={pasteTextareaRef}
+              className="w-full h-24 border border-gray-300 rounded-lg p-2 text-gray-800 focus:border-blue-500 focus:outline-none"
+              placeholder="Tap here and paste (long-press → Paste)"
+              onPaste={handlePasteModalPaste}
+              autoFocus
+            />
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => setPasteModalItemId(null)}
+                className="flex-1 px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleFileSelect(pasteModalItemId, true)}
+                className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Use Camera
               </button>
             </div>
           </div>

@@ -151,7 +151,7 @@ When the user asks you to work on something that's NOT already in the dev tracke
 - Example: `Feature X * backend returns 500 error` means Feature X was attempted but has a 500 error that needs fixing
 
 **CRITICAL - Before Starting ANY Item:**
-- **ALWAYS check for images** — Run `curl -sk "https://192.168.5.56:8443/api/dev-tracker/<id>"` and check the `images` array. If images exist, download and view them: `curl -sk "https://192.168.5.56:8443/api/dev-tracker/images/<filename>" -o /tmp/item-<id>.png` then read the file
+- **ALWAYS check for images** — Run `curl -sk "https://isaac.local/api/dev-tracker/<id>"` and check the `images` array. If images exist, download and view them: `curl -sk "https://isaac.local/api/dev-tracker/images/<filename>" -o /tmp/item-<id>.png` then read the file
 - **ALWAYS check fail_note_history** — The `fail_note_history` JSON field contains all previous fail notes with dates. The `show` command displays these, but also check the raw API response for the full history
 - Images often show EXACTLY what's wrong — don't guess when there's a screenshot available
 
@@ -211,7 +211,7 @@ Run deploy script after completing changes:
 ```
 
 ### Server Layout (SAME PHYSICAL SERVER)
-Both environments run on the same Pi (192.168.5.56 / levi.local):
+Both environments run on the same Pi (levi.local):
 
 | Environment | Directory | Service | Port | Database |
 |-------------|-----------|---------|------|----------|
@@ -219,20 +219,20 @@ Both environments run on the same Pi (192.168.5.56 / levi.local):
 | **DEV** | `/opt/isaac/` | `isaac-backend.service` | 8443 | `/opt/isaac/backend/data/levi.db` |
 
 ### Dev Environment
-- URL: `https://192.168.5.56:8443`
+- URL: `https://isaac.local`
 - Directory: `/opt/isaac/`
 - Deploy script: `/home/n0mad1k/Tools/levi/deploy-dev.sh`
 - Can deploy to dev more freely, but still ask if unsure
 
 ### Prod Environment
-- URL: `https://levi.local` or `https://192.168.5.56:8000`
+- URL: `https://levi.local`
 - Directory: `/opt/levi/`
 - Deploy script: `/home/n0mad1k/Tools/levi/deploy.sh`
 - **REQUIRES EXPLICIT USER PERMISSION TO DEPLOY**
 
 ## Deployment Scripts
 
-**For DEV (192.168.5.56:8443):**
+**For DEV (isaac.local):**
 ```bash
 /home/n0mad1k/Tools/levi/deploy-dev.sh
 ```

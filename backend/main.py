@@ -256,9 +256,9 @@ app.add_middleware(TrailingSlashMiddleware)
 _cors_origins = [
     "https://levi.local",
     "https://isaac.local",
-    "https://192.168.5.56",
-    "https://192.168.5.56:8000",
-    "https://192.168.5.56:8443",
+    "https://192.168.5.57",
+    "https://192.168.5.57:8000",
+    "https://192.168.5.57:8443",
     "http://localhost",
     "http://localhost:5173",   # Vite dev server
     "http://localhost:3000",

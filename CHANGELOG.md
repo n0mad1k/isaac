@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.4] - 2026-02-13
+
+### Fixed
+- **Dev Tracker Mobile Images** - Paste and upload now work on mobile devices
+  - Paste button opens modal with textarea for mobile-friendly pasting
+  - "Use Camera" button allows taking photos directly from mobile
+  - Upload button continues to work for gallery selection
+
 ## [1.85.3] - 2026-02-11
 
 ### Added

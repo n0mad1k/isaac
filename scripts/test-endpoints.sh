@@ -2,7 +2,7 @@
 # Isaac/Levi Full Function Test Script
 # Tests major API endpoints to verify they're working before deployment
 # Usage: ./test-endpoints.sh [base_url] [verbose]
-# Example: ./test-endpoints.sh https://192.168.5.56:8443 true
+# Example: ./test-endpoints.sh https://levi.local:8443 true
 
 # Don't exit on error - we want to collect all test results
 # set -e

@@ -3723,7 +3723,7 @@ function Settings() {
                 </span>
               </div>
               <a
-                href={versionInfo.is_dev_instance ? 'https://levi.local' : 'https://192.168.5.56:8443'}
+                href={versionInfo.is_dev_instance ? 'https://levi.local' : 'https://isaac.local'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1"
