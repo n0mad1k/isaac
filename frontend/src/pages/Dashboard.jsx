@@ -299,10 +299,10 @@ function Dashboard() {
         {/* Right Column - natural sizes, scrolls if needed */}
         <div ref={rightColumnRef} className="flex flex-col gap-2 md:gap-3 md:pr-2">
           <div ref={taskListRef}>
-            {/* Worker/Member filter dropdown */}
+            {/* Worker/Member filter dropdown - mobile-friendly */}
             {(workers.length > 0 || members.length > 0) && (
               <div className="mb-2 flex items-center gap-2">
-                <User className="w-4 h-4" style={{ color: 'var(--color-text-secondary)' }} />
+                <User className="w-4 h-4 shrink-0" style={{ color: 'var(--color-text-secondary)' }} />
                 <select
                   value={selectedWorkerId ? `worker:${selectedWorkerId}` : selectedMemberId ? `member:${selectedMemberId}` : ''}
                   onChange={(e) => {
@@ -318,7 +318,7 @@ function Dashboard() {
                       setSelectedWorkerId(null)
                     }
                   }}
-                  className="text-sm rounded-lg px-2 py-1"
+                  className="flex-1 text-sm md:text-sm text-base rounded-lg px-3 py-2 md:px-2 md:py-1 min-h-[44px] md:min-h-0"
                   style={{
                     backgroundColor: 'var(--color-bg-surface)',
                     color: 'var(--color-text-primary)',

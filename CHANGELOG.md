@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.7] - 2026-02-13
+
+### Changed
+- **Dashboard Schedule Dropdown** - Improved mobile usability
+  - Larger touch target (44px height) on mobile devices
+  - Full-width dropdown for easier selection
+  - Better text size and padding for mobile
+
 ## [1.85.6] - 2026-02-13
 
 ### Fixed
