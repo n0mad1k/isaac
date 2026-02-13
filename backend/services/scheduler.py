@@ -1923,10 +1923,13 @@ class SchedulerService:
                         .where(TeamMember.email.isnot(None))
                         .where(TeamMember.email != "")
                     )
+                    member_emails_found = 0
                     for (member_email,) in member_result:
+                        member_emails_found += 1
                         if member_email and member_email not in recipient_list:
                             recipient_list.append(member_email)
                             logger.debug(f"Added team member email {member_email} to reminder recipients")
+                    logger.debug(f"Task {task.id} has {member_emails_found} assigned member(s) with emails")
 
                     # Also check legacy single member assignment
                     if task.assigned_to_member_id:
@@ -1984,7 +1987,7 @@ class SchedulerService:
                     html=True,
                 )
 
-            logger.info(f"Sent reminder email for task '{task.title}' ({timing})")
+            logger.info(f"Sent reminder email for task '{task.title}' ({timing}) to: {recipients}")
 
         except Exception as e:
             logger.error(f"Error sending task reminder email: {e}")
