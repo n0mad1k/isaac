@@ -76,9 +76,14 @@ class EmailService:
         farm_name = await get_setting(db, "farm_name")
 
         # Validate required settings
-        if not all([host, user, password]):
+        if not host or not user:
             raise ConfigurationError(
                 "Email not configured. Go to Settings > Email Server (SMTP) to configure."
+            )
+        if not password:
+            # Password is missing or decryption failed (encryption key changed)
+            raise ConfigurationError(
+                "SMTP password missing or invalid. Go to Settings > Email Server (SMTP) and re-enter your SMTP password."
             )
 
         port = int(port_str) if port_str else 587

@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.11] - 2026-02-13
+
+### Fixed
+- **Test Email Error Messages** - Clearer error when SMTP password is missing
+  - If encryption key changed and password can't be decrypted, shows specific message
+  - Directs user to re-enter SMTP password in Settings > Email Server
+
 ## [1.85.10] - 2026-02-13
 
 ### Added
