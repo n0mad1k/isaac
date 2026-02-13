@@ -167,7 +167,9 @@ class EmailService:
             try:
                 addr_info = socket.getaddrinfo(self.host, self.port, socket.AF_INET, socket.SOCK_STREAM)
                 ips = list(set(info[4][0] for info in addr_info))
-            except socket.gaierror:
+                logger.debug(f"SMTP host {self.host} resolved to {len(ips)} IPs: {ips}")
+            except socket.gaierror as e:
+                logger.warning(f"DNS resolution failed for {self.host}: {e}, using hostname directly")
                 ips = [self.host]  # Fallback to hostname if resolution fails
 
             last_error = None
@@ -178,10 +180,11 @@ class EmailService:
 
                     # Use SMTP client directly for more control
                     # Disable auto STARTTLS so we can manually specify server_hostname for SNI
+                    # Use shorter timeout (10s) so we fail fast and try next IP
                     smtp = aiosmtplib.SMTP(
                         hostname=ip,
                         port=self.port,
-                        timeout=30,
+                        timeout=10,
                         start_tls=False,  # We'll do STARTTLS manually with proper SNI
                     )
                     await smtp.connect()
