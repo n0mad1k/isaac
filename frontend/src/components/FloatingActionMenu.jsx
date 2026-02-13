@@ -670,7 +670,6 @@ function QuickGearModal({ onClose }) {
   }
 
   const loadContents = async (gearItem) => {
-    if (!gearItem.member_id) return
     try {
       const res = await getGearContents(gearItem.member_id, gearItem.id)
       setGearContents(prev => ({ ...prev, [gearItem.id]: res.data || [] }))
@@ -688,7 +687,6 @@ function QuickGearModal({ onClose }) {
   }
 
   const handleQuantityChange = async (gearItem, content, delta) => {
-    if (!gearItem.member_id) return
     const newQty = Math.max(0, (content.quantity || 0) + delta)
     let newStatus = content.status
     if (newQty === 0) newStatus = 'MISSING'
@@ -933,7 +931,7 @@ function QuickTransactionModal({ onClose }) {
                     style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                   >
                     <option value="">Select category...</option>
-                    {categories.filter(c => c.category_type !== 'TRANSFER').map(cat => (
+                    {categories.filter(c => c.category_type !== 'transfer' && c.category_type !== 'fixed').map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>

@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.15] - 2026-02-13
+
+### Fixed
+- **Quick Gear Contents** - Fixed pool/unassigned gear not showing contents
+  - Removed early return that blocked loading contents for gear without member assignment
+  - Container contents now load correctly for both assigned and unassigned gear
+- **Quick Transaction Categories** - Fixed category dropdown showing all categories
+  - Now correctly filters out fixed (bills) and transfer (allocation) categories
+  - Shows only variable and income categories appropriate for quick logging
+
 ## [1.85.14] - 2026-02-13
 
 ### Changed
