@@ -178,7 +178,7 @@ async def gather_fitness_context(db: AsyncSession) -> str:
                     sleep_vals = [s.sleep_quality for s in subjective if s.sleep_quality is not None]
                     if sleep_vals:
                         avg_sleep = sum(sleep_vals) / len(sleep_vals)
-                        lines.append(f"7-day sleep quality avg: {avg_sleep:.1f}/10")
+                        lines.append(f"7-day sleep quality avg: {avg_sleep:.1f}/5")
                 if latest_s.sleep_hours is not None:
                     hour_vals = [s.sleep_hours for s in subjective if s.sleep_hours is not None]
                     if hour_vals:

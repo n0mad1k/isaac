@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.12] - 2026-02-13
+
+### Fixed
+- **Sleep Quality Display** - AI context now correctly shows sleep quality as /5 scale
+  - Was incorrectly showing as /10 which made good values (4/5) look poor (4/10)
+  - Sleep quality 1-5 where: 1=Poor, 3=Average, 5=Excellent
+
 ## [1.85.11] - 2026-02-13
 
 ### Fixed
