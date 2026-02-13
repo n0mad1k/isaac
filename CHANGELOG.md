@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.5] - 2026-02-13
+
+### Fixed
+- **Event Time Format** - Time picker in Add Event now uses 12-hour format with AM/PM
+  - Replaced native time input with custom hour/minute/AM-PM dropdowns
+  - Consistent 12-hour display regardless of browser/OS locale settings
+
 ## [1.85.4] - 2026-02-13
 
 ### Fixed

@@ -51,6 +51,77 @@ const DAY_OPTIONS = [
 ]
 
 /**
+ * 12-hour time input component
+ * Takes value in 24hr format (HH:mm) and displays as 12hr with AM/PM
+ */
+function TimeInput12hr({ value, onChange, className = '' }) {
+  // Parse 24hr time to 12hr components
+  const parse24hr = (time) => {
+    if (!time) return { hour: '12', minute: '00', period: 'AM' }
+    const [h, m] = time.split(':').map(Number)
+    const period = h >= 12 ? 'PM' : 'AM'
+    let hour12 = h % 12
+    if (hour12 === 0) hour12 = 12
+    return {
+      hour: String(hour12),
+      minute: String(m).padStart(2, '0'),
+      period
+    }
+  }
+
+  // Convert 12hr components to 24hr format
+  const to24hr = (hour, minute, period) => {
+    let h = parseInt(hour, 10)
+    if (period === 'AM' && h === 12) h = 0
+    else if (period === 'PM' && h !== 12) h += 12
+    return `${String(h).padStart(2, '0')}:${minute}`
+  }
+
+  const { hour, minute, period } = parse24hr(value)
+
+  const handleChange = (field, val) => {
+    const newVals = { hour, minute, period }
+    newVals[field] = val
+    onChange(to24hr(newVals.hour, newVals.minute, newVals.period))
+  }
+
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1)
+  const minutes = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
+
+  return (
+    <div className={`flex gap-1 ${className}`}>
+      <select
+        value={hour}
+        onChange={(e) => handleChange('hour', e.target.value)}
+        className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+      >
+        {hours.map(h => (
+          <option key={h} value={h}>{h}</option>
+        ))}
+      </select>
+      <span className="flex items-center text-gray-400">:</span>
+      <select
+        value={minute}
+        onChange={(e) => handleChange('minute', e.target.value)}
+        className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+      >
+        {minutes.map(m => (
+          <option key={m} value={m}>{m}</option>
+        ))}
+      </select>
+      <select
+        value={period}
+        onChange={(e) => handleChange('period', e.target.value)}
+        className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+      >
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  )
+}
+
+/**
  * Choice modal for recurring events: "This occurrence only" vs "All occurrences"
  */
 export function RecurrenceChoiceModal({ action, onChoice, onCancel }) {
@@ -515,20 +586,16 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Start Time</label>
-                <input
-                  type="time"
+                <TimeInput12hr
                   value={formData.due_time}
-                  onChange={(e) => setFormData({ ...formData, due_time: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  onChange={(time) => setFormData({ ...formData, due_time: time })}
                 />
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">End Time</label>
-                <input
-                  type="time"
+                <TimeInput12hr
                   value={formData.end_time}
-                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  onChange={(time) => setFormData({ ...formData, end_time: time })}
                 />
               </div>
             </div>
