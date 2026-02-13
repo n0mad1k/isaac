@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Menu, MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus, Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Bug, ClipboardList, LayoutDashboard, LogOut, Users, DollarSign, UsersRound, Wheat, Bot } from 'lucide-react'
-import { checkFeedbackEnabled, submitFeedback, toggleKeyboard as toggleKeyboardApi } from '../services/api'
+import { Menu, MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus, Minus, Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Bug, ClipboardList, LayoutDashboard, LogOut, Users, DollarSign, UsersRound, Wheat, Bot, ShoppingBag, CreditCard, ChevronDown, ChevronRight } from 'lucide-react'
+import { checkFeedbackEnabled, submitFeedback, toggleKeyboard as toggleKeyboardApi, getTeamGear, getGearContents, updateGearContents, createBudgetTransaction, getBudgetCategories } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import EventModal from './EventModal'
 
@@ -15,6 +15,8 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
   const [feedbackEnabled, setFeedbackEnabled] = useState(false)
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
   const [quickAddModalOpen, setQuickAddModalOpen] = useState(false)
+  const [quickGearModalOpen, setQuickGearModalOpen] = useState(false)
+  const [quickTransactionModalOpen, setQuickTransactionModalOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
@@ -123,6 +125,16 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
     if (onChatToggle) onChatToggle()
   }
 
+  const handleOpenQuickGear = () => {
+    setExpanded(false)
+    setQuickGearModalOpen(true)
+  }
+
+  const handleOpenQuickTransaction = () => {
+    setExpanded(false)
+    setQuickTransactionModalOpen(true)
+  }
+
   const handleLogout = async () => {
     setExpanded(false)
     await logout()
@@ -228,6 +240,32 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
                   <Plus className="w-5 h-5" />
                   <span className="text-sm font-medium">Add Event</span>
                 </button>
+                <button
+                  onClick={handleOpenQuickGear}
+                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
+                  style={{
+                    backgroundColor: 'var(--color-bg-surface)',
+                    border: '1px solid var(--color-border-default)',
+                    color: 'var(--color-text-primary)',
+                    minHeight: '48px'
+                  }}
+                >
+                  <ShoppingBag className="w-5 h-5" />
+                  <span className="text-sm font-medium">Quick Gear</span>
+                </button>
+                <button
+                  onClick={handleOpenQuickTransaction}
+                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
+                  style={{
+                    backgroundColor: 'var(--color-bg-surface)',
+                    border: '1px solid var(--color-border-default)',
+                    color: 'var(--color-text-primary)',
+                    minHeight: '48px'
+                  }}
+                >
+                  <CreditCard className="w-5 h-5" />
+                  <span className="text-sm font-medium">Transaction</span>
+                </button>
                 {onChatToggle && (
                   <button
                     onClick={handleOpenChat}
@@ -318,6 +356,32 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
             >
               <Plus className="w-5 h-5" />
               <span className="text-sm font-medium">Add</span>
+            </button>
+            <button
+              onClick={handleOpenQuickGear}
+              className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
+              style={{
+                backgroundColor: 'var(--color-bg-surface)',
+                border: '2px solid var(--color-border-default)',
+                color: 'var(--color-text-primary)'
+              }}
+              title="Quick Gear Quantity"
+            >
+              <ShoppingBag className="w-5 h-5" />
+              <span className="text-sm font-medium">Gear</span>
+            </button>
+            <button
+              onClick={handleOpenQuickTransaction}
+              className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 touch-manipulation"
+              style={{
+                backgroundColor: 'var(--color-bg-surface)',
+                border: '2px solid var(--color-border-default)',
+                color: 'var(--color-text-primary)'
+              }}
+              title="Add Budget Transaction"
+            >
+              <CreditCard className="w-5 h-5" />
+              <span className="text-sm font-medium">Transaction</span>
             </button>
             {onChatToggle && (
               <button
@@ -563,7 +627,360 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
           </div>
         </div>
       )}
+
+      {/* Quick Gear Modal */}
+      {quickGearModalOpen && (
+        <QuickGearModal onClose={() => setQuickGearModalOpen(false)} />
+      )}
+
+      {/* Quick Transaction Modal */}
+      {quickTransactionModalOpen && (
+        <QuickTransactionModal onClose={() => setQuickTransactionModalOpen(false)} />
+      )}
     </>
+  )
+}
+
+/**
+ * Quick Gear Modal - Shows containers and their contents for quick quantity adjustment
+ */
+function QuickGearModal({ onClose }) {
+  const [gear, setGear] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [expandedGear, setExpandedGear] = useState({})
+  const [gearContents, setGearContents] = useState({})
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    loadGear()
+  }, [])
+
+  const loadGear = async () => {
+    try {
+      setLoading(true)
+      const res = await getTeamGear()
+      // Filter to only containers (bags)
+      const containers = (res.data || []).filter(g => g.is_container)
+      setGear(containers)
+    } catch (err) {
+      setError('Failed to load gear')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadContents = async (gearItem) => {
+    if (!gearItem.member_id) return
+    try {
+      const res = await getGearContents(gearItem.member_id, gearItem.id)
+      setGearContents(prev => ({ ...prev, [gearItem.id]: res.data || [] }))
+    } catch (err) {
+      console.error('Failed to load contents:', err)
+    }
+  }
+
+  const toggleExpand = async (item) => {
+    const isExpanding = !expandedGear[item.id]
+    setExpandedGear(prev => ({ ...prev, [item.id]: isExpanding }))
+    if (isExpanding && !gearContents[item.id]) {
+      await loadContents(item)
+    }
+  }
+
+  const handleQuantityChange = async (gearItem, content, delta) => {
+    if (!gearItem.member_id) return
+    const newQty = Math.max(0, (content.quantity || 0) + delta)
+    let newStatus = content.status
+    if (newQty === 0) newStatus = 'MISSING'
+    else if (content.min_quantity && newQty < content.min_quantity) newStatus = 'LOW'
+    else if (content.status === 'MISSING' || content.status === 'LOW') newStatus = 'GOOD'
+
+    try {
+      await updateGearContents(gearItem.member_id, gearItem.id, content.id, {
+        quantity: newQty,
+        status: newStatus,
+      })
+      await loadContents(gearItem)
+    } catch (err) {
+      console.error('Failed to update quantity:', err)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/50" onClick={onClose}>
+      <div
+        className="relative w-full max-w-md max-h-[80vh] rounded-xl shadow-2xl overflow-hidden flex flex-col"
+        style={{ backgroundColor: 'var(--color-bg-surface)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--color-border-default)' }}>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+            Quick Gear Quantity
+          </h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-gray-700">
+            <X className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--accent-primary)' }} />
+            </div>
+          ) : error ? (
+            <div className="text-center py-8" style={{ color: 'var(--color-error-600)' }}>{error}</div>
+          ) : gear.length === 0 ? (
+            <div className="text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
+              No containers (bags) found. Add containers in Team > Gear.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {gear.map(item => (
+                <div key={item.id} className="rounded-lg" style={{ backgroundColor: 'var(--color-bg-app)', border: '1px solid var(--color-border-default)' }}>
+                  <button
+                    onClick={() => toggleExpand(item)}
+                    className="w-full flex items-center justify-between p-3 text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
+                      <span style={{ color: 'var(--color-text-primary)' }}>{item.name}</span>
+                      {item.member?.nickname && (
+                        <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-surface)', color: 'var(--color-text-muted)' }}>
+                          {item.member.nickname}
+                        </span>
+                      )}
+                    </div>
+                    {expandedGear[item.id] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </button>
+
+                  {expandedGear[item.id] && (
+                    <div className="px-3 pb-3 space-y-2">
+                      {!gearContents[item.id] ? (
+                        <div className="text-center py-2">
+                          <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                        </div>
+                      ) : gearContents[item.id].length === 0 ? (
+                        <div className="text-sm text-center py-2" style={{ color: 'var(--color-text-muted)' }}>
+                          No contents
+                        </div>
+                      ) : (
+                        gearContents[item.id].map(content => (
+                          <div key={content.id} className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+                            <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{content.name}</span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleQuantityChange(item, content, -1)}
+                                className="p-1.5 rounded transition-colors"
+                                style={{ backgroundColor: 'var(--color-bg-app)' }}
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+                              <span className="min-w-[2rem] text-center font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                                {content.quantity}
+                              </span>
+                              <button
+                                onClick={() => handleQuantityChange(item, content, 1)}
+                                className="p-1.5 rounded transition-colors"
+                                style={{ backgroundColor: 'var(--color-bg-app)' }}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Quick Transaction Modal - Add a budget transaction quickly
+ */
+function QuickTransactionModal({ onClose }) {
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(false)
+  const [formData, setFormData] = useState({
+    category_id: '',
+    amount: '',
+    description: '',
+    transaction_date: new Date().toISOString().split('T')[0],
+    transaction_type: 'expense'
+  })
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
+  const loadCategories = async () => {
+    try {
+      setLoading(true)
+      const res = await getBudgetCategories()
+      setCategories(res.data || [])
+    } catch (err) {
+      setError('Failed to load categories')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!formData.category_id || !formData.amount) return
+
+    setSaving(true)
+    setError(null)
+    try {
+      await createBudgetTransaction({
+        category_id: parseInt(formData.category_id),
+        amount: parseFloat(formData.amount),
+        description: formData.description || null,
+        transaction_date: formData.transaction_date,
+        transaction_type: formData.transaction_type
+      })
+      setSuccess(true)
+      setTimeout(() => onClose(), 1500)
+    } catch (err) {
+      setError(err.userMessage || 'Failed to add transaction')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/50" onClick={onClose}>
+      <div
+        className="relative w-full max-w-sm rounded-xl shadow-2xl p-4"
+        style={{ backgroundColor: 'var(--color-bg-surface)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded hover:bg-gray-700">
+          <X className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />
+        </button>
+
+        {success ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--color-success-bg)' }}>
+              <CreditCard className="w-8 h-8" style={{ color: 'var(--color-success-600)' }} />
+            </div>
+            <h3 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>Transaction Added!</h3>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
+              Quick Transaction
+            </h2>
+
+            {error && (
+              <div className="mb-4 p-3 rounded-lg text-sm" style={{ backgroundColor: 'var(--color-error-bg)', color: 'var(--color-error-600)' }}>
+                {error}
+              </div>
+            )}
+
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Type</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, transaction_type: 'expense' })}
+                      className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
+                      style={{
+                        backgroundColor: formData.transaction_type === 'expense' ? 'var(--color-error-600)' : 'var(--color-bg-app)',
+                        color: formData.transaction_type === 'expense' ? 'white' : 'var(--color-text-primary)',
+                        border: '1px solid var(--color-border-default)'
+                      }}
+                    >
+                      Expense
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, transaction_type: 'income' })}
+                      className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
+                      style={{
+                        backgroundColor: formData.transaction_type === 'income' ? 'var(--color-success-600)' : 'var(--color-bg-app)',
+                        color: formData.transaction_type === 'income' ? 'white' : 'var(--color-text-primary)',
+                        border: '1px solid var(--color-border-default)'
+                      }}
+                    >
+                      Income
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Category *</label>
+                  <select
+                    value={formData.category_id}
+                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 rounded-lg"
+                    style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
+                  >
+                    <option value="">Select category...</option>
+                    {categories.filter(c => c.category_type !== 'TRANSFER').map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Amount *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    required
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 rounded-lg"
+                    style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Description</label>
+                  <input
+                    type="text"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Optional..."
+                    className="w-full px-3 py-2 rounded-lg"
+                    style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={saving || !formData.category_id || !formData.amount}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: 'var(--color-green-600)', color: 'white' }}
+                >
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                  {saving ? 'Adding...' : 'Add Transaction'}
+                </button>
+              </form>
+            )}
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 

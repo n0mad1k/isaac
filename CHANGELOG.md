@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.9] - 2026-02-13
+
+### Fixed
+- **Email Reliability** - Reduced SMTP connection timeout from 30s to 10s
+  - Faster failover to alternate servers when one is unreachable
+  - Improves receipt email reliability when Protonmail servers are slow
+
 ## [1.85.8] - 2026-02-13
 
 ### Changed
