@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Calendar as CalendarIcon, CheckSquare, X, User, Trash2, Users, ChevronDown, Check, Repeat } from 'lucide-react'
 import { format } from 'date-fns'
 import { createTask, updateTask, deleteTask, deleteTaskOccurrence, editTaskOccurrence, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas, getWorkers, getUsers, getTeamMembers } from '../services/api'
+import { useSettings } from '../contexts/SettingsContext'
 
 const TASK_CATEGORIES = [
   { value: 'plant_care', label: 'Plant Care' },
@@ -137,74 +138,119 @@ function DateInputMMDDYYYY({ value, onChange, required = false, min = null, clas
 }
 
 /**
- * 12-hour time input component
- * Takes value in 24hr format (HH:mm) and displays as 12hr with AM/PM
+ * Time input component that respects the time_format setting
+ * Takes value in 24hr format (HH:mm) and displays based on settings
  */
-function TimeInput12hr({ value, onChange, className = '' }) {
-  // Parse 24hr time to 12hr components
-  const parse24hr = (time) => {
-    if (!time) return { hour: '12', minute: '00', period: 'AM' }
+function TimeInput({ value, onChange, className = '' }) {
+  const { getSetting } = useSettings()
+  const timeFormat = getSetting('time_format', '12h')
+  const is12Hour = timeFormat === '12h'
+
+  // Parse 24hr time to components
+  const parseTime = (time) => {
+    if (!time) {
+      return is12Hour
+        ? { hour: '12', minute: '00', period: 'AM' }
+        : { hour: '00', minute: '00' }
+    }
     const [h, m] = time.split(':').map(Number)
-    const period = h >= 12 ? 'PM' : 'AM'
-    let hour12 = h % 12
-    if (hour12 === 0) hour12 = 12
-    return {
-      hour: String(hour12),
-      minute: String(m).padStart(2, '0'),
-      period
+    if (is12Hour) {
+      const period = h >= 12 ? 'PM' : 'AM'
+      let hour12 = h % 12
+      if (hour12 === 0) hour12 = 12
+      return {
+        hour: String(hour12),
+        minute: String(m).padStart(2, '0'),
+        period
+      }
+    } else {
+      return {
+        hour: String(h).padStart(2, '0'),
+        minute: String(m).padStart(2, '0')
+      }
     }
   }
 
-  // Convert 12hr components to 24hr format
+  // Convert components to 24hr format
   const to24hr = (hour, minute, period) => {
     let h = parseInt(hour, 10)
-    if (period === 'AM' && h === 12) h = 0
-    else if (period === 'PM' && h !== 12) h += 12
+    if (is12Hour) {
+      if (period === 'AM' && h === 12) h = 0
+      else if (period === 'PM' && h !== 12) h += 12
+    }
     return `${String(h).padStart(2, '0')}:${minute}`
   }
 
-  const { hour, minute, period } = parse24hr(value)
+  const parsed = parseTime(value)
 
   const handleChange = (field, val) => {
-    const newVals = { hour, minute, period }
+    const newVals = { ...parsed }
     newVals[field] = val
     onChange(to24hr(newVals.hour, newVals.minute, newVals.period))
   }
 
-  const hours = Array.from({ length: 12 }, (_, i) => i + 1)
+  const hours12 = Array.from({ length: 12 }, (_, i) => i + 1)
+  const hours24 = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
   const minutes = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
 
-  return (
-    <div className={`flex gap-1 ${className}`}>
-      <select
-        value={hour}
-        onChange={(e) => handleChange('hour', e.target.value)}
-        className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
-      >
-        {hours.map(h => (
-          <option key={h} value={h}>{h}</option>
-        ))}
-      </select>
-      <span className="flex items-center text-gray-400">:</span>
-      <select
-        value={minute}
-        onChange={(e) => handleChange('minute', e.target.value)}
-        className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
-      >
-        {minutes.map(m => (
-          <option key={m} value={m}>{m}</option>
-        ))}
-      </select>
-      <select
-        value={period}
-        onChange={(e) => handleChange('period', e.target.value)}
-        className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-      >
-        <option value="AM">AM</option>
-        <option value="PM">PM</option>
-      </select>
-    </div>
-  )
+  if (is12Hour) {
+    return (
+      <div className={`flex gap-1 ${className}`}>
+        <select
+          value={parsed.hour}
+          onChange={(e) => handleChange('hour', e.target.value)}
+          className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+        >
+          {hours12.map(h => (
+            <option key={h} value={h}>{h}</option>
+          ))}
+        </select>
+        <span className="flex items-center text-gray-400">:</span>
+        <select
+          value={parsed.minute}
+          onChange={(e) => handleChange('minute', e.target.value)}
+          className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+        >
+          {minutes.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+        <select
+          value={parsed.period}
+          onChange={(e) => handleChange('period', e.target.value)}
+          className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+        >
+          <option value="AM">AM</option>
+          <option value="PM">PM</option>
+        </select>
+      </div>
+    )
+  } else {
+    // 24-hour format
+    return (
+      <div className={`flex gap-1 ${className}`}>
+        <select
+          value={parsed.hour}
+          onChange={(e) => handleChange('hour', e.target.value)}
+          className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+        >
+          {hours24.map(h => (
+            <option key={h} value={h}>{h}</option>
+          ))}
+        </select>
+        <span className="flex items-center text-gray-400">:</span>
+        <select
+          value={parsed.minute}
+          onChange={(e) => handleChange('minute', e.target.value)}
+          className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+        >
+          {minutes.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+      </div>
+    )
+  }
 }
 
 /**
@@ -665,14 +711,14 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Start Time</label>
-                <TimeInput12hr
+                <TimeInput
                   value={formData.due_time}
                   onChange={(time) => setFormData({ ...formData, due_time: time })}
                 />
               </div>
               <div>
                 <label className="block text-sm text-gray-400 mb-1">End Time</label>
-                <TimeInput12hr
+                <TimeInput
                   value={formData.end_time}
                   onChange={(time) => setFormData({ ...formData, end_time: time })}
                 />

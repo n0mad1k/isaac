@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.8] - 2026-02-13
+
+### Changed
+- **Event Time Format** - Now respects the time_format setting from Settings
+  - Shows 12-hour (AM/PM) or 24-hour format based on your preference
+  - Setting is in Settings > Display > Time Format
+
 ## [1.85.7] - 2026-02-13
 
 ### Changed
