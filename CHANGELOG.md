@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.20] - 2026-02-14
+
+### Fixed
+- **Pay Period Advance Now Works** - Budget views now respect the manual period advance
+  - MonthlyBudget and BudgetOverview fetch the period reference on load
+  - Advancing the period updates which half is displayed
+  - Budget data shows for the correct period after manual advance
+
 ## [1.85.19] - 2026-02-14
 
 ### Changed

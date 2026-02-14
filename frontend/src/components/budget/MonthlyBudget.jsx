@@ -4,7 +4,7 @@ import {
   getBudgetPayPeriods, getBudgetCategories, getBudgetAccounts,
   getBudgetIncome, updateBudgetCategory, updateBudgetIncome,
   createBudgetCategory, deleteBudgetCategory, createBudgetIncome,
-  deleteBudgetIncome, getBudgetPeriodSummary
+  deleteBudgetIncome, getBudgetPeriodSummary, getBudgetPeriodReference
 } from '../../services/api'
 import BudgetEditModal from './BudgetEditModal'
 
@@ -16,8 +16,32 @@ function MonthlyBudget() {
   const [periods, setPeriods] = useState([])
   const [firstHalf, setFirstHalf] = useState(null)
   const [secondHalf, setSecondHalf] = useState(null)
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
+  const [currentYear, setCurrentYear] = useState(null)
+  const [currentMonth, setCurrentMonth] = useState(null)
+  const [referenceDate, setReferenceDate] = useState(null)
+  const [initializing, setInitializing] = useState(true)
+
+  // Fetch period reference on mount to determine initial year/month
+  useEffect(() => {
+    const initFromReference = async () => {
+      try {
+        const res = await getBudgetPeriodReference()
+        const refDate = res.data?.reference_date ? new Date(res.data.reference_date + 'T12:00:00') : new Date()
+        setReferenceDate(refDate)
+        setCurrentYear(refDate.getFullYear())
+        setCurrentMonth(refDate.getMonth() + 1)
+      } catch (err) {
+        // Fall back to today
+        const today = new Date()
+        setReferenceDate(today)
+        setCurrentYear(today.getFullYear())
+        setCurrentMonth(today.getMonth() + 1)
+      } finally {
+        setInitializing(false)
+      }
+    }
+    initFromReference()
+  }, [])
 
   const [editModal, setEditModal] = useState(null) // { item, type: 'income'|'category' }
   const [editingLine, setEditingLine] = useState(null)
@@ -62,7 +86,12 @@ function MonthlyBudget() {
     }
   }, [currentYear, currentMonth])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  // Only fetch data after initialization
+  useEffect(() => {
+    if (!initializing && currentYear && currentMonth) {
+      fetchData()
+    }
+  }, [fetchData, initializing, currentYear, currentMonth])
 
   const goToPrevMonth = () => {
     if (currentMonth === 1) { setCurrentMonth(12); setCurrentYear(y => y - 1) }
@@ -489,9 +518,10 @@ function MonthlyBudget() {
   const kellyBSecond = kellyBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
 
   // Determine which half of the month we're currently in (for card display)
-  const today = new Date()
-  const isCurrentMonth = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth
-  const inFirstHalf = isCurrentMonth ? today.getDate() <= 14 : true
+  // Uses referenceDate which respects manual period advance
+  const refDateForHalf = referenceDate || new Date()
+  const isCurrentMonth = refDateForHalf.getFullYear() === currentYear && refDateForHalf.getMonth() + 1 === currentMonth
+  const inFirstHalf = isCurrentMonth ? refDateForHalf.getDate() <= 14 : true
   const currentHalf = inFirstHalf ? firstHalf : secondHalf
 
   // Cards show CURRENT HALF data (not full month)

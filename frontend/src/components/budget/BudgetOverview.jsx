@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
-import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories, updateBudgetCategory } from '../../services/api'
+import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories, updateBudgetCategory, getBudgetPeriodReference } from '../../services/api'
 
 function BudgetOverview() {
   const [loading, setLoading] = useState(true)
@@ -8,16 +8,40 @@ function BudgetOverview() {
   const [categories, setCategories] = useState([])
   const [periods, setPeriods] = useState([])
   const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(0)
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
+  const [currentYear, setCurrentYear] = useState(null)
+  const [currentMonth, setCurrentMonth] = useState(null)
   const [editingBudget, setEditingBudget] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
+  const [referenceDate, setReferenceDate] = useState(null)
+  const [initializing, setInitializing] = useState(true)
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December']
 
+  // Fetch period reference on mount
+  useEffect(() => {
+    const initFromReference = async () => {
+      try {
+        const res = await getBudgetPeriodReference()
+        const refDate = res.data?.reference_date ? new Date(res.data.reference_date + 'T12:00:00') : new Date()
+        setReferenceDate(refDate)
+        setCurrentYear(refDate.getFullYear())
+        setCurrentMonth(refDate.getMonth() + 1)
+      } catch (err) {
+        const today = new Date()
+        setReferenceDate(today)
+        setCurrentYear(today.getFullYear())
+        setCurrentMonth(today.getMonth() + 1)
+      } finally {
+        setInitializing(false)
+      }
+    }
+    initFromReference()
+  }, [])
+
   const fetchPeriods = useCallback(async () => {
+    if (initializing || !currentYear || !currentMonth) return
     try {
       const [periodsRes, catRes] = await Promise.all([
         getBudgetPayPeriods(currentYear, currentMonth),
@@ -30,16 +54,17 @@ function BudgetOverview() {
       }
       setPeriods(periodData)
 
-      const today = new Date()
-      if (today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth) {
-        setSelectedPeriodIdx(today.getDate() <= 14 ? 0 : 1)
+      // Use reference date to determine which period to show
+      const refDateForPeriod = referenceDate || new Date()
+      if (refDateForPeriod.getFullYear() === currentYear && refDateForPeriod.getMonth() + 1 === currentMonth) {
+        setSelectedPeriodIdx(refDateForPeriod.getDate() <= 14 ? 0 : 1)
       } else {
         setSelectedPeriodIdx(2)
       }
     } catch (err) {
       console.error('Failed to fetch pay periods:', err)
     }
-  }, [currentYear, currentMonth])
+  }, [currentYear, currentMonth, initializing, referenceDate])
 
   const fetchSummary = useCallback(async () => {
     if (periods.length === 0) return
@@ -55,7 +80,11 @@ function BudgetOverview() {
     }
   }, [periods, selectedPeriodIdx])
 
-  useEffect(() => { fetchPeriods() }, [fetchPeriods])
+  useEffect(() => {
+    if (!initializing && currentYear && currentMonth) {
+      fetchPeriods()
+    }
+  }, [fetchPeriods, initializing, currentYear, currentMonth])
   useEffect(() => { fetchSummary() }, [fetchSummary])
 
   const goToPrevMonth = () => {
