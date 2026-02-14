@@ -1912,16 +1912,31 @@ async def get_dashboard_summary(
     db: AsyncSession = Depends(get_db),
 ):
     """Dashboard widget data for current pay period"""
+    from models.settings import AppSetting
+
     try:
-        today = date.today()
-        year = today.year
-        month = today.month
+        # Check for manual period reference override
+        ref_result = await db.execute(
+            select(AppSetting).where(AppSetting.key == "budget_period_reference")
+        )
+        ref_setting = ref_result.scalar_one_or_none()
+
+        if ref_setting and ref_setting.value:
+            try:
+                ref_date = date.fromisoformat(ref_setting.value)
+            except ValueError:
+                ref_date = date.today()
+        else:
+            ref_date = date.today()
+
+        year = ref_date.year
+        month = ref_date.month
         periods = _get_pay_periods(year, month)
 
-        # Find current pay period
+        # Find current pay period based on reference date
         current_period = periods[0]
         for period in periods:
-            if period["start"] <= today <= period["end"]:
+            if period["start"] <= ref_date <= period["end"]:
                 current_period = period
                 break
 

@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.21] - 2026-02-14
+
+### Fixed
+- **Budget Dashboard Uses Period Reference** - Dashboard widget now uses the manual period reference
+  - Budget tickers/summaries show data for the advanced period
+  - Spending calculations use the correct date range after manual advance
+
 ## [1.85.20] - 2026-02-14
 
 ### Fixed
