@@ -1280,6 +1280,169 @@ async def get_pay_periods(
     ]
 
 
+@router.get("/period-reference/")
+async def get_period_reference(
+    user: User = Depends(require_view("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the current budget reference date for pay period calculation.
+    Returns null if using today's date (default behavior)."""
+    from models.settings import AppSetting
+
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "budget_period_reference")
+    )
+    setting = result.scalar_one_or_none()
+
+    if setting and setting.value:
+        try:
+            ref_date = date.fromisoformat(setting.value)
+            # Determine which period this date falls in
+            periods = _get_pay_periods(ref_date.year, ref_date.month)
+            current_period = None
+            for p in periods:
+                if p["start"] <= ref_date <= p["end"]:
+                    current_period = {
+                        "start": p["start"].isoformat(),
+                        "end": p["end"].isoformat(),
+                        "label": p["label"]
+                    }
+                    break
+            return {
+                "reference_date": setting.value,
+                "current_period": current_period,
+                "is_override": True
+            }
+        except ValueError:
+            pass
+
+    # Default: use today
+    today = date.today()
+    periods = _get_pay_periods(today.year, today.month)
+    current_period = None
+    for p in periods:
+        if p["start"] <= today <= p["end"]:
+            current_period = {
+                "start": p["start"].isoformat(),
+                "end": p["end"].isoformat(),
+                "label": p["label"]
+            }
+            break
+    return {
+        "reference_date": today.isoformat(),
+        "current_period": current_period,
+        "is_override": False
+    }
+
+
+@router.post("/advance-period/")
+async def advance_period(
+    user: User = Depends(require_edit("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually advance to the next pay period.
+    This sets a reference date that overrides the current date for period calculations."""
+    from models.settings import AppSetting
+
+    # Get current reference date or use today
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "budget_period_reference")
+    )
+    setting = result.scalar_one_or_none()
+
+    if setting and setting.value:
+        try:
+            ref_date = date.fromisoformat(setting.value)
+        except ValueError:
+            ref_date = date.today()
+    else:
+        ref_date = date.today()
+
+    # Calculate next period start date
+    if ref_date.day <= 14:
+        # Currently in first half, advance to second half (15th)
+        next_period_start = date(ref_date.year, ref_date.month, 15)
+    else:
+        # Currently in second half, advance to first half of next month
+        if ref_date.month == 12:
+            next_period_start = date(ref_date.year + 1, 1, 1)
+        else:
+            next_period_start = date(ref_date.year, ref_date.month + 1, 1)
+
+    # Save the new reference date
+    new_value = next_period_start.isoformat()
+    if setting:
+        setting.value = new_value
+        setting.updated_at = datetime.utcnow()
+    else:
+        setting = AppSetting(
+            key="budget_period_reference",
+            value=new_value,
+            description="Manual pay period reference date override"
+        )
+        db.add(setting)
+
+    await db.commit()
+    logger.info(f"Advanced budget period to {new_value}")
+
+    # Return updated period info
+    periods = _get_pay_periods(next_period_start.year, next_period_start.month)
+    current_period = None
+    for p in periods:
+        if p["start"] <= next_period_start <= p["end"]:
+            current_period = {
+                "start": p["start"].isoformat(),
+                "end": p["end"].isoformat(),
+                "label": p["label"]
+            }
+            break
+
+    return {
+        "reference_date": new_value,
+        "current_period": current_period,
+        "is_override": True,
+        "message": f"Advanced to {current_period['label'] if current_period else 'next period'}"
+    }
+
+
+@router.post("/reset-period/")
+async def reset_period(
+    user: User = Depends(require_edit("budget")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reset to using today's date for pay period calculation (remove override)."""
+    from models.settings import AppSetting
+
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "budget_period_reference")
+    )
+    setting = result.scalar_one_or_none()
+
+    if setting:
+        await db.delete(setting)
+        await db.commit()
+        logger.info("Reset budget period reference to today")
+
+    today = date.today()
+    periods = _get_pay_periods(today.year, today.month)
+    current_period = None
+    for p in periods:
+        if p["start"] <= today <= p["end"]:
+            current_period = {
+                "start": p["start"].isoformat(),
+                "end": p["end"].isoformat(),
+                "label": p["label"]
+            }
+            break
+
+    return {
+        "reference_date": today.isoformat(),
+        "current_period": current_period,
+        "is_override": False,
+        "message": "Reset to using today's date"
+    }
+
+
 @router.get("/summary/period/")
 async def get_period_summary(
     start_date: date = Query(...),

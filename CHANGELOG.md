@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.18] - 2026-02-14
+
+### Added
+- **Manual Pay Period Advance** - New setting to manually advance to next pay period
+  - Go to Budget > Settings > Pay Period tab
+  - Click "Advance to Next Period" when you get paid early or on a different date
+  - Shows current period and whether using manual override or auto (today)
+  - Reset button returns to automatic date-based period selection
+
 ## [1.85.17] - 2026-02-14
 
 ### Changed

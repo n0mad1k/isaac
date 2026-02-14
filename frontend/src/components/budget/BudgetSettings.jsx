@@ -5,6 +5,7 @@ import {
   getBudgetCategories, createBudgetCategory, updateBudgetCategory, deleteBudgetCategory,
   getBudgetIncome, createBudgetIncome, updateBudgetIncome, deleteBudgetIncome,
   getBudgetRules, createBudgetRule, updateBudgetRule, deleteBudgetRule,
+  getBudgetPeriodReference, advanceBudgetPeriod, resetBudgetPeriod,
 } from '../../services/api'
 
 const ACCOUNT_TYPES = [
@@ -65,6 +66,7 @@ function BudgetSettings() {
     { key: 'categories', label: 'All Categories' },
     { key: 'income', label: 'Income' },
     { key: 'rules', label: 'Rules' },
+    { key: 'payperiod', label: 'Pay Period' },
   ]
 
   if (loading) {
@@ -104,6 +106,9 @@ function BudgetSettings() {
       )}
       {activeSection === 'rules' && (
         <RulesSection rules={rules} categories={categories} onRefresh={fetchAll} />
+      )}
+      {activeSection === 'payperiod' && (
+        <PayPeriodSection />
       )}
     </div>
   )
@@ -769,6 +774,121 @@ function RulesSection({ rules, categories, onRefresh }) {
           </div>
         ))}
         {rules.length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--color-text-muted)' }}>No rules yet. Add rules to auto-categorize imported transactions.</p>}
+      </div>
+    </div>
+  )
+}
+
+
+// ============================
+// Pay Period Section
+// ============================
+function PayPeriodSection() {
+  const [periodInfo, setPeriodInfo] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  const fetchPeriodInfo = useCallback(async () => {
+    try {
+      const res = await getBudgetPeriodReference()
+      setPeriodInfo(res.data)
+    } catch (err) {
+      console.error('Failed to load period reference:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchPeriodInfo() }, [fetchPeriodInfo])
+
+  const handleAdvance = async () => {
+    setActionLoading(true)
+    setMessage(null)
+    try {
+      const res = await advanceBudgetPeriod()
+      setPeriodInfo(res.data)
+      setMessage({ type: 'success', text: res.data.message || 'Advanced to next period' })
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to advance period' })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleReset = async () => {
+    setActionLoading(true)
+    setMessage(null)
+    try {
+      const res = await resetBudgetPeriod()
+      setPeriodInfo(res.data)
+      setMessage({ type: 'success', text: res.data.message || 'Reset to today' })
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to reset period' })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  if (loading) {
+    return <div className="animate-pulse bg-gray-800 rounded-xl h-32" />
+  }
+
+  const refDate = periodInfo?.reference_date ? new Date(periodInfo.reference_date + 'T12:00:00') : null
+  const formattedDate = refDate ? refDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : 'Unknown'
+
+  return (
+    <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+      <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>Pay Period</h3>
+
+      <p className="text-sm mb-4" style={{ color: 'var(--color-text-muted)' }}>
+        Manually advance to the next pay period if you get paid on a different date than the 1st/15th.
+      </p>
+
+      {message && (
+        <div className={`mb-4 p-3 rounded-lg text-sm ${message.type === 'error' ? 'bg-red-900/50 text-red-300' : 'bg-green-900/50 text-green-300'}`}>
+          {message.text}
+        </div>
+      )}
+
+      <div className="p-4 rounded-lg mb-4" style={{ backgroundColor: 'var(--color-bg-app)' }}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Reference Date:</span>
+          <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{formattedDate}</span>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Current Period:</span>
+          <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
+            {periodInfo?.current_period?.label || 'Unknown'}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Mode:</span>
+          <span className={`text-xs px-2 py-0.5 rounded ${periodInfo?.is_override ? 'bg-yellow-600/30 text-yellow-400' : 'bg-green-600/30 text-green-400'}`}>
+            {periodInfo?.is_override ? 'Manual Override' : 'Auto (Today)'}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={handleAdvance}
+          disabled={actionLoading}
+          className="flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          style={{ backgroundColor: 'var(--color-blue-600)', color: 'white' }}
+        >
+          {actionLoading ? 'Processing...' : 'Advance to Next Period'}
+        </button>
+        {periodInfo?.is_override && (
+          <button
+            onClick={handleReset}
+            disabled={actionLoading}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            style={{ backgroundColor: 'var(--color-bg-app)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-default)' }}
+          >
+            Reset to Today
+          </button>
+        )}
       </div>
     </div>
   )

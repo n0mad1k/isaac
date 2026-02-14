@@ -869,6 +869,9 @@ export const getBudgetMonthlySummary = (year, month) =>
 export const getBudgetDashboard = () => api.get('/budget/summary/dashboard/')
 export const getBudgetPayPeriods = (year, month) =>
   api.get('/budget/pay-periods/', { params: { year, month } })
+export const getBudgetPeriodReference = () => api.get('/budget/period-reference/')
+export const advanceBudgetPeriod = () => api.post('/budget/advance-period/')
+export const resetBudgetPeriod = () => api.post('/budget/reset-period/')
 
 export const importChaseStatement = (file, accountId, statementYear) => {
   const formData = new FormData()
