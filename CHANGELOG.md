@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.19] - 2026-02-14
+
+### Changed
+- **Mobile Menu Reorganized** - Quick actions now at the top of the mobile menu
+  - Quick Gear, Quick Transaction, Add Event, and Isaac AI buttons appear first
+  - No need to scroll past navigation to find action buttons
+  - More accessible for common tasks like adding transactions on the go
+
 ## [1.85.18] - 2026-02-14
 
 ### Added

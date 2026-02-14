@@ -200,6 +200,73 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
             )}
           </div>
 
+          {/* Quick Actions - At top for easy mobile access */}
+          <div className="p-3 pb-0">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleOpenQuickAdd}
+                className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
+                style={{
+                  backgroundColor: 'var(--color-green-600)',
+                  color: 'white',
+                  minHeight: '48px'
+                }}
+              >
+                <Plus className="w-5 h-5" />
+                <span className="text-sm font-medium">Add Event</span>
+              </button>
+              <button
+                onClick={handleOpenQuickGear}
+                className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
+                style={{
+                  backgroundColor: 'var(--color-bg-surface)',
+                  border: '1px solid var(--color-border-default)',
+                  color: 'var(--color-text-primary)',
+                  minHeight: '48px'
+                }}
+              >
+                <ShoppingBag className="w-5 h-5" />
+                <span className="text-sm font-medium">Quick Gear</span>
+              </button>
+              <button
+                onClick={handleOpenQuickTransaction}
+                className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
+                style={{
+                  backgroundColor: 'var(--color-bg-surface)',
+                  border: '1px solid var(--color-border-default)',
+                  color: 'var(--color-text-primary)',
+                  minHeight: '48px'
+                }}
+              >
+                <CreditCard className="w-5 h-5" />
+                <span className="text-sm font-medium">Transaction</span>
+              </button>
+              {onChatToggle && (
+                <button
+                  onClick={handleOpenChat}
+                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors relative touch-manipulation"
+                  style={{
+                    backgroundColor: 'var(--color-bg-surface)',
+                    border: '1px solid var(--color-border-default)',
+                    color: 'var(--color-text-primary)',
+                    minHeight: '48px'
+                  }}
+                >
+                  <Bot className="w-5 h-5" />
+                  <span className="text-sm font-medium">Isaac AI</span>
+                  {unreadInsights > 0 && (
+                    <span
+                      className="absolute top-1 right-1 w-4 h-4 rounded-full text-xs flex items-center justify-center font-bold"
+                      style={{ backgroundColor: 'var(--color-error-600)', color: 'white' }}
+                    >
+                      {unreadInsights > 9 ? '9+' : unreadInsights}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Navigation Grid */}
           <nav className="flex-1 overflow-y-auto p-3">
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -225,70 +292,9 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
               ))}
             </div>
 
-            {/* Action buttons */}
+            {/* Secondary Action buttons */}
             <div className="mt-4 pt-4 border-t border-gray-700">
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={handleOpenQuickAdd}
-                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
-                  style={{
-                    backgroundColor: 'var(--color-green-600)',
-                    color: 'white',
-                    minHeight: '48px'
-                  }}
-                >
-                  <Plus className="w-5 h-5" />
-                  <span className="text-sm font-medium">Add Event</span>
-                </button>
-                <button
-                  onClick={handleOpenQuickGear}
-                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
-                  style={{
-                    backgroundColor: 'var(--color-bg-surface)',
-                    border: '1px solid var(--color-border-default)',
-                    color: 'var(--color-text-primary)',
-                    minHeight: '48px'
-                  }}
-                >
-                  <ShoppingBag className="w-5 h-5" />
-                  <span className="text-sm font-medium">Quick Gear</span>
-                </button>
-                <button
-                  onClick={handleOpenQuickTransaction}
-                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
-                  style={{
-                    backgroundColor: 'var(--color-bg-surface)',
-                    border: '1px solid var(--color-border-default)',
-                    color: 'var(--color-text-primary)',
-                    minHeight: '48px'
-                  }}
-                >
-                  <CreditCard className="w-5 h-5" />
-                  <span className="text-sm font-medium">Transaction</span>
-                </button>
-                {onChatToggle && (
-                  <button
-                    onClick={handleOpenChat}
-                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors relative touch-manipulation"
-                    style={{
-                      backgroundColor: 'var(--color-bg-surface)',
-                      border: '1px solid var(--color-border-default)',
-                      color: 'var(--color-text-primary)',
-                      minHeight: '48px'
-                    }}
-                  >
-                    <Bot className="w-5 h-5" />
-                    <span className="text-sm font-medium">Isaac AI</span>
-                    {unreadInsights > 0 && (
-                      <span
-                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold"
-                        style={{ backgroundColor: 'var(--color-error-600)', color: 'white' }}
-                      >
-                        {unreadInsights > 9 ? '9+' : unreadInsights}
-                      </span>
-                    )}
-                  </button>
-                )}
                 {showHardRefresh && (
                   <button
                     onClick={handleHardRefresh}
