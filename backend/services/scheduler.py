@@ -803,7 +803,17 @@ class SchedulerService:
                 overdue_tasks = overdue_result.scalars().all()
 
                 # Combine: overdue TODOs first, then today's tasks/events
-                tasks = list(overdue_tasks) + list(tasks)
+                # Sort today's tasks by time: tasks with time first (chronologically), then tasks without time
+                def time_sort_key(task):
+                    if task.due_time:
+                        # Tasks with time come first, sorted chronologically
+                        return (0, task.due_time)
+                    else:
+                        # Tasks without time come after, sorted by priority
+                        return (1, str(task.priority or 2))
+
+                today_tasks = sorted(tasks, key=time_sort_key)
+                tasks = list(overdue_tasks) + today_tasks
 
                 # Get today's forecast from NWS
                 weather = {}

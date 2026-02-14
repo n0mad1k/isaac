@@ -339,9 +339,21 @@ class EmailService:
             priority_map = {1: "high", 2: "medium", 3: "low"}
             for task in tasks:
                 priority_class = priority_map.get(task.get("priority", 2), "medium")
+                # Format time if present (convert 24h to 12h format)
+                time_str = ""
+                if task.get("due_time"):
+                    try:
+                        hour, minute = map(int, task["due_time"].split(":"))
+                        period = "AM" if hour < 12 else "PM"
+                        display_hour = hour if hour <= 12 else hour - 12
+                        if display_hour == 0:
+                            display_hour = 12
+                        time_str = f'<span style="color:#666;margin-right:8px">{display_hour}:{minute:02d} {period}</span>'
+                    except (ValueError, AttributeError):
+                        pass
                 html += f"""
                 <div class="task {priority_class}">
-                    <strong>{_escape_html(task.get('title', 'Task'))}</strong>
+                    {time_str}<strong>{_escape_html(task.get('title', 'Task'))}</strong>
                     {f"<br><small>{_escape_html(task.get('description', ''))}</small>" if task.get('description') else ""}
                 </div>
                 """

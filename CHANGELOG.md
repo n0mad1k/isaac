@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.17] - 2026-02-14
+
+### Changed
+- **Daily Digest Task Ordering** - Tasks now sorted by scheduled time
+  - Tasks with times appear first, ordered chronologically
+  - Tasks without times follow, ordered by priority
+  - Each task shows its time (e.g., "9:30 AM") if scheduled
+
 ## [1.85.16] - 2026-02-14
 
 ### Fixed
