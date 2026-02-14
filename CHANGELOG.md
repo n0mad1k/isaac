@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.16] - 2026-02-14
+
+### Fixed
+- **Quick Gear Item Names** - Fixed item names not displaying in Quick Gear modal
+  - Was using wrong property name (`name` instead of `item_name`)
+  - Item names now show correctly next to quantity controls
+
 ## [1.85.15] - 2026-02-13
 
 ### Fixed

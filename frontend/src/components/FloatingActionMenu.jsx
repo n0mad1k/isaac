@@ -764,7 +764,7 @@ function QuickGearModal({ onClose }) {
                       ) : (
                         gearContents[item.id].map(content => (
                           <div key={content.id} className="flex items-center justify-between p-2 rounded" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
-                            <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{content.name}</span>
+                            <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{content.item_name}</span>
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleQuantityChange(item, content, -1)}
