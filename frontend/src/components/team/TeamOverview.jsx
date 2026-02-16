@@ -94,26 +94,26 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                 <button
                   key={member.id}
                   onClick={() => onMemberClick(member.id)}
-                  className="bg-gray-700 rounded-lg p-4 text-left hover:bg-gray-600 transition-colors flex items-center justify-between group"
+                  className="bg-gray-700 rounded-lg p-4 text-left hover:bg-gray-600 transition-colors flex items-center justify-between gap-2 group"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     {member.photo_path ? (
                       <img
                         src={`/api/team/photos/${member.photo_path.split('/').pop()}`}
                         alt={member.name}
-                        className="w-12 h-12 rounded-full object-cover"
+                        className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center text-gray-400">
+                      <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center text-gray-400 flex-shrink-0">
                         {member.name.charAt(0).toUpperCase()}
                       </div>
                     )}
-                    <div>
-                      <div className="font-medium flex items-center gap-2">
-                        {member.nickname || member.name}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium flex items-center gap-2 flex-wrap">
+                        <span className="truncate max-w-[120px] sm:max-w-none">{member.nickname || member.name}</span>
                         <ReadinessIndicator status={member.overall_readiness} size="sm" />
                         {member.fitness_tier && (
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0 ${
                             member.fitness_tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
                             member.fitness_tier === 'MARINE' ? 'bg-green-500 text-green-900' :
                             'bg-blue-500 text-blue-900'
@@ -122,13 +122,13 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-400">
+                      <div className="text-sm text-gray-400 truncate">
                         {member.role_title || member.role}
                         {member.callsign && ` · "${member.callsign}"`}
                       </div>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
+                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors flex-shrink-0" />
                 </button>
               ))}
             </div>
@@ -251,32 +251,32 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
               <button
                 key={member.id}
                 onClick={() => onMemberClick(member.id)}
-                className="bg-gray-700 rounded-lg p-4 text-left hover:bg-gray-600 transition-colors flex items-center justify-between group"
+                className="bg-gray-700 rounded-lg p-4 text-left hover:bg-gray-600 transition-colors flex items-center justify-between gap-2 group"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   {member.photo_path ? (
                     <img
                       src={`/api/team/photos/${member.photo_path.split('/').pop()}`}
                       alt={member.name}
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center text-gray-400">
+                    <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center text-gray-400 flex-shrink-0">
                       {member.name.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      {member.nickname || member.name}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium flex items-center gap-2 flex-wrap">
+                      <span className="truncate max-w-[120px] sm:max-w-none">{member.nickname || member.name}</span>
                       <ReadinessIndicator status={member.overall_readiness} size="sm" />
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-gray-400 truncate">
                       {member.role_title || member.role}
                       {member.callsign && ` · "${member.callsign}"`}
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors" />
+                <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors flex-shrink-0" />
               </button>
             ))}
           </div>

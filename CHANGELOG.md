@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.23] - 2026-02-16
+
+### Fixed
+- **Mobile Team Page Text Overlap** - Fixed text overlapping on mobile in team roster cards
+  - Member names and roles now truncate properly on small screens
+  - Added proper flex overflow handling to prevent content from overlapping the chevron
+  - Photos and badges maintain fixed sizes while text content shrinks
+
 ## [1.85.22] - 2026-02-16
 
 ### Fixed
