@@ -273,6 +273,51 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
                   )}
                 </button>
               )}
+              {showHardRefresh && (
+                <button
+                  onClick={handleHardRefresh}
+                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
+                  style={{
+                    backgroundColor: 'var(--color-bg-surface)',
+                    border: '1px solid var(--color-border-default)',
+                    color: 'var(--color-text-primary)',
+                    minHeight: '48px'
+                  }}
+                >
+                  <RotateCcw className="w-5 h-5" />
+                  <span className="text-sm font-medium">Refresh</span>
+                </button>
+              )}
+              {feedbackEnabled && (
+                <button
+                  onClick={handleOpenFeedback}
+                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
+                  style={{
+                    backgroundColor: 'var(--color-bg-surface)',
+                    border: '1px solid var(--color-border-default)',
+                    color: 'var(--color-text-primary)',
+                    minHeight: '48px'
+                  }}
+                >
+                  <MessageSquarePlus className="w-5 h-5" />
+                  <span className="text-sm font-medium">Feedback</span>
+                </button>
+              )}
+              {showKeyboard && (
+                <button
+                  onClick={handleToggleKeyboard}
+                  className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
+                  style={{
+                    backgroundColor: 'var(--color-bg-surface)',
+                    border: '1px solid var(--color-border-default)',
+                    color: 'var(--color-text-primary)',
+                    minHeight: '48px'
+                  }}
+                >
+                  <Keyboard className="w-5 h-5" />
+                  <span className="text-sm font-medium">Keyboard</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -299,57 +344,6 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
                   <span className="text-xs font-medium">{item.label}</span>
                 </NavLink>
               ))}
-            </div>
-
-            {/* Secondary Action buttons */}
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <div className="grid grid-cols-2 gap-2">
-                {showHardRefresh && (
-                  <button
-                    onClick={handleHardRefresh}
-                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
-                    style={{
-                      backgroundColor: 'var(--color-bg-surface)',
-                      border: '1px solid var(--color-border-default)',
-                      color: 'var(--color-text-primary)',
-                      minHeight: '48px'
-                    }}
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                    <span className="text-sm font-medium">Refresh</span>
-                  </button>
-                )}
-                {feedbackEnabled && (
-                  <button
-                    onClick={handleOpenFeedback}
-                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
-                    style={{
-                      backgroundColor: 'var(--color-bg-surface)',
-                      border: '1px solid var(--color-border-default)',
-                      color: 'var(--color-text-primary)',
-                      minHeight: '48px'
-                    }}
-                  >
-                    <MessageSquarePlus className="w-5 h-5" />
-                    <span className="text-sm font-medium">Feedback</span>
-                  </button>
-                )}
-                {showKeyboard && (
-                  <button
-                    onClick={handleToggleKeyboard}
-                    className="flex items-center justify-center gap-2 p-3 rounded-lg transition-colors touch-manipulation"
-                    style={{
-                      backgroundColor: 'var(--color-bg-surface)',
-                      border: '1px solid var(--color-border-default)',
-                      color: 'var(--color-text-primary)',
-                      minHeight: '48px'
-                    }}
-                  >
-                    <Keyboard className="w-5 h-5" />
-                    <span className="text-sm font-medium">Keyboard</span>
-                  </button>
-                )}
-              </div>
             </div>
           </nav>
         </div>
