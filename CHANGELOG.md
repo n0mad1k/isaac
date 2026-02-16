@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.22] - 2026-02-16
+
+### Fixed
+- **Quick Add Transaction Now Works** - Fixed submit failing due to missing required fields
+  - Now includes account_id (defaults to Money Market or first savings account)
+  - Uses category name as default description if left empty
+  - Shows warning if no budget accounts exist
+- **Transactions Page Uses Period Reference** - "This Half" filter now respects manual period advance
+  - Date range calculation uses the period reference instead of today's date
+  - Consistent with other budget views after advancing pay period
+
 ## [1.85.21] - 2026-02-14
 
 ### Fixed

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { Menu, MoreVertical, Keyboard, MessageSquarePlus, RotateCcw, X, Send, Loader2, Plus, Minus, Home, Leaf, PawPrint, ListTodo, Calendar, Sprout, Settings, Car, Wrench, Fence, Package, Bug, ClipboardList, LayoutDashboard, LogOut, Users, DollarSign, UsersRound, Wheat, Bot, ShoppingBag, CreditCard, ChevronDown, ChevronRight } from 'lucide-react'
-import { checkFeedbackEnabled, submitFeedback, toggleKeyboard as toggleKeyboardApi, getTeamGear, getGearContents, updateGearContents, createBudgetTransaction, getBudgetCategories } from '../services/api'
+import { checkFeedbackEnabled, submitFeedback, toggleKeyboard as toggleKeyboardApi, getTeamGear, getGearContents, updateGearContents, createBudgetTransaction, getBudgetCategories, getBudgetAccounts } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import EventModal from './EventModal'
 
@@ -810,6 +810,8 @@ function QuickGearModal({ onClose }) {
  */
 function QuickTransactionModal({ onClose }) {
   const [categories, setCategories] = useState([])
+  const [accounts, setAccounts] = useState([])
+  const [defaultAccountId, setDefaultAccountId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -823,16 +825,27 @@ function QuickTransactionModal({ onClose }) {
   })
 
   useEffect(() => {
-    loadCategories()
+    loadData()
   }, [])
 
-  const loadCategories = async () => {
+  const loadData = async () => {
     try {
       setLoading(true)
-      const res = await getBudgetCategories()
-      setCategories(res.data || [])
+      const [catRes, acctRes] = await Promise.all([
+        getBudgetCategories(),
+        getBudgetAccounts()
+      ])
+      setCategories(catRes.data || [])
+      const accts = acctRes.data || []
+      setAccounts(accts)
+      // Default to Money Market, then first savings, then first account
+      const moneyMarket = accts.find(a => a.name === 'Money Market' && a.is_active)
+      const savings = accts.find(a => a.account_type === 'savings' && a.is_active)
+      const firstActive = accts.find(a => a.is_active)
+      const defaultAcct = moneyMarket || savings || firstActive || accts[0]
+      if (defaultAcct) setDefaultAccountId(defaultAcct.id)
     } catch (err) {
-      setError('Failed to load categories')
+      setError('Failed to load data')
     } finally {
       setLoading(false)
     }
@@ -840,15 +853,20 @@ function QuickTransactionModal({ onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.category_id || !formData.amount) return
+    if (!formData.category_id || !formData.amount || !defaultAccountId) return
 
     setSaving(true)
     setError(null)
     try {
+      // Get category name for default description
+      const selectedCategory = categories.find(c => c.id === parseInt(formData.category_id))
+      const description = formData.description.trim() || selectedCategory?.name || 'Quick transaction'
+
       await createBudgetTransaction({
+        account_id: defaultAccountId,
         category_id: parseInt(formData.category_id),
         amount: parseFloat(formData.amount),
-        description: formData.description || null,
+        description: description,
         transaction_date: formData.transaction_date,
         transaction_type: formData.transaction_type
       })
@@ -970,9 +988,15 @@ function QuickTransactionModal({ onClose }) {
                   />
                 </div>
 
+                {!defaultAccountId && (
+                  <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-600)' }}>
+                    No budget accounts found. Please create an account in Budget settings first.
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  disabled={saving || !formData.category_id || !formData.amount}
+                  disabled={saving || !formData.category_id || !formData.amount || !defaultAccountId}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
                   style={{ backgroundColor: 'var(--color-green-600)', color: 'white' }}
                 >
