@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.24] - 2026-02-16
+
+### Fixed
+- **Mobile Menu Buttons Consolidated** - Close button now in header instead of bottom
+  - Added X/close button to mobile menu header for easy access
+  - Bottom toggle button hidden on mobile when menu is expanded
+  - No more buttons at both top and bottom on mobile
+
 ## [1.85.23] - 2026-02-16
 
 ### Fixed

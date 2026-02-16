@@ -173,31 +173,40 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
       {/* Mobile: Fullscreen menu overlay */}
       {expanded && (
         <div className="md:hidden fixed inset-0 z-40 flex flex-col" style={{ backgroundColor: 'var(--color-bg-app)' }}>
-          {/* Header with user info */}
+          {/* Header with user info and close button */}
           <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: 'var(--color-nav-bg)', borderBottom: '1px solid var(--color-border-strong)' }}>
             <span className="text-lg font-semibold" style={{ color: 'var(--accent-primary)' }}>Menu</span>
-            {user && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">{user.display_name || user.username}</span>
-                {isAdmin && (
-                  <NavLink
-                    to="/settings"
-                    state={{ tab: 'users' }}
-                    className="p-2 rounded-lg text-gray-400 hover:text-white transition-colors"
-                    title="User Management"
+            <div className="flex items-center gap-2">
+              {user && (
+                <>
+                  <span className="text-sm text-gray-400">{user.display_name || user.username}</span>
+                  {isAdmin && (
+                    <NavLink
+                      to="/settings"
+                      state={{ tab: 'users' }}
+                      className="p-2 rounded-lg text-gray-400 hover:text-white transition-colors"
+                      title="User Management"
+                    >
+                      <Users className="w-5 h-5" />
+                    </NavLink>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="p-2 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                    title="Log Out"
                   >
-                    <Users className="w-5 h-5" />
-                  </NavLink>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="p-2 rounded-lg text-red-400 hover:text-red-300 transition-colors"
-                  title="Log Out"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
-            )}
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setExpanded(false)}
+                className="p-2 rounded-lg text-gray-400 hover:text-white transition-colors ml-2"
+                title="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Quick Actions - At top for easy mobile access */}
@@ -346,8 +355,8 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
         </div>
       )}
 
-      {/* Desktop: Expandable action buttons */}
-      <div ref={menuRef} className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[60]">
+      {/* Desktop: Expandable action buttons - hidden on mobile when menu is expanded (X is in header) */}
+      <div ref={menuRef} className={`fixed bottom-4 right-4 md:bottom-6 md:right-6 z-[60] ${expanded ? 'hidden md:block' : ''}`}>
         {expanded && (
           <div className="hidden md:flex absolute bottom-16 right-0 flex-col gap-3 items-end">
             <button
