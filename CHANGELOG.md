@@ -11,15 +11,6 @@ All notable changes to Isaac will be documented in this file.
   - Shows task title, description, due date/time, and who assigned it
   - On update, only newly assigned people get notified (not existing assignees)
 
-## [1.85.45] - 2026-02-17
-
-### Added
-- **Spending Accounts in Accounts Tab** - Dane/Kelly spending balances now appear in Accounts ticker
-  - Shows available balance alongside bank accounts with purple styling
-  - Click to view detailed breakdown: rollover, period net, spent, budget per half
-  - Monthly breakdown shows 1st half and 2nd half remaining + bills
-  - Balance auto-updates based on transactions and assigned bills
-
 ## [1.85.44] - 2026-02-17
 
 ### Fixed
