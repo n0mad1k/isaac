@@ -12,6 +12,38 @@ import {
   completeWorkerVisit, duplicateWorkerVisit, toggleWorkerVisitTaskBacklog
 } from '../../services/api'
 
+// UI translations for different languages
+const UI_TRANSLATIONS = {
+  es: {
+    visitTasks: 'Tareas de Visita',
+    standardTasks: 'Tareas Estándar',
+    standardTasksEveryVisit: 'Tareas Estándar (Cada Visita)',
+    standardTasksDesc: 'Estas tareas se agregan automáticamente a cada visita. Reordena para establecer prioridad.',
+    addStandardTask: 'Agregar tarea estándar...',
+    currentVisit: 'Visita Actual',
+    completeVisit: 'Completar Visita',
+    done: 'hechas',
+    completeInOrder: 'Completa las tareas en orden de arriba a abajo',
+    noTasksYet: 'No hay tareas aún. Agrega tareas estándar o tareas únicas abajo.',
+    standard: 'Estándar',
+    thisVisit: 'Esta Visita',
+    doNext: 'SIGUIENTE',
+    moveToBacklog: 'Mover a pendientes',
+    backlog: 'Pendientes',
+    moveToActive: 'Mover a activas',
+    completed: 'Completadas',
+    addTaskThisVisit: 'Agregar tarea solo para esta visita:',
+    exampleTask: 'ej., Limpiar horno profundo...',
+    showVisitHistory: 'Mostrar Historial de Visitas',
+    hideVisitHistory: 'Ocultar Historial de Visitas',
+    duplicate: 'Duplicar',
+    tasksCompleted: 'tareas completadas',
+    more: 'más',
+    original: 'Original',
+    translated: 'Traducido'
+  }
+}
+
 function WorkerVisitTasksTab({ worker }) {
   const [loading, setLoading] = useState(true)
   const [standardTasks, setStandardTasks] = useState([])
@@ -29,6 +61,13 @@ function WorkerVisitTasksTab({ worker }) {
 
   // Check if worker has a non-English language (translation is active)
   const isTranslated = worker?.language && worker.language !== 'en'
+
+  // Get translation for a UI string
+  const t = (key, fallback) => {
+    if (!isTranslated || showOriginal) return fallback
+    const lang = worker?.language
+    return UI_TRANSLATIONS[lang]?.[key] || fallback
+  }
 
   // Helper to get task title based on translation toggle
   const getTaskTitle = (task) => {
@@ -263,7 +302,7 @@ function WorkerVisitTasksTab({ worker }) {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-white flex items-center gap-2">
           <ListOrdered className="w-5 h-5" />
-          Visit Tasks
+          {t('visitTasks', 'Visit Tasks')}
         </h3>
         <div className="flex items-center gap-2">
           {/* Translation toggle - only show if worker language is not English */}
@@ -278,7 +317,7 @@ function WorkerVisitTasksTab({ worker }) {
               title={showOriginal ? 'Showing original English' : 'Showing translated text'}
             >
               <Languages className="w-4 h-4" />
-              {showOriginal ? 'Original' : 'Translated'}
+              {showOriginal ? t('original', 'Original') : t('translated', 'Translated')}
             </button>
           )}
           <button
@@ -286,7 +325,7 @@ function WorkerVisitTasksTab({ worker }) {
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors text-sm"
           >
             <Settings className="w-4 h-4" />
-            Standard Tasks
+            {t('standardTasks', 'Standard Tasks')}
           </button>
         </div>
       </div>
@@ -296,7 +335,7 @@ function WorkerVisitTasksTab({ worker }) {
         <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-              Standard Tasks (Every Visit)
+              {t('standardTasksEveryVisit', 'Standard Tasks (Every Visit)')}
             </h4>
             <button
               onClick={() => setShowStandardSettings(false)}
@@ -306,7 +345,7 @@ function WorkerVisitTasksTab({ worker }) {
             </button>
           </div>
           <p className="text-sm text-gray-400 mb-4">
-            These tasks are automatically added to each visit. Reorder to set priority.
+            {t('standardTasksDesc', 'These tasks are automatically added to each visit. Reorder to set priority.')}
           </p>
 
           <div className="space-y-2 mb-4">
@@ -369,7 +408,7 @@ function WorkerVisitTasksTab({ worker }) {
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddStandardTask()}
-              placeholder="Add standard task..."
+              placeholder={t('addStandardTask', 'Add standard task...')}
               className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-farm-green"
             />
             <button
@@ -390,7 +429,7 @@ function WorkerVisitTasksTab({ worker }) {
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                  Current Visit
+                  {t('currentVisit', 'Current Visit')}
                 </h4>
                 <p className="text-sm text-gray-400">{formatDate(currentVisit.visit_date)}</p>
               </div>
@@ -401,11 +440,11 @@ function WorkerVisitTasksTab({ worker }) {
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-500 transition-colors text-sm"
                   >
                     <CheckCircle className="w-4 h-4" />
-                    Complete Visit
+                    {t('completeVisit', 'Complete Visit')}
                   </button>
                 ) : (
                   <span className="text-sm text-gray-400">
-                    {completedTasks.length}/{currentVisit.tasks?.length || 0} done
+                    {completedTasks.length}/{currentVisit.tasks?.length || 0} {t('done', 'done')}
                   </span>
                 )}
               </div>
@@ -418,13 +457,13 @@ function WorkerVisitTasksTab({ worker }) {
             <div className="flex items-center gap-2 mb-4 p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
               <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
               <span className="text-sm text-yellow-200">
-                Complete tasks in order from top to bottom
+                {t('completeInOrder', 'Complete tasks in order from top to bottom')}
               </span>
             </div>
 
             {activeTasks.length === 0 && backlogTasks.length === 0 && completedTasks.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
-                No tasks yet. Add standard tasks or one-off tasks below.
+                {t('noTasksYet', 'No tasks yet. Add standard tasks or one-off tasks below.')}
               </div>
             ) : (
               <div className="space-y-2">
@@ -458,24 +497,24 @@ function WorkerVisitTasksTab({ worker }) {
                       </span>
                       {task.is_standard && (
                         <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
-                          Standard
+                          {t('standard', 'Standard')}
                         </span>
                       )}
                       {!task.is_standard && (
                         <span className="ml-2 text-xs px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
-                          This Visit
+                          {t('thisVisit', 'This Visit')}
                         </span>
                       )}
                       {idx === 0 && (
                         <span className="ml-2 text-xs px-1.5 py-0.5 bg-green-600 text-white rounded">
-                          DO NEXT
+                          {t('doNext', 'DO NEXT')}
                         </span>
                       )}
                     </div>
                     <button
                       onClick={() => handleToggleBacklog(task)}
                       className="p-1 text-gray-400 hover:text-yellow-400 flex-shrink-0"
-                      title="Move to backlog"
+                      title={t('moveToBacklog', 'Move to backlog')}
                     >
                       <Archive className="w-4 h-4" />
                     </button>
@@ -498,7 +537,7 @@ function WorkerVisitTasksTab({ worker }) {
                       className="flex items-center gap-2 text-sm text-gray-400 hover:text-white w-full"
                     >
                       <Archive className="w-4 h-4 text-yellow-500" />
-                      Backlog ({backlogTasks.length})
+                      {t('backlog', 'Backlog')} ({backlogTasks.length})
                       {showBacklog ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
                     </button>
                     {showBacklog && backlogTasks.length > 0 && (
@@ -520,19 +559,19 @@ function WorkerVisitTasksTab({ worker }) {
                               <span className="text-gray-300">{getTaskTitle(task)}</span>
                               {task.is_standard && (
                                 <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
-                                  Standard
+                                  {t('standard', 'Standard')}
                                 </span>
                               )}
                               {!task.is_standard && (
                                 <span className="ml-2 text-xs px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
-                                  This Visit
+                                  {t('thisVisit', 'This Visit')}
                                 </span>
                               )}
                             </div>
                             <button
                               onClick={() => handleToggleBacklog(task)}
                               className="p-1 text-gray-400 hover:text-green-400 flex-shrink-0"
-                              title="Move to active"
+                              title={t('moveToActive', 'Move to active')}
                             >
                               <Inbox className="w-4 h-4" />
                             </button>
@@ -556,7 +595,7 @@ function WorkerVisitTasksTab({ worker }) {
                   <div className="pt-3 mt-3 border-t border-gray-700">
                     <p className="text-sm text-gray-400 mb-2 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      Completed ({completedTasks.length})
+                      {t('completed', 'Completed')} ({completedTasks.length})
                     </p>
                     {completedTasks.map((task) => (
                       <div
@@ -581,14 +620,14 @@ function WorkerVisitTasksTab({ worker }) {
 
             {/* Add One-Off Task */}
             <div className="mt-4 pt-4 border-t border-gray-700">
-              <label className="block text-sm text-gray-400 mb-2">Add task for this visit only:</label>
+              <label className="block text-sm text-gray-400 mb-2">{t('addTaskThisVisit', 'Add task for this visit only:')}</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={newOneOffTitle}
                   onChange={(e) => setNewOneOffTitle(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddOneOffTask()}
-                  placeholder="e.g., Deep clean oven..."
+                  placeholder={t('exampleTask', 'e.g., Deep clean oven...')}
                   className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-farm-green"
                 />
                 <button
@@ -611,7 +650,7 @@ function WorkerVisitTasksTab({ worker }) {
           className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
         >
           <History className="w-4 h-4" />
-          {showHistory ? 'Hide' : 'Show'} Visit History ({visitHistory.length})
+          {showHistory ? t('hideVisitHistory', 'Hide Visit History') : t('showVisitHistory', 'Show Visit History')} ({visitHistory.length})
           {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
 
@@ -630,21 +669,21 @@ function WorkerVisitTasksTab({ worker }) {
                     </span>
                     {visit.status === 'completed' && (
                       <span className="text-xs px-1.5 py-0.5 bg-green-900/50 text-green-300 rounded">
-                        Completed
+                        {t('completed', 'Completed')}
                       </span>
                     )}
                   </div>
                   <button
                     onClick={() => handleDuplicateVisit(visit.id)}
                     className="flex items-center gap-1 text-sm text-gray-400 hover:text-white"
-                    title="Create new visit with these tasks"
+                    title={t('duplicate', 'Duplicate')}
                   >
                     <Copy className="w-4 h-4" />
-                    Duplicate
+                    {t('duplicate', 'Duplicate')}
                   </button>
                 </div>
                 <div className="text-sm text-gray-400">
-                  {visit.completed_count}/{visit.task_count} tasks completed
+                  {visit.completed_count}/{visit.task_count} {t('tasksCompleted', 'tasks completed')}
                 </div>
                 {visit.tasks && visit.tasks.length > 0 && (
                   <div className="mt-2 text-xs text-gray-500 space-y-0.5">
@@ -661,7 +700,7 @@ function WorkerVisitTasksTab({ worker }) {
                       </div>
                     ))}
                     {visit.tasks.length > 5 && (
-                      <div className="text-gray-600">+{visit.tasks.length - 5} more</div>
+                      <div className="text-gray-600">+{visit.tasks.length - 5} {t('more', 'more')}</div>
                     )}
                   </div>
                 )}

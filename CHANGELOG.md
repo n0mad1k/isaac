@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.41] - 2026-02-17
+
+### Fixed
+- **Worker Tasks UI Translation** - All UI labels now translate to Spanish for Spanish-speaking workers
+  - Previously only task content was translated, UI labels remained in English
+  - Translated: "Current Visit", "Complete Visit", "Backlog", "Standard", "This Visit", "DO NEXT", etc.
+  - Toggle button now shows "Original/Traducido" in Spanish
+  - All placeholders, badges, and section headers now in worker's language
+
 ## [1.85.40] - 2026-02-17
 
 ### Fixed
