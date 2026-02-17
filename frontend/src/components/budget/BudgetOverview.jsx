@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
-import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories, updateBudgetCategory, getBudgetPeriodReference } from '../../services/api'
+import { ChevronLeft, ChevronRight, Check, X, Wallet, PiggyBank, CreditCard, Banknote } from 'lucide-react'
+import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories, updateBudgetCategory, getBudgetPeriodReference, getAccountsWithBalances } from '../../services/api'
+
+const ACCOUNT_ICONS = {
+  checking: Wallet,
+  savings: PiggyBank,
+  credit: CreditCard,
+  cash: Banknote,
+}
 
 function BudgetOverview() {
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState(null)
   const [categories, setCategories] = useState([])
+  const [accounts, setAccounts] = useState([])
   const [periods, setPeriods] = useState([])
   const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(0)
   const [currentYear, setCurrentYear] = useState(null)
@@ -40,15 +48,26 @@ function BudgetOverview() {
     initFromReference()
   }, [])
 
+  const fetchAccounts = useCallback(async () => {
+    try {
+      const res = await getAccountsWithBalances()
+      setAccounts(res.data || [])
+    } catch (err) {
+      console.error('Failed to fetch accounts:', err)
+    }
+  }, [])
+
   const fetchPeriods = useCallback(async () => {
     if (initializing || !currentYear || !currentMonth) return
     try {
-      const [periodsRes, catRes] = await Promise.all([
+      const [periodsRes, catRes, accountsRes] = await Promise.all([
         getBudgetPayPeriods(currentYear, currentMonth),
         getBudgetCategories(),
+        getAccountsWithBalances(),
       ])
       const periodData = periodsRes.data || []
       setCategories(catRes.data || [])
+      setAccounts(accountsRes.data || [])
       if (periodData.length === 2) {
         periodData.push({ start: periodData[0].start, end: periodData[1].end, label: 'Full Month' })
       }
@@ -247,6 +266,30 @@ function BudgetOverview() {
             <div className="text-base font-bold" style={{ color: (summary.rollover_balance || 0) > 0 ? 'var(--color-success-500)' : (summary.rollover_balance || 0) < 0 ? 'var(--color-error-500)' : 'var(--color-text-muted)' }}>
               {fmt(summary.rollover_balance || 0)}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Accounts Overview */}
+      {accounts.length > 0 && (
+        <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
+          <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-primary)' }}>Account Balances</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {accounts.map(account => {
+              const Icon = ACCOUNT_ICONS[account.account_type] || Wallet
+              const balance = account.current_balance || 0
+              return (
+                <div key={account.id} className="flex items-center gap-3 p-2 rounded-lg" style={{ backgroundColor: 'var(--color-bg-surface-soft)' }}>
+                  <Icon className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{account.name}</div>
+                    <div className="text-sm font-semibold" style={{ color: balance >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>
+                      {fmt(balance)}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

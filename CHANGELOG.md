@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.48] - 2026-02-17
+
+### Added
+- **Accounts Overview in Budget** - Bank account balances now displayed in Budget Overview
+  - Shows all accounts with balances in a grid below the spending summary
+  - Account type icons (wallet, piggy bank, credit card, cash)
+  - Green/red color coding for positive/negative balances
+
 ## [1.85.47] - 2026-02-17
 
 ### Fixed
