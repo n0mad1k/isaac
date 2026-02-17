@@ -2,6 +2,18 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.30] - 2026-02-17
+
+### Fixed
+- **Quick Transaction Modal Error Handling** - Better error messages and logging
+  - Shows specific HTTP status code errors (401, 404, etc.)
+  - Fixed transaction type mapping (expense/income to debit/credit for backend)
+  - Console logging added to help diagnose issues
+- **Mobile Team Tab Navigation Spacing** - Fixed tabs appearing to run together on mobile
+  - Increased gap between tab buttons from 4px to 8px
+  - Added visual divider between member tabs and utility tabs (Gear, Supplies, AAR)
+  - Tabs now maintain minimum width to prevent shrinking
+
 ## [1.85.29] - 2026-02-17
 
 ### Fixed

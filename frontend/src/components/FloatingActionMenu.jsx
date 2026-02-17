@@ -848,7 +848,15 @@ function QuickTransactionModal({ onClose }) {
       const defaultAcct = moneyMarket || savings || firstActive || accts[0]
       if (defaultAcct) setDefaultAccountId(defaultAcct.id)
     } catch (err) {
-      setError('Failed to load data')
+      console.error('QuickTransaction loadData error:', err)
+      const status = err.response?.status
+      if (status === 401) {
+        setError('Please log in to add transactions')
+      } else if (status === 404) {
+        setError('Budget API not available. Please refresh the page.')
+      } else {
+        setError(err.userMessage || `Failed to load data (${status || 'network error'})`)
+      }
     } finally {
       setLoading(false)
     }
@@ -865,13 +873,15 @@ function QuickTransactionModal({ onClose }) {
       const selectedCategory = categories.find(c => c.id === parseInt(formData.category_id))
       const description = formData.description.trim() || selectedCategory?.name || 'Quick transaction'
 
+      // Map UI transaction types to backend types
+      const typeMap = { expense: 'debit', income: 'credit' }
       await createBudgetTransaction({
         account_id: defaultAccountId,
         category_id: parseInt(formData.category_id),
         amount: parseFloat(formData.amount),
         description: description,
         transaction_date: formData.transaction_date,
-        transaction_type: formData.transaction_type
+        transaction_type: typeMap[formData.transaction_type] || 'debit'
       })
       setSuccess(true)
       setTimeout(() => onClose(), 1500)

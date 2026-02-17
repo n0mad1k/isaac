@@ -378,11 +378,11 @@ function Team() {
           <div
             ref={tabsRef}
             onScroll={checkTabsOverflow}
-            className="flex gap-1 overflow-x-auto scrollbar-hide flex-1"
+            className="flex gap-2 overflow-x-auto scrollbar-hide flex-1"
           >
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'overview'
                   ? 'bg-gray-700 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
@@ -396,7 +396,7 @@ function Team() {
               <button
                 key={member.id}
                 onClick={() => handleMemberClick(member.id)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 flex-shrink-0 ${
                   activeTab === 'member' && selectedMemberId === member.id
                     ? 'bg-gray-700 text-white'
                     : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
@@ -407,9 +407,12 @@ function Team() {
               </button>
             ))}
 
+            {/* Visual divider before utility tabs */}
+            <div className="w-px bg-gray-600 flex-shrink-0 mx-1" />
+
             <button
               onClick={() => setActiveTab('gear')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'gear'
                   ? 'bg-gray-700 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
@@ -420,7 +423,7 @@ function Team() {
 
             <button
               onClick={() => setActiveTab('supplies')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'supplies'
                   ? 'bg-gray-700 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
@@ -431,7 +434,7 @@ function Team() {
 
             <button
               onClick={() => setActiveTab('aar')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'aar'
                   ? 'bg-gray-700 text-white'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
