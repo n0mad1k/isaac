@@ -2451,12 +2451,12 @@ function Settings() {
                         <>
                           <div className="flex items-start justify-between mb-1">
                             <div className="flex items-center gap-2">
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${
-                                insight.priority === 'high' ? 'bg-red-500/30 text-red-300' :
-                                insight.priority === 'low' ? 'bg-gray-500/30 text-gray-300' :
-                                'bg-yellow-500/30 text-yellow-300'
+                              <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                                insight.priority === 'high' ? 'bg-red-500/30 text-red-800 dark:text-red-300' :
+                                insight.priority === 'low' ? 'bg-gray-500/30 text-gray-700 dark:text-gray-300' :
+                                'bg-yellow-500/30 text-yellow-800 dark:text-yellow-300'
                               }`}>{insight.priority}</span>
-                              <span className="text-xs text-gray-400">{insight.domain}</span>
+                              <span className="text-xs text-gray-600 dark:text-gray-400">{insight.domain}</span>
                               {insight.is_dismissed && <span className="text-xs text-gray-500">(dismissed)</span>}
                               {!insight.is_read && <span className="w-2 h-2 bg-blue-400 rounded-full" title="Unread" />}
                             </div>

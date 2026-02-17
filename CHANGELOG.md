@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.38] - 2026-02-17
+
+### Fixed
+- **AI Insights Readability** - Fixed priority badges being unreadable in light theme
+  - Priority text now uses darker colors for better contrast in light mode
+  - Domain text also improved for better readability
+
 ## [1.85.37] - 2026-02-17
 
 ### Fixed
