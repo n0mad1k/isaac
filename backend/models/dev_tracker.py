@@ -91,6 +91,7 @@ class DevTrackerItem(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
+    testing_at = Column(DateTime, nullable=True)  # When moved to testing status
 
     # Archive tracking (soft delete after 30 days)
     is_archived = Column(Boolean, default=False)

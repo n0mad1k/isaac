@@ -1083,6 +1083,10 @@ function DevTracker() {
                             } catch { return null }
                           })()}
                           {renderItemImages(item)}
+                          {/* Timestamps */}
+                          <div className="text-[10px] text-gray-500 mt-1">
+                            Created: {item.created_at ? new Date(item.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                          </div>
                         </div>
                         <button
                           onClick={() => handleToggleCollab(item)}
@@ -1258,6 +1262,13 @@ function DevTracker() {
                             </p>
                           )}
                           {renderItemImages(item)}
+                          {/* Timestamps */}
+                          <div className="text-[10px] text-gray-500 mt-1">
+                            Created: {item.created_at ? new Date(item.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                            {item.testing_at && (
+                              <span className="ml-2">• Testing: {new Date(item.testing_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                            )}
+                          </div>
                         </div>
                         <button
                           onClick={() => handleOpenFailModal(item)}

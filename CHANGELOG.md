@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.39] - 2026-02-17
+
+### Added
+- **Dev Tracker Timestamps** - Added date/time to dev tracker items
+  - Each item now shows when it was created (date + time)
+  - Items in testing show when they were moved to testing status
+  - Backend stores `testing_at` timestamp when items move to testing
+
 ## [1.85.38] - 2026-02-17
 
 ### Fixed

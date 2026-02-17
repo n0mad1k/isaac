@@ -340,6 +340,8 @@ async def update_item(item_id: int, data: ItemUpdate, db: AsyncSession = Depends
         elif new_status == ItemStatus.TESTING:
             # Clear fail note when moving to testing (successful fix)
             item.fail_note = None
+            # Record when item was moved to testing
+            item.testing_at = datetime.utcnow()
 
     for key, value in update_data.items():
         setattr(item, key, value)
