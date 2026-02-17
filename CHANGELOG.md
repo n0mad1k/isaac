@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.50] - 2026-02-17
+
+### Fixed
+- **AI Insights Readability** - Improved visibility of AI insights in chat panel
+  - Priority now shows colored label with text (HIGH, MEDIUM, LOW) instead of tiny dot
+  - Domain label uses primary text color for better contrast
+  - Content text increased from xs to sm for easier reading
+  - Date stamp slightly larger for readability
+
 ## [1.85.49] - 2026-02-17
 
 ### Fixed

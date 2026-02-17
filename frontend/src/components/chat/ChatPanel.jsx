@@ -244,6 +244,12 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
     low: 'var(--color-info-600)',
   }
 
+  const priorityLabels = {
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
+  }
+
   const domainLabels = {
     garden: 'Garden',
     fitness: 'Fitness',
@@ -438,17 +444,22 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
                       border: `1px solid ${insight.is_read ? 'var(--color-border-subtle)' : 'var(--color-border-default)'}`,
                     }}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span
-                          className="w-2 h-2 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: priorityColors[insight.priority] || priorityColors.medium }}
-                        />
-                        <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-secondary)' }}>
+                          className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase"
+                          style={{
+                            backgroundColor: priorityColors[insight.priority] || priorityColors.medium,
+                            color: 'white'
+                          }}
+                        >
+                          {priorityLabels[insight.priority] || 'Medium'}
+                        </span>
+                        <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-primary)' }}>
                           {domainLabels[insight.domain] || insight.domain}
                         </span>
                         {insight.created_at && (
-                          <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                          <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                             {new Date(insight.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                           </span>
                         )}
@@ -474,10 +485,10 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
                         </button>
                       </div>
                     </div>
-                    <h4 className="text-sm font-medium mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                    <h4 className="text-sm font-semibold mb-1.5" style={{ color: 'var(--color-text-primary)' }}>
                       {insight.title}
                     </h4>
-                    <p className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--color-text-secondary)' }}>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--color-text-secondary)' }}>
                       {insight.content}
                     </p>
                   </div>
