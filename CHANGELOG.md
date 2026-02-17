@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.36] - 2026-02-17
+
+### Fixed
+- **Team Page Mobile Overflow** - Fixed multiple overflow issues on mobile:
+  - Gear list items now wrap properly on narrow screens
+  - Gear details (make, model, color) stack vertically on mobile instead of overflowing
+  - Action buttons always visible on mobile (hover effect only on desktop)
+  - Fitness Tracking header stacks on mobile
+  - Fitness tier badge wraps correctly on narrow screens
+
 ## [1.85.35] - 2026-02-17
 
 ### Fixed

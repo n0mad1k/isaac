@@ -351,39 +351,42 @@ function TeamGearTab({ members, onRefresh }) {
                     return (
                       <div key={item.id} className="bg-gray-800 rounded-lg overflow-hidden">
                         {/* Gear Item Header */}
-                        <div className="flex items-center justify-between p-3 group">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            {item.is_container && (
-                              <button
-                                onClick={() => toggleGearExpand(item)}
-                                className="p-1 hover:bg-gray-700 rounded"
-                              >
-                                {isGearExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                              </button>
-                            )}
-                            <span className={`w-2 h-2 rounded-full ${getStatusColor(item.status)}`} />
-                            <span className="font-medium">{item.name}</span>
-                            {item.make && item.model && (
-                              <span className="text-sm text-gray-400">{item.make} {item.model}</span>
-                            )}
-                            {item.color && (
-                              <span className="text-xs px-2 py-0.5 bg-gray-600 rounded">{item.color}</span>
-                            )}
-                          </div>
-                          {/* Gear notes */}
-                          {item.notes && (
-                            <div className="text-xs text-gray-400 italic ml-4 mt-1">{item.notes}</div>
-                          )}
-                          <div className="flex items-center gap-3">
-                            <div className="text-sm">
-                              {item.member && (
-                                <span className="flex items-center gap-1 text-green-400">
-                                  <User className="w-3 h-3" />
-                                  {item.member.nickname || item.member.name}
-                                </span>
+                        <div className="p-3 group">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-2 flex-1 min-w-0">
+                              {item.is_container && (
+                                <button
+                                  onClick={() => toggleGearExpand(item)}
+                                  className="p-1 hover:bg-gray-700 rounded flex-shrink-0 mt-0.5"
+                                >
+                                  {isGearExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                </button>
                               )}
+                              <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-2 ${getStatusColor(item.status)}`} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                  <span className="font-medium">{item.name}</span>
+                                  {item.make && item.model && (
+                                    <span className="text-sm text-gray-400">{item.make} {item.model}</span>
+                                  )}
+                                  {item.color && (
+                                    <span className="text-xs px-2 py-0.5 bg-gray-600 rounded whitespace-nowrap">{item.color}</span>
+                                  )}
+                                </div>
+                                {item.member && (
+                                  <div className="text-sm mt-1">
+                                    <span className="flex items-center gap-1 text-green-400">
+                                      <User className="w-3 h-3" />
+                                      {item.member.nickname || item.member.name}
+                                    </span>
+                                  </div>
+                                )}
+                                {item.notes && (
+                                  <div className="text-xs text-gray-400 italic mt-1">{item.notes}</div>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-1 flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => setAssigningGear(item)}
                                 className="p-1.5 text-gray-400 hover:text-purple-400 rounded hover:bg-gray-700"

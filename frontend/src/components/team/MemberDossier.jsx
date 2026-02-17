@@ -2579,7 +2579,7 @@ function FitnessTab({ member, settings, formatDate }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-4">
           <Dumbbell className="w-6 h-6 text-blue-400" />
           <h3 className="text-lg font-semibold">Fitness Tracking</h3>
@@ -2601,7 +2601,7 @@ function FitnessTab({ member, settings, formatDate }) {
           </div>
           <button
             onClick={() => setShowAddWorkout(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             Log Workout
@@ -2625,9 +2625,9 @@ function FitnessTab({ member, settings, formatDate }) {
               fitnessProfile.overall_tier === 'MARINE' ? 'bg-green-900/20 border-green-500' :
               'bg-blue-900/20 border-blue-500'
             }`}>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className={`px-3 py-1 rounded-full font-bold ${
+                  <div className={`px-3 py-1 rounded-full font-bold whitespace-nowrap ${
                     fitnessProfile.overall_tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
                     fitnessProfile.overall_tier === 'MARINE' ? 'bg-green-500 text-green-900' :
                     'bg-blue-500 text-blue-900'
