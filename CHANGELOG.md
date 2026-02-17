@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.27] - 2026-02-17
+
+### Fixed
+- **Task Reminder Email Logging** - Added detailed logging for task reminder emails
+  - Shows which tasks are being processed for reminders
+  - Shows assignment details (worker/user/member IDs)
+  - Shows found member emails and recipients
+  - Helps diagnose why reminders might not be sent
+
 ## [1.85.26] - 2026-02-16
 
 ### Fixed

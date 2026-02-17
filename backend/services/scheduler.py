@@ -1888,6 +1888,9 @@ class SchedulerService:
             logger.debug(f"Skipping task reminder email on dev instance: {task.title}")
             return
 
+        logger.info(f"Task reminder: Processing task '{task.title}' (id={task.id}) for {minutes_before}min reminder")
+        logger.info(f"Task reminder: Assignments - worker_id={task.assigned_to_worker_id}, user_id={task.assigned_to_user_id}, member_id={task.assigned_to_member_id}")
+
         try:
             from models.database import async_session
             from models.workers import Worker
@@ -1938,8 +1941,12 @@ class SchedulerService:
                         member_emails_found += 1
                         if member_email and member_email not in recipient_list:
                             recipient_list.append(member_email)
-                            logger.debug(f"Added team member email {member_email} to reminder recipients")
-                    logger.debug(f"Task {task.id} has {member_emails_found} assigned member(s) with emails")
+                            logger.info(f"Task reminder: Added team member email {member_email} for task '{task.title}'")
+
+                    if member_emails_found > 0:
+                        logger.info(f"Task reminder: Task {task.id} ('{task.title}') has {member_emails_found} assigned member(s) with emails")
+                    else:
+                        logger.info(f"Task reminder: Task {task.id} ('{task.title}') has no M2M assigned members with emails")
 
                     # Also check legacy single member assignment
                     if task.assigned_to_member_id:
@@ -1949,12 +1956,13 @@ class SchedulerService:
                         member = result.scalar_one_or_none()
                         if member and member.email and member.email not in recipient_list:
                             recipient_list.append(member.email)
-                            logger.debug(f"Added legacy member email {member.email} to reminder recipients")
+                            logger.info(f"Task reminder: Added legacy member email {member.email} for task '{task.title}'")
 
             if not recipient_list:
-                logger.warning("No email recipients configured for task reminder")
+                logger.warning(f"Task reminder: No email recipients for task '{task.title}' (id={task.id}). Check: 1) Global email_recipients setting 2) Assigned member has email 3) Task is assigned to a member")
                 return
 
+            logger.info(f"Task reminder: Found {len(recipient_list)} recipient(s) for task '{task.title}': {recipient_list}")
             recipients = ",".join(recipient_list)
 
             # Format the timing description
