@@ -24,6 +24,7 @@ from models.livestock import Animal, AnimalType
 from models.weather import WeatherAlert
 from models.settings import AppSetting
 from models.team import TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment
+from models.budget import BudgetCategory, BudgetAccount, BudgetTransaction, CategoryType, TransactionType, TransactionSource
 from services.weather import WeatherService, NWSForecastService
 from services.email import EmailService
 
@@ -429,6 +430,9 @@ class SchedulerService:
         # AI Insight jobs (gated by ai_proactive_insights setting)
         await self.schedule_ai_insights()
 
+        # Budget distribution deposits (1st and 15th of month)
+        await self.schedule_budget_distributions()
+
         self.scheduler.start()
         logger.info("Scheduler started with all jobs")
 
@@ -499,6 +503,95 @@ class SchedulerService:
         )
 
         logger.info("AI insight jobs scheduled")
+
+    async def schedule_budget_distributions(self):
+        """Schedule budget distribution processing on 1st and 15th of each month"""
+        # Process distributions on the 1st at 12:01 AM
+        self.scheduler.add_job(
+            self.process_budget_distributions,
+            CronTrigger(day=1, hour=0, minute=1),
+            id="budget_distributions_1st",
+            name="Budget Distributions (1st)",
+            replace_existing=True,
+        )
+
+        # Process distributions on the 15th at 12:01 AM
+        self.scheduler.add_job(
+            self.process_budget_distributions,
+            CronTrigger(day=15, hour=0, minute=1),
+            id="budget_distributions_15th",
+            name="Budget Distributions (15th)",
+            replace_existing=True,
+        )
+
+        logger.info("Budget distribution jobs scheduled for 1st and 15th")
+
+    async def process_budget_distributions(self):
+        """
+        Process budget distributions - create deposit transactions for transfer categories
+        that have a destination_account_id set.
+        """
+        today = date.today()
+        is_first_half = today.day <= 14
+        period_key = f"{today.year}-{today.month:02d}-{'1' if is_first_half else '2'}"
+
+        logger.info(f"Processing budget distributions for period {period_key}")
+
+        try:
+            async with async_session() as db:
+                # Find all TRANSFER categories with a destination account
+                result = await db.execute(
+                    select(BudgetCategory).where(
+                        BudgetCategory.category_type == CategoryType.TRANSFER,
+                        BudgetCategory.destination_account_id.isnot(None),
+                        BudgetCategory.is_active == True,
+                        BudgetCategory.budget_amount > 0,
+                    )
+                )
+                transfer_cats = result.scalars().all()
+
+                if not transfer_cats:
+                    logger.info("No transfer categories with destination accounts found")
+                    return
+
+                deposits_created = 0
+                for cat in transfer_cats:
+                    # Check if deposit already exists for this period
+                    existing = await db.execute(
+                        select(BudgetTransaction).where(
+                            BudgetTransaction.account_id == cat.destination_account_id,
+                            BudgetTransaction.period_key == period_key,
+                            BudgetTransaction.description.like(f"%Budget deposit%{cat.name}%"),
+                        )
+                    )
+                    if existing.scalar_one_or_none():
+                        logger.debug(f"Deposit already exists for {cat.name} in period {period_key}")
+                        continue
+
+                    # Create deposit transaction
+                    txn = BudgetTransaction(
+                        account_id=cat.destination_account_id,
+                        category_id=cat.id,
+                        transaction_date=today,
+                        description=f"Budget deposit - {cat.name}",
+                        amount=cat.budget_amount,  # Positive = deposit
+                        transaction_type=TransactionType.CREDIT,
+                        source=TransactionSource.SYSTEM,
+                        period_key=period_key,
+                        notes=f"Auto-generated from budget distribution",
+                    )
+                    db.add(txn)
+                    deposits_created += 1
+                    logger.info(f"Created deposit: ${cat.budget_amount} to {cat.name} destination account")
+
+                if deposits_created > 0:
+                    await db.commit()
+                    logger.info(f"Budget distributions complete: {deposits_created} deposits created")
+                else:
+                    logger.info("No new deposits needed")
+
+        except Exception as e:
+            logger.error(f"Error processing budget distributions: {e}")
 
     async def schedule_calendar_sync(self):
         """Schedule calendar sync if enabled - runs every 10 minutes"""

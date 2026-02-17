@@ -2,10 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.53] - 2026-02-17
+
+### Added
+- **Automatic Budget Deposits** - Distributions now create real transactions
+  - On 1st and 15th of each month, deposit transactions are auto-created
+  - Deposits go into the linked spending account (set via "Transfer To")
+  - Prevents duplicate deposits for the same period
+  - Spending account balance now reflects actual deposited amounts
+
 ## [1.85.52] - 2026-02-17
 
 ### Changed
-- **Spending Account Integration (WIP)** - Linking spending accounts to budget
+- **Spending Account Integration** - Linking spending accounts to budget
   - Transfer categories can now link to a destination spending account
   - Spending tickers now show actual account balance minus bills for the half
   - Edit transfer in Monthly Budget to set "Transfer To" spending account
