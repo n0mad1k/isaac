@@ -427,7 +427,7 @@ export const sendSaleReceipt = (id, data) => api.post(`/production/sales/${id}/s
 // Scheduled Invoices
 export const getScheduledInvoices = (orderId) => api.get(`/production/orders/${orderId}/scheduled-invoices/`)
 export const createScheduledInvoice = (orderId, data) => api.post(`/production/orders/${orderId}/scheduled-invoices/`, data)
-export const updateScheduledInvoice = (invoiceId, data) => api.patch(`/production/scheduled-invoices/${invoiceId}/`, data)
+export const updateScheduledInvoice = (invoiceId, data) => api.put(`/production/scheduled-invoices/${invoiceId}/`, data)
 export const deleteScheduledInvoice = (invoiceId) => api.delete(`/production/scheduled-invoices/${invoiceId}/`)
 export const sendScheduledInvoice = (invoiceId) => api.post(`/production/scheduled-invoices/${invoiceId}/send/`)
 

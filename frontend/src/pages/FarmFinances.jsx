@@ -379,6 +379,9 @@ function FarmFinances() {
         estimated_total: orderFormData.estimated_total ? parseFloat(orderFormData.estimated_total) : null,
         customer_id: orderFormData.customer_id || null,
         livestock_production_id: orderFormData.livestock_production_id || null,
+        // Convert empty date strings to null
+        order_date: orderFormData.order_date || null,
+        expected_ready_date: orderFormData.expected_ready_date || null,
       }
       if (editingOrder) {
         await updateOrder(editingOrder.id, data)
@@ -464,7 +467,9 @@ function FarmFinances() {
         await createScheduledInvoice(selectedOrderForSchedule.id, data)
       }
       setShowScheduledInvoiceModal(false)
-      fetchScheduledInvoices(selectedOrderForSchedule.id)
+      // Refresh orders to show the new scheduled invoice in the UI
+      const ordersRes = await getOrders()
+      setOrders(ordersRes.data)
     } catch (error) {
       console.error('Failed to save scheduled invoice:', error)
       alert('Failed to save scheduled invoice')
@@ -475,7 +480,9 @@ function FarmFinances() {
     if (confirm('Delete this scheduled invoice?')) {
       try {
         await deleteScheduledInvoice(invoiceId)
-        fetchScheduledInvoices(orderId)
+        // Refresh orders to update the UI
+        const ordersRes = await getOrders()
+        setOrders(ordersRes.data)
       } catch (error) {
         console.error('Failed to delete scheduled invoice:', error)
       }
@@ -486,7 +493,9 @@ function FarmFinances() {
     if (confirm('Send this invoice now?')) {
       try {
         await sendScheduledInvoice(invoiceId)
-        fetchScheduledInvoices(orderId)
+        // Refresh orders to update the sent status in UI
+        const ordersRes = await getOrders()
+        setOrders(ordersRes.data)
         alert('Invoice sent successfully')
       } catch (error) {
         console.error('Failed to send scheduled invoice:', error)

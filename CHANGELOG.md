@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.32] - 2026-02-17
+
+### Fixed
+- **Scheduled Invoice Feature** - Fixed multiple issues with scheduled invoices for orders
+  - UI now updates immediately after creating/editing/deleting scheduled invoices
+  - Fixed HTTP method mismatch (PATCH vs PUT) for update endpoint
+  - Expected ready date for orders is now properly optional (empty dates sent as null)
+
 ## [1.85.31] - 2026-02-17
 
 ### Fixed
