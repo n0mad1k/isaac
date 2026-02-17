@@ -2,6 +2,25 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.72] - 2026-02-17
+
+### Added
+- **Sick Day History Tracking** - Track and record sick periods with start/end dates
+  - New `MemberSickPeriod` model stores sick history
+  - Sick periods are automatically recorded when marking sick/recovered
+  - New `/team/members/{id}/sick-history/` endpoint returns sick period history and stats
+  - Stats include: total sick days, sick days this year, number of periods
+
+### Changed
+- **Fitness Score Sick Day Adjustment** - Members are no longer penalized for not working out while sick
+  - Training load analysis excludes sick days from calculations
+  - Activity level indicator adjusts scores when member was sick
+  - Low activity/training is expected and not flagged while sick or recovering
+- **Health Data Integration** - Sick status now reflected in readiness analysis
+  - Shows sick days in last 7/28 days
+  - Shows year-to-date sick periods and total sick days
+  - Current sick/recovery status visible in health data
+
 ## [1.85.71] - 2026-02-17
 
 ### Fixed

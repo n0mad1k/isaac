@@ -47,6 +47,8 @@ from models.team import (
     MemberSubjectiveInput,
     # Child growth tracking
     MemberMilestone,
+    # Sick tracking
+    MemberSickPeriod,
 )
 from models.supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from models.tasks import Task, TaskType, TaskCategory, task_member_assignments
@@ -2305,17 +2307,41 @@ async def update_sick_status(
         # Marking as sick
         if not member.is_sick:
             member.sick_since = now
+            # Create a new sick period record
+            sick_period = MemberSickPeriod(
+                member_id=member_id,
+                start_date=now,
+                notes=data.sick_notes
+            )
+            db.add(sick_period)
+            logger.info(f"Team member {member.name} marked as sick - created sick period record")
+        else:
+            # Already sick - just update notes
+            logger.info(f"Team member {member.name} sick notes updated")
         member.is_sick = True
         member.sick_notes = data.sick_notes
         member.recovery_mode = False
         member.recovery_started = None
-        logger.info(f"Team member {member.name} marked as sick")
     else:
         # Marking as recovered - enter recovery mode for gradual return
         if member.is_sick:
             member.recovery_mode = True
             member.recovery_started = now
-            logger.info(f"Team member {member.name} entering recovery mode")
+            # Close the open sick period
+            open_period = await db.execute(
+                select(MemberSickPeriod)
+                .where(MemberSickPeriod.member_id == member_id)
+                .where(MemberSickPeriod.end_date.is_(None))
+                .order_by(desc(MemberSickPeriod.start_date))
+            )
+            period = open_period.scalar_one_or_none()
+            if period:
+                period.end_date = now
+                period.recovery_notes = data.sick_notes
+                duration = (now - period.start_date).days + 1
+                logger.info(f"Team member {member.name} recovered after {duration} day(s) - entering recovery mode")
+            else:
+                logger.info(f"Team member {member.name} entering recovery mode (no open period found)")
         member.is_sick = False
         member.sick_notes = data.sick_notes or member.sick_notes
 
@@ -2351,6 +2377,51 @@ async def end_recovery_mode(
 
     logger.info(f"Team member {member.name} recovery mode ended - fully recovered")
     return serialize_member(member)
+
+
+@router.get("/members/{member_id}/sick-history/")
+async def get_sick_history(
+    member_id: int,
+    limit: int = Query(default=10, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Get sick period history for a member"""
+    result = await db.execute(
+        select(MemberSickPeriod)
+        .where(MemberSickPeriod.member_id == member_id)
+        .order_by(desc(MemberSickPeriod.start_date))
+        .limit(limit)
+    )
+    periods = result.scalars().all()
+
+    # Calculate stats
+    total_periods = len(periods)
+    total_sick_days = sum(p.duration_days for p in periods)
+    this_year = datetime.utcnow().year
+    this_year_periods = [p for p in periods if p.start_date.year == this_year]
+    sick_days_this_year = sum(p.duration_days for p in this_year_periods)
+
+    return {
+        "periods": [
+            {
+                "id": p.id,
+                "start_date": p.start_date.isoformat() if p.start_date else None,
+                "end_date": p.end_date.isoformat() if p.end_date else None,
+                "duration_days": p.duration_days,
+                "notes": p.notes,
+                "recovery_notes": p.recovery_notes,
+                "is_active": p.end_date is None
+            }
+            for p in periods
+        ],
+        "stats": {
+            "total_periods": total_periods,
+            "total_sick_days": total_sick_days,
+            "sick_days_this_year": sick_days_this_year,
+            "periods_this_year": len(this_year_periods)
+        }
+    }
 
 
 # ============================================

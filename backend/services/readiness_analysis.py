@@ -21,13 +21,13 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, desc
+from sqlalchemy import select, and_, or_, desc
 from loguru import logger
 import math
 
 from models.team import (
     TeamMember, MemberVitalsLog, MemberWeightLog, MemberTraining, MemberTrainingLog,
-    MemberWorkout, WorkoutType,
+    MemberWorkout, WorkoutType, MemberSickPeriod,
     VitalType, ReadinessStatus, Gender
 )
 
@@ -93,6 +93,18 @@ class RiskFlag:
 
 
 @dataclass
+class SickStatus:
+    """Current and historical sick status"""
+    currently_sick: bool = False
+    sick_since: Optional[str] = None  # ISO date string
+    recovery_mode: bool = False
+    sick_days_last_7: int = 0
+    sick_days_last_28: int = 0
+    sick_periods_this_year: int = 0
+    total_sick_days_this_year: int = 0
+
+
+@dataclass
 class ReadinessAnalysis:
     """Complete readiness analysis result"""
     overall_status: str                 # GREEN, AMBER, RED
@@ -116,6 +128,9 @@ class ReadinessAnalysis:
     data_quality: Dict[str, Any] = field(default_factory=dict)
     analyzed_at: str = ""
     member_updated: bool = False
+
+    # Sick status tracking
+    sick_status: Optional[SickStatus] = None
 
 
 # ============================================
@@ -939,10 +954,12 @@ def _steps_to_load(steps: float, stairs: float = 0) -> float:
 
 def _analyze_activity_level(
     step_data: Optional[dict],
-    workouts: Optional[List[MemberWorkout]] = None
+    workouts: Optional[List[MemberWorkout]] = None,
+    sick_periods: Optional[List['MemberSickPeriod']] = None
 ) -> PerformanceIndicator:
     """
     Assess physical activity level from steps, stairs, and workouts.
+    Accounts for sick days - low activity while sick is expected and not penalized.
 
     Research-backed thresholds (Lancet Public Health 2025, JACC 2023):
       - <2,000 steps/day: Sedentary
@@ -958,6 +975,13 @@ def _analyze_activity_level(
     This indicator reflects the HEALTH BENEFITS of daily movement,
     separate from ACWR which tracks overtraining risk.
     """
+    # Check for sick days
+    now = datetime.utcnow()
+    seven_days_ago = now - timedelta(days=7)
+    sick_days_count = 0
+    currently_sick = False
+    if sick_periods:
+        sick_days_count, currently_sick = _count_sick_days_in_range(sick_periods, seven_days_ago, now)
     factors = []
     details = {"actual_values": [], "normal_ranges": []}
     score = 50  # Default: no data = uncertain
@@ -1055,6 +1079,27 @@ def _analyze_activity_level(
         elif len(recent_workouts) >= 1:
             score = min(100, score + 1)
 
+    # Sick day adjustment - don't penalize for low activity while sick
+    sick_adjustment_applied = False
+    if currently_sick:
+        # Currently sick - rest is appropriate, give neutral score
+        if score < 70:
+            score = 70  # Floor at "acceptable" level
+            factors.insert(0, "Currently sick - rest is appropriate")
+            sick_adjustment_applied = True
+    elif sick_days_count >= 3:
+        # Sick for most of the week - expected low activity
+        if score < 65:
+            score = 65
+            factors.insert(0, f"Sick {sick_days_count} of 7 days - reduced activity expected")
+            sick_adjustment_applied = True
+    elif sick_days_count >= 1:
+        # Some sick days - partially adjusted
+        if score < 55:
+            score = max(55, score + sick_days_count * 5)
+            factors.insert(0, f"{sick_days_count} sick day{'s' if sick_days_count != 1 else ''} this week")
+            sick_adjustment_applied = True
+
     # Confidence based on days logged
     if days_logged >= 5:
         confidence = "HIGH"
@@ -1107,7 +1152,67 @@ def _analyze_activity_level(
     )
 
 
-def _analyze_training_load(workouts: List[MemberWorkout], step_data: Optional[dict] = None) -> TrainingLoadAnalysis:
+def _count_sick_days_in_range(
+    sick_periods: List['MemberSickPeriod'],
+    start_date: datetime,
+    end_date: datetime
+) -> Tuple[int, bool]:
+    """
+    Count the number of sick days within a date range.
+
+    Returns:
+        Tuple of (sick_day_count, currently_sick)
+    """
+    sick_days = 0
+    currently_sick = False
+
+    for period in sick_periods:
+        # Check if period overlaps with our range
+        period_start = period.start_date
+        period_end = period.end_date or datetime.utcnow()
+
+        # Calculate overlap
+        overlap_start = max(period_start, start_date)
+        overlap_end = min(period_end, end_date)
+
+        if overlap_start <= overlap_end:
+            sick_days += (overlap_end - overlap_start).days + 1
+
+        # Check if currently sick
+        if period.end_date is None:
+            currently_sick = True
+
+    return sick_days, currently_sick
+
+
+def _get_sick_dates_set(
+    sick_periods: List['MemberSickPeriod'],
+    start_date: datetime,
+    end_date: datetime
+) -> set:
+    """Get a set of dates (as date objects) when the member was sick."""
+    sick_dates = set()
+
+    for period in sick_periods:
+        period_start = period.start_date
+        period_end = period.end_date or datetime.utcnow()
+
+        # Only consider dates within our range
+        current = max(period_start.date(), start_date.date())
+        end = min(period_end.date(), end_date.date())
+
+        while current <= end:
+            sick_dates.add(current)
+            current += timedelta(days=1)
+
+    return sick_dates
+
+
+def _analyze_training_load(
+    workouts: List[MemberWorkout],
+    step_data: Optional[dict] = None,
+    sick_periods: Optional[List['MemberSickPeriod']] = None
+) -> TrainingLoadAnalysis:
     """
     Analyze training load using Acute:Chronic Workload Ratio (ACWR).
 
@@ -1115,6 +1220,7 @@ def _analyze_training_load(workouts: List[MemberWorkout], step_data: Optional[di
     Chronic = last 28 days average weekly load
 
     Includes steps and stairs climbed as ambulatory training load.
+    Excludes sick days from analysis - members aren't penalized for resting while sick.
 
     ACWR > 1.5 = HIGH injury risk
     ACWR 1.3-1.5 = MODERATE risk
@@ -1123,6 +1229,14 @@ def _analyze_training_load(workouts: List[MemberWorkout], step_data: Optional[di
     now = datetime.utcnow()
     acute_cutoff = now - timedelta(days=7)
     chronic_cutoff = now - timedelta(days=28)
+
+    # Calculate sick days in each period
+    acute_sick_days = 0
+    chronic_sick_days = 0
+    currently_sick = False
+    if sick_periods:
+        acute_sick_days, currently_sick = _count_sick_days_in_range(sick_periods, acute_cutoff, now)
+        chronic_sick_days, _ = _count_sick_days_in_range(sick_periods, chronic_cutoff, now)
 
     acute_workouts = [w for w in workouts if w.workout_date and w.workout_date >= acute_cutoff]
     chronic_workouts = [w for w in workouts if w.workout_date and w.workout_date >= chronic_cutoff]
@@ -1168,7 +1282,20 @@ def _analyze_training_load(workouts: List[MemberWorkout], step_data: Optional[di
     acute_sessions = len(acute_workouts)
     chronic_sessions = len(chronic_workouts)
 
-    if no_baseline:
+    # If currently sick or recently sick, don't flag low training as concerning
+    sick_adjustment_applied = False
+    if currently_sick:
+        # Currently sick - training pause is expected and healthy
+        risk_level = "LOW"
+        notes.append(f"Currently sick - training pause is appropriate. Focus on recovery.")
+        sick_adjustment_applied = True
+    elif acute_sick_days >= 3:
+        # Was sick for most of the acute period - low training expected
+        available_days = 7 - acute_sick_days
+        risk_level = "LOW"
+        notes.append(f"Sick for {acute_sick_days} of last 7 days - {available_days} day{'s' if available_days != 1 else ''} available for training. Low volume expected during recovery.")
+        sick_adjustment_applied = True
+    elif no_baseline:
         risk_level = "LOW"
         notes.append(f"Building training baseline ({acute_sessions} session{'s' if acute_sessions != 1 else ''} this week). Need 3-4 weeks of data for accurate load tracking.")
     elif acwr > 1.5:
@@ -1178,9 +1305,13 @@ def _analyze_training_load(workouts: List[MemberWorkout], step_data: Optional[di
     elif acwr > 1.3:
         risk_level = "MODERATE"
         notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your {weeks_of_data}-week average ({chronic_load:.0f} pts/wk). Slightly elevated - monitor for fatigue.")
-    elif acwr < 0.8:
+    elif acwr < 0.8 and not sick_adjustment_applied:
         risk_level = "LOW"
-        notes.append(f"This week's load ({acute_load:.0f} pts) is only {acwr:.1f}x your {weeks_of_data}-week average ({chronic_load:.0f} pts/wk). Training volume dropping - detraining may occur.")
+        # Only flag detraining if not sick-related
+        if acute_sick_days > 0:
+            notes.append(f"This week's load reduced due to {acute_sick_days} sick day{'s' if acute_sick_days != 1 else ''}. Gradual return to training recommended.")
+        else:
+            notes.append(f"This week's load ({acute_load:.0f} pts) is only {acwr:.1f}x your {weeks_of_data}-week average ({chronic_load:.0f} pts/wk). Training volume dropping - detraining may occur.")
     else:
         risk_level = "LOW"
         notes.append(f"This week's load ({acute_load:.0f} pts) is {acwr:.1f}x your {weeks_of_data}-week average ({chronic_load:.0f} pts/wk). Well balanced.")
@@ -1497,6 +1628,21 @@ async def analyze_readiness(
     )
     workouts = list(workouts_result.scalars().all())
 
+    # Fetch sick periods for score adjustments (last 28 days + any currently open)
+    sick_periods_result = await db.execute(
+        select(MemberSickPeriod)
+        .where(and_(
+            MemberSickPeriod.member_id == member_id,
+            or_(
+                MemberSickPeriod.start_date >= workout_cutoff,  # Started in window
+                MemberSickPeriod.end_date.is_(None),  # Currently sick
+                MemberSickPeriod.end_date >= workout_cutoff  # Ended in window
+            )
+        ))
+        .order_by(desc(MemberSickPeriod.start_date))
+    )
+    sick_periods = list(sick_periods_result.scalars().all())
+
     # Track data sources used
     data_sources = []
     if recent_vitals:
@@ -1535,13 +1681,15 @@ async def analyze_readiness(
                     step_data[day_key]["stairs"] = max(step_data[day_key]["stairs"], v.value or 0)
 
     # Activity level indicator (health benefits of steps/stairs)
-    activity = _analyze_activity_level(step_data if step_data else None, workouts)
+    # Pass sick_periods so low activity while sick isn't penalized
+    activity = _analyze_activity_level(step_data if step_data else None, workouts, sick_periods=sick_periods)
 
     # Training load analysis (workouts + steps/stairs — overtraining risk)
+    # Pass sick_periods so training gaps while sick aren't flagged
     training_load = None
     has_activity_data = workouts or step_data
     if has_activity_data:
-        training_load = _analyze_training_load(workouts, step_data=step_data if step_data else None)
+        training_load = _analyze_training_load(workouts, step_data=step_data if step_data else None, sick_periods=sick_periods)
 
     indicators = [autonomic, cardiovascular, illness, activity]
 
@@ -1702,6 +1850,31 @@ async def analyze_readiness(
         member_updated = True
         logger.info(f"Updated member {member_id} overall_readiness to {overall_status} (score: {overall_score:.0f})")
 
+    # ============================================
+    # Build Sick Status
+    # ============================================
+    now = datetime.utcnow()
+    seven_days_ago = now - timedelta(days=7)
+    twenty_eight_days_ago = now - timedelta(days=28)
+    year_start = datetime(now.year, 1, 1)
+
+    sick_days_7, currently_sick = _count_sick_days_in_range(sick_periods, seven_days_ago, now) if sick_periods else (0, False)
+    sick_days_28, _ = _count_sick_days_in_range(sick_periods, twenty_eight_days_ago, now) if sick_periods else (0, False)
+
+    # Calculate year-to-date stats
+    year_periods = [p for p in sick_periods if p.start_date.year == now.year] if sick_periods else []
+    sick_days_ytd = sum(p.duration_days for p in year_periods)
+
+    sick_status = SickStatus(
+        currently_sick=member.is_sick or False,
+        sick_since=member.sick_since.isoformat() if member.sick_since else None,
+        recovery_mode=member.recovery_mode or False,
+        sick_days_last_7=sick_days_7,
+        sick_days_last_28=sick_days_28,
+        sick_periods_this_year=len(year_periods),
+        total_sick_days_this_year=sick_days_ytd
+    )
+
     return ReadinessAnalysis(
         overall_status=overall_status,
         score=round(overall_score, 1),
@@ -1717,5 +1890,6 @@ async def analyze_readiness(
         risk_flags=risk_flags,
         data_quality=data_quality,
         analyzed_at=datetime.utcnow().isoformat(),
-        member_updated=member_updated
+        member_updated=member_updated,
+        sick_status=sick_status
     )

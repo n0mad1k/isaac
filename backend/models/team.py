@@ -262,6 +262,31 @@ class TeamMember(Base):
     workouts = relationship("MemberWorkout", back_populates="member", cascade="all, delete-orphan")
     subjective_inputs = relationship("MemberSubjectiveInput", back_populates="member", cascade="all, delete-orphan")
     milestones = relationship("MemberMilestone", back_populates="member", cascade="all, delete-orphan")
+    sick_periods = relationship("MemberSickPeriod", back_populates="member", cascade="all, delete-orphan")
+
+
+class MemberSickPeriod(Base):
+    """Tracks sick periods for health history and fitness score adjustments"""
+    __tablename__ = "member_sick_periods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    member_id = Column(Integer, ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False)
+
+    start_date = Column(DateTime, nullable=False)  # When marked sick
+    end_date = Column(DateTime, nullable=True)  # When recovered (null = still sick)
+    notes = Column(Text, nullable=True)  # Symptoms, doctor notes
+    recovery_notes = Column(Text, nullable=True)  # Notes when recovered
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationship
+    member = relationship("TeamMember", back_populates="sick_periods")
+
+    @property
+    def duration_days(self) -> int:
+        """Calculate duration in days"""
+        end = self.end_date or datetime.utcnow()
+        return (end - self.start_date).days + 1
 
 
 class MemberWeightLog(Base):
