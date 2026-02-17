@@ -1864,12 +1864,16 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
     ]
 
     # If no real tasks, use sample data to show format
+    # Order: untimed tasks first (by priority), then timed tasks chronologically
     using_sample_data = False
     if not task_dicts:
         using_sample_data = True
         task_dicts = [
+            # Untimed tasks first (sorted by priority)
+            {"title": "[SAMPLE] Check irrigation system", "description": "Verify all zones functioning", "priority": 1, "category": "garden", "due_time": None},
+            {"title": "[SAMPLE] Review farm records", "description": "Update inventory counts", "priority": 2, "category": "farm", "due_time": None},
+            # Then timed tasks chronologically
             {"title": "[SAMPLE] Morning animal feeding", "description": "Feed all animals in barn and pasture", "priority": 1, "category": "animals", "due_time": "07:00:00"},
-            {"title": "[SAMPLE] Check irrigation system", "description": "Verify all zones functioning", "priority": 2, "category": "garden", "due_time": None},
             {"title": "[SAMPLE] Prepare for delivery pickup", "description": "Box and label orders for today", "priority": 1, "category": "farm", "due_time": "15:00:00"},
         ]
 

@@ -291,6 +291,7 @@ class ScheduledInvoice(Base):
 
     # When to send
     scheduled_date = Column(Date, nullable=False)
+    scheduled_time = Column(String(8), nullable=True)  # HH:MM:SS format, null = send at default time (9 AM)
 
     # What type of payment this is for
     payment_type = Column(Enum(PaymentType), default=PaymentType.PARTIAL)

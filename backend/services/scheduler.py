@@ -744,15 +744,15 @@ class SchedulerService:
                 logger.info(f"Missed team alerts digest time ({ta_hour:02d}:{ta_minute:02d}), attempting catchup...")
                 await self.send_team_alerts_digest()
 
-        # Schedule invoice check - runs daily at 8 AM to send any due invoices
+        # Schedule invoice check - runs hourly to send any due invoices at their scheduled time
         self.scheduler.add_job(
             self.send_scheduled_invoices,
-            CronTrigger(hour=8, minute=0),
+            CronTrigger(minute=0),  # Every hour on the hour
             id="scheduled_invoices",
-            name="Send Scheduled Invoices (08:00)",
+            name="Send Scheduled Invoices (hourly)",
             replace_existing=True,
         )
-        logger.info("Scheduled invoices job set for 08:00")
+        logger.info("Scheduled invoices job set to run hourly")
 
     async def stop(self):
         """Stop the scheduler"""
@@ -1915,31 +1915,33 @@ class SchedulerService:
                 tasks = result.scalars().all()
 
                 alerts_sent = 0
+                tasks_with_alerts = [t for t in tasks if t.reminder_alerts]
+                if tasks_with_alerts:
+                    logger.info(f"Found {len(tasks_with_alerts)} tasks with reminder_alerts configured")
+
                 for task in tasks:
-                    # Skip tasks without a specific due_time - they shouldn't get alerts
-                    # (They appear in daily digest and dashboard instead)
-                    # Also skip "00:00" as that typically means "no specific time" rather than "midnight"
-                    if not task.due_time or task.due_time == "00:00":
+                    # Only send alerts if task has explicit reminder_alerts configured
+                    task_alerts = task.reminder_alerts
+                    if not task_alerts:
                         continue
 
                     # Calculate task due datetime
+                    # For tasks without a specific time (or "00:00" which means no time), use 9 AM default
                     due_date = task.due_date
-                    try:
-                        hour, minute = map(int, task.due_time.split(":"))
-                    except:
-                        continue  # Invalid time format, skip
+                    if not task.due_time or task.due_time == "00:00":
+                        hour, minute = 9, 0  # Default to 9 AM for date-only tasks
+                    else:
+                        try:
+                            hour, minute = map(int, task.due_time.split(":"))
+                        except:
+                            hour, minute = 9, 0  # Invalid time format, use default
 
                     due_datetime = tz.localize(datetime.combine(due_date, datetime.min.time().replace(hour=hour, minute=minute)))
 
                     # Skip tasks whose due_datetime has already passed by more than 1 hour
                     # This prevents sending reminders for old/past tasks
                     if due_datetime < now - timedelta(hours=1):
-                        continue
-
-                    # Only send alerts if task has explicit reminder_alerts configured
-                    # NO default fallback - if no alerts are set, no emails are sent
-                    task_alerts = task.reminder_alerts
-                    if not task_alerts:
+                        logger.debug(f"Task '{task.title}' due_datetime {due_datetime} is more than 1 hour past, skipping")
                         continue
                     task_alerts_sent = task.alerts_sent or {}
 
@@ -2540,7 +2542,9 @@ class SchedulerService:
             from models.production import ScheduledInvoice, LivestockOrder, Customer
 
             tz = pytz.timezone(settings.timezone)
-            today = datetime.now(tz).date()
+            now = datetime.now(tz)
+            today = now.date()
+            current_time = now.strftime("%H:%M:%S")
 
             async with async_session() as db:
                 # Get all unsent scheduled invoices that are due (scheduled_date <= today)
@@ -2549,10 +2553,30 @@ class SchedulerService:
                     .where(ScheduledInvoice.is_sent == False)
                     .where(ScheduledInvoice.scheduled_date <= today)
                 )
-                invoices = result.scalars().all()
+                all_invoices = result.scalars().all()
+
+                # Filter by time - only include if:
+                # 1. Invoice is for a past date (always send), OR
+                # 2. Invoice is for today and (no time set OR current time >= scheduled time)
+                invoices = []
+                for inv in all_invoices:
+                    if inv.scheduled_date < today:
+                        # Past date - should have been sent already, send now
+                        invoices.append(inv)
+                    elif inv.scheduled_date == today:
+                        # Today - check if time has passed
+                        if not inv.scheduled_time:
+                            # No time set, default to 9 AM
+                            if current_time >= "09:00:00":
+                                invoices.append(inv)
+                        else:
+                            # Compare times (scheduled_time is HH:MM or HH:MM:SS)
+                            sched_time = inv.scheduled_time if len(inv.scheduled_time) == 8 else inv.scheduled_time + ":00"
+                            if current_time >= sched_time:
+                                invoices.append(inv)
 
                 if not invoices:
-                    logger.debug("No scheduled invoices to send today")
+                    logger.debug("No scheduled invoices ready to send at this time")
                     return
 
                 logger.info(f"Found {len(invoices)} scheduled invoices to send")

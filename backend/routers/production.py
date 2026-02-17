@@ -249,6 +249,7 @@ class CustomInvoiceInput(BaseModel):
 class ScheduledInvoiceCreate(BaseModel):
     """Create a scheduled invoice/payment reminder for an order."""
     scheduled_date: date
+    scheduled_time: Optional[str] = Field(None, max_length=8)  # HH:MM or HH:MM:SS format
     payment_type: PaymentType = PaymentType.PARTIAL
     amount_due: float = Field(..., ge=0)
     description: Optional[str] = Field(None, max_length=2000)
@@ -262,6 +263,7 @@ class ScheduledInvoiceCreate(BaseModel):
 class ScheduledInvoiceUpdate(BaseModel):
     """Update a scheduled invoice."""
     scheduled_date: Optional[date] = None
+    scheduled_time: Optional[str] = Field(None, max_length=8)  # HH:MM or HH:MM:SS format
     payment_type: Optional[PaymentType] = None
     amount_due: Optional[float] = Field(None, ge=0)
     description: Optional[str] = Field(None, max_length=2000)
@@ -276,6 +278,7 @@ class ScheduledInvoiceResponse(BaseModel):
     id: int
     order_id: int
     scheduled_date: date
+    scheduled_time: Optional[str] = None  # HH:MM:SS format
     payment_type: PaymentType
     amount_due: float
     description: Optional[str]

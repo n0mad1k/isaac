@@ -199,18 +199,22 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
 
   // Handle sick status update
   const handleSickStatusUpdate = async (markSick) => {
+    console.log('handleSickStatusUpdate called, markSick:', markSick, 'member.id:', member.id)
     setSickUpdating(true)
     setSickError(null)
     try {
-      await updateSickStatus(member.id, {
+      console.log('Calling updateSickStatus API...')
+      const response = await updateSickStatus(member.id, {
         is_sick: markSick,
         sick_notes: sickNotes || null
       })
+      console.log('updateSickStatus response:', response)
       setShowSickModal(false)
       setSickNotes('')
       onUpdate()
     } catch (err) {
       console.error('Failed to update sick status:', err)
+      console.error('Error details:', err.response?.data)
       setSickError(err.response?.data?.detail || err.message || 'Failed to update sick status')
     } finally {
       setSickUpdating(false)

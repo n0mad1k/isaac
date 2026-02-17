@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.69] - 2026-02-17
+
+### Fixed
+- **Daily Digest Task Ordering** - Fixed sample data order to correctly demonstrate digest format
+  - Untimed tasks shown first (sorted by priority), then timed tasks chronologically
+  - Added additional sample task to better show the ordering
+- **Scheduled Invoice Time** - Added time field to scheduled invoices
+  - Invoices now check hourly instead of once daily
+  - Sends at the scheduled hour (or 9 AM if no time set)
+- **Task Reminder Alerts** - Fixed reminders not being sent for date-only tasks
+  - Tasks without due_time now default to 9 AM for reminder purposes
+  - Added logging for reminder alert processing
+
 ## [1.85.68] - 2026-02-17
 
 ### Fixed

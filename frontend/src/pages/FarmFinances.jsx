@@ -285,6 +285,7 @@ function FarmFinances() {
   const [editingScheduledInvoice, setEditingScheduledInvoice] = useState(null)
   const [scheduledInvoiceFormData, setScheduledInvoiceFormData] = useState({
     scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+    scheduled_time: '09:00',
     payment_type: 'partial',
     amount_due: '',
     description: '',
@@ -442,6 +443,7 @@ function FarmFinances() {
     const customer = customers.find(c => c.id === order.customer_id)
     setScheduledInvoiceFormData({
       scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+      scheduled_time: '09:00',
       payment_type: 'partial',
       amount_due: '',
       description: '',
@@ -461,6 +463,7 @@ function FarmFinances() {
     const customer = customers.find(c => c.id === order.customer_id)
     setScheduledInvoiceFormData({
       scheduled_date: invoice.scheduled_date,
+      scheduled_time: invoice.scheduled_time ? invoice.scheduled_time.substring(0, 5) : '09:00',
       payment_type: invoice.payment_type,
       amount_due: invoice.amount_due,
       description: invoice.description || '',
@@ -1255,15 +1258,26 @@ function FarmFinances() {
                 <div className="text-gray-400">{selectedOrderForSchedule.description}</div>
               </div>
 
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Send Date *</label>
-                <input
-                  type="date"
-                  required
-                  value={scheduledInvoiceFormData.scheduled_date}
-                  onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Send Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={scheduledInvoiceFormData.scheduled_date}
+                    onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Send Time</label>
+                  <input
+                    type="time"
+                    value={scheduledInvoiceFormData.scheduled_time}
+                    onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, scheduled_time: e.target.value }))}
+                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  />
+                </div>
               </div>
 
               <div>
