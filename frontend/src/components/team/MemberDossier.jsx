@@ -237,8 +237,8 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   return (
     <div className="space-y-4">
       {/* Member Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
           {/* Photo */}
           <div className="relative group">
             {member.photo_path ? (
@@ -264,8 +264,8 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
           </div>
 
           {/* Name and info */}
-          <div className="flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
               {memberAge !== null && (
                 <span className="text-sm text-gray-400">
@@ -335,15 +335,15 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               {member.role_title || member.role}
               {member.callsign && ` · Callsign: ${member.callsign}`}
             </p>
-            <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500">
               {member.email && (
-                <span className="flex items-center gap-1">
-                  <Mail className="w-3 h-3" /> {member.email}
+                <span className="flex items-center gap-1 break-all">
+                  <Mail className="w-3 h-3 flex-shrink-0" /> {member.email}
                 </span>
               )}
               {member.phone && (
                 <span className="flex items-center gap-1">
-                  <Phone className="w-3 h-3" /> {displayPhone(member.phone)}
+                  <Phone className="w-3 h-3 flex-shrink-0" /> {displayPhone(member.phone)}
                 </span>
               )}
             </div>
@@ -351,20 +351,20 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex gap-1 sm:gap-2 flex-shrink-0">
           <button
             onClick={onEdit}
-            className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700"
+            className="p-1.5 sm:p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700"
             title="Edit Member"
           >
-            <Edit className="w-5 h-5" />
+            <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           <button
             onClick={onDelete}
-            className="p-2 text-gray-400 hover:text-red-400 rounded-lg hover:bg-gray-700"
+            className="p-1.5 sm:p-2 text-gray-400 hover:text-red-400 rounded-lg hover:bg-gray-700"
             title="Delete Member"
           >
-            <Trash2 className="w-5 h-5" />
+            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       </div>

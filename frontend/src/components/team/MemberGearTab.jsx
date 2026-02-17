@@ -247,17 +247,17 @@ function MemberGearTab({ member, onUpdate }) {
             <div key={item.id} className="bg-gray-700 rounded-lg overflow-hidden">
               {/* Gear Header */}
               <div
-                className="p-4 cursor-pointer flex items-center justify-between hover:bg-gray-600/50"
+                className="p-4 cursor-pointer flex items-start gap-2 hover:bg-gray-600/50"
                 onClick={() => handleExpandGear(item.id)}
               >
-                <div className="flex items-center gap-3">
-                  <Shield className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <div className="flex items-center gap-2">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <Shield className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{item.name}</span>
                       {getStatusBadge(item.status)}
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-gray-400 break-words">
                       {item.category}
                       {item.make && ` - ${item.make}`}
                       {item.model && ` ${item.model}`}
@@ -265,11 +265,11 @@ function MemberGearTab({ member, onUpdate }) {
                     </div>
                     {/* Gear notes */}
                     {item.notes && (
-                      <div className="text-xs text-gray-500 italic mt-1">{item.notes}</div>
+                      <div className="text-xs text-gray-500 italic mt-1 break-words">{item.notes}</div>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={(e) => { e.stopPropagation(); setEditingGear(item) }}
                     className="p-1 text-gray-400 hover:text-white"

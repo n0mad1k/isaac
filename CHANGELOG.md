@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.42] - 2026-02-17
+
+### Fixed
+- **Team Page Mobile Overflow** - Additional fixes for mobile overflow issues
+  - Member gear list: content now wraps properly, chevron/action buttons stay visible
+  - Member header card: badges, email, phone wrap on narrow screens
+  - Action buttons sized smaller on mobile but always accessible
+  - Added break-words and min-w-0 for proper text truncation
+
 ## [1.85.41] - 2026-02-17
 
 ### Fixed
