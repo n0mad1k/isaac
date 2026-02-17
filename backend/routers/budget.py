@@ -430,11 +430,11 @@ async def _calculate_account_balance(account: BudgetAccount, db: AsyncSession) -
         BudgetTransaction.account_id == account.id
     )
 
-    # If balance_as_of is set, only sum transactions after that date
+    # If balance_as_of is set, only sum transactions on or after that date
     if account.balance_as_of:
         try:
             as_of_date = date.fromisoformat(account.balance_as_of)
-            query = query.where(BudgetTransaction.transaction_date > as_of_date)
+            query = query.where(BudgetTransaction.transaction_date >= as_of_date)
         except ValueError:
             pass  # Invalid date format, sum all transactions
 
