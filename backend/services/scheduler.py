@@ -1904,13 +1904,16 @@ class SchedulerService:
             default_alerts = [int(x.strip()) for x in default_alerts_str.split(",") if x.strip()]
 
             async with async_session() as db:
-                # Get all active, incomplete tasks with due dates
+                # Get all active, incomplete tasks with due dates that have reminder_alerts set
+                # Note: We check reminder_alerts here, NOT notify_email
+                # notify_email controls immediate assignment notifications
+                # reminder_alerts controls scheduled reminders before due time
                 result = await db.execute(
                     select(Task)
                     .where(Task.is_active == True)
                     .where(Task.is_completed == False)
                     .where(Task.due_date.isnot(None))
-                    .where(Task.notify_email == True)
+                    .where(Task.reminder_alerts.isnot(None))
                 )
                 tasks = result.scalars().all()
 

@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.74] - 2026-02-17
+
+### Fixed
+- **Task Reminder Alerts** - Fixed reminder emails not being sent when `reminder_alerts` is set
+  - Query incorrectly required `notify_email` to be True
+  - `notify_email` controls immediate assignment notifications (independent)
+  - `reminder_alerts` controls scheduled reminders before due time (now works independently)
+
 ## [1.85.73] - 2026-02-17
 
 ### Added
