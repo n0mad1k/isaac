@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.61] - 2026-02-17
+
+### Changed
+- **Schedule Invoice** - Same options as Send Invoice
+  - Added recipient email, subject, custom message, and payment instructions fields
+  - Modal now matches Send Invoice for full email customization
+  - Defaults pre-fill from customer email and order details
+
 ## [1.85.56] - 2026-02-17
 
 ### Fixed

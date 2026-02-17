@@ -288,6 +288,11 @@ function FarmFinances() {
     payment_type: 'partial',
     amount_due: '',
     description: '',
+    // Email customization (same as send invoice)
+    recipient_email: '',
+    subject: '',
+    custom_message: '',
+    payment_instructions: '',
   })
 
   const [expenseFormData, setExpenseFormData] = useState({
@@ -433,11 +438,18 @@ function FarmFinances() {
   const handleAddScheduledInvoice = (order) => {
     setSelectedOrderForSchedule(order)
     setEditingScheduledInvoice(null)
+    // Get customer email from customers list
+    const customer = customers.find(c => c.id === order.customer_id)
     setScheduledInvoiceFormData({
       scheduled_date: format(new Date(), 'yyyy-MM-dd'),
       payment_type: 'partial',
       amount_due: '',
       description: '',
+      // Default email fields like send invoice
+      recipient_email: customer?.email || '',
+      subject: `Payment Reminder - Order #${order.id}`,
+      custom_message: '',
+      payment_instructions: '',
     })
     setShowScheduledInvoiceModal(true)
   }
@@ -445,11 +457,18 @@ function FarmFinances() {
   const handleEditScheduledInvoice = (order, invoice) => {
     setSelectedOrderForSchedule(order)
     setEditingScheduledInvoice(invoice)
+    // Get customer email from customers list for default if not set
+    const customer = customers.find(c => c.id === order.customer_id)
     setScheduledInvoiceFormData({
       scheduled_date: invoice.scheduled_date,
       payment_type: invoice.payment_type,
       amount_due: invoice.amount_due,
       description: invoice.description || '',
+      // Email fields from saved invoice
+      recipient_email: invoice.recipient_email || customer?.email || '',
+      subject: invoice.subject || `Payment Reminder - Order #${order.id}`,
+      custom_message: invoice.custom_message || '',
+      payment_instructions: invoice.payment_instructions || '',
     })
     setShowScheduledInvoiceModal(true)
   }
@@ -1221,7 +1240,7 @@ function FarmFinances() {
       {/* Scheduled Invoice Modal */}
       {showScheduledInvoiceModal && selectedOrderForSchedule && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl w-full max-w-md">
+          <div className="bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
               <h3 className="text-lg font-semibold">
                 {editingScheduledInvoice ? 'Edit Scheduled Invoice' : 'Schedule Invoice'}
@@ -1283,6 +1302,57 @@ function FarmFinances() {
                   className="w-full bg-gray-700 rounded px-3 py-2 text-white"
                   placeholder="e.g., Switch to feed payment"
                 />
+              </div>
+
+              {/* Email Customization Fields */}
+              <div className="border-t border-gray-700 pt-4 mt-4">
+                <div className="text-sm text-gray-400 mb-3">Email Settings</div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Recipient Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={scheduledInvoiceFormData.recipient_email}
+                      onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, recipient_email: e.target.value }))}
+                      className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                      placeholder="customer@email.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Subject</label>
+                    <input
+                      type="text"
+                      value={scheduledInvoiceFormData.subject}
+                      onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, subject: e.target.value }))}
+                      className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Custom Message (optional)</label>
+                    <textarea
+                      value={scheduledInvoiceFormData.custom_message}
+                      onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, custom_message: e.target.value }))}
+                      className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                      rows={3}
+                      placeholder="Add a personal note to include in the email..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Payment Instructions</label>
+                    <textarea
+                      value={scheduledInvoiceFormData.payment_instructions}
+                      onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, payment_instructions: e.target.value }))}
+                      className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                      rows={2}
+                      placeholder="Venmo: @username, Zelle: phone@email.com, etc."
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-gray-700">

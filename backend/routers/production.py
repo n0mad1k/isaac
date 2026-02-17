@@ -252,6 +252,11 @@ class ScheduledInvoiceCreate(BaseModel):
     payment_type: PaymentType = PaymentType.PARTIAL
     amount_due: float = Field(..., ge=0)
     description: Optional[str] = Field(None, max_length=2000)
+    # Email customization (same options as send invoice)
+    recipient_email: Optional[str] = Field(None, max_length=255)
+    subject: Optional[str] = Field(None, max_length=500)
+    custom_message: Optional[str] = Field(None, max_length=5000)
+    payment_instructions: Optional[str] = Field(None, max_length=2000)
 
 
 class ScheduledInvoiceUpdate(BaseModel):
@@ -260,6 +265,11 @@ class ScheduledInvoiceUpdate(BaseModel):
     payment_type: Optional[PaymentType] = None
     amount_due: Optional[float] = Field(None, ge=0)
     description: Optional[str] = Field(None, max_length=2000)
+    # Email customization (same options as send invoice)
+    recipient_email: Optional[str] = Field(None, max_length=255)
+    subject: Optional[str] = Field(None, max_length=500)
+    custom_message: Optional[str] = Field(None, max_length=5000)
+    payment_instructions: Optional[str] = Field(None, max_length=2000)
 
 
 class ScheduledInvoiceResponse(BaseModel):
@@ -269,6 +279,11 @@ class ScheduledInvoiceResponse(BaseModel):
     payment_type: PaymentType
     amount_due: float
     description: Optional[str]
+    # Email customization fields
+    recipient_email: Optional[str] = None
+    subject: Optional[str] = None
+    custom_message: Optional[str] = None
+    payment_instructions: Optional[str] = None
     is_sent: bool
     sent_at: Optional[datetime]
     created_at: datetime
