@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import {
   User, Heart, Brain, MessageSquare, Activity,
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle, AlertTriangle,
@@ -3494,84 +3493,83 @@ function FitnessTab({ member, settings, formatDate }) {
         </div>
       )}
 
-      {/* Sick Status Modal - using portal to ensure it renders above everything */}
-      {showSickModal && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
-          <div className="rounded-xl p-6 max-w-md w-full shadow-2xl" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
-              <Thermometer className="w-5 h-5" style={{ color: 'var(--color-error-500)' }} />
-              {member.is_sick ? 'Update Sick Status' : 'Mark as Sick'}
-            </h3>
-            <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>
-              {member.is_sick
-                ? 'Mark as recovered to enter recovery mode. During recovery, workouts and intense activities should be eased back into gradually.'
-                : 'When marked as sick, this team member should focus on rest and recovery. No workouts or early wake requirements will be expected.'}
-            </p>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                Notes (optional)
-              </label>
-              <textarea
-                value={sickNotes}
-                onChange={e => setSickNotes(e.target.value)}
-                placeholder="Symptoms, doctor recommendations, etc."
-                className="w-full px-3 py-2 rounded border text-sm"
-                style={{
-                  backgroundColor: 'var(--color-bg-input)',
-                  borderColor: 'var(--color-border-default)',
-                  color: 'var(--color-text-primary)'
-                }}
-                rows={3}
-              />
-            </div>
-            {member.is_sick && member.sick_since && (
-              <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>
-                Sick since: {new Date(member.sick_since).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
-                {member.sick_notes && ` - ${member.sick_notes}`}
-              </p>
-            )}
-            {sickError && (
-              <div className="mb-4 p-3 rounded text-sm flex items-center gap-2" style={{ backgroundColor: 'var(--color-error-50)', color: 'var(--color-error-700)' }}>
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {sickError}
-              </div>
-            )}
-            <div className="flex gap-2 justify-end">
+      {/* Sick Status Modal */}
+      {showSickModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Thermometer className="w-5 h-5 text-red-500" />
+                {member.is_sick ? 'Update Sick Status' : 'Mark as Sick'}
+              </h3>
               <button
-                type="button"
                 onClick={() => { setShowSickModal(false); setSickNotes(''); setSickError(null); }}
-                className="px-4 py-2 rounded text-sm"
-                style={{ backgroundColor: 'var(--color-bg-surface-soft)', color: 'var(--color-text-secondary)' }}
+                className="text-gray-400 hover:text-white"
               >
-                Cancel
+                <X className="w-5 h-5" />
               </button>
-              {member.is_sick ? (
-                <button
-                  type="button"
-                  onClick={() => handleSickStatusUpdate(false)}
-                  disabled={sickUpdating}
-                  className="px-4 py-2 rounded text-sm font-semibold text-white flex items-center gap-2"
-                  style={{ backgroundColor: 'var(--color-success-600)' }}
-                >
-                  <HeartPulse className="w-4 h-4" />
-                  {sickUpdating ? 'Updating...' : 'Mark Recovered'}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleSickStatusUpdate(true)}
-                  disabled={sickUpdating}
-                  className="px-4 py-2 rounded text-sm font-semibold text-white flex items-center gap-2"
-                  style={{ backgroundColor: 'var(--color-error-600)' }}
-                >
-                  <Thermometer className="w-4 h-4" />
-                  {sickUpdating ? 'Updating...' : 'Mark as Sick'}
-                </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-gray-400">
+                {member.is_sick
+                  ? 'Mark as recovered to enter recovery mode. During recovery, workouts and intense activities should be eased back into gradually.'
+                  : 'When marked as sick, this team member should focus on rest and recovery. No workouts or early wake requirements will be expected.'}
+              </p>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Notes (optional)</label>
+                <textarea
+                  value={sickNotes}
+                  onChange={e => setSickNotes(e.target.value)}
+                  placeholder="Symptoms, doctor recommendations, etc."
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                  rows={3}
+                />
+              </div>
+              {member.is_sick && member.sick_since && (
+                <p className="text-xs text-gray-500">
+                  Sick since: {new Date(member.sick_since).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                  {member.sick_notes && ` - ${member.sick_notes}`}
+                </p>
               )}
+              {sickError && (
+                <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {sickError}
+                </div>
+              )}
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowSickModal(false); setSickNotes(''); setSickError(null); }}
+                  className="px-4 py-2 text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                {member.is_sick ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSickStatusUpdate(false)}
+                    disabled={sickUpdating}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <HeartPulse className="w-4 h-4" />
+                    {sickUpdating ? 'Updating...' : 'Mark Recovered'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleSickStatusUpdate(true)}
+                    disabled={sickUpdating}
+                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Thermometer className="w-4 h-4" />
+                    {sickUpdating ? 'Updating...' : 'Mark as Sick'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   )
