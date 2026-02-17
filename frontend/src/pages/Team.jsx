@@ -162,6 +162,7 @@ function Team() {
       await loadData()
     } catch (err) {
       console.error('Failed to delete member:', err)
+      alert('Failed to delete member: ' + (err.response?.data?.detail || err.message || 'Unknown error'))
     }
   }
 

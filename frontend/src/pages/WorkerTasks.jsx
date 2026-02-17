@@ -158,9 +158,10 @@ function WorkerTasks() {
         setSelectedWorker(null)
         setWorkerTasks([])
       }
-      fetchWorkers()
+      await fetchWorkers()
     } catch (err) {
       console.error('Failed to delete worker:', err)
+      alert('Failed to deactivate worker: ' + (err.response?.data?.detail || err.message || 'Unknown error'))
     }
   }
 

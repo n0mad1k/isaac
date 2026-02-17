@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.26] - 2026-02-16
+
+### Fixed
+- **Delete Worker/Member Error Feedback** - Now shows error message if delete fails
+  - Worker deactivation shows alert with error details if it fails
+  - Team member deletion shows alert with error details if it fails
+  - Helps diagnose issues when delete operations don't work
+
 ## [1.85.25] - 2026-02-16
 
 ### Changed
