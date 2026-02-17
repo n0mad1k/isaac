@@ -301,6 +301,12 @@ class ScheduledInvoice(Base):
     # Description/message to include
     description = Column(Text)  # e.g., "Feed switch payment due"
 
+    # Email customization (same options as send invoice)
+    recipient_email = Column(String(255))  # Override customer email if needed
+    subject = Column(String(500))  # Custom email subject
+    custom_message = Column(Text)  # Personal note in email
+    payment_instructions = Column(Text)  # Venmo, Zelle, etc.
+
     # Tracking
     is_sent = Column(Boolean, default=False)
     sent_at = Column(DateTime)
