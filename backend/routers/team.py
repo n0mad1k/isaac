@@ -170,6 +170,7 @@ class SickStatusUpdate(BaseModel):
     """Schema for updating sick/recovery status"""
     is_sick: bool
     sick_notes: Optional[str] = None
+    sick_start_date: Optional[datetime] = None  # Optional: defaults to now if not provided
 
 
 class WeightLogCreate(BaseModel):
@@ -2302,19 +2303,21 @@ async def update_sick_status(
         raise HTTPException(status_code=404, detail="Member not found")
 
     now = datetime.utcnow()
+    # Use provided start date or default to now
+    sick_start = data.sick_start_date or now
 
     if data.is_sick:
         # Marking as sick
         if not member.is_sick:
-            member.sick_since = now
+            member.sick_since = sick_start
             # Create a new sick period record
             sick_period = MemberSickPeriod(
                 member_id=member_id,
-                start_date=now,
+                start_date=sick_start,
                 notes=data.sick_notes
             )
             db.add(sick_period)
-            logger.info(f"Team member {member.name} marked as sick - created sick period record")
+            logger.info(f"Team member {member.name} marked as sick (since {sick_start.date()}) - created sick period record")
         else:
             # Already sick - just update notes
             logger.info(f"Team member {member.name} sick notes updated")

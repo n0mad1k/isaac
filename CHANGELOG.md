@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.73] - 2026-02-17
+
+### Added
+- **Optional Sick Start Date** - Can now set when sickness started instead of defaulting to today
+  - Date picker in sick modal allows backdating if symptoms started earlier
+  - Leave blank to use current date
+
 ## [1.85.72] - 2026-02-17
 
 ### Added

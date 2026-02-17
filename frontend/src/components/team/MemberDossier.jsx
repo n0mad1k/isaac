@@ -53,6 +53,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   // Sick status modal
   const [showSickModal, setShowSickModal] = useState(false)
   const [sickNotes, setSickNotes] = useState('')
+  const [sickStartDate, setSickStartDate] = useState('')  // Optional start date
   const [sickUpdating, setSickUpdating] = useState(false)
   const [sickError, setSickError] = useState(null)
 
@@ -199,22 +200,24 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
 
   // Handle sick status update
   const handleSickStatusUpdate = async (markSick) => {
-    console.log('handleSickStatusUpdate called, markSick:', markSick, 'member.id:', member.id)
     setSickUpdating(true)
     setSickError(null)
     try {
-      console.log('Calling updateSickStatus API...')
-      const response = await updateSickStatus(member.id, {
+      const payload = {
         is_sick: markSick,
         sick_notes: sickNotes || null
-      })
-      console.log('updateSickStatus response:', response)
+      }
+      // Include start date if marking sick and date is provided
+      if (markSick && sickStartDate) {
+        payload.sick_start_date = new Date(sickStartDate).toISOString()
+      }
+      await updateSickStatus(member.id, payload)
       setShowSickModal(false)
       setSickNotes('')
+      setSickStartDate('')
       onUpdate()
     } catch (err) {
       console.error('Failed to update sick status:', err)
-      console.error('Error details:', err.response?.data)
       setSickError(err.response?.data?.detail || err.message || 'Failed to update sick status')
     } finally {
       setSickUpdating(false)
@@ -924,7 +927,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 {member.is_sick ? 'Update Sick Status' : 'Mark as Sick'}
               </h3>
               <button
-                onClick={() => { setShowSickModal(false); setSickNotes(''); setSickError(null); }}
+                onClick={() => { setShowSickModal(false); setSickNotes(''); setSickStartDate(''); setSickError(null); }}
                 className="text-gray-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
@@ -946,6 +949,19 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   rows={3}
                 />
               </div>
+              {!member.is_sick && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Start Date (optional)</label>
+                  <input
+                    type="date"
+                    value={sickStartDate}
+                    onChange={e => setSickStartDate(e.target.value)}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Leave blank to use today's date</p>
+                </div>
+              )}
               {member.is_sick && member.sick_since && (
                 <p className="text-xs text-gray-500">
                   Sick since: {new Date(member.sick_since).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
@@ -961,7 +977,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               <div className="flex gap-2 justify-end pt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowSickModal(false); setSickNotes(''); setSickError(null); }}
+                  onClick={() => { setShowSickModal(false); setSickNotes(''); setSickStartDate(''); setSickError(null); }}
                   className="px-4 py-2 text-gray-400 hover:text-white"
                 >
                   Cancel
