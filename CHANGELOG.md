@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.65] - 2026-02-17
+
+### Fixed
+- **Daily Digest Task Ordering** - Test digest now matches actual digest format
+  - Added missing due_time and category fields to test digest
+  - Tasks now sorted correctly: untimed first (by priority), then timed chronologically
+  - Sample data includes realistic times and categories
+
 ## [1.85.64] - 2026-02-17
 
 ### Changed

@@ -1842,9 +1842,25 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
         .limit(10)
     )
     tasks = tasks_result.scalars().all()
+
+    # Sort: untimed tasks first (by priority), then timed tasks chronologically
+    def time_sort_key(task):
+        if task.due_time:
+            return (1, task.due_time)
+        else:
+            return (0, str(task.priority or 2))
+
+    sorted_tasks = sorted(tasks, key=time_sort_key)
+
     task_dicts = [
-        {"title": t.title, "description": t.description, "priority": t.priority}
-        for t in tasks
+        {
+            "title": t.title,
+            "description": t.description,
+            "priority": t.priority,
+            "category": t.category.value if t.category else None,
+            "due_time": t.due_time,
+        }
+        for t in sorted_tasks
     ]
 
     # If no real tasks, use sample data to show format
@@ -1852,9 +1868,9 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
     if not task_dicts:
         using_sample_data = True
         task_dicts = [
-            {"title": "[SAMPLE] Morning animal feeding", "description": "Feed all animals in barn and pasture", "priority": 1},
-            {"title": "[SAMPLE] Check irrigation system", "description": "Verify all zones functioning", "priority": 2},
-            {"title": "[SAMPLE] Prepare for delivery pickup", "description": "Box and label orders for today", "priority": 1},
+            {"title": "[SAMPLE] Morning animal feeding", "description": "Feed all animals in barn and pasture", "priority": 1, "category": "animals", "due_time": "07:00:00"},
+            {"title": "[SAMPLE] Check irrigation system", "description": "Verify all zones functioning", "priority": 2, "category": "garden", "due_time": None},
+            {"title": "[SAMPLE] Prepare for delivery pickup", "description": "Box and label orders for today", "priority": 1, "category": "farm", "due_time": "15:00:00"},
         ]
 
     # Mock weather (or get real if available)
