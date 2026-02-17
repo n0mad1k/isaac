@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.31] - 2026-02-17
+
+### Fixed
+- **Test Email Buttons Not Working** - Fixed ImportError that caused all test email buttons to return 500 errors
+  - Corrected model imports: TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment now imported from models.team
+  - Fixed test-gear-alerts, test-training-alerts, test-medical-alerts, test-team-alerts-digest endpoints
+  - Also fixed test-daily-digest endpoint which had the same import issues
+
 ## [1.85.30] - 2026-02-17
 
 ### Fixed

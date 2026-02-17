@@ -1822,7 +1822,9 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
     """
     logger.info(f"Test daily digest requested by user {admin.username}")
     from services.email import EmailService, ConfigurationError
-    from models.database import WeatherAlert, Task, TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment
+    from models.weather import WeatherAlert
+    from models.tasks import Task
+    from models.team import TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment
     from sqlalchemy.orm import joinedload
     from datetime import datetime, timedelta
 
@@ -1986,7 +1988,7 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
 async def test_gear_alerts(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Send a test email with only gear alerts (low stock, expired, expiring items)."""
     from services.email import EmailService, ConfigurationError
-    from models.database import TeamMember, MemberGear, MemberGearContents
+    from models.team import TeamMember, MemberGear, MemberGearContents
     from sqlalchemy.orm import joinedload
     from datetime import datetime, timedelta
 
@@ -2064,7 +2066,7 @@ async def test_gear_alerts(db: AsyncSession = Depends(get_db), admin: User = Dep
 async def test_training_alerts(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Send a test email with only training alerts (overdue training)."""
     from services.email import EmailService, ConfigurationError
-    from models.database import TeamMember, MemberTraining
+    from models.team import TeamMember, MemberTraining
     from sqlalchemy.orm import joinedload
     from datetime import datetime
 
@@ -2120,7 +2122,7 @@ async def test_training_alerts(db: AsyncSession = Depends(get_db), admin: User =
 async def test_medical_alerts(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Send a test email with only medical alerts (overdue appointments)."""
     from services.email import EmailService, ConfigurationError
-    from models.database import TeamMember, MemberMedicalAppointment
+    from models.team import TeamMember, MemberMedicalAppointment
     from sqlalchemy.orm import joinedload
     from datetime import datetime
 
@@ -2181,7 +2183,7 @@ async def test_team_alerts_digest(db: AsyncSession = Depends(get_db), admin: Use
     Includes gear (low stock, expired, expiring), training (overdue), and medical (overdue) alerts.
     """
     from services.email import EmailService, ConfigurationError
-    from models.database import TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment
+    from models.team import TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment
     from sqlalchemy.orm import joinedload
     from datetime import datetime, timedelta
 
