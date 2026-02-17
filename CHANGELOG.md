@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.54] - 2026-02-17
+
+### Fixed
+- **Budget Deposit Scheduler** - Added missing SYSTEM transaction source enum
+  - Scheduler can now properly create system-generated deposit transactions
+
 ## [1.85.53] - 2026-02-17
 
 ### Added
