@@ -281,6 +281,12 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
 
   return (
     <div className="space-y-4">
+      {/* DEBUG: Show modal state */}
+      {showSickModal && (
+        <div className="bg-red-600 text-white p-4 rounded mb-4">
+          MODAL STATE IS TRUE - Modal should be visible!
+        </div>
+      )}
       {/* Member Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
