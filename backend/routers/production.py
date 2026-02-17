@@ -2375,9 +2375,14 @@ async def create_scheduled_invoice(
     scheduled = ScheduledInvoice(
         order_id=order_id,
         scheduled_date=data.scheduled_date,
+        scheduled_time=data.scheduled_time,
         payment_type=data.payment_type,
         amount_due=data.amount_due,
         description=data.description,
+        recipient_email=data.recipient_email,
+        subject=data.subject,
+        custom_message=data.custom_message,
+        payment_instructions=data.payment_instructions,
     )
     db.add(scheduled)
     await db.commit()
@@ -2405,12 +2410,22 @@ async def update_scheduled_invoice(
 
     if data.scheduled_date is not None:
         scheduled.scheduled_date = data.scheduled_date
+    if data.scheduled_time is not None:
+        scheduled.scheduled_time = data.scheduled_time
     if data.payment_type is not None:
         scheduled.payment_type = data.payment_type
     if data.amount_due is not None:
         scheduled.amount_due = data.amount_due
     if data.description is not None:
         scheduled.description = data.description
+    if data.recipient_email is not None:
+        scheduled.recipient_email = data.recipient_email
+    if data.subject is not None:
+        scheduled.subject = data.subject
+    if data.custom_message is not None:
+        scheduled.custom_message = data.custom_message
+    if data.payment_instructions is not None:
+        scheduled.payment_instructions = data.payment_instructions
 
     await db.commit()
     await db.refresh(scheduled)

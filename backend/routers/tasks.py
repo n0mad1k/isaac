@@ -654,7 +654,7 @@ async def create_task(
     # Send assignment notifications (only if notify_email is enabled)
     if db_task.notify_email:
         try:
-            email_service = await EmailService.from_settings()
+            email_service = await EmailService.get_configured_service(db)
             due_date_str = db_task.due_date.strftime("%m/%d/%Y") if db_task.due_date else None
 
             # Notify assigned team members
@@ -1040,7 +1040,7 @@ async def update_task(
     # Send assignment notifications to newly assigned members/users (only if notify_email is enabled)
     if (new_member_emails or new_user_email) and task.notify_email:
         try:
-            email_service = await EmailService.from_settings()
+            email_service = await EmailService.get_configured_service(db)
             due_date_str = task.due_date.strftime("%m/%d/%Y") if task.due_date else None
 
             # Notify newly assigned team members

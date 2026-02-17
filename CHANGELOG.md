@@ -2,6 +2,20 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.70] - 2026-02-17
+
+### Fixed
+- **Scheduled Invoice Fields** - Fixed backend not saving scheduled_time and email customization fields
+  - Create and update endpoints now properly save all form fields
+- **Task Assignment Notifications** - Fixed "EmailService has no attribute from_settings" error
+  - Now uses correct EmailService.get_configured_service() method
+- **Test Daily Digest** - Fixed test endpoint to match real digest behavior
+  - Now shows real tasks (today's tasks + overdue) instead of only sample data
+  - Query matches production digest filters (active, non-backlog, non-worker tasks)
+- **Sick Button** - Improved button styling and renamed "SICK?" to "SICK"
+  - Added visual feedback on hover
+  - Added debug alert to verify clicks are registering
+
 ## [1.85.69] - 2026-02-17
 
 ### Fixed

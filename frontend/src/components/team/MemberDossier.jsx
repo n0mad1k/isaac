@@ -56,6 +56,11 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [sickUpdating, setSickUpdating] = useState(false)
   const [sickError, setSickError] = useState(null)
 
+  // Debug: track modal state changes
+  useEffect(() => {
+    console.log('showSickModal state changed to:', showSickModal)
+  }, [showSickModal])
+
   const fetchReadinessAnalysis = async (force = false) => {
     setAnalysisLoading(true)
     setAnalysisError(null)
@@ -332,7 +337,8 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     {/* Sick/Recovery Status Badge - prominent when active */}
                     {member.is_sick && (
                       <button
-                        onClick={() => { setSickError(null); setShowSickModal(true); }}
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); console.log('SICK badge clicked, opening modal'); setSickError(null); setShowSickModal(true); }}
                         className="flex flex-col items-center cursor-pointer hover:opacity-80"
                         title={`Sick since ${member.sick_since ? new Date(member.sick_since).toLocaleDateString() : 'unknown'}${member.sick_notes ? `: ${member.sick_notes}` : ''}`}
                       >
@@ -345,7 +351,8 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     )}
                     {member.recovery_mode && !member.is_sick && (
                       <button
-                        onClick={handleEndRecovery}
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); console.log('RECOVERY badge clicked'); handleEndRecovery(); }}
                         className="flex flex-col items-center cursor-pointer hover:opacity-80"
                         title={`In recovery since ${member.recovery_started ? new Date(member.recovery_started).toLocaleDateString() : 'unknown'}. Click to end recovery mode.`}
                       >
@@ -385,14 +392,22 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     {/* Mark Sick button - only show when not sick and not in recovery */}
                     {!member.is_sick && !member.recovery_mode && (
                       <button
-                        onClick={() => { setSickError(null); setShowSickModal(true); }}
-                        className="flex flex-col items-center cursor-pointer hover:opacity-100 opacity-60"
-                        title="Mark as sick"
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Mark Sick button clicked');
+                          alert('Opening sick modal for ' + member.name);
+                          setSickError(null);
+                          setShowSickModal(true);
+                        }}
+                        className="flex flex-col items-center cursor-pointer hover:opacity-100 opacity-70 hover:bg-gray-700/50 rounded p-1"
+                        title="Click to mark as sick"
                       >
-                        <span className="px-2 py-0.5 rounded text-sm font-bold text-gray-400 border border-gray-600 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded text-sm font-bold text-gray-400 border border-gray-600 flex items-center gap-1 hover:border-red-500 hover:text-red-400">
                           <Thermometer className="w-3 h-3" />
                         </span>
-                        <span className="text-[9px] text-gray-500 mt-0.5">SICK?</span>
+                        <span className="text-[9px] text-gray-500 mt-0.5">SICK</span>
                       </button>
                     )}
                   </div>
@@ -3529,6 +3544,7 @@ function FitnessTab({ member, settings, formatDate }) {
             )}
             <div className="flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={() => { setShowSickModal(false); setSickNotes(''); setSickError(null); }}
                 className="px-4 py-2 rounded text-sm"
                 style={{ backgroundColor: 'var(--color-bg-surface-soft)', color: 'var(--color-text-secondary)' }}
@@ -3537,7 +3553,8 @@ function FitnessTab({ member, settings, formatDate }) {
               </button>
               {member.is_sick ? (
                 <button
-                  onClick={() => handleSickStatusUpdate(false)}
+                  type="button"
+                  onClick={() => { console.log('Mark Recovered clicked'); handleSickStatusUpdate(false); }}
                   disabled={sickUpdating}
                   className="px-4 py-2 rounded text-sm font-semibold text-white flex items-center gap-2"
                   style={{ backgroundColor: 'var(--color-success-600)' }}
@@ -3547,7 +3564,8 @@ function FitnessTab({ member, settings, formatDate }) {
                 </button>
               ) : (
                 <button
-                  onClick={() => handleSickStatusUpdate(true)}
+                  type="button"
+                  onClick={() => { console.log('Mark as Sick clicked'); handleSickStatusUpdate(true); }}
                   disabled={sickUpdating}
                   className="px-4 py-2 rounded text-sm font-semibold text-white flex items-center gap-2"
                   style={{ backgroundColor: 'var(--color-error-600)' }}

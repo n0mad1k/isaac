@@ -1823,7 +1823,7 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
     logger.info(f"Test daily digest requested by user {admin.username}")
     from services.email import EmailService, ConfigurationError
     from models.weather import WeatherAlert
-    from models.tasks import Task
+    from models.tasks import Task, TaskType
     from models.team import TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment
     from sqlalchemy.orm import joinedload
     from datetime import datetime, timedelta
@@ -1833,15 +1833,37 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
         logger.warning("Test daily digest failed: No email recipients configured")
         raise HTTPException(status_code=400, detail="No email recipients configured. Go to Settings > Email Notifications to add recipients.")
 
-    # Get today's tasks
+    # Get today's tasks - match the same logic as the real daily digest
+    from sqlalchemy import or_
     today = datetime.now().date()
     tasks_result = await db.execute(
         select(Task)
+        .where(
+            or_(
+                Task.due_date == today,  # Due today
+                Task.due_date.is_(None)  # Dateless reminders
+            )
+        )
         .where(Task.is_completed == False)
-        .where(Task.due_date <= today)
+        .where(Task.is_active == True)
+        .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
+        .where(Task.assigned_to_worker_id.is_(None))  # Exclude worker tasks
         .limit(10)
     )
     tasks = tasks_result.scalars().all()
+
+    # Also get overdue tasks (due before today)
+    overdue_result = await db.execute(
+        select(Task)
+        .where(Task.due_date < today)
+        .where(Task.task_type != TaskType.EVENT)  # Only TODOs can be overdue
+        .where(Task.is_completed == False)
+        .where(Task.is_active == True)
+        .where(or_(Task.is_backlog == False, Task.is_backlog.is_(None)))
+        .where(Task.assigned_to_worker_id.is_(None))
+        .limit(5)
+    )
+    overdue_tasks = overdue_result.scalars().all()
 
     # Sort: untimed tasks first (by priority), then timed tasks chronologically
     def time_sort_key(task):
@@ -1850,17 +1872,19 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
         else:
             return (0, str(task.priority or 2))
 
-    sorted_tasks = sorted(tasks, key=time_sort_key)
+    # Combine: overdue first, then today's tasks properly sorted
+    today_sorted = sorted(tasks, key=time_sort_key)
+    all_tasks = list(overdue_tasks) + today_sorted
 
     task_dicts = [
         {
-            "title": t.title,
+            "title": f"[OVERDUE] {t.title}" if t.due_date and t.due_date < today else t.title,
             "description": t.description,
             "priority": t.priority,
             "category": t.category.value if t.category else None,
             "due_time": t.due_time,
         }
-        for t in sorted_tasks
+        for t in all_tasks
     ]
 
     # If no real tasks, use sample data to show format
