@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.66] - 2026-02-17
+
+### Fixed
+- **Team Member Sick Tracking** - Improved button visibility and error feedback
+  - Mark Sick button now more visible (60% opacity vs 40%)
+  - Errors now displayed in modal instead of only logging to console
+  - Better user feedback when API calls fail
+
 ## [1.85.65] - 2026-02-17
 
 ### Fixed

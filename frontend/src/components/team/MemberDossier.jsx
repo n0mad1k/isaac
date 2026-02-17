@@ -54,6 +54,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [showSickModal, setShowSickModal] = useState(false)
   const [sickNotes, setSickNotes] = useState('')
   const [sickUpdating, setSickUpdating] = useState(false)
+  const [sickError, setSickError] = useState(null)
 
   const fetchReadinessAnalysis = async (force = false) => {
     setAnalysisLoading(true)
@@ -199,6 +200,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   // Handle sick status update
   const handleSickStatusUpdate = async (markSick) => {
     setSickUpdating(true)
+    setSickError(null)
     try {
       await updateSickStatus(member.id, {
         is_sick: markSick,
@@ -209,6 +211,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
       onUpdate()
     } catch (err) {
       console.error('Failed to update sick status:', err)
+      setSickError(err.response?.data?.detail || err.message || 'Failed to update sick status')
     } finally {
       setSickUpdating(false)
     }
@@ -217,11 +220,13 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   // End recovery mode
   const handleEndRecovery = async () => {
     setSickUpdating(true)
+    setSickError(null)
     try {
       await endRecoveryMode(member.id)
       onUpdate()
     } catch (err) {
       console.error('Failed to end recovery mode:', err)
+      setSickError(err.response?.data?.detail || err.message || 'Failed to end recovery mode')
     } finally {
       setSickUpdating(false)
     }
@@ -323,7 +328,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     {/* Sick/Recovery Status Badge - prominent when active */}
                     {member.is_sick && (
                       <button
-                        onClick={() => setShowSickModal(true)}
+                        onClick={() => { setSickError(null); setShowSickModal(true); }}
                         className="flex flex-col items-center cursor-pointer hover:opacity-80"
                         title={`Sick since ${member.sick_since ? new Date(member.sick_since).toLocaleDateString() : 'unknown'}${member.sick_notes ? `: ${member.sick_notes}` : ''}`}
                       >
@@ -376,8 +381,8 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     {/* Mark Sick button - only show when not sick and not in recovery */}
                     {!member.is_sick && !member.recovery_mode && (
                       <button
-                        onClick={() => setShowSickModal(true)}
-                        className="flex flex-col items-center cursor-pointer hover:opacity-80 opacity-40 hover:opacity-70"
+                        onClick={() => { setSickError(null); setShowSickModal(true); }}
+                        className="flex flex-col items-center cursor-pointer hover:opacity-100 opacity-60"
                         title="Mark as sick"
                       >
                         <span className="px-2 py-0.5 rounded text-sm font-bold text-gray-400 border border-gray-600 flex items-center gap-1">
@@ -3512,9 +3517,15 @@ function FitnessTab({ member, settings, formatDate }) {
                 {member.sick_notes && ` - ${member.sick_notes}`}
               </p>
             )}
+            {sickError && (
+              <div className="mb-4 p-3 rounded text-sm flex items-center gap-2" style={{ backgroundColor: 'var(--color-error-50)', color: 'var(--color-error-700)' }}>
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {sickError}
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <button
-                onClick={() => { setShowSickModal(false); setSickNotes(''); }}
+                onClick={() => { setShowSickModal(false); setSickNotes(''); setSickError(null); }}
                 className="px-4 py-2 rounded text-sm"
                 style={{ backgroundColor: 'var(--color-bg-surface-soft)', color: 'var(--color-text-secondary)' }}
               >
