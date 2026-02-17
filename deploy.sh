@@ -161,6 +161,13 @@ rsync -avz \
   /home/n0mad1k/Tools/levi/frontend/index.html \
   $REMOTE:$REMOTE_PATH/frontend/
 
+# Sync frontend public directory (PWA assets, icons, manifest, etc.)
+echo "Syncing frontend public assets..."
+rsync -avz \
+  -e "ssh -i $SSH_KEY" \
+  /home/n0mad1k/Tools/levi/frontend/public/ \
+  $REMOTE:$REMOTE_PATH/frontend/public/
+
 # Sync VERSION and CHANGELOG for version tracking
 echo "Syncing version info..."
 rsync -avz \

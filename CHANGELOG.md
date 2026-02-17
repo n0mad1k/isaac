@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.44] - 2026-02-17
+
+### Fixed
+- **Service Worker 404** - Fixed deploy scripts to sync frontend/public directory
+  - sw.js, manifest.json, offline.html, and icons were not being deployed
+  - Added rsync step for public/ directory in both deploy.sh and deploy-dev.sh
+  - PWA features now work correctly
+
 ## [1.85.43] - 2026-02-17
 
 ### Fixed
