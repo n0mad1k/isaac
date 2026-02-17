@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.34] - 2026-02-17
+
+### Fixed
+- **Test Email Buttons** - All test email buttons now show sample data when no real data exists
+  - Daily digest, gear alerts, training alerts, medical alerts, and team alerts digest now use sample data
+  - Sample entries are prefixed with "[SAMPLE]" so you know it's test data
+  - Response message indicates when sample data was used
+
 ## [1.85.33] - 2026-02-17
 
 ### Fixed

@@ -1847,6 +1847,16 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
         for t in tasks
     ]
 
+    # If no real tasks, use sample data to show format
+    using_sample_data = False
+    if not task_dicts:
+        using_sample_data = True
+        task_dicts = [
+            {"title": "[SAMPLE] Morning animal feeding", "description": "Feed all animals in barn and pasture", "priority": 1},
+            {"title": "[SAMPLE] Check irrigation system", "description": "Verify all zones functioning", "priority": 2},
+            {"title": "[SAMPLE] Prepare for delivery pickup", "description": "Box and label orders for today", "priority": 1},
+        ]
+
     # Mock weather (or get real if available)
     weather = {
         "high": 75,
@@ -1959,6 +1969,22 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
             "message": f"Overdue by {days_overdue} days (due {appt.next_due.strftime('%m/%d/%Y')})"
         })
 
+    # If no real team alerts, use sample data to show format
+    if not team_alerts:
+        using_sample_data = True
+        team_alerts = [
+            {"type": "low_stock", "member": "[SAMPLE] John", "item": "First Aid Kit Bandages", "message": "Below minimum: 2 / 10 (Medical Bag)"},
+            {"type": "expiring", "member": "[SAMPLE] Jane", "item": "CPR Certification", "message": "Expires in 14 days on 03/03/2026 (Training)"},
+            {"type": "expired", "member": "[SAMPLE] Bob", "item": "Annual Physical", "message": "Overdue by 30 days (due 01/18/2026)"},
+        ]
+
+    # If no weather alerts, add sample
+    if not alert_dicts:
+        using_sample_data = True
+        alert_dicts = [
+            {"title": "[SAMPLE] Frost Advisory", "message": "Temperatures expected to drop below freezing tonight", "severity": "medium"},
+        ]
+
     try:
         email_service = await EmailService.get_configured_service(db)
         success = await email_service.send_daily_digest(
@@ -1973,12 +1999,16 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
         raise HTTPException(status_code=400, detail=str(e))
 
     if success:
+        message = f"Test daily digest sent to {recipients}"
+        if using_sample_data:
+            message += " (using sample data - no real data available)"
         return {
-            "message": f"Test daily digest sent to {recipients}",
+            "message": message,
             "tasks_count": len(task_dicts),
             "alerts_count": len(alert_dicts),
             "team_alerts_count": len(team_alerts),
             "team_alerts": team_alerts,
+            "using_sample_data": using_sample_data,
         }
     else:
         raise HTTPException(status_code=500, detail="Failed to send test daily digest")
@@ -2042,8 +2072,15 @@ async def test_gear_alerts(db: AsyncSession = Depends(get_db), admin: User = Dep
                     "message": f"Expires in {days_left} days on {content.expiration_date.strftime('%m/%d/%Y')} ({content.gear.gear_name})"
                 })
 
+    # If no real gear alerts, use sample data to show email format
+    using_sample_data = False
     if not gear_alerts:
-        return {"message": "No gear alerts found - all items are stocked and not expired", "alerts_count": 0}
+        using_sample_data = True
+        gear_alerts = [
+            {"type": "low_stock", "member": "[SAMPLE] John", "item": "Bandages", "message": "Below minimum: 2 / 10 (First Aid Kit)"},
+            {"type": "expiring", "member": "[SAMPLE] Jane", "item": "EpiPen", "message": "Expires in 7 days on 02/24/2026 (Medical Bag)"},
+            {"type": "expired", "member": "[SAMPLE] Bob", "item": "Fire Extinguisher", "message": "EXPIRED on 01/15/2026 (Vehicle Kit)"},
+        ]
 
     try:
         email_service = await EmailService.get_configured_service(db)
@@ -2057,7 +2094,10 @@ async def test_gear_alerts(db: AsyncSession = Depends(get_db), admin: User = Dep
         raise HTTPException(status_code=400, detail=str(e))
 
     if success:
-        return {"message": f"Gear alerts test sent to {recipients}", "alerts_count": len(gear_alerts), "alerts": gear_alerts}
+        message = f"Gear alerts test sent to {recipients}"
+        if using_sample_data:
+            message += " (using sample data - no real alerts found)"
+        return {"message": message, "alerts_count": len(gear_alerts), "alerts": gear_alerts, "using_sample_data": using_sample_data}
     else:
         raise HTTPException(status_code=500, detail="Failed to send gear alerts email")
 
@@ -2098,8 +2138,14 @@ async def test_training_alerts(db: AsyncSession = Depends(get_db), admin: User =
             "message": f"Overdue by {days_overdue} days (due {training.next_due.strftime('%m/%d/%Y')})"
         })
 
+    # If no real training alerts, use sample data to show email format
+    using_sample_data = False
     if not training_alerts:
-        return {"message": "No training alerts found - all training is current", "alerts_count": 0}
+        using_sample_data = True
+        training_alerts = [
+            {"type": "expired", "member": "[SAMPLE] John", "item": "CPR Certification", "message": "Overdue by 45 days (due 01/03/2026)"},
+            {"type": "expired", "member": "[SAMPLE] Jane", "item": "Equipment Operation", "message": "Overdue by 10 days (due 02/07/2026)"},
+        ]
 
     try:
         email_service = await EmailService.get_configured_service(db)
@@ -2113,7 +2159,10 @@ async def test_training_alerts(db: AsyncSession = Depends(get_db), admin: User =
         raise HTTPException(status_code=400, detail=str(e))
 
     if success:
-        return {"message": f"Training alerts test sent to {recipients}", "alerts_count": len(training_alerts), "alerts": training_alerts}
+        message = f"Training alerts test sent to {recipients}"
+        if using_sample_data:
+            message += " (using sample data - no real alerts found)"
+        return {"message": message, "alerts_count": len(training_alerts), "alerts": training_alerts, "using_sample_data": using_sample_data}
     else:
         raise HTTPException(status_code=500, detail="Failed to send training alerts email")
 
@@ -2155,8 +2204,14 @@ async def test_medical_alerts(db: AsyncSession = Depends(get_db), admin: User = 
             "message": f"Overdue by {days_overdue} days (due {appt.next_due.strftime('%m/%d/%Y')})"
         })
 
+    # If no real medical alerts, use sample data to show email format
+    using_sample_data = False
     if not medical_alerts:
-        return {"message": "No medical alerts found - all appointments are current", "alerts_count": 0}
+        using_sample_data = True
+        medical_alerts = [
+            {"type": "expired", "member": "[SAMPLE] John", "item": "Annual Physical", "message": "Overdue by 60 days (due 12/19/2025)"},
+            {"type": "expired", "member": "[SAMPLE] Jane", "item": "Dental Checkup", "message": "Overdue by 15 days (due 02/02/2026)"},
+        ]
 
     try:
         email_service = await EmailService.get_configured_service(db)
@@ -2170,7 +2225,10 @@ async def test_medical_alerts(db: AsyncSession = Depends(get_db), admin: User = 
         raise HTTPException(status_code=400, detail=str(e))
 
     if success:
-        return {"message": f"Medical alerts test sent to {recipients}", "alerts_count": len(medical_alerts), "alerts": medical_alerts}
+        message = f"Medical alerts test sent to {recipients}"
+        if using_sample_data:
+            message += " (using sample data - no real alerts found)"
+        return {"message": message, "alerts_count": len(medical_alerts), "alerts": medical_alerts, "using_sample_data": using_sample_data}
     else:
         raise HTTPException(status_code=500, detail="Failed to send medical alerts email")
 
@@ -2286,14 +2344,20 @@ async def test_team_alerts_digest(db: AsyncSession = Depends(get_db), admin: Use
 
     total_alerts = len(gear_alerts) + len(training_alerts) + len(medical_alerts)
 
+    # If no real alerts, use sample data to show email format
+    using_sample_data = False
     if total_alerts == 0:
-        return {
-            "message": "No team alerts found - all items are current and stocked",
-            "gear_count": 0,
-            "training_count": 0,
-            "medical_count": 0,
-            "total_count": 0
-        }
+        using_sample_data = True
+        gear_alerts = [
+            {"type": "low_stock", "member": "[SAMPLE] John", "item": "Bandages", "message": "Below minimum: 2 / 10 (First Aid Kit)"},
+            {"type": "expiring", "member": "[SAMPLE] Jane", "item": "EpiPen", "message": "Expires in 7 days on 02/24/2026 (Medical Bag)"},
+        ]
+        training_alerts = [
+            {"type": "expired", "member": "[SAMPLE] John", "item": "Training: CPR Certification", "message": "Overdue by 45 days (due 01/03/2026)"},
+        ]
+        medical_alerts = [
+            {"type": "expired", "member": "[SAMPLE] Jane", "item": "Appointment: Annual Physical", "message": "Overdue by 30 days (due 01/18/2026)"},
+        ]
 
     try:
         email_service = await EmailService.get_configured_service(db)
@@ -2308,15 +2372,19 @@ async def test_team_alerts_digest(db: AsyncSession = Depends(get_db), admin: Use
         raise HTTPException(status_code=400, detail=str(e))
 
     if success:
+        message = f"Team alerts digest sent to {recipients}"
+        if using_sample_data:
+            message += " (using sample data - no real alerts found)"
         return {
-            "message": f"Team alerts digest sent to {recipients}",
+            "message": message,
             "gear_count": len(gear_alerts),
             "training_count": len(training_alerts),
             "medical_count": len(medical_alerts),
-            "total_count": total_alerts,
+            "total_count": len(gear_alerts) + len(training_alerts) + len(medical_alerts),
             "gear_alerts": gear_alerts,
             "training_alerts": training_alerts,
             "medical_alerts": medical_alerts,
+            "using_sample_data": using_sample_data,
         }
     else:
         raise HTTPException(status_code=500, detail="Failed to send team alerts digest email")
