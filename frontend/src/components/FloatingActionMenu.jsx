@@ -814,12 +814,12 @@ function QuickGearModal({ onClose }) {
 function QuickTransactionModal({ onClose }) {
   const [categories, setCategories] = useState([])
   const [accounts, setAccounts] = useState([])
-  const [defaultAccountId, setDefaultAccountId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [formData, setFormData] = useState({
+    account_id: '',
     category_id: '',
     amount: '',
     description: '',
@@ -846,7 +846,9 @@ function QuickTransactionModal({ onClose }) {
       const savings = accts.find(a => a.account_type === 'savings' && a.is_active)
       const firstActive = accts.find(a => a.is_active)
       const defaultAcct = moneyMarket || savings || firstActive || accts[0]
-      if (defaultAcct) setDefaultAccountId(defaultAcct.id)
+      if (defaultAcct) {
+        setFormData(f => ({ ...f, account_id: String(defaultAcct.id) }))
+      }
     } catch (err) {
       console.error('QuickTransaction loadData error:', err)
       const status = err.response?.status
@@ -864,7 +866,7 @@ function QuickTransactionModal({ onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.category_id || !formData.amount || !defaultAccountId) return
+    if (!formData.category_id || !formData.amount || !formData.account_id) return
 
     setSaving(true)
     setError(null)
@@ -880,7 +882,7 @@ function QuickTransactionModal({ onClose }) {
       const amount = formData.transaction_type === 'expense' ? -Math.abs(rawAmount) : Math.abs(rawAmount)
 
       await createBudgetTransaction({
-        account_id: defaultAccountId,
+        account_id: parseInt(formData.account_id),
         category_id: parseInt(formData.category_id),
         amount: amount,
         description: description,
@@ -963,6 +965,22 @@ function QuickTransactionModal({ onClose }) {
                 </div>
 
                 <div>
+                  <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Account *</label>
+                  <select
+                    value={formData.account_id}
+                    onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 rounded-lg"
+                    style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
+                  >
+                    <option value="">Select account...</option>
+                    {accounts.filter(a => a.is_active).map(acct => (
+                      <option key={acct.id} value={acct.id}>{acct.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Category *</label>
                   <select
                     value={formData.category_id}
@@ -972,9 +990,12 @@ function QuickTransactionModal({ onClose }) {
                     style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                   >
                     <option value="">Select category...</option>
-                    {categories.filter(c => c.category_type !== 'transfer' && c.category_type !== 'fixed').map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
+                    {categories
+                      .filter(c => c.is_active && c.category_type !== 'fixed' && c.name !== 'Roll Over' && c.name !== 'Other')
+                      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+                      .map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
                   </select>
                 </div>
 
@@ -1005,7 +1026,7 @@ function QuickTransactionModal({ onClose }) {
                   />
                 </div>
 
-                {!defaultAccountId && (
+                {accounts.length === 0 && (
                   <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning-600)' }}>
                     No budget accounts found. Please create an account in Budget settings first.
                   </div>
@@ -1013,7 +1034,7 @@ function QuickTransactionModal({ onClose }) {
 
                 <button
                   type="submit"
-                  disabled={saving || !formData.category_id || !formData.amount || !defaultAccountId}
+                  disabled={saving || !formData.category_id || !formData.amount || !formData.account_id}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
                   style={{ backgroundColor: 'var(--color-green-600)', color: 'white' }}
                 >

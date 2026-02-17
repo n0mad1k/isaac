@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.55] - 2026-02-17
+
+### Changed
+- **Quick Transaction** - Added account selection and full category options
+  - Account dropdown now available (defaults to Money Market)
+  - Categories now match normal transaction form (variable + transfer, excludes fixed)
+  - Sorted by sort order then name for consistency
+
 ## [1.85.54] - 2026-02-17
 
 ### Fixed
