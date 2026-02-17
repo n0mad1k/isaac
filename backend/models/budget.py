@@ -70,7 +70,7 @@ class BudgetAccount(Base):
 
     transactions = relationship("BudgetTransaction", back_populates="account")
     income_sources = relationship("BudgetIncome", back_populates="account")
-    categories = relationship("BudgetCategory", back_populates="account")
+    categories = relationship("BudgetCategory", back_populates="account", foreign_keys="BudgetCategory.account_id")
     buckets = relationship("AccountBucket", back_populates="account", cascade="all, delete-orphan")
 
     def __repr__(self):
