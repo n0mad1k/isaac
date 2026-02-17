@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.68] - 2026-02-17
+
+### Fixed
+- **Account Tab Switching** - Fixed account view showing previous account's data when switching tabs
+  - Added key prop to force component remount on account change
+
 ## [1.85.67] - 2026-02-17
 
 ### Added

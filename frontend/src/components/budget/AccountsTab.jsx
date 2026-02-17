@@ -127,6 +127,7 @@ function AccountsTab() {
       {/* Account View */}
       {activeAccount ? (
         <AccountView
+          key={activeAccountId}
           accountId={activeAccountId}
           onAccountUpdated={fetchAccounts}
           onAccountDeleted={() => {
