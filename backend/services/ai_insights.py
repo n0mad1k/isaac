@@ -222,7 +222,9 @@ async def generate_monthly_garden_review():
             f"Analyze this month's garden activity. Format:\n"
             f"- Plants needing attention (overdue care)\n"
             f"- What to plant/harvest this month for zone {settings.usda_zone}\n"
-            f"- Seasonal prep tasks\n"
+            f"- Seasonal prep tasks\n\n"
+            f"IMPORTANT: Plants marked [SPRINKLER AUTO-WATERED] do NOT need manual watering.\n"
+            f"Only recommend watering for plants without sprinkler coverage.\n"
             f"Keep it under 120 words. Only recommend actions relevant to what's actually "
             f"growing or what's appropriate for the zone and month."
         )

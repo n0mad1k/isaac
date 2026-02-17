@@ -70,7 +70,10 @@ async def gather_garden_context(db: AsyncSession) -> str:
                     parts.append(f"in {p.location}")
                 if p.growth_stage:
                     parts.append(f"({p.growth_stage})")
-                if p.last_watered:
+                # Indicate if plant has automatic sprinkler watering
+                if p.sprinkler_enabled:
+                    parts.append("[SPRINKLER AUTO-WATERED]")
+                elif p.last_watered:
                     last_water_date = p.last_watered.date() if hasattr(p.last_watered, 'date') else p.last_watered
                     days_ago = (date.today() - last_water_date).days
                     parts.append(f"watered {days_ago}d ago")

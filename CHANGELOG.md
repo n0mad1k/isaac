@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.63] - 2026-02-17
+
+### Fixed
+- **AI Garden Insights** - Sprinkler-watered plants no longer flagged as needing water
+  - Plants with sprinkler coverage now show [SPRINKLER AUTO-WATERED] in AI context
+  - Garden review explicitly instructed to skip watering recommendations for auto-watered plants
+
 ## [1.85.62] - 2026-02-17
 
 ### Fixed
