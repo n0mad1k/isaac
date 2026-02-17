@@ -803,14 +803,14 @@ class SchedulerService:
                 overdue_tasks = overdue_result.scalars().all()
 
                 # Combine: overdue TODOs first, then today's tasks/events
-                # Sort today's tasks by time: tasks with time first (chronologically), then tasks without time
+                # Sort today's tasks: untimed tasks first (by priority), then timed tasks (chronologically)
                 def time_sort_key(task):
                     if task.due_time:
-                        # Tasks with time come first, sorted chronologically
-                        return (0, task.due_time)
+                        # Tasks with time come after untimed tasks, sorted chronologically
+                        return (1, task.due_time)
                     else:
-                        # Tasks without time come after, sorted by priority
-                        return (1, str(task.priority or 2))
+                        # Tasks without time come first, sorted by priority
+                        return (0, str(task.priority or 2))
 
                 today_tasks = sorted(tasks, key=time_sort_key)
                 tasks = list(overdue_tasks) + today_tasks

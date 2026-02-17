@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.37] - 2026-02-17
+
+### Fixed
+- **Daily Digest Task Order** - Tasks now ordered correctly: untimed tasks first (by priority), then timed tasks (chronologically)
+  - Previously timed tasks were listed first
+
 ## [1.85.36] - 2026-02-17
 
 ### Fixed
