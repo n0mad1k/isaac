@@ -238,24 +238,10 @@ function BudgetOverview() {
             if (isDaneKelly) {
               const personData = getPersonData(ownerKey)
               const available = personData.available
-              const accountBalance = personData.account_balance
-              const thisHalfBills = personData.this_half_bills || 0
               return (
                 <div key={name} className="rounded-xl p-3" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
                   <div className="text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{name}</div>
                   <div className="text-base font-bold" style={{ color: available >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(available)}</div>
-                  <div className="text-[10px] mt-0.5 space-y-0.5">
-                    {accountBalance !== undefined && (
-                      <div style={{ color: 'var(--color-text-muted)' }}>
-                        balance: {fmt(accountBalance)}
-                      </div>
-                    )}
-                    {thisHalfBills > 0 && (
-                      <div style={{ color: 'var(--color-warning-500)' }}>
-                        bills: -{fmt(thisHalfBills)}
-                      </div>
-                    )}
-                  </div>
                 </div>
               )
             }

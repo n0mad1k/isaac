@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.56] - 2026-02-17
+
+### Fixed
+- **Spending Account Tickers** - Restored correct calculation for Dane/Kelly spending
+  - Reverted to original rollover-based calculation
+  - Available = rollover + period deposit - period bills - period spent
+  - Fixed broken ticker display that was showing $0
+
 ## [1.85.55] - 2026-02-17
 
 ### Changed
