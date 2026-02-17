@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import {
   CheckCircle, Circle, Plus, Trash2, Edit2, X, GripVertical,
   RotateCcw, Clock, ChevronDown, ChevronUp, Copy, AlertTriangle,
-  ListOrdered, Settings, History, Archive, Inbox
+  ListOrdered, Settings, History, Archive, Inbox, Languages
 } from 'lucide-react'
 import {
   getWorkerStandardTasks, createWorkerStandardTask, updateWorkerStandardTask,
@@ -25,6 +25,18 @@ function WorkerVisitTasksTab({ worker }) {
   const [saving, setSaving] = useState(false)
   const [draggedTaskId, setDraggedTaskId] = useState(null)
   const [showBacklog, setShowBacklog] = useState(true)
+  const [showOriginal, setShowOriginal] = useState(false) // Toggle for showing original English text
+
+  // Check if worker has a non-English language (translation is active)
+  const isTranslated = worker?.language && worker.language !== 'en'
+
+  // Helper to get task title based on translation toggle
+  const getTaskTitle = (task) => {
+    if (showOriginal && task.original_title) {
+      return task.original_title
+    }
+    return task.title
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -253,13 +265,30 @@ function WorkerVisitTasksTab({ worker }) {
           <ListOrdered className="w-5 h-5" />
           Visit Tasks
         </h3>
-        <button
-          onClick={() => setShowStandardSettings(!showStandardSettings)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors text-sm"
-        >
-          <Settings className="w-4 h-4" />
-          Standard Tasks
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Translation toggle - only show if worker language is not English */}
+          {isTranslated && (
+            <button
+              onClick={() => setShowOriginal(!showOriginal)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-sm ${
+                showOriginal
+                  ? 'bg-blue-600 text-white hover:bg-blue-500'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+              title={showOriginal ? 'Showing original English' : 'Showing translated text'}
+            >
+              <Languages className="w-4 h-4" />
+              {showOriginal ? 'Original' : 'Translated'}
+            </button>
+          )}
+          <button
+            onClick={() => setShowStandardSettings(!showStandardSettings)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors text-sm"
+          >
+            <Settings className="w-4 h-4" />
+            Standard Tasks
+          </button>
+        </div>
       </div>
 
       {/* Standard Tasks Settings */}
@@ -314,7 +343,7 @@ function WorkerVisitTasksTab({ worker }) {
                 ) : (
                   <>
                     <span className="flex-1 text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                      {task.title}
+                      {getTaskTitle(task)}
                     </span>
                     <button
                       onClick={() => setEditingStandardTask(task)}
@@ -425,7 +454,7 @@ function WorkerVisitTasksTab({ worker }) {
                     </button>
                     <div className="flex-1 min-w-0">
                       <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                        {task.title}
+                        {getTaskTitle(task)}
                       </span>
                       {task.is_standard && (
                         <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
@@ -488,7 +517,7 @@ function WorkerVisitTasksTab({ worker }) {
                               <Circle className="w-5 h-5 text-gray-400 hover:text-green-400" />
                             </button>
                             <div className="flex-1 min-w-0">
-                              <span className="text-gray-300">{task.title}</span>
+                              <span className="text-gray-300">{getTaskTitle(task)}</span>
                               {task.is_standard && (
                                 <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
                                   Standard
@@ -542,7 +571,7 @@ function WorkerVisitTasksTab({ worker }) {
                         >
                           <CheckCircle className="w-5 h-5 text-green-500" />
                         </button>
-                        <span className="line-through text-gray-400">{task.title}</span>
+                        <span className="line-through text-gray-400">{getTaskTitle(task)}</span>
                       </div>
                     ))}
                   </div>
@@ -627,7 +656,7 @@ function WorkerVisitTasksTab({ worker }) {
                           <Circle className="w-3 h-3 text-gray-500" />
                         )}
                         <span className={task.is_completed ? 'line-through' : ''}>
-                          {task.title}
+                          {getTaskTitle(task)}
                         </span>
                       </div>
                     ))}

@@ -767,22 +767,36 @@ async def get_standard_tasks(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_view("workers"))
 ):
-    """Get all standard (recurring) tasks for a worker"""
+    """Get all standard (recurring) tasks for a worker (translated if worker language is not English)"""
+    # Get worker to determine language
+    worker_result = await db.execute(select(Worker).where(Worker.id == worker_id))
+    worker = worker_result.scalar_one_or_none()
+    if not worker:
+        raise HTTPException(status_code=404, detail="Worker not found")
+
+    worker_lang = worker.language or "en"
+
     result = await db.execute(
         select(WorkerStandardTask)
         .where(WorkerStandardTask.worker_id == worker_id, WorkerStandardTask.is_active == True)
         .order_by(WorkerStandardTask.sort_order, WorkerStandardTask.id)
     )
     tasks = result.scalars().all()
-    return [
-        {
+
+    task_list = []
+    for t in tasks:
+        task_dict = {
             "id": t.id,
             "title": t.title,
             "description": t.description,
             "sort_order": t.sort_order,
         }
-        for t in tasks
-    ]
+        # Translate if worker language is not English
+        if worker_lang != "en":
+            task_dict = await translate_task(task_dict, worker_lang)
+        task_list.append(task_dict)
+
+    return task_list
 
 
 @router.post("/{worker_id}/standard-tasks/")
@@ -900,7 +914,15 @@ async def get_worker_visits(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_view("workers"))
 ):
-    """Get worker visit history"""
+    """Get worker visit history (translated if worker language is not English)"""
+    # Get worker to determine language
+    worker_result = await db.execute(select(Worker).where(Worker.id == worker_id))
+    worker = worker_result.scalar_one_or_none()
+    if not worker:
+        raise HTTPException(status_code=404, detail="Worker not found")
+
+    worker_lang = worker.language or "en"
+
     query = select(WorkerVisit).where(WorkerVisit.worker_id == worker_id)
     if not include_completed:
         query = query.where(WorkerVisit.status != VisitStatus.COMPLETED)
@@ -921,6 +943,24 @@ async def get_worker_visits(
 
         completed_count = sum(1 for t in tasks if t.is_completed)
 
+        # Build task list with translation
+        task_list = []
+        for t in tasks:
+            task_dict = {
+                "id": t.id,
+                "title": t.title,
+                "description": t.description,
+                "sort_order": t.sort_order,
+                "is_standard": t.is_standard,
+                "is_completed": t.is_completed,
+                "is_backlog": t.is_backlog or False,
+                "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+            }
+            # Translate if worker language is not English
+            if worker_lang != "en":
+                task_dict = await translate_task(task_dict, worker_lang)
+            task_list.append(task_dict)
+
         response.append({
             "id": v.id,
             "visit_date": v.visit_date.isoformat() if v.visit_date else None,
@@ -929,19 +969,7 @@ async def get_worker_visits(
             "completed_at": v.completed_at.isoformat() if v.completed_at else None,
             "task_count": len(tasks),
             "completed_count": completed_count,
-            "tasks": [
-                {
-                    "id": t.id,
-                    "title": t.title,
-                    "description": t.description,
-                    "sort_order": t.sort_order,
-                    "is_standard": t.is_standard,
-                    "is_completed": t.is_completed,
-                    "is_backlog": t.is_backlog or False,
-                    "completed_at": t.completed_at.isoformat() if t.completed_at else None,
-                }
-                for t in tasks
-            ]
+            "tasks": task_list
         })
 
     return response
@@ -1048,24 +1076,31 @@ async def get_current_visit(
     )
     tasks = tasks_result.scalars().all()
 
+    # Build task list with translation
+    worker_lang = worker.language or "en"
+    task_list = []
+    for t in tasks:
+        task_dict = {
+            "id": t.id,
+            "title": t.title,
+            "description": t.description,
+            "sort_order": t.sort_order,
+            "is_standard": t.is_standard,
+            "is_completed": t.is_completed,
+            "is_backlog": t.is_backlog or False,
+            "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+        }
+        # Translate if worker language is not English
+        if worker_lang != "en":
+            task_dict = await translate_task(task_dict, worker_lang)
+        task_list.append(task_dict)
+
     return {
         "id": visit.id,
         "visit_date": visit.visit_date.isoformat() if visit.visit_date else None,
         "status": visit.status.value if visit.status else "in_progress",
         "notes": visit.notes,
-        "tasks": [
-            {
-                "id": t.id,
-                "title": t.title,
-                "description": t.description,
-                "sort_order": t.sort_order,
-                "is_standard": t.is_standard,
-                "is_completed": t.is_completed,
-                "is_backlog": t.is_backlog or False,
-                "completed_at": t.completed_at.isoformat() if t.completed_at else None,
-            }
-            for t in tasks
-        ]
+        "tasks": task_list
     }
 
 

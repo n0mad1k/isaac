@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.33] - 2026-02-17
+
+### Fixed
+- **Worker Tasks Translation** - All worker task views now properly translate task titles and descriptions
+  - Standard tasks, current visit tasks, and visit history now all translate to worker's language
+  - Added "Original/Translated" toggle button to switch between translated and original English text
+  - Toggle only appears when worker's language is not English
+
 ## [1.85.32] - 2026-02-17
 
 ### Fixed
