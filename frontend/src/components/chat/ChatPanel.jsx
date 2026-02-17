@@ -439,7 +439,7 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
                     }}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: priorityColors[insight.priority] || priorityColors.medium }}
@@ -447,6 +447,11 @@ function ChatPanel({ isOpen, onClose, onUnreadCountChange }) {
                         <span className="text-xs font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--color-bg-surface-muted)', color: 'var(--color-text-secondary)' }}>
                           {domainLabels[insight.domain] || insight.domain}
                         </span>
+                        {insight.created_at && (
+                          <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                            {new Date(insight.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         {!insight.is_read && (

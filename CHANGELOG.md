@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.28] - 2026-02-17
+
+### Added
+- **AI Insights Show Dates** - Each insight now displays its creation date
+  - Date shown in MM/DD/YYYY format next to domain badge
+  - Helps identify new vs old insights
+
 ## [1.85.27] - 2026-02-17
 
 ### Fixed
