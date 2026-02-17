@@ -1229,3 +1229,74 @@ class EmailService:
         """
 
         return await self.send_email(subject, body, to=to, html=True, no_prefix=True, from_name=from_name)
+
+    async def send_task_assignment_notification(
+        self,
+        task_title: str,
+        task_description: Optional[str],
+        due_date: Optional[str],
+        due_time: Optional[str],
+        assignee_name: str,
+        assignee_email: str,
+        assigner_name: Optional[str] = None,
+    ) -> bool:
+        """Send notification email when a task is assigned to someone.
+
+        Args:
+            task_title: The task title
+            task_description: Optional task description
+            due_date: Optional due date (MM/DD/YYYY format)
+            due_time: Optional due time
+            assignee_name: Name of the person assigned
+            assignee_email: Email of the person assigned
+            assigner_name: Optional name of who assigned the task
+
+        Returns:
+            True if sent successfully, False otherwise
+        """
+        if not assignee_email:
+            logger.warning(f"Cannot send task assignment notification - no email for {assignee_name}")
+            return False
+
+        subject = f"📋 New Task Assigned: {_sanitize_header(task_title)}"
+
+        due_info = ""
+        if due_date:
+            due_info = f"<p><strong>Due:</strong> {_escape_html(due_date)}"
+            if due_time:
+                due_info += f" at {_escape_html(due_time)}"
+            due_info += "</p>"
+
+        assigned_by = ""
+        if assigner_name:
+            assigned_by = f"<p style='color: #666;'>Assigned by: {_escape_html(assigner_name)}</p>"
+
+        body = f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px 8px 0 0;">
+                <h2 style="color: white; margin: 0; font-size: 20px;">📋 New Task Assigned</h2>
+            </div>
+            <div style="background: #fff; padding: 20px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px;">
+                <p style="color: #333; font-size: 16px;">Hi {_escape_html(assignee_name)},</p>
+                <p style="color: #333;">You have been assigned a new task:</p>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                    <h3 style="margin: 0 0 10px 0; color: #333;">{_escape_html(task_title)}</h3>
+                    {f'<p style="color: #666; margin: 0;">{_escape_html(task_description)}</p>' if task_description else ''}
+                </div>
+                {due_info}
+                {assigned_by}
+                <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                    Please check your dashboard for more details and to mark the task as complete when finished.
+                </p>
+            </div>
+        </div>
+        """
+
+        try:
+            success = await self.send_email(subject, body, to=assignee_email, html=True)
+            if success:
+                logger.info(f"Task assignment notification sent to {assignee_email} for task '{task_title}'")
+            return success
+        except Exception as e:
+            logger.error(f"Failed to send task assignment notification: {e}")
+            return False

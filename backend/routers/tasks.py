@@ -21,6 +21,8 @@ from models.home_maintenance import HomeMaintenance
 from models.livestock import Animal, AnimalCareSchedule
 from models.plants import Plant
 from services.calendar_sync import get_calendar_service
+from services.email import EmailService
+from services.settings import get_setting_value
 from loguru import logger
 import re
 
@@ -648,6 +650,43 @@ async def create_task(
         await db.commit()
         await db.refresh(db_task)
 
+    # Send assignment notifications (only if notify_email is enabled)
+    if db_task.notify_email:
+        try:
+            email_service = await EmailService.from_settings()
+            due_date_str = db_task.due_date.strftime("%m/%d/%Y") if db_task.due_date else None
+
+            # Notify assigned team members
+            if db_task.assigned_members:
+                for member in db_task.assigned_members:
+                    if member.email:
+                        await email_service.send_task_assignment_notification(
+                            task_title=db_task.title,
+                            task_description=db_task.description,
+                            due_date=due_date_str,
+                            due_time=db_task.due_time,
+                            assignee_name=member.nickname or member.name,
+                            assignee_email=member.email,
+                            assigner_name=user.username if user else None,
+                        )
+
+            # Notify assigned user (not a team member or worker - a regular system user)
+            if db_task.assigned_to_user_id:
+                result = await db.execute(select(User).where(User.id == db_task.assigned_to_user_id))
+                assigned_user = result.scalar_one_or_none()
+                if assigned_user and assigned_user.email:
+                    await email_service.send_task_assignment_notification(
+                        task_title=db_task.title,
+                        task_description=db_task.description,
+                        due_date=due_date_str,
+                        due_time=db_task.due_time,
+                        assignee_name=assigned_user.username,
+                        assignee_email=assigned_user.email,
+                        assigner_name=user.username if user else None,
+                    )
+        except Exception as e:
+            logger.error(f"Failed to send task assignment notifications: {e}")
+
     # Sync to calendar if enabled
     calendar_service = await get_calendar_service(db)
     if calendar_service:
@@ -940,21 +979,47 @@ async def update_task(
         if not all(0 <= d <= 6 for d in updates.recurrence_days_of_week):
             raise HTTPException(status_code=400, detail="Invalid day of week value")
 
+    # Track current assignments before update for notification purposes
+    previous_user_id = task.assigned_to_user_id
+
     # Get update data, excluding assigned_member_ids which needs special handling
     update_data = updates.model_dump(exclude_unset=True, exclude={'assigned_member_ids'})
     for field, value in update_data.items():
         setattr(task, field, value)
 
     # Handle multiple member assignment if provided
+    new_member_emails = []  # Track newly assigned members for notifications
+    new_user_email = None  # Track newly assigned user for notification
     if updates.assigned_member_ids is not None:
+        # Get current assigned member IDs before update
+        current_member_ids = {m.id for m in task.assigned_members} if task.assigned_members else set()
+
         if updates.assigned_member_ids:
             result = await db.execute(
                 select(TeamMember).where(TeamMember.id.in_(updates.assigned_member_ids))
             )
             members = result.scalars().all()
             task.assigned_members = members
+
+            # Find newly assigned members (not previously assigned)
+            for member in members:
+                if member.id not in current_member_ids and member.email:
+                    new_member_emails.append({
+                        'name': member.nickname or member.name,
+                        'email': member.email
+                    })
         else:
             task.assigned_members = []  # Clear assignments
+
+    # Check if user assignment changed
+    if task.assigned_to_user_id and task.assigned_to_user_id != previous_user_id:
+        result = await db.execute(select(User).where(User.id == task.assigned_to_user_id))
+        assigned_user = result.scalar_one_or_none()
+        if assigned_user and assigned_user.email:
+            new_user_email = {
+                'name': assigned_user.username,
+                'email': assigned_user.email
+            }
 
     # If marking as completed, set completed_at
     if updates.is_completed:
@@ -970,6 +1035,38 @@ async def update_task(
     calendar_service = await get_calendar_service(db)
     if calendar_service:
         await calendar_service.sync_task_to_calendar(task, db)
+
+    # Send assignment notifications to newly assigned members/users (only if notify_email is enabled)
+    if (new_member_emails or new_user_email) and task.notify_email:
+        try:
+            email_service = await EmailService.from_settings()
+            due_date_str = task.due_date.strftime("%m/%d/%Y") if task.due_date else None
+
+            # Notify newly assigned team members
+            for member_info in new_member_emails:
+                await email_service.send_task_assignment_notification(
+                    task_title=task.title,
+                    task_description=task.description,
+                    due_date=due_date_str,
+                    due_time=task.due_time,
+                    assignee_name=member_info['name'],
+                    assignee_email=member_info['email'],
+                    assigner_name=user.username if user else None,
+                )
+
+            # Notify newly assigned user
+            if new_user_email:
+                await email_service.send_task_assignment_notification(
+                    task_title=task.title,
+                    task_description=task.description,
+                    due_date=due_date_str,
+                    due_time=task.due_time,
+                    assignee_name=new_user_email['name'],
+                    assignee_email=new_user_email['email'],
+                    assigner_name=user.username if user else None,
+                )
+        except Exception as e:
+            logger.error(f"Failed to send task assignment notifications: {e}")
 
     return task
 

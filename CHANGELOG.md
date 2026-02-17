@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.46] - 2026-02-17
+
+### Added
+- **Task Assignment Emails** - Email notification when tasks are assigned
+  - Team members and users receive email when assigned to a task
+  - Only sends if task has "Email Notifications" enabled (notify_email)
+  - Shows task title, description, due date/time, and who assigned it
+  - On update, only newly assigned people get notified (not existing assignees)
+
 ## [1.85.45] - 2026-02-17
 
 ### Added
