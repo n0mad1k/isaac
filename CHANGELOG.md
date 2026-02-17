@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.51] - 2026-02-17
+
+### Added
+- **Team Member Sick Tracking** - Track when team members are sick
+  - Mark members as sick with optional notes (symptoms, doctor advice)
+  - Sick badge shows prominently in member header when active
+  - Recovery mode for gradual return - no intense workouts expected
+  - Click "Mark Recovered" to enter recovery mode, click recovery badge to end
+  - Sick members should focus on rest, no workouts or early wake requirements
+
 ## [1.85.50] - 2026-02-17
 
 ### Fixed

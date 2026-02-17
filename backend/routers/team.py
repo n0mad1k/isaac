@@ -155,9 +155,19 @@ class TeamMemberUpdate(BaseModel):
     readiness_notes: Optional[str] = None
     is_active: Optional[bool] = None
     notes: Optional[str] = None
+    # Sick/Recovery tracking
+    is_sick: Optional[bool] = None
+    sick_notes: Optional[str] = None
+    recovery_mode: Optional[bool] = None
 
     class Config:
         from_attributes = True
+
+
+class SickStatusUpdate(BaseModel):
+    """Schema for updating sick/recovery status"""
+    is_sick: bool
+    sick_notes: Optional[str] = None
 
 
 class WeightLogCreate(BaseModel):
@@ -629,6 +639,12 @@ def serialize_member(member: TeamMember) -> dict:
         "fitness_sub_tier": member.fitness_sub_tier,
         "is_active": member.is_active,
         "notes": member.notes,
+        # Sick/Recovery tracking
+        "is_sick": member.is_sick or False,
+        "sick_since": member.sick_since.isoformat() if member.sick_since else None,
+        "sick_notes": member.sick_notes,
+        "recovery_mode": member.recovery_mode or False,
+        "recovery_started": member.recovery_started.isoformat() if member.recovery_started else None,
         "created_at": member.created_at.isoformat() if member.created_at else None,
         "updated_at": member.updated_at.isoformat() if member.updated_at else None,
     }
@@ -2265,6 +2281,75 @@ async def update_medical_status(
     await db.commit()
     await db.refresh(member)
 
+    return serialize_member(member)
+
+
+@router.put("/members/{member_id}/sick-status/")
+async def update_sick_status(
+    member_id: int,
+    data: SickStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """Update sick/recovery status for a member"""
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    now = datetime.utcnow()
+
+    if data.is_sick:
+        # Marking as sick
+        if not member.is_sick:
+            member.sick_since = now
+        member.is_sick = True
+        member.sick_notes = data.sick_notes
+        member.recovery_mode = False
+        member.recovery_started = None
+        logger.info(f"Team member {member.name} marked as sick")
+    else:
+        # Marking as recovered - enter recovery mode for gradual return
+        if member.is_sick:
+            member.recovery_mode = True
+            member.recovery_started = now
+            logger.info(f"Team member {member.name} entering recovery mode")
+        member.is_sick = False
+        member.sick_notes = data.sick_notes or member.sick_notes
+
+    member.updated_at = now
+    await db.commit()
+    await db.refresh(member)
+
+    return serialize_member(member)
+
+
+@router.put("/members/{member_id}/end-recovery/")
+async def end_recovery_mode(
+    member_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
+    """End recovery mode - member is fully back to normal"""
+    result = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id)
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    member.recovery_mode = False
+    member.recovery_started = None
+    member.sick_since = None
+    member.sick_notes = None
+    member.updated_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(member)
+
+    logger.info(f"Team member {member.name} recovery mode ended - fully recovered")
     return serialize_member(member)
 
 

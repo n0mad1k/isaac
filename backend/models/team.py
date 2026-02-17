@@ -238,6 +238,13 @@ class TeamMember(Base):
     is_active = Column(Boolean, default=True)
     notes = Column(Text, nullable=True)
 
+    # Sick/Recovery Tracking
+    is_sick = Column(Boolean, default=False)
+    sick_since = Column(DateTime, nullable=True)  # When marked sick
+    sick_notes = Column(Text, nullable=True)  # Symptoms, doctor notes
+    recovery_mode = Column(Boolean, default=False)  # Easing back in after illness
+    recovery_started = Column(DateTime, nullable=True)  # When recovery began
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

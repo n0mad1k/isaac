@@ -657,6 +657,10 @@ export const getMedicalHistory = (memberId) => api.get(`/team/members/${memberId
 export const logMedicalChange = (memberId, data) => api.post(`/team/members/${memberId}/medical/`, data)
 export const updateMedicalStatus = (memberId, data) => api.put(`/team/members/${memberId}/medical-status/`, data)
 
+// Sick/Recovery Status
+export const updateSickStatus = (memberId, data) => api.put(`/team/members/${memberId}/sick-status/`, data)
+export const endRecoveryMode = (memberId) => api.put(`/team/members/${memberId}/end-recovery/`)
+
 // Mentoring Sessions
 export const getMentoringSessions = (memberId, params) =>
   api.get(`/team/members/${memberId}/sessions/`, { params })

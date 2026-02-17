@@ -4,7 +4,7 @@ import {
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle, AlertTriangle,
   Shield, Eye, Stethoscope, ChevronDown, ChevronUp, Plus, Target, Check, X,
   ListTodo, Package, RefreshCw, TrendingUp, TrendingDown, Minus, Info, Dumbbell,
-  Clock, Flame, Mountain, Timer, Baby
+  Clock, Flame, Mountain, Timer, Baby, Thermometer, HeartPulse
 } from 'lucide-react'
 import {
   getWeightHistory, logWeight, getMedicalHistory, updateMedicalStatus,
@@ -15,7 +15,7 @@ import {
   getVitalsHistory, getVitalsAverages, logVital, deleteVital, updateVital, getVitalTypes,
   getReadinessAnalysis, calculateBodyFat,
   getWorkoutTypes, getWorkouts, getWorkoutStats, logWorkout, updateWorkout, deleteWorkout,
-  getFitnessProfile
+  getFitnessProfile, updateSickStatus, endRecoveryMode
 } from '../../services/api'
 import { displayPhone, formatPhoneNumber } from '../../services/formatPhone'
 import MemberMentoringTab from './MemberMentoringTab'
@@ -49,6 +49,11 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [readinessAnalysis, setReadinessAnalysis] = useState(null)
   const [analysisLoading, setAnalysisLoading] = useState(false)
   const [analysisError, setAnalysisError] = useState(null)
+
+  // Sick status modal
+  const [showSickModal, setShowSickModal] = useState(false)
+  const [sickNotes, setSickNotes] = useState('')
+  const [sickUpdating, setSickUpdating] = useState(false)
 
   const fetchReadinessAnalysis = async (force = false) => {
     setAnalysisLoading(true)
@@ -191,6 +196,37 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
     }
   }
 
+  // Handle sick status update
+  const handleSickStatusUpdate = async (markSick) => {
+    setSickUpdating(true)
+    try {
+      await updateSickStatus(member.id, {
+        is_sick: markSick,
+        sick_notes: sickNotes || null
+      })
+      setShowSickModal(false)
+      setSickNotes('')
+      onUpdate()
+    } catch (err) {
+      console.error('Failed to update sick status:', err)
+    } finally {
+      setSickUpdating(false)
+    }
+  }
+
+  // End recovery mode
+  const handleEndRecovery = async () => {
+    setSickUpdating(true)
+    try {
+      await endRecoveryMode(member.id)
+      onUpdate()
+    } catch (err) {
+      console.error('Failed to end recovery mode:', err)
+    } finally {
+      setSickUpdating(false)
+    }
+  }
+
   // Calculate age from birth_date for age-appropriate tab/feature filtering
   const memberAge = (() => {
     if (!member.birth_date) return null
@@ -284,6 +320,33 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 const fitBg = fitTier === 'SF' ? 'bg-yellow-500 text-yellow-900' : fitTier === 'MARINE' ? 'bg-green-500 text-green-900' : fitTier ? 'bg-blue-500 text-blue-900' : null
                 return (
                   <div className="flex items-center gap-2">
+                    {/* Sick/Recovery Status Badge - prominent when active */}
+                    {member.is_sick && (
+                      <button
+                        onClick={() => setShowSickModal(true)}
+                        className="flex flex-col items-center cursor-pointer hover:opacity-80"
+                        title={`Sick since ${member.sick_since ? new Date(member.sick_since).toLocaleDateString() : 'unknown'}${member.sick_notes ? `: ${member.sick_notes}` : ''}`}
+                      >
+                        <span className="px-2 py-0.5 rounded text-sm font-bold text-white bg-red-600 flex items-center gap-1">
+                          <Thermometer className="w-3 h-3" />
+                          SICK
+                        </span>
+                        <span className="text-[9px] text-red-400 mt-0.5">REST</span>
+                      </button>
+                    )}
+                    {member.recovery_mode && !member.is_sick && (
+                      <button
+                        onClick={handleEndRecovery}
+                        className="flex flex-col items-center cursor-pointer hover:opacity-80"
+                        title={`In recovery since ${member.recovery_started ? new Date(member.recovery_started).toLocaleDateString() : 'unknown'}. Click to end recovery mode.`}
+                      >
+                        <span className="px-2 py-0.5 rounded text-sm font-bold text-white bg-amber-600 flex items-center gap-1">
+                          <HeartPulse className="w-3 h-3" />
+                          RECOVERY
+                        </span>
+                        <span className="text-[9px] text-amber-400 mt-0.5">EASE IN</span>
+                      </button>
+                    )}
                     <div className="flex flex-col items-center" title="Overall Readiness">
                       <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${statusBg(overallStatus)}`}>
                         {overallScore != null ? Math.round(overallScore) : '—'}
@@ -309,6 +372,19 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                         </span>
                         <span className="text-[9px] text-gray-500 mt-0.5">FIT</span>
                       </div>
+                    )}
+                    {/* Mark Sick button - only show when not sick and not in recovery */}
+                    {!member.is_sick && !member.recovery_mode && (
+                      <button
+                        onClick={() => setShowSickModal(true)}
+                        className="flex flex-col items-center cursor-pointer hover:opacity-80 opacity-40 hover:opacity-70"
+                        title="Mark as sick"
+                      >
+                        <span className="px-2 py-0.5 rounded text-sm font-bold text-gray-400 border border-gray-600 flex items-center gap-1">
+                          <Thermometer className="w-3 h-3" />
+                        </span>
+                        <span className="text-[9px] text-gray-500 mt-0.5">SICK?</span>
+                      </button>
                     )}
                   </div>
                 )
@@ -3396,6 +3472,76 @@ function FitnessTab({ member, settings, formatDate }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sick Status Modal */}
+      {showSickModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="rounded-xl p-6 max-w-md w-full" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
+              <Thermometer className="w-5 h-5" style={{ color: 'var(--color-error-500)' }} />
+              {member.is_sick ? 'Update Sick Status' : 'Mark as Sick'}
+            </h3>
+            <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>
+              {member.is_sick
+                ? 'Mark as recovered to enter recovery mode. During recovery, workouts and intense activities should be eased back into gradually.'
+                : 'When marked as sick, this team member should focus on rest and recovery. No workouts or early wake requirements will be expected.'}
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
+                Notes (optional)
+              </label>
+              <textarea
+                value={sickNotes}
+                onChange={e => setSickNotes(e.target.value)}
+                placeholder="Symptoms, doctor recommendations, etc."
+                className="w-full px-3 py-2 rounded border text-sm"
+                style={{
+                  backgroundColor: 'var(--color-bg-input)',
+                  borderColor: 'var(--color-border-default)',
+                  color: 'var(--color-text-primary)'
+                }}
+                rows={3}
+              />
+            </div>
+            {member.is_sick && member.sick_since && (
+              <p className="text-xs mb-4" style={{ color: 'var(--color-text-muted)' }}>
+                Sick since: {new Date(member.sick_since).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                {member.sick_notes && ` - ${member.sick_notes}`}
+              </p>
+            )}
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setShowSickModal(false); setSickNotes(''); }}
+                className="px-4 py-2 rounded text-sm"
+                style={{ backgroundColor: 'var(--color-bg-surface-soft)', color: 'var(--color-text-secondary)' }}
+              >
+                Cancel
+              </button>
+              {member.is_sick ? (
+                <button
+                  onClick={() => handleSickStatusUpdate(false)}
+                  disabled={sickUpdating}
+                  className="px-4 py-2 rounded text-sm font-semibold text-white flex items-center gap-2"
+                  style={{ backgroundColor: 'var(--color-success-600)' }}
+                >
+                  <HeartPulse className="w-4 h-4" />
+                  {sickUpdating ? 'Updating...' : 'Mark Recovered'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSickStatusUpdate(true)}
+                  disabled={sickUpdating}
+                  className="px-4 py-2 rounded text-sm font-semibold text-white flex items-center gap-2"
+                  style={{ backgroundColor: 'var(--color-error-600)' }}
+                >
+                  <Thermometer className="w-4 h-4" />
+                  {sickUpdating ? 'Updating...' : 'Mark as Sick'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
