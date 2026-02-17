@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.62] - 2026-02-17
+
+### Fixed
+- **Task Reminder Alerts** - Fixed reminder_alerts not being saved
+  - Added missing reminder_alerts field to TaskCreate and TaskUpdate schemas
+  - Tasks can now properly save reminder alert times when created/updated
+  - Assigned team members will now receive reminder emails at specified times
+
 ## [1.85.61] - 2026-02-17
 
 ### Changed

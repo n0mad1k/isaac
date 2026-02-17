@@ -451,6 +451,7 @@ class TaskCreate(BaseModel):
     skip_if_rain: bool = False
     notify_email: bool = True
     notify_days_before: int = Field(1, ge=0, le=30)
+    reminder_alerts: Optional[List[int]] = None  # Minutes before due time to send alerts [0, 60, 1440]
     notes: Optional[str] = Field(None, max_length=5000)
     is_backlog: bool = False  # True = in backlog, not due today
     assigned_to_worker_id: Optional[int] = Field(None, ge=1)
@@ -477,6 +478,7 @@ class TaskUpdate(BaseModel):
     priority: Optional[int] = Field(None, ge=1, le=3)
     is_completed: Optional[bool] = None
     notify_email: Optional[bool] = None
+    reminder_alerts: Optional[List[int]] = None  # Minutes before due time to send alerts [0, 60, 1440]
     notes: Optional[str] = Field(None, max_length=5000)
     is_backlog: Optional[bool] = None
     assigned_to_worker_id: Optional[int] = Field(None, ge=1)
