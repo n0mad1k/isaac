@@ -45,6 +45,7 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
         budget_amount: item.budget_amount || 0,
         bill_day: item.bill_day || '',
         account_id: item.account_id || '',
+        destination_account_id: item.destination_account_id || '',
         billing_months: item.billing_months || '',
         start_date: item.start_date || '',
         end_date: item.end_date || '',
@@ -83,6 +84,7 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
         data.account_id = parseInt(data.account_id) || undefined
       } else {
         data.account_id = data.account_id ? parseInt(data.account_id) : null
+        data.destination_account_id = data.destination_account_id ? parseInt(data.destination_account_id) : null
         data.owner = data.owner || null
         data.start_date = data.start_date || null
         data.end_date = data.end_date || null
@@ -270,10 +272,10 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
                 </div>
               )}
 
-              {/* Account */}
+              {/* Source Account (where money comes from) */}
               <div>
                 <label className={labelClass} style={labelStyle}>
-                  {isTransfer ? 'Destination Account' : 'Paid From Account'}
+                  {isTransfer ? 'Transfer From (Source)' : 'Paid From Account'}
                 </label>
                 <select value={form.account_id || ''} onChange={e => update('account_id', e.target.value)}
                   className={inputClass} style={inputStyle}>
@@ -281,6 +283,21 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
                   {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
+
+              {/* Destination Account (for transfers only) */}
+              {isTransfer && (
+                <div>
+                  <label className={labelClass} style={labelStyle}>Transfer To (Spending Account)</label>
+                  <select value={form.destination_account_id || ''} onChange={e => update('destination_account_id', e.target.value)}
+                    className={inputClass} style={inputStyle}>
+                    <option value="">Select spending account...</option>
+                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                    Links this distribution to a spending account for balance tracking
+                  </p>
+                </div>
+              )}
 
               {/* Owner */}
               <div>

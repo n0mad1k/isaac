@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.52] - 2026-02-17
+
+### Changed
+- **Spending Account Integration (WIP)** - Linking spending accounts to budget
+  - Transfer categories can now link to a destination spending account
+  - Spending tickers now show actual account balance minus bills for the half
+  - Edit transfer in Monthly Budget to set "Transfer To" spending account
+  - Tickers display: available amount, account balance, and bills this half
+
 ## [1.85.51] - 2026-02-17
 
 ### Added
