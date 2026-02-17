@@ -1692,23 +1692,13 @@ async def get_period_summary(
                 else:
                     this_half_bills = first_half_bills + second_half_bills
 
-                # Get transactions for this period (spending from this category)
-                period_txn_result = await db.execute(
-                    select(func.sum(BudgetTransaction.amount))
-                    .where(
-                        BudgetTransaction.category_id == transfer_cat.id,
-                        BudgetTransaction.transaction_date >= start_date,
-                        BudgetTransaction.transaction_date <= end_date,
-                    )
-                )
-                period_spent = abs(period_txn_result.scalar() or 0.0)
-
-                # Available = Account Balance - Bills This Half - Transactions This Half
-                available = account_balance - this_half_bills - period_spent
+                # Available = Account Balance - Bills This Half
+                # Note: Transactions are already reflected in account_balance
+                # (either through initial_balance or summed transactions)
+                available = account_balance - this_half_bills
 
                 person_spending_balances[owner_key] = {
                     "available": round(available, 2),
-                    "period_spent": round(period_spent, 2),
                     "account_balance": round(account_balance, 2),
                     "this_half_bills": round(this_half_bills, 2),
                     "first_half_bills": round(first_half_bills, 2),
