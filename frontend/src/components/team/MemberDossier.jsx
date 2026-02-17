@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   User, Heart, Brain, MessageSquare, Activity,
   Edit, Trash2, Phone, Mail, Calendar, AlertCircle, AlertTriangle,
@@ -55,11 +56,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
   const [sickNotes, setSickNotes] = useState('')
   const [sickUpdating, setSickUpdating] = useState(false)
   const [sickError, setSickError] = useState(null)
-
-  // Debug: track modal state changes
-  useEffect(() => {
-    console.log('showSickModal state changed to:', showSickModal)
-  }, [showSickModal])
 
   const fetchReadinessAnalysis = async (force = false) => {
     setAnalysisLoading(true)
@@ -338,7 +334,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     {member.is_sick && (
                       <button
                         type="button"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); console.log('SICK badge clicked, opening modal'); setSickError(null); setShowSickModal(true); }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSickError(null); setShowSickModal(true); }}
                         className="flex flex-col items-center cursor-pointer hover:opacity-80"
                         title={`Sick since ${member.sick_since ? new Date(member.sick_since).toLocaleDateString() : 'unknown'}${member.sick_notes ? `: ${member.sick_notes}` : ''}`}
                       >
@@ -352,7 +348,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     {member.recovery_mode && !member.is_sick && (
                       <button
                         type="button"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); console.log('RECOVERY badge clicked'); handleEndRecovery(); }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleEndRecovery(); }}
                         className="flex flex-col items-center cursor-pointer hover:opacity-80"
                         title={`In recovery since ${member.recovery_started ? new Date(member.recovery_started).toLocaleDateString() : 'unknown'}. Click to end recovery mode.`}
                       >
@@ -396,8 +392,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          console.log('Mark Sick button clicked');
-                          alert('Opening sick modal for ' + member.name);
                           setSickError(null);
                           setShowSickModal(true);
                         }}
@@ -3500,10 +3494,10 @@ function FitnessTab({ member, settings, formatDate }) {
         </div>
       )}
 
-      {/* Sick Status Modal */}
-      {showSickModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="rounded-xl p-6 max-w-md w-full" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+      {/* Sick Status Modal - using portal to ensure it renders above everything */}
+      {showSickModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+          <div className="rounded-xl p-6 max-w-md w-full shadow-2xl" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
               <Thermometer className="w-5 h-5" style={{ color: 'var(--color-error-500)' }} />
               {member.is_sick ? 'Update Sick Status' : 'Mark as Sick'}
@@ -3554,7 +3548,7 @@ function FitnessTab({ member, settings, formatDate }) {
               {member.is_sick ? (
                 <button
                   type="button"
-                  onClick={() => { console.log('Mark Recovered clicked'); handleSickStatusUpdate(false); }}
+                  onClick={() => handleSickStatusUpdate(false)}
                   disabled={sickUpdating}
                   className="px-4 py-2 rounded text-sm font-semibold text-white flex items-center gap-2"
                   style={{ backgroundColor: 'var(--color-success-600)' }}
@@ -3565,7 +3559,7 @@ function FitnessTab({ member, settings, formatDate }) {
               ) : (
                 <button
                   type="button"
-                  onClick={() => { console.log('Mark as Sick clicked'); handleSickStatusUpdate(true); }}
+                  onClick={() => handleSickStatusUpdate(true)}
                   disabled={sickUpdating}
                   className="px-4 py-2 rounded text-sm font-semibold text-white flex items-center gap-2"
                   style={{ backgroundColor: 'var(--color-error-600)' }}
@@ -3576,7 +3570,8 @@ function FitnessTab({ member, settings, formatDate }) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
