@@ -454,9 +454,9 @@ function WorkerVisitTasksTab({ worker }) {
           {/* Task List with Order Indicator */}
           <div className="p-4">
             {/* "Complete in Order" Notice */}
-            <div className="flex items-center gap-2 mb-4 p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
-              <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-              <span className="text-sm text-yellow-200">
+            <div className="flex items-center gap-2 mb-4 p-3 bg-amber-100 dark:bg-yellow-900/30 border border-amber-400 dark:border-yellow-700/50 rounded-lg">
+              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-yellow-500 flex-shrink-0" />
+              <span className="text-sm text-amber-800 dark:text-yellow-100 font-medium">
                 {t('completeInOrder', 'Complete tasks in order from top to bottom')}
               </span>
             </div>

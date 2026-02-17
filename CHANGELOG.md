@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.43] - 2026-02-17
+
+### Fixed
+- **Worker Tasks Warning Readability** - Improved contrast for "Complete tasks in order" warning
+  - Light mode: amber background with dark amber text (high contrast)
+  - Dark mode: yellow-tinted background with light yellow text
+  - Added font-weight medium for better visibility
+
 ## [1.85.42] - 2026-02-17
 
 ### Fixed
