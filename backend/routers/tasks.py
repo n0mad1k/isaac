@@ -22,7 +22,6 @@ from models.livestock import Animal, AnimalCareSchedule
 from models.plants import Plant
 from services.calendar_sync import get_calendar_service
 from services.email import EmailService
-from services.settings import get_setting_value
 from loguru import logger
 import re
 
