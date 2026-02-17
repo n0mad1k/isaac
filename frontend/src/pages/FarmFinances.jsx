@@ -83,7 +83,7 @@ import {
   deleteExpenseReceipt,
   getExpenseReceiptUrl,
 } from '../services/api'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { formatPhoneNumber, displayPhone } from '../services/formatPhone'
 
 const SALE_CATEGORIES = [
@@ -2044,7 +2044,7 @@ function BusinessTab({
                       {sale.sale_date && (
                         <span className="flex items-center gap-1 text-gray-400">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(sale.sale_date), 'MM/dd/yyyy')}
+                          {format(parseISO(sale.sale_date), 'MM/dd/yyyy')}
                         </span>
                       )}
                     </div>
@@ -2090,7 +2090,7 @@ function BusinessTab({
                       {record.slaughter_date && (
                         <span className="flex items-center gap-1 text-gray-400">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(record.slaughter_date), 'MM/dd/yyyy')}
+                          {format(parseISO(record.slaughter_date), 'MM/dd/yyyy')}
                         </span>
                       )}
                       {record.final_weight && <span className="text-gray-400">Final: <span className="text-green-400 font-medium">{record.final_weight} lbs</span></span>}
@@ -2164,7 +2164,7 @@ function BusinessTab({
                     <div><span className="text-gray-400">Portion:</span> <span className="capitalize">{order.portion_type}</span></div>
                     {total > 0 && <div><span className="text-gray-400">Total:</span> <span className="text-green-400 font-medium">{formatCurrency(total)}</span></div>}
                     {order.estimated_weight && <div><span className="text-gray-400">Est:</span> {order.estimated_weight} lbs</div>}
-                    {order.order_date && <div><span className="text-gray-400">Date:</span> {format(new Date(order.order_date), 'MM/dd/yyyy')}</div>}
+                    {order.order_date && <div><span className="text-gray-400">Date:</span> {format(parseISO(order.order_date), 'MM/dd/yyyy')}</div>}
                   </div>
 
                   {/* Payment Progress */}
@@ -2193,7 +2193,7 @@ function BusinessTab({
                             <span className={payment.payment_type === 'refund' ? 'text-red-400' : 'text-green-400'}>
                               {payment.payment_type === 'refund' ? '-' : '+'}{formatCurrency(payment.amount)}
                             </span>
-                            <span className="text-gray-500">{format(new Date(payment.payment_date), 'MM/dd/yyyy')}</span>
+                            <span className="text-gray-500">{format(parseISO(payment.payment_date), 'MM/dd/yyyy')}</span>
                             <button onClick={() => handleSendPaymentReceipt(order.id, payment.id)} className="text-gray-500 hover:text-amber-400" title="Send Receipt"><Receipt className="w-3 h-3" /></button>
                             <button onClick={() => handleDeletePayment(order.id, payment.id)} className="text-gray-500 hover:text-red-400" title="Delete Payment"><X className="w-3 h-3" /></button>
                           </div>
@@ -2211,7 +2211,7 @@ function BusinessTab({
                           <div className="flex items-center gap-2">
                             <Calendar className={`w-3 h-3 ${invoice.is_sent ? 'text-green-400' : 'text-amber-400'}`} />
                             <span>{invoice.description || invoice.payment_type}</span>
-                            <span className="text-gray-500">{format(new Date(invoice.scheduled_date), 'MM/dd/yyyy')}</span>
+                            <span className="text-gray-500">{format(parseISO(invoice.scheduled_date), 'MM/dd/yyyy')}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-amber-400">{formatCurrency(invoice.amount_due)}</span>
@@ -2353,7 +2353,7 @@ function HomesteadTab({
                       {record.harvest_date && (
                         <span className="flex items-center gap-1 text-gray-400">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(record.harvest_date), 'MM/dd/yyyy')}
+                          {format(parseISO(record.harvest_date), 'MM/dd/yyyy')}
                         </span>
                       )}
                     </div>
@@ -2474,7 +2474,7 @@ function ExpenseList({ expenses, formatCurrency, onEdit, onDelete }) {
               {expense.expense_date && (
                 <span className="flex items-center gap-1 text-gray-400">
                   <Calendar className="w-3 h-3" />
-                  {format(new Date(expense.expense_date), 'MM/dd/yyyy')}
+                  {format(parseISO(expense.expense_date), 'MM/dd/yyyy')}
                 </span>
               )}
             </div>

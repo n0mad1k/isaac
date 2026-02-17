@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.75] - 2026-02-17
+
+### Fixed
+- **Scheduled Invoice Dates** - Fixed dates showing wrong day due to UTC parsing
+  - Used parseISO instead of new Date() to properly handle date strings
+  - Fixes scheduled invoices, order dates, payments, sales, harvests, and expenses
+
 ## [1.85.74] - 2026-02-17
 
 ### Fixed
