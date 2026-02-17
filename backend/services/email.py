@@ -217,8 +217,8 @@ class EmailService:
             logger.error(f"Failed to connect to SMTP server: {e}")
             raise ConfigurationError(f"Cannot connect to SMTP server {self.host}:{self.port}. Check server settings.")
         except Exception as e:
-            logger.error(f"Failed to send email: {e}")
-            return False
+            logger.error(f"Failed to send email: {type(e).__name__}: {e}")
+            raise ConfigurationError(f"Failed to send email: {type(e).__name__}. Check SMTP settings.")
 
     async def send_daily_digest(
         self,

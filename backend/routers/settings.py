@@ -1642,6 +1642,7 @@ async def reset_all_settings(db: AsyncSession = Depends(get_db), admin: User = D
 @router.post("/test-cold-protection-email/")
 async def test_cold_protection_email(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Send a test cold protection email with plants needing protection"""
+    logger.info(f"Test cold protection email requested by user {admin.username}")
     from models.plants import Plant
     from services.email import EmailService
     from services.weather import NWSForecastService
@@ -1819,6 +1820,7 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
 
     Includes team readiness alerts for gear, training, and medical.
     """
+    logger.info(f"Test daily digest requested by user {admin.username}")
     from services.email import EmailService, ConfigurationError
     from models.database import WeatherAlert, Task, TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment
     from sqlalchemy.orm import joinedload
@@ -1826,7 +1828,8 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
 
     recipients = await get_setting(db, "email_recipients")
     if not recipients:
-        raise HTTPException(status_code=400, detail="No email recipients configured")
+        logger.warning("Test daily digest failed: No email recipients configured")
+        raise HTTPException(status_code=400, detail="No email recipients configured. Go to Settings > Email Notifications to add recipients.")
 
     # Get today's tasks
     today = datetime.now().date()

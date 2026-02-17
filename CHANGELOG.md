@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.29] - 2026-02-17
+
+### Fixed
+- **Test Email Button Error Handling** - Improved error messages for test email buttons
+  - Now shows specific error details instead of generic "Failed to send email"
+  - Added logging to help diagnose email issues
+  - Better error messages for missing email recipients
+
 ## [1.85.28] - 2026-02-17
 
 ### Added
