@@ -410,8 +410,11 @@ class WeatherService:
             logger.warning("No weather data returned from API")
             return None
 
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Weather API HTTP error: {e.response.status_code} - {e.response.text[:200] if e.response.text else 'no body'}")
+            return None
         except httpx.HTTPError as e:
-            logger.error(f"Error fetching weather data: {e}")
+            logger.error(f"Weather API error: {type(e).__name__} - {str(e) or 'timeout or connection error'}")
             return None
 
     def parse_reading(self, data: Dict[str, Any]) -> Dict[str, Any]:

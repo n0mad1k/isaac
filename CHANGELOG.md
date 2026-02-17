@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.64] - 2026-02-17
+
+### Changed
+- **Weather Error Logging** - Improved error messages for weather API failures
+  - Now logs HTTP status codes and response bodies for better debugging
+  - Distinguishes between HTTP errors and connection/timeout errors
+
 ## [1.85.63] - 2026-02-17
 
 ### Fixed
