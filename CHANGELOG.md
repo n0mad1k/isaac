@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.40] - 2026-02-17
+
+### Fixed
+- **Scheduled Invoice Button** - Fixed Schedule Invoice button not working in Orders section
+  - Button was not passing handler functions to BusinessTab component
+  - Added missing handlers: add, edit, delete, and send scheduled invoices
+
 ## [1.85.39] - 2026-02-17
 
 ### Added

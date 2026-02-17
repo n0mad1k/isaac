@@ -1089,6 +1089,10 @@ function FarmFinances() {
             setAllocationFormData({ allocation_type: 'personal', percentage: '', notes: '' })
             setShowAllocationModal(true)
           }}
+          handleAddScheduledInvoice={handleAddScheduledInvoice}
+          handleEditScheduledInvoice={handleEditScheduledInvoice}
+          handleDeleteScheduledInvoice={handleDeleteScheduledInvoice}
+          handleSendScheduledInvoiceNow={handleSendScheduledInvoiceNow}
         />
       )}
 
@@ -1722,6 +1726,7 @@ function BusinessTab({
   formatCurrency, formatAnimalType, getCategoryColor, getStatusBadge, getPaymentProgress,
   handleDeleteSale, handleDeleteLivestock, handleDeleteOrder, handleCompleteOrder, handleSendReceipt, handleSendInvoice,
   handleDeleteCustomer, handleDeleteExpense, handleDeletePayment, handleSendPaymentReceipt,
+  handleAddScheduledInvoice, handleEditScheduledInvoice, handleDeleteScheduledInvoice, handleSendScheduledInvoiceNow,
   onAddSale, onAddOrder, onAddCustomer, onAddExpense,
   onEditCustomer, onEditOrder, onEditExpense,
   onAddPayment, onAllocate,
