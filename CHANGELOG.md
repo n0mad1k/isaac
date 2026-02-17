@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.35] - 2026-02-17
+
+### Fixed
+- **Quick Add Transaction** - Expense transactions now correctly save with negative amounts
+  - Previously expenses were being saved as positive amounts (appearing as income)
+  - Income transactions remain positive
+
 ## [1.85.34] - 2026-02-17
 
 ### Fixed

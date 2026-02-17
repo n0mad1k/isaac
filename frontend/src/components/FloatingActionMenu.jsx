@@ -874,11 +874,15 @@ function QuickTransactionModal({ onClose }) {
       const description = formData.description.trim() || selectedCategory?.name || 'Quick transaction'
 
       // Map UI transaction types to backend types
+      // Amount must be negative for expenses, positive for income
       const typeMap = { expense: 'debit', income: 'credit' }
+      const rawAmount = parseFloat(formData.amount)
+      const amount = formData.transaction_type === 'expense' ? -Math.abs(rawAmount) : Math.abs(rawAmount)
+
       await createBudgetTransaction({
         account_id: defaultAccountId,
         category_id: parseInt(formData.category_id),
-        amount: parseFloat(formData.amount),
+        amount: amount,
         description: description,
         transaction_date: formData.transaction_date,
         transaction_type: typeMap[formData.transaction_type] || 'debit'
