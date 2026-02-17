@@ -267,6 +267,7 @@ async def gather_budget_context(db: AsyncSession) -> str:
         if categories:
             lines.append(f"BUDGET VS ACTUAL (pay period {period_label}, {today.strftime('%B %Y')}):")
             over_budget = []
+            transfer_categories = []
 
             for cat in categories:
                 # Skip categories outside their active date range
@@ -277,6 +278,10 @@ async def gather_budget_context(db: AsyncSession) -> str:
                 # Skip Roll Over category
                 if cat.name == "Roll Over":
                     continue
+
+                # TRANSFER categories are savings/account allocations, not spending
+                # Track them separately - they shouldn't be marked as "over budget"
+                is_transfer = cat.category_type == CategoryType.TRANSFER
 
                 # Determine budgeted amount for this period
                 if cat.category_type == CategoryType.FIXED:
@@ -300,6 +305,11 @@ async def gather_budget_context(db: AsyncSession) -> str:
                 remaining = budgeted - spent
                 pct = (spent / budgeted * 100) if budgeted > 0 else 0
 
+                # Transfer categories: track deposited amount, don't mark as "over budget"
+                if is_transfer:
+                    transfer_categories.append((cat.name, spent, budgeted))
+                    continue
+
                 status = ""
                 if remaining < 0:
                     status = f"OVER by ${abs(remaining):,.2f}"
@@ -313,9 +323,15 @@ async def gather_budget_context(db: AsyncSession) -> str:
                     lines.append(f"  - {cat.name}: ${spent:,.2f} / ${budgeted:,.2f} {status}")
 
             if over_budget:
-                lines.append(f"\n⚠️ OVER BUDGET ({len(over_budget)} categories):")
+                lines.append(f"\n⚠️ OVER BUDGET ({len(over_budget)} spending categories):")
                 for name, spent, budget, diff in sorted(over_budget, key=lambda x: -x[3]):
                     lines.append(f"  - {name}: ${diff:,.2f} over (${spent:,.2f} spent vs ${budget:,.2f} budget)")
+
+            # Show transfer categories separately (these are savings allocations, not spending)
+            if transfer_categories:
+                lines.append(f"\nSAVINGS ALLOCATIONS (transfer to accounts, not spending):")
+                for name, deposited, allocated in transfer_categories:
+                    lines.append(f"  - {name}: ${deposited:,.2f} deposited of ${allocated:,.2f} allocated")
 
         # Recent transactions (last 7 days)
         week_start = today - timedelta(days=7)

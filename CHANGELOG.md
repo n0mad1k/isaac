@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.49] - 2026-02-17
+
+### Fixed
+- **AI Insights Improvements** - Fixed several AI insight issues
+  - Transfer categories (savings allocations) no longer reported as "over budget"
+  - Transfer categories now shown separately as "Savings Allocations" in budget context
+  - Morning brief now has weather guidance: no outdoor water tasks below 60°F
+  - Morning brief reminds AI that rain provides water and sprinklers auto-water plants
+  - Budget insights only consider spending categories, not account transfers
+
 ## [1.85.48] - 2026-02-17
 
 ### Added

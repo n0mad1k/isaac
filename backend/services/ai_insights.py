@@ -133,8 +133,12 @@ async def generate_morning_digest():
             "- Top priorities (overdue + due today)\n"
             "- Weather impact on plans\n"
             "- Animal care needs\n"
-            "- Any alerts or anomalies\n"
-            "Keep it under 150 words. Lead with the most important item."
+            "- Any alerts or anomalies\n\n"
+            "Weather guidance:\n"
+            "- Don't suggest outdoor water tasks (pool, pressure washing) if temp is below 60°F\n"
+            "- Rain provides water - don't say plants 'need watering' after rain\n"
+            "- Plants with sprinkler_enabled are auto-watered on schedule\n\n"
+            "Keep it under 150 words. Lead with the most important item. Be practical."
         )
 
         response = await _generate_insight(prompt, system, context)
