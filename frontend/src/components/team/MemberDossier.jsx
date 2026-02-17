@@ -281,12 +281,6 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
 
   return (
     <div className="space-y-4">
-      {/* DEBUG: Show modal state */}
-      {showSickModal && (
-        <div className="bg-red-600 text-white p-4 rounded mb-4">
-          MODAL STATE IS TRUE - Modal should be visible!
-        </div>
-      )}
       {/* Member Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
@@ -919,6 +913,85 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
           </>
         )}
       </div>
+
+      {/* Sick Status Modal */}
+      {showSickModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Thermometer className="w-5 h-5 text-red-500" />
+                {member.is_sick ? 'Update Sick Status' : 'Mark as Sick'}
+              </h3>
+              <button
+                onClick={() => { setShowSickModal(false); setSickNotes(''); setSickError(null); }}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-gray-400">
+                {member.is_sick
+                  ? 'Mark as recovered to enter recovery mode. During recovery, workouts and intense activities should be eased back into gradually.'
+                  : 'When marked as sick, this team member should focus on rest and recovery. No workouts or early wake requirements will be expected.'}
+              </p>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Notes (optional)</label>
+                <textarea
+                  value={sickNotes}
+                  onChange={e => setSickNotes(e.target.value)}
+                  placeholder="Symptoms, doctor recommendations, etc."
+                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                  rows={3}
+                />
+              </div>
+              {member.is_sick && member.sick_since && (
+                <p className="text-xs text-gray-500">
+                  Sick since: {new Date(member.sick_since).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                  {member.sick_notes && ` - ${member.sick_notes}`}
+                </p>
+              )}
+              {sickError && (
+                <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {sickError}
+                </div>
+              )}
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowSickModal(false); setSickNotes(''); setSickError(null); }}
+                  className="px-4 py-2 text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                {member.is_sick ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSickStatusUpdate(false)}
+                    disabled={sickUpdating}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <HeartPulse className="w-4 h-4" />
+                    {sickUpdating ? 'Updating...' : 'Mark Recovered'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleSickStatusUpdate(true)}
+                    disabled={sickUpdating}
+                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Thermometer className="w-4 h-4" />
+                    {sickUpdating ? 'Updating...' : 'Mark as Sick'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -3495,85 +3568,6 @@ function FitnessTab({ member, settings, formatDate }) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Sick Status Modal */}
-      {showSickModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Thermometer className="w-5 h-5 text-red-500" />
-                {member.is_sick ? 'Update Sick Status' : 'Mark as Sick'}
-              </h3>
-              <button
-                onClick={() => { setShowSickModal(false); setSickNotes(''); setSickError(null); }}
-                className="text-gray-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              <p className="text-sm text-gray-400">
-                {member.is_sick
-                  ? 'Mark as recovered to enter recovery mode. During recovery, workouts and intense activities should be eased back into gradually.'
-                  : 'When marked as sick, this team member should focus on rest and recovery. No workouts or early wake requirements will be expected.'}
-              </p>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes (optional)</label>
-                <textarea
-                  value={sickNotes}
-                  onChange={e => setSickNotes(e.target.value)}
-                  placeholder="Symptoms, doctor recommendations, etc."
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
-                  rows={3}
-                />
-              </div>
-              {member.is_sick && member.sick_since && (
-                <p className="text-xs text-gray-500">
-                  Sick since: {new Date(member.sick_since).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
-                  {member.sick_notes && ` - ${member.sick_notes}`}
-                </p>
-              )}
-              {sickError && (
-                <div className="p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  {sickError}
-                </div>
-              )}
-              <div className="flex gap-2 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => { setShowSickModal(false); setSickNotes(''); setSickError(null); }}
-                  className="px-4 py-2 text-gray-400 hover:text-white"
-                >
-                  Cancel
-                </button>
-                {member.is_sick ? (
-                  <button
-                    type="button"
-                    onClick={() => handleSickStatusUpdate(false)}
-                    disabled={sickUpdating}
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
-                  >
-                    <HeartPulse className="w-4 h-4" />
-                    {sickUpdating ? 'Updating...' : 'Mark Recovered'}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleSickStatusUpdate(true)}
-                    disabled={sickUpdating}
-                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
-                  >
-                    <Thermometer className="w-4 h-4" />
-                    {sickUpdating ? 'Updating...' : 'Mark as Sick'}
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       )}

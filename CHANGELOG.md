@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.71] - 2026-02-17
+
+### Fixed
+- **Sick Status Modal** - Fixed modal not appearing when clicking SICK button
+  - Modal was incorrectly placed outside the MemberDossier component scope
+  - Moved modal inside the correct component so it has access to state variables
+
 ## [1.85.70] - 2026-02-17
 
 ### Fixed
