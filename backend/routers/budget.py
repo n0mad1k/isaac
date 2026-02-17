@@ -150,6 +150,7 @@ class CategoryCreate(BaseModel):
     billing_months: Optional[str] = Field(None, max_length=50)
     account_id: Optional[int] = Field(None, ge=1)
     destination_account_id: Optional[int] = Field(None, ge=1)  # For transfers: destination spending account
+    destination_bucket_id: Optional[int] = Field(None, ge=1)  # For transfers: which bucket within the destination account
     start_date: Optional[str] = Field(None, max_length=10)
     end_date: Optional[str] = Field(None, max_length=10)
     sort_order: int = 0
@@ -175,6 +176,7 @@ class CategoryUpdate(BaseModel):
     billing_months: Optional[str] = Field(None, max_length=50)
     account_id: Optional[int] = None
     destination_account_id: Optional[int] = None  # For transfers: destination spending account
+    destination_bucket_id: Optional[int] = None  # For transfers: which bucket within the destination account
     start_date: Optional[str] = Field(None, max_length=10)
     end_date: Optional[str] = Field(None, max_length=10)
     starting_balance: Optional[float] = None
@@ -202,6 +204,7 @@ class CategoryResponse(BaseModel):
     billing_months: Optional[str]
     account_id: Optional[int]
     destination_account_id: Optional[int]  # For transfers: destination spending account
+    destination_bucket_id: Optional[int]  # For transfers: which bucket within the destination account
     start_date: Optional[str]
     end_date: Optional[str]
     sort_order: int

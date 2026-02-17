@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.67] - 2026-02-17
+
+### Added
+- **Auto-Allocation to Buckets** - TRANSFER categories can now specify a destination bucket
+  - Budget deposits automatically allocate to the specified bucket within the destination account
+  - Enables tracking money into specific pots (e.g., House vs Travel within House/Travel Fund)
+
 ## [1.85.66] - 2026-02-17
 
 ### Fixed

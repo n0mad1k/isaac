@@ -114,6 +114,7 @@ class BudgetCategory(Base):
     billing_months = Column(String(50), nullable=True)  # Comma-separated months (1-12) when bill is due, null=every month
     account_id = Column(Integer, ForeignKey('budget_accounts.id'), nullable=True)  # Which account this bill is paid from
     destination_account_id = Column(Integer, ForeignKey('budget_accounts.id'), nullable=True)  # For TRANSFER categories: which spending account receives the money
+    destination_bucket_id = Column(Integer, ForeignKey('account_buckets.id'), nullable=True)  # For TRANSFER categories: which bucket within the destination account receives the money
     start_date = Column(String(10), nullable=True)  # YYYY-MM format, when bill begins
     end_date = Column(String(10), nullable=True)  # YYYY-MM format, when payment plan ends
     starting_balance = Column(Float, nullable=True, default=None)  # Initial rollover balance for TRANSFER categories (seeded from external tracking)
@@ -125,6 +126,7 @@ class BudgetCategory(Base):
     rules = relationship("BudgetCategoryRule", back_populates="category")
     account = relationship("BudgetAccount", back_populates="categories", foreign_keys=[account_id])
     destination_account = relationship("BudgetAccount", foreign_keys=[destination_account_id])
+    destination_bucket = relationship("AccountBucket", foreign_keys=[destination_bucket_id])
 
     def __repr__(self):
         return f"<BudgetCategory {self.name}>"

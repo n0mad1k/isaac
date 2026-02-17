@@ -24,7 +24,7 @@ from models.livestock import Animal, AnimalType
 from models.weather import WeatherAlert
 from models.settings import AppSetting
 from models.team import TeamMember, MemberGear, MemberGearContents, MemberTraining, MemberMedicalAppointment
-from models.budget import BudgetCategory, BudgetAccount, BudgetTransaction, CategoryType, TransactionType, TransactionSource
+from models.budget import BudgetCategory, BudgetAccount, BudgetTransaction, AccountBucket, CategoryType, TransactionType, TransactionSource
 from services.weather import WeatherService, NWSForecastService
 from services.email import EmailService
 
@@ -583,6 +583,16 @@ class SchedulerService:
                     db.add(txn)
                     deposits_created += 1
                     logger.info(f"Created deposit: ${cat.budget_amount} to {cat.name} destination account")
+
+                    # If a destination bucket is specified, allocate the deposit to that bucket
+                    if cat.destination_bucket_id:
+                        bucket_result = await db.execute(
+                            select(AccountBucket).where(AccountBucket.id == cat.destination_bucket_id)
+                        )
+                        bucket = bucket_result.scalar_one_or_none()
+                        if bucket:
+                            bucket.balance = (bucket.balance or 0.0) + cat.budget_amount
+                            logger.info(f"Allocated ${cat.budget_amount} to bucket '{bucket.name}'")
 
                 if deposits_created > 0:
                     await db.commit()
