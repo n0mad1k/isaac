@@ -1083,9 +1083,13 @@ function DevTracker() {
                             } catch { return null }
                           })()}
                           {renderItemImages(item)}
-                          {/* Timestamps */}
+                          {/* Timestamps - show most recent action */}
                           <div className="text-[10px] text-gray-500 mt-1">
-                            Created: {item.created_at ? new Date(item.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                            {item.fail_count > 0 ? 'Kicked back: ' : 'Created: '}
+                            {(item.updated_at || item.created_at) ?
+                              new Date(item.fail_count > 0 ? (item.updated_at || item.created_at) : item.created_at)
+                                .toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                              : 'N/A'}
                           </div>
                         </div>
                         <button
@@ -1262,12 +1266,13 @@ function DevTracker() {
                             </p>
                           )}
                           {renderItemImages(item)}
-                          {/* Timestamps */}
+                          {/* Timestamps - show testing timestamp primarily */}
                           <div className="text-[10px] text-gray-500 mt-1">
-                            Created: {item.created_at ? new Date(item.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                            {item.testing_at && (
-                              <span className="ml-2">• Testing: {new Date(item.testing_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                            )}
+                            Moved to testing: {item.testing_at ?
+                              new Date(item.testing_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                              : (item.updated_at ?
+                                  new Date(item.updated_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                                  : 'N/A')}
                           </div>
                         </div>
                         <button

@@ -61,6 +61,7 @@ print(f'\n=== VERIFIED ({len(verified)}) ===')"
         fi
         curl -sk "$DEV_URL/$ID" | python3 -c "
 import json,sys
+from datetime import datetime
 try:
     item = json.load(sys.stdin)
     if 'detail' in item:
@@ -70,6 +71,16 @@ try:
     print(f\"ID: {item['id']}{collab}\")
     print(f\"Priority: {item['priority'].upper()}\")
     print(f\"Status: {item['status'].upper()}\")
+    # Timestamps
+    if item.get('created_at'):
+        created = datetime.fromisoformat(item['created_at'].replace('Z', '+00:00'))
+        print(f\"Created: {created.strftime('%m/%d/%Y %I:%M %p')}\")
+    if item.get('updated_at') and item['updated_at'] != item.get('created_at'):
+        updated = datetime.fromisoformat(item['updated_at'].replace('Z', '+00:00'))
+        print(f\"Updated: {updated.strftime('%m/%d/%Y %I:%M %p')}\")
+    if item.get('testing_at'):
+        testing = datetime.fromisoformat(item['testing_at'].replace('Z', '+00:00'))
+        print(f\"Testing: {testing.strftime('%m/%d/%Y %I:%M %p')}\")
     print(f\"Fail Count: {item.get('fail_count', 0)}\")
     if item.get('fail_note'):
         print(f\"Fail Note: {item['fail_note']}\")

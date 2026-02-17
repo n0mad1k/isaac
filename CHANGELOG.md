@@ -2,6 +2,15 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.47] - 2026-02-17
+
+### Fixed
+- **Dev Tracker Timestamps** - Improved timestamp display and context
+  - Pending items show "Kicked back:" timestamp if failed, else "Created:"
+  - Testing items show "Moved to testing:" timestamp
+  - CLI show command now displays Created, Updated, and Testing timestamps
+  - Timestamps update when items move between stages
+
 ## [1.85.46] - 2026-02-17
 
 ### Added
