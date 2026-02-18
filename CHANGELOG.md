@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.80] - 2026-02-18
+
+### Fixed
+- **Task Alerts Re-fire on Time Change** - Alerts now properly re-fire when due date/time changes
+  - When task due_date, due_time, or reminder_alerts change, alerts_sent is cleared
+  - Prevents old alert records from blocking new alerts at updated times
+
 ## [1.85.79] - 2026-02-18
 
 ### Fixed

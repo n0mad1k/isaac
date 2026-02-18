@@ -1003,10 +1003,20 @@ async def update_task(
     # Track current assignments before update for notification purposes
     previous_user_id = task.assigned_to_user_id
 
+    # Track current due_date/due_time to detect changes
+    previous_due_date = task.due_date
+    previous_due_time = task.due_time
+
     # Get update data, excluding assigned_member_ids which needs special handling
     update_data = updates.model_dump(exclude_unset=True, exclude={'assigned_member_ids'})
     for field, value in update_data.items():
         setattr(task, field, value)
+
+    # If due_date, due_time, or reminder_alerts changed, clear alerts_sent so alerts fire for new time
+    if (task.due_date != previous_due_date or task.due_time != previous_due_time or
+        'reminder_alerts' in update_data):
+        task.alerts_sent = None
+        logger.debug(f"Task {task.id}: due date/time/alerts changed, clearing alerts_sent")
 
     # Handle multiple member assignment if provided
     new_member_emails = []  # Track newly assigned members for notifications
