@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { startOfDay, parseISO, isAfter, isSameDay } from 'date-fns'
 import { getMemberTasks, getMemberBacklog, updateTask, deleteTask, completeTask, createTask, getTeamMembers, getAnimals, getPlants, getVehicles, getEquipment, getFarmAreas } from '../../services/api'
+import { useSettings } from '../../contexts/SettingsContext'
 
 // Alert options matching ToDo.jsx
 const ALERT_OPTIONS = [
@@ -22,6 +23,7 @@ const ALERT_OPTIONS = [
 ]
 
 function MemberTasksTab({ member, onUpdate }) {
+  const { formatTime } = useSettings()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [tasks, setTasks] = useState([])
@@ -380,7 +382,7 @@ function MemberTasksTab({ member, onUpdate }) {
                 <Calendar className="w-3 h-3" />
                 {formatDate(task.due_date)}
               </span>
-              {task.due_time && <span>{task.due_time}</span>}
+              {task.due_time && <span>{formatTime(task.due_time)}</span>}
               {task.category && (
                 <span className="px-1.5 py-0.5 bg-gray-600 rounded">
                   {task.category.replace('_', ' ')}

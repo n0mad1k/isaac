@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.79] - 2026-02-18
+
+### Fixed
+- **Team Tasks Time Format** - Times now display in 12hr/24hr based on settings
+  - Was showing raw 24hr time regardless of user preference
+
 ## [1.85.78] - 2026-02-18
 
 ### Fixed
