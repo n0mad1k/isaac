@@ -690,7 +690,13 @@ def build_system_prompt(topic: Optional[str] = None, can_create_tasks: bool = Fa
             "the exact dollar amounts shown in the data. A category is OVER budget only if it "
             "explicitly says 'OVER by $X' in the data. If it shows '$X remaining', it is UNDER "
             "budget. Never calculate or infer different amounts — the data already shows the "
-            "correct spent/budget/remaining values. Reference specific line items and accounts."
+            "correct spent/budget/remaining values.\n\n"
+            "IMPORTANT DISTINCTIONS:\n"
+            "- 'BUDGET VS ACTUAL' = SPENDING categories (expenses like Groceries, Main Spending)\n"
+            "- 'SAVINGS ALLOCATIONS' = TRANSFER categories (automatic deposits to savings accounts)\n"
+            "- These are COMPLETELY SEPARATE systems - spending does NOT affect savings allocations\n"
+            "- Savings allocations are fixed automatic transfers, not pools that get depleted by spending\n"
+            "- Never suggest spending choices would help or hurt savings allocations"
         ),
         "production": (
             "\n\nPRODUCTION INSTRUCTIONS:\n"

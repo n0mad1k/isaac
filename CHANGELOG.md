@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.77] - 2026-02-17
+
+### Fixed
+- **AI Budget Insights** - Fixed AI incorrectly conflating spending with savings allocations
+  - AI now understands SPENDING categories (expenses) vs TRANSFER categories (savings)
+  - No longer suggests that reducing spending would affect savings allocations
+  - Budget review insight gives clearer, more accurate analysis
+
 ## [1.85.76] - 2026-02-17
 
 ### Fixed
