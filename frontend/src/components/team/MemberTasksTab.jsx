@@ -227,7 +227,7 @@ function MemberTasksTab({ member, onUpdate }) {
       visible_to_farmhands: editingTask.visible_to_farmhands || false,
       visibility: selectedVisibility,
       assigned_member_ids: selectedMemberIds.length > 0 ? selectedMemberIds : [],
-      alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
+      reminder_alerts: selectedAlerts.length > 0 ? selectedAlerts : null,
       recurrence: selectedRecurrence,
       recurrence_interval: selectedRecurrence === 'custom' ? parseInt(customInterval) || null : null,
       recurrence_days_of_week: selectedRecurrence === 'custom_weekly' && selectedDaysOfWeek.length > 0 ? selectedDaysOfWeek : null,

@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.78] - 2026-02-18
+
+### Fixed
+- **Team Member Task Alerts** - Fixed reminder_alerts not saving when editing tasks from Team page
+  - Field was incorrectly named `alerts` instead of `reminder_alerts`
+  - Task alerts now save correctly from Member Tasks tab
+
 ## [1.85.77] - 2026-02-17
 
 ### Fixed
