@@ -285,6 +285,10 @@ function ToDo() {
       assigned_member_ids: selectedMemberIds.length > 0 ? selectedMemberIds : null,
     }
 
+    // Debug: log what's being saved
+    console.log('Saving task with data:', JSON.stringify(todoData, null, 2))
+    console.log('selectedAlerts state:', selectedAlerts)
+
     try {
       if (editingTodo) {
         await updateTask(editingTodo.id, todoData)
