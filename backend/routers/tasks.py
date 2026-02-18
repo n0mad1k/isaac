@@ -24,9 +24,29 @@ from services.calendar_sync import get_calendar_service
 from services.email import EmailService
 from loguru import logger
 import re
+import asyncio
 
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
+
+
+async def _send_email_background(coro):
+    """
+    Fire-and-forget wrapper for email sending.
+    Catches exceptions and logs them without blocking the caller.
+    """
+    try:
+        await coro
+    except Exception as e:
+        logger.error(f"Background email send failed: {e}")
+
+
+def send_email_in_background(coro):
+    """
+    Schedule an email coroutine to run in the background without blocking.
+    The API response returns immediately while email is sent asynchronously.
+    """
+    asyncio.create_task(_send_email_background(coro))
 
 
 async def enrich_tasks_with_linked_fields(tasks: list, db: AsyncSession) -> list:
@@ -657,11 +677,11 @@ async def create_task(
             email_service = await EmailService.get_configured_service(db)
             due_date_str = db_task.due_date.strftime("%m/%d/%Y") if db_task.due_date else None
 
-            # Notify assigned team members
+            # Notify assigned team members (fire-and-forget, don't block API response)
             if db_task.assigned_members:
                 for member in db_task.assigned_members:
                     if member.email:
-                        await email_service.send_task_assignment_notification(
+                        send_email_in_background(email_service.send_task_assignment_notification(
                             task_title=db_task.title,
                             task_description=db_task.description,
                             due_date=due_date_str,
@@ -669,14 +689,14 @@ async def create_task(
                             assignee_name=member.nickname or member.name,
                             assignee_email=member.email,
                             assigner_name=user.username if user else None,
-                        )
+                        ))
 
             # Notify assigned user (not a team member or worker - a regular system user)
             if db_task.assigned_to_user_id:
                 result = await db.execute(select(User).where(User.id == db_task.assigned_to_user_id))
                 assigned_user = result.scalar_one_or_none()
                 if assigned_user and assigned_user.email:
-                    await email_service.send_task_assignment_notification(
+                    send_email_in_background(email_service.send_task_assignment_notification(
                         task_title=db_task.title,
                         task_description=db_task.description,
                         due_date=due_date_str,
@@ -684,7 +704,7 @@ async def create_task(
                         assignee_name=assigned_user.username,
                         assignee_email=assigned_user.email,
                         assigner_name=user.username if user else None,
-                    )
+                    ))
         except Exception as e:
             logger.error(f"Failed to send task assignment notifications: {e}")
 
@@ -1038,14 +1058,15 @@ async def update_task(
         await calendar_service.sync_task_to_calendar(task, db)
 
     # Send assignment notifications to newly assigned members/users (only if notify_email is enabled)
+    # Emails are sent in background to avoid blocking the API response (SMTP can timeout)
     if (new_member_emails or new_user_email) and task.notify_email:
         try:
             email_service = await EmailService.get_configured_service(db)
             due_date_str = task.due_date.strftime("%m/%d/%Y") if task.due_date else None
 
-            # Notify newly assigned team members
+            # Notify newly assigned team members (fire-and-forget)
             for member_info in new_member_emails:
-                await email_service.send_task_assignment_notification(
+                send_email_in_background(email_service.send_task_assignment_notification(
                     task_title=task.title,
                     task_description=task.description,
                     due_date=due_date_str,
@@ -1053,11 +1074,11 @@ async def update_task(
                     assignee_name=member_info['name'],
                     assignee_email=member_info['email'],
                     assigner_name=user.username if user else None,
-                )
+                ))
 
-            # Notify newly assigned user
+            # Notify newly assigned user (fire-and-forget)
             if new_user_email:
-                await email_service.send_task_assignment_notification(
+                send_email_in_background(email_service.send_task_assignment_notification(
                     task_title=task.title,
                     task_description=task.description,
                     due_date=due_date_str,
@@ -1065,7 +1086,7 @@ async def update_task(
                     assignee_name=new_user_email['name'],
                     assignee_email=new_user_email['email'],
                     assigner_name=user.username if user else None,
-                )
+                ))
         except Exception as e:
             logger.error(f"Failed to send task assignment notifications: {e}")
 

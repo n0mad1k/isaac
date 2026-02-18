@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.76] - 2026-02-17
+
+### Fixed
+- **Kiosk Timeout Fix** - Task assignment emails now sent asynchronously
+  - API responses no longer block waiting for SMTP server
+  - Prevents 499 Client Closed Request errors on slow network conditions
+  - Emails are sent in background without affecting UI responsiveness
+
 ## [1.85.75] - 2026-02-17
 
 ### Fixed
