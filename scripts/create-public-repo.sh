@@ -95,6 +95,8 @@ rsync -av --progress \
     --exclude='scripts/prod-api.sh' \
     --exclude='scripts/dev-tracker.sh' \
     --exclude='scripts/dev_tracker.db' \
+    --exclude='scripts/install.sh' \
+    --exclude='scripts/personalize.sh' \
     --exclude='backend/dev_tracker.db' \
     --exclude='backend/routers/dev_tracker.py' \
     --exclude='CLAUDE.md' \
