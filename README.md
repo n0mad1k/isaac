@@ -2,125 +2,79 @@
 
 *"Isaac planted crops in that land and the same year reaped a hundredfold, because the LORD blessed him." - Genesis 26:12*
 
-A self-hosted farm management dashboard designed to run on a Raspberry Pi. Track your plants, animals, equipment, tasks, weather alerts, and more from a beautiful touch-friendly interface.
+A self-hosted farm and homestead management system designed to run on a Raspberry Pi or cloud server. Track your plants, animals, equipment, workers, finances, and more from a beautiful touch-friendly interface.
 
 ![License](https://img.shields.io/badge/license-Commons%20Clause-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-green)
 ![React](https://img.shields.io/badge/react-18.3-blue)
 
-## Features at a Glance
+## Features
+
+### Core Modules
+
+| Module | Description |
+|--------|-------------|
+| **Dashboard** | Real-time weather, tasks, alerts, and farm stats at a glance |
+| **Tasks & Calendar** | Day/week/month views, recurring tasks, CalDAV sync with phone |
+| **Plants** | Care schedules, watering, fertilizing, harvests, frost protection |
+| **Animals** | Health records, feeding, worming, vaccinations, expense tracking |
+| **Garden** | Bed layouts, crop rotation planning, sprinkler zones |
+| **Seeds** | Seed inventory, germination tracking, planting schedules |
+| **Farm Areas** | Location management (pastures, barns, coops) with maintenance |
+
+### Operations
+
+| Module | Description |
+|--------|-------------|
+| **Vehicles** | Maintenance by miles/hours/date, service history, cost tracking |
+| **Equipment** | Tool and implement maintenance, hour tracking |
+| **Home Maintenance** | Recurring home tasks, seasonal checklists, cost tracking |
+| **Production** | Harvest records, livestock processing, yield tracking |
+
+### Business & Finance
+
+| Module | Description |
+|--------|-------------|
+| **Farm Finances** | Customer management, orders, invoices, sales, expenses |
+| **Budget** | Personal income/expense tracking, monthly budgets, bill management |
+| **Workers** | External worker management, task assignment, multi-language support |
+
+### Team & Health
+
+| Module | Description |
+|--------|-------------|
+| **Team** | Household member profiles, chores, gear tracking |
+| **Health Metrics** | Weight, blood pressure, body measurements with trend graphs |
+| **Child Growth** | Percentile tracking, milestone monitoring, development alerts |
+| **Fitness** | Workout logging, training load analysis, readiness scores |
+
+### Integrations
 
 | Feature | Description |
 |---------|-------------|
-| **Dashboard** | Real-time weather, tasks, alerts, and farm stats at a glance |
-| **Plants** | Track care schedules, watering, fertilizing, harvests, frost protection |
-| **Animals** | Health records, feeding, worming, vaccinations, expense tracking |
-| **Vehicles** | Maintenance by miles/hours/date, service history, cost tracking |
-| **Equipment** | Tool and implement maintenance, hour tracking |
-| **Calendar** | Day/Week/Month views, events & reminders, CalDAV sync |
-| **Weather** | Ambient Weather integration, automatic frost/freeze/heat alerts |
-| **Production** | Harvest records, livestock processing, yield tracking |
-| **Team** | Household member profiles, chores, health metrics, growth tracking |
-| **Budget** | Income/expense tracking, monthly budgets, bill management |
-| **Garden** | Bed layouts, crop rotation planning, companion planting |
-| **Seeds** | Seed inventory, germination tracking, planting schedules |
-| **Home Maintenance** | Recurring home tasks, seasonal checklists, cost tracking |
+| **Weather** | Ambient Weather station integration, automatic frost/freeze/heat alerts |
+| **CalDAV** | Bi-directional sync with iPhone/Android calendars |
+| **Email** | Daily digest, task reminders, weather alerts, invoice delivery |
 | **AI Assistant** | Built-in chat with Claude, ChatGPT, or Ollama for farm questions |
-| **Multi-User** | Role-based access (Admin/Editor/Viewer), kiosk mode |
-
-## Quick Feature Overview
-
-### Dashboard
-Your command center showing weather, today's tasks, overdue items, alerts, and quick stats. The cold protection widget automatically warns you when frost-sensitive plants need covering.
-
-### Plant Management
-Complete plant database with care logging, automated reminders, and harvest tracking. Import plants from PFAF or Permapeople databases.
-
-### Animal Management
-Track pets and livestock with health records, care schedules (worming, vaccines, hoof care), feeding, and expenses. Automatic reminders for upcoming care.
-
-### Calendar
-Three views (day, week, month) showing both events and reminders. Visual distinction between event types. Syncs with your phone via CalDAV.
-
-### Maintenance Tracking
-Vehicles, equipment, home, and farm areas - all with customizable maintenance schedules, completion logging, and cost tracking.
-
-### Team Management
-Track your household members with profiles, assigned chores, and personal gear. For children, monitor growth with percentile charts, track developmental milestones by age group, and log health observations.
-
-### Budget & Finance
-Full budgeting system with income and expense tracking, monthly budget templates, bill due dates, and spending analysis. Track farm expenses separately from household costs.
-
-### Weather Integration
-Connect your Ambient Weather station for real-time local conditions. Automatic alerts for frost, freeze, heat, wind, and rain with configurable thresholds.
-
-### AI Assistant
-Built-in chat assistant for farm and homestead questions. Supports multiple providers: Anthropic Claude, OpenAI ChatGPT, or self-hosted Ollama. Ask about plant care, animal health, gardening tips, and more.
-
-## Hardware Requirements
-
-### Option 1: Raspberry Pi (Recommended for Home Use)
-
-| Component | Recommendation | Notes |
-|-----------|---------------|-------|
-| **Raspberry Pi** | Raspberry Pi 5 (4GB or 8GB) | 4GB is sufficient, 8GB if running other services |
-| **microSD Card** | 32GB+ Class A2 | Samsung EVO or SanDisk Extreme recommended |
-| **Power Supply** | Official Pi 5 27W USB-C | Don't cheap out - poor power causes issues |
-| **Case** | Any with passive/active cooling | The Pi 5 runs warm |
-| **Display** (optional) | 7" touchscreen or HDMI monitor | For kiosk mode |
-
-**Estimated Cost:** $80-150 USD
-
-### Option 2: Cloud VPS (Linode/DigitalOcean)
-
-For remote access or if you don't want hardware at home:
-
-| Provider | Plan | Monthly Cost |
-|----------|------|--------------|
-| Linode | Nanode 1GB | $5/month |
-| DigitalOcean | Basic 1GB | $6/month |
-| Vultr | Cloud Compute | $5/month |
+| **Kiosk Mode** | Full-screen dashboard display for dedicated screens |
 
 ---
 
-## Installation
+## Quick Start
 
-### Raspberry Pi Installation
+### Hardware Requirements
 
-#### Step 1: Flash Raspberry Pi OS
+**Option 1: Raspberry Pi (Recommended)**
+- Raspberry Pi 4 or 5 (4GB+ RAM)
+- 32GB+ microSD card (Class A2)
+- Official power supply
 
-1. Download [Raspberry Pi Imager](https://www.raspberrypi.com/software/) on your computer
-2. Insert your microSD card
-3. Open Raspberry Pi Imager and click "Choose OS"
-4. Select **Raspberry Pi OS (64-bit)** - the Lite version is fine if not using kiosk mode
-5. Click "Choose Storage" and select your microSD card
-6. Click the gear icon (⚙️) for advanced options:
-   - Set hostname: `isaac` (so you can access it at `isaac.local`)
-   - Enable SSH with password authentication
-   - Set username: `pi` and a strong password
-   - Configure your WiFi (if not using ethernet)
-   - Set your timezone
-7. Click "Write" and wait for it to complete
+**Option 2: Cloud VPS**
+- Any provider (Linode, DigitalOcean, Vultr)
+- 1GB RAM minimum
+- Ubuntu 22.04+
 
-#### Step 2: Boot and Connect
-
-1. Insert the microSD into your Pi and power it on
-2. Wait 2-3 minutes for first boot
-3. Find your Pi on the network:
-   ```bash
-   # From your computer, try:
-   ping isaac.local
-
-   # Or check your router's DHCP list for the IP
-   ```
-4. SSH into your Pi:
-   ```bash
-   ssh pi@isaac.local
-   ```
-
-#### Step 3: Install Isaac
-
-Run these commands on your Raspberry Pi:
+### Installation
 
 ```bash
 # Update system
@@ -129,7 +83,7 @@ sudo apt update && sudo apt upgrade -y
 # Install dependencies
 sudo apt install -y python3-pip python3-venv nodejs npm nginx git
 
-# Clone Isaac
+# Clone repository
 sudo mkdir -p /opt/isaac
 sudo chown $USER:$USER /opt/isaac
 git clone https://github.com/n0mad1k/isaac.git /opt/isaac
@@ -139,102 +93,8 @@ cd /opt/isaac/backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-
-# Create your config
 cp .env.example .env
-nano .env  # Edit with your settings (see Configuration section)
-
-# Setup frontend
-cd /opt/isaac/frontend
-npm install
-npm run build
-
-# Create data and log directories
-mkdir -p /opt/isaac/data /opt/isaac/logs
-
-# Install systemd service
-sudo cp /opt/isaac/deploy/isaac-backend.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable isaac-backend
-sudo systemctl start isaac-backend
-
-# Setup nginx (optional but recommended)
-sudo cp /opt/isaac/deploy/nginx-isaac.conf /etc/nginx/sites-available/isaac
-sudo ln -s /etc/nginx/sites-available/isaac /etc/nginx/sites-enabled/
-sudo rm /etc/nginx/sites-enabled/default
-sudo systemctl restart nginx
-```
-
-#### Step 4: Access Your Dashboard
-
-Open a browser and go to: `http://isaac.local`
-
-On first load, you'll be prompted to create an admin account.
-
----
-
-### Cloud Installation (Linode)
-
-#### Step 1: Create a Linode
-
-1. Sign up at [linode.com](https://www.linode.com)
-2. Click "Create Linode"
-3. Choose:
-   - **Image:** Ubuntu 24.04 LTS
-   - **Region:** Choose closest to you
-   - **Plan:** Nanode 1GB ($5/month) - sufficient for personal use
-   - **Label:** `isaac`
-   - **Root Password:** Set a strong password
-   - **SSH Keys:** Add your public key (recommended)
-4. Click "Create Linode"
-
-#### Step 2: Connect and Secure
-
-```bash
-# SSH into your new server
-ssh root@YOUR_LINODE_IP
-
-# Create a non-root user
-adduser farmer
-usermod -aG sudo farmer
-
-# Setup firewall
-ufw allow OpenSSH
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw enable
-
-# Switch to new user
-su - farmer
-```
-
-#### Step 3: Install Isaac
-
-```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
-
-# Install dependencies
-sudo apt install -y python3-pip python3-venv nodejs npm nginx git certbot python3-certbot-nginx
-
-# Clone Isaac
-sudo mkdir -p /opt/isaac
-sudo chown $USER:$USER /opt/isaac
-git clone https://github.com/n0mad1k/isaac.git /opt/isaac
-
-# Setup backend
-cd /opt/isaac/backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Create config
-cp .env.example .env
-nano .env  # Edit settings
-
-# IMPORTANT: For cloud deployment, disable local network restriction
-# In .env, add:
-# ALLOW_PUBLIC_ACCESS=true
+nano .env  # Edit with your settings
 
 # Setup frontend
 cd /opt/isaac/frontend
@@ -252,81 +112,116 @@ sudo systemctl start isaac-backend
 
 # Setup nginx
 sudo cp /opt/isaac/deploy/nginx-isaac.conf /etc/nginx/sites-available/isaac
-sudo ln -s /etc/nginx/sites-available/isaac /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/isaac /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl restart nginx
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
-#### Step 4: Setup SSL (Required for Cloud)
+### Access Your Dashboard
 
-Point your domain to your Linode IP, then:
+Open a browser and go to: `http://isaac.local` (or your server's IP)
 
-```bash
-sudo certbot --nginx -d yourdomain.com
-```
-
-#### Step 5: Access Your Dashboard
-
-Go to `https://yourdomain.com` and create your admin account.
+On first load, you'll be prompted to create an admin account.
 
 ---
 
 ## Configuration
 
-### Most settings are configured in the web UI!
+### Environment Variables (.env)
 
-After logging in, go to **Settings** to configure:
-
-- **Weather Alerts** - Frost/freeze/heat warning thresholds
-- **Email Notifications** - Recipients, daily digest, alert preferences
-- **Calendar Sync** - Connect to CalDAV (Nextcloud, Radicale, etc.)
-- **Dashboard** - Refresh intervals, display options
-- **Notification Preferences** - Which alerts go to email, calendar, or dashboard
-
-### Initial Setup (one-time)
-
-The `.env` file only needs to be edited once during initial setup for API keys and location:
+Edit `/opt/isaac/backend/.env` with your settings:
 
 ```bash
-nano /opt/isaac/backend/.env
-```
-
-```bash
-# Your location (for sunrise/sunset calculations)
+# Location (for sunrise/sunset and weather)
 TIMEZONE=America/New_York
-LATITUDE=28.5383
-LONGITUDE=-81.3792
+LATITUDE=40.7128
+LONGITUDE=-74.0060
 
-# Ambient Weather API (optional - for weather station integration)
+# Ambient Weather API (optional)
 # Get keys from: https://ambientweather.net/account
 AWN_API_KEY=your_api_key
 AWN_APP_KEY=your_app_key
 
-# Email Server (for sending notifications)
-# Gmail: Use App Password from https://myaccount.google.com/apppasswords
-# Protonmail: Use SMTP token from Settings > IMAP/SMTP
+# Email notifications (optional)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
 SMTP_PASSWORD=your_app_password
+
+# AI Assistant (optional - choose one)
+ANTHROPIC_API_KEY=your_claude_key
+OPENAI_API_KEY=your_openai_key
+# Or configure Ollama URL in Settings
 ```
 
-After editing `.env`, restart once:
-```bash
-sudo systemctl restart isaac-backend
-```
+### Web Settings
 
-All other settings (alert thresholds, recipients, schedules) are managed through the web interface.
+Most settings are configured through the web interface at **Settings**:
+
+- Weather alert thresholds (frost, freeze, heat, wind)
+- Email recipients and daily digest schedule
+- CalDAV calendar sync
+- AI provider selection
+- Dashboard display options
+- User roles and permissions
 
 ---
 
-## Kiosk Mode Setup (Raspberry Pi)
+## Key Features Explained
+
+### CalDAV Calendar Sync
+
+Isaac syncs bidirectionally with your phone's calendar:
+- Tasks created in Isaac appear on your phone
+- Events created on your phone appear in Isaac
+- Completing tasks on either side syncs automatically
+- Works with any CalDAV server (Nextcloud, Radicale, iCloud, etc.)
+
+Configure in **Settings > Calendar**.
+
+### Weather Alerts
+
+Connect your Ambient Weather station for:
+- Real-time local conditions on dashboard
+- Automatic frost/freeze warnings (protect tender plants)
+- Heat alerts for livestock
+- Wind and rain notifications
+
+### Worker Management
+
+Manage external workers (maids, contractors, farm hands):
+- Assign tasks with automatic translation (Spanish supported)
+- Track visits and completed work
+- Supply request system
+- Email task lists in worker's language
+
+### Farm Finances
+
+Full farm business management:
+- Customer database with contact info
+- Orders with line items and payment tracking
+- Automated invoice scheduling and delivery
+- Expense tracking with categories
+- Production allocation (sold vs personal use)
+
+### Team Health Tracking
+
+Track household member health and fitness:
+- Weight, blood pressure, body measurements
+- Workout logging with training load analysis
+- Readiness scores based on recovery
+- Child growth percentiles and milestones
+- Sick day tracking with fitness score adjustment
+
+---
+
+## Kiosk Mode (Raspberry Pi)
 
 For a dedicated dashboard display:
 
 ```bash
 # Install display dependencies
-sudo apt install -y chromium-browser xserver-xorg x11-xserver-utils xinit openbox
+sudo apt install -y chromium-browser xserver-xorg xinit openbox
 
 # Install kiosk service
 sudo cp /opt/isaac/deploy/isaac-kiosk.service /etc/systemd/system/
@@ -363,24 +258,26 @@ sudo systemctl restart isaac-backend
 
 ---
 
+## API Documentation
+
+When running, API docs are available at:
+- Swagger UI: `http://isaac.local/api/docs`
+- ReDoc: `http://isaac.local/api/redoc`
+
+---
+
 ## Troubleshooting
 
-### Check if backend is running
+### Check service status
 ```bash
 sudo systemctl status isaac-backend
 ```
 
 ### View logs
 ```bash
-# Backend logs
 tail -f /opt/isaac/logs/backend.log
-
-# Error logs
 tail -f /opt/isaac/logs/backend-error.log
 ```
-
-### Database location
-The SQLite database is stored at `/opt/isaac/data/isaac.db`
 
 ### Reset admin password
 ```bash
@@ -394,30 +291,15 @@ import asyncio
 async def reset():
     async with engine.begin() as conn:
         await conn.execute(text('DELETE FROM users'))
-        print('All users deleted. Visit the web UI to create a new admin.')
+        print('All users deleted. Visit web UI to create new admin.')
 
 asyncio.run(reset())
 "
 sudo systemctl restart isaac-backend
 ```
 
----
-
-## Documentation
-
-Comprehensive documentation is available in the [Wiki](https://github.com/n0mad1k/isaac/wiki).
-
-### API Documentation
-
-When running, API docs are available at:
-- Swagger UI: `http://isaac.local/api/docs`
-- ReDoc: `http://isaac.local/api/redoc`
-
----
-
-## Contributing
-
-Contributions are welcome! Please open an issue first to discuss what you'd like to change.
+### Database location
+SQLite database: `/opt/isaac/data/isaac.db`
 
 ---
 
@@ -425,7 +307,7 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 
 This project is licensed under the **Commons Clause License** (based on MIT).
 
-**Free for personal, non-commercial use.** If you want to use Isaac for commercial purposes (selling the software, offering it as a service, etc.), please contact me for a commercial license.
+**Free for personal, non-commercial use.** For commercial use, please contact for a license.
 
 See [LICENSE](LICENSE) for details.
 
@@ -438,4 +320,4 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-Made with ❤️ for farmers and homesteaders
+Made with care for farmers and homesteaders
