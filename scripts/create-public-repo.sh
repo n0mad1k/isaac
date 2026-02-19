@@ -617,8 +617,8 @@ if [ -n "$ENV_FILES" ]; then
     find "$PUBLIC_DIR" -name ".env" -not -name ".env.example" -delete
 fi
 
-# Initialize git repository
-git init -b main
+# Initialize git repository (use master to match existing GitHub repo)
+git init -b master
 git add .
 
 # Use generic author for public release
@@ -643,7 +643,7 @@ echo "  3. Push to your public GitHub repository:"
 echo ""
 echo "     cd $PUBLIC_DIR"
 echo "     git remote add origin git@github.com:your-username/isaac.git"
-echo "     git push -u origin main"
+echo "     git push -u origin master"
 echo ""
 echo "Files excluded (sell separately as Pro Setup Kit):"
 echo "  - deploy.sh / deploy-dev.sh (deployment automation)"
