@@ -2,6 +2,17 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.85.82] - 2026-02-19
+
+### Fixed
+- **CalDAV Sync Deactivation Bug** - Tasks no longer incorrectly deactivated when outside calendar scan range
+  - Calendar date search only covers 7 days back to 90 days forward
+  - Tasks with due dates outside this range were falsely detected as "deleted on phone"
+  - Now properly skips deactivation for tasks legitimately outside scan window
+- **CalDAV Recurring Task Pre-completion** - Recurring tasks no longer marked fully complete from calendar
+  - Completing one occurrence on phone was incorrectly completing the entire series
+  - Recurring tasks now properly continue after individual occurrence completion
+
 ## [1.85.80] - 2026-02-18
 
 ### Fixed

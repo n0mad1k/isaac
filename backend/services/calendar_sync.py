@@ -516,6 +516,7 @@ class CalendarSyncService:
                 if task_key in existing_events:
                     # Link to existing event instead of creating duplicate
                     task.calendar_uid = existing_events[task_key]
+                    task.calendar_synced_at = datetime.utcnow()  # Mark as synced to prevent false deletion
                     if db:
                         await db.commit()
                     logger.info(f"Linked task '{task.title}' to existing calendar event")
@@ -684,13 +685,25 @@ class CalendarSyncService:
                         # Recurring tasks should never be deactivated due to calendar sync
                         logger.debug(f"Recurring task '{task.title}' not in calendar scan - keeping active (RRULE may hide it)")
                     elif task.calendar_synced_at is not None:
-                        task.is_active = False
-                        # Clear sync metadata so re-activation won't trigger false deletion detection
-                        task.calendar_synced_at = None
-                        task.calendar_uid = None
-                        deleted_by_phone += 1
-                        logger.info(f"Task '{task.title}' was deleted on phone, marking inactive")
-                        continue
+                        # Don't deactivate tasks with due dates outside the calendar scan range
+                        # get_calendar_events() only searches 7 days back to 90 days forward
+                        # Tasks outside this range legitimately exist but won't be returned
+                        today = date.today()
+                        scan_start = today - timedelta(days=7)
+                        scan_end = today + timedelta(days=90)
+                        task_date = task.due_date
+
+                        if task_date and (task_date < scan_start or task_date > scan_end):
+                            # Task is outside scan range - not actually deleted, just not returned
+                            logger.debug(f"Task '{task.title}' (due {task_date}) outside calendar scan range - keeping active")
+                        else:
+                            task.is_active = False
+                            # Clear sync metadata so re-activation won't trigger false deletion detection
+                            task.calendar_synced_at = None
+                            task.calendar_uid = None
+                            deleted_by_phone += 1
+                            logger.info(f"Task '{task.title}' was deleted on phone, marking inactive")
+                            continue
                     else:
                         logger.debug(f"Task '{task.title}' not in calendar but never synced - will push instead of deactivating")
 
@@ -981,20 +994,28 @@ class CalendarSyncService:
                             changed = True
 
                     # Check if this task was completed on the phone (always check, regardless of timestamp)
+                    # For recurring tasks, NEVER mark the entire series as completed - calendar completion
+                    # means just one occurrence was done, not the whole series
+                    is_recurring = existing_task.recurrence and existing_task.recurrence != TaskRecurrence.ONCE
                     if event_dict.get('is_completed') and not existing_task.is_completed:
-                        # Only mark as phone-completed if task was due today or earlier
-                        local_tz = pytz.timezone(self.timezone)
-                        today = datetime.now(local_tz).date()
-                        task_due = existing_task.due_date
-
-                        if task_due and task_due > today:
-                            logger.warning(f"Ignoring phone completion for future task '{existing_task.title}' (due {task_due})")
+                        if is_recurring:
+                            # Recurring tasks: completing one occurrence shouldn't complete the series
+                            # The task should remain active for future occurrences
+                            logger.debug(f"Ignoring calendar completion for recurring task '{existing_task.title}' - series continues")
                         else:
-                            existing_task.is_completed = True
-                            existing_task.completed_at = datetime.now(pytz.UTC)
-                            changed = True
-                            logger.info(f"Task '{existing_task.title}' completed on phone")
-                            await self.delete_task_from_calendar(existing_task.id, calendar_uid)
+                            # Non-recurring: only mark as phone-completed if task was due today or earlier
+                            local_tz = pytz.timezone(self.timezone)
+                            today = datetime.now(local_tz).date()
+                            task_due = existing_task.due_date
+
+                            if task_due and task_due > today:
+                                logger.warning(f"Ignoring phone completion for future task '{existing_task.title}' (due {task_due})")
+                            else:
+                                existing_task.is_completed = True
+                                existing_task.completed_at = datetime.now(pytz.UTC)
+                                changed = True
+                                logger.info(f"Task '{existing_task.title}' completed on phone")
+                                await self.delete_task_from_calendar(existing_task.id, calendar_uid)
 
                     if changed:
                         updated += 1
@@ -1037,11 +1058,26 @@ class CalendarSyncService:
                 # IMPORTANT: Only sync is_completed=True from calendar to task (phone completion)
                 # Never reset is_completed to False based on calendar data - this prevents
                 # calendar edits from accidentally resetting completion status
+                # For recurring tasks, NEVER mark the series as completed - only one occurrence was done
+                is_recurring = existing_task.recurrence and existing_task.recurrence != TaskRecurrence.ONCE
                 if event_dict.get('is_completed') and not existing_task.is_completed:
-                    existing_task.is_completed = True
-                    existing_task.completed_at = datetime.now(pytz.UTC)
-                    changed = True
-                    logger.info(f"Task '{existing_task.title}' marked complete from calendar sync")
+                    if is_recurring:
+                        # Recurring tasks: completing one occurrence shouldn't complete the series
+                        logger.debug(f"Ignoring calendar completion for recurring task '{existing_task.title}' - series continues")
+                    else:
+                        # Only mark as completed if task is due today or earlier
+                        # This prevents pre-completion of future recurring task occurrences
+                        local_tz = pytz.timezone(self.timezone)
+                        today = datetime.now(local_tz).date()
+                        task_due = existing_task.due_date
+
+                        if task_due and task_due > today:
+                            logger.warning(f"Ignoring calendar completion for future task '{existing_task.title}' (due {task_due})")
+                        else:
+                            existing_task.is_completed = True
+                            existing_task.completed_at = datetime.now(pytz.UTC)
+                            changed = True
+                            logger.info(f"Task '{existing_task.title}' marked complete from calendar sync")
                 if changed:
                     logger.info(f"Updated existing task '{existing_task.title}' from calendar (uid={calendar_uid})")
                     updated += 1
@@ -1084,17 +1120,29 @@ class CalendarSyncService:
 
                 # Create new task from calendar event
                 logger.info(f"Creating new task from calendar event: '{event_dict.get('title', 'Calendar Event')}' (uid={calendar_uid})")
+
+                # Don't create pre-completed future tasks
+                # If calendar says completed but due_date is in future, ignore completion status
+                task_is_completed = event_dict.get('is_completed', False)
+                task_due_date = event_dict.get('due_date')
+                if task_is_completed and task_due_date:
+                    local_tz = pytz.timezone(self.timezone)
+                    today = datetime.now(local_tz).date()
+                    if task_due_date > today:
+                        logger.warning(f"New task '{event_dict.get('title')}' marked completed in calendar but due in future ({task_due_date}) - ignoring completion")
+                        task_is_completed = False
+
                 new_task = Task(
                     title=event_dict.get('title', 'Calendar Event'),
                     description=event_dict.get('description'),
                     task_type=event_dict.get('task_type', TaskType.TODO),
-                    due_date=event_dict.get('due_date'),
+                    due_date=task_due_date,
                     due_time=event_dict.get('due_time'),
                     end_time=event_dict.get('end_time'),
                     location=event_dict.get('location'),
                     category=event_dict.get('category', TaskCategory.OTHER),
                     priority=event_dict.get('priority', 3),
-                    is_completed=event_dict.get('is_completed', False),
+                    is_completed=task_is_completed,
                     calendar_uid=calendar_uid,
                     recurrence=event_dict.get('recurrence', TaskRecurrence.ONCE),
                     recurrence_interval=event_dict.get('recurrence_interval'),
@@ -1120,7 +1168,17 @@ class CalendarSyncService:
             ):
                 continue
             # If this task's calendar_uid is no longer in calendar, mark as deleted
+            # BUT only if: not recurring AND was actually synced (has calendar_synced_at)
             if task.calendar_uid and task.calendar_uid not in calendar_uids:
+                is_recurring = task.recurrence and task.recurrence != TaskRecurrence.ONCE
+                if is_recurring:
+                    # Never deactivate recurring tasks - they should persist
+                    logger.debug(f"Recurring task '{task.title}' not in calendar - keeping active")
+                    continue
+                if task.calendar_synced_at is None:
+                    # Never synced - don't deactivate, will be synced on next push
+                    logger.debug(f"Task '{task.title}' not synced yet - keeping active")
+                    continue
                 task.is_active = False
                 deleted += 1
                 logger.info(f"Marked task '{task.title}' as deleted (removed from calendar)")
