@@ -352,7 +352,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
-        <span className="ml-3 text-gray-400">Loading growth data...</span>
+        <span className="ml-3 text-muted">Loading growth data...</span>
       </div>
     )
   }
@@ -418,7 +418,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
             ) : (
               <TrendingDown className="w-5 h-5 text-yellow-400" />
             )}
-            <span className="text-sm text-gray-300">{growthData.weight_velocity.message}</span>
+            <span className="text-sm text-secondary">{growthData.weight_velocity.message}</span>
           </div>
         </div>
       )}
@@ -428,7 +428,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
         const sizeRecs = getSizeRecommendations(member.current_weight, member.height_inches, ageMonths)
         if (sizeRecs.length === 0) return null
         return (
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-surface rounded-lg border border-subtle p-4">
             <h3 className="text-base font-semibold text-white mb-3 flex items-center gap-2">
               <Shirt className="w-5 h-5 text-purple-400" />
               Size Guide
@@ -436,21 +436,21 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {sizeRecs.map(rec => (
                 <div key={rec.category} className={`rounded-lg p-3 border ${
-                  rec.sizeUp ? 'bg-yellow-900/20 border-yellow-700' : 'bg-gray-900/50 border-gray-700'
+                  rec.sizeUp ? 'bg-yellow-900/20 border-yellow-700' : 'bg-surface-app/50 border-subtle'
                 }`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-300">{rec.category}</span>
+                    <span className="text-sm font-medium text-secondary">{rec.category}</span>
                     {rec.sizeUp && (
                       <span className="text-xs px-2 py-0.5 bg-yellow-600/30 text-yellow-400 rounded">Size Up Soon</span>
                     )}
                   </div>
                   <div className="text-lg font-bold text-white">{rec.current}</div>
                   <div className="mt-2">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <div className="flex justify-between text-xs text-muted mb-1">
                       <span>Progress to next size</span>
                       <span>{Math.round(rec.percentUsed)}%</span>
                     </div>
-                    <div className="bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-surface-soft rounded-full h-1.5 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
                           rec.percentUsed > 80 ? 'bg-yellow-500' : rec.percentUsed > 50 ? 'bg-blue-500' : 'bg-green-500'
@@ -459,14 +459,14 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                       />
                     </div>
                     <div className="flex justify-between text-xs mt-1">
-                      <span className="text-gray-500">Next: {rec.next}</span>
-                      {rec.note && <span className="text-gray-400 italic">{rec.note}</span>}
+                      <span className="text-muted">Next: {rec.next}</span>
+                      {rec.note && <span className="text-muted italic">{rec.note}</span>}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-muted mt-3">
               * Sizes are estimates based on typical US standards. Actual sizing varies by brand.
             </p>
           </div>
@@ -474,7 +474,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
       })()}
 
       {/* Growth Chart */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+      <div className="bg-surface rounded-lg border border-subtle p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-white">{chartTitle}</h3>
@@ -492,7 +492,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                 className={`px-3 py-1 rounded text-sm ${
                   chartType === type
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-surface-soft text-secondary hover:bg-surface-hover'
                 }`}
               >
                 {type === 'weight' ? 'Weight' : type === 'height' ? 'Height' : 'BMI'}
@@ -555,7 +555,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
             </ComposedChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-48 text-gray-500">
+          <div className="flex items-center justify-center h-48 text-muted">
             No data points yet. Log weight and height to see the growth chart.
           </div>
         )}
@@ -568,25 +568,25 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-0.5 inline-block" style={{ backgroundColor: '#22c55e' }}></span>
-            <span className="text-xs text-gray-400">50th</span>
+            <span className="text-xs text-muted">50th</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-0.5 inline-block" style={{ backgroundColor: '#eab308' }}></span>
-            <span className="text-xs text-gray-400">25th/75th</span>
+            <span className="text-xs text-muted">25th/75th</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-0.5 inline-block" style={{ backgroundColor: '#f97316' }}></span>
-            <span className="text-xs text-gray-400">10th/90th</span>
+            <span className="text-xs text-muted">10th/90th</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-0.5 inline-block" style={{ backgroundColor: '#ef4444' }}></span>
-            <span className="text-xs text-gray-400">3rd/97th</span>
+            <span className="text-xs text-muted">3rd/97th</span>
           </span>
         </div>
       </div>
 
       {/* Weight & Height Logging */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+      <div className="bg-surface rounded-lg border border-subtle p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold text-white">Log Weight & Height</h3>
           {!showAddWeight && (
@@ -601,42 +601,42 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
         </div>
 
         {showAddWeight && (
-          <form onSubmit={handleLogWeight} className="mb-4 p-3 bg-gray-900/50 rounded-lg space-y-3">
-            <div className="text-sm font-medium text-gray-300 mb-2">
+          <form onSubmit={handleLogWeight} className="mb-4 p-3 bg-surface-app/50 rounded-lg space-y-3">
+            <div className="text-sm font-medium text-secondary mb-2">
               {editingEntry ? 'Edit Entry' : 'New Entry'}
-              <span className="text-xs text-gray-500 ml-2">(at least one measurement required)</span>
+              <span className="text-xs text-muted ml-2">(at least one measurement required)</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Weight (lbs)</label>
+                <label className="block text-xs text-muted mb-1">Weight (lbs)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={weightForm.weight}
                   onChange={(e) => setWeightForm(f => ({ ...f, weight: e.target.value }))}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-white text-sm"
                   placeholder="e.g., 25.5"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Height (inches)</label>
+                <label className="block text-xs text-muted mb-1">Height (inches)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={weightForm.height_inches}
                   onChange={(e) => setWeightForm(f => ({ ...f, height_inches: e.target.value }))}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-white text-sm"
                   placeholder="e.g., 36.5"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Notes</label>
+              <label className="block text-xs text-muted mb-1">Notes</label>
               <input
                 type="text"
                 value={weightForm.notes}
                 onChange={(e) => setWeightForm(f => ({ ...f, notes: e.target.value }))}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                className="w-full bg-surface-soft border border rounded px-3 py-2 text-white text-sm"
                 placeholder="Optional notes"
               />
             </div>
@@ -651,7 +651,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded"
+                className="px-4 py-2 bg-surface-soft hover:bg-surface-hover text-secondary text-sm rounded"
               >
                 Cancel
               </button>
@@ -662,35 +662,35 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
         {/* Recent entries */}
         {growthData?.weight_history?.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-400">Recent Entries</h4>
+            <h4 className="text-sm font-medium text-muted">Recent Entries</h4>
             <div className="space-y-1">
               {growthData.weight_history.slice(-10).reverse().map((entry, idx) => (
-                <div key={entry.id || idx} className="flex items-center justify-between py-2 px-3 bg-gray-900/30 rounded text-sm group">
+                <div key={entry.id || idx} className="flex items-center justify-between py-2 px-3 bg-surface-app/30 rounded text-sm group">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-gray-400">{entry.recorded_at ? formatDate(new Date(entry.recorded_at)) : '—'}</span>
+                    <span className="text-muted">{entry.recorded_at ? formatDate(new Date(entry.recorded_at)) : '—'}</span>
                     {entry.weight_lbs && <span className="text-white font-medium">{entry.weight_lbs} lbs</span>}
                     {entry.height_inches && <span className="text-white font-medium">{parseFloat(entry.height_inches).toFixed(1)} in</span>}
                     {entry.percentile && (
                       <span className={`text-xs px-2 py-0.5 rounded ${
-                        STATUS_COLORS[entry.percentile.status]?.bg || 'bg-gray-700'
-                      } ${STATUS_COLORS[entry.percentile.status]?.text || 'text-gray-400'}`}>
+                        STATUS_COLORS[entry.percentile.status]?.bg || 'bg-surface-soft'
+                      } ${STATUS_COLORS[entry.percentile.status]?.text || 'text-muted'}`}>
                         {entry.percentile.percentile}th percentile
                       </span>
                     )}
-                    {entry.notes && <span className="text-gray-500 text-xs">({entry.notes})</span>}
+                    {entry.notes && <span className="text-muted text-xs">({entry.notes})</span>}
                   </div>
                   {entry.id && (
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleEditEntry(entry)}
-                        className="p-1 text-gray-400 hover:text-blue-400"
+                        className="p-1 text-muted hover:text-blue-400"
                         title="Edit"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteEntry(entry.id)}
-                        className="p-1 text-gray-400 hover:text-red-400"
+                        className="p-1 text-muted hover:text-red-400"
                         title="Delete"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -706,7 +706,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
 
       {/* Developmental Milestones (under 6 only) */}
       {showMilestones && milestones && (
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+        <div className="bg-surface rounded-lg border border-subtle p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -752,10 +752,10 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                        milestones.developmental_assessment.overall_status === 'monitor' ? '⚠ Monitor' :
                        '⚠ Needs Attention'}
                     </span>
-                    <p className="text-xs text-gray-400 mt-0.5">{milestones.developmental_assessment.status_message}</p>
+                    <p className="text-xs text-muted mt-0.5">{milestones.developmental_assessment.status_message}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-gray-500">Age Level</div>
+                    <div className="text-xs text-muted">Age Level</div>
                     <div className="text-sm text-white font-medium">{milestones.developmental_assessment.age_message}</div>
                   </div>
                 </div>
@@ -776,11 +776,11 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                     else if (data.status === 'advanced') gaugePosition = 87.5
 
                     return (
-                      <div key={cat} className="bg-gray-900/50 rounded-lg p-3 border border-gray-700">
+                      <div key={cat} className="bg-surface-app/50 rounded-lg p-3 border border-subtle">
                         <div className="flex items-center gap-2 mb-2">
-                          <Icon className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-200 font-medium">{catLabels[cat] || cat}</span>
-                          <span className="text-xs text-gray-500 ml-auto">{data.achieved}/{data.total}</span>
+                          <Icon className="w-4 h-4 text-muted" />
+                          <span className="text-sm text-primary font-medium">{catLabels[cat] || cat}</span>
+                          <span className="text-xs text-muted ml-auto">{data.achieved}/{data.total}</span>
                         </div>
                         {/* Gauge visualization */}
                         <div className="relative mt-2">
@@ -796,11 +796,11 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                             className="absolute -top-1 transition-all duration-300"
                             style={{ left: `calc(${gaugePosition}% - 6px)` }}
                           >
-                            <div className="w-3 h-3 bg-white rounded-full border-2 border-gray-800 shadow-lg" />
+                            <div className="w-3 h-3 bg-white rounded-full border-2 border-subtle shadow-lg" />
                           </div>
                         </div>
                         {/* Labels */}
-                        <div className="flex justify-between mt-1.5 text-[10px] text-gray-500">
+                        <div className="flex justify-between mt-1.5 text-[10px] text-muted">
                           <span>Behind</span>
                           <span>Monitor</span>
                           <span>On Track</span>
@@ -836,7 +836,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                 <div key={groupKey} className={`rounded-lg border ${
                   isCurrent ? 'border-purple-600 bg-purple-900/10' :
                   isUpcoming ? 'border-blue-700/50 bg-blue-900/10' :
-                  'border-gray-700 bg-gray-900/30'
+                  'border-subtle bg-surface-app/30'
                 }`}>
                   <button
                     onClick={() => toggleGroup(groupKey)}
@@ -850,14 +850,14 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                       {isUpcoming && (
                         <span className="text-xs px-2 py-0.5 bg-blue-600/50 text-blue-200 rounded">Upcoming</span>
                       )}
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-muted">
                         {groupAchieved}/{groupTotal}
                       </span>
                     </div>
                     {isExpanded ? (
-                      <ChevronUp className="w-4 h-4 text-gray-400" />
+                      <ChevronUp className="w-4 h-4 text-muted" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                      <ChevronDown className="w-4 h-4 text-muted" />
                     )}
                   </button>
 
@@ -876,7 +876,7 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                         {groupAchieved > 0 && (
                           <button
                             onClick={() => handleBulkToggle(group, false)}
-                            className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-700/50 hover:bg-gray-600/50 text-gray-400 rounded border border-gray-600/40"
+                            className="flex items-center gap-1 px-2 py-1 text-xs bg-surface-soft/50 hover:bg-surface-hover/50 text-muted rounded border border/40"
                           >
                             Clear All
                           </button>
@@ -887,8 +887,8 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                         return (
                           <div key={category}>
                             <div className="flex items-center gap-2 mb-2">
-                              <Icon className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm font-medium text-gray-300">
+                              <Icon className="w-4 h-4 text-muted" />
+                              <span className="text-sm font-medium text-secondary">
                                 {CATEGORY_LABELS[category] || category}
                               </span>
                             </div>
@@ -906,13 +906,13 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
                                     className={`mt-0.5 w-5 h-5 rounded border flex-shrink-0 flex items-center justify-center transition-colors ${
                                       item.achieved
                                         ? 'bg-purple-600 border-purple-600'
-                                        : 'border-gray-600 group-hover:border-purple-500'
+                                        : 'border group-hover:border-purple-500'
                                     }`}
                                   >
                                     {item.achieved && <Check className="w-3 h-3 text-white" />}
                                   </button>
                                   <span className={`text-sm ${
-                                    item.achieved ? 'text-gray-500 line-through' : 'text-gray-300'
+                                    item.achieved ? 'text-muted line-through' : 'text-secondary'
                                   }`}>
                                     {item.text}
                                   </span>
@@ -937,12 +937,12 @@ function ChildGrowthTab({ member, formatWeight, formatHeight, formatDate, onUpda
 function PercentileCard({ label, icon: Icon, data, currentValue }) {
   if (!data) {
     return (
-      <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+      <div className="bg-surface rounded-lg border border-subtle p-4">
         <div className="flex items-center gap-2 mb-2">
-          <Icon className="w-5 h-5 text-gray-500" />
-          <span className="text-sm font-medium text-gray-400">{label}</span>
+          <Icon className="w-5 h-5 text-muted" />
+          <span className="text-sm font-medium text-muted">{label}</span>
         </div>
-        <div className="text-gray-500 text-sm">No data</div>
+        <div className="text-muted text-sm">No data</div>
       </div>
     )
   }
@@ -958,20 +958,20 @@ function PercentileCard({ label, icon: Icon, data, currentValue }) {
   }
 
   return (
-    <div className={`bg-gray-800 rounded-lg border p-4 ${status.border}`}>
+    <div className={`bg-surface rounded-lg border p-4 ${status.border}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Icon className={`w-5 h-5 ${status.text}`} />
-          <span className="text-sm font-medium text-gray-300">{label}</span>
+          <span className="text-sm font-medium text-secondary">{label}</span>
         </div>
         <span className={`text-xs px-2 py-0.5 rounded ${status.bg} ${status.text}`}>
           {status.label}
         </span>
       </div>
       <div className="text-2xl font-bold text-white">
-        {data.percentile}<span className="text-sm font-normal text-gray-400">th</span>
+        {data.percentile}<span className="text-sm font-normal text-muted">th</span>
       </div>
-      <div className="text-xs text-gray-400 mt-1">
+      <div className="text-xs text-muted mt-1">
         {currentValue && <span>{currentValue}</span>}
         {currentValue && data.median && <span> · </span>}
         {data.median && (

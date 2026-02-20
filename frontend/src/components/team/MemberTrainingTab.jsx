@@ -101,7 +101,7 @@ function MemberTrainingTab({ member, onUpdate }) {
   }
 
   const getDaysColor = (days) => {
-    if (days === null) return 'text-gray-400'
+    if (days === null) return 'text-muted'
     if (days <= 30) return 'text-green-400'
     if (days <= 60) return 'text-yellow-400'
     return 'text-red-400'
@@ -141,7 +141,7 @@ function MemberTrainingTab({ member, onUpdate }) {
   })
 
   if (loading) {
-    return <div className="text-center text-gray-400 py-8">Loading training...</div>
+    return <div className="text-center text-muted py-8">Loading training...</div>
   }
 
   return (
@@ -158,13 +158,13 @@ function MemberTrainingTab({ member, onUpdate }) {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm"
+            className="bg-surface-soft border border rounded px-3 py-1.5 text-sm"
           >
             <option value="overdue">Most Overdue</option>
             <option value="recent">Recently Trained</option>
             <option value="alpha">Alphabetical</option>
           </select>
-          <span className="text-sm text-gray-400">{training.length} items</span>
+          <span className="text-sm text-muted">{training.length} items</span>
         </div>
         <button
           onClick={() => setShowAddTraining(true)}
@@ -177,7 +177,7 @@ function MemberTrainingTab({ member, onUpdate }) {
 
       {/* Training List */}
       {sortedTraining.length === 0 ? (
-        <div className="bg-gray-700 rounded-lg p-8 text-center text-gray-400">
+        <div className="bg-surface-soft rounded-lg p-8 text-center text-muted">
           <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p>No training items tracked</p>
         </div>
@@ -188,11 +188,11 @@ function MemberTrainingTab({ member, onUpdate }) {
             const overdueStatus = getOverdueStatus(item)
 
             return (
-              <div key={item.id} className="bg-gray-700 rounded-lg overflow-hidden">
+              <div key={item.id} className="bg-surface-soft rounded-lg overflow-hidden">
                 {/* Training Header */}
                 <div className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Target className="w-5 h-5 text-gray-400" />
+                    <Target className="w-5 h-5 text-muted" />
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{item.name}</span>
@@ -205,7 +205,7 @@ function MemberTrainingTab({ member, onUpdate }) {
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-400 flex items-center gap-3 mt-1">
+                      <div className="text-sm text-muted flex items-center gap-3 mt-1">
                         <span className={getDaysColor(daysSince)}>
                           {daysSince !== null ? (
                             daysSince === 0 ? 'Trained today' : `${daysSince} days ago`
@@ -228,27 +228,27 @@ function MemberTrainingTab({ member, onUpdate }) {
                     </button>
                     <button
                       onClick={() => setShowLogSession(item)}
-                      className="p-1.5 text-gray-400 hover:text-white"
+                      className="p-1.5 text-muted hover:text-white"
                       title="Log with Details"
                     >
                       <Calendar className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleShowHistory(item.id)}
-                      className="p-1.5 text-gray-400 hover:text-white"
+                      className="p-1.5 text-muted hover:text-white"
                       title="View History"
                     >
                       <History className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setEditingTraining(item)}
-                      className="p-1.5 text-gray-400 hover:text-white"
+                      className="p-1.5 text-muted hover:text-white"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteTraining(item.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-400"
+                      className="p-1.5 text-muted hover:text-red-400"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -257,7 +257,7 @@ function MemberTrainingTab({ member, onUpdate }) {
 
                 {/* History Panel */}
                 {showHistory === item.id && (
-                  <div className="border-t border-gray-600 p-4 bg-gray-800">
+                  <div className="border-t border p-4 bg-surface">
                     <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
                       <History className="w-4 h-4" />
                       Training History
@@ -265,25 +265,25 @@ function MemberTrainingTab({ member, onUpdate }) {
                     {trainingHistory[item.id]?.length > 0 ? (
                       <div className="space-y-2 max-h-48 overflow-y-auto">
                         {trainingHistory[item.id].map(log => (
-                          <div key={log.id} className="text-sm border-l-2 border-gray-600 pl-3">
+                          <div key={log.id} className="text-sm border-l-2 border pl-3">
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-400">{formatDate(log.trained_at)}</span>
+                              <span className="text-muted">{formatDate(log.trained_at)}</span>
                               {log.duration_minutes && (
-                                <span className="text-gray-500">({log.duration_minutes} min)</span>
+                                <span className="text-muted">({log.duration_minutes} min)</span>
                               )}
                             </div>
-                            {log.notes && <p className="text-gray-300">{log.notes}</p>}
+                            {log.notes && <p className="text-secondary">{log.notes}</p>}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-400">No training history</p>
+                      <p className="text-sm text-muted">No training history</p>
                     )}
                   </div>
                 )}
 
                 {item.description && (
-                  <div className="px-4 pb-4 text-sm text-gray-400">
+                  <div className="px-4 pb-4 text-sm text-muted">
                     {item.description}
                   </div>
                 )}
@@ -359,10 +359,10 @@ function TrainingModal({ training, memberId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-subtle">
           <h3 className="font-semibold">{training ? 'Edit Training' : 'Add Training'}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -373,23 +373,23 @@ function TrainingModal({ training, memberId, onClose, onSave }) {
             </div>
           )}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Name *</label>
+            <label className="block text-sm text-muted mb-1">Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Pistol Shooting, TCCC Medical"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
               required
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Category</label>
+              <label className="block text-sm text-muted mb-1">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               >
                 {TRAINING_CATEGORIES.map(cat => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -397,37 +397,37 @@ function TrainingModal({ training, memberId, onClose, onSave }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Frequency (days)</label>
+              <label className="block text-sm text-muted mb-1">Frequency (days)</label>
               <input
                 type="number"
                 value={formData.frequency_days}
                 onChange={(e) => setFormData({ ...formData, frequency_days: e.target.value })}
                 placeholder="Optional"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Description</label>
+            <label className="block text-sm text-muted mb-1">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={2}
               placeholder="Details about the training"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-muted hover:text-white">
               Cancel
             </button>
             <button
@@ -475,10 +475,10 @@ function LogSessionModal({ training, memberId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-subtle">
           <h3 className="font-semibold">Log Training Session</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -493,37 +493,37 @@ function LogSessionModal({ training, memberId, onClose, onSave }) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Date</label>
+              <label className="block text-sm text-muted mb-1">Date</label>
               <input
                 type="date"
                 value={formData.trained_at}
                 onChange={(e) => setFormData({ ...formData, trained_at: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Duration (min)</label>
+              <label className="block text-sm text-muted mb-1">Duration (min)</label>
               <input
                 type="number"
                 value={formData.duration_minutes}
                 onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
                 placeholder="Optional"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
               placeholder="What was practiced, performance notes, etc."
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-muted hover:text-white">
               Cancel
             </button>
             <button

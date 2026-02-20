@@ -36,7 +36,7 @@ function Calendar({ events, onMonthChange }) {
     <div className="flex items-center justify-between mb-4">
       <button
         onClick={prevMonth}
-        className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+        className="p-2 hover:bg-surface-soft rounded-lg transition-colors"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
@@ -45,7 +45,7 @@ function Calendar({ events, onMonthChange }) {
       </h2>
       <button
         onClick={nextMonth}
-        className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+        className="p-2 hover:bg-surface-soft rounded-lg transition-colors"
       >
         <ChevronRight className="w-5 h-5" />
       </button>
@@ -59,7 +59,7 @@ function Calendar({ events, onMonthChange }) {
         {days.map((day) => (
           <div
             key={day}
-            className="text-center text-xs sm:text-sm font-medium text-gray-500 py-1 sm:py-2"
+            className="text-center text-xs sm:text-sm font-medium text-muted py-1 sm:py-2"
           >
             <span className="sm:hidden">{day.substring(0, 1)}</span>
             <span className="hidden sm:inline">{day}</span>
@@ -92,17 +92,17 @@ function Calendar({ events, onMonthChange }) {
         days.push(
           <div
             key={day.toString()}
-            className={`min-h-[60px] sm:min-h-[80px] p-0.5 sm:p-1 border border-gray-700 ${
-              !isCurrentMonth ? 'bg-gray-900/50' : 'bg-gray-800/50'
+            className={`min-h-[60px] sm:min-h-[80px] p-0.5 sm:p-1 border border-subtle ${
+              !isCurrentMonth ? 'bg-surface-app/50' : 'bg-surface/50'
             } ${isToday ? 'ring-2 ring-farm-green' : ''}`}
           >
             <div
               className={`text-sm font-medium mb-1 ${
                 !isCurrentMonth
-                  ? 'text-gray-600'
+                  ? 'text-muted'
                   : isToday
                   ? 'text-farm-green'
-                  : 'text-gray-400'
+                  : 'text-muted'
               }`}
             >
               {format(day, 'd')}
@@ -113,7 +113,7 @@ function Calendar({ events, onMonthChange }) {
                   key={event.id}
                   className={`text-xs truncate px-1 py-0.5 rounded ${
                     event.is_completed
-                      ? 'bg-gray-700 text-gray-500 line-through'
+                      ? 'bg-surface-soft text-muted line-through'
                       : event.priority === 1
                       ? 'bg-red-900/60 text-red-300'
                       : event.priority === 2
@@ -125,7 +125,7 @@ function Calendar({ events, onMonthChange }) {
                 </div>
               ))}
               {dayEvents?.length > 3 && (
-                <div className="text-xs text-gray-500 px-1">
+                <div className="text-xs text-muted px-1">
                   +{dayEvents.length - 3} more
                 </div>
               )}
@@ -146,7 +146,7 @@ function Calendar({ events, onMonthChange }) {
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl p-2 sm:p-4 overflow-x-auto">
+    <div className="bg-surface rounded-xl p-2 sm:p-4 overflow-x-auto">
       <div className="min-w-[280px]">
         {renderHeader()}
         {renderDays()}

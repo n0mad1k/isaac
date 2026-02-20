@@ -133,7 +133,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
       RED: 'bg-red-500 text-red-100'
     }
     return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[status] || 'bg-gray-500 text-gray-100'}`}>
+      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[status] || 'bg-surface-muted text-primary'}`}>
         {label || status}
       </span>
     )
@@ -296,7 +296,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 className="w-20 h-20 rounded-full object-cover"
               />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-gray-600 flex items-center justify-center text-2xl text-gray-400">
+              <div className="w-20 h-20 rounded-full bg-surface-hover flex items-center justify-center text-2xl text-muted">
                 {member.name.charAt(0).toUpperCase()}
               </div>
             )}
@@ -316,7 +316,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <h2 className="text-xl font-bold">{member.name}</h2>
               {memberAge !== null && (
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-muted">
                   {memberAge < 1 ? 'Infant' : `${memberAge} yr${memberAge !== 1 ? 's' : ''}`}
                 </span>
               )}
@@ -326,8 +326,8 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 const overallScore = readinessAnalysis?.score ?? member.readiness_score
                 const perfScore = readinessAnalysis?.performance_readiness ?? member.performance_readiness_score
                 const medStatus = readinessAnalysis?.medical_safety?.status || member.medical_safety_status
-                const statusBg = (s) => s === 'GREEN' ? 'bg-green-600' : s === 'AMBER' ? 'bg-yellow-600' : s === 'RED' ? 'bg-red-600' : 'bg-gray-600'
-                const scoreBg = (v) => v != null ? (v >= 80 ? 'bg-green-600' : v >= 60 ? 'bg-yellow-600' : 'bg-red-600') : 'bg-gray-600'
+                const statusBg = (s) => s === 'GREEN' ? 'bg-green-600' : s === 'AMBER' ? 'bg-yellow-600' : s === 'RED' ? 'bg-red-600' : 'bg-surface-hover'
+                const scoreBg = (v) => v != null ? (v >= 80 ? 'bg-green-600' : v >= 60 ? 'bg-yellow-600' : 'bg-red-600') : 'bg-surface-hover'
                 const fitTier = member.fitness_tier
                 const fitBg = fitTier === 'SF' ? 'bg-yellow-500 text-yellow-900' : fitTier === 'MARINE' ? 'bg-green-500 text-green-900' : fitTier ? 'bg-blue-500 text-blue-900' : null
                 return (
@@ -365,26 +365,26 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                       <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${statusBg(overallStatus)}`}>
                         {overallScore != null ? Math.round(overallScore) : '—'}
                       </span>
-                      <span className="text-[9px] text-gray-500 mt-0.5">OVERALL</span>
+                      <span className="text-[9px] text-muted mt-0.5">OVERALL</span>
                     </div>
                     <div className="flex flex-col items-center" title="Performance Readiness">
                       <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${scoreBg(perfScore)}`}>
                         {perfScore != null ? Math.round(perfScore) : '—'}
                       </span>
-                      <span className="text-[9px] text-gray-500 mt-0.5">PERF</span>
+                      <span className="text-[9px] text-muted mt-0.5">PERF</span>
                     </div>
                     <div className="flex flex-col items-center" title="Medical Safety">
                       <span className={`px-2 py-0.5 rounded text-sm font-bold text-white ${statusBg(medStatus)}`}>
                         {medStatus === 'GREEN' ? '✓' : medStatus === 'AMBER' ? '!' : medStatus === 'RED' ? '✗' : '—'}
                       </span>
-                      <span className="text-[9px] text-gray-500 mt-0.5">MED</span>
+                      <span className="text-[9px] text-muted mt-0.5">MED</span>
                     </div>
                     {fitBg && !isChild && (
                       <div className="flex flex-col items-center" title={`Fitness: ${fitTier} ${member.fitness_sub_tier || ''}`}>
                         <span className={`px-2 py-0.5 rounded text-sm font-bold ${fitBg}`}>
                           {fitTier}
                         </span>
-                        <span className="text-[9px] text-gray-500 mt-0.5">FIT</span>
+                        <span className="text-[9px] text-muted mt-0.5">FIT</span>
                       </div>
                     )}
                     {/* Mark Sick button - only show when not sick and not in recovery */}
@@ -397,13 +397,13 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                           setSickError(null);
                           setShowSickModal(true);
                         }}
-                        className="flex flex-col items-center cursor-pointer hover:opacity-100 opacity-70 hover:bg-gray-700/50 rounded p-1"
+                        className="flex flex-col items-center cursor-pointer hover:opacity-100 opacity-70 hover:bg-surface-soft/50 rounded p-1"
                         title="Click to mark as sick"
                       >
-                        <span className="px-2 py-0.5 rounded text-sm font-bold text-gray-400 border border-gray-600 flex items-center gap-1 hover:border-red-500 hover:text-red-400">
+                        <span className="px-2 py-0.5 rounded text-sm font-bold text-muted border border flex items-center gap-1 hover:border-red-500 hover:text-red-400">
                           <Thermometer className="w-3 h-3" />
                         </span>
-                        <span className="text-[9px] text-gray-500 mt-0.5">SICK</span>
+                        <span className="text-[9px] text-muted mt-0.5">SICK</span>
                       </button>
                     )}
                   </div>
@@ -425,13 +425,13 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               )}
             </div>
             {member.nickname && (
-              <p className="text-gray-400">"{member.nickname}"</p>
+              <p className="text-muted">"{member.nickname}"</p>
             )}
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted">
               {member.role_title || member.role}
               {member.callsign && ` · Callsign: ${member.callsign}`}
             </p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted">
               {member.email && (
                 <span className="flex items-center gap-1 break-all">
                   <Mail className="w-3 h-3 flex-shrink-0" /> {member.email}
@@ -450,14 +450,14 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
         <div className="flex gap-1 sm:gap-2 flex-shrink-0">
           <button
             onClick={onEdit}
-            className="p-1.5 sm:p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-700"
+            className="p-1.5 sm:p-2 text-muted hover:text-white rounded-lg hover:bg-surface-soft"
             title="Edit Member"
           >
             <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           <button
             onClick={onDelete}
-            className="p-1.5 sm:p-2 text-gray-400 hover:text-red-400 rounded-lg hover:bg-gray-700"
+            className="p-1.5 sm:p-2 text-muted hover:text-red-400 rounded-lg hover:bg-surface-soft"
             title="Delete Member"
           >
             <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -466,7 +466,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
       </div>
 
       {/* Sub-tabs - icons only on mobile */}
-      <div className="flex gap-1 border-b border-gray-700 pb-1 overflow-x-auto scrollbar-hide">
+      <div className="flex gap-1 border-b border-subtle pb-1 overflow-x-auto scrollbar-hide">
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -474,8 +474,8 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             title={tab.label}
             className={`px-2 sm:px-3 py-2 rounded-t-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1 sm:gap-2 flex-shrink-0 ${
               activeTab === tab.id
-                ? 'bg-gray-700 text-white'
-                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                ? 'bg-surface-soft text-white'
+                : 'text-muted hover:text-white hover:bg-surface-soft/50'
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -487,7 +487,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
       {/* Tab Content */}
       <div className="min-h-[400px]">
         {loading ? (
-          <div className="flex items-center justify-center h-32 text-gray-400">
+          <div className="flex items-center justify-center h-32 text-muted">
             Loading...
           </div>
         ) : (
@@ -496,7 +496,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
             {activeTab === 'profile' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* 1. Basic Info */}
-                <div className="bg-gray-700 rounded-lg p-4">
+                <div className="bg-surface-soft rounded-lg p-4">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <User className="w-4 h-4 text-farm-green" />
                     Basic Information
@@ -504,44 +504,44 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                   <table className="w-full text-sm">
                     <tbody>
                       <tr>
-                        <td className="text-gray-400 py-1 pr-4">Role</td>
+                        <td className="text-muted py-1 pr-4">Role</td>
                         <td className="py-1">{member.role_title || member.role}</td>
                       </tr>
                       {member.gender && (
                         <tr>
-                          <td className="text-gray-400 py-1 pr-4">Gender</td>
+                          <td className="text-muted py-1 pr-4">Gender</td>
                           <td className="py-1 capitalize">{member.gender}</td>
                         </tr>
                       )}
                       {member.birth_date && (
                         <tr>
-                          <td className="text-gray-400 py-1 pr-4">Age</td>
+                          <td className="text-muted py-1 pr-4">Age</td>
                           <td className="py-1">{calculateAge(member.birth_date)} years old</td>
                         </tr>
                       )}
                       {member.join_date && (
                         <tr>
-                          <td className="text-gray-400 py-1 pr-4">Joined</td>
+                          <td className="text-muted py-1 pr-4">Joined</td>
                           <td className="py-1">{formatDate(member.join_date)}</td>
                         </tr>
                       )}
                       <tr>
-                        <td className="text-gray-400 py-1 pr-4">Height</td>
+                        <td className="text-muted py-1 pr-4">Height</td>
                         <td className="py-1">{formatHeight(member.height_inches)}</td>
                       </tr>
                       <tr>
-                        <td className="text-gray-400 py-1 pr-4">Weight</td>
+                        <td className="text-muted py-1 pr-4">Weight</td>
                         <td className="py-1">{formatWeight(member.current_weight)}</td>
                       </tr>
                       {member.target_weight && (
                         <tr>
-                          <td className="text-gray-400 py-1 pr-4">Target</td>
+                          <td className="text-muted py-1 pr-4">Target</td>
                           <td className="py-1">{formatWeight(member.target_weight)}</td>
                         </tr>
                       )}
                       {member.blood_type && (
                         <tr>
-                          <td className="text-gray-400 py-1 pr-4">Blood Type</td>
+                          <td className="text-muted py-1 pr-4">Blood Type</td>
                           <td className="py-1 font-bold text-red-400">{member.blood_type}</td>
                         </tr>
                       )}
@@ -550,7 +550,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 </div>
 
                 {/* 2. Skills */}
-                <div className="bg-gray-700 rounded-lg p-4">
+                <div className="bg-surface-soft rounded-lg p-4">
                   <h3 className="font-semibold mb-3">Skills</h3>
                   {member.skills && member.skills.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
@@ -561,12 +561,12 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-400 text-sm">No skills listed</p>
+                    <p className="text-muted text-sm">No skills listed</p>
                   )}
                 </div>
 
                 {/* 3. Allergies - Critical Health Info */}
-                <div className="bg-gray-700 rounded-lg p-4">
+                <div className="bg-surface-soft rounded-lg p-4">
                   <h3 className="font-semibold mb-3 text-red-400 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4" />
                     Allergies
@@ -595,12 +595,12 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                       })}
                     </div>
                   ) : (
-                    <p className="text-gray-400 text-sm">No known allergies</p>
+                    <p className="text-muted text-sm">No known allergies</p>
                   )}
                 </div>
 
                 {/* 4. Medical Conditions */}
-                <div className="bg-gray-700 rounded-lg p-4">
+                <div className="bg-surface-soft rounded-lg p-4">
                   <h3 className="font-semibold mb-3">Medical Conditions</h3>
                   {member.medical_conditions && member.medical_conditions.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
@@ -611,7 +611,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-400 text-sm">None reported</p>
+                    <p className="text-muted text-sm">None reported</p>
                   )}
                 </div>
 
@@ -624,18 +624,18 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                     </h3>
                     <p className="text-white">{member.emergency_contact_name}</p>
                     {member.emergency_contact_phone && (
-                      <p className="text-gray-400">{displayPhone(member.emergency_contact_phone)}</p>
+                      <p className="text-muted">{displayPhone(member.emergency_contact_phone)}</p>
                     )}
                   </div>
                 )}
 
                 {/* 6. Responsibilities */}
                 {member.responsibilities && member.responsibilities.length > 0 && (
-                  <div className="bg-gray-700 rounded-lg p-4">
+                  <div className="bg-surface-soft rounded-lg p-4">
                     <h3 className="font-semibold mb-3">Responsibilities</h3>
                     <ul className="space-y-1 text-sm">
                       {member.responsibilities.map((resp, idx) => (
-                        <li key={idx} className="text-gray-300">• {resp}</li>
+                        <li key={idx} className="text-secondary">• {resp}</li>
                       ))}
                     </ul>
                   </div>
@@ -643,7 +643,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
 
                 {/* 7. Trainings */}
                 {member.trainings && member.trainings.length > 0 && (
-                  <div className="bg-gray-700 rounded-lg p-4">
+                  <div className="bg-surface-soft rounded-lg p-4">
                     <h3 className="font-semibold mb-3">Completed Training</h3>
                     <div className="flex flex-wrap gap-2">
                       {member.trainings.map((training, idx) => (
@@ -657,37 +657,37 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
 
                 {/* 8. Notes */}
                 {member.notes && (
-                  <div className="bg-gray-700 rounded-lg p-4 md:col-span-2">
+                  <div className="bg-surface-soft rounded-lg p-4 md:col-span-2">
                     <h3 className="font-semibold mb-2">Notes</h3>
-                    <p className="text-gray-300 whitespace-pre-wrap">{member.notes}</p>
+                    <p className="text-secondary whitespace-pre-wrap">{member.notes}</p>
                   </div>
                 )}
 
                 {/* 9. Gear Sizing - LAST */}
-                <div className="bg-gray-700 rounded-lg p-4 md:col-span-2">
+                <div className="bg-surface-soft rounded-lg p-4 md:col-span-2">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Shield className="w-4 h-4 text-farm-green" />
                     Gear Sizing
                   </h3>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-400">Shoe</span>
+                      <span className="text-muted">Shoe</span>
                       <p className="font-medium">{member.shoe_size || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-gray-400">Shirt</span>
+                      <span className="text-muted">Shirt</span>
                       <p className="font-medium">{member.shirt_size || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-gray-400">Pants</span>
+                      <span className="text-muted">Pants</span>
                       <p className="font-medium">{member.pants_size || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-gray-400">Hat</span>
+                      <span className="text-muted">Hat</span>
                       <p className="font-medium">{member.hat_size || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-gray-400">Gloves</span>
+                      <span className="text-muted">Gloves</span>
                       <p className="font-medium">{member.glove_size || 'N/A'}</p>
                     </div>
                   </div>
@@ -720,21 +720,21 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
               <div className="space-y-6">
                 {/* Readiness Status */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gray-700 rounded-lg p-4">
+                  <div className="bg-surface-soft rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-gray-400 text-sm">Medical Readiness</span>
+                      <span className="text-muted text-sm">Medical Readiness</span>
                       <ReadinessIndicator status={member.medical_readiness} />
                     </div>
                     {member.medical_readiness_notes && (
-                      <p className="text-sm text-gray-300">{member.medical_readiness_notes}</p>
+                      <p className="text-sm text-secondary">{member.medical_readiness_notes}</p>
                     )}
                   </div>
-                  <div className="bg-gray-700 rounded-lg p-4">
+                  <div className="bg-surface-soft rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-gray-400 text-sm">Dental Status</span>
+                      <span className="text-muted text-sm">Dental Status</span>
                       <ReadinessIndicator status={member.dental_status} />
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-muted">
                       {member.last_dental_date && (
                         <p>Last: {formatDate(member.last_dental_date)}</p>
                       )}
@@ -743,12 +743,12 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                       )}
                     </div>
                   </div>
-                  <div className="bg-gray-700 rounded-lg p-4">
+                  <div className="bg-surface-soft rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-gray-400 text-sm">Vision Status</span>
+                      <span className="text-muted text-sm">Vision Status</span>
                       <span className="text-sm">{member.vision_status || 'N/A'}</span>
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-muted">
                       {member.vision_prescription && (
                         <p>Rx: {member.vision_prescription}</p>
                       )}
@@ -760,18 +760,18 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 </div>
 
                 {/* Physical Exam */}
-                <div className="bg-gray-700 rounded-lg p-4">
+                <div className="bg-surface-soft rounded-lg p-4">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Stethoscope className="w-4 h-4 text-farm-green" />
                     Physical Exam
                   </h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-400">Last Physical:</span>
+                      <span className="text-muted">Last Physical:</span>
                       <span className="ml-2">{formatDate(member.last_physical_date)}</span>
                     </div>
                     <div>
-                      <span className="text-gray-400">Next Due:</span>
+                      <span className="text-muted">Next Due:</span>
                       <span className="ml-2">{formatDate(member.next_physical_due)}</span>
                     </div>
                   </div>
@@ -797,14 +797,14 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
 
                 {/* Current Medications */}
                 {member.current_medications && member.current_medications.length > 0 && (
-                  <div className="bg-gray-700 rounded-lg p-4">
+                  <div className="bg-surface-soft rounded-lg p-4">
                     <h3 className="font-semibold mb-3">Current Medications</h3>
                     <div className="space-y-2">
                       {member.current_medications.map((med, idx) => (
                         <div key={idx} className="flex items-center gap-4 text-sm">
                           <span className="font-medium">{med.name}</span>
-                          {med.dosage && <span className="text-gray-400">{med.dosage}</span>}
-                          {med.frequency && <span className="text-gray-400">{med.frequency}</span>}
+                          {med.dosage && <span className="text-muted">{med.dosage}</span>}
+                          {med.frequency && <span className="text-muted">{med.frequency}</span>}
                         </div>
                       ))}
                     </div>
@@ -813,17 +813,17 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
 
                 {/* Medical History Log */}
                 {medicalHistory.length > 0 && (
-                  <div className="bg-gray-700 rounded-lg p-4">
+                  <div className="bg-surface-soft rounded-lg p-4">
                     <h3 className="font-semibold mb-3">Medical History Log</h3>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {medicalHistory.map(log => (
-                        <div key={log.id} className="text-sm border-l-2 border-gray-600 pl-3">
+                        <div key={log.id} className="text-sm border-l-2 border pl-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-gray-400">{formatDate(log.recorded_at)}</span>
-                            <span className="text-gray-500">·</span>
+                            <span className="text-muted">{formatDate(log.recorded_at)}</span>
+                            <span className="text-muted">·</span>
                             <span className="capitalize">{log.log_type.replace('_', ' ')}</span>
                           </div>
-                          {log.notes && <p className="text-gray-300">{log.notes}</p>}
+                          {log.notes && <p className="text-secondary">{log.notes}</p>}
                         </div>
                       ))}
                     </div>
@@ -920,50 +920,50 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
       {/* Sick Status Modal */}
       {showSickModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="bg-surface rounded-lg w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-subtle">
               <h3 className="font-semibold flex items-center gap-2">
                 <Thermometer className="w-5 h-5 text-red-500" />
                 {member.is_sick ? 'Update Sick Status' : 'Mark as Sick'}
               </h3>
               <button
                 onClick={() => { setShowSickModal(false); setSickNotes(''); setSickStartDate(''); setSickError(null); }}
-                className="text-gray-400 hover:text-white"
+                className="text-muted hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4 space-y-4">
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted">
                 {member.is_sick
                   ? 'Mark as recovered to enter recovery mode. During recovery, workouts and intense activities should be eased back into gradually.'
                   : 'When marked as sick, this team member should focus on rest and recovery. No workouts or early wake requirements will be expected.'}
               </p>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes (optional)</label>
+                <label className="block text-sm text-muted mb-1">Notes (optional)</label>
                 <textarea
                   value={sickNotes}
                   onChange={e => setSickNotes(e.target.value)}
                   placeholder="Symptoms, doctor recommendations, etc."
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-sm"
                   rows={3}
                 />
               </div>
               {!member.is_sick && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Start Date (optional)</label>
+                  <label className="block text-sm text-muted mb-1">Start Date (optional)</label>
                   <input
                     type="date"
                     value={sickStartDate}
                     onChange={e => setSickStartDate(e.target.value)}
                     max={new Date().toISOString().split('T')[0]}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-sm"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Leave blank to use today's date</p>
+                  <p className="text-xs text-muted mt-1">Leave blank to use today's date</p>
                 </div>
               )}
               {member.is_sick && member.sick_since && (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted">
                   Sick since: {new Date(member.sick_since).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   {member.sick_notes && ` - ${member.sick_notes}`}
                 </p>
@@ -978,7 +978,7 @@ function MemberDossier({ member, settings, onEdit, onDelete, onUpdate }) {
                 <button
                   type="button"
                   onClick={() => { setShowSickModal(false); setSickNotes(''); setSickStartDate(''); setSickError(null); }}
-                  className="px-4 py-2 text-gray-400 hover:text-white"
+                  className="px-4 py-2 text-muted hover:text-white"
                 >
                   Cancel
                 </button>
@@ -1074,7 +1074,7 @@ function MedicalAppointmentsSection({ member, appointments, onUpdate }) {
   }
 
   return (
-    <div className="bg-gray-700 rounded-lg p-4">
+    <div className="bg-surface-soft rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold flex items-center gap-2">
           <Calendar className="w-4 h-4 text-farm-green" />
@@ -1095,19 +1095,19 @@ function MedicalAppointmentsSection({ member, appointments, onUpdate }) {
       )}
 
       {appointments.length === 0 ? (
-        <p className="text-sm text-gray-400">No appointments tracked. Add appointment types to track.</p>
+        <p className="text-sm text-muted">No appointments tracked. Add appointment types to track.</p>
       ) : (
         <div className="space-y-2">
           {appointments.map(appt => (
-            <div key={appt.id} className="bg-gray-800 rounded p-3 flex items-center justify-between">
+            <div key={appt.id} className="bg-surface rounded p-3 flex items-center justify-between">
               <div>
                 <div className="font-medium text-sm">{appt.display_type}</div>
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-muted">
                   {appt.provider_name && <span>{appt.provider_name} · </span>}
                   Every {appt.frequency_months} months
                 </div>
                 <div className="text-xs flex gap-4">
-                  <span className="text-gray-400">
+                  <span className="text-muted">
                     Last: {formatDate(appt.last_appointment)}
                   </span>
                   <span className={getDueDateClass(appt.next_due)}>
@@ -1125,13 +1125,13 @@ function MedicalAppointmentsSection({ member, appointments, onUpdate }) {
                 </button>
                 <button
                   onClick={() => setEditingAppt(appt)}
-                  className="p-1 text-gray-400 hover:text-white"
+                  className="p-1 text-muted hover:text-white"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(appt.id)}
-                  className="p-1 text-gray-400 hover:text-red-400"
+                  className="p-1 text-muted hover:text-red-400"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -1200,10 +1200,10 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-subtle">
           <h3 className="font-semibold">{appointment ? 'Edit Appointment' : 'Add Appointment Type'}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1214,11 +1214,11 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
             </div>
           )}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Appointment Type *</label>
+            <label className="block text-sm text-muted mb-1">Appointment Type *</label>
             <select
               value={formData.appointment_type}
               onChange={(e) => setFormData({ ...formData, appointment_type: e.target.value })}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
               required
             >
               {APPOINTMENT_TYPES.map(t => (
@@ -1228,42 +1228,42 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
           </div>
           {formData.appointment_type === 'CUSTOM' && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Custom Type Name *</label>
+              <label className="block text-sm text-muted mb-1">Custom Type Name *</label>
               <input
                 type="text"
                 value={formData.custom_type_name}
                 onChange={(e) => setFormData({ ...formData, custom_type_name: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
                 required
               />
             </div>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Last Appointment</label>
+              <label className="block text-sm text-muted mb-1">Last Appointment</label>
               <input
                 type="date"
                 value={formData.last_appointment}
                 onChange={(e) => setFormData({ ...formData, last_appointment: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Next Due</label>
+              <label className="block text-sm text-muted mb-1">Next Due</label>
               <input
                 type="date"
                 value={formData.next_due}
                 onChange={(e) => setFormData({ ...formData, next_due: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Frequency (months)</label>
+            <label className="block text-sm text-muted mb-1">Frequency (months)</label>
             <select
               value={formData.frequency_months}
               onChange={(e) => setFormData({ ...formData, frequency_months: e.target.value })}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             >
               <option value={3}>Every 3 months</option>
               <option value={6}>Every 6 months</option>
@@ -1273,46 +1273,46 @@ function AppointmentModal({ appointment, memberId, onClose, onSave }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Provider Name</label>
+            <label className="block text-sm text-muted mb-1">Provider Name</label>
             <input
               type="text"
               value={formData.provider_name}
               onChange={(e) => setFormData({ ...formData, provider_name: e.target.value })}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Phone</label>
+              <label className="block text-sm text-muted mb-1">Phone</label>
               <input
                 type="tel"
                 value={formData.provider_phone}
                 onChange={(e) => setFormData({ ...formData, provider_phone: formatPhoneNumber(e.target.value) })}
                 placeholder="(000)000-0000"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Address</label>
+            <label className="block text-sm text-muted mb-1">Address</label>
             <textarea
               value={formData.provider_address}
               onChange={(e) => setFormData({ ...formData, provider_address: e.target.value })}
               rows={2}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-muted hover:text-white">
               Cancel
             </button>
             <button
@@ -1452,7 +1452,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
   // Get body fat info with category - using ACE fitness standards (gender-specific)
   const bodyFat = getBodyFat()
   const getBodyFatCategory = (bf) => {
-    if (bf === null) return { label: 'N/A', color: 'text-gray-400' }
+    if (bf === null) return { label: 'N/A', color: 'text-muted' }
     const isFemale = member.gender === 'female'
 
     if (isFemale) {
@@ -1604,7 +1604,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       case 'GREEN': return { bg: 'bg-green-600', text: 'text-green-400', border: 'border-green-500' }
       case 'AMBER': return { bg: 'bg-yellow-600', text: 'text-yellow-400', border: 'border-yellow-500' }
       case 'RED': return { bg: 'bg-red-600', text: 'text-red-400', border: 'border-red-500' }
-      default: return { bg: 'bg-gray-600', text: 'text-gray-400', border: 'border-gray-500' }
+      default: return { bg: 'bg-surface-hover', text: 'text-muted', border: 'border-strong' }
     }
   }
 
@@ -1613,8 +1613,8 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
     switch (trend) {
       case 'improving': return <TrendingUp className="w-3 h-3 text-green-400" />
       case 'declining': return <TrendingDown className="w-3 h-3 text-red-400" />
-      case 'stable': return <Minus className="w-3 h-3 text-gray-400" />
-      default: return <Info className="w-3 h-3 text-gray-500" />
+      case 'stable': return <Minus className="w-3 h-3 text-muted" />
+      default: return <Info className="w-3 h-3 text-muted" />
     }
   }
 
@@ -1625,14 +1625,14 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       case 'high': return 'bg-red-500/80 text-white'
       case 'moderate': return 'bg-yellow-500/80 text-white'
       case 'low': return 'bg-blue-500/60 text-white'
-      default: return 'bg-gray-500 text-white'
+      default: return 'bg-surface-muted text-white'
     }
   }
 
   return (
     <div className="space-y-4">
       {/* Readiness Analysis Panel */}
-      <div className="bg-gray-700 rounded-lg p-4">
+      <div className="bg-surface-soft rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-lg">Overall Readiness Assessment</h3>
           <div className="flex items-center gap-3">
@@ -1700,7 +1700,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                         )}
                       </div>
                       {readinessAnalysis.medical_safety.recommendation && (
-                        <p className="text-xs text-gray-400 mt-1">{readinessAnalysis.medical_safety.recommendation}</p>
+                        <p className="text-xs text-muted mt-1">{readinessAnalysis.medical_safety.recommendation}</p>
                       )}
                     </div>
                   </div>
@@ -1708,21 +1708,21 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
 
                 {/* Performance Readiness */}
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-400 w-36">Performance</span>
+                  <span className="text-muted w-36">Performance</span>
                   <span className={`px-2 py-0.5 rounded text-sm font-medium ${getStatusColor(readinessAnalysis.physical_status || readinessAnalysis.overall_status).bg} text-white`}>
                     {readinessAnalysis.physical_status || readinessAnalysis.overall_status}
                   </span>
-                  <span className="text-gray-300">
+                  <span className="text-secondary">
                     {readinessAnalysis.indicators?.find(i => i.name === 'Physical Readiness')?.value?.toFixed(0) || '-'}
                   </span>
                 </div>
 
                 {/* Training Load Analysis */}
                 {readinessAnalysis.training_load && (
-                  <div className="bg-gray-800 rounded p-2">
+                  <div className="bg-surface rounded p-2">
                     <div className="flex items-center gap-2 mb-2">
                       <Activity className="w-4 h-4 text-blue-400" />
-                      <span className="text-xs text-gray-400 font-medium">TRAINING LOAD</span>
+                      <span className="text-xs text-muted font-medium">TRAINING LOAD</span>
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                         readinessAnalysis.training_load.risk === 'HIGH' ? 'bg-red-600' :
                         readinessAnalysis.training_load.risk === 'MODERATE' ? 'bg-yellow-600' :
@@ -1733,7 +1733,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                       <div>
-                        <div className="text-gray-500">ACWR (Workload Ratio)</div>
+                        <div className="text-muted">ACWR (Workload Ratio)</div>
                         <span className={`font-medium ${
                           readinessAnalysis.training_load.acwr > 1.5 ? 'text-red-400' :
                           readinessAnalysis.training_load.acwr > 1.3 ? 'text-yellow-400' :
@@ -1741,25 +1741,25 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                         }`}>
                           {readinessAnalysis.training_load.acwr?.toFixed(2) || '-'}
                         </span>
-                        <span className="text-gray-600 ml-1">(sweet spot: 0.8-1.3)</span>
+                        <span className="text-muted ml-1">(sweet spot: 0.8-1.3)</span>
                       </div>
                       <div>
-                        <div className="text-gray-500">This Week (Acute)</div>
+                        <div className="text-muted">This Week (Acute)</div>
                         <span>{readinessAnalysis.training_load.acute_load?.toFixed(0) || '-'} load pts</span>
                       </div>
                       <div>
-                        <div className="text-gray-500">4-Wk Avg (Chronic)</div>
+                        <div className="text-muted">4-Wk Avg (Chronic)</div>
                         <span>{readinessAnalysis.training_load.chronic_load?.toFixed(0) || '-'} load pts/wk</span>
                       </div>
                     </div>
                     {readinessAnalysis.training_load.notes?.length > 0 && (
-                      <div className="mt-2 text-xs text-gray-400">
+                      <div className="mt-2 text-xs text-muted">
                         {readinessAnalysis.training_load.notes.map((note, i) => (
                           <p key={i} className="mt-0.5">{note}</p>
                         ))}
                       </div>
                     )}
-                    <div className="mt-2 text-[10px] text-gray-600">
+                    <div className="mt-2 text-[10px] text-muted">
                       ACWR = Acute-to-Chronic Workload Ratio. Compares this week's training to your 4-week average. Load pts = duration × effort (RPE). Rucks include weight×distance multiplier.
                     </div>
                   </div>
@@ -1767,8 +1767,8 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
 
                 {/* Physical Breakdown - Compact View */}
                 {readinessAnalysis.indicators?.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-600">
-                    <div className="text-xs text-gray-400 mb-2">PHYSICAL BREAKDOWN:</div>
+                  <div className="mt-3 pt-3 border-t border">
+                    <div className="text-xs text-muted mb-2">PHYSICAL BREAKDOWN:</div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {readinessAnalysis.indicators
                         .filter(ind => ['autonomic', 'cardiovascular', 'illness', 'body_composition', 'activity'].includes(ind.category))
@@ -1777,14 +1777,14 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                           const colorMap = { green: { badge: 'bg-green-900/30 text-green-400', bar: 'bg-green-500' }, yellow: { badge: 'bg-yellow-900/30 text-yellow-400', bar: 'bg-yellow-500' }, red: { badge: 'bg-red-900/30 text-red-400', bar: 'bg-red-500' } }
                           const c = colorMap[scoreColor]
                           return (
-                            <div key={ind.category} className="bg-gray-800/50 rounded-lg p-2">
+                            <div key={ind.category} className="bg-surface/50 rounded-lg p-2">
                               <div className="flex items-center justify-between gap-1 mb-1">
                                 <span className="text-xs text-white font-medium">{ind.name}</span>
                                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${c.badge}`}>
                                   {ind.value?.toFixed(0) || '-'}
                                 </span>
                               </div>
-                              <div className="bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                              <div className="bg-surface-soft rounded-full h-1.5 overflow-hidden">
                                 <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${ind.value}%` }} />
                               </div>
                             </div>
@@ -1798,12 +1798,12 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
 
             {/* Primary Drivers */}
             {readinessAnalysis.primary_drivers?.length > 0 && (
-              <div className="bg-gray-800 rounded p-3">
-                <div className="text-xs text-gray-400 mb-2">PRIMARY DRIVERS</div>
+              <div className="bg-surface rounded p-3">
+                <div className="text-xs text-muted mb-2">PRIMARY DRIVERS</div>
                 <ul className="space-y-1">
                   {readinessAnalysis.primary_drivers.map((driver, i) => (
-                    <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
-                      <span className="text-gray-500">-</span>
+                    <li key={i} className="text-sm text-secondary flex items-start gap-2">
+                      <span className="text-muted">-</span>
                       {driver}
                     </li>
                   ))}
@@ -1814,7 +1814,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
             {/* Risk Flags */}
             {readinessAnalysis.risk_flags?.length > 0 && (
               <div className="space-y-2">
-                <div className="text-xs text-gray-400">RISK FLAGS</div>
+                <div className="text-xs text-muted">RISK FLAGS</div>
                 {readinessAnalysis.risk_flags.map((flag, i) => (
                   <div key={i} className={`rounded p-3 border-l-4 ${flag.severity === 'critical' || flag.severity === 'high' ? 'bg-red-900/30 border-red-500' : flag.severity === 'moderate' ? 'bg-yellow-900/30 border-yellow-500' : 'bg-blue-900/30 border-blue-500'}`}>
                     <div className="flex items-center gap-2 mb-1">
@@ -1823,12 +1823,12 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                       <span className={`text-xs px-1.5 py-0.5 rounded ${getSeverityColor(flag.severity)}`}>
                         {flag.severity}
                       </span>
-                      <span className="text-xs text-gray-500">[{flag.source}]</span>
+                      <span className="text-xs text-muted">[{flag.source}]</span>
                     </div>
-                    <p className="text-sm text-gray-300 ml-6">{flag.explanation}</p>
+                    <p className="text-sm text-secondary ml-6">{flag.explanation}</p>
                     {flag.recommendation && (
-                      <p className="text-xs text-gray-400 ml-6 mt-1">
-                        <span className="text-gray-500">Recommendation:</span> {flag.recommendation}
+                      <p className="text-xs text-muted ml-6 mt-1">
+                        <span className="text-muted">Recommendation:</span> {flag.recommendation}
                       </p>
                     )}
                   </div>
@@ -1839,7 +1839,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
             {/* Details Toggle */}
             <button
               onClick={() => setShowAnalysisDetails(!showAnalysisDetails)}
-              className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
+              className="text-sm text-muted hover:text-white flex items-center gap-1"
             >
               {showAnalysisDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               {showAnalysisDetails ? 'Hide Details' : 'Show Details'}
@@ -1847,50 +1847,50 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
 
             {/* Detailed View */}
             {showAnalysisDetails && (
-              <div className="space-y-3 pt-2 border-t border-gray-600">
+              <div className="space-y-3 pt-2 border-t border">
                 {/* Data Quality */}
-                <div className="bg-gray-800 rounded p-3">
-                  <div className="text-xs text-gray-400 mb-2">DATA QUALITY</div>
+                <div className="bg-surface rounded p-3">
+                  <div className="text-xs text-muted mb-2">DATA QUALITY</div>
                   {readinessAnalysis.data_quality_note && (
-                    <p className="text-sm text-gray-300 mb-2">{readinessAnalysis.data_quality_note}</p>
+                    <p className="text-sm text-secondary mb-2">{readinessAnalysis.data_quality_note}</p>
                   )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                     <div>
-                      <span className="text-gray-500">7-day readings:</span>
+                      <span className="text-muted">7-day readings:</span>
                       <span className="ml-1">{readinessAnalysis.data_quality?.data_points_7d || 0}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">30-day readings:</span>
+                      <span className="text-muted">30-day readings:</span>
                       <span className="ml-1">{readinessAnalysis.data_quality?.data_points_30d || 0}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Taping method:</span>
-                      <span className={`ml-1 ${readinessAnalysis.data_quality?.taping_available ? 'text-green-400' : 'text-gray-500'}`}>
+                      <span className="text-muted">Taping method:</span>
+                      <span className={`ml-1 ${readinessAnalysis.data_quality?.taping_available ? 'text-green-400' : 'text-muted'}`}>
                         {readinessAnalysis.data_quality?.taping_available ? 'Available' : 'Missing data'}
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Updated member:</span>
-                      <span className={`ml-1 ${readinessAnalysis.member_updated ? 'text-green-400' : 'text-gray-500'}`}>
+                      <span className="text-muted">Updated member:</span>
+                      <span className={`ml-1 ${readinessAnalysis.member_updated ? 'text-green-400' : 'text-muted'}`}>
                         {readinessAnalysis.member_updated ? 'Yes' : 'No'}
                       </span>
                     </div>
                   </div>
                   {readinessAnalysis.data_sources_used?.length > 0 && (
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="mt-2 text-xs text-muted">
                       Data sources: {readinessAnalysis.data_sources_used.join(', ')}
                     </div>
                   )}
                   {readinessAnalysis.data_quality?.vitals_missing?.length > 0 && (
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="mt-2 text-xs text-muted">
                       Missing vitals: {readinessAnalysis.data_quality.vitals_missing.join(', ')}
                     </div>
                   )}
                 </div>
 
                 {/* All Indicators - Detailed Expandable Cards */}
-                <div className="bg-gray-800 rounded p-3">
-                  <div className="text-xs text-gray-400 mb-2">ALL INDICATORS (click to expand)</div>
+                <div className="bg-surface rounded p-3">
+                  <div className="text-xs text-muted mb-2">ALL INDICATORS (click to expand)</div>
                   <div className="space-y-2">
                     {readinessAnalysis.indicators.map(ind => {
                       const scoreColor = ind.value >= 80 ? 'green' : ind.value >= 60 ? 'yellow' : 'red'
@@ -1901,7 +1901,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                       const isExpanded = expandedIndicators?.[ind.category] !== false
 
                       return (
-                        <div key={ind.category} className="bg-gray-700/50 rounded-lg overflow-hidden">
+                        <div key={ind.category} className="bg-surface-soft/50 rounded-lg overflow-hidden">
                           <button
                             onClick={() => setExpandedIndicators(prev => ({
                               ...prev,
@@ -1934,10 +1934,10 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                                     ) : null
                                   })()
                                 ) : (
-                                  <span className="text-xs text-gray-500" title="Data confidence">({ind.confidence})</span>
+                                  <span className="text-xs text-muted" title="Data confidence">({ind.confidence})</span>
                                 )}
                                 {hasDetails && (
-                                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                  <ChevronDown className={`w-4 h-4 text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                 )}
                               </div>
                             </div>
@@ -1948,7 +1948,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
 
                           {/* Expanded Details */}
                           {isExpanded && (
-                            <div className="px-2.5 pb-2.5 space-y-2.5 border-t border-gray-600/50">
+                            <div className="px-2.5 pb-2.5 space-y-2.5 border-t border/50">
                               {/* Summary */}
                               {ind.explanation && (
                                 <div className={`text-xs mt-2 ${c.text}`}>{ind.explanation}</div>
@@ -1957,15 +1957,15 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                               {/* Your Readings */}
                               {(ind.details?.actual_values?.length > 0 || ind.contributing_factors?.length > 0) && (
                                 <div>
-                                  <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">YOUR READINGS</div>
+                                  <div className="text-[10px] font-bold text-muted tracking-wider mb-1">YOUR READINGS</div>
                                   <div className="flex flex-wrap gap-1.5">
                                     {ind.details?.actual_values?.length > 0 ? (
                                       ind.details.actual_values.map((val, vi) => (
-                                        <span key={vi} className="text-xs text-white bg-gray-600 px-2 py-0.5 rounded font-medium">{val}</span>
+                                        <span key={vi} className="text-xs text-white bg-surface-hover px-2 py-0.5 rounded font-medium">{val}</span>
                                       ))
                                     ) : (
                                       ind.contributing_factors?.map((factor, fi) => (
-                                        <span key={fi} className="text-xs text-white bg-gray-600 px-2 py-0.5 rounded font-medium">{factor}</span>
+                                        <span key={fi} className="text-xs text-white bg-surface-hover px-2 py-0.5 rounded font-medium">{factor}</span>
                                       ))
                                     )}
                                   </div>
@@ -1975,7 +1975,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                               {/* Normal Ranges */}
                               {ind.details?.normal_ranges?.length > 0 && (
                                 <div>
-                                  <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">REFERENCE RANGES</div>
+                                  <div className="text-[10px] font-bold text-muted tracking-wider mb-1">REFERENCE RANGES</div>
                                   <div className="space-y-0.5">
                                     {ind.details.normal_ranges.map((range, ri) => (
                                       <div key={ri} className={`text-xs px-2 py-1 rounded border ${
@@ -1991,11 +1991,11 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                               {/* Contributing Factors */}
                               {ind.details?.actual_values?.length > 0 && ind.contributing_factors?.length > 0 && (
                                 <div>
-                                  <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">FACTORS</div>
+                                  <div className="text-[10px] font-bold text-muted tracking-wider mb-1">FACTORS</div>
                                   <div className="space-y-0.5">
                                     {ind.contributing_factors.map((factor, fi) => (
-                                      <div key={fi} className="text-xs text-gray-400 flex items-start gap-1">
-                                        <span className="text-gray-600">•</span>
+                                      <div key={fi} className="text-xs text-muted flex items-start gap-1">
+                                        <span className="text-muted">•</span>
                                         <span>{factor}</span>
                                       </div>
                                     ))}
@@ -2006,7 +2006,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                               {/* Recommendation */}
                               {ind.details?.recommendation && (
                                 <div>
-                                  <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">RECOMMENDATION</div>
+                                  <div className="text-[10px] font-bold text-muted tracking-wider mb-1">RECOMMENDATION</div>
                                   <div className={`text-xs px-2 py-1.5 rounded border ${
                                     scoreColor === 'green' ? 'bg-green-800/60 border-green-600 text-white' :
                                     scoreColor === 'yellow' ? 'bg-amber-800/60 border-amber-600 text-white' :
@@ -2024,14 +2024,14 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                   </div>
                 </div>
 
-                <div className="text-xs text-gray-500 text-right">
+                <div className="text-xs text-muted text-right">
                   Analyzed: {new Date(readinessAnalysis.analyzed_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <div className="text-gray-400 text-center py-4">
+          <div className="text-muted text-center py-4">
             {analysisLoading ? 'Loading analysis...' : 'No analysis available'}
           </div>
         )}
@@ -2039,22 +2039,22 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
 
       {/* Current Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-sm mb-1">Weight</div>
+        <div className="bg-surface-soft rounded-lg p-4">
+          <div className="text-muted text-sm mb-1">Weight</div>
           <div className="text-2xl font-bold">{formatWeight(member.current_weight)}</div>
           {member.target_weight && (
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-muted">
               Target: {formatWeight(member.target_weight)}
             </div>
           )}
         </div>
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-sm mb-1">Height</div>
+        <div className="bg-surface-soft rounded-lg p-4">
+          <div className="text-muted text-sm mb-1">Height</div>
           <div className="text-2xl font-bold">{formatHeight(member.height_inches)}</div>
         </div>
         {showBodyComposition && (
-          <div className="bg-gray-700 rounded-lg p-4">
-            <div className="text-gray-400 text-sm mb-1">Body Fat %</div>
+          <div className="bg-surface-soft rounded-lg p-4">
+            <div className="text-muted text-sm mb-1">Body Fat %</div>
             <div className="text-2xl font-bold">{bodyFat !== null ? `${bodyFat.toFixed(1)}%` : 'N/A'}</div>
             <div className={`text-xs ${bodyFatInfo.color}`}>{bodyFatInfo.label}</div>
             {bodyFat === null && (
@@ -2077,7 +2077,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                     return (
                       <div className="text-xs text-yellow-400 mt-1">
                         Missing: {missing.join(', ')}
-                        {isFemale && !hasHip && <span className="block text-gray-400">(Hip required for women)</span>}
+                        {isFemale && !hasHip && <span className="block text-muted">(Hip required for women)</span>}
                       </div>
                     )
                   }
@@ -2098,51 +2098,51 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
           </div>
         )}
         {showBodyComposition && (
-          <div className="bg-gray-700 rounded-lg p-4">
-            <div className="text-gray-400 text-sm mb-1">Lean Mass</div>
+          <div className="bg-surface-soft rounded-lg p-4">
+            <div className="text-muted text-sm mb-1">Lean Mass</div>
             <div className="text-2xl font-bold">{leanMass !== null ? formatWeight(leanMass) : 'N/A'}</div>
             {bodyFat !== null && (
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-muted">
                 Fat: {formatWeight(member.current_weight - leanMass)}
               </div>
             )}
           </div>
         )}
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-sm mb-1">Resting HR</div>
+        <div className="bg-surface-soft rounded-lg p-4">
+          <div className="text-muted text-sm mb-1">Resting HR</div>
           <div className="text-2xl font-bold">{latestRHR ? `${Math.round(latestRHR.value)}` : 'N/A'}</div>
-          {latestRHR && <div className="text-xs text-gray-400">bpm</div>}
+          {latestRHR && <div className="text-xs text-muted">bpm</div>}
         </div>
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-sm mb-1">Active HR</div>
+        <div className="bg-surface-soft rounded-lg p-4">
+          <div className="text-muted text-sm mb-1">Active HR</div>
           <div className="text-2xl font-bold">{latestActiveHR ? `${Math.round(latestActiveHR.value)}` : 'N/A'}</div>
-          {latestActiveHR && <div className="text-xs text-gray-400">bpm</div>}
+          {latestActiveHR && <div className="text-xs text-muted">bpm</div>}
         </div>
-        <div className="bg-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-sm mb-1">Blood Type</div>
+        <div className="bg-surface-soft rounded-lg p-4">
+          <div className="text-muted text-sm mb-1">Blood Type</div>
           <div className="text-2xl font-bold text-red-400">{member.blood_type || 'N/A'}</div>
         </div>
       </div>
 
 
       {/* Latest Vitals - includes weight and all measurements */}
-      <div className="bg-gray-700 rounded-lg p-4">
+      <div className="bg-surface-soft rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">Latest Vitals</h3>
-          <span className="text-xs text-gray-500">Click any card to see history</span>
+          <span className="text-xs text-muted">Click any card to see history</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           {/* Weight card first */}
           <div
-            className="bg-gray-800 rounded p-3 cursor-pointer hover:bg-gray-750"
+            className="bg-surface rounded p-3 cursor-pointer hover:bg-surface-muted"
             onClick={() => setSelectedType(selectedType === 'weight' ? null : 'weight')}
           >
-            <div className="text-xs text-gray-400 mb-1">Weight</div>
+            <div className="text-xs text-muted mb-1">Weight</div>
             <div className="font-medium">
               {member.current_weight ? formatWeight(member.current_weight) : 'No data'}
             </div>
             {weightHistory.length > 1 && (
-              <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+              <div className="text-xs text-muted mt-1 space-y-0.5">
                 {weightHistory.slice(1, 4).map((w, i) => (
                   <div key={w.id} className="flex justify-between">
                     <span>{formatDate(w.recorded_at)}</span>
@@ -2152,7 +2152,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
               </div>
             )}
             {weightHistory.length > 0 && (
-              <div className="text-xs text-gray-500 mt-1">{formatDate(weightHistory[0]?.recorded_at)}</div>
+              <div className="text-xs text-muted mt-1">{formatDate(weightHistory[0]?.recorded_at)}</div>
             )}
           </div>
           {/* Other vital types - hide hip for males */}
@@ -2163,15 +2163,15 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
             return (
               <div
                 key={type.value}
-                className="bg-gray-800 rounded p-3 cursor-pointer hover:bg-gray-750"
+                className="bg-surface rounded p-3 cursor-pointer hover:bg-surface-muted"
                 onClick={() => setSelectedType(selectedType === type.value ? null : type.value)}
               >
-                <div className="text-xs text-gray-400 mb-1">{type.label}</div>
+                <div className="text-xs text-muted mb-1">{type.label}</div>
                 <div className="font-medium">
                   {latest ? formatVitalValue(latest) : 'No data'}
                 </div>
                 {recentReadings.length > 0 && (
-                  <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                  <div className="text-xs text-muted mt-1 space-y-0.5">
                     {recentReadings.map(v => (
                       <div key={v.id} className="flex justify-between">
                         <span>{formatDate(v.recorded_at)}</span>
@@ -2183,7 +2183,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                   </div>
                 )}
                 {latest && (
-                  <div className="text-xs text-gray-500 mt-1">{formatDate(latest.recorded_at)}</div>
+                  <div className="text-xs text-muted mt-1">{formatDate(latest.recorded_at)}</div>
                 )}
               </div>
             )
@@ -2193,14 +2193,14 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
 
       {/* Selected Vital/Weight History */}
       {selectedType && (
-        <div className="bg-gray-700 rounded-lg p-4">
+        <div className="bg-surface-soft rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold">
               {selectedType === 'weight' ? 'Weight' : vitalTypes.find(t => t.value === selectedType)?.label || selectedType} History
             </h3>
             <button
               onClick={() => setSelectedType(null)}
-              className="text-sm text-gray-400 hover:text-white"
+              className="text-sm text-muted hover:text-white"
             >
               Close
             </button>
@@ -2210,43 +2210,43 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
               // Weight history
               weightHistory.length > 0 ? (
                 weightHistory.map(entry => (
-                  <div key={entry.id} className="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
+                  <div key={entry.id} className="flex items-center justify-between py-2 border-b border last:border-0">
                     <div className="flex items-center gap-4">
-                      <span className="text-gray-400 text-sm w-24">{formatDate(entry.recorded_at)}</span>
+                      <span className="text-muted text-sm w-24">{formatDate(entry.recorded_at)}</span>
                       <span className="font-medium">{formatWeight(entry.weight)}</span>
-                      {entry.notes && <span className="text-gray-400 text-sm">{entry.notes}</span>}
+                      {entry.notes && <span className="text-muted text-sm">{entry.notes}</span>}
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-gray-400 text-sm">No weight readings recorded</p>
+                <p className="text-muted text-sm">No weight readings recorded</p>
               )
             ) : (
               // Vital history
               getVitalsByType(selectedType).length > 0 ? (
                 getVitalsByType(selectedType).map(vital => (
-                  <div key={vital.id} className="flex items-center justify-between py-2 border-b border-gray-600 last:border-0">
+                  <div key={vital.id} className="flex items-center justify-between py-2 border-b border last:border-0">
                     <div className="flex items-center gap-4">
-                      <span className="text-gray-400 text-sm w-24">{formatDate(vital.recorded_at)}</span>
+                      <span className="text-muted text-sm w-24">{formatDate(vital.recorded_at)}</span>
                       <span className="font-medium">{formatVitalValue(vital)}</span>
                       {vital.context_factors?.length > 0 && (
                         <span className="text-sm" title={vital.context_factors.map(f => CONTEXT_FACTORS.find(cf => cf.id === f)?.label || f).join(', ')}>
                           {vital.context_factors.map(f => CONTEXT_FACTORS.find(cf => cf.id === f)?.icon || '').join(' ')}
                         </span>
                       )}
-                      {vital.notes && <span className="text-gray-400 text-sm">{vital.notes}</span>}
+                      {vital.notes && <span className="text-muted text-sm">{vital.notes}</span>}
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleStartEdit(vital)}
-                        className="p-1 text-gray-400 hover:text-blue-400"
+                        className="p-1 text-muted hover:text-blue-400"
                         title="Edit reading"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteVital(vital.id)}
-                        className="p-1 text-gray-400 hover:text-red-400"
+                        className="p-1 text-muted hover:text-red-400"
                         title="Delete reading"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -2255,7 +2255,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                   </div>
                 ))
               ) : (
-                <p className="text-gray-400 text-sm">No readings recorded</p>
+                <p className="text-muted text-sm">No readings recorded</p>
               )
             )}
           </div>
@@ -2265,10 +2265,10 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       {/* Add Recording Modal - unified for all vitals including weight */}
       {showAddVital && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-subtle">
               <h3 className="font-semibold">Add Recording</h3>
-              <button onClick={() => { setShowAddVital(false); setVitalForm({ vital_type: '', value: '', value_secondary: '', notes: '' }) }} className="text-gray-400 hover:text-white">
+              <button onClick={() => { setShowAddVital(false); setVitalForm({ vital_type: '', value: '', value_secondary: '', notes: '' }) }} className="text-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2305,7 +2305,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 </div>
               )}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Recording Type *</label>
+                <label className="block text-sm text-muted mb-1">Recording Type *</label>
                 <select
                   value={vitalForm.vital_type}
                   onChange={(e) => {
@@ -2315,7 +2315,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                       setWeightForm({ weight: '', notes: '' })
                     }
                   }}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                   required
                 >
                   <option value="">Select type...</option>
@@ -2328,7 +2328,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
               {vitalForm.vital_type === 'weight' ? (
                 <>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">
+                    <label className="block text-sm text-muted mb-1">
                       Weight ({settings?.team_units === 'metric' ? 'kg' : 'lbs'}) *
                     </label>
                     <input
@@ -2336,17 +2336,17 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                       step="0.1"
                       value={weightForm.weight}
                       onChange={(e) => setWeightForm({ ...weightForm, weight: e.target.value })}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                      className="w-full bg-surface-soft border border rounded px-3 py-2"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                    <label className="block text-sm text-muted mb-1">Notes</label>
                     <input
                       type="text"
                       value={weightForm.notes}
                       onChange={(e) => setWeightForm({ ...weightForm, notes: e.target.value })}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                      className="w-full bg-surface-soft border border rounded px-3 py-2"
                       placeholder="Optional notes..."
                     />
                   </div>
@@ -2355,7 +2355,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 <>
                   <div className={selectedVitalType?.has_secondary ? 'grid grid-cols-2 gap-4' : ''}>
                     <div>
-                      <label className="block text-sm text-gray-400 mb-1">
+                      <label className="block text-sm text-muted mb-1">
                         {selectedVitalType?.has_secondary ? 'Systolic *' : `Value (${selectedVitalType?.unit}) *`}
                       </label>
                       <input
@@ -2363,20 +2363,20 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                         step="0.1"
                         value={vitalForm.value}
                         onChange={(e) => setVitalForm({ ...vitalForm, value: e.target.value })}
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                        className="w-full bg-surface-soft border border rounded px-3 py-2"
                         placeholder={selectedVitalType?.has_secondary ? '120' : ''}
                         required
                       />
                     </div>
                     {selectedVitalType?.has_secondary && (
                       <div>
-                        <label className="block text-sm text-gray-400 mb-1">Diastolic *</label>
+                        <label className="block text-sm text-muted mb-1">Diastolic *</label>
                         <input
                           type="number"
                           step="0.1"
                           value={vitalForm.value_secondary}
                           onChange={(e) => setVitalForm({ ...vitalForm, value_secondary: e.target.value })}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                          className="w-full bg-surface-soft border border rounded px-3 py-2"
                           placeholder="80"
                           required
                         />
@@ -2384,7 +2384,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Context Factors</label>
+                    <label className="block text-sm text-muted mb-1">Context Factors</label>
                     <div className="flex flex-wrap gap-2">
                       {CONTEXT_FACTORS.map(factor => (
                         <label
@@ -2392,7 +2392,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                           className={`flex items-center gap-1 px-2 py-1 rounded cursor-pointer text-sm transition-colors ${
                             vitalForm.context_factors.includes(factor.id)
                               ? 'bg-blue-600 text-white'
-                              : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                              : 'bg-surface-hover text-secondary hover:bg-surface-muted'
                           }`}
                         >
                           <input
@@ -2412,22 +2412,22 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                         </label>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Select any factors that may affect this reading</p>
+                    <p className="text-xs text-muted mt-1">Select any factors that may affect this reading</p>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                    <label className="block text-sm text-muted mb-1">Notes</label>
                     <input
                       type="text"
                       value={vitalForm.notes}
                       onChange={(e) => setVitalForm({ ...vitalForm, notes: e.target.value })}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                      className="w-full bg-surface-soft border border rounded px-3 py-2"
                       placeholder="Optional notes..."
                     />
                   </div>
                 </>
               )}
               <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => { setShowAddVital(false); setVitalForm({ vital_type: '', value: '', value_secondary: '', context_factors: [], notes: '' }) }} className="px-4 py-2 text-gray-400 hover:text-white">
+                <button type="button" onClick={() => { setShowAddVital(false); setVitalForm({ vital_type: '', value: '', value_secondary: '', context_factors: [], notes: '' }) }} className="px-4 py-2 text-muted hover:text-white">
                   Cancel
                 </button>
                 <button
@@ -2446,10 +2446,10 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
       {/* Edit Vital Modal */}
       {editingVital && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-subtle">
               <h3 className="font-semibold">Edit {vitalTypes.find(t => t.value === editingVital.vital_type)?.label || editingVital.vital_type}</h3>
-              <button onClick={() => { setEditingVital(null); setEditForm({ value: '', value_secondary: '', context_factors: [], notes: '' }); setError(null) }} className="text-gray-400 hover:text-white">
+              <button onClick={() => { setEditingVital(null); setEditForm({ value: '', value_secondary: '', context_factors: [], notes: '' }); setError(null) }} className="text-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -2459,35 +2459,35 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                   {error}
                 </div>
               )}
-              <div className="text-sm text-gray-400 mb-2">
+              <div className="text-sm text-muted mb-2">
                 Recorded: {formatDate(editingVital.recorded_at)}
               </div>
               {editingVital.vital_type === 'blood_pressure' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Systolic (mmHg) *</label>
+                    <label className="block text-sm text-muted mb-1">Systolic (mmHg) *</label>
                     <input
                       type="number"
                       value={editForm.value}
                       onChange={(e) => setEditForm({ ...editForm, value: e.target.value })}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                      className="w-full bg-surface-soft border border rounded px-3 py-2"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Diastolic (mmHg) *</label>
+                    <label className="block text-sm text-muted mb-1">Diastolic (mmHg) *</label>
                     <input
                       type="number"
                       value={editForm.value_secondary}
                       onChange={(e) => setEditForm({ ...editForm, value_secondary: e.target.value })}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                      className="w-full bg-surface-soft border border rounded px-3 py-2"
                       required
                     />
                   </div>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
+                  <label className="block text-sm text-muted mb-1">
                     Value ({vitalTypes.find(t => t.value === editingVital.vital_type)?.unit || ''}) *
                   </label>
                   <input
@@ -2495,13 +2495,13 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                     step="0.1"
                     value={editForm.value}
                     onChange={(e) => setEditForm({ ...editForm, value: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2"
                     required
                   />
                 </div>
               )}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Context Factors</label>
+                <label className="block text-sm text-muted mb-1">Context Factors</label>
                 <div className="flex flex-wrap gap-2">
                   {CONTEXT_FACTORS.map(factor => (
                     <label
@@ -2509,7 +2509,7 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                       className={`flex items-center gap-1 px-2 py-1 rounded cursor-pointer text-sm transition-colors ${
                         editForm.context_factors.includes(factor.id)
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                          : 'bg-surface-hover text-secondary hover:bg-surface-muted'
                       }`}
                     >
                       <input
@@ -2531,17 +2531,17 @@ function HealthDataTab({ member, settings, weightHistory, vitalsHistory, vitalsA
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm text-muted mb-1">Notes</label>
                 <input
                   type="text"
                   value={editForm.notes}
                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                   placeholder="Optional notes..."
                 />
               </div>
               <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={() => { setEditingVital(null); setEditForm({ value: '', value_secondary: '', context_factors: [], notes: '' }); setError(null) }} className="px-4 py-2 text-gray-400 hover:text-white">
+                <button type="button" onClick={() => { setEditingVital(null); setEditForm({ value: '', value_secondary: '', context_factors: [], notes: '' }); setError(null) }} className="px-4 py-2 text-muted hover:text-white">
                   Cancel
                 </button>
                 <button
@@ -2761,7 +2761,7 @@ function FitnessTab({ member, settings, formatDate }) {
   const isStrength = workoutForm.workout_type === 'STRENGTH'
 
   if (loading) {
-    return <div className="text-center py-8 text-gray-400">Loading fitness data...</div>
+    return <div className="text-center py-8 text-muted">Loading fitness data...</div>
   }
 
   return (
@@ -2773,16 +2773,16 @@ function FitnessTab({ member, settings, formatDate }) {
           <h3 className="text-lg font-semibold">Fitness Tracking</h3>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex bg-gray-700 rounded-lg p-1">
+          <div className="flex bg-surface-soft rounded-lg p-1">
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1 rounded text-sm ${viewMode === 'list' ? 'bg-gray-600' : 'hover:bg-gray-600'}`}
+              className={`px-3 py-1 rounded text-sm ${viewMode === 'list' ? 'bg-surface-hover' : 'hover:bg-surface-hover'}`}
             >
               Workouts
             </button>
             <button
               onClick={() => setViewMode('stats')}
-              className={`px-3 py-1 rounded text-sm ${viewMode === 'stats' ? 'bg-gray-600' : 'hover:bg-gray-600'}`}
+              className={`px-3 py-1 rounded text-sm ${viewMode === 'stats' ? 'bg-surface-hover' : 'hover:bg-surface-hover'}`}
             >
               Stats
             </button>
@@ -2824,23 +2824,23 @@ function FitnessTab({ member, settings, formatDate }) {
                   </div>
                   <div>
                     <div className="font-semibold text-white">{fitnessProfile.overall_sub_tier}</div>
-                    <div className="text-sm text-gray-400">Overall Fitness Level</div>
+                    <div className="text-sm text-muted">Overall Fitness Level</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold">{Math.round(fitnessProfile.overall_score || 0)}</div>
-                  <div className="text-xs text-gray-400">FITNESS SCORE</div>
+                  <div className="text-xs text-muted">FITNESS SCORE</div>
                 </div>
               </div>
               {/* Overall Score Bar */}
               <div className="mt-3">
-                <div className="w-full bg-gray-700 rounded-full h-3 relative">
+                <div className="w-full bg-surface-soft rounded-full h-3 relative">
                   <div
                     className={`h-3 rounded-full transition-all ${
                       (fitnessProfile.overall_score || 0) >= 90 ? 'bg-yellow-500' :
                       (fitnessProfile.overall_score || 0) >= 70 ? 'bg-green-500' :
                       (fitnessProfile.overall_score || 0) >= 40 ? 'bg-blue-500' :
-                      'bg-gray-500'
+                      'bg-surface-muted'
                     }`}
                     style={{ width: `${Math.min(100, fitnessProfile.overall_score || 0)}%` }}
                   />
@@ -2849,21 +2849,21 @@ function FitnessTab({ member, settings, formatDate }) {
                   <div className="absolute top-0 bottom-0 border-l-2 border-green-400/50" style={{ left: '70%' }} />
                   <div className="absolute top-0 bottom-0 border-l-2 border-yellow-400/50" style={{ left: '90%' }} />
                 </div>
-                <div className="relative text-[10px] text-gray-600 mt-0.5 h-3">
+                <div className="relative text-[10px] text-muted mt-0.5 h-3">
                   <span className="absolute left-0">0</span>
                   <span className="absolute text-blue-500" style={{ left: '40%', transform: 'translateX(-50%)' }}>40 CIV</span>
                   <span className="absolute text-green-500" style={{ left: '70%', transform: 'translateX(-50%)' }}>70 MAR</span>
                   <span className="absolute text-yellow-500" style={{ left: '90%', transform: 'translateX(-50%)' }}>90 SF</span>
                   <span className="absolute right-0">100</span>
                 </div>
-                <div className="text-[10px] text-gray-500 mt-1">
+                <div className="text-[10px] text-muted mt-1">
                   Overall = average of your best score in each workout type
                 </div>
               </div>
               {/* Score Explanation - Detailed Breakdown */}
               {fitnessProfile.by_type && Object.keys(fitnessProfile.by_type).length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-600">
-                  <div className="text-xs text-gray-400 mb-3">SCORE BY WORKOUT TYPE <span className="text-gray-500">(each type scored independently - tap to expand)</span></div>
+                <div className="mt-4 pt-4 border-t border">
+                  <div className="text-xs text-muted mb-3">SCORE BY WORKOUT TYPE <span className="text-muted">(each type scored independently - tap to expand)</span></div>
                   <div className="space-y-2">
                     {Object.entries(fitnessProfile.by_type)
                       .sort((a, b) => (b[1].best_score || b[1].score || 0) - (a[1].best_score || a[1].score || 0))
@@ -2875,16 +2875,16 @@ function FitnessTab({ member, settings, formatDate }) {
                         const isExpanded = expandedScoreType === type
                         const details = data.scoring_details
                         return (
-                          <div key={type} className="bg-gray-800 rounded overflow-hidden">
+                          <div key={type} className="bg-surface rounded overflow-hidden">
                             {/* Clickable header row */}
                             <div
-                              className="p-3 cursor-pointer hover:bg-gray-750"
+                              className="p-3 cursor-pointer hover:bg-surface-muted"
                               onClick={() => setExpandedScoreType(isExpanded ? null : type)}
                             >
                               <div className="flex items-center justify-between mb-1">
                                 <div className="flex items-center gap-2">
                                   {icon && <span className="text-sm">{icon}</span>}
-                                  <span className="text-sm font-medium text-gray-200">{typeLabel?.label || type}</span>
+                                  <span className="text-sm font-medium text-primary">{typeLabel?.label || type}</span>
                                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                                     data.tier === 'SF' ? 'bg-yellow-500 text-yellow-900' :
                                     data.tier === 'MARINE' ? 'bg-green-500 text-green-900' :
@@ -2892,32 +2892,32 @@ function FitnessTab({ member, settings, formatDate }) {
                                   }`}>
                                     {data.tier} {data.sub_tier || ''}
                                   </span>
-                                  {isExpanded ? <ChevronUp className="w-3 h-3 text-gray-500" /> : <ChevronDown className="w-3 h-3 text-gray-500" />}
+                                  {isExpanded ? <ChevronUp className="w-3 h-3 text-muted" /> : <ChevronDown className="w-3 h-3 text-muted" />}
                                 </div>
                                 <div className="flex items-center gap-3">
-                                  <span className="text-xs text-gray-500">{data.workout_count || 0} workout{(data.workout_count || 0) !== 1 ? 's' : ''}</span>
+                                  <span className="text-xs text-muted">{data.workout_count || 0} workout{(data.workout_count || 0) !== 1 ? 's' : ''}</span>
                                   <span className={`text-lg font-bold ${
                                     bestScore >= 90 ? 'text-yellow-400' :
                                     bestScore >= 70 ? 'text-green-400' :
                                     bestScore >= 40 ? 'text-blue-400' :
-                                    'text-gray-400'
+                                    'text-muted'
                                   }`}>{Math.round(bestScore)}</span>
                                 </div>
                               </div>
                               {/* Progress bar */}
-                              <div className="w-full bg-gray-700 rounded-full h-2 mt-1">
+                              <div className="w-full bg-surface-soft rounded-full h-2 mt-1">
                                 <div
                                   className={`h-2 rounded-full transition-all ${
                                     bestScore >= 90 ? 'bg-yellow-500' :
                                     bestScore >= 70 ? 'bg-green-500' :
                                     bestScore >= 40 ? 'bg-blue-500' :
-                                    'bg-gray-500'
+                                    'bg-surface-muted'
                                   }`}
                                   style={{ width: `${Math.min(100, bestScore)}%` }}
                                 />
                               </div>
                               {/* Score markers - positioned at correct percentage locations */}
-                              <div className="relative text-[10px] text-gray-600 mt-0.5 h-3">
+                              <div className="relative text-[10px] text-muted mt-0.5 h-3">
                                 <span className="absolute left-0">0</span>
                                 <span className="absolute text-blue-600" style={{ left: '40%', transform: 'translateX(-50%)' }}>|40 CIV</span>
                                 <span className="absolute text-green-600" style={{ left: '70%', transform: 'translateX(-50%)' }}>|70 MAR</span>
@@ -2926,7 +2926,7 @@ function FitnessTab({ member, settings, formatDate }) {
                               </div>
                               {/* Average vs Best */}
                               {data.workout_count > 1 && avgScore !== bestScore && (
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-muted mt-1">
                                   Best: {Math.round(bestScore)} | Avg: {Math.round(avgScore)}
                                   {bestScore - avgScore > 15 && (
                                     <span className="text-yellow-500 ml-2">High variance - consistency will improve score</span>
@@ -2937,12 +2937,12 @@ function FitnessTab({ member, settings, formatDate }) {
 
                             {/* Expanded scoring details */}
                             {isExpanded && details && (
-                              <div className="px-3 pb-3 border-t border-gray-700 space-y-3">
+                              <div className="px-3 pb-3 border-t border-subtle space-y-3">
                                 {/* Scoring method */}
                                 <div className="mt-3">
-                                  <div className="text-xs font-semibold text-gray-300 mb-1">SCORING METHOD</div>
-                                  <div className="text-xs text-gray-400">{details.scoring_method}</div>
-                                  <div className="text-xs text-gray-500 mt-0.5">
+                                  <div className="text-xs font-semibold text-secondary mb-1">SCORING METHOD</div>
+                                  <div className="text-xs text-muted">{details.scoring_method}</div>
+                                  <div className="text-xs text-muted mt-0.5">
                                     Standards: {details.gender}, age {details.age_bracket}
                                   </div>
                                 </div>
@@ -2950,16 +2950,16 @@ function FitnessTab({ member, settings, formatDate }) {
                                 {/* Tier pace targets for RUN */}
                                 {details.tier_paces && (
                                   <div>
-                                    <div className="text-xs font-semibold text-gray-300 mb-1">PACE TARGETS</div>
+                                    <div className="text-xs font-semibold text-secondary mb-1">PACE TARGETS</div>
                                     <div className="grid grid-cols-1 gap-1">
                                       {details.tier_paces.map((tp, i) => (
-                                        <div key={i} className="flex justify-between text-xs bg-gray-900 rounded px-2 py-1">
+                                        <div key={i} className="flex justify-between text-xs bg-surface-app rounded px-2 py-1">
                                           <span className={
                                             tp.label.includes('SF') ? 'text-yellow-400' :
                                             tp.label.includes('Marine') ? 'text-green-400' :
                                             'text-blue-400'
                                           }>{tp.label}</span>
-                                          <span className="text-gray-300">{tp.pace} ({tp.time_3mi} 3mi)</span>
+                                          <span className="text-secondary">{tp.pace} ({tp.time_3mi} 3mi)</span>
                                         </div>
                                       ))}
                                     </div>
@@ -2969,7 +2969,7 @@ function FitnessTab({ member, settings, formatDate }) {
                                 {/* Generic thresholds (RUCK pace, SWIM times, BIKE speeds, ROW splits, HIIT formula, PT_TEST mapping, MOBILITY) */}
                                 {details.thresholds && details.thresholds.length > 0 && !details.tier_paces && (
                                   <div>
-                                    <div className="text-xs font-semibold text-gray-300 mb-1">
+                                    <div className="text-xs font-semibold text-secondary mb-1">
                                       {type === 'RUCK' ? 'PACE STANDARDS (at ~45lb)' :
                                        type === 'SWIM' ? '300M TIME STANDARDS' :
                                        type === 'BIKE' ? 'SPEED STANDARDS' :
@@ -2978,14 +2978,14 @@ function FitnessTab({ member, settings, formatDate }) {
                                     </div>
                                     <div className="grid grid-cols-1 gap-1">
                                       {details.thresholds.map((t, i) => (
-                                        <div key={i} className="flex justify-between text-xs bg-gray-900 rounded px-2 py-1">
+                                        <div key={i} className="flex justify-between text-xs bg-surface-app rounded px-2 py-1">
                                           <span className={
                                             t.label.includes('SF') ? 'text-yellow-400' :
                                             t.label.includes('Mar') ? 'text-green-400' :
                                             t.label.includes('Civ') ? 'text-blue-400' :
-                                            'text-gray-300'
+                                            'text-secondary'
                                           }>{t.label}</span>
-                                          <span className="text-gray-300">
+                                          <span className="text-secondary">
                                             {t.pace || t.time_300m || t.split_500m || t.speed
                                               ? [t.pace, t.time_300m, t.split_500m, t.speed].filter(Boolean).join(' / ')
                                               : t.value || t.score || ''}
@@ -2999,20 +2999,20 @@ function FitnessTab({ member, settings, formatDate }) {
                                 {/* Strength: Lift BW ratio thresholds */}
                                 {details.lift_thresholds && (
                                   <div>
-                                    <div className="text-xs font-semibold text-gray-300 mb-1">BARBELL LIFT STANDARDS (1RM / Body Weight)</div>
+                                    <div className="text-xs font-semibold text-secondary mb-1">BARBELL LIFT STANDARDS (1RM / Body Weight)</div>
                                     {Object.entries(details.lift_thresholds).map(([lift, entries]) => (
                                       <div key={lift} className="mb-2">
-                                        <div className="text-xs text-gray-400 font-medium mb-0.5">{lift}</div>
+                                        <div className="text-xs text-muted font-medium mb-0.5">{lift}</div>
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
                                           {entries.filter((_, i) => [0, 2, 5, 8].includes(i)).map((e, i) => (
-                                            <div key={i} className="text-[11px] bg-gray-900 rounded px-1.5 py-0.5 text-center">
+                                            <div key={i} className="text-[11px] bg-surface-app rounded px-1.5 py-0.5 text-center">
                                               <span className={
                                                 e.label.includes('SF') ? 'text-yellow-400' :
                                                 e.label.includes('Mar') ? 'text-green-400' :
                                                 'text-blue-400'
                                               }>{e.label.replace(' Exc', '').replace(' Pass', '')}</span>
-                                              <span className="text-gray-400 mx-1">{e.bw_ratio}</span>
-                                              {e.weight && <span className="text-gray-500">({e.weight})</span>}
+                                              <span className="text-muted mx-1">{e.bw_ratio}</span>
+                                              {e.weight && <span className="text-muted">({e.weight})</span>}
                                             </div>
                                           ))}
                                         </div>
@@ -3024,19 +3024,19 @@ function FitnessTab({ member, settings, formatDate }) {
                                 {/* Strength: Bodyweight exercise thresholds */}
                                 {details.bodyweight_thresholds && (
                                   <div>
-                                    <div className="text-xs font-semibold text-gray-300 mb-1">BODYWEIGHT EXERCISE STANDARDS</div>
+                                    <div className="text-xs font-semibold text-secondary mb-1">BODYWEIGHT EXERCISE STANDARDS</div>
                                     {Object.entries(details.bodyweight_thresholds).map(([exercise, entries]) => (
                                       <div key={exercise} className="mb-1.5">
-                                        <div className="text-xs text-gray-400 font-medium mb-0.5">{exercise}</div>
+                                        <div className="text-xs text-muted font-medium mb-0.5">{exercise}</div>
                                         <div className="flex flex-wrap gap-1">
                                           {entries.filter((_, i) => [0, 2, 5, 8].includes(i)).map((e, i) => (
-                                            <span key={i} className="text-[11px] bg-gray-900 rounded px-1.5 py-0.5">
+                                            <span key={i} className="text-[11px] bg-surface-app rounded px-1.5 py-0.5">
                                               <span className={
                                                 e.label.includes('SF') ? 'text-yellow-400' :
                                                 e.label.includes('Mar') ? 'text-green-400' :
                                                 'text-blue-400'
                                               }>{e.label.replace(' Exc', '').replace(' Pass', '')}</span>
-                                              <span className="text-gray-400 ml-1">{e.reps != null ? `${e.reps} reps` : e.time}</span>
+                                              <span className="text-muted ml-1">{e.reps != null ? `${e.reps} reps` : e.time}</span>
                                             </span>
                                           ))}
                                         </div>
@@ -3048,19 +3048,19 @@ function FitnessTab({ member, settings, formatDate }) {
                                 {/* Pack weight adjustments (RUCK) */}
                                 {details.adjustments && details.adjustments.length > 0 && (
                                   <div>
-                                    <div className="text-xs font-semibold text-gray-300 mb-1">
+                                    <div className="text-xs font-semibold text-secondary mb-1">
                                       {type === 'RUCK' ? 'PACK WEIGHT ADJUSTMENTS' :
                                        type === 'STRENGTH' ? 'SCORING ADJUSTMENTS' :
                                        'ADJUSTMENTS'}
                                     </div>
                                     <div className="grid grid-cols-1 gap-1">
                                       {details.adjustments.map((adj, i) => (
-                                        <div key={i} className="flex justify-between text-xs bg-gray-900 rounded px-2 py-1">
-                                          <span className="text-gray-400">{adj.label}{adj.condition ? `: ${adj.condition}` : ''}</span>
+                                        <div key={i} className="flex justify-between text-xs bg-surface-app rounded px-2 py-1">
+                                          <span className="text-muted">{adj.label}{adj.condition ? `: ${adj.condition}` : ''}</span>
                                           <span className={
                                             (adj.adjustment || '').includes('+') ? 'text-green-400' :
                                             (adj.adjustment || '').includes('-') ? 'text-red-400' :
-                                            'text-gray-300'
+                                            'text-secondary'
                                           }>{adj.adjustment || adj.value || ''}</span>
                                         </div>
                                       ))}
@@ -3071,13 +3071,13 @@ function FitnessTab({ member, settings, formatDate }) {
                                 {/* Body weight context for RUCK */}
                                 {details.body_weight_context && (
                                   <div>
-                                    <div className="text-xs font-semibold text-gray-300 mb-1">YOUR BODY WEIGHT CONTEXT</div>
-                                    <div className="text-xs text-gray-400 mb-1">Body weight: {details.body_weight_context.body_weight}</div>
+                                    <div className="text-xs font-semibold text-secondary mb-1">YOUR BODY WEIGHT CONTEXT</div>
+                                    <div className="text-xs text-muted mb-1">Body weight: {details.body_weight_context.body_weight}</div>
                                     <div className="grid grid-cols-1 gap-1">
                                       {Object.entries(details.body_weight_context.weight_targets).map(([label, val]) => (
-                                        <div key={label} className="flex justify-between text-xs bg-gray-900 rounded px-2 py-1">
-                                          <span className="text-gray-400">{label}</span>
-                                          <span className="text-gray-300">{val}</span>
+                                        <div key={label} className="flex justify-between text-xs bg-surface-app rounded px-2 py-1">
+                                          <span className="text-muted">{label}</span>
+                                          <span className="text-secondary">{val}</span>
                                         </div>
                                       ))}
                                     </div>
@@ -3087,18 +3087,18 @@ function FitnessTab({ member, settings, formatDate }) {
                                 {/* Distance scaling */}
                                 {details.distance_scaling && (
                                   <div>
-                                    <div className="text-xs font-semibold text-gray-300 mb-1">DISTANCE SCALING</div>
-                                    <div className="text-xs text-gray-400 mb-1">Full credit: {details.distance_scaling.full_credit}</div>
+                                    <div className="text-xs font-semibold text-secondary mb-1">DISTANCE SCALING</div>
+                                    <div className="text-xs text-muted mb-1">Full credit: {details.distance_scaling.full_credit}</div>
                                     <div className="grid grid-cols-1 gap-1">
                                       {(details.distance_scaling.levels || []).map((l, i) => (
-                                        <div key={i} className="flex justify-between text-xs bg-gray-900 rounded px-2 py-1">
-                                          <span className="text-gray-400">{l.distance}</span>
-                                          <span className="text-gray-300">{l.credit}</span>
+                                        <div key={i} className="flex justify-between text-xs bg-surface-app rounded px-2 py-1">
+                                          <span className="text-muted">{l.distance}</span>
+                                          <span className="text-secondary">{l.credit}</span>
                                         </div>
                                       ))}
                                     </div>
                                     {details.distance_scaling.note && (
-                                      <div className="text-[11px] text-gray-500 mt-1">{details.distance_scaling.note}</div>
+                                      <div className="text-[11px] text-muted mt-1">{details.distance_scaling.note}</div>
                                     )}
                                   </div>
                                 )}
@@ -3106,8 +3106,8 @@ function FitnessTab({ member, settings, formatDate }) {
                                 {/* Notes */}
                                 {details.notes && details.notes.length > 0 && (
                                   <div>
-                                    <div className="text-xs font-semibold text-gray-300 mb-1">NOTES</div>
-                                    <ul className="text-xs text-gray-500 space-y-0.5">
+                                    <div className="text-xs font-semibold text-secondary mb-1">NOTES</div>
+                                    <ul className="text-xs text-muted space-y-0.5">
                                       {details.notes.map((note, i) => (
                                         <li key={i}>• {note}</li>
                                       ))}
@@ -3118,16 +3118,16 @@ function FitnessTab({ member, settings, formatDate }) {
                                 {/* Tier scale reference */}
                                 {details.scale && (
                                   <div>
-                                    <div className="text-xs font-semibold text-gray-300 mb-1">GRADE SCALE</div>
+                                    <div className="text-xs font-semibold text-secondary mb-1">GRADE SCALE</div>
                                     <div className="grid grid-cols-2 gap-1">
                                       {details.scale.filter(s => !s.label.includes('Below')).map((s, i) => (
-                                        <div key={i} className="flex justify-between text-[11px] bg-gray-900 rounded px-2 py-0.5">
+                                        <div key={i} className="flex justify-between text-[11px] bg-surface-app rounded px-2 py-0.5">
                                           <span className={
                                             s.color === 'gold' ? 'text-yellow-400' :
                                             s.color === 'green' ? 'text-green-400' :
                                             'text-blue-400'
                                           }>{s.label}</span>
-                                          <span className="text-gray-500">{s.score}</span>
+                                          <span className="text-muted">{s.score}</span>
                                         </div>
                                       ))}
                                     </div>
@@ -3140,7 +3140,7 @@ function FitnessTab({ member, settings, formatDate }) {
                       })}
                   </div>
                   {/* How scoring works */}
-                  <div className="mt-3 text-xs text-gray-500">
+                  <div className="mt-3 text-xs text-muted">
                     Overall score = average of your best score in each category. Only your top performance per type counts.
                   </div>
                 </div>
@@ -3148,17 +3148,17 @@ function FitnessTab({ member, settings, formatDate }) {
 
               {/* Recent Scored Workouts */}
               {fitnessProfile.recent_scored_workouts && fitnessProfile.recent_scored_workouts.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-600">
-                  <div className="text-xs text-gray-400 mb-2">RECENT SCORED WORKOUTS</div>
+                <div className="mt-4 pt-4 border-t border">
+                  <div className="text-xs text-muted mb-2">RECENT SCORED WORKOUTS</div>
                   <div className="space-y-1">
                     {fitnessProfile.recent_scored_workouts.slice(0, 8).map((w, i) => {
                       const typeLabel = WORKOUT_TYPES.find(t => t.value === w.type)
                       return (
-                        <div key={w.workout_id || i} className="flex items-center justify-between text-sm bg-gray-800 rounded px-3 py-2">
+                        <div key={w.workout_id || i} className="flex items-center justify-between text-sm bg-surface rounded px-3 py-2">
                           <div className="flex items-center gap-2">
                             <span>{typeLabel?.icon || ''}</span>
-                            <span className="text-gray-300">{typeLabel?.label || w.type}</span>
-                            <span className="text-xs text-gray-500">{w.date ? new Date(w.date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}</span>
+                            <span className="text-secondary">{typeLabel?.label || w.type}</span>
+                            <span className="text-xs text-muted">{w.date ? new Date(w.date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`px-1.5 py-0.5 rounded text-xs ${
@@ -3170,7 +3170,7 @@ function FitnessTab({ member, settings, formatDate }) {
                               w.score >= 90 ? 'text-yellow-400' :
                               w.score >= 70 ? 'text-green-400' :
                               w.score >= 40 ? 'text-blue-400' :
-                              'text-gray-400'
+                              'text-muted'
                             }`}>{Math.round(w.score)}</span>
                             {w.confidence && w.confidence !== 'HIGH' && (
                               <span className="text-xs text-yellow-600">({w.confidence})</span>
@@ -3187,32 +3187,32 @@ function FitnessTab({ member, settings, formatDate }) {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+            <div className="bg-surface-soft/50 rounded-lg p-4 text-center">
               <div className="text-3xl font-bold text-blue-400">{stats.total_workouts}</div>
-              <div className="text-sm text-gray-400">Workouts (30d)</div>
+              <div className="text-sm text-muted">Workouts (30d)</div>
             </div>
-            <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+            <div className="bg-surface-soft/50 rounded-lg p-4 text-center">
               <div className="text-3xl font-bold text-green-400">{stats.workouts_per_week}</div>
-              <div className="text-sm text-gray-400">Per Week</div>
+              <div className="text-sm text-muted">Per Week</div>
             </div>
-            <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+            <div className="bg-surface-soft/50 rounded-lg p-4 text-center">
               <div className="text-3xl font-bold text-purple-400">{stats.total_distance_miles}</div>
-              <div className="text-sm text-gray-400">Miles</div>
+              <div className="text-sm text-muted">Miles</div>
             </div>
-            <div className="bg-gray-700/50 rounded-lg p-4 text-center">
+            <div className="bg-surface-soft/50 rounded-lg p-4 text-center">
               <div className="text-3xl font-bold text-orange-400">
                 {stats.total_duration_minutes >= 60
                   ? `${Math.floor(stats.total_duration_minutes / 60)}h ${stats.total_duration_minutes % 60}m`
                   : `${stats.total_duration_minutes}m`}
               </div>
-              <div className="text-sm text-gray-400">Total Time</div>
+              <div className="text-sm text-muted">Total Time</div>
             </div>
           </div>
 
           {/* Trend Indicator */}
-          <div className="bg-gray-700/30 rounded-lg p-4">
+          <div className="bg-surface-soft/30 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <span className="text-gray-400">Trend:</span>
+              <span className="text-muted">Trend:</span>
               {stats.trend === 'increasing' && (
                 <span className="flex items-center gap-1 text-green-400">
                   <TrendingUp className="w-4 h-4" />
@@ -3231,7 +3231,7 @@ function FitnessTab({ member, settings, formatDate }) {
                   Stable activity
                 </span>
               )}
-              <span className="text-gray-500 text-sm">
+              <span className="text-muted text-sm">
                 ({stats.recent_count_7d} workouts last 7d vs {stats.previous_count_7d} previous 7d)
               </span>
             </div>
@@ -3239,18 +3239,18 @@ function FitnessTab({ member, settings, formatDate }) {
 
           {/* Breakdown by Type */}
           {Object.keys(stats.by_type || {}).length > 0 && (
-            <div className="bg-gray-700/30 rounded-lg p-4">
+            <div className="bg-surface-soft/30 rounded-lg p-4">
               <h4 className="font-semibold mb-3">Breakdown by Type</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {Object.entries(stats.by_type).map(([type, data]) => {
                   const typeInfo = WORKOUT_TYPES.find(t => t.value === type) || { label: type, icon: '💪' }
                   return (
-                    <div key={type} className="bg-gray-800 rounded p-3">
+                    <div key={type} className="bg-surface rounded p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <span>{typeInfo.icon}</span>
                         <span className="font-medium">{typeInfo.label}</span>
                       </div>
-                      <div className="text-sm text-gray-400 space-y-1">
+                      <div className="text-sm text-muted space-y-1">
                         <div>{data.count} sessions</div>
                         {data.distance_miles > 0 && (
                           <div>{data.distance_miles.toFixed(1)} miles</div>
@@ -3270,13 +3270,13 @@ function FitnessTab({ member, settings, formatDate }) {
 
           {/* Best Performances */}
           {Object.keys(stats.best_performances || {}).length > 0 && (
-            <div className="bg-gray-700/30 rounded-lg p-4">
+            <div className="bg-surface-soft/30 rounded-lg p-4">
               <h4 className="font-semibold mb-3">Best Performances (30d)</h4>
               <div className="space-y-3">
                 {Object.entries(stats.best_performances).map(([type, perf]) => {
                   const typeInfo = WORKOUT_TYPES.find(t => t.value === type) || { label: type, icon: '💪' }
                   return (
-                    <div key={type} className="flex items-center justify-between bg-gray-800 rounded p-3">
+                    <div key={type} className="flex items-center justify-between bg-surface rounded p-3">
                       <div className="flex items-center gap-2">
                         <span>{typeInfo.icon}</span>
                         <span className="font-medium">{typeInfo.label}</span>
@@ -3286,9 +3286,9 @@ function FitnessTab({ member, settings, formatDate }) {
                           {perf.distance_miles} mi @ {formatPace(perf.pace_seconds_per_mile)}/mi
                         </div>
                         {perf.weight_carried_lbs && (
-                          <div className="text-gray-400">{perf.weight_carried_lbs} lbs</div>
+                          <div className="text-muted">{perf.weight_carried_lbs} lbs</div>
                         )}
-                        <div className="text-gray-500 text-xs">
+                        <div className="text-muted text-xs">
                           {formatDate(perf.date)}
                         </div>
                       </div>
@@ -3305,33 +3305,33 @@ function FitnessTab({ member, settings, formatDate }) {
       {viewMode === 'list' && (
         <div className="space-y-4">
           {workouts.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-muted">
               No workouts logged yet. Start tracking your fitness!
             </div>
           ) : (
             workouts.map((workout) => {
               const typeInfo = WORKOUT_TYPES.find(t => t.value === workout.workout_type) || { label: workout.workout_type, icon: '💪' }
               return (
-                <div key={workout.id} className="bg-gray-700/50 rounded-lg p-4">
+                <div key={workout.id} className="bg-surface-soft/50 rounded-lg p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{typeInfo.icon}</span>
                       <div>
                         <div className="font-semibold">{typeInfo.label}</div>
-                        <div className="text-sm text-gray-400">{formatDate(workout.workout_date)}</div>
+                        <div className="text-sm text-muted">{formatDate(workout.workout_date)}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleStartEdit(workout)}
-                        className="text-gray-500 hover:text-blue-400"
+                        className="text-muted hover:text-blue-400"
                         title="Edit workout"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(workout.id)}
-                        className="text-gray-500 hover:text-red-400"
+                        className="text-muted hover:text-red-400"
                         title="Delete workout"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -3342,56 +3342,56 @@ function FitnessTab({ member, settings, formatDate }) {
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                     {workout.duration_minutes && (
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-gray-400" />
+                        <Clock className="w-4 h-4 text-muted" />
                         <span>{workout.duration_minutes} min</span>
                       </div>
                     )}
                     {workout.distance_miles && (
                       <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-gray-400" />
+                        <Activity className="w-4 h-4 text-muted" />
                         <span>{workout.distance_miles} mi</span>
                       </div>
                     )}
                     {workout.pace_seconds_per_mile && (
                       <div className="flex items-center gap-2">
-                        <Timer className="w-4 h-4 text-gray-400" />
+                        <Timer className="w-4 h-4 text-muted" />
                         <span>{formatPace(workout.pace_seconds_per_mile)}/mi</span>
                       </div>
                     )}
                     {workout.weight_carried_lbs && (
                       <div className="flex items-center gap-2">
-                        <Package className="w-4 h-4 text-gray-400" />
+                        <Package className="w-4 h-4 text-muted" />
                         <span>{workout.weight_carried_lbs} lbs</span>
                       </div>
                     )}
                     {workout.elevation_gain_ft && (
                       <div className="flex items-center gap-2">
-                        <Mountain className="w-4 h-4 text-gray-400" />
+                        <Mountain className="w-4 h-4 text-muted" />
                         <span>{workout.elevation_gain_ft} ft</span>
                       </div>
                     )}
                     {workout.avg_heart_rate && (
                       <div className="flex items-center gap-2">
-                        <Heart className="w-4 h-4 text-gray-400" />
+                        <Heart className="w-4 h-4 text-muted" />
                         <span>{workout.avg_heart_rate} bpm</span>
                       </div>
                     )}
                     {workout.calories_burned && (
                       <div className="flex items-center gap-2">
-                        <Flame className="w-4 h-4 text-gray-400" />
+                        <Flame className="w-4 h-4 text-muted" />
                         <span>{workout.calories_burned} cal</span>
                       </div>
                     )}
                     {workout.rpe && (
                       <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-gray-400" />
+                        <Activity className="w-4 h-4 text-muted" />
                         <span>RPE {workout.rpe}/10</span>
                       </div>
                     )}
                   </div>
 
                   {workout.notes && (
-                    <div className="mt-2 text-sm text-gray-400 italic">
+                    <div className="mt-2 text-sm text-muted italic">
                       {workout.notes}
                     </div>
                   )}
@@ -3405,13 +3405,13 @@ function FitnessTab({ member, settings, formatDate }) {
       {/* Add/Edit Workout Modal */}
       {showAddWorkout && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">{editingWorkout ? 'Edit Workout' : 'Log Workout'}</h3>
 
             <form onSubmit={editingWorkout ? handleSaveEdit : handleSubmit} className="space-y-4">
               {/* Workout Type Selection */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Workout Type *</label>
+                <label className="block text-sm text-muted mb-2">Workout Type *</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {WORKOUT_TYPES.map(type => (
                     <button
@@ -3424,7 +3424,7 @@ function FitnessTab({ member, settings, formatDate }) {
                       className={`p-2 rounded text-center ${
                         workoutForm.workout_type === type.value
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 hover:bg-gray-600'
+                          : 'bg-surface-soft hover:bg-surface-hover'
                       }`}
                     >
                       <div className="text-xl">{type.icon}</div>
@@ -3437,22 +3437,22 @@ function FitnessTab({ member, settings, formatDate }) {
               {/* Date and Duration */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Date *</label>
+                  <label className="block text-sm text-muted mb-1">Date *</label>
                   <input
                     type="date"
                     value={workoutForm.workout_date}
                     onChange={(e) => setWorkoutForm({ ...workoutForm, workout_date: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Duration (minutes)</label>
+                  <label className="block text-sm text-muted mb-1">Duration (minutes)</label>
                   <input
                     type="number"
                     value={workoutForm.duration_minutes}
                     onChange={(e) => setWorkoutForm({ ...workoutForm, duration_minutes: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2"
                     placeholder="45"
                   />
                 </div>
@@ -3463,23 +3463,23 @@ function FitnessTab({ member, settings, formatDate }) {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm text-gray-400 mb-1">Distance (miles)</label>
+                      <label className="block text-sm text-muted mb-1">Distance (miles)</label>
                       <input
                         type="number"
                         step="0.01"
                         value={workoutForm.distance_miles}
                         onChange={(e) => setWorkoutForm({ ...workoutForm, distance_miles: e.target.value })}
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                        className="w-full bg-surface-soft border border rounded px-3 py-2"
                         placeholder="3.0"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-gray-400 mb-1">Elevation Gain (ft)</label>
+                      <label className="block text-sm text-muted mb-1">Elevation Gain (ft)</label>
                       <input
                         type="number"
                         value={workoutForm.elevation_gain_ft}
                         onChange={(e) => setWorkoutForm({ ...workoutForm, elevation_gain_ft: e.target.value })}
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                        className="w-full bg-surface-soft border border rounded px-3 py-2"
                         placeholder="250"
                       />
                     </div>
@@ -3487,12 +3487,12 @@ function FitnessTab({ member, settings, formatDate }) {
 
                   {isRuck && (
                     <div>
-                      <label className="block text-sm text-gray-400 mb-1">Weight Carried (lbs)</label>
+                      <label className="block text-sm text-muted mb-1">Weight Carried (lbs)</label>
                       <input
                         type="number"
                         value={workoutForm.weight_carried_lbs}
                         onChange={(e) => setWorkoutForm({ ...workoutForm, weight_carried_lbs: e.target.value })}
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                        className="w-full bg-surface-soft border border rounded px-3 py-2"
                         placeholder="45"
                       />
                     </div>
@@ -3503,22 +3503,22 @@ function FitnessTab({ member, settings, formatDate }) {
               {/* Heart Rate and Calories */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Avg Heart Rate (bpm)</label>
+                  <label className="block text-sm text-muted mb-1">Avg Heart Rate (bpm)</label>
                   <input
                     type="number"
                     value={workoutForm.avg_heart_rate}
                     onChange={(e) => setWorkoutForm({ ...workoutForm, avg_heart_rate: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2"
                     placeholder="145"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Calories Burned</label>
+                  <label className="block text-sm text-muted mb-1">Calories Burned</label>
                   <input
                     type="number"
                     value={workoutForm.calories_burned}
                     onChange={(e) => setWorkoutForm({ ...workoutForm, calories_burned: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2"
                     placeholder="350"
                   />
                 </div>
@@ -3527,40 +3527,40 @@ function FitnessTab({ member, settings, formatDate }) {
               {/* RPE and Quality */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">RPE (1-10)</label>
+                  <label className="block text-sm text-muted mb-1">RPE (1-10)</label>
                   <input
                     type="number"
                     min="1"
                     max="10"
                     value={workoutForm.rpe}
                     onChange={(e) => setWorkoutForm({ ...workoutForm, rpe: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2"
                     placeholder="7"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Rate of Perceived Exertion</p>
+                  <p className="text-xs text-muted mt-1">Rate of Perceived Exertion</p>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Quality (1-5)</label>
+                  <label className="block text-sm text-muted mb-1">Quality (1-5)</label>
                   <input
                     type="number"
                     min="1"
                     max="5"
                     value={workoutForm.quality_rating}
                     onChange={(e) => setWorkoutForm({ ...workoutForm, quality_rating: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2"
                     placeholder="4"
                   />
-                  <p className="text-xs text-gray-500 mt-1">How good did the workout feel?</p>
+                  <p className="text-xs text-muted mt-1">How good did the workout feel?</p>
                 </div>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm text-muted mb-1">Notes</label>
                 <textarea
                   value={workoutForm.notes}
                   onChange={(e) => setWorkoutForm({ ...workoutForm, notes: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                   rows={3}
                   placeholder="How did it feel? Any PRs?"
                 />
@@ -3571,7 +3571,7 @@ function FitnessTab({ member, settings, formatDate }) {
                 <button
                   type="button"
                   onClick={closeWorkoutModal}
-                  className="px-4 py-2 text-gray-400 hover:text-white"
+                  className="px-4 py-2 text-muted hover:text-white"
                 >
                   Cancel
                 </button>

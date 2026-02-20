@@ -218,7 +218,7 @@ function Team() {
     }
     return (
       <span
-        className={`inline-block rounded-full ${colors[status] || 'bg-gray-500'} ${sizes[size]}`}
+        className={`inline-block rounded-full ${colors[status] || 'bg-surface-muted'} ${sizes[size]}`}
         title={status}
       />
     )
@@ -249,7 +249,7 @@ function Team() {
   return (
     <div className="space-y-4">
       {/* Header: Team Name + Actions (top) + Tabs (below) */}
-      <div className="border-b border-gray-700 pb-2 space-y-2">
+      <div className="border-b border-subtle pb-2 space-y-2">
         {/* Top row: Team name + action buttons */}
         <div className="flex items-center justify-between">
           <h1 className="text-lg sm:text-2xl font-bold text-white truncate">
@@ -258,7 +258,7 @@ function Team() {
           <div className="flex gap-2 flex-shrink-0">
             <button
               onClick={loadData}
-              className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800"
+              className="p-2 text-muted hover:text-white rounded-lg hover:bg-surface"
               title="Refresh"
             >
               <RefreshCw className="w-5 h-5" />
@@ -281,15 +281,15 @@ function Team() {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowAddMenu(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden">
+                  <div className="absolute right-0 mt-2 w-56 bg-surface border border-subtle rounded-lg shadow-lg z-50 overflow-hidden">
                     {/* Health Data Entry */}
-                    <div className="px-3 py-2 text-xs text-gray-500 uppercase border-b border-gray-700">Health Data</div>
+                    <div className="px-3 py-2 text-xs text-muted uppercase border-b border-subtle">Health Data</div>
                     <button
                       onClick={() => {
                         setShowAddMenu(false)
                         setShowDailyCheckin(true)
                       }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-3"
                     >
                       <ClipboardCheck className="w-4 h-4 text-blue-400" />
                       Daily Check-in
@@ -299,7 +299,7 @@ function Team() {
                         setShowAddMenu(false)
                         setShowQuickWorkout(true)
                       }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-3"
                     >
                       <Dumbbell className="w-4 h-4 text-green-400" />
                       Log Workout
@@ -309,7 +309,7 @@ function Team() {
                         setShowAddMenu(false)
                         setShowQuickVital(true)
                       }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-3"
                     >
                       <Heart className="w-4 h-4 text-red-400" />
                       Log Vital
@@ -319,21 +319,21 @@ function Team() {
                         setShowAddMenu(false)
                         setShowQuickWeight(true)
                       }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-3"
                     >
                       <Scale className="w-4 h-4 text-purple-400" />
                       Log Weight
                     </button>
 
                     {/* Team Management */}
-                    <div className="px-3 py-2 text-xs text-gray-500 uppercase border-b border-t border-gray-700 mt-1">Team</div>
+                    <div className="px-3 py-2 text-xs text-muted uppercase border-b border-t border-subtle mt-1">Team</div>
                     <button
                       onClick={() => {
                         setShowAddMenu(false)
                         setEditingMember(null)
                         setShowMemberForm(true)
                       }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-3"
                     >
                       <UserPlus className="w-4 h-4 text-farm-green" />
                       Add Member
@@ -343,7 +343,7 @@ function Team() {
                         setShowAddMenu(false)
                         setShowObservationModal(true)
                       }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-3"
                     >
                       <MessageSquare className="w-4 h-4 text-blue-400" />
                       Add Observation
@@ -353,7 +353,7 @@ function Team() {
                         setShowAddMenu(false)
                         setShowSessionModal(true)
                       }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-3"
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-3"
                     >
                       <Calendar className="w-4 h-4 text-purple-400" />
                       Add Session
@@ -370,7 +370,7 @@ function Team() {
           {showLeftArrow && (
             <button
               onClick={() => scrollTabs('left')}
-              className="p-1 text-gray-400 hover:text-white flex-shrink-0"
+              className="p-1 text-muted hover:text-white flex-shrink-0"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -384,8 +384,8 @@ function Team() {
               onClick={() => setActiveTab('overview')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'overview'
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                  ? 'bg-surface-soft text-white'
+                  : 'text-muted hover:text-white hover:bg-surface/50'
               }`}
             >
               Overview
@@ -398,8 +398,8 @@ function Team() {
                 onClick={() => handleMemberClick(member.id)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 flex-shrink-0 ${
                   activeTab === 'member' && selectedMemberId === member.id
-                    ? 'bg-gray-700 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                    ? 'bg-surface-soft text-white'
+                    : 'text-muted hover:text-white hover:bg-surface/50'
                 }`}
               >
                 <ReadinessIndicator status={member.overall_readiness} />
@@ -408,14 +408,14 @@ function Team() {
             ))}
 
             {/* Visual divider before utility tabs */}
-            <div className="w-px bg-gray-600 flex-shrink-0 mx-1" />
+            <div className="w-px bg-surface-hover flex-shrink-0 mx-1" />
 
             <button
               onClick={() => setActiveTab('gear')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'gear'
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                  ? 'bg-surface-soft text-white'
+                  : 'text-muted hover:text-white hover:bg-surface/50'
               }`}
             >
               Gear
@@ -425,8 +425,8 @@ function Team() {
               onClick={() => setActiveTab('supplies')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'supplies'
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                  ? 'bg-surface-soft text-white'
+                  : 'text-muted hover:text-white hover:bg-surface/50'
               }`}
             >
               Supplies
@@ -436,8 +436,8 @@ function Team() {
               onClick={() => setActiveTab('aar')}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'aar'
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                  ? 'bg-surface-soft text-white'
+                  : 'text-muted hover:text-white hover:bg-surface/50'
               }`}
             >
               Weekly AAR
@@ -446,7 +446,7 @@ function Team() {
           {showRightArrow && (
             <button
               onClick={() => scrollTabs('right')}
-              className="p-1 text-gray-400 hover:text-white flex-shrink-0"
+              className="p-1 text-muted hover:text-white flex-shrink-0"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -469,7 +469,7 @@ function Team() {
 
       {/* Tab Content - Only shown for non-overview tabs */}
       {activeTab !== 'overview' && (
-        <div className="bg-gray-800 rounded-lg p-4">
+        <div className="bg-surface rounded-lg p-4">
           {activeTab === 'member' && selectedMember && (
             <MemberDossier
               member={selectedMember}
@@ -521,17 +521,17 @@ function Team() {
       {/* Quick Add Observation Modal */}
       {showObservationModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md">
             <h3 className="text-lg font-semibold mb-4">Add Observation</h3>
 
             <div className="space-y-4">
               {/* Member Selection */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Team Member</label>
+                <label className="block text-sm text-muted mb-1">Team Member</label>
                 <select
                   value={obsMember}
                   onChange={(e) => setObsMember(e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                 >
                   <option value="">Select member...</option>
                   {members.map(m => (
@@ -544,7 +544,7 @@ function Team() {
 
               {/* Observation Type */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Type</label>
+                <label className="block text-sm text-muted mb-1">Type</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -552,7 +552,7 @@ function Team() {
                     className={`flex-1 px-3 py-2 rounded flex items-center justify-center gap-2 ${
                       obsType === 'went_well'
                         ? 'bg-green-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-surface-soft text-secondary hover:bg-surface-hover'
                     }`}
                   >
                     <ThumbsUp className="w-4 h-4" />
@@ -564,7 +564,7 @@ function Team() {
                     className={`flex-1 px-3 py-2 rounded flex items-center justify-center gap-2 ${
                       obsType === 'needs_improvement'
                         ? 'bg-amber-600 text-white'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        : 'bg-surface-soft text-secondary hover:bg-surface-hover'
                     }`}
                   >
                     <ThumbsDown className="w-4 h-4" />
@@ -575,11 +575,11 @@ function Team() {
 
               {/* Scope */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Scope</label>
+                <label className="block text-sm text-muted mb-1">Scope</label>
                 <select
                   value={obsScope}
                   onChange={(e) => setObsScope(e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                 >
                   <option value="individual">Individual</option>
                   <option value="team">Team</option>
@@ -589,13 +589,13 @@ function Team() {
 
               {/* Content */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Observation</label>
+                <label className="block text-sm text-muted mb-1">Observation</label>
                 <textarea
                   value={obsContent}
                   onChange={(e) => setObsContent(e.target.value)}
                   placeholder="What happened..."
                   rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                 />
               </div>
             </div>
@@ -607,7 +607,7 @@ function Team() {
                   setObsContent('')
                   setObsMember('')
                 }}
-                className="px-4 py-2 text-gray-400 hover:text-white"
+                className="px-4 py-2 text-muted hover:text-white"
               >
                 Cancel
               </button>
@@ -626,17 +626,17 @@ function Team() {
       {/* Quick Add Session Modal */}
       {showSessionModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md">
             <h3 className="text-lg font-semibold mb-4">Start Mentoring Session</h3>
 
             <div className="space-y-4">
               {/* Member Selection */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Team Member</label>
+                <label className="block text-sm text-muted mb-1">Team Member</label>
                 <select
                   value={sessionMember}
                   onChange={(e) => setSessionMember(e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                 >
                   <option value="">Select member...</option>
                   {members.map(m => (
@@ -647,7 +647,7 @@ function Team() {
                 </select>
               </div>
 
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted">
                 This will create a new mentoring session for the selected member and navigate to their profile.
               </p>
             </div>
@@ -658,7 +658,7 @@ function Team() {
                   setShowSessionModal(false)
                   setSessionMember('')
                 }}
-                className="px-4 py-2 text-gray-400 hover:text-white"
+                className="px-4 py-2 text-muted hover:text-white"
               >
                 Cancel
               </button>
@@ -677,16 +677,16 @@ function Team() {
       {/* Quick Add Weight Modal */}
       {showQuickWeight && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md">
             <h3 className="text-lg font-semibold mb-4">Log Weight</h3>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Team Member</label>
+                <label className="block text-sm text-muted mb-1">Team Member</label>
                 <select
                   value={quickWeightMemberId}
                   onChange={(e) => setQuickWeightMemberId(e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                 >
                   <option value="">Select member...</option>
                   {members.filter(m => m.is_active !== false).map(m => (
@@ -698,14 +698,14 @@ function Team() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Weight (lbs)</label>
+                <label className="block text-sm text-muted mb-1">Weight (lbs)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={quickWeightValue}
                   onChange={(e) => setQuickWeightValue(e.target.value)}
                   placeholder="170"
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                 />
               </div>
             </div>
@@ -717,7 +717,7 @@ function Team() {
                   setQuickWeightMemberId('')
                   setQuickWeightValue('')
                 }}
-                className="px-4 py-2 text-gray-400 hover:text-white"
+                className="px-4 py-2 text-muted hover:text-white"
               >
                 Cancel
               </button>

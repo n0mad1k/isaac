@@ -30,7 +30,7 @@ function RequireAuth({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-surface-app flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-farm-green"></div>
       </div>
     )
@@ -68,7 +68,7 @@ function SetupCheckRoutes() {
 
   if (setupStatus.loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-surface-app flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-farm-green"></div>
       </div>
     )

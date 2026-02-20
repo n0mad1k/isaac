@@ -131,7 +131,7 @@ async def get_dashboard(
     # Check if current user is a farm hand
     is_farmhand = current_user.is_farmhand
 
-    # Get current weather
+    # Get current weather (AWN or NWS fallback)
     weather_data = None
     reading = await weather_service.get_latest_reading(db)
     if reading:
@@ -163,6 +163,23 @@ async def get_dashboard(
             temp_high_today=temp_high,
             temp_low_today=temp_low,
         )
+    else:
+        # Fallback to NWS observation if no stored readings
+        nws_forecast_service = NWSForecastService()
+        nws_obs = await nws_forecast_service.get_current_observation()
+        if nws_obs:
+            weather_data = DashboardWeather(
+                temperature=nws_obs.get("temp_outdoor"),
+                feels_like=nws_obs.get("temp_outdoor"),
+                humidity=int(nws_obs.get("humidity_outdoor")) if nws_obs.get("humidity_outdoor") else None,
+                wind_speed=nws_obs.get("wind_speed"),
+                wind_direction=str(nws_obs.get("wind_direction")) if nws_obs.get("wind_direction") else None,
+                rain_today=None,
+                uv_index=None,
+                reading_time=nws_obs.get("timestamp"),
+                temp_high_today=nws_obs.get("temp_outdoor"),
+                temp_low_today=nws_obs.get("temp_outdoor"),
+            )
 
     # Pre-fetch all entities for linked location lookup
     result = await db.execute(select(FarmArea))

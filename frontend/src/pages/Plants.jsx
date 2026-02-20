@@ -16,15 +16,15 @@ import MottoDisplay from '../components/MottoDisplay'
 
 // Inline editable field component
 function EditableField({ label, value, field, type = 'text', options, onChange, placeholder, rows = 3, editing = true, displayValue }) {
-  const inputClass = "w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500 min-h-[44px]"
-  const readOnlyClass = "text-sm text-gray-300"
+  const inputClass = "w-full px-2 py-1 bg-surface-soft border border rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500 min-h-[44px]"
+  const readOnlyClass = "text-sm text-secondary"
 
   // Read-only mode
   if (!editing) {
     if (type === 'checkbox') {
       return (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-300">{label}:</span>
+          <span className="text-sm text-secondary">{label}:</span>
           <span className={value ? "text-green-400" : "text-red-400"}>{value ? "Yes" : "No"}</span>
         </div>
       )
@@ -35,7 +35,7 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
       const display = displayValue || selectedOption?.label || value || '-'
       return (
         <div>
-          <label className="block text-xs text-gray-500 mb-1">{label}</label>
+          <label className="block text-xs text-muted mb-1">{label}</label>
           <div className={readOnlyClass}>{display}</div>
         </div>
       )
@@ -44,8 +44,8 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
     if (type === 'textarea' && value) {
       return (
         <div>
-          <label className="block text-xs text-gray-500 mb-1">{label}</label>
-          <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto bg-gray-750 rounded p-2">
+          <label className="block text-xs text-muted mb-1">{label}</label>
+          <div className="text-sm text-secondary whitespace-pre-wrap max-h-[200px] overflow-y-auto bg-surface-muted rounded p-2">
             {value}
           </div>
         </div>
@@ -56,7 +56,7 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
     if (!value && !displayValue) return null
     return (
       <div>
-        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <label className="block text-xs text-muted mb-1">{label}</label>
         <div className={readOnlyClass}>{displayValue || value}</div>
       </div>
     )
@@ -66,7 +66,7 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
   if (type === 'select' && options) {
     return (
       <div>
-        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <label className="block text-xs text-muted mb-1">{label}</label>
         <select
           value={value || ''}
           onChange={(e) => onChange(field, e.target.value)}
@@ -85,7 +85,7 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
     const contentRows = value ? Math.max(rows, Math.min(12, Math.ceil(value.length / 80))) : rows
     return (
       <div>
-        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <label className="block text-xs text-muted mb-1">{label}</label>
         <textarea
           value={value || ''}
           onChange={(e) => onChange(field, e.target.value)}
@@ -104,16 +104,16 @@ function EditableField({ label, value, field, type = 'text', options, onChange, 
           type="checkbox"
           checked={value || false}
           onChange={(e) => onChange(field, e.target.checked)}
-          className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+          className="w-4 h-4 rounded bg-surface-soft border"
         />
-        <span className="text-sm text-gray-300">{label}</span>
+        <span className="text-sm text-secondary">{label}</span>
       </label>
     )
   }
 
   return (
     <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <label className="block text-xs text-muted mb-1">{label}</label>
       <input
         type={type}
         value={value || ''}
@@ -130,9 +130,9 @@ function ScrollableText({ label, value, maxHeight = "150px" }) {
   if (!value) return null
   return (
     <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <label className="block text-xs text-muted mb-1">{label}</label>
       <div
-        className="bg-gray-900/50 rounded p-2 text-sm text-gray-300 whitespace-pre-wrap overflow-y-auto"
+        className="bg-surface-app/50 rounded p-2 text-sm text-secondary whitespace-pre-wrap overflow-y-auto"
         style={{ maxHeight }}
       >
         {value}
@@ -180,8 +180,8 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
     const displayLocation = [value, subValue].filter(Boolean).join(' > ')
     return (
       <div>
-        <label className="block text-xs text-gray-500 mb-1">{label}</label>
-        <div className="text-sm text-gray-300">{displayLocation || '-'}</div>
+        <label className="block text-xs text-muted mb-1">{label}</label>
+        <div className="text-sm text-secondary">{displayLocation || '-'}</div>
       </div>
     )
   }
@@ -189,7 +189,7 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
   return (
     <div className="space-y-2">
       <div>
-        <label className="block text-xs text-gray-500 mb-1">{label}</label>
+        <label className="block text-xs text-muted mb-1">{label}</label>
         {showCustomInput ? (
           <div className="flex gap-2">
             <input
@@ -197,12 +197,12 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
               value={customValue}
               onChange={handleCustomChange}
               placeholder="Enter custom location"
-              className="flex-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="flex-1 px-2 py-1 bg-surface-soft border border rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
             />
             <button
               type="button"
               onClick={() => { setIsCustom(false); setCustomValue(''); onChange('') }}
-              className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded"
+              className="px-2 py-1 text-xs bg-surface-hover hover:bg-surface-muted rounded"
               title="Use dropdown"
             >
               ↓
@@ -212,7 +212,7 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
           <select
             value={value || ''}
             onChange={handleSelectChange}
-            className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full px-2 py-1 bg-surface-soft border border rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
           >
             <option value="">No location</option>
             {farmAreas.map(area => (
@@ -225,13 +225,13 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
         )}
       </div>
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Sub-location</label>
+        <label className="block text-xs text-muted mb-1">Sub-location</label>
         <input
           type="text"
           value={subValue || ''}
           onChange={(e) => onSubChange(e.target.value)}
           placeholder="e.g., Row 3, Bed A, 3rd paddock"
-          className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
+          className="w-full px-2 py-1 bg-surface-soft border border rounded text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
         />
       </div>
     </div>
@@ -270,7 +270,7 @@ const GROWTH_STAGES = [
   { value: 'flowering', label: 'Flowering', color: 'bg-pink-600', icon: '🌸' },
   { value: 'fruiting', label: 'Fruiting', color: 'bg-orange-600', icon: '🍅' },
   { value: 'harvesting', label: 'Harvesting', color: 'bg-red-600', icon: '🧺' },
-  { value: 'dormant', label: 'Dormant', color: 'bg-gray-600', icon: '💤' },
+  { value: 'dormant', label: 'Dormant', color: 'bg-surface-hover', icon: '💤' },
 ]
 
 function Plants() {
@@ -382,7 +382,7 @@ function Plants() {
       teal: 'bg-teal-900/50 text-teal-300',
       rose: 'bg-rose-900/50 text-rose-300',
       fuchsia: 'bg-fuchsia-900/50 text-fuchsia-300',
-      gray: 'bg-gray-700 text-gray-300',
+      gray: 'bg-surface-soft text-secondary',
     }
     return colors[color] || colors.gray
   }
@@ -522,7 +522,7 @@ function Plants() {
         <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={() => setShowImportModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
           >
             <Download className="w-5 h-5" />
             Import
@@ -539,57 +539,57 @@ function Plants() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gray-800 rounded-xl p-4">
+        <div className="bg-surface rounded-xl p-4">
           <div className="text-2xl font-bold text-green-400">{stats.total}</div>
-          <div className="text-sm text-gray-400">Total Plants</div>
+          <div className="text-sm text-muted">Total Plants</div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
+        <div className="bg-surface rounded-xl p-4">
           <div className="text-2xl font-bold text-blue-400">{stats.frostSensitive}</div>
-          <div className="text-sm text-gray-400">Frost Sensitive</div>
+          <div className="text-sm text-muted">Frost Sensitive</div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className={`text-2xl font-bold ${stats.needsWater > 0 ? 'text-cyan-400' : 'text-gray-500'}`}>
+        <div className="bg-surface rounded-xl p-4">
+          <div className={`text-2xl font-bold ${stats.needsWater > 0 ? 'text-cyan-400' : 'text-muted'}`}>
             {stats.needsWater}
           </div>
-          <div className="text-sm text-gray-400">Need Water</div>
+          <div className="text-sm text-muted">Need Water</div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className={`text-2xl font-bold ${stats.needsFertilizer > 0 ? 'text-emerald-400' : 'text-gray-500'}`}>
+        <div className="bg-surface rounded-xl p-4">
+          <div className={`text-2xl font-bold ${stats.needsFertilizer > 0 ? 'text-emerald-400' : 'text-muted'}`}>
             {stats.needsFertilizer}
           </div>
-          <div className="text-sm text-gray-400">Need Fertilizer</div>
+          <div className="text-sm text-muted">Need Fertilizer</div>
         </div>
       </div>
 
       {/* Water Overview */}
-      <div className="bg-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-surface rounded-xl overflow-hidden">
         <button
           onClick={() => setShowWaterOverview(!showWaterOverview)}
-          className="w-full flex items-center justify-between p-4 hover:bg-gray-750 transition-colors"
+          className="w-full flex items-center justify-between p-4 hover:bg-surface-muted transition-colors"
         >
           <div className="flex items-center gap-2">
             <Droplets className="w-5 h-5 text-cyan-400" />
             <span className="font-semibold">Water Overview</span>
             {waterOverview && (
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-muted">
                 — {waterOverview.rain?.total_inches || 0}" rain, {waterOverview.watering_activity?.total_watered || 0} watered, {waterOverview.plant_status?.needs_water_now || 0} need water
               </span>
             )}
           </div>
-          {showWaterOverview ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          {showWaterOverview ? <ChevronUp className="w-5 h-5 text-muted" /> : <ChevronDown className="w-5 h-5 text-muted" />}
         </button>
 
         {showWaterOverview && waterOverview && (
-          <div className="px-4 pb-4 space-y-4 border-t border-gray-700">
+          <div className="px-4 pb-4 space-y-4 border-t border-subtle">
             {/* Period selector */}
             <div className="flex items-center gap-2 pt-3">
-              <span className="text-xs text-gray-500">Period:</span>
+              <span className="text-xs text-muted">Period:</span>
               {[7, 14, 30].map(d => (
                 <button
                   key={d}
                   onClick={() => { setWaterOverviewDays(d); fetchWaterOverview(d) }}
                   className={`px-2 py-1 rounded text-xs ${
-                    waterOverviewDays === d ? 'bg-cyan-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                    waterOverviewDays === d ? 'bg-cyan-600 text-white' : 'bg-surface-soft text-muted hover:bg-surface-hover'
                   }`}
                 >
                   {d}d
@@ -599,55 +599,55 @@ function Plants() {
 
             {/* Top summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+              <div className="bg-surface-soft/50 rounded-lg p-3 text-center">
                 <div className="text-xl font-bold text-cyan-400">{waterOverview.rain?.total_inches || 0}"</div>
-                <div className="text-xs text-gray-400">Total Rain</div>
+                <div className="text-xs text-muted">Total Rain</div>
               </div>
-              <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+              <div className="bg-surface-soft/50 rounded-lg p-3 text-center">
                 <div className="text-xl font-bold flex items-center justify-center gap-1">
                   <span className="text-cyan-400">{waterOverview.rain?.rain_days || 0}</span>
-                  <span className="text-gray-500 text-sm">rain</span>
-                  <span className="text-gray-600 mx-0.5">/</span>
+                  <span className="text-muted text-sm">rain</span>
+                  <span className="text-muted mx-0.5">/</span>
                   <span className="text-amber-400">{waterOverview.rain?.dry_days || 0}</span>
-                  <span className="text-gray-500 text-sm">dry</span>
+                  <span className="text-muted text-sm">dry</span>
                 </div>
-                <div className="text-xs text-gray-400">Days ({waterOverviewDays}d period)</div>
+                <div className="text-xs text-muted">Days ({waterOverviewDays}d period)</div>
               </div>
-              <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+              <div className="bg-surface-soft/50 rounded-lg p-3 text-center">
                 <div className="text-xl font-bold text-green-400">{waterOverview.watering_activity?.total_watered || 0}</div>
-                <div className="text-xs text-gray-400">Plants Watered</div>
+                <div className="text-xs text-muted">Plants Watered</div>
               </div>
-              <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+              <div className="bg-surface-soft/50 rounded-lg p-3 text-center">
                 <div className="text-xl font-bold text-yellow-400">{waterOverview.watering_activity?.total_skipped || 0}</div>
-                <div className="text-xs text-gray-400">Waterings Skipped</div>
+                <div className="text-xs text-muted">Waterings Skipped</div>
               </div>
             </div>
 
             {/* Current Rain & Soil Moisture */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Current Rain */}
-              <div className="bg-gray-700/30 rounded-lg p-3">
-                <div className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1">
+              <div className="bg-surface-soft/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-secondary mb-2 flex items-center gap-1">
                   <CloudRain className="w-3.5 h-3.5" /> CURRENT RAIN
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                  <div><span className="text-gray-500">Rate:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_rate || 0} in/hr</span></div>
-                  <div><span className="text-gray-500">Today:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_daily || 0}"</span></div>
-                  <div><span className="text-gray-500">Week:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_weekly || 0}"</span></div>
-                  <div><span className="text-gray-500">Month:</span> <span className="text-gray-300">{waterOverview.rain?.current?.rain_monthly || 0}"</span></div>
+                  <div><span className="text-muted">Rate:</span> <span className="text-secondary">{waterOverview.rain?.current?.rain_rate || 0} in/hr</span></div>
+                  <div><span className="text-muted">Today:</span> <span className="text-secondary">{waterOverview.rain?.current?.rain_daily || 0}"</span></div>
+                  <div><span className="text-muted">Week:</span> <span className="text-secondary">{waterOverview.rain?.current?.rain_weekly || 0}"</span></div>
+                  <div><span className="text-muted">Month:</span> <span className="text-secondary">{waterOverview.rain?.current?.rain_monthly || 0}"</span></div>
                 </div>
               </div>
 
               {/* Soil Moisture */}
-              <div className="bg-gray-700/30 rounded-lg p-3">
-                <div className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1">
+              <div className="bg-surface-soft/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-secondary mb-2 flex items-center gap-1">
                   <Sprout className="w-3.5 h-3.5" /> SOIL MOISTURE
                 </div>
                 {waterOverview.soil_moisture ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     {waterOverview.soil_moisture.map(s => (
                       <div key={s.sensor}>
-                        <span className="text-gray-500">Sensor {s.sensor}:</span>{' '}
+                        <span className="text-muted">Sensor {s.sensor}:</span>{' '}
                         <span className={s.moisture_pct > 50 ? 'text-cyan-400' : s.moisture_pct > 25 ? 'text-green-400' : 'text-yellow-400'}>
                           {s.moisture_pct}%
                         </span>
@@ -655,35 +655,35 @@ function Plants() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-500">No soil sensors detected</div>
+                  <div className="text-sm text-muted">No soil sensors detected</div>
                 )}
               </div>
             </div>
 
             {/* Smart Watering Tracking */}
-            <div className="bg-gray-700/30 rounded-lg p-3">
-              <div className="text-xs font-semibold text-gray-300 mb-2">SMART WATERING TRACKING</div>
+            <div className="bg-surface-soft/30 rounded-lg p-3">
+              <div className="text-xs font-semibold text-secondary mb-2">SMART WATERING TRACKING</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                 <div>
-                  <span className="text-gray-500">Rain-tracked:</span>{' '}
+                  <span className="text-muted">Rain-tracked:</span>{' '}
                   <span className="text-cyan-400">{waterOverview.plant_status?.rain_tracked || 0} plants</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Sprinkler:</span>{' '}
+                  <span className="text-muted">Sprinkler:</span>{' '}
                   <span className="text-blue-400">{waterOverview.plant_status?.sprinkler_tracked || 0} plants</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">With schedule:</span>{' '}
+                  <span className="text-muted">With schedule:</span>{' '}
                   <span className="text-green-400">{waterOverview.plant_status?.with_schedule || 0} plants</span>
                 </div>
               </div>
               {/* Skip reasons */}
               {waterOverview.watering_activity?.skip_reasons && Object.keys(waterOverview.watering_activity.skip_reasons).length > 0 && (
-                <div className="mt-2 pt-2 border-t border-gray-600">
-                  <div className="text-xs text-gray-500 mb-1">Skip reasons:</div>
+                <div className="mt-2 pt-2 border-t border">
+                  <div className="text-xs text-muted mb-1">Skip reasons:</div>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(waterOverview.watering_activity.skip_reasons).map(([reason, count]) => (
-                      <span key={reason} className="text-xs bg-gray-800 rounded px-2 py-0.5 text-gray-400">
+                      <span key={reason} className="text-xs bg-surface rounded px-2 py-0.5 text-muted">
                         {reason}: {count}
                       </span>
                     ))}
@@ -694,8 +694,8 @@ function Plants() {
 
             {/* Daily Rain Chart (simple bar representation) */}
             {waterOverview.rain?.by_day && waterOverview.rain.by_day.length > 0 && (
-              <div className="bg-gray-700/30 rounded-lg p-3">
-                <div className="text-xs font-semibold text-gray-300 mb-2">DAILY RAIN ({waterOverviewDays}d)</div>
+              <div className="bg-surface-soft/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-secondary mb-2">DAILY RAIN ({waterOverviewDays}d)</div>
                 <div className="flex items-end gap-1 h-16">
                   {waterOverview.rain.by_day.slice().reverse().map((day, i) => {
                     const maxRain = Math.max(...waterOverview.rain.by_day.map(d => d.rain_inches), 0.1)
@@ -707,7 +707,7 @@ function Plants() {
                         style={{ height: `${height}%` }}
                         title={`${formatDate(day.date)}: ${day.rain_inches}"`}
                       >
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-gray-900 text-xs text-gray-300 px-1.5 py-0.5 rounded whitespace-nowrap z-10">
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-surface-app text-xs text-secondary px-1.5 py-0.5 rounded whitespace-nowrap z-10">
                           {formatDate(day.date)}: {day.rain_inches}"
                         </div>
                       </div>
@@ -719,17 +719,17 @@ function Plants() {
 
             {/* Needs Water List */}
             {waterOverview.plant_status?.needs_water_list?.length > 0 && (
-              <div className="bg-gray-700/30 rounded-lg p-3">
-                <div className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1">
+              <div className="bg-surface-soft/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-secondary mb-2 flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
                   NEEDS WATER NOW ({waterOverview.plant_status.needs_water_now})
                 </div>
                 <div className="space-y-1 max-h-40 overflow-y-auto">
                   {waterOverview.plant_status.needs_water_list.map(p => (
-                    <div key={p.id} className="flex items-center justify-between text-sm bg-gray-800 rounded px-2 py-1">
+                    <div key={p.id} className="flex items-center justify-between text-sm bg-surface rounded px-2 py-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-300">{p.name}</span>
-                        {p.location && <span className="text-xs text-gray-500">{p.location}</span>}
+                        <span className="text-secondary">{p.name}</span>
+                        {p.location && <span className="text-xs text-muted">{p.location}</span>}
                       </div>
                       <span className={`text-xs ${p.days_overdue > 3 ? 'text-red-400' : 'text-yellow-400'}`}>
                         {p.days_overdue}d overdue
@@ -746,19 +746,19 @@ function Plants() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted" />
           <input
             type="text"
             placeholder="Search plants..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            className="w-full pl-10 pr-4 py-2 bg-surface border border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
           />
         </div>
         <select
           value={filterTag}
           onChange={(e) => setFilterTag(e.target.value)}
-          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+          className="px-4 py-2 bg-surface border border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
         >
           <option value="all">All Tags</option>
           {tags.map(tag => (
@@ -768,7 +768,7 @@ function Plants() {
         <select
           value={filterSpecial}
           onChange={(e) => setFilterSpecial(e.target.value)}
-          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+          className="px-4 py-2 bg-surface border border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
         >
           <option value="all">All Plants</option>
           <option value="frost_sensitive">Frost Sensitive</option>
@@ -781,7 +781,7 @@ function Plants() {
           className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
             groupByLocation
               ? 'bg-farm-green text-white'
-              : 'bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700'
+              : 'bg-surface border border-subtle text-secondary hover:bg-surface-soft'
           }`}
         >
           <MapPin className="w-4 h-4" />
@@ -791,7 +791,7 @@ function Plants() {
 
       {/* Plant List */}
       {filteredPlants.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-muted">
           <Leaf className="w-16 h-16 mx-auto mb-4 opacity-50" />
           <p>No plants found. Add your first plant!</p>
         </div>
@@ -799,20 +799,20 @@ function Plants() {
         // Grouped by location view
         <div className="space-y-4">
           {sortedLocations.map((location) => (
-            <div key={location} className="bg-gray-800/50 rounded-xl overflow-hidden">
+            <div key={location} className="bg-surface/50 rounded-xl overflow-hidden">
               <button
                 onClick={() => toggleLocationCollapse(location)}
-                className="w-full px-4 py-3 flex items-center justify-between bg-gray-800 hover:bg-gray-700 transition-colors"
+                className="w-full px-4 py-3 flex items-center justify-between bg-surface hover:bg-surface-soft transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <MapPin className="w-5 h-5 text-farm-green" />
                   <span className="font-medium">{location}</span>
-                  <span className="text-sm text-gray-400">({plantsByLocation[location].length} plants)</span>
+                  <span className="text-sm text-muted">({plantsByLocation[location].length} plants)</span>
                 </div>
                 {collapsedLocations[location] ? (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                  <ChevronDown className="w-5 h-5 text-muted" />
                 ) : (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                  <ChevronUp className="w-5 h-5 text-muted" />
                 )}
               </button>
               {!collapsedLocations[location] && (
@@ -1135,10 +1135,10 @@ function PlantCard({
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg overflow-hidden">
+    <div className="bg-surface rounded-lg overflow-hidden">
       {/* Card Header */}
       <div
-        className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-750"
+        className="p-4 flex items-center justify-between cursor-pointer hover:bg-surface-muted"
         onClick={onToggle}
       >
         <div className="flex-1 min-w-0">
@@ -1150,20 +1150,20 @@ function PlantCard({
                 className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
-                <Leaf className="w-5 h-5 text-gray-500" />
+              <div className="w-10 h-10 rounded-lg bg-surface-soft flex items-center justify-center flex-shrink-0">
+                <Leaf className="w-5 h-5 text-muted" />
               </div>
             )}
             <h3 className="font-semibold text-lg">{plant.name}</h3>
             {plant.growth_stage && (
               <span className={`text-xs px-2 py-0.5 rounded-full text-white ${
-                { seed: 'bg-blue-600', seedling: 'bg-emerald-600', transplanted: 'bg-yellow-600', vegetative: 'bg-green-600', flowering: 'bg-pink-600', fruiting: 'bg-orange-600', harvesting: 'bg-red-600', dormant: 'bg-gray-600' }[plant.growth_stage] || 'bg-gray-600'
+                { seed: 'bg-blue-600', seedling: 'bg-emerald-600', transplanted: 'bg-yellow-600', vegetative: 'bg-green-600', flowering: 'bg-pink-600', fruiting: 'bg-orange-600', harvesting: 'bg-red-600', dormant: 'bg-surface-hover' }[plant.growth_stage] || 'bg-surface-hover'
               }`}>
                 {plant.growth_stage}
               </span>
             )}
             {plant.seed_name && (
-              <span className="text-xs text-gray-500">from: {plant.seed_name}</span>
+              <span className="text-xs text-muted">from: {plant.seed_name}</span>
             )}
             {plant.tags && plant.tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -1173,7 +1173,7 @@ function PlantCard({
                   </span>
                 ))}
                 {plant.tags.length > 3 && (
-                  <span className="text-xs text-gray-500">+{plant.tags.length - 3}</span>
+                  <span className="text-xs text-muted">+{plant.tags.length - 3}</span>
                 )}
               </div>
             )}
@@ -1190,7 +1190,7 @@ function PlantCard({
             )}
           </div>
           {plant.description && (
-            <p className="text-sm text-gray-400 mt-1 line-clamp-2">{plant.description}</p>
+            <p className="text-sm text-muted mt-1 line-clamp-2">{plant.description}</p>
           )}
         </div>
 
@@ -1223,16 +1223,16 @@ function PlantCard({
             )}
           </div>
           {expanded ? (
-            <ChevronUp className="w-5 h-5 text-gray-400" />
+            <ChevronUp className="w-5 h-5 text-muted" />
           ) : (
-            <ChevronDown className="w-5 h-5 text-gray-400" />
+            <ChevronDown className="w-5 h-5 text-muted" />
           )}
         </div>
       </div>
 
       {/* Expanded Details with Inline Editing */}
       {expanded && editData && (
-        <div className="px-4 pb-4 border-t border-gray-700 pt-4 space-y-4">
+        <div className="px-4 pb-4 border-t border-subtle pt-4 space-y-4">
           {/* Action Buttons - Edit/Save/Cancel, Quick actions, Delete */}
           <div className="flex gap-2 flex-wrap">
             {isEditing ? (
@@ -1246,7 +1246,7 @@ function PlantCard({
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleCancel() }}
-                  className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm text-white transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 bg-surface-hover hover:bg-surface-muted rounded text-sm text-white transition-colors flex items-center gap-1"
                 >
                   <X className="w-3 h-3" /> Cancel
                 </button>
@@ -1297,7 +1297,7 @@ function PlantCard({
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDuplicate(plant) }}
-              className="px-3 py-1.5 bg-gray-600/50 hover:bg-gray-600 rounded text-sm text-white transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 bg-surface-hover/50 hover:bg-surface-hover rounded text-sm text-white transition-colors flex items-center gap-1"
             >
               <Copy className="w-3 h-3" /> Duplicate
             </button>
@@ -1312,7 +1312,7 @@ function PlantCard({
                 value={editData?.growth_stage || plant.growth_stage || ''}
                 onChange={(e) => { e.stopPropagation(); if (e.target.value) handleAdvanceStage(e.target.value) }}
                 onClick={(e) => e.stopPropagation()}
-                className="px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500"
+                className="px-2 py-1.5 bg-surface-soft border border rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-green-500"
                 title="Set growth stage"
               >
                 <option value="">Stage...</option>
@@ -1337,7 +1337,7 @@ function PlantCard({
                   <img
                     src={getPlantPhotoUrl(plant.photo_path)}
                     alt={plant.name}
-                    className="w-full max-h-48 object-contain rounded-lg bg-gray-800"
+                    className="w-full max-h-48 object-contain rounded-lg bg-surface"
                   />
                   {isEditing && (
                     <button
@@ -1357,9 +1357,9 @@ function PlantCard({
                 </div>
               ) : isEditing && (
                 <div className="flex gap-2">
-                  <label className="flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-green-500 transition-colors">
-                    <Camera className="w-8 h-8 text-gray-500 mb-2" />
-                    <span className="text-sm text-gray-500">Upload Photo</span>
+                  <label className="flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed border rounded-lg cursor-pointer hover:border-green-500 transition-colors">
+                    <Camera className="w-8 h-8 text-muted mb-2" />
+                    <span className="text-sm text-muted">Upload Photo</span>
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/gif,image/webp"
@@ -1397,11 +1397,11 @@ function PlantCard({
                         }
                       } catch (err) { console.error('Failed to paste image:', err) }
                     }}
-                    className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-600 rounded-lg hover:border-blue-500 transition-colors"
+                    className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border rounded-lg hover:border-blue-500 transition-colors"
                     title="Paste image from clipboard"
                   >
-                    <Clipboard className="w-8 h-8 text-gray-500 mb-2" />
-                    <span className="text-sm text-gray-500">Paste</span>
+                    <Clipboard className="w-8 h-8 text-muted mb-2" />
+                    <span className="text-sm text-muted">Paste</span>
                   </button>
                 </div>
               )}
@@ -1430,11 +1430,11 @@ function PlantCard({
 
           {/* Lifecycle Progress */}
           {(plant.growth_stage || plant.seed_id) && (
-            <div className="bg-gray-900/50 rounded-lg p-3">
+            <div className="bg-surface-app/50 rounded-lg p-3">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-medium text-gray-400">Growth Lifecycle</h4>
+                <h4 className="text-sm font-medium text-muted">Growth Lifecycle</h4>
                 {plant.seed_name && (
-                  <span className="text-xs text-gray-500">Seed: {plant.seed_name}</span>
+                  <span className="text-xs text-muted">Seed: {plant.seed_name}</span>
                 )}
               </div>
               <div className="flex items-center gap-0.5 overflow-x-auto pb-1">
@@ -1450,8 +1450,8 @@ function PlantCard({
                         disabled={isEditing}
                         className={`flex flex-col items-center px-2 py-1.5 rounded transition-all ${
                           isActive ? `${stage.color} text-white ring-2 ring-white/30` :
-                          isPast ? 'bg-gray-700 text-gray-300' :
-                          'bg-gray-800 text-gray-600'
+                          isPast ? 'bg-surface-soft text-secondary' :
+                          'bg-surface text-muted'
                         } ${!isEditing ? 'hover:ring-1 hover:ring-gray-400 cursor-pointer' : 'cursor-default'}`}
                         title={isEditing ? 'Save or cancel edit first' : `Set stage: ${stage.label}`}
                       >
@@ -1459,14 +1459,14 @@ function PlantCard({
                         <span className="text-[10px] mt-0.5 whitespace-nowrap">{stage.label}</span>
                       </button>
                       {idx < GROWTH_STAGES.length - 1 && (
-                        <div className={`w-3 h-0.5 ${isPast ? 'bg-gray-500' : 'bg-gray-800'}`} />
+                        <div className={`w-3 h-0.5 ${isPast ? 'bg-surface-muted' : 'bg-surface'}`} />
                       )}
                     </div>
                   )
                 })}
               </div>
               {/* Lifecycle dates */}
-              <div className="flex gap-4 mt-2 text-xs text-gray-500 flex-wrap">
+              <div className="flex gap-4 mt-2 text-xs text-muted flex-wrap">
                 {plant.date_sown && <span>Sown: {formatDate(plant.date_sown)}</span>}
                 {plant.date_germinated && <span>Germinated: {formatDate(plant.date_germinated)}</span>}
                 {plant.date_transplanted && <span>Transplanted: {formatDate(plant.date_transplanted)}</span>}
@@ -1475,8 +1475,8 @@ function PlantCard({
           )}
 
           {/* Growing Requirements */}
-          <div className="bg-gray-900/50 rounded-lg p-3">
-            <h4 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h4>
+          <div className="bg-surface-app/50 rounded-lg p-3">
+            <h4 className="text-sm font-medium text-muted mb-3">Growing Requirements</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <EditableField label="Hardiness Zones (species)" value={editData.grow_zones} field="grow_zones" onChange={handleFieldChange} placeholder="e.g., 9-11" editing={isEditing} />
               <EditableField label="This Plant's Zone (override)" value={editData.plant_zone} field="plant_zone" type="select" options={[{value: '', label: 'Use global zone'}, ...['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b','6a','6b','7a','7b','8a','8b','9a','9b','10a','10b','11a','11b','12a','12b','13a','13b'].map(z => ({value: z, label: `Zone ${z}`}))]} onChange={handleFieldChange} editing={isEditing} />
@@ -1489,8 +1489,8 @@ function PlantCard({
           </div>
 
           {/* Temperature & Tolerance */}
-          <div className="bg-gray-900/50 rounded-lg p-3">
-            <h4 className="text-sm font-medium text-gray-400 mb-3">Temperature & Tolerance</h4>
+          <div className="bg-surface-app/50 rounded-lg p-3">
+            <h4 className="text-sm font-medium text-muted mb-3">Temperature & Tolerance</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <EditableField label="Min Temp (°F)" value={editData.min_temp} field="min_temp" type="number" onChange={handleFieldChange} editing={isEditing} />
               <EditableField label="Cover Below (°F)" value={editData.needs_cover_below_temp} field="needs_cover_below_temp" type="number" onChange={handleFieldChange} editing={isEditing} />
@@ -1505,8 +1505,8 @@ function PlantCard({
           </div>
 
           {/* Care Schedule */}
-          <div className="bg-gray-900/50 rounded-lg p-3">
-            <h4 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h4>
+          <div className="bg-surface-app/50 rounded-lg p-3">
+            <h4 className="text-sm font-medium text-muted mb-3">Care Schedule</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <EditableField
@@ -1525,15 +1525,15 @@ function PlantCard({
                   onChange={handleFieldChange}
                   editing={isEditing}
                 />
-                {isEditing && <p className="text-xs text-gray-500 mt-1">Auto-calculates watering schedule based on your zone</p>}
+                {isEditing && <p className="text-xs text-muted mt-1">Auto-calculates watering schedule based on your zone</p>}
               </div>
               <div>
                 <EditableField label="Water Schedule Override" value={editData.water_schedule} field="water_schedule" onChange={handleFieldChange} placeholder="summer:3,winter:10" editing={isEditing} />
-                {isEditing && <p className="text-xs text-gray-500 mt-1">Optional: override auto-calculated schedule</p>}
+                {isEditing && <p className="text-xs text-muted mt-1">Optional: override auto-calculated schedule</p>}
               </div>
               <div>
                 <EditableField label="Fertilize Schedule" value={editData.fertilize_schedule} field="fertilize_schedule" onChange={handleFieldChange} placeholder="spring:30,summer:45" editing={isEditing} />
-                {isEditing && <p className="text-xs text-gray-500 mt-1">Days between fertilizing (0=none)</p>}
+                {isEditing && <p className="text-xs text-muted mt-1">Days between fertilizing (0=none)</p>}
               </div>
               <EditableField label="Prune Frequency" value={editData.prune_frequency} field="prune_frequency" onChange={handleFieldChange} placeholder="e.g., Yearly after fruiting" editing={isEditing} />
               <EditableField label="Prune Months" value={editData.prune_months} field="prune_months" onChange={handleFieldChange} placeholder="e.g., Feb-Mar" editing={isEditing} />
@@ -1553,19 +1553,19 @@ function PlantCard({
                       id={`rain-${plant.id}`}
                       checked={editData.receives_rain}
                       onChange={(e) => handleFieldChange('receives_rain', e.target.checked)}
-                      className="rounded border-gray-600 bg-gray-800 text-cyan-500 focus:ring-cyan-500"
+                      className="rounded border bg-surface text-cyan-500 focus:ring-cyan-500"
                     />
-                    <label htmlFor={`rain-${plant.id}`} className="text-sm text-gray-300">Receives Rain</label>
+                    <label htmlFor={`rain-${plant.id}`} className="text-sm text-secondary">Receives Rain</label>
                   </div>
                   {editData.receives_rain && (
                     <div>
-                      <label className="text-xs text-gray-400">Rain Threshold (in)</label>
+                      <label className="text-xs text-muted">Rain Threshold (in)</label>
                       <input
                         type="number"
                         step="0.05"
                         value={editData.rain_threshold_inches}
                         onChange={(e) => handleFieldChange('rain_threshold_inches', parseFloat(e.target.value) || 0.25)}
-                        className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm"
+                        className="w-full bg-surface border border rounded px-2 py-1 text-sm"
                       />
                     </div>
                   )}
@@ -1575,21 +1575,21 @@ function PlantCard({
                       id={`sprinkler-${plant.id}`}
                       checked={editData.sprinkler_enabled}
                       onChange={(e) => handleFieldChange('sprinkler_enabled', e.target.checked)}
-                      className="rounded border-gray-600 bg-gray-800 text-cyan-500 focus:ring-cyan-500"
+                      className="rounded border bg-surface text-cyan-500 focus:ring-cyan-500"
                     />
-                    <label htmlFor={`sprinkler-${plant.id}`} className="text-sm text-gray-300">Sprinkler Coverage</label>
+                    <label htmlFor={`sprinkler-${plant.id}`} className="text-sm text-secondary">Sprinkler Coverage</label>
                   </div>
                   {editData.sprinkler_enabled && (
                     <div>
-                      <label className="text-xs text-gray-400">Sprinkler Schedule</label>
+                      <label className="text-xs text-muted">Sprinkler Schedule</label>
                       <input
                         type="text"
                         value={editData.sprinkler_schedule}
                         onChange={(e) => handleFieldChange('sprinkler_schedule', e.target.value)}
                         placeholder="days:0,2,4;time:06:00"
-                        className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm"
+                        className="w-full bg-surface border border rounded px-2 py-1 text-sm"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Mon=0, Sun=6. e.g., days:0,2,4;time:06:00</p>
+                      <p className="text-xs text-muted mt-1">Mon=0, Sun=6. e.g., days:0,2,4;time:06:00</p>
                     </div>
                   )}
                 </div>
@@ -1615,17 +1615,17 @@ function PlantCard({
                   <Droplets className="w-4 h-4" />
                   <span>Watering</span>
                 </div>
-                <div className="flex items-center gap-1 text-gray-500 text-xs">
+                <div className="flex items-center gap-1 text-muted text-xs">
                   <span>Last: {plant.last_watered ? formatDate(plant.last_watered) : 'Never'}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); onEditDate({ plantId: plant.id, field: 'last_watered', label: 'Last Watered', currentDate: plant.last_watered }) }}
-                    className="p-0.5 hover:bg-gray-700 rounded"
+                    className="p-0.5 hover:bg-surface-soft rounded"
                   >
-                    <Pencil className="w-3 h-3 text-gray-500 hover:text-cyan-400" />
+                    <Pencil className="w-3 h-3 text-muted hover:text-cyan-400" />
                   </button>
                 </div>
                 {plant.next_watering && (
-                  <p className={`text-xs ${new Date(plant.next_watering) <= new Date() ? 'text-cyan-400 font-medium' : 'text-gray-500'}`}>
+                  <p className={`text-xs ${new Date(plant.next_watering) <= new Date() ? 'text-cyan-400 font-medium' : 'text-muted'}`}>
                     Next: {formatRelativeDate(plant.next_watering)}
                   </p>
                 )}
@@ -1636,17 +1636,17 @@ function PlantCard({
                   <Leaf className="w-4 h-4" />
                   <span>Fertilizing</span>
                 </div>
-                <div className="flex items-center gap-1 text-gray-500 text-xs">
+                <div className="flex items-center gap-1 text-muted text-xs">
                   <span>Last: {plant.last_fertilized ? formatDate(plant.last_fertilized) : 'Never'}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); onEditDate({ plantId: plant.id, field: 'last_fertilized', label: 'Last Fertilized', currentDate: plant.last_fertilized }) }}
-                    className="p-0.5 hover:bg-gray-700 rounded"
+                    className="p-0.5 hover:bg-surface-soft rounded"
                   >
-                    <Pencil className="w-3 h-3 text-gray-500 hover:text-green-400" />
+                    <Pencil className="w-3 h-3 text-muted hover:text-green-400" />
                   </button>
                 </div>
                 {plant.next_fertilizing && (
-                  <p className={`text-xs ${new Date(plant.next_fertilizing) <= new Date() ? 'text-green-400 font-medium' : 'text-gray-500'}`}>
+                  <p className={`text-xs ${new Date(plant.next_fertilizing) <= new Date() ? 'text-green-400 font-medium' : 'text-muted'}`}>
                     Next: {formatRelativeDate(plant.next_fertilizing)}
                   </p>
                 )}
@@ -1657,13 +1657,13 @@ function PlantCard({
                   <Scissors className="w-4 h-4" />
                   <span>Pruning</span>
                 </div>
-                <div className="flex items-center gap-1 text-gray-500 text-xs">
+                <div className="flex items-center gap-1 text-muted text-xs">
                   <span>Last: {plant.last_pruned ? formatDate(plant.last_pruned) : 'Never'}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); onEditDate({ plantId: plant.id, field: 'last_pruned', label: 'Last Pruned', currentDate: plant.last_pruned }) }}
-                    className="p-0.5 hover:bg-gray-700 rounded"
+                    className="p-0.5 hover:bg-surface-soft rounded"
                   >
-                    <Pencil className="w-3 h-3 text-gray-500 hover:text-amber-400" />
+                    <Pencil className="w-3 h-3 text-muted hover:text-amber-400" />
                   </button>
                 </div>
               </div>
@@ -1671,9 +1671,9 @@ function PlantCard({
           </div>
 
           {/* Production & Harvest */}
-          <div className="bg-gray-900/50 rounded-lg p-3">
+          <div className="bg-surface-app/50 rounded-lg p-3">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium text-gray-400">Production & Harvest</h4>
+              <h4 className="text-sm font-medium text-muted">Production & Harvest</h4>
               <button
                 onClick={(e) => { e.stopPropagation(); onHarvest(plant) }}
                 className="px-3 py-1 bg-green-700 hover:bg-green-600 text-white text-sm rounded-lg flex items-center gap-1 transition-colors"
@@ -1714,7 +1714,7 @@ function PlantCard({
 
           {/* Tags */}
           <div>
-            <h4 className="text-sm font-medium text-gray-400 mb-2">Tags</h4>
+            <h4 className="text-sm font-medium text-muted mb-2">Tags</h4>
             <div className="flex flex-wrap gap-2">
               {isEditing ? (
                 tags.map(tag => (
@@ -1725,7 +1725,7 @@ function PlantCard({
                     className={`px-3 py-1 rounded-full text-sm border transition-all ${
                       editData.tag_ids.includes(tag.id)
                         ? getTagColor(tag.color) + ' border-2 border-white/30'
-                        : 'bg-gray-700 text-gray-400 border-gray-600 hover:border-gray-500'
+                        : 'bg-surface-soft text-muted border hover:border-strong'
                     }`}
                   >
                     {tag.name}
@@ -1742,7 +1742,7 @@ function PlantCard({
                     </span>
                   ))
                 ) : (
-                  <span className="text-gray-500 text-sm">No tags</span>
+                  <span className="text-muted text-sm">No tags</span>
                 )
               )}
             </div>
@@ -1845,17 +1845,17 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
       green: 'bg-green-900/50 text-green-300 border-green-700',
       purple: 'bg-purple-900/50 text-purple-300 border-purple-700',
       cyan: 'bg-cyan-900/50 text-cyan-300 border-cyan-700',
-      gray: 'bg-gray-700 text-gray-300 border-gray-600',
+      gray: 'bg-surface-soft text-secondary border',
     }
     return colors[color] || colors.gray
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl w-full max-w-[92vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between z-10">
+      <div className="bg-surface rounded-xl w-full max-w-[92vw] sm:max-w-2xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-surface p-4 border-b border-subtle flex items-center justify-between z-10">
           <h2 className="text-xl font-semibold">{initialData ? 'Duplicate Plant' : 'Add New Plant'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -1863,39 +1863,39 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
         <form onSubmit={handleSubmit} className="p-3 sm:p-4 md:p-6 space-y-6" id="plant-form">
           {/* Basic Info */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Basic Information</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Basic Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Name *</label>
+                <label className="block text-sm text-muted mb-1">Name *</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Latin Name</label>
+                <label className="block text-sm text-muted mb-1">Latin Name</label>
                 <input
                   type="text"
                   value={formData.latin_name}
                   onChange={(e) => setFormData({ ...formData, latin_name: e.target.value })}
                   placeholder="Genus species"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Variety</label>
+                <label className="block text-sm text-muted mb-1">Variety</label>
                 <input
                   type="text"
                   value={formData.variety}
                   onChange={(e) => setFormData({ ...formData, variety: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Location</label>
+                <label className="block text-sm text-muted mb-1">Location</label>
                 <LocationSelect
                   value={formData.location}
                   subValue={formData.sub_location}
@@ -1907,47 +1907,47 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Source</label>
+                <label className="block text-sm text-muted mb-1">Source</label>
                 <input
                   type="text"
                   value={formData.source}
                   onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                   placeholder="Where purchased"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
             <div className="mt-4">
-              <label className="block text-sm text-gray-400 mb-1">Description</label>
+              <label className="block text-sm text-muted mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
           </div>
 
           {/* Growing Requirements */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Growing Requirements</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Hardiness Zones (species)</label>
+                <label className="block text-sm text-muted mb-1">Hardiness Zones (species)</label>
                 <input
                   type="text"
                   value={formData.grow_zones}
                   onChange={(e) => setFormData({ ...formData, grow_zones: e.target.value })}
                   placeholder="e.g., 9-11"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">This Plant's Zone (override)</label>
+                <label className="block text-sm text-muted mb-1">This Plant's Zone (override)</label>
                 <select
                   value={formData.plant_zone}
                   onChange={(e) => setFormData({ ...formData, plant_zone: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   <option value="">Use global zone</option>
                   {['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b','6a','6b','7a','7b','8a','8b','9a','9b','10a','10b','11a','11b','12a','12b','13a','13b'].map(z => (
@@ -1956,11 +1956,11 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Sun Requirement</label>
+                <label className="block text-sm text-muted mb-1">Sun Requirement</label>
                 <select
                   value={formData.sun_requirement}
                   onChange={(e) => setFormData({ ...formData, sun_requirement: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   {SUN_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1968,11 +1968,11 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Growth Rate</label>
+                <label className="block text-sm text-muted mb-1">Growth Rate</label>
                 <select
                   value={formData.growth_rate}
                   onChange={(e) => setFormData({ ...formData, growth_rate: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   {GROWTH_RATE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1980,33 +1980,33 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Soil Requirements</label>
+                <label className="block text-sm text-muted mb-1">Soil Requirements</label>
                 <input
                   type="text"
                   value={formData.soil_requirements}
                   onChange={(e) => setFormData({ ...formData, soil_requirements: e.target.value })}
                   placeholder="e.g., Well-drained, loamy"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Plant Spacing</label>
+                <label className="block text-sm text-muted mb-1">Plant Spacing</label>
                 <input
                   type="text"
                   value={formData.plant_spacing}
                   onChange={(e) => setFormData({ ...formData, plant_spacing: e.target.value })}
                   placeholder="e.g., 15-20 feet"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Size Full Grown</label>
+                <label className="block text-sm text-muted mb-1">Size Full Grown</label>
                 <input
                   type="text"
                   value={formData.size_full_grown}
                   onChange={(e) => setFormData({ ...formData, size_full_grown: e.target.value })}
                   placeholder="e.g., 20-30 ft tall"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -2014,33 +2014,33 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
 
           {/* Temperature & Tolerance */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Temperature & Tolerance</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Temperature & Tolerance</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Min Temp (°F)</label>
+                <label className="block text-sm text-muted mb-1">Min Temp (°F)</label>
                 <input
                   type="number"
                   value={formData.min_temp}
                   onChange={(e) => setFormData({ ...formData, min_temp: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Cover Below (°F)</label>
+                <label className="block text-sm text-muted mb-1">Cover Below (°F)</label>
                 <input
                   type="number"
                   value={formData.needs_cover_below_temp}
                   onChange={(e) => setFormData({ ...formData, needs_cover_below_temp: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Shade Above (°F)</label>
+                <label className="block text-sm text-muted mb-1">Shade Above (°F)</label>
                 <input
                   type="number"
                   value={formData.needs_shade_above_temp}
                   onChange={(e) => setFormData({ ...formData, needs_shade_above_temp: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -2086,14 +2086,14 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
 
           {/* Care Schedule */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Care Schedule</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Moisture Preference</label>
+                <label className="block text-sm text-muted mb-1">Moisture Preference</label>
                 <select
                   value={formData.moisture_preference}
                   onChange={(e) => setFormData({ ...formData, moisture_preference: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   {MOISTURE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -2101,43 +2101,43 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Water Schedule Override</label>
+                <label className="block text-sm text-muted mb-1">Water Schedule Override</label>
                 <input
                   type="text"
                   placeholder="summer:3,winter:10"
                   value={formData.water_schedule}
                   onChange={(e) => setFormData({ ...formData, water_schedule: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Fertilize Schedule</label>
+                <label className="block text-sm text-muted mb-1">Fertilize Schedule</label>
                 <input
                   type="text"
                   placeholder="spring:30,summer:45"
                   value={formData.fertilize_schedule}
                   onChange={(e) => setFormData({ ...formData, fertilize_schedule: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Prune Frequency</label>
+                <label className="block text-sm text-muted mb-1">Prune Frequency</label>
                 <input
                   type="text"
                   placeholder="e.g., Yearly after fruiting"
                   value={formData.prune_frequency}
                   onChange={(e) => setFormData({ ...formData, prune_frequency: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Prune Months</label>
+                <label className="block text-sm text-muted mb-1">Prune Months</label>
                 <input
                   type="text"
                   placeholder="e.g., Feb-Mar"
                   value={formData.prune_months}
                   onChange={(e) => setFormData({ ...formData, prune_months: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -2145,7 +2145,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
 
           {/* Auto Watering */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Automatic Watering</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Automatic Watering</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="flex items-center gap-2">
@@ -2159,13 +2159,13 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                 </label>
                 {formData.receives_rain && (
                   <div className="mt-2">
-                    <label className="block text-xs text-gray-400 mb-1">Rain Threshold (inches)</label>
+                    <label className="block text-xs text-muted mb-1">Rain Threshold (inches)</label>
                     <input
                       type="number"
                       step="0.05"
                       value={formData.rain_threshold_inches}
                       onChange={(e) => setFormData({ ...formData, rain_threshold_inches: parseFloat(e.target.value) || 0.25 })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                      className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     />
                   </div>
                 )}
@@ -2182,15 +2182,15 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                 </label>
                 {formData.sprinkler_enabled && (
                   <div className="mt-2">
-                    <label className="block text-xs text-gray-400 mb-1">Sprinkler Schedule</label>
+                    <label className="block text-xs text-muted mb-1">Sprinkler Schedule</label>
                     <input
                       type="text"
                       value={formData.sprinkler_schedule}
                       onChange={(e) => setFormData({ ...formData, sprinkler_schedule: e.target.value })}
                       placeholder="days:0,2,4;time:06:00"
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                      className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Mon=0, Sun=6</p>
+                    <p className="text-xs text-muted mt-1">Mon=0, Sun=6</p>
                   </div>
                 )}
               </div>
@@ -2199,35 +2199,35 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
 
           {/* Production & Harvest */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Production & Harvest</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Production & Harvest</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Produces Months</label>
+                <label className="block text-sm text-muted mb-1">Produces Months</label>
                 <input
                   type="text"
                   placeholder="e.g., Jun-Aug"
                   value={formData.produces_months}
                   onChange={(e) => setFormData({ ...formData, produces_months: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Harvest Frequency</label>
+                <label className="block text-sm text-muted mb-1">Harvest Frequency</label>
                 <input
                   type="text"
                   placeholder="e.g., Weekly"
                   value={formData.harvest_frequency}
                   onChange={(e) => setFormData({ ...formData, harvest_frequency: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div className="sm:col-span-2 md:col-span-1">
-                <label className="block text-sm text-gray-400 mb-1">How to Harvest</label>
+                <label className="block text-sm text-muted mb-1">How to Harvest</label>
                 <textarea
                   value={formData.how_to_harvest}
                   onChange={(e) => setFormData({ ...formData, how_to_harvest: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -2235,36 +2235,36 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
 
           {/* Uses & Info */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Uses & Information</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Uses & Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Uses</label>
+                <label className="block text-sm text-muted mb-1">Uses</label>
                 <textarea
                   value={formData.uses}
                   onChange={(e) => setFormData({ ...formData, uses: e.target.value })}
                   rows={3}
                   placeholder="e.g., Edible fruit, medicinal"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Propagation Methods</label>
+                <label className="block text-sm text-muted mb-1">Propagation Methods</label>
                 <textarea
                   value={formData.propagation_methods}
                   onChange={(e) => setFormData({ ...formData, propagation_methods: e.target.value })}
                   rows={3}
                   placeholder="e.g., Seed, cuttings, grafting"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm text-gray-400 mb-1">Cultivation Details</label>
+                <label className="block text-sm text-muted mb-1">Cultivation Details</label>
                 <textarea
                   value={formData.cultivation_details}
                   onChange={(e) => setFormData({ ...formData, cultivation_details: e.target.value })}
                   rows={3}
                   placeholder="Growing conditions, care tips, etc."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -2275,23 +2275,23 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
             <h3 className="text-sm font-medium text-red-400 mb-3">Warnings & Considerations</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Known Hazards</label>
+                <label className="block text-sm text-muted mb-1">Known Hazards</label>
                 <textarea
                   value={formData.known_hazards}
                   onChange={(e) => setFormData({ ...formData, known_hazards: e.target.value })}
                   rows={2}
                   placeholder="e.g., Thorns, toxic to pets"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Special Considerations</label>
+                <label className="block text-sm text-muted mb-1">Special Considerations</label>
                 <textarea
                   value={formData.special_considerations}
                   onChange={(e) => setFormData({ ...formData, special_considerations: e.target.value })}
                   rows={2}
                   placeholder="e.g., Needs hand pollination"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -2299,25 +2299,25 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
 
           {/* Notes & References */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Notes & References</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Notes & References</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm text-muted mb-1">Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">References</label>
+                <label className="block text-sm text-muted mb-1">References</label>
                 <textarea
                   value={formData.references}
                   onChange={(e) => setFormData({ ...formData, references: e.target.value })}
                   rows={3}
                   placeholder="Source URLs and bibliography"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -2326,7 +2326,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           {/* Tags */}
           {tags && tags.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-400 mb-3">Tags</h3>
+              <h3 className="text-sm font-medium text-muted mb-3">Tags</h3>
               <div className="flex flex-wrap gap-2">
                 {tags.map(tag => (
                   <button
@@ -2336,7 +2336,7 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
                     className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
                       formData.tag_ids.includes(tag.id)
                         ? getTagColor(tag.color) + ' border-2'
-                        : 'bg-gray-700 text-gray-400 border-gray-600 hover:border-gray-500'
+                        : 'bg-surface-soft text-muted border hover:border-strong'
                     }`}
                   >
                     {tag.name}
@@ -2347,11 +2347,11 @@ function PlantFormModal({ tags, farmAreas, onClose, onSave, initialData = null }
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
+          <div className="flex gap-3 pt-4 border-t border-subtle">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -2416,22 +2416,22 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-sm" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-sm" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between">
           <h2 className="text-lg font-semibold">Edit {label}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Date</label>
+            <label className="block text-sm text-muted mb-2">Date</label>
             <input
               type="date"
               value={dateValue}
               onChange={(e) => setDateValue(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
@@ -2453,11 +2453,11 @@ function EditDateModal({ label, currentDate, onClose, onSave }) {
             </button>
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
+          <div className="flex gap-3 pt-4 border-t border-subtle">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -2509,34 +2509,34 @@ function HarvestFormModal({ plant, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Package className="w-5 h-5 text-green-500" />
               Record Harvest
             </h2>
-            <p className="text-sm text-gray-400">{plant.name} {plant.variety && `(${plant.variety})`}</p>
+            <p className="text-sm text-muted">{plant.name} {plant.variety && `(${plant.variety})`}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Harvest Date</label>
+            <label className="block text-sm text-muted mb-1">Harvest Date</label>
             <input
               type="date"
               value={formData.harvest_date}
               onChange={(e) => setFormData({ ...formData, harvest_date: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Quantity *</label>
+              <label className="block text-sm text-muted mb-1">Quantity *</label>
               <input
                 type="number"
                 step="0.1"
@@ -2544,15 +2544,15 @@ function HarvestFormModal({ plant, onClose, onSave }) {
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                 placeholder="Amount harvested"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Unit</label>
+              <label className="block text-sm text-muted mb-1">Unit</label>
               <select
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               >
                 <option value="lbs">Pounds (lbs)</option>
                 <option value="oz">Ounces (oz)</option>
@@ -2568,11 +2568,11 @@ function HarvestFormModal({ plant, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Quality</label>
+            <label className="block text-sm text-muted mb-1">Quality</label>
             <select
               value={formData.quality}
               onChange={(e) => setFormData({ ...formData, quality: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             >
               <option value="excellent">Excellent</option>
               <option value="good">Good</option>
@@ -2582,13 +2582,13 @@ function HarvestFormModal({ plant, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
               placeholder="Any notes about this harvest..."
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
@@ -2596,7 +2596,7 @@ function HarvestFormModal({ plant, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -2666,55 +2666,55 @@ function SellPlantModal({ plant, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-green-500" />
               Sell Plant
             </h2>
-            <p className="text-sm text-gray-400">{plant.name} {plant.variety && `(${plant.variety})`}</p>
+            <p className="text-sm text-muted">{plant.name} {plant.variety && `(${plant.variety})`}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Item Name</label>
+            <label className="block text-sm text-muted mb-1">Item Name</label>
             <input
               type="text"
               value={formData.item_name}
               onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Sale Date</label>
+            <label className="block text-sm text-muted mb-1">Sale Date</label>
             <input
               type="date"
               value={formData.sale_date}
               onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Quantity</label>
+              <label className="block text-sm text-muted mb-1">Quantity</label>
               <input
                 type="number"
                 step="1"
                 min="1"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Price Each *</label>
+              <label className="block text-sm text-muted mb-1">Price Each *</label>
               <input
                 type="number"
                 step="0.01"
@@ -2723,41 +2723,41 @@ function SellPlantModal({ plant, onClose, onSave }) {
                 value={formData.unit_price}
                 onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
                 placeholder="$0.00"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={2}
               placeholder="Details about the sale"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Customer Name</label>
+              <label className="block text-sm text-muted mb-1">Customer Name</label>
               <input
                 type="text"
                 value={formData.customer_name}
                 onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
                 placeholder="Optional"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Customer Email</label>
+              <label className="block text-sm text-muted mb-1">Customer Email</label>
               <input
                 type="email"
                 value={formData.customer_email}
                 onChange={(e) => setFormData({ ...formData, customer_email: e.target.value })}
                 placeholder="Optional"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
           </div>
@@ -2770,7 +2770,7 @@ function SellPlantModal({ plant, onClose, onSave }) {
                 onChange={(e) => setSendReceipt(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm text-gray-400">Send receipt to customer email</span>
+              <span className="text-sm text-muted">Send receipt to customer email</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -2779,13 +2779,13 @@ function SellPlantModal({ plant, onClose, onSave }) {
                 onChange={(e) => setRemovePlant(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm text-gray-400">Remove plant from my list after sale</span>
+              <span className="text-sm text-muted">Remove plant from my list after sale</span>
             </label>
           </div>
 
           {formData.unit_price && formData.quantity && (
-            <div className="bg-gray-700/50 rounded-lg p-3 text-sm">
-              <span className="text-gray-400">Total: </span>
+            <div className="bg-surface-soft/50 rounded-lg p-3 text-sm">
+              <span className="text-muted">Total: </span>
               <span className="text-green-400 font-semibold">${(parseFloat(formData.quantity) * parseFloat(formData.unit_price)).toFixed(2)}</span>
             </div>
           )}
@@ -2794,7 +2794,7 @@ function SellPlantModal({ plant, onClose, onSave }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -3073,7 +3073,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
       purple: 'bg-purple-900/50 text-purple-300 border-purple-700',
       cyan: 'bg-cyan-900/50 text-cyan-300 border-cyan-700',
       amber: 'bg-amber-900/50 text-amber-300 border-amber-700',
-      gray: 'bg-gray-700 text-gray-300 border-gray-600',
+      gray: 'bg-surface-soft text-secondary border',
     }
     return colors[color] || colors.gray
   }
@@ -3082,14 +3082,14 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
   if (step === 'fetch') {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-xl" onClick={e => e.stopPropagation()}>
-          <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[92vw] sm:max-w-xl" onClick={e => e.stopPropagation()}>
+          <div className="p-4 border-b border-subtle flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Download className="w-5 h-5 text-green-500" />
                 {existingPlant ? `Import Data to ${existingPlant.name}` : 'Import Plant Data'}
               </h2>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-muted mt-1">
                 Import from{' '}
                 <a href="https://www.picturethisai.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">picturethisai.com</a>,{' '}
                 <a href="https://pfaf.org" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">pfaf.org</a>,{' '}
@@ -3097,15 +3097,15 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 <a href="https://growables.org" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">growables.org</a>
               </p>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <button onClick={onClose} className="text-muted hover:text-white">
               <X className="w-6 h-6" />
             </button>
           </div>
 
           <div className="p-4 space-y-4">
             {/* Search Plants */}
-            <div className="bg-gray-900/50 rounded-lg p-3">
-              <label className="block text-sm text-gray-400 mb-2">Search Plants</label>
+            <div className="bg-surface-app/50 rounded-lg p-3">
+              <label className="block text-sm text-muted mb-2">Search Plants</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -3113,7 +3113,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
                   placeholder="Search by plant name (e.g., Lemon, Tomato, Oak)"
-                  className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   onClick={handleSearch}
@@ -3131,33 +3131,33 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                     <button
                       key={i}
                       onClick={() => handleSearchResultClick(result)}
-                      className="w-full text-left px-3 py-2 bg-gray-700/50 hover:bg-gray-600 rounded-lg flex items-center gap-3 transition-colors"
+                      className="w-full text-left px-3 py-2 bg-surface-soft/50 hover:bg-surface-hover rounded-lg flex items-center gap-3 transition-colors"
                     >
                       {result.image_url && (
                         <img src={result.image_url + '?x-oss-process=image/resize,l_40'} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
                       )}
                       <div className="min-w-0">
                         <div className="text-sm text-white truncate">{result.common_name}</div>
-                        <div className="text-xs text-gray-400 italic truncate">{result.latin_name}</div>
+                        <div className="text-xs text-muted italic truncate">{result.latin_name}</div>
                       </div>
                     </button>
                   ))}
                 </div>
               )}
               {searching && (
-                <p className="text-xs text-gray-500 mt-2">Searching...</p>
+                <p className="text-xs text-muted mt-2">Searching...</p>
               )}
             </div>
 
             {/* URL Input */}
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Plant URL</label>
+              <label className="block text-sm text-muted mb-2">Plant URL</label>
               <input
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://picturethisai.com/wiki/... or https://pfaf.org/... or https://gardenia.net/..."
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
 
@@ -3170,16 +3170,16 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           </div>
 
           {/* Actions */}
-          <div className="p-4 border-t border-gray-700 flex gap-3">
+          <div className="p-4 border-t border-subtle flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={() => { setStep('edit'); setError(null) }}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors"
+              className="px-4 py-2 bg-surface-hover hover:bg-surface-muted rounded-lg transition-colors"
             >
               Skip - Enter Manually
             </button>
@@ -3209,22 +3209,22 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
   // Edit step - full form with imported data
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 w-full max-w-[92vw] sm:max-w-xl md:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 bg-gray-800 p-4 border-b border-gray-700 flex items-center justify-between">
+      <div className="bg-surface rounded-xl p-3 sm:p-4 md:p-6 w-full max-w-[92vw] sm:max-w-xl md:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 bg-surface p-4 border-b border-subtle flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold">
               {existingPlant ? `Update ${existingPlant.name}` : 'Add New Plant'}
             </h2>
-            <p className="text-sm text-gray-400">Review and edit the imported data</p>
+            <p className="text-sm text-muted">Review and edit the imported data</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setStep('fetch'); setError(null) }}
-              className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors"
+              className="px-3 py-1.5 bg-surface-soft hover:bg-surface-hover rounded text-sm transition-colors"
             >
               Back
             </button>
-            <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <button onClick={onClose} className="text-muted hover:text-white">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -3240,8 +3240,8 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
 
           {/* Imported Photo Preview */}
           {importedData?.image_url && (
-            <div className="bg-gray-900/50 rounded-lg p-4">
-              <p className="text-sm text-gray-400 mb-2">Photo (will be imported)</p>
+            <div className="bg-surface-app/50 rounded-lg p-4">
+              <p className="text-sm text-muted mb-2">Photo (will be imported)</p>
               <img
                 src={importedData.image_url}
                 alt={importedData.name || 'Plant'}
@@ -3254,7 +3254,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {existingPlant && Object.keys(importedData).length > 0 && (
             <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
               <h3 className="text-sm font-medium text-blue-300 mb-2">Select Fields to Import</h3>
-              <p className="text-xs text-gray-400 mb-3">Check the fields you want to overwrite with imported data:</p>
+              <p className="text-xs text-muted mb-3">Check the fields you want to overwrite with imported data:</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
                 {Object.keys(importedData).filter(key =>
                   importedData[key] !== null && importedData[key] !== undefined && importedData[key] !== '' && key !== 'tag_ids'
@@ -3264,7 +3264,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                   const fieldLabel = field.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                   return (
                     <label key={field} className={`flex items-center gap-2 text-xs p-1.5 rounded cursor-pointer ${
-                      hasExisting ? 'bg-amber-900/30 border border-amber-700/50' : 'bg-gray-700/50'
+                      hasExisting ? 'bg-amber-900/30 border border-amber-700/50' : 'bg-surface-soft/50'
                     }`}>
                       <input
                         type="checkbox"
@@ -3272,7 +3272,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                         onChange={() => toggleUseImported(field)}
                         className="w-3 h-3"
                       />
-                      <span className={hasExisting ? 'text-amber-200' : 'text-gray-300'}>
+                      <span className={hasExisting ? 'text-amber-200' : 'text-secondary'}>
                         {fieldLabel}
                         {hasExisting && ' *'}
                       </span>
@@ -3286,39 +3286,39 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
 
           {/* Basic Info */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Basic Information</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Basic Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Name *</label>
+                <label className="block text-sm text-muted mb-1">Name *</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Latin Name</label>
+                <label className="block text-sm text-muted mb-1">Latin Name</label>
                 <input
                   type="text"
                   value={formData.latin_name}
                   onChange={(e) => setFormData({ ...formData, latin_name: e.target.value })}
                   placeholder="Genus species"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Variety</label>
+                <label className="block text-sm text-muted mb-1">Variety</label>
                 <input
                   type="text"
                   value={formData.variety}
                   onChange={(e) => setFormData({ ...formData, variety: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Location</label>
+                <label className="block text-sm text-muted mb-1">Location</label>
                 <LocationSelect
                   value={formData.location}
                   subValue={formData.sub_location}
@@ -3330,47 +3330,47 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Source</label>
+                <label className="block text-sm text-muted mb-1">Source</label>
                 <input
                   type="text"
                   value={formData.source}
                   onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                   placeholder="Where purchased"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
             <div className="mt-4">
-              <label className="block text-sm text-gray-400 mb-1">Description</label>
+              <label className="block text-sm text-muted mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
           </div>
 
           {/* Growing Requirements */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Growing Requirements</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Growing Requirements</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Hardiness Zones (species)</label>
+                <label className="block text-sm text-muted mb-1">Hardiness Zones (species)</label>
                 <input
                   type="text"
                   value={formData.grow_zones}
                   onChange={(e) => setFormData({ ...formData, grow_zones: e.target.value })}
                   placeholder="e.g., 9-11"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">This Plant's Zone (override)</label>
+                <label className="block text-sm text-muted mb-1">This Plant's Zone (override)</label>
                 <select
                   value={formData.plant_zone}
                   onChange={(e) => setFormData({ ...formData, plant_zone: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   <option value="">Use global zone</option>
                   {['1a','1b','2a','2b','3a','3b','4a','4b','5a','5b','6a','6b','7a','7b','8a','8b','9a','9b','10a','10b','11a','11b','12a','12b','13a','13b'].map(z => (
@@ -3379,11 +3379,11 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Sun Requirement</label>
+                <label className="block text-sm text-muted mb-1">Sun Requirement</label>
                 <select
                   value={formData.sun_requirement}
                   onChange={(e) => setFormData({ ...formData, sun_requirement: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   {SUN_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -3391,11 +3391,11 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Growth Rate</label>
+                <label className="block text-sm text-muted mb-1">Growth Rate</label>
                 <select
                   value={formData.growth_rate}
                   onChange={(e) => setFormData({ ...formData, growth_rate: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   {GROWTH_RATE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -3403,33 +3403,33 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Soil Requirements</label>
+                <label className="block text-sm text-muted mb-1">Soil Requirements</label>
                 <input
                   type="text"
                   value={formData.soil_requirements}
                   onChange={(e) => setFormData({ ...formData, soil_requirements: e.target.value })}
                   placeholder="e.g., Well-drained, loamy"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Plant Spacing</label>
+                <label className="block text-sm text-muted mb-1">Plant Spacing</label>
                 <input
                   type="text"
                   value={formData.plant_spacing}
                   onChange={(e) => setFormData({ ...formData, plant_spacing: e.target.value })}
                   placeholder="e.g., 15-20 feet"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Size Full Grown</label>
+                <label className="block text-sm text-muted mb-1">Size Full Grown</label>
                 <input
                   type="text"
                   value={formData.size_full_grown}
                   onChange={(e) => setFormData({ ...formData, size_full_grown: e.target.value })}
                   placeholder="e.g., 20-30 ft tall"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -3437,33 +3437,33 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
 
           {/* Temperature & Tolerance */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Temperature & Tolerance</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Temperature & Tolerance</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Min Temp (°F)</label>
+                <label className="block text-sm text-muted mb-1">Min Temp (°F)</label>
                 <input
                   type="number"
                   value={formData.min_temp}
                   onChange={(e) => setFormData({ ...formData, min_temp: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Cover Below (°F)</label>
+                <label className="block text-sm text-muted mb-1">Cover Below (°F)</label>
                 <input
                   type="number"
                   value={formData.needs_cover_below_temp}
                   onChange={(e) => setFormData({ ...formData, needs_cover_below_temp: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Shade Above (°F)</label>
+                <label className="block text-sm text-muted mb-1">Shade Above (°F)</label>
                 <input
                   type="number"
                   value={formData.needs_shade_above_temp}
                   onChange={(e) => setFormData({ ...formData, needs_shade_above_temp: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -3507,11 +3507,11 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Moisture Preference</label>
+                <label className="block text-sm text-muted mb-1">Moisture Preference</label>
                 <select
                   value={formData.moisture_preference}
                   onChange={(e) => setFormData({ ...formData, moisture_preference: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   {MOISTURE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -3523,46 +3523,46 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
 
           {/* Care Schedule */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Care Schedule</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Care Schedule</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Water Schedule</label>
+                <label className="block text-sm text-muted mb-1">Water Schedule</label>
                 <input
                   type="text"
                   value={formData.water_schedule}
                   onChange={(e) => setFormData({ ...formData, water_schedule: e.target.value })}
                   placeholder="e.g., Weekly"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Fertilize Schedule</label>
+                <label className="block text-sm text-muted mb-1">Fertilize Schedule</label>
                 <input
                   type="text"
                   value={formData.fertilize_schedule}
                   onChange={(e) => setFormData({ ...formData, fertilize_schedule: e.target.value })}
                   placeholder="e.g., Monthly"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Prune Frequency</label>
+                <label className="block text-sm text-muted mb-1">Prune Frequency</label>
                 <input
                   type="text"
                   value={formData.prune_frequency}
                   onChange={(e) => setFormData({ ...formData, prune_frequency: e.target.value })}
                   placeholder="e.g., Annually"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Prune Months</label>
+                <label className="block text-sm text-muted mb-1">Prune Months</label>
                 <input
                   type="text"
                   value={formData.prune_months}
                   onChange={(e) => setFormData({ ...formData, prune_months: e.target.value })}
                   placeholder="e.g., Feb-Mar"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -3570,7 +3570,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
 
           {/* Auto Watering */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Auto Watering</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Auto Watering</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <label className="flex items-center gap-2">
                 <input
@@ -3582,13 +3582,13 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 <span className="text-sm">Receives Rain</span>
               </label>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Rain Threshold (in)</label>
+                <label className="block text-sm text-muted mb-1">Rain Threshold (in)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.rain_threshold_inches}
                   onChange={(e) => setFormData({ ...formData, rain_threshold_inches: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <label className="flex items-center gap-2">
@@ -3601,13 +3601,13 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                 <span className="text-sm">Sprinkler Enabled</span>
               </label>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Sprinkler Schedule</label>
+                <label className="block text-sm text-muted mb-1">Sprinkler Schedule</label>
                 <input
                   type="text"
                   value={formData.sprinkler_schedule}
                   onChange={(e) => setFormData({ ...formData, sprinkler_schedule: e.target.value })}
                   placeholder="e.g., Mon/Wed/Fri"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -3615,36 +3615,36 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
 
           {/* Production & Harvest */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Production & Harvest</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Production & Harvest</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Produces Months</label>
+                <label className="block text-sm text-muted mb-1">Produces Months</label>
                 <input
                   type="text"
                   value={formData.produces_months}
                   onChange={(e) => setFormData({ ...formData, produces_months: e.target.value })}
                   placeholder="e.g., Jun-Sep"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Harvest Frequency</label>
+                <label className="block text-sm text-muted mb-1">Harvest Frequency</label>
                 <input
                   type="text"
                   value={formData.harvest_frequency}
                   onChange={(e) => setFormData({ ...formData, harvest_frequency: e.target.value })}
                   placeholder="e.g., Weekly"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div className="sm:col-span-2 md:col-span-1">
-                <label className="block text-sm text-gray-400 mb-1">How to Harvest</label>
+                <label className="block text-sm text-muted mb-1">How to Harvest</label>
                 <input
                   type="text"
                   value={formData.how_to_harvest}
                   onChange={(e) => setFormData({ ...formData, how_to_harvest: e.target.value })}
                   placeholder="Harvesting instructions"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -3652,36 +3652,36 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
 
           {/* Uses & Info */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Uses & Information</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Uses & Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Uses</label>
+                <label className="block text-sm text-muted mb-1">Uses</label>
                 <textarea
                   value={formData.uses}
                   onChange={(e) => setFormData({ ...formData, uses: e.target.value })}
                   rows={3}
                   placeholder="e.g., Edible fruit, medicinal"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Propagation Methods</label>
+                <label className="block text-sm text-muted mb-1">Propagation Methods</label>
                 <textarea
                   value={formData.propagation_methods}
                   onChange={(e) => setFormData({ ...formData, propagation_methods: e.target.value })}
                   rows={3}
                   placeholder="e.g., Seed, cuttings, grafting"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm text-gray-400 mb-1">Cultivation Details</label>
+                <label className="block text-sm text-muted mb-1">Cultivation Details</label>
                 <textarea
                   value={formData.cultivation_details}
                   onChange={(e) => setFormData({ ...formData, cultivation_details: e.target.value })}
                   rows={3}
                   placeholder="Growing conditions, care tips, etc."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -3689,26 +3689,26 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
 
           {/* Warnings */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Warnings</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Warnings</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Known Hazards</label>
+                <label className="block text-sm text-muted mb-1">Known Hazards</label>
                 <textarea
                   value={formData.known_hazards}
                   onChange={(e) => setFormData({ ...formData, known_hazards: e.target.value })}
                   rows={2}
                   placeholder="e.g., Thorns, toxic to pets"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Special Considerations</label>
+                <label className="block text-sm text-muted mb-1">Special Considerations</label>
                 <textarea
                   value={formData.special_considerations}
                   onChange={(e) => setFormData({ ...formData, special_considerations: e.target.value })}
                   rows={2}
                   placeholder="Any special care notes"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
             </div>
@@ -3716,25 +3716,25 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
 
           {/* Notes & References */}
           <div>
-            <h3 className="text-sm font-medium text-gray-400 mb-3">Notes & References</h3>
+            <h3 className="text-sm font-medium text-muted mb-3">Notes & References</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm text-muted mb-1">Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">References</label>
+                <label className="block text-sm text-muted mb-1">References</label>
                 <textarea
                   value={formData.references}
                   onChange={(e) => setFormData({ ...formData, references: e.target.value })}
                   rows={2}
                   placeholder="Source URLs and bibliography"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
                 />
               </div>
             </div>
@@ -3743,7 +3743,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
           {/* Tags */}
           {tags && tags.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-400 mb-3">Tags</h3>
+              <h3 className="text-sm font-medium text-muted mb-3">Tags</h3>
               <div className="flex flex-wrap gap-2">
                 {tags.map(tag => (
                   <button
@@ -3753,7 +3753,7 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
                     className={`px-3 py-1.5 rounded-full text-sm border transition-all ${
                       formData.tag_ids.includes(tag.id)
                         ? getTagColor(tag.color) + ' border-2'
-                        : 'bg-gray-700 text-gray-400 border-gray-600 hover:border-gray-500'
+                        : 'bg-surface-soft text-muted border hover:border-strong'
                     }`}
                   >
                     {tag.name}
@@ -3765,10 +3765,10 @@ function ImportModal({ onClose, onSuccess, tags, farmAreas, existingPlant = null
         </div>
 
         {/* Actions */}
-        <div className="p-4 border-t border-gray-700 flex gap-3">
+        <div className="p-4 border-t border-subtle flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
           >
             Cancel
           </button>

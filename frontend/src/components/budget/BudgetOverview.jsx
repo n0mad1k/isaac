@@ -145,8 +145,8 @@ function BudgetOverview() {
   if (loading && !summary) {
     return (
       <div className="space-y-4">
-        <div className="animate-pulse bg-gray-800 rounded-xl h-16" />
-        <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
+        <div className="animate-pulse bg-surface rounded-xl h-16" />
+        <div className="animate-pulse bg-surface rounded-xl h-64" />
       </div>
     )
   }
@@ -195,13 +195,13 @@ function BudgetOverview() {
       {/* Month & Period Navigation */}
       <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         <div className="flex items-center justify-between mb-3">
-          <button onClick={goToPrevMonth} className="p-1 rounded hover:bg-gray-700">
+          <button onClick={goToPrevMonth} className="p-1 rounded hover:bg-surface-soft">
             <ChevronLeft className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
           </button>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             Budget Overview
           </h3>
-          <button onClick={goToNextMonth} className="p-1 rounded hover:bg-gray-700">
+          <button onClick={goToNextMonth} className="p-1 rounded hover:bg-surface-soft">
             <ChevronRight className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
           </button>
         </div>
@@ -211,7 +211,7 @@ function BudgetOverview() {
               key={idx}
               onClick={() => setSelectedPeriodIdx(idx)}
               className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                selectedPeriodIdx === idx ? 'bg-farm-green text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                selectedPeriodIdx === idx ? 'bg-farm-green text-white' : 'bg-surface-soft text-muted hover:bg-surface-hover'
               }`}
             >
               {period.label}
@@ -275,7 +275,7 @@ function BudgetOverview() {
               const balance = account.current_balance || 0
               return (
                 <div key={account.id} className="flex items-center gap-3 p-2 rounded-lg" style={{ backgroundColor: 'var(--color-bg-surface-soft)' }}>
-                  <Icon className="w-5 h-5 text-gray-400" />
+                  <Icon className="w-5 h-5 text-muted" />
                   <div>
                     <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{account.name}</div>
                     <div className="text-sm font-semibold" style={{ color: balance >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>
@@ -340,7 +340,7 @@ function BudgetOverview() {
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') saveEditBudget(); if (e.key === 'Escape') setEditingBudget(null) }}
-                          className="w-16 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs text-right"
+                          className="w-16 px-1 py-0.5 bg-surface border border rounded text-xs text-right"
                           style={{ color: 'var(--color-text-primary)' }}
                           autoFocus
                         />

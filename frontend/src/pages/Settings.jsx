@@ -1038,7 +1038,7 @@ function Settings() {
         <select
           value={setting.value || 'ollama'}
           onChange={(e) => handleChange(key, e.target.value)}
-          className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green w-full"
+          className="px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green w-full"
         >
           <option value="ollama">Ollama (Self-hosted)</option>
           <option value="claude">Claude (Anthropic)</option>
@@ -1056,7 +1056,7 @@ function Settings() {
             onChange={(e) => handleChange(key, e.target.checked ? 'true' : 'false')}
             className="sr-only peer"
           />
-          <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-farm-green rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-farm-green"></div>
+          <div className="w-11 h-6 bg-surface-soft peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-farm-green rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-farm-green"></div>
         </label>
       )
     }
@@ -1076,14 +1076,14 @@ function Settings() {
             type={inputType}
             value={setting.value || ''}
             onChange={(e) => handleChange(key, e.target.value)}
-            className={`px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green ${isTimeField ? 'w-auto' : 'w-full pr-10'}`}
+            className={`px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green ${isTimeField ? 'w-auto' : 'w-full pr-10'}`}
             autoComplete={isPasswordField ? 'new-password' : 'off'}
           />
           {isPasswordField && (
             <button
               type="button"
               onClick={() => setShowPasswords(prev => ({ ...prev, [key]: !prev[key] }))}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-white transition-colors"
               title={showPasswords[key] ? 'Hide password' : 'Show password'}
             >
               {showPasswords[key] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -1093,7 +1093,7 @@ function Settings() {
         {!setting.is_default && (
           <button
             onClick={() => handleReset(key)}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            className="p-2 text-muted hover:text-white transition-colors"
             title="Reset to default"
           >
             <RotateCcw className="w-4 h-4" />
@@ -1110,17 +1110,17 @@ function Settings() {
     const isChanged = setting.value !== originalSettings[key]?.value
 
     return (
-      <div key={key} className={`bg-gray-800/50 rounded-lg p-4 ${isChanged ? 'ring-2 ring-farm-green' : ''}`}>
+      <div key={key} className={`bg-surface/50 rounded-lg p-4 ${isChanged ? 'ring-2 ring-farm-green' : ''}`}>
         <div className="flex items-start justify-between mb-2">
           <div>
             <h4 className="font-medium capitalize">
               {key.replace(/_/g, ' ')}
               {isChanged && <span className="ml-2 text-xs text-farm-green">(modified)</span>}
             </h4>
-            <p className="text-sm text-gray-400">{setting.description}</p>
+            <p className="text-sm text-muted">{setting.description}</p>
           </div>
           {setting.is_default && !isChanged && (
-            <span className="text-xs bg-gray-700 text-gray-400 px-2 py-1 rounded">Default</span>
+            <span className="text-xs bg-surface-soft text-muted px-2 py-1 rounded">Default</span>
           )}
         </div>
         {renderSettingInput(key, setting)}
@@ -1136,10 +1136,10 @@ function Settings() {
     const IconComponent = category.icon === 'PawPrint' ? PawPrint : category.icon === 'Leaf' ? Leaf : Wrench
 
     return (
-      <div key={category.key} className={`p-4 rounded-lg border ${isChanged ? 'bg-farm-green/10 border-farm-green/30' : 'bg-gray-700/30 border-gray-700'}`}>
+      <div key={category.key} className={`p-4 rounded-lg border ${isChanged ? 'bg-farm-green/10 border-farm-green/30' : 'bg-surface-soft/30 border-subtle'}`}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-gray-700 ${category.color}`}>
+            <div className={`p-2 rounded-lg bg-surface-soft ${category.color}`}>
               <IconComponent className="w-5 h-5" />
             </div>
             <div>
@@ -1147,7 +1147,7 @@ function Settings() {
                 {category.label}
                 {isChanged && <span className="text-xs text-farm-green">*</span>}
               </h3>
-              <p className="text-xs text-gray-400">{category.description}</p>
+              <p className="text-xs text-muted">{category.description}</p>
             </div>
           </div>
         </div>
@@ -1157,27 +1157,27 @@ function Settings() {
               type="checkbox"
               checked={channels.dashboard}
               onChange={() => handleChannelToggle(category.key, 'dashboard')}
-              className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
+              className="w-4 h-4 rounded bg-surface-soft border text-farm-green focus:ring-farm-green"
             />
-            <span className="text-sm text-gray-300">Dashboard</span>
+            <span className="text-sm text-secondary">Dashboard</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={channels.email}
               onChange={() => handleChannelToggle(category.key, 'email')}
-              className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
+              className="w-4 h-4 rounded bg-surface-soft border text-farm-green focus:ring-farm-green"
             />
-            <span className="text-sm text-gray-300">Email</span>
+            <span className="text-sm text-secondary">Email</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={channels.calendar}
               onChange={() => handleChannelToggle(category.key, 'calendar')}
-              className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
+              className="w-4 h-4 rounded bg-surface-soft border text-farm-green focus:ring-farm-green"
             />
-            <span className="text-sm text-gray-300">Calendar</span>
+            <span className="text-sm text-secondary">Calendar</span>
           </label>
         </div>
       </div>
@@ -1197,14 +1197,14 @@ function Settings() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0">
-          <SettingsIcon className="w-7 h-7 text-gray-400" />
+          <SettingsIcon className="w-7 h-7 text-muted" />
           Settings
         </h1>
         <MottoDisplay />
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={handleResetAll}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors text-sm"
           >
             <RotateCcw className="w-4 h-4" />
             Reset All
@@ -1215,7 +1215,7 @@ function Settings() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm ${
               hasChanges
                 ? 'bg-farm-green hover:bg-farm-green-light'
-                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                : 'bg-surface-soft text-muted cursor-not-allowed'
             }`}
           >
             <Save className="w-4 h-4" />
@@ -1243,13 +1243,13 @@ function Settings() {
 
       {/* User Management (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div className="bg-surface rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('users')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.users ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              {expandedSections.users ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
               <Users className="w-5 h-5 text-indigo-400" />
               User Management
             </h2>
@@ -1278,57 +1278,57 @@ function Settings() {
 
           {/* Add User Form */}
           {showAddUser && (
-            <form onSubmit={handleCreateUser} className="mb-6 p-4 bg-gray-700/50 rounded-lg space-y-4">
+            <form onSubmit={handleCreateUser} className="mb-6 p-4 bg-surface-soft/50 rounded-lg space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Username</label>
+                  <label className="block text-sm font-medium text-secondary mb-1">Username</label>
                   <input
                     type="text"
                     value={newUser.username}
                     onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Display Name</label>
+                  <label className="block text-sm font-medium text-secondary mb-1">Display Name</label>
                   <input
                     type="text"
                     value={newUser.display_name}
                     onChange={(e) => setNewUser({ ...newUser, display_name: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Email <span className="text-gray-500">(optional)</span></label>
+                  <label className="block text-sm font-medium text-secondary mb-1">Email <span className="text-muted">(optional)</span></label>
                   <input
                     type="text"
                     value={newUser.email}
                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     placeholder="optional"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Password {newUser.is_kiosk && <span className="text-gray-500">(not required for kiosk)</span>}
+                  <label className="block text-sm font-medium text-secondary mb-1">
+                    Password {newUser.is_kiosk && <span className="text-muted">(not required for kiosk)</span>}
                   </label>
                   <input
                     type="password"
                     value={newUser.password}
                     onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     required={!newUser.is_kiosk}
                     disabled={newUser.is_kiosk}
                     placeholder={newUser.is_kiosk ? 'Not required for kiosk mode' : ''}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Role</label>
+                  <label className="block text-sm font-medium text-secondary mb-1">Role</label>
                   <select
                     value={newUser.role}
                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="viewer">Viewer (Read-only)</option>
                     <option value="editor">Editor (Can edit content)</option>
@@ -1341,11 +1341,11 @@ function Settings() {
                       type="checkbox"
                       checked={newUser.is_kiosk}
                       onChange={(e) => setNewUser({ ...newUser, is_kiosk: e.target.checked, password: e.target.checked ? '' : newUser.password })}
-                      className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
+                      className="w-5 h-5 rounded bg-surface-soft border text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
                     />
                     <div>
-                      <span className="text-sm font-medium text-gray-300">Kiosk Mode</span>
-                      <p className="text-xs text-gray-500">Allow login without password (for dashboard displays)</p>
+                      <span className="text-sm font-medium text-secondary">Kiosk Mode</span>
+                      <p className="text-xs text-muted">Allow login without password (for dashboard displays)</p>
                     </div>
                   </label>
                 </div>
@@ -1355,23 +1355,23 @@ function Settings() {
                       type="checkbox"
                       checked={newUser.is_farmhand}
                       onChange={(e) => setNewUser({ ...newUser, is_farmhand: e.target.checked })}
-                      className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-gray-800"
+                      className="w-5 h-5 rounded bg-surface-soft border text-cyan-500 focus:ring-cyan-500 focus:ring-offset-gray-800"
                     />
                     <div>
-                      <span className="text-sm font-medium text-gray-300">Farm Hand Account</span>
-                      <p className="text-xs text-gray-500">Limited dashboard - only sees tasks marked "visible to farm hands"</p>
+                      <span className="text-sm font-medium text-secondary">Farm Hand Account</span>
+                      <p className="text-xs text-muted">Limited dashboard - only sees tasks marked "visible to farm hands"</p>
                     </div>
                   </label>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Account Expires (optional)</label>
+                  <label className="block text-sm text-muted mb-1">Account Expires (optional)</label>
                   <input
                     type="datetime-local"
                     value={newUser.expires_at}
                     onChange={(e) => setNewUser({ ...newUser, expires_at: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 rounded-lg border border-gray-600 focus:border-farm-green focus:ring-1 focus:ring-farm-green outline-none text-sm"
+                    className="w-full px-3 py-2 bg-surface-soft rounded-lg border border focus:border-farm-green focus:ring-1 focus:ring-farm-green outline-none text-sm"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Account will auto-disable after this date/time</p>
+                  <p className="text-xs text-muted mt-1">Account will auto-disable after this date/time</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -1384,7 +1384,7 @@ function Settings() {
                 <button
                   type="button"
                   onClick={() => setShowAddUser(false)}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors text-sm"
+                  className="px-4 py-2 bg-surface-hover hover:bg-surface-muted rounded-lg transition-colors text-sm"
                 >
                   Cancel
                 </button>
@@ -1421,37 +1421,37 @@ function Settings() {
                 <Mail className="w-5 h-5 text-cyan-400" />
                 <h3 className="text-lg font-medium text-cyan-300">Invite User via Email</h3>
               </div>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted">
                 Send an invitation email. The user will choose their own username and password.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Email *</label>
+                  <label className="block text-sm font-medium text-secondary mb-1">Email *</label>
                   <input
                     type="email"
                     value={inviteData.email}
                     onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     required
                     placeholder="user@example.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Display Name</label>
+                  <label className="block text-sm font-medium text-secondary mb-1">Display Name</label>
                   <input
                     type="text"
                     value={inviteData.display_name}
                     onChange={(e) => setInviteData({ ...inviteData, display_name: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     placeholder="Optional"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Role</label>
+                  <label className="block text-sm font-medium text-secondary mb-1">Role</label>
                   <select
                     value={inviteData.role}
                     onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   >
                     {roles.map(role => (
                       <option key={role.name} value={role.name}>
@@ -1461,12 +1461,12 @@ function Settings() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Account Expires (optional)</label>
+                  <label className="block text-sm text-muted mb-1">Account Expires (optional)</label>
                   <input
                     type="datetime-local"
                     value={inviteData.expires_at}
                     onChange={(e) => setInviteData({ ...inviteData, expires_at: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-700 rounded-lg border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-sm"
+                    className="w-full px-3 py-2 bg-surface-soft rounded-lg border border focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none text-sm"
                   />
                 </div>
               </div>
@@ -1491,7 +1491,7 @@ function Settings() {
                 <button
                   type="button"
                   onClick={() => setShowInviteUser(false)}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors text-sm"
+                  className="px-4 py-2 bg-surface-hover hover:bg-surface-muted rounded-lg transition-colors text-sm"
                 >
                   Cancel
                 </button>
@@ -1502,18 +1502,18 @@ function Settings() {
           {/* Password Reset Modal */}
           {resetPasswordUser && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 w-full max-w-[92vw] sm:max-w-md mx-4">
+              <div className="bg-surface rounded-xl p-3 sm:p-4 md:p-6 w-full max-w-[92vw] sm:max-w-md mx-4">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Key className="w-5 h-5 text-yellow-400" />
                   Reset Password for {resetPasswordUser.username}
                 </h3>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">New Password</label>
+                  <label className="block text-sm font-medium text-secondary mb-1">New Password</label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     placeholder="Minimum 8 characters"
                     autoFocus
                   />
@@ -1527,7 +1527,7 @@ function Settings() {
                   </button>
                   <button
                     onClick={() => { setResetPasswordUser(null); setNewPassword(''); }}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
+                    className="px-4 py-2 bg-surface-hover hover:bg-surface-muted text-white rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
@@ -1547,7 +1547,7 @@ function Settings() {
                 <div
                   key={u.id}
                   className={`p-4 rounded-lg ${
-                    u.is_active ? 'bg-gray-700/50' : 'bg-gray-700/20 opacity-60'
+                    u.is_active ? 'bg-surface-soft/50' : 'bg-surface-soft/20 opacity-60'
                   }`}
                 >
                   {editingUser === u.id ? (
@@ -1555,39 +1555,39 @@ function Settings() {
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs text-gray-400 mb-1">Username</label>
+                          <label className="block text-xs text-muted mb-1">Username</label>
                           <input
                             type="text"
                             value={editUserData.username}
                             onChange={(e) => setEditUserData({ ...editUserData, username: e.target.value })}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
+                            className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-400 mb-1">Display Name</label>
+                          <label className="block text-xs text-muted mb-1">Display Name</label>
                           <input
                             type="text"
                             value={editUserData.display_name}
                             onChange={(e) => setEditUserData({ ...editUserData, display_name: e.target.value })}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
+                            className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-400 mb-1">Email <span className="text-gray-500">(optional)</span></label>
+                          <label className="block text-xs text-muted mb-1">Email <span className="text-muted">(optional)</span></label>
                           <input
                             type="text"
                             value={editUserData.email}
                             onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
+                            className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
                             placeholder="optional"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-400 mb-1">Role</label>
+                          <label className="block text-xs text-muted mb-1">Role</label>
                           <select
                             value={editUserData.role}
                             onChange={(e) => setEditUserData({ ...editUserData, role: e.target.value })}
-                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
+                            className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-sm"
                             disabled={u.id === user?.id}
                           >
                             <option value="viewer">Viewer</option>
@@ -1601,18 +1601,18 @@ function Settings() {
                               type="checkbox"
                               checked={editUserData.is_kiosk || false}
                               onChange={(e) => setEditUserData({ ...editUserData, is_kiosk: e.target.checked })}
-                              className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
+                              className="w-4 h-4 rounded bg-surface-soft border text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
                             />
-                            <span className="text-xs text-gray-400">Kiosk Mode</span>
+                            <span className="text-xs text-muted">Kiosk Mode</span>
                           </label>
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
                               type="checkbox"
                               checked={editUserData.is_farmhand || false}
                               onChange={(e) => setEditUserData({ ...editUserData, is_farmhand: e.target.checked })}
-                              className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-gray-800"
+                              className="w-4 h-4 rounded bg-surface-soft border text-cyan-500 focus:ring-cyan-500 focus:ring-offset-gray-800"
                             />
-                            <span className="text-xs text-gray-400">Farm Hand</span>
+                            <span className="text-xs text-muted">Farm Hand</span>
                           </label>
                         </div>
                       </div>
@@ -1625,7 +1625,7 @@ function Settings() {
                         </button>
                         <button
                           onClick={cancelEditingUser}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors text-sm"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-surface-hover hover:bg-surface-muted rounded-lg transition-colors text-sm"
                         >
                           <X className="w-4 h-4" /> Cancel
                         </button>
@@ -1637,7 +1637,7 @@ function Settings() {
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                           u.role === 'admin' ? 'bg-indigo-600' :
-                          u.role === 'editor' ? 'bg-blue-600' : 'bg-gray-600'
+                          u.role === 'editor' ? 'bg-blue-600' : 'bg-surface-hover'
                         }`}>
                           {u.role === 'admin' ? <Shield className="w-5 h-5" /> : <Users className="w-5 h-5" />}
                         </div>
@@ -1660,7 +1660,7 @@ function Settings() {
                               <span className="text-xs bg-cyan-900/50 text-cyan-400 px-2 py-0.5 rounded">Pending Invite</span>
                             )}
                           </div>
-                          <div className="text-sm text-gray-400">@{u.username}{u.email && ` • ${u.email}`}</div>
+                          <div className="text-sm text-muted">@{u.username}{u.email && ` • ${u.email}`}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1697,7 +1697,7 @@ function Settings() {
                             <button
                               onClick={() => handleToggleUser(u.id)}
                               className={`p-2 rounded-lg transition-colors ${
-                                u.is_active ? 'text-green-400 hover:bg-green-900/30' : 'text-gray-500 hover:bg-gray-600'
+                                u.is_active ? 'text-green-400 hover:bg-green-900/30' : 'text-muted hover:bg-surface-hover'
                               }`}
                               title={u.is_active ? 'Disable user' : 'Enable user'}
                             >
@@ -1726,13 +1726,13 @@ function Settings() {
 
       {/* Role Permissions (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div className="bg-surface rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('roles')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.roles ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              {expandedSections.roles ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
               <ShieldCheck className="w-5 h-5 text-purple-400" />
               Role Permissions
             </h2>
@@ -1749,53 +1749,53 @@ function Settings() {
 
           {expandedSections.roles && (
             <div className="mt-4">
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-muted mb-4">
                 Configure what each role can access. Changes take effect immediately.
               </p>
 
               {/* Add Role Form */}
               {showAddRole && (
-                <form onSubmit={handleCreateRole} className="mb-6 p-4 bg-gray-700/50 rounded-lg space-y-4">
+                <form onSubmit={handleCreateRole} className="mb-6 p-4 bg-surface-soft/50 rounded-lg space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">Role Name (slug)</label>
+                      <label className="block text-sm font-medium text-secondary mb-1">Role Name (slug)</label>
                       <input
                         type="text"
                         value={newRole.name}
                         onChange={(e) => setNewRole({ ...newRole, name: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') })}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                        className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                         placeholder="e.g., farm_hand"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">Display Name</label>
+                      <label className="block text-sm font-medium text-secondary mb-1">Display Name</label>
                       <input
                         type="text"
                         value={newRole.display_name}
                         onChange={(e) => setNewRole({ ...newRole, display_name: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                        className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                         placeholder="e.g., Farm Hand"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+                      <label className="block text-sm font-medium text-secondary mb-1">Description</label>
                       <input
                         type="text"
                         value={newRole.description}
                         onChange={(e) => setNewRole({ ...newRole, description: e.target.value })}
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                        className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                         placeholder="Optional description"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">Color</label>
+                      <label className="block text-sm font-medium text-secondary mb-1">Color</label>
                       <input
                         type="color"
                         value={newRole.color}
                         onChange={(e) => setNewRole({ ...newRole, color: e.target.value })}
-                        className="w-full h-10 px-1 py-1 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green cursor-pointer"
+                        className="w-full h-10 px-1 py-1 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green cursor-pointer"
                       />
                     </div>
                   </div>
@@ -1809,7 +1809,7 @@ function Settings() {
                     <button
                       type="button"
                       onClick={() => setShowAddRole(false)}
-                      className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors text-sm"
+                      className="px-4 py-2 bg-surface-hover hover:bg-surface-muted rounded-lg transition-colors text-sm"
                     >
                       Cancel
                     </button>
@@ -1824,7 +1824,7 @@ function Settings() {
               ) : permissionCategories && (
                 <div className="space-y-6">
                   {roles.map((role) => (
-                    <div key={role.id} className="bg-gray-700/30 rounded-lg p-3 sm:p-4 min-w-0">
+                    <div key={role.id} className="bg-surface-soft/30 rounded-lg p-3 sm:p-4 min-w-0">
                       <div className="flex items-center justify-between mb-3 min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
                           <div
@@ -1833,7 +1833,7 @@ function Settings() {
                           />
                           <h3 className="font-medium capitalize">{role.display_name}</h3>
                           {role.is_builtin && (
-                            <span className="text-xs bg-gray-600 text-gray-300 px-2 py-0.5 rounded">Built-in</span>
+                            <span className="text-xs bg-surface-hover text-secondary px-2 py-0.5 rounded">Built-in</span>
                           )}
                         </div>
                         {!role.is_builtin && (
@@ -1847,13 +1847,13 @@ function Settings() {
                         )}
                       </div>
                       {role.description && (
-                        <p className="text-sm text-gray-400 mb-3">{role.description}</p>
+                        <p className="text-sm text-muted mb-3">{role.description}</p>
                       )}
 
                       <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
                         <table className="w-full text-xs sm:text-sm">
                           <thead>
-                            <tr className="text-gray-400 border-b border-gray-600">
+                            <tr className="text-muted border-b border">
                               <th className="text-left py-2 px-1 sm:px-2 font-medium">Category</th>
                               {['view', 'create', 'interact', 'edit', 'delete'].map(action => (
                                 <th key={action} className="text-center py-2 px-1 sm:px-2 font-medium capitalize">{action}</th>
@@ -1862,8 +1862,8 @@ function Settings() {
                           </thead>
                           <tbody>
                             {Object.entries(permissionCategories.categories).map(([catKey, catInfo]) => (
-                              <tr key={catKey} className="border-b border-gray-700/50">
-                                <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-gray-300 whitespace-nowrap">{catInfo.label}</td>
+                              <tr key={catKey} className="border-b border-subtle/50">
+                                <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-secondary whitespace-nowrap">{catInfo.label}</td>
                                 {['view', 'create', 'interact', 'edit', 'delete'].map(action => (
                                   <td key={action} className="text-center py-1.5 sm:py-2 px-1 sm:px-2">
                                     {catInfo.actions.includes(action) ? (
@@ -1871,11 +1871,11 @@ function Settings() {
                                         type="checkbox"
                                         checked={role.permissions?.[catKey]?.[action] || false}
                                         onChange={(e) => handleUpdateRolePermission(role.id, catKey, action, e.target.checked)}
-                                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
+                                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded bg-surface-soft border text-farm-green focus:ring-farm-green focus:ring-offset-gray-800"
                                         disabled={role.name === 'admin' && catKey === 'users'}
                                       />
                                     ) : (
-                                      <span className="text-gray-600">-</span>
+                                      <span className="text-muted">-</span>
                                     )}
                                   </td>
                                 ))}
@@ -1894,20 +1894,20 @@ function Settings() {
       )}
 
       {/* Location Settings */}
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+      <div className="bg-surface rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('location')}
         >
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            {expandedSections.location ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            {expandedSections.location ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
             <MapPin className="w-5 h-5 text-red-400" />
             Location Settings
           </h2>
         </div>
         {expandedSections.location && (
           <div className="mt-4">
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-muted mb-4">
               Configure your farm location for weather forecasts, sunrise/sunset calculations, and frost warnings.
               Find your coordinates at <a href="https://www.latlong.net/" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">latlong.net</a>
             </p>
@@ -1920,20 +1920,20 @@ function Settings() {
 
       {/* Weather API Settings (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div className="bg-surface rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('weatherApi')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.weatherApi ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              {expandedSections.weatherApi ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
               <Cloud className="w-5 h-5 text-sky-400" />
               Weather Integration
             </h2>
           </div>
           {expandedSections.weatherApi && (
             <div className="mt-4">
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-muted mb-4">
                 Connect your Ambient Weather station for real-time local weather data.
                 Get API keys from <a href="https://ambientweather.net/account" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">ambientweather.net/account</a>.
                 Leave blank to use NWS forecast data only.
@@ -1948,20 +1948,20 @@ function Settings() {
 
       {/* Email Server Settings (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div className="bg-surface rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('emailServer')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.emailServer ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              {expandedSections.emailServer ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
               <Server className="w-5 h-5 text-teal-400" />
               Email Server (SMTP)
             </h2>
           </div>
           {expandedSections.emailServer && (
             <div className="mt-4">
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-muted mb-4">
                 Configure SMTP settings to send email notifications. For Gmail, use an{' '}
                 <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">App Password</a>.
                 For Protonmail, use Bridge or SMTP token.
@@ -1975,13 +1975,13 @@ function Settings() {
       )}
 
       {/* Email Notification Settings */}
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+      <div className="bg-surface rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('email')}
         >
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            {expandedSections.email ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            {expandedSections.email ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
             <Mail className="w-5 h-5 text-blue-400" />
             Email Notifications
           </h2>
@@ -2047,20 +2047,20 @@ function Settings() {
       </div>
 
       {/* Alert Thresholds */}
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+      <div className="bg-surface rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('alerts')}
         >
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            {expandedSections.alerts ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            {expandedSections.alerts ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
             <Thermometer className="w-5 h-5 text-orange-400" />
             Alert Thresholds
           </h2>
         </div>
         {expandedSections.alerts && (
           <div className="mt-4">
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-muted mb-4">
               Configure the temperature and weather conditions that trigger alerts.
               Cold protection emails are sent 1 hour before sunset when plants need covering.
             </p>
@@ -2072,20 +2072,20 @@ function Settings() {
       </div>
 
       {/* Notification Categories */}
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+      <div className="bg-surface rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('notifications')}
         >
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            {expandedSections.notifications ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            {expandedSections.notifications ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
             <Bell className="w-5 h-5 text-yellow-400" />
             Notification Categories
           </h2>
         </div>
         {expandedSections.notifications && (
           <div className="mt-4">
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-muted mb-4">
               Choose which notification channels to use for each type of task.
               Dashboard shows alerts on the home screen. Email sends reminder notifications.
               Calendar syncs tasks to your connected calendar.
@@ -2099,13 +2099,13 @@ function Settings() {
 
       {/* Calendar Sync (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div className="bg-surface rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('calendar')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.calendar ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              {expandedSections.calendar ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
               <Calendar className="w-5 h-5 text-green-400" />
               Calendar Sync
             </h2>
@@ -2122,7 +2122,7 @@ function Settings() {
           </div>
           {expandedSections.calendar && (
             <div className="mt-4">
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-muted mb-4">
                 Sync tasks with your Proton Calendar (or other CalDAV calendar).
                 Tasks will appear as events and calendar events will be imported as tasks.
               </p>
@@ -2136,20 +2136,20 @@ function Settings() {
 
       {/* Cloudflare Access (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div className="bg-surface rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('cloudflare')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.cloudflare ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              {expandedSections.cloudflare ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
               <Cloud className="w-5 h-5 text-orange-400" />
               Cloudflare Access
             </h2>
           </div>
           {expandedSections.cloudflare && (
             <div className="mt-4">
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-muted mb-4">
                 Automatically add invited users to your Cloudflare Access policy.
                 When you invite a user via email, their email will be added to the allowed list.
               </p>
@@ -2162,20 +2162,20 @@ function Settings() {
       )}
 
       {/* Display Settings */}
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+      <div className="bg-surface rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('display')}
         >
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            {expandedSections.display ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            {expandedSections.display ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
             <RefreshCw className="w-5 h-5 text-purple-400" />
             Display Settings
           </h2>
         </div>
         {expandedSections.display && (
           <div className="mt-4">
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-muted mb-4">
               Auto-refresh is useful for kiosk displays around your property.
               Set the interval in minutes (e.g., "5" for 5 minutes). Set to "0" to disable.
             </p>
@@ -2183,28 +2183,28 @@ function Settings() {
               {renderSettingCard('dashboard_refresh_interval')}
 
               {/* Motto/Mission Statement */}
-              <div className="bg-gray-750 rounded-lg p-4">
+              <div className="bg-surface-muted rounded-lg p-4">
                 <div>
                   <h3 className="font-medium">Motto / Mission Statement</h3>
-                  <p className="text-sm text-gray-400 mb-2">A reminder displayed on every page to keep you focused on your purpose</p>
+                  <p className="text-sm text-muted mb-2">A reminder displayed on every page to keep you focused on your purpose</p>
                   <textarea
                     value={settings.motto?.value || ''}
                     onChange={(e) => handleChange('motto', e.target.value)}
                     placeholder="Enter your farm's motto or mission statement..."
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:border-farm-green focus:ring-1 focus:ring-farm-green resize-none"
+                    className="w-full px-4 py-2 bg-surface-soft border border rounded-lg text-white placeholder-gray-500 focus:border-farm-green focus:ring-1 focus:ring-farm-green resize-none"
                     rows={3}
                     maxLength={500}
                   />
-                  <p className="text-xs text-gray-500 mt-1 text-right">{(settings.motto?.value || '').length}/500</p>
+                  <p className="text-xs text-muted mt-1 text-right">{(settings.motto?.value || '').length}/500</p>
                 </div>
               </div>
 
               {/* Time Format Toggle */}
-              <div className="bg-gray-750 rounded-lg p-4">
+              <div className="bg-surface-muted rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium">Time Format</h3>
-                    <p className="text-sm text-gray-400">Choose 12-hour (2:30 PM) or 24-hour (14:30) time format</p>
+                    <p className="text-sm text-muted">Choose 12-hour (2:30 PM) or 24-hour (14:30) time format</p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -2212,7 +2212,7 @@ function Settings() {
                       className={`px-4 py-2 rounded-lg transition-colors ${
                         settings.time_format?.value === '12h' || !settings.time_format?.value
                           ? 'bg-farm-green text-white'
-                          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                          : 'bg-surface-soft text-muted hover:bg-surface-hover'
                       }`}
                     >
                       12h
@@ -2222,7 +2222,7 @@ function Settings() {
                       className={`px-4 py-2 rounded-lg transition-colors ${
                         settings.time_format?.value === '24h'
                           ? 'bg-farm-green text-white'
-                          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                          : 'bg-surface-soft text-muted hover:bg-surface-hover'
                       }`}
                     >
                       24h
@@ -2232,11 +2232,11 @@ function Settings() {
               </div>
 
               {/* Theme Toggle */}
-              <div className="bg-gray-750 rounded-lg p-4">
+              <div className="bg-surface-muted rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium">Theme</h3>
-                    <p className="text-sm text-gray-400">Choose between dark and light color scheme</p>
+                    <p className="text-sm text-muted">Choose between dark and light color scheme</p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -2244,7 +2244,7 @@ function Settings() {
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                         settings.theme?.value === 'dark' || !settings.theme?.value
                           ? 'bg-farm-green text-white'
-                          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                          : 'bg-surface-soft text-muted hover:bg-surface-hover'
                       }`}
                     >
                       <Moon className="w-4 h-4" />
@@ -2255,7 +2255,7 @@ function Settings() {
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                         settings.theme?.value === 'light'
                           ? 'bg-farm-green text-white'
-                          : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                          : 'bg-surface-soft text-muted hover:bg-surface-hover'
                       }`}
                     >
                       <Sun className="w-4 h-4" />
@@ -2266,18 +2266,18 @@ function Settings() {
               </div>
 
               {/* Hide Completed Tasks Toggle */}
-              <div className="bg-gray-750 rounded-lg p-4">
+              <div className="bg-surface-muted rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium">Hide Completed Tasks</h3>
-                    <p className="text-sm text-gray-400">Hide completed tasks from Today's Schedule on the dashboard</p>
+                    <p className="text-sm text-muted">Hide completed tasks from Today's Schedule on the dashboard</p>
                   </div>
                   <button
                     onClick={() => handleChange('hide_completed_today', settings.hide_completed_today?.value === 'true' ? 'false' : 'true')}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       settings.hide_completed_today?.value === 'true'
                         ? 'bg-farm-green'
-                        : 'bg-gray-600'
+                        : 'bg-surface-hover'
                     }`}
                   >
                     <span
@@ -2296,20 +2296,20 @@ function Settings() {
 
       {/* AI Assistant Settings */}
       {isAdmin && (
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+      <div className="bg-surface rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('ai')}
         >
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            {expandedSections.ai ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            {expandedSections.ai ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
             <Bot className="w-5 h-5 text-purple-400" />
             AI Assistant
           </h2>
         </div>
         {expandedSections.ai && (
           <div className="mt-4">
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-muted mb-4">
               Choose a provider: <strong>Ollama</strong> (self-hosted, free), <strong>Claude</strong> (<a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">console.anthropic.com</a>), or <strong>OpenAI</strong> (<a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">platform.openai.com</a>).
               Use "AI Shared Domains" to control which personal data categories the AI can access (comma-separated: garden,fitness,budget,production,animals,weather,tasks). Leave empty to share no data.
             </p>
@@ -2327,7 +2327,7 @@ function Settings() {
             </div>
 
             {/* AI Insights Management */}
-            <div className="mt-6 border-t border-gray-700 pt-6">
+            <div className="mt-6 border-t border-subtle pt-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-md font-semibold text-purple-400">AI Insights</h3>
                 <div className="flex gap-2">
@@ -2340,7 +2340,7 @@ function Settings() {
                   <button
                     onClick={() => handleRegenerateInsights('all')}
                     disabled={regeneratingInsights}
-                    className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm flex items-center gap-1 disabled:opacity-50"
+                    className="px-3 py-1.5 bg-surface-hover hover:bg-surface-muted rounded text-sm flex items-center gap-1 disabled:opacity-50"
                   >
                     <RefreshCw className={`w-4 h-4 ${regeneratingInsights ? 'animate-spin' : ''}`} />
                     {regeneratingInsights ? 'Generating...' : 'Regenerate All'}
@@ -2350,15 +2350,15 @@ function Settings() {
 
               {/* New Insight Form */}
               {showNewInsight && (
-                <div className="mb-4 p-4 bg-gray-700 rounded-lg">
+                <div className="mb-4 p-4 bg-surface-soft rounded-lg">
                   <h4 className="font-medium mb-3">Create New Insight</h4>
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">Domain</label>
+                      <label className="block text-xs text-muted mb-1">Domain</label>
                       <select
                         value={newInsight.domain}
                         onChange={e => setNewInsight({ ...newInsight, domain: e.target.value })}
-                        className="w-full bg-gray-600 rounded px-3 py-2 text-sm"
+                        className="w-full bg-surface-hover rounded px-3 py-2 text-sm"
                       >
                         <option value="tasks">Tasks</option>
                         <option value="garden">Garden</option>
@@ -2370,11 +2370,11 @@ function Settings() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">Priority</label>
+                      <label className="block text-xs text-muted mb-1">Priority</label>
                       <select
                         value={newInsight.priority}
                         onChange={e => setNewInsight({ ...newInsight, priority: e.target.value })}
-                        className="w-full bg-gray-600 rounded px-3 py-2 text-sm"
+                        className="w-full bg-surface-hover rounded px-3 py-2 text-sm"
                       >
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
@@ -2383,28 +2383,28 @@ function Settings() {
                     </div>
                   </div>
                   <div className="mb-3">
-                    <label className="block text-xs text-gray-400 mb-1">Title</label>
+                    <label className="block text-xs text-muted mb-1">Title</label>
                     <input
                       type="text"
                       value={newInsight.title}
                       onChange={e => setNewInsight({ ...newInsight, title: e.target.value })}
-                      className="w-full bg-gray-600 rounded px-3 py-2 text-sm"
+                      className="w-full bg-surface-hover rounded px-3 py-2 text-sm"
                       placeholder="Insight title"
                     />
                   </div>
                   <div className="mb-3">
-                    <label className="block text-xs text-gray-400 mb-1">Content</label>
+                    <label className="block text-xs text-muted mb-1">Content</label>
                     <textarea
                       value={newInsight.content}
                       onChange={e => setNewInsight({ ...newInsight, content: e.target.value })}
-                      className="w-full bg-gray-600 rounded px-3 py-2 text-sm h-24"
+                      className="w-full bg-surface-hover rounded px-3 py-2 text-sm h-24"
                       placeholder="Insight content (supports markdown)"
                     />
                   </div>
                   <div className="flex gap-2 justify-end">
                     <button
                       onClick={() => setShowNewInsight(false)}
-                      className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm"
+                      className="px-3 py-1.5 bg-surface-hover hover:bg-surface-muted rounded text-sm"
                     >
                       Cancel
                     </button>
@@ -2420,13 +2420,13 @@ function Settings() {
 
               {/* Insights List */}
               {loadingInsights ? (
-                <div className="text-center py-4 text-gray-400">Loading insights...</div>
+                <div className="text-center py-4 text-muted">Loading insights...</div>
               ) : insights.length === 0 ? (
-                <div className="text-center py-4 text-gray-400">No insights yet. Click "Regenerate All" to generate.</div>
+                <div className="text-center py-4 text-muted">No insights yet. Click "Regenerate All" to generate.</div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {insights.map(insight => (
-                    <div key={insight.id} className={`p-3 rounded-lg ${insight.is_dismissed ? 'bg-gray-800 opacity-60' : 'bg-gray-700'}`}>
+                    <div key={insight.id} className={`p-3 rounded-lg ${insight.is_dismissed ? 'bg-surface opacity-60' : 'bg-surface-soft'}`}>
                       {editingInsight?.id === insight.id ? (
                         // Editing mode
                         <div className="space-y-2">
@@ -2434,15 +2434,15 @@ function Settings() {
                             type="text"
                             value={editingInsight.title}
                             onChange={e => setEditingInsight({ ...editingInsight, title: e.target.value })}
-                            className="w-full bg-gray-600 rounded px-3 py-1.5 text-sm"
+                            className="w-full bg-surface-hover rounded px-3 py-1.5 text-sm"
                           />
                           <textarea
                             value={editingInsight.content}
                             onChange={e => setEditingInsight({ ...editingInsight, content: e.target.value })}
-                            className="w-full bg-gray-600 rounded px-3 py-1.5 text-sm h-20"
+                            className="w-full bg-surface-hover rounded px-3 py-1.5 text-sm h-20"
                           />
                           <div className="flex gap-2 justify-end">
-                            <button onClick={() => setEditingInsight(null)} className="px-2 py-1 text-xs bg-gray-600 rounded">Cancel</button>
+                            <button onClick={() => setEditingInsight(null)} className="px-2 py-1 text-xs bg-surface-hover rounded">Cancel</button>
                             <button onClick={() => handleSaveInsight(insight.id)} className="px-2 py-1 text-xs bg-purple-600 rounded">Save</button>
                           </div>
                         </div>
@@ -2453,24 +2453,24 @@ function Settings() {
                             <div className="flex items-center gap-2">
                               <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                                 insight.priority === 'high' ? 'bg-red-500/30 text-red-800 dark:text-red-300' :
-                                insight.priority === 'low' ? 'bg-gray-500/30 text-gray-700 dark:text-gray-300' :
+                                insight.priority === 'low' ? 'bg-surface-muted/30 text-secondary dark:text-secondary' :
                                 'bg-yellow-500/30 text-yellow-800 dark:text-yellow-300'
                               }`}>{insight.priority}</span>
-                              <span className="text-xs text-gray-600 dark:text-gray-400">{insight.domain}</span>
-                              {insight.is_dismissed && <span className="text-xs text-gray-500">(dismissed)</span>}
+                              <span className="text-xs text-muted dark:text-muted">{insight.domain}</span>
+                              {insight.is_dismissed && <span className="text-xs text-muted">(dismissed)</span>}
                               {!insight.is_read && <span className="w-2 h-2 bg-blue-400 rounded-full" title="Unread" />}
                             </div>
                             <div className="flex gap-1">
                               <button
                                 onClick={() => setEditingInsight({ ...insight })}
-                                className="p-1 hover:bg-gray-600 rounded"
+                                className="p-1 hover:bg-surface-hover rounded"
                                 title="Edit"
                               >
-                                <Edit2 className="w-3.5 h-3.5 text-gray-400" />
+                                <Edit2 className="w-3.5 h-3.5 text-muted" />
                               </button>
                               <button
                                 onClick={() => handleDeleteInsight(insight.id)}
-                                className="p-1 hover:bg-gray-600 rounded"
+                                className="p-1 hover:bg-surface-hover rounded"
                                 title="Delete"
                               >
                                 <Trash2 className="w-3.5 h-3.5 text-red-400" />
@@ -2478,8 +2478,8 @@ function Settings() {
                             </div>
                           </div>
                           <h4 className="font-medium text-sm mb-1">{insight.title}</h4>
-                          <p className="text-xs text-gray-300 whitespace-pre-wrap line-clamp-3">{insight.content}</p>
-                          <div className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-secondary whitespace-pre-wrap line-clamp-3">{insight.content}</p>
+                          <div className="text-xs text-muted mt-1">
                             {insight.created_at && new Date(insight.created_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </>
@@ -2495,20 +2495,20 @@ function Settings() {
       )}
 
       {/* Feature Toggles */}
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+      <div className="bg-surface rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('featureToggles')}
         >
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            {expandedSections.featureToggles ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            {expandedSections.featureToggles ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
             <ToggleRight className="w-5 h-5 text-cyan-400" />
             Feature Toggles
           </h2>
         </div>
         {expandedSections.featureToggles && (
           <div className="mt-4">
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-muted mb-4">
               Toggle pages on or off to customize your navigation. Disabled pages won't appear in the sidebar.
             </p>
             <div className="space-y-3">
@@ -2529,18 +2529,18 @@ function Settings() {
                 { key: 'show_hard_refresh_button', label: 'Hard Refresh Button', desc: 'Show hard refresh button in floating menu' },
                 { key: 'customer_feedback_enabled', label: 'Feedback Button', desc: 'Enable feedback submission for users' },
               ].map(toggle => (
-                <div key={toggle.key} className="bg-gray-750 rounded-lg p-3">
+                <div key={toggle.key} className="bg-surface-muted rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium text-sm">{toggle.label}</h3>
-                      <p className="text-xs text-gray-400">{toggle.desc}</p>
+                      <p className="text-xs text-muted">{toggle.desc}</p>
                     </div>
                     <button
                       onClick={() => handleChange(toggle.key, settings[toggle.key]?.value === 'true' ? 'false' : 'true')}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
                         settings[toggle.key]?.value !== 'false'
                           ? 'bg-farm-green'
-                          : 'bg-gray-600'
+                          : 'bg-surface-hover'
                       }`}
                     >
                       <span
@@ -2558,20 +2558,20 @@ function Settings() {
       </div>
 
       {/* Farm Settings - Always visible */}
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+      <div className="bg-surface rounded-xl p-4 sm:p-6">
         <div
           className="flex items-center justify-between cursor-pointer"
           onClick={() => toggleSection('farm')}
         >
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            {expandedSections.farm ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+            {expandedSections.farm ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
             <Leaf className="w-5 h-5 text-green-400" />
             Farm Settings
           </h2>
         </div>
         {expandedSections.farm && (
           <div className="mt-4 space-y-6">
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted">
               Configure your farm name and business settings. The farm name is used in emails, receipts, and notifications.
             </p>
 
@@ -2582,20 +2582,20 @@ function Settings() {
                   type="text"
                   value={settings.farm_name?.value || ''}
                   onChange={(e) => handleChange('farm_name', e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded-lg px-3 py-2"
                   placeholder="Green Acres Farm"
                 />
-                <p className="text-xs text-gray-400 mt-1">Used in email From headers, subject lines, receipts, and customer communications</p>
+                <p className="text-xs text-muted mt-1">Used in email From headers, subject lines, receipts, and customer communications</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Payment Instructions</label>
                 <textarea
                   value={settings.payment_instructions?.value || ''}
                   onChange={(e) => handleChange('payment_instructions', e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 h-24"
+                  className="w-full bg-surface-soft border border rounded-lg px-3 py-2 h-24"
                   placeholder="Payment accepted via Venmo @farmname, Zelle, or check made out to..."
                 />
-                <p className="text-xs text-gray-400 mt-1">Included in invoice emails to customers</p>
+                <p className="text-xs text-muted mt-1">Included in invoice emails to customers</p>
               </div>
             </div>
           </div>
@@ -2604,40 +2604,40 @@ function Settings() {
 
       {/* Team Configuration - Only show when team is enabled */}
       {settings.team_enabled?.value === 'true' && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div className="bg-surface rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('team')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.team ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              {expandedSections.team ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
               <UsersRound className="w-5 h-5 text-green-400" />
               Team Configuration
             </h2>
           </div>
           {expandedSections.team && (
             <div className="mt-4 space-y-6">
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted">
                 Configure your team name, mission, values, and meeting schedule.
               </p>
 
               {/* Team Logo */}
-              <div className="bg-gray-700/50 rounded-lg p-4">
+              <div className="bg-surface-soft/50 rounded-lg p-4">
                 <label className="block text-sm font-medium mb-3">Team Logo</label>
                 <div className="flex items-center gap-4">
                   {settings.team_logo?.value ? (
                     <img
                       src={`/api/team/logo/${settings.team_logo.value.split('/').pop()}`}
                       alt="Team Logo"
-                      className="h-24 w-auto object-contain rounded bg-gray-800 p-2"
+                      className="h-24 w-auto object-contain rounded bg-surface p-2"
                     />
                   ) : (
-                    <div className="h-24 w-24 bg-gray-800 rounded flex items-center justify-center text-gray-500">
+                    <div className="h-24 w-24 bg-surface rounded flex items-center justify-center text-muted">
                       <Image className="w-8 h-8" />
                     </div>
                   )}
                   <div className="flex-1">
-                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors">
+                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-surface-hover hover:bg-surface-muted rounded-lg transition-colors">
                       <Upload className="w-4 h-4" />
                       <span>{settings.team_logo?.value ? 'Change Logo' : 'Upload Logo'}</span>
                       <input
@@ -2659,7 +2659,7 @@ function Settings() {
                         className="hidden"
                       />
                     </label>
-                    <p className="text-xs text-gray-400 mt-2">Recommended: PNG or SVG with transparent background</p>
+                    <p className="text-xs text-muted mt-2">Recommended: PNG or SVG with transparent background</p>
                   </div>
                 </div>
               </div>
@@ -2672,7 +2672,7 @@ function Settings() {
                     type="text"
                     value={settings.team_name?.value || ''}
                     onChange={(e) => handleChange('team_name', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2"
                     placeholder="Smith Family"
                   />
                 </div>
@@ -2681,7 +2681,7 @@ function Settings() {
                   <textarea
                     value={settings.team_mission?.value || ''}
                     onChange={(e) => handleChange('team_mission', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 h-24"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2 h-24"
                     placeholder="Build a resilient, self-sufficient homestead..."
                   />
                 </div>
@@ -2691,7 +2691,7 @@ function Settings() {
                     <select
                       value={settings.team_units?.value || 'imperial'}
                       onChange={(e) => handleChange('team_units', e.target.value)}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                      className="w-full bg-surface-soft border border rounded-lg px-3 py-2"
                     >
                       <option value="imperial">Imperial (lbs, ft)</option>
                       <option value="metric">Metric (kg, cm)</option>
@@ -2702,7 +2702,7 @@ function Settings() {
                     <select
                       value={settings.mentoring_day?.value || 'Sunday'}
                       onChange={(e) => handleChange('mentoring_day', e.target.value)}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                      className="w-full bg-surface-soft border border rounded-lg px-3 py-2"
                     >
                       {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
                         <option key={day} value={day}>{day}</option>
@@ -2714,7 +2714,7 @@ function Settings() {
                     <select
                       value={settings.aar_day?.value || 'Saturday'}
                       onChange={(e) => handleChange('aar_day', e.target.value)}
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                      className="w-full bg-surface-soft border border rounded-lg px-3 py-2"
                     >
                       {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
                         <option key={day} value={day}>{day}</option>
@@ -2742,12 +2742,12 @@ function Settings() {
                     <Plus className="w-4 h-4" /> Add Value
                   </button>
                 </div>
-                <p className="text-xs text-gray-400 mb-3">
+                <p className="text-xs text-muted mb-3">
                   Define your team's core values. Each value can have assessment questions for mentoring sessions.
                 </p>
                 <div className="space-y-4">
                   {teamValues.map((value, idx) => (
-                    <div key={idx} className="bg-gray-700 rounded-lg p-4">
+                    <div key={idx} className="bg-surface-soft rounded-lg p-4">
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
                           <input
@@ -2759,7 +2759,7 @@ function Settings() {
                               setTeamValues(newValues)
                               handleChange('team_values', JSON.stringify(newValues))
                             }}
-                            className="bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                            className="bg-surface-hover border border-strong rounded px-3 py-2"
                             placeholder="Value name (e.g., Faith)"
                           />
                           <input
@@ -2771,7 +2771,7 @@ function Settings() {
                               setTeamValues(newValues)
                               handleChange('team_values', JSON.stringify(newValues))
                             }}
-                            className="bg-gray-600 border border-gray-500 rounded px-3 py-2"
+                            className="bg-surface-hover border border-strong rounded px-3 py-2"
                             placeholder="Brief description"
                           />
                         </div>
@@ -2787,7 +2787,7 @@ function Settings() {
                         </button>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs text-gray-400">Assessment Questions</label>
+                        <label className="text-xs text-muted">Assessment Questions</label>
                         {(value.questions || ['']).map((q, qIdx) => (
                           <div key={qIdx} className="flex gap-2">
                             <input
@@ -2799,7 +2799,7 @@ function Settings() {
                                 setTeamValues(newValues)
                                 handleChange('team_values', JSON.stringify(newValues))
                               }}
-                              className="flex-1 bg-gray-600 border border-gray-500 rounded px-3 py-1.5 text-sm"
+                              className="flex-1 bg-surface-hover border border-strong rounded px-3 py-1.5 text-sm"
                               placeholder="Assessment question..."
                             />
                             {value.questions.length > 1 && (
@@ -2824,7 +2824,7 @@ function Settings() {
                             setTeamValues(newValues)
                             handleChange('team_values', JSON.stringify(newValues))
                           }}
-                          className="text-xs text-gray-400 hover:text-gray-300 flex items-center gap-1"
+                          className="text-xs text-muted hover:text-secondary flex items-center gap-1"
                         >
                           <Plus className="w-3 h-3" /> Add question
                         </button>
@@ -2832,7 +2832,7 @@ function Settings() {
                     </div>
                   ))}
                   {teamValues.length === 0 && (
-                    <p className="text-sm text-gray-500 italic">No values defined. Click "Add Value" to create your first team value.</p>
+                    <p className="text-sm text-muted italic">No values defined. Click "Add Value" to create your first team value.</p>
                   )}
                 </div>
               </div>
@@ -2843,25 +2843,25 @@ function Settings() {
 
       {/* Translation Settings (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div className="bg-surface rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('translation')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.translation ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              {expandedSections.translation ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
               <Languages className="w-5 h-5 text-blue-400" />
               Translation
             </h2>
           </div>
           {expandedSections.translation && (
             <div className="mt-4">
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-muted mb-4">
                 Configure translation for worker task content. Tasks assigned to workers with a non-English language preference will be automatically translated using DeepL.
               </p>
               <div className="space-y-4">
                 {renderSettingCard('deepl_api_key')}
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted">
                   Get a free API key at <a href="https://www.deepl.com/pro-api" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">deepl.com/pro-api</a>. Free tier includes 500,000 characters/month.
                 </p>
               </div>
@@ -2872,14 +2872,14 @@ function Settings() {
 
       {/* Storage Monitoring (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div className="bg-surface rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('storage')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.storage ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-              <HardDrive className="w-5 h-5 text-gray-400" />
+              {expandedSections.storage ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
+              <HardDrive className="w-5 h-5 text-muted" />
               Storage Monitoring
             </h2>
           </div>
@@ -2892,7 +2892,7 @@ function Settings() {
               ) : storageStats ? (
                 <div className="space-y-4">
                   {/* Storage Usage Progress Bar */}
-                  <div className="bg-gray-700/50 rounded-lg p-4">
+                  <div className="bg-surface-soft/50 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Disk Usage</span>
                       <span className={`text-sm font-bold ${
@@ -2903,7 +2903,7 @@ function Settings() {
                         {storageStats.disk_usage_percent}%
                       </span>
                     </div>
-                    <div className="w-full bg-gray-600 rounded-full h-3">
+                    <div className="w-full bg-surface-hover rounded-full h-3">
                       <div
                         className={`h-3 rounded-full transition-all ${
                           storageStats.alert_level === 'critical' ? 'bg-red-500' :
@@ -2913,7 +2913,7 @@ function Settings() {
                         style={{ width: `${Math.min(storageStats.disk_usage_percent, 100)}%` }}
                       />
                     </div>
-                    <div className="flex justify-between mt-2 text-xs text-gray-400">
+                    <div className="flex justify-between mt-2 text-xs text-muted">
                       <span>Used: {storageStats.disk_used_human}</span>
                       <span>Available: {storageStats.disk_available_human}</span>
                     </div>
@@ -2935,15 +2935,15 @@ function Settings() {
                   )}
 
                   {/* Isaac App Breakdown */}
-                  <div className="bg-gray-700/50 rounded-lg p-4">
+                  <div className="bg-surface-soft/50 rounded-lg p-4">
                     <h3 className="text-sm font-medium mb-3">Isaac Storage Breakdown</h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Database</span>
+                        <span className="text-muted">Database</span>
                         <span>{storageStats.database_human}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-400">Log Files</span>
+                        <span className="text-muted">Log Files</span>
                         <span>{storageStats.logs_human}</span>
                       </div>
                     </div>
@@ -2962,7 +2962,7 @@ function Settings() {
                     <button
                       onClick={fetchStorageStats}
                       disabled={loadingStorage}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors text-sm"
+                      className="flex items-center gap-2 px-4 py-2 bg-surface-hover hover:bg-surface-muted rounded-lg transition-colors text-sm"
                     >
                       <RefreshCw className={`w-4 h-4 ${loadingStorage ? 'animate-spin' : ''}`} />
                       Refresh
@@ -2970,7 +2970,7 @@ function Settings() {
                   </div>
 
                   {/* Alert Thresholds */}
-                  <div className="border-t border-gray-700 pt-4 mt-4">
+                  <div className="border-t border-subtle pt-4 mt-4">
                     <h3 className="text-sm font-medium mb-3">Alert Thresholds</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {storageSettings.map(key => renderSettingCard(key))}
@@ -2978,7 +2978,7 @@ function Settings() {
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-400 text-sm">Failed to load storage information</p>
+                <p className="text-muted text-sm">Failed to load storage information</p>
               )}
             </div>
           )}
@@ -2987,13 +2987,13 @@ function Settings() {
 
       {/* Health Monitoring (Admin Only) */}
       {isAdmin && (
-        <div className="bg-gray-800 rounded-xl p-4 sm:p-6">
+        <div className="bg-surface rounded-xl p-4 sm:p-6">
           <div
             className="flex items-center justify-between cursor-pointer"
             onClick={() => toggleSection('healthMonitor')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              {expandedSections.healthMonitor ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              {expandedSections.healthMonitor ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
               <Server className="w-5 h-5 text-green-400" />
               Health Monitoring
             </h2>
@@ -3011,14 +3011,14 @@ function Settings() {
                     <div className="space-y-4">
                       {/* Current Status */}
                       {healthSummary.latest && (
-                        <div className="bg-gray-700/50 rounded-lg p-4">
+                        <div className="bg-surface-soft/50 rounded-lg p-4">
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-sm font-medium text-white">Current Status</span>
                             <span className={`px-3 py-1.5 rounded text-xs font-bold ${
                               healthSummary.latest.overall_status === 'healthy' ? 'bg-green-700 text-white' :
                               healthSummary.latest.overall_status === 'warning' ? 'bg-amber-600 text-black' :
                               healthSummary.latest.overall_status === 'critical' ? 'bg-red-600 text-white' :
-                              'bg-gray-600 text-white'
+                              'bg-surface-hover text-white'
                             }`}>
                               {healthSummary.latest.overall_status?.toUpperCase()}
                             </span>
@@ -3091,14 +3091,14 @@ function Settings() {
                               )
                             })}
                           </div>
-                          <p className="text-xs text-gray-500 mt-2">
+                          <p className="text-xs text-muted mt-2">
                             Last check: {new Date(healthSummary.latest.checked_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       )}
 
                       {/* 24h Stats */}
-                      <div className="bg-gray-700/50 rounded-lg p-4">
+                      <div className="bg-surface-soft/50 rounded-lg p-4">
                         <h3 className="text-sm font-medium mb-3">Last 24 Hours</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                           <div>
@@ -3111,15 +3111,15 @@ function Settings() {
                                 return `${Math.round(hours * 60)}m`
                               })()}
                             </p>
-                            <p className="text-xs text-gray-400">Uptime</p>
+                            <p className="text-xs text-muted">Uptime</p>
                           </div>
                           <div>
                             <p className="text-2xl font-bold">{healthSummary.last_24h?.total_checks || 0}</p>
-                            <p className="text-xs text-gray-400">Checks (24h)</p>
+                            <p className="text-xs text-muted">Checks (24h)</p>
                           </div>
                           <div>
                             <p className="text-2xl font-bold text-red-400">{healthSummary.last_24h?.by_status?.critical || 0}</p>
-                            <p className="text-xs text-gray-400">Critical</p>
+                            <p className="text-xs text-muted">Critical</p>
                           </div>
                         </div>
                       </div>
@@ -3139,7 +3139,7 @@ function Settings() {
                     <button
                       onClick={fetchHealthData}
                       disabled={loadingHealth}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors text-sm"
+                      className="flex items-center gap-2 px-4 py-2 bg-surface-hover hover:bg-surface-muted rounded-lg transition-colors text-sm"
                     >
                       <RefreshCw className={`w-4 h-4 ${loadingHealth ? 'animate-spin' : ''}`} />
                       Refresh
@@ -3167,11 +3167,11 @@ function Settings() {
                   </div>
 
                   {/* Health Logs */}
-                  <div className="border-t border-gray-700 pt-4">
+                  <div className="border-t border-subtle pt-4">
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <h3 className="text-sm font-medium">Health Check History</h3>
-                        <p className="text-xs text-gray-500">Periodic system health snapshots (not application logs)</p>
+                        <p className="text-xs text-muted">Periodic system health snapshots (not application logs)</p>
                       </div>
                       <select
                         value={healthFilter.status}
@@ -3179,7 +3179,7 @@ function Settings() {
                           setHealthFilter({ ...healthFilter, status: e.target.value })
                           fetchHealthData()
                         }}
-                        className="px-2 py-1 bg-gray-700 rounded text-sm"
+                        className="px-2 py-1 bg-surface-soft rounded text-sm"
                       >
                         <option value="">All Status</option>
                         <option value="healthy">Healthy</option>
@@ -3189,7 +3189,7 @@ function Settings() {
                     </div>
                     <div className="space-y-2 max-h-96 overflow-y-auto">
                       {healthLogs.length === 0 ? (
-                        <p className="text-gray-400 text-sm py-4 text-center">No health logs yet</p>
+                        <p className="text-muted text-sm py-4 text-center">No health logs yet</p>
                       ) : (
                         healthLogs.map((log, idx) => {
                           const allChecks = ['api', 'database', 'caldav', 'calendar_sync', 'memory', 'disk', 'cpu']
@@ -3205,8 +3205,8 @@ function Settings() {
                             >
                               <div className="flex items-center justify-between px-3 py-2">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <span className="text-gray-500 text-xs flex-shrink-0">{isExpanded ? '▼' : '▶'}</span>
-                                  <span className="text-gray-300 text-xs flex-shrink-0">
+                                  <span className="text-muted text-xs flex-shrink-0">{isExpanded ? '▼' : '▶'}</span>
+                                  <span className="text-secondary text-xs flex-shrink-0">
                                     {new Date(log.checked_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                   </span>
                                   {issues.length > 0 && !isExpanded && (
@@ -3228,7 +3228,7 @@ function Settings() {
                                 </span>
                               </div>
                               {isExpanded && (
-                                <div className="px-3 pb-3 space-y-1 border-t border-gray-700/50 pt-2">
+                                <div className="px-3 pb-3 space-y-1 border-t border-subtle/50 pt-2">
                                   {allChecks.map(check => {
                                     const data = log[check]
                                     if (!data) return null
@@ -3244,9 +3244,9 @@ function Settings() {
                                       }}>
                                         <div className="flex items-center gap-2 text-sm">
                                           <span style={{ color: statusColorStyle }}>{statusIcon}</span>
-                                          <span className="text-gray-200 capitalize font-medium">{label}</span>
-                                          {valueStr && <span className="text-gray-400">{valueStr}</span>}
-                                          {data.message && !isIssue && <span className="text-gray-500 text-xs ml-auto">{data.message}</span>}
+                                          <span className="text-primary capitalize font-medium">{label}</span>
+                                          {valueStr && <span className="text-muted">{valueStr}</span>}
+                                          {data.message && !isIssue && <span className="text-muted text-xs ml-auto">{data.message}</span>}
                                         </div>
                                         {data.message && isIssue && (
                                           <p className="text-sm mt-1 ml-6" style={{ color: data.status === 'critical' ? 'var(--color-error-600)' : 'var(--color-warning-700)' }}>
@@ -3279,7 +3279,7 @@ function Settings() {
             onClick={() => toggleSection('logs')}
           >
             <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
-              {expandedSections.logs ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+              {expandedSections.logs ? <ChevronDown className="w-5 h-5 text-muted" /> : <ChevronRight className="w-5 h-5 text-muted" />}
               <FileText className="w-5 h-5 text-blue-400" />
               Application Logs
             </h2>
@@ -3299,7 +3299,7 @@ function Settings() {
                       className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                         selectedLogFile === file.id
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          : 'bg-surface-soft text-secondary hover:bg-surface-hover'
                       }`}
                     >
                       {file.name}
@@ -3312,7 +3312,7 @@ function Settings() {
               {/* Filters */}
               <div className="flex flex-wrap gap-3 items-center">
                 <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                   <input
                     type="text"
                     value={logFilter.search}
@@ -3373,26 +3373,26 @@ function Settings() {
               ) : appLogs.length === 0 ? (
                 <p className="text-sm py-4" style={{ color: 'var(--color-text-muted)' }}>No logs found</p>
               ) : (
-                <div className="rounded-lg overflow-hidden border border-gray-700/50">
-                  <div className="max-h-[400px] overflow-y-auto font-mono text-xs bg-gray-800/50">
+                <div className="rounded-lg overflow-hidden border border-subtle/50">
+                  <div className="max-h-[400px] overflow-y-auto font-mono text-xs bg-surface/50">
                     {appLogs.map((log, idx) => (
                       <div
                         key={idx}
-                        className={`px-3 py-1.5 border-b border-gray-700/30 flex flex-wrap gap-2 ${
+                        className={`px-3 py-1.5 border-b border-subtle/30 flex flex-wrap gap-2 ${
                           log.level === 'ERROR' ? 'bg-red-900/20' :
                           log.level === 'WARNING' ? 'bg-yellow-900/20' : ''
                         }`}
                       >
-                        <span className="shrink-0 text-gray-500">{log.timestamp}</span>
+                        <span className="shrink-0 text-muted">{log.timestamp}</span>
                         <span className={`font-semibold shrink-0 ${
                           log.level === 'ERROR' ? 'text-red-400' :
                           log.level === 'WARNING' ? 'text-yellow-400' :
                           log.level === 'INFO' ? 'text-blue-400' :
-                          log.level === 'DEBUG' ? 'text-gray-500' : 'text-gray-400'
+                          log.level === 'DEBUG' ? 'text-muted' : 'text-muted'
                         }`}>
                           [{log.level}]
                         </span>
-                        <span className="break-all text-gray-300">{log.message}</span>
+                        <span className="break-all text-secondary">{log.message}</span>
                       </div>
                     ))}
                   </div>
@@ -3582,7 +3582,7 @@ function Settings() {
                               <span className={`px-2 py-0.5 text-xs rounded-full ${
                                 fb.feedback_type === 'bug' ? 'bg-red-600' :
                                 fb.feedback_type === 'feature' ? 'bg-blue-600' :
-                                fb.feedback_type === 'improvement' ? 'bg-green-600' : 'bg-gray-600'
+                                fb.feedback_type === 'improvement' ? 'bg-green-600' : 'bg-surface-hover'
                               } text-white`}>
                                 {fb.feedback_type}
                               </span>
@@ -3593,7 +3593,7 @@ function Settings() {
                                 fb.display_status === 'in_testing' ? 'bg-purple-600' :
                                 fb.display_status === 'completed' ? 'bg-green-600' :
                                 fb.display_status === 'declined' ? 'bg-red-600' :
-                                fb.display_status === 'kickback' ? 'bg-orange-600' : 'bg-gray-600'
+                                fb.display_status === 'kickback' ? 'bg-orange-600' : 'bg-surface-hover'
                               } text-white`}>
                                 {fb.display_status === 'new' ? 'Pending Review' :
                                  fb.display_status === 'pending_implementation' ? 'Pending Implementation' :
@@ -3630,7 +3630,7 @@ function Settings() {
                             <div className="flex gap-1">
                               <button
                                 onClick={() => setEditingFeedback(fb)}
-                                className="p-1.5 rounded hover:bg-gray-600"
+                                className="p-1.5 rounded hover:bg-surface-hover"
                                 title="Edit"
                               >
                                 <Edit2 className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
@@ -3702,23 +3702,23 @@ function Settings() {
       </div>
 
       {/* Version & Updates */}
-      <div className="bg-gray-800/50 rounded-xl p-4 sm:p-6">
+      <div className="bg-surface/50 rounded-xl p-4 sm:p-6">
         <h3 className="font-medium text-white mb-4 flex items-center gap-2">
           <Server className="w-5 h-5 text-purple-400" />
           Version & Updates
         </h3>
 
         {loadingVersion ? (
-          <div className="text-gray-400">Loading version info...</div>
+          <div className="text-muted">Loading version info...</div>
         ) : versionInfo ? (
           <div className="space-y-4">
             {/* Environment Switcher */}
-            <div className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg mb-4">
+            <div className="flex items-center justify-between p-3 bg-surface-soft/50 rounded-lg mb-4">
               <div className="flex items-center gap-2">
                 <span className={`px-2 py-1 rounded text-xs font-medium ${versionInfo.is_dev_instance ? 'bg-orange-600/30 text-orange-400' : 'bg-green-600/30 text-green-400'}`}>
                   {versionInfo.is_dev_instance ? 'DEV' : 'PROD'}
                 </span>
-                <span className="text-sm text-gray-400">
+                <span className="text-sm text-muted">
                   {versionInfo.is_dev_instance ? 'Development Instance' : 'Production Instance'}
                 </span>
               </div>
@@ -3737,16 +3737,16 @@ function Settings() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-white">v{versionInfo.version}</div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted">
                   {versionInfo.git?.branch && (
                     <span className="mr-3">Branch: {versionInfo.git.branch}</span>
                   )}
                   {versionInfo.git?.commit && (
-                    <span className="text-gray-500">({versionInfo.git.commit})</span>
+                    <span className="text-muted">({versionInfo.git.commit})</span>
                   )}
                 </div>
                 {versionInfo.git?.commit_date && (
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-muted mt-1">
                     Last updated: {new Date(versionInfo.git.commit_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   </div>
                 )}
@@ -3765,7 +3765,7 @@ function Settings() {
                   className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
                     versionInfo.git?.has_updates
                       ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                      : 'bg-surface-soft text-muted cursor-not-allowed'
                   }`}
                 >
                   <RefreshCw className={`w-4 h-4 ${updating ? 'animate-spin' : ''}`} />
@@ -3783,7 +3783,7 @@ function Settings() {
                       <Server className="w-4 h-4" />
                       Development Instance
                     </div>
-                    <div className="text-sm text-gray-400 mt-1">
+                    <div className="text-sm text-muted mt-1">
                       Push committed changes to production (levi.local)
                     </div>
                   </div>
@@ -3826,7 +3826,7 @@ function Settings() {
                       <HardDrive className="w-4 h-4" />
                       Pull Data from Production
                     </div>
-                    <div className="text-sm text-gray-400">Copy production database to dev (clears sync data to prevent duplicates)</div>
+                    <div className="text-sm text-muted">Copy production database to dev (clears sync data to prevent duplicates)</div>
                   </div>
                   <button
                     onClick={handlePullFromProd}
@@ -3845,7 +3845,7 @@ function Settings() {
                       <div key={i} className={`text-sm flex items-center gap-2 ${
                         step.status === 'ok' ? 'text-green-400' :
                         step.status === 'error' ? 'text-red-400' :
-                        step.status === 'skipped' ? 'text-gray-400' :
+                        step.status === 'skipped' ? 'text-muted' :
                         'text-yellow-400'
                       }`}>
                         {step.status === 'ok' ? <Check className="w-3 h-3" /> :
@@ -3862,11 +3862,11 @@ function Settings() {
 
             {/* What's New in This Version */}
             {versionInfo.recent_changes?.length > 0 && (
-              <div className="p-4 bg-gray-900/30 rounded-lg">
-                <div className="text-sm font-medium text-gray-300 mb-2">What's New in v{versionInfo.version}</div>
+              <div className="p-4 bg-surface-app/30 rounded-lg">
+                <div className="text-sm font-medium text-secondary mb-2">What's New in v{versionInfo.version}</div>
                 <ul className="space-y-1">
                   {versionInfo.recent_changes.map((change, i) => (
-                    <li key={i} className="text-sm text-gray-400 flex items-start gap-2">
+                    <li key={i} className="text-sm text-muted flex items-start gap-2">
                       <span className="text-green-400 mt-1">•</span>
                       <span>{change}</span>
                     </li>
@@ -3886,8 +3886,8 @@ function Settings() {
               </button>
 
               {showChangelog && versionInfo.changelog && (
-                <div className="mt-3 p-4 bg-gray-900/50 rounded-lg max-h-96 overflow-y-auto">
-                  <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono">
+                <div className="mt-3 p-4 bg-surface-app/50 rounded-lg max-h-96 overflow-y-auto">
+                  <pre className="text-sm text-secondary whitespace-pre-wrap font-mono">
                     {versionInfo.changelog}
                   </pre>
                 </div>
@@ -3895,12 +3895,12 @@ function Settings() {
             </div>
           </div>
         ) : (
-          <div className="text-gray-500">Version information unavailable</div>
+          <div className="text-muted">Version information unavailable</div>
         )}
       </div>
 
       {/* Info */}
-      <div className="bg-gray-800/50 rounded-xl p-4 sm:p-6 text-sm text-gray-400">
+      <div className="bg-surface/50 rounded-xl p-4 sm:p-6 text-sm text-muted">
         <h3 className="font-medium text-white mb-2">About Settings</h3>
         <ul className="list-disc list-inside space-y-1">
           <li>Make your changes, then click "Save Changes" to apply them</li>

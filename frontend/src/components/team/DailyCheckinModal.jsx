@@ -140,7 +140,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
     return (
       <div className="space-y-1">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-400">{label}</span>
+          <span className="text-muted">{label}</span>
         </div>
         <div className="flex gap-0.5">
           {values.map(v => (
@@ -151,14 +151,14 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
               className={`flex-1 min-w-0 py-2 text-xs font-medium rounded transition-colors ${
                 v === value
                   ? `${activeClass} text-white`
-                  : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                  : 'bg-surface-soft text-muted hover:bg-surface-hover'
               }`}
             >
               {v}
             </button>
           ))}
         </div>
-        <div className="flex justify-between text-xs text-gray-500">
+        <div className="flex justify-between text-xs text-muted">
           <span>{leftLabel}</span>
           <span>{rightLabel}</span>
         </div>
@@ -173,23 +173,23 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
       className="w-full flex items-center justify-between py-2 text-left"
     >
       <div className="flex items-center gap-2">
-        <Icon className="w-5 h-5 text-gray-400" />
+        <Icon className="w-5 h-5 text-muted" />
         <span className="font-medium text-white">{title}</span>
       </div>
-      {expanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+      {expanded ? <ChevronUp className="w-4 h-4 text-muted" /> : <ChevronDown className="w-4 h-4 text-muted" />}
     </button>
   )
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gray-800 px-4 sm:px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="sticky top-0 bg-surface px-4 sm:px-6 py-4 border-b border-subtle flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5 text-blue-400" />
             <h2 className="text-lg font-semibold text-white">Daily Check-in</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -203,11 +203,11 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
 
           {/* Member Selection */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Team Member *</label>
+            <label className="block text-sm text-muted mb-1">Team Member *</label>
             <select
               value={selectedMemberId}
               onChange={(e) => setSelectedMemberId(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+              className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
             >
               <option value="">Select member...</option>
               {members.filter(m => m.is_active !== false).map(m => (
@@ -220,9 +220,9 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
 
           {/* Date */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Date</label>
+            <label className="block text-sm text-muted mb-1">Date</label>
             <div className="relative">
-              <div className="flex items-center bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+              <div className="flex items-center bg-surface-soft border border rounded px-3 py-2 text-white">
                 {inputDate
                   ? new Date(inputDate + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
                   : 'Select date'}
@@ -237,7 +237,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
           </div>
 
           {/* Vitals Section */}
-          <div className="border border-gray-700 rounded-lg overflow-hidden">
+          <div className="border border-subtle rounded-lg overflow-hidden">
             <SectionHeader
               title="Vitals"
               icon={Heart}
@@ -248,76 +248,76 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
               <div className="p-4 pt-0 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">Resting HR (bpm)</label>
+                    <label className="block text-xs text-muted mb-1">Resting HR (bpm)</label>
                     <input
                       type="number"
                       value={restingHr}
                       onChange={(e) => setRestingHr(e.target.value)}
                       placeholder="65"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">HRV (ms)</label>
+                    <label className="block text-xs text-muted mb-1">HRV (ms)</label>
                     <input
                       type="number"
                       value={hrv}
                       onChange={(e) => setHrv(e.target.value)}
                       placeholder="45"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Blood Pressure (mmHg)</label>
+                  <label className="block text-xs text-muted mb-1">Blood Pressure (mmHg)</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
                       value={bpSystolic}
                       onChange={(e) => setBpSystolic(e.target.value)}
                       placeholder="120"
-                      className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="flex-1 bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
-                    <span className="text-gray-500">/</span>
+                    <span className="text-muted">/</span>
                     <input
                       type="number"
                       value={bpDiastolic}
                       onChange={(e) => setBpDiastolic(e.target.value)}
                       placeholder="80"
-                      className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="flex-1 bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">SpO2 (%)</label>
+                    <label className="block text-xs text-muted mb-1">SpO2 (%)</label>
                     <input
                       type="number"
                       value={spo2}
                       onChange={(e) => setSpo2(e.target.value)}
                       placeholder="98"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">Temp (°F)</label>
+                    <label className="block text-xs text-muted mb-1">Temp (°F)</label>
                     <input
                       type="number"
                       step="0.1"
                       value={temperature}
                       onChange={(e) => setTemperature(e.target.value)}
                       placeholder="98.6"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">Resp Rate</label>
+                    <label className="block text-xs text-muted mb-1">Resp Rate</label>
                     <input
                       type="number"
                       value={respRate}
                       onChange={(e) => setRespRate(e.target.value)}
                       placeholder="14"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                 </div>
@@ -326,7 +326,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
           </div>
 
           {/* Activity Section */}
-          <div className="border border-gray-700 rounded-lg overflow-hidden">
+          <div className="border border-subtle rounded-lg overflow-hidden">
             <SectionHeader
               title="Activity"
               icon={Footprints}
@@ -337,23 +337,23 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
               <div className="p-4 pt-0 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">Steps</label>
+                    <label className="block text-xs text-muted mb-1">Steps</label>
                     <input
                       type="number"
                       value={steps}
                       onChange={(e) => setSteps(e.target.value)}
                       placeholder="10000"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">Stairs Climbed (flights)</label>
+                    <label className="block text-xs text-muted mb-1">Stairs Climbed (flights)</label>
                     <input
                       type="number"
                       value={stairsClimbed}
                       onChange={(e) => setStairsClimbed(e.target.value)}
                       placeholder="10"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                 </div>
@@ -362,7 +362,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
           </div>
 
           {/* Body Measurements Section */}
-          <div className="border border-gray-700 rounded-lg overflow-hidden">
+          <div className="border border-subtle rounded-lg overflow-hidden">
             <SectionHeader
               title="Body Measurements"
               icon={Activity}
@@ -372,55 +372,55 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
             {bodyExpanded && (
               <div className="p-4 pt-0 space-y-3">
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Weight (lbs)</label>
+                  <label className="block text-xs text-muted mb-1">Weight (lbs)</label>
                   <input
                     type="number"
                     step="0.1"
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     placeholder="170"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                    className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">Waist (in)</label>
+                    <label className="block text-xs text-muted mb-1">Waist (in)</label>
                     <input
                       type="number"
                       step="0.25"
                       value={waist}
                       onChange={(e) => setWaist(e.target.value)}
                       placeholder="32"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">Neck (in)</label>
+                    <label className="block text-xs text-muted mb-1">Neck (in)</label>
                     <input
                       type="number"
                       step="0.25"
                       value={neck}
                       onChange={(e) => setNeck(e.target.value)}
                       placeholder="15"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                   {/* Hip - only show for females (required for female body fat calculation) */}
                   {members.find(m => m.id == selectedMemberId)?.gender === 'female' && (
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">Hip (in)</label>
+                      <label className="block text-xs text-muted mb-1">Hip (in)</label>
                       <input
                         type="number"
                         step="0.25"
                         value={hip}
                         onChange={(e) => setHip(e.target.value)}
                         placeholder="38"
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                       />
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted">
                   Body fat is auto-calculated from waist/neck{members.find(m => m.id == selectedMemberId)?.gender === 'female' ? '/hip' : ''} measurements
                 </p>
               </div>
@@ -428,7 +428,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
           </div>
 
           {/* Subjective Section */}
-          <div className="border border-gray-700 rounded-lg overflow-hidden">
+          <div className="border border-subtle rounded-lg overflow-hidden">
             <SectionHeader
               title="How Do You Feel?"
               icon={Brain}
@@ -450,14 +450,14 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-gray-400 mb-1">Sleep Hours</label>
+                    <label className="block text-xs text-muted mb-1">Sleep Hours</label>
                     <input
                       type="number"
                       step="0.5"
                       value={sleepHours}
                       onChange={(e) => setSleepHours(e.target.value)}
                       placeholder="7.5"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                   <SegmentedPicker
@@ -500,7 +500,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                       value={painLocation}
                       onChange={(e) => setPainLocation(e.target.value)}
                       placeholder="Pain location (e.g., left knee, lower back)"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                     />
                   )}
                 </div>
@@ -520,7 +520,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
           </div>
 
           {/* Context Factors Section */}
-          <div className="border border-gray-700 rounded-lg overflow-hidden">
+          <div className="border border-subtle rounded-lg overflow-hidden">
             <SectionHeader
               title="Context Factors"
               icon={ClipboardCheck}
@@ -538,7 +538,7 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                       className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
                         contextFactors.includes(factor.value)
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          : 'bg-surface-soft text-secondary hover:bg-surface-hover'
                       }`}
                     >
                       {factor.label}
@@ -546,13 +546,13 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
                   ))}
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 mb-1">Notes (optional)</label>
+                  <label className="block text-xs text-muted mb-1">Notes (optional)</label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Any additional notes..."
                     rows={2}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1.5 text-white text-sm"
+                    className="w-full bg-surface-soft border border rounded px-2 py-1.5 text-white text-sm"
                   />
                 </div>
               </div>
@@ -561,10 +561,10 @@ function DailyCheckinModal({ members, onClose, onSuccess }) {
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-800 px-4 sm:px-6 py-4 border-t border-gray-700 flex justify-end gap-2">
+        <div className="sticky bottom-0 bg-surface px-4 sm:px-6 py-4 border-t border-subtle flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-400 hover:text-white"
+            className="px-4 py-2 text-muted hover:text-white"
           >
             Cancel
           </button>

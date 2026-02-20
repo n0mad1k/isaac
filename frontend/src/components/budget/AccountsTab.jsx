@@ -83,8 +83,8 @@ function AccountsTab() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="animate-pulse bg-gray-800 rounded-xl h-12" />
-        <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
+        <div className="animate-pulse bg-surface rounded-xl h-12" />
+        <div className="animate-pulse bg-surface rounded-xl h-64" />
       </div>
     )
   }
@@ -104,12 +104,12 @@ function AccountsTab() {
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                 activeAccountId === account.id
                   ? 'bg-farm-green text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  : 'bg-surface text-muted hover:bg-surface-soft'
               }`}
             >
               <Icon className="w-4 h-4" />
               <span>{account.name}</span>
-              <span className={`text-xs ${activeAccountId === account.id ? 'text-green-200' : 'text-gray-500'}`}>
+              <span className={`text-xs ${activeAccountId === account.id ? 'text-green-200' : 'text-muted'}`}>
                 {fmt(account.current_balance)}
               </span>
             </button>
@@ -117,7 +117,7 @@ function AccountsTab() {
         })}
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm bg-surface text-muted hover:bg-surface-soft transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Account
@@ -137,8 +137,8 @@ function AccountsTab() {
         />
       ) : (
         <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-          <PiggyBank className="w-12 h-12 mx-auto mb-3 text-gray-500" />
-          <p className="text-gray-400 mb-4">No accounts yet. Create one to start tracking balances.</p>
+          <PiggyBank className="w-12 h-12 mx-auto mb-3 text-muted" />
+          <p className="text-muted mb-4">No accounts yet. Create one to start tracking balances.</p>
           <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-farm-green text-white rounded-lg hover:bg-green-600 transition-colors"
@@ -153,7 +153,7 @@ function AccountsTab() {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="p-4 border-b border-gray-700">
+            <div className="p-4 border-b border-subtle">
               <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>Add Account</h2>
             </div>
             <form onSubmit={handleCreateAccount} className="p-4 space-y-4">
@@ -163,7 +163,7 @@ function AccountsTab() {
                   type="text"
                   value={newAccount.name}
                   onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                   placeholder="e.g., Trust Account"
                   required
                 />
@@ -174,7 +174,7 @@ function AccountsTab() {
                 <select
                   value={newAccount.account_type}
                   onChange={(e) => setNewAccount({ ...newAccount, account_type: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                 >
                   <option value="savings">Savings</option>
                   <option value="checking">Checking</option>
@@ -189,7 +189,7 @@ function AccountsTab() {
                   type="text"
                   value={newAccount.institution}
                   onChange={(e) => setNewAccount({ ...newAccount, institution: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                   placeholder="e.g., Navy Federal"
                 />
               </div>
@@ -202,7 +202,7 @@ function AccountsTab() {
                     step="0.01"
                     value={newAccount.initial_balance}
                     onChange={(e) => setNewAccount({ ...newAccount, initial_balance: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                     placeholder="0.00"
                   />
                 </div>
@@ -212,7 +212,7 @@ function AccountsTab() {
                     type="date"
                     value={newAccount.balance_as_of}
                     onChange={(e) => setNewAccount({ ...newAccount, balance_as_of: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                   />
                 </div>
               </div>
@@ -221,7 +221,7 @@ function AccountsTab() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-lg bg-surface-soft text-secondary hover:bg-surface-hover transition-colors"
                 >
                   Cancel
                 </button>

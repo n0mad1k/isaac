@@ -18,7 +18,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
     }
     return (
       <span
-        className={`inline-block rounded-full ${colors[status] || 'bg-gray-500'} ${sizes[size]}`}
+        className={`inline-block rounded-full ${colors[status] || 'bg-surface-muted'} ${sizes[size]}`}
         title={status}
       />
     )
@@ -38,7 +38,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
         {/* Mission Statement */}
         {settings?.team_mission && (
           <div className="max-w-4xl mx-auto px-4">
-            <p className="text-lg text-gray-200 leading-relaxed italic font-light">
+            <p className="text-lg text-primary leading-relaxed italic font-light">
               "{settings.team_mission}"
             </p>
           </div>
@@ -65,10 +65,10 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
               {settings.team_values.map((value, idx) => (
                 <div
                   key={idx}
-                  className="bg-gray-700 rounded-lg p-4 border-l-4 border-farm-green"
+                  className="bg-surface-soft rounded-lg p-4 border-l-4 border-farm-green"
                 >
                   <h3 className="text-base font-semibold text-white mb-1">{value.name}</h3>
-                  <p className="text-sm text-gray-300">{value.description}</p>
+                  <p className="text-sm text-secondary">{value.description}</p>
                 </div>
               ))}
             </div>
@@ -94,7 +94,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                 <button
                   key={member.id}
                   onClick={() => onMemberClick(member.id)}
-                  className="bg-gray-700 rounded-lg p-4 text-left hover:bg-gray-600 transition-colors flex items-center justify-between gap-2 group"
+                  className="bg-surface-soft rounded-lg p-4 text-left hover:bg-surface-hover transition-colors flex items-center justify-between gap-2 group"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {member.photo_path ? (
@@ -104,7 +104,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                         className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center text-gray-400 flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-surface-hover flex items-center justify-center text-muted flex-shrink-0">
                         {member.name.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -122,13 +122,13 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-400 truncate">
+                      <div className="text-sm text-muted truncate">
                         {member.role_title || member.role}
                         {member.callsign && ` · "${member.callsign}"`}
                       </div>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors flex-shrink-0" />
+                  <ChevronRight className="w-5 h-5 text-muted group-hover:text-white transition-colors flex-shrink-0" />
                 </button>
               ))}
             </div>
@@ -142,22 +142,22 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
               <Calendar className="w-5 h-5 text-farm-green" />
               Upcoming Appointments (Next 30 Days)
             </h3>
-            <div className="bg-gray-700 rounded-lg overflow-hidden overflow-x-auto">
+            <div className="bg-surface-soft rounded-lg overflow-hidden overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-600">
-                    <th className="text-left p-3 text-sm font-medium text-gray-400">Member</th>
-                    <th className="text-left p-3 text-sm font-medium text-gray-400">Type</th>
-                    <th className="text-left p-3 text-sm font-medium text-gray-400">Due Date</th>
-                    <th className="text-left p-3 text-sm font-medium text-gray-400">Days Until</th>
+                  <tr className="border-b border">
+                    <th className="text-left p-3 text-sm font-medium text-muted">Member</th>
+                    <th className="text-left p-3 text-sm font-medium text-muted">Type</th>
+                    <th className="text-left p-3 text-sm font-medium text-muted">Due Date</th>
+                    <th className="text-left p-3 text-sm font-medium text-muted">Days Until</th>
                   </tr>
                 </thead>
                 <tbody>
                   {overview.upcoming_appointments.map((apt, idx) => (
-                    <tr key={idx} className="border-b border-gray-600 last:border-0">
+                    <tr key={idx} className="border-b border last:border-0">
                       <td className="p-3">{apt.member_name}</td>
                       <td className="p-3">{apt.type}</td>
-                      <td className="p-3 text-gray-400">
+                      <td className="p-3 text-muted">
                         {new Date(apt.due_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                       </td>
                       <td className="p-3">
@@ -166,7 +166,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                             ? 'bg-red-900/50 text-red-300'
                             : apt.days_until <= 14
                               ? 'bg-yellow-900/50 text-yellow-300'
-                              : 'bg-gray-600 text-gray-300'
+                              : 'bg-surface-hover text-secondary'
                         }`}>
                           {apt.days_until === 0 ? 'Today' : `${apt.days_until} days`}
                         </span>
@@ -197,7 +197,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
         {/* Mission Statement */}
         {settings?.team_mission && (
           <div className="max-w-3xl mx-auto">
-            <p className="text-lg text-gray-200 leading-relaxed font-light italic">
+            <p className="text-lg text-primary leading-relaxed font-light italic">
               "{settings.team_mission}"
             </p>
           </div>
@@ -225,10 +225,10 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
               {settings.team_values.map((value, idx) => (
                 <div
                   key={idx}
-                  className="bg-gray-700 rounded-lg p-4 border-l-4 border-farm-green"
+                  className="bg-surface-soft rounded-lg p-4 border-l-4 border-farm-green"
                 >
                   <h3 className="text-lg font-bold text-white mb-1">{value.name}</h3>
-                  <p className="text-sm text-gray-300">{value.description}</p>
+                  <p className="text-sm text-secondary">{value.description}</p>
                 </div>
               ))}
             </div>
@@ -237,7 +237,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
       </div>
 
       {/* Divider */}
-      <div className="border-t border-gray-700"></div>
+      <div className="border-t border-subtle"></div>
 
       {/* Team Roster */}
       {members.length > 0 && (
@@ -251,7 +251,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
               <button
                 key={member.id}
                 onClick={() => onMemberClick(member.id)}
-                className="bg-gray-700 rounded-lg p-4 text-left hover:bg-gray-600 transition-colors flex items-center justify-between gap-2 group"
+                className="bg-surface-soft rounded-lg p-4 text-left hover:bg-surface-hover transition-colors flex items-center justify-between gap-2 group"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   {member.photo_path ? (
@@ -261,7 +261,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                       className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center text-gray-400 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-surface-hover flex items-center justify-center text-muted flex-shrink-0">
                       {member.name.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -270,13 +270,13 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                       <span className="truncate max-w-[120px] sm:max-w-none">{member.nickname || member.name}</span>
                       <ReadinessIndicator status={member.overall_readiness} size="sm" />
                     </div>
-                    <div className="text-sm text-gray-400 truncate">
+                    <div className="text-sm text-muted truncate">
                       {member.role_title || member.role}
                       {member.callsign && ` · "${member.callsign}"`}
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors flex-shrink-0" />
+                <ChevronRight className="w-5 h-5 text-muted group-hover:text-white transition-colors flex-shrink-0" />
               </button>
             ))}
           </div>
@@ -290,22 +290,22 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
             <Calendar className="w-5 h-5 text-farm-green" />
             Upcoming Appointments (Next 30 Days)
           </h3>
-          <div className="bg-gray-700 rounded-lg overflow-hidden overflow-x-auto">
+          <div className="bg-surface-soft rounded-lg overflow-hidden overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-600">
-                  <th className="text-left p-3 text-sm font-medium text-gray-400">Member</th>
-                  <th className="text-left p-3 text-sm font-medium text-gray-400">Type</th>
-                  <th className="text-left p-3 text-sm font-medium text-gray-400">Due Date</th>
-                  <th className="text-left p-3 text-sm font-medium text-gray-400">Days Until</th>
+                <tr className="border-b border">
+                  <th className="text-left p-3 text-sm font-medium text-muted">Member</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted">Type</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted">Due Date</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted">Days Until</th>
                 </tr>
               </thead>
               <tbody>
                 {overview.upcoming_appointments.map((apt, idx) => (
-                  <tr key={idx} className="border-b border-gray-600 last:border-0">
+                  <tr key={idx} className="border-b border last:border-0">
                     <td className="p-3">{apt.member_name}</td>
                     <td className="p-3">{apt.type}</td>
-                    <td className="p-3 text-gray-400">
+                    <td className="p-3 text-muted">
                       {new Date(apt.due_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                     </td>
                     <td className="p-3">
@@ -314,7 +314,7 @@ function TeamOverview({ settings, overview, members, onMemberClick, headerOnly =
                           ? 'bg-red-900/50 text-red-300'
                           : apt.days_until <= 14
                             ? 'bg-yellow-900/50 text-yellow-300'
-                            : 'bg-gray-600 text-gray-300'
+                            : 'bg-surface-hover text-secondary'
                       }`}>
                         {apt.days_until === 0 ? 'Today' : `${apt.days_until} days`}
                       </span>

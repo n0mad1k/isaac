@@ -179,12 +179,12 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
             <div className="flex items-center gap-2">
               {user && (
                 <>
-                  <span className="text-sm text-gray-400">{user.display_name || user.username}</span>
+                  <span className="text-sm text-muted">{user.display_name || user.username}</span>
                   {isAdmin && (
                     <NavLink
                       to="/settings"
                       state={{ tab: 'users' }}
-                      className="p-2 rounded-lg text-gray-400 hover:text-white transition-colors"
+                      className="p-2 rounded-lg text-muted hover:text-white transition-colors"
                       title="User Management"
                     >
                       <Users className="w-5 h-5" />
@@ -201,7 +201,7 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
               )}
               <button
                 onClick={() => setExpanded(false)}
-                className="p-2 rounded-lg text-gray-400 hover:text-white transition-colors ml-2"
+                className="p-2 rounded-lg text-muted hover:text-white transition-colors ml-2"
                 title="Close menu"
               >
                 <X className="w-5 h-5" />
@@ -505,7 +505,7 @@ function FloatingActionMenu({ showKeyboard = false, showHardRefresh = true, navI
           >
             <button
               onClick={() => setFeedbackModalOpen(false)}
-              className="absolute top-4 right-4 p-1 rounded hover:bg-gray-700"
+              className="absolute top-4 right-4 p-1 rounded hover:bg-surface-soft"
               style={{ color: 'var(--color-text-muted)' }}
             >
               <X className="w-5 h-5" />
@@ -724,7 +724,7 @@ function QuickGearModal({ onClose }) {
           <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             Quick Gear Quantity
           </h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-gray-700">
+          <button onClick={onClose} className="p-1 rounded hover:bg-surface-soft">
             <X className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />
           </button>
         </div>
@@ -905,7 +905,7 @@ function QuickTransactionModal({ onClose }) {
         style={{ backgroundColor: 'var(--color-bg-surface)' }}
         onClick={e => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded hover:bg-gray-700">
+        <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded hover:bg-surface-soft">
           <X className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />
         </button>
 

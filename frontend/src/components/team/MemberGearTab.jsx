@@ -25,7 +25,7 @@ const CONTENT_STATUSES = [
   { value: 'GOOD', label: 'Good', color: 'bg-green-900/50 text-green-300' },
   { value: 'LOW', label: 'Low', color: 'bg-yellow-900/50 text-yellow-300' },
   { value: 'EXPIRED', label: 'Expired', color: 'bg-red-900/50 text-red-300' },
-  { value: 'MISSING', label: 'Missing', color: 'bg-gray-900/50 text-gray-300' },
+  { value: 'MISSING', label: 'Missing', color: 'bg-surface-app/50 text-secondary' },
   { value: 'NEEDS_REPLACEMENT', label: 'Needs Replacement', color: 'bg-orange-900/50 text-orange-300' }
 ]
 
@@ -199,7 +199,7 @@ function MemberGearTab({ member, onUpdate }) {
       : gear.filter(g => g.status === statusFilter)
 
   if (loading) {
-    return <div className="text-center text-gray-400 py-8">Loading gear...</div>
+    return <div className="text-center text-muted py-8">Loading gear...</div>
   }
 
   return (
@@ -216,7 +216,7 @@ function MemberGearTab({ member, onUpdate }) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-sm"
+            className="bg-surface-soft border border rounded px-3 py-1.5 text-sm"
           >
             <option value="all">All Gear</option>
             <option value="attention">Needs Attention</option>
@@ -224,7 +224,7 @@ function MemberGearTab({ member, onUpdate }) {
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
-          <span className="text-sm text-gray-400">{filteredGear.length} items</span>
+          <span className="text-sm text-muted">{filteredGear.length} items</span>
         </div>
         <button
           onClick={() => setShowAddGear(true)}
@@ -237,27 +237,27 @@ function MemberGearTab({ member, onUpdate }) {
 
       {/* Gear List */}
       {filteredGear.length === 0 ? (
-        <div className="bg-gray-700 rounded-lg p-8 text-center text-gray-400">
+        <div className="bg-surface-soft rounded-lg p-8 text-center text-muted">
           <Shield className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p>No gear assigned</p>
         </div>
       ) : (
         <div className="space-y-2">
           {filteredGear.map(item => (
-            <div key={item.id} className="bg-gray-700 rounded-lg overflow-hidden">
+            <div key={item.id} className="bg-surface-soft rounded-lg overflow-hidden">
               {/* Gear Header */}
               <div
-                className="p-4 cursor-pointer flex items-start gap-2 hover:bg-gray-600/50"
+                className="p-4 cursor-pointer flex items-start gap-2 hover:bg-surface-hover/50"
                 onClick={() => handleExpandGear(item.id)}
               >
                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <Shield className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                  <Shield className="w-5 h-5 text-muted flex-shrink-0 mt-0.5" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{item.name}</span>
                       {getStatusBadge(item.status)}
                     </div>
-                    <div className="text-sm text-gray-400 break-words">
+                    <div className="text-sm text-muted break-words">
                       {item.category}
                       {item.make && ` - ${item.make}`}
                       {item.model && ` ${item.model}`}
@@ -265,51 +265,51 @@ function MemberGearTab({ member, onUpdate }) {
                     </div>
                     {/* Gear notes */}
                     {item.notes && (
-                      <div className="text-xs text-gray-500 italic mt-1 break-words">{item.notes}</div>
+                      <div className="text-xs text-muted italic mt-1 break-words">{item.notes}</div>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={(e) => { e.stopPropagation(); setEditingGear(item) }}
-                    className="p-1 text-gray-400 hover:text-white"
+                    className="p-1 text-muted hover:text-white"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteGear(item.id) }}
-                    className="p-1 text-gray-400 hover:text-red-400"
+                    className="p-1 text-muted hover:text-red-400"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                   {expandedGear === item.id ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                    <ChevronUp className="w-5 h-5 text-muted" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                    <ChevronDown className="w-5 h-5 text-muted" />
                   )}
                 </div>
               </div>
 
               {/* Expanded Details */}
               {expandedGear === item.id && (
-                <div className="border-t border-gray-600 p-4 space-y-4">
+                <div className="border-t border p-4 space-y-4">
                   {/* Basic Info */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     {item.serial_number && (
                       <div>
-                        <span className="text-gray-400">S/N:</span>
+                        <span className="text-muted">S/N:</span>
                         <span className="ml-2">{item.serial_number}</span>
                       </div>
                     )}
                     {item.location && (
                       <div>
-                        <span className="text-gray-400">Location:</span>
+                        <span className="text-muted">Location:</span>
                         <span className="ml-2">{item.location}</span>
                       </div>
                     )}
                     {item.assigned_date && (
                       <div>
-                        <span className="text-gray-400">Assigned:</span>
+                        <span className="text-muted">Assigned:</span>
                         <span className="ml-2">{formatDate(item.assigned_date)}</span>
                       </div>
                     )}
@@ -332,10 +332,10 @@ function MemberGearTab({ member, onUpdate }) {
                     {gearMaintenance[item.id]?.length > 0 ? (
                       <div className="space-y-2">
                         {gearMaintenance[item.id].map(maint => (
-                          <div key={maint.id} className="bg-gray-800 rounded p-3 flex items-center justify-between">
+                          <div key={maint.id} className="bg-surface rounded p-3 flex items-center justify-between">
                             <div>
                               <div className="font-medium text-sm">{maint.name}</div>
-                              <div className="text-xs text-gray-400">
+                              <div className="text-xs text-muted">
                                 {maint.frequency_days && `Every ${maint.frequency_days} days`}
                                 {maint.frequency_rounds && ` / ${maint.frequency_rounds} rounds`}
                               </div>
@@ -355,7 +355,7 @@ function MemberGearTab({ member, onUpdate }) {
                               </button>
                               <button
                                 onClick={() => handleDeleteMaintenance(item.id, maint.id)}
-                                className="p-1 text-gray-400 hover:text-red-400"
+                                className="p-1 text-muted hover:text-red-400"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -364,7 +364,7 @@ function MemberGearTab({ member, onUpdate }) {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-400">No maintenance schedules</p>
+                      <p className="text-sm text-muted">No maintenance schedules</p>
                     )}
                   </div>
 
@@ -389,7 +389,7 @@ function MemberGearTab({ member, onUpdate }) {
                             const statusObj = CONTENT_STATUSES.find(s => s.value === content.status)
                             const needsAttention = content.status !== 'GOOD'
                             return (
-                              <div key={content.id} className={`bg-gray-800 rounded p-3 flex items-center justify-between ${needsAttention ? 'border-l-2 border-yellow-500' : ''}`}>
+                              <div key={content.id} className={`bg-surface rounded p-3 flex items-center justify-between ${needsAttention ? 'border-l-2 border-yellow-500' : ''}`}>
                                 <div>
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span className="font-medium text-sm">{content.item_name}</span>
@@ -414,13 +414,13 @@ function MemberGearTab({ member, onUpdate }) {
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-xs text-gray-400 flex items-center gap-2">
+                                  <div className="text-xs text-muted flex items-center gap-2">
                                     {content.category && <span>{content.category}</span>}
                                     {content.category && <span>·</span>}
                                     <span className="flex items-center gap-1">
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleQuantityChange(item.id, content, -1) }}
-                                        className="p-0.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-white"
+                                        className="p-0.5 bg-surface-soft hover:bg-surface-hover rounded text-secondary hover:text-white"
                                         title="Decrease quantity"
                                       >
                                         <Minus className="w-3 h-3" />
@@ -428,7 +428,7 @@ function MemberGearTab({ member, onUpdate }) {
                                       <span className="min-w-[1.5rem] text-center">{content.quantity}</span>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleQuantityChange(item.id, content, 1) }}
-                                        className="p-0.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 hover:text-white"
+                                        className="p-0.5 bg-surface-soft hover:bg-surface-hover rounded text-secondary hover:text-white"
                                         title="Increase quantity"
                                       >
                                         <Plus className="w-3 h-3" />
@@ -440,7 +440,7 @@ function MemberGearTab({ member, onUpdate }) {
                                   {content.units && content.units.length > 0 ? (
                                     <div className="text-xs space-y-0.5">
                                       {content.units.map((unit, idx) => (
-                                        <div key={idx} className={unit.expiration_date ? getDueDateClass(unit.expiration_date) : 'text-gray-500'}>
+                                        <div key={idx} className={unit.expiration_date ? getDueDateClass(unit.expiration_date) : 'text-muted'}>
                                           #{idx + 1}: {unit.expiration_date ? formatDate(unit.expiration_date) : 'No exp'}
                                           {unit.lot_number && ` (${unit.lot_number})`}
                                         </div>
@@ -453,7 +453,7 @@ function MemberGearTab({ member, onUpdate }) {
                                   )}
                                   {/* Show notes if present */}
                                   {content.notes && (
-                                    <div className="text-xs text-gray-500 mt-1 italic">
+                                    <div className="text-xs text-muted mt-1 italic">
                                       {content.notes}
                                     </div>
                                   )}
@@ -468,14 +468,14 @@ function MemberGearTab({ member, onUpdate }) {
                                   </button>
                                   <button
                                     onClick={() => setEditingContent({ gearId: item.id, content })}
-                                    className="p-1 text-gray-400 hover:text-white"
+                                    className="p-1 text-muted hover:text-white"
                                     title="Edit"
                                   >
                                     <Edit className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => handleDeleteContent(item.id, content.id)}
-                                    className="p-1 text-gray-400 hover:text-red-400"
+                                    className="p-1 text-muted hover:text-red-400"
                                     title="Delete"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -486,14 +486,14 @@ function MemberGearTab({ member, onUpdate }) {
                           })}
                         </div>
                       ) : (
-                        <p className="text-sm text-gray-400">No contents tracked</p>
+                        <p className="text-sm text-muted">No contents tracked</p>
                       )}
                     </div>
                   )}
 
                   {item.notes && (
-                    <div className="text-sm text-gray-400">
-                      <span className="font-medium text-gray-300">Notes:</span> {item.notes}
+                    <div className="text-sm text-muted">
+                      <span className="font-medium text-secondary">Notes:</span> {item.notes}
                     </div>
                   )}
                 </div>
@@ -604,10 +604,10 @@ function GearModal({ gear, memberId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-subtle">
           <h3 className="font-semibold">{gear ? 'Edit Gear' : 'Add Gear'}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -619,17 +619,17 @@ function GearModal({ gear, memberId, onClose, onSave }) {
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm text-gray-400 mb-1">Name *</label>
+              <label className="block text-sm text-muted mb-1">Name *</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Category</label>
+              <label className="block text-sm text-muted mb-1">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => {
@@ -637,7 +637,7 @@ function GearModal({ gear, memberId, onClose, onSave }) {
                   // Auto-set is_container for BAG category
                   setFormData({ ...formData, category: newCat, is_container: newCat === 'BAG' ? true : formData.is_container })
                 }}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               >
                 {GEAR_CATEGORIES.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -645,11 +645,11 @@ function GearModal({ gear, memberId, onClose, onSave }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Status</label>
+              <label className="block text-sm text-muted mb-1">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               >
                 {GEAR_STATUSES.map(s => (
                   <option key={s.value} value={s.value}>{s.label}</option>
@@ -657,60 +657,60 @@ function GearModal({ gear, memberId, onClose, onSave }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Make</label>
+              <label className="block text-sm text-muted mb-1">Make</label>
               <input
                 type="text"
                 value={formData.make}
                 onChange={(e) => setFormData({ ...formData, make: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Model</label>
+              <label className="block text-sm text-muted mb-1">Model</label>
               <input
                 type="text"
                 value={formData.model}
                 onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Serial Number</label>
+              <label className="block text-sm text-muted mb-1">Serial Number</label>
               <input
                 type="text"
                 value={formData.serial_number}
                 onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Caliber</label>
+              <label className="block text-sm text-muted mb-1">Caliber</label>
               <input
                 type="text"
                 value={formData.caliber}
                 onChange={(e) => setFormData({ ...formData, caliber: e.target.value })}
                 placeholder="For firearms"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Color</label>
+              <label className="block text-sm text-muted mb-1">Color</label>
               <input
                 type="text"
                 value={formData.color || ''}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                 placeholder="e.g., Black, OD Green, Coyote"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm text-gray-400 mb-1">Location</label>
+              <label className="block text-sm text-muted mb-1">Location</label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 placeholder="Where is it stored?"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
           </div>
@@ -744,16 +744,16 @@ function GearModal({ gear, memberId, onClose, onSave }) {
             </label>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-muted hover:text-white">
               Cancel
             </button>
             <button
@@ -805,10 +805,10 @@ function MaintenanceModal({ memberId, gearId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-subtle">
           <h3 className="font-semibold">Add Maintenance Schedule</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -819,56 +819,56 @@ function MaintenanceModal({ memberId, gearId, onClose, onSave }) {
             </div>
           )}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Name *</label>
+            <label className="block text-sm text-muted mb-1">Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Cleaning, Lubrication"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
               required
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Every X Days</label>
+              <label className="block text-sm text-muted mb-1">Every X Days</label>
               <input
                 type="number"
                 value={formData.frequency_days}
                 onChange={(e) => setFormData({ ...formData, frequency_days: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Every X Rounds</label>
+              <label className="block text-sm text-muted mb-1">Every X Rounds</label>
               <input
                 type="number"
                 value={formData.frequency_rounds}
                 onChange={(e) => setFormData({ ...formData, frequency_rounds: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Next Due Date</label>
+            <label className="block text-sm text-muted mb-1">Next Due Date</label>
             <input
               type="date"
               value={formData.next_due_date}
               onChange={(e) => setFormData({ ...formData, next_due_date: e.target.value })}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-muted hover:text-white">
               Cancel
             </button>
             <button
@@ -994,10 +994,10 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-md">
+        <div className="flex items-center justify-between p-4 border-b border-subtle">
           <h3 className="font-semibold">Edit Content Item</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1008,31 +1008,31 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
             </div>
           )}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Item Name *</label>
+            <label className="block text-sm text-muted mb-1">Item Name *</label>
             <input
               type="text"
               value={formData.item_name}
               onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
               required
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Category</label>
+              <label className="block text-sm text-muted mb-1">Category</label>
               <input
                 type="text"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Status</label>
+              <label className="block text-sm text-muted mb-1">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               >
                 {CONTENT_STATUSES.map(s => (
                   <option key={s.value} value={s.value}>{s.label}</option>
@@ -1040,22 +1040,22 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Quantity</label>
+              <label className="block text-sm text-muted mb-1">Quantity</label>
               <input
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => handleQuantityChange(e.target.value)}
                 min="0"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Min Quantity</label>
+              <label className="block text-sm text-muted mb-1">Min Quantity</label>
               <input
                 type="number"
                 value={formData.min_quantity}
                 onChange={(e) => setFormData({ ...formData, min_quantity: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
           </div>
@@ -1075,29 +1075,29 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
 
           {/* Individual Units Section */}
           {trackIndividual && units.length > 0 ? (
-            <div className="border border-gray-600 rounded-lg p-3 space-y-3">
-              <div className="text-sm font-medium text-gray-300">Individual Units</div>
+            <div className="border border rounded-lg p-3 space-y-3">
+              <div className="text-sm font-medium text-secondary">Individual Units</div>
               {units.map((unit, idx) => (
-                <div key={idx} className="bg-gray-700/50 rounded p-2 space-y-2">
-                  <div className="text-xs text-gray-400">Unit {idx + 1}</div>
+                <div key={idx} className="bg-surface-soft/50 rounded p-2 space-y-2">
+                  <div className="text-xs text-muted">Unit {idx + 1}</div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Expiration</label>
+                      <label className="block text-xs text-muted mb-1">Expiration</label>
                       <input
                         type="date"
                         value={unit.expiration_date || ''}
                         onChange={(e) => handleUnitChange(idx, 'expiration_date', e.target.value)}
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                        className="w-full bg-surface-soft border border rounded px-2 py-1 text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Lot #</label>
+                      <label className="block text-xs text-muted mb-1">Lot #</label>
                       <input
                         type="text"
                         value={unit.lot_number || ''}
                         onChange={(e) => handleUnitChange(idx, 'lot_number', e.target.value)}
                         placeholder="Optional"
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                        className="w-full bg-surface-soft border border rounded px-2 py-1 text-sm"
                       />
                     </div>
                   </div>
@@ -1107,33 +1107,33 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Expiration Date</label>
+                <label className="block text-sm text-muted mb-1">Expiration Date</label>
                 <input
                   type="date"
                   value={formData.expiration_date}
                   onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Alert Days Before</label>
+                <label className="block text-sm text-muted mb-1">Alert Days Before</label>
                 <input
                   type="number"
                   value={formData.expiration_alert_days}
                   onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                 />
               </div>
             </div>
           )}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Battery Type</label>
+            <label className="block text-sm text-muted mb-1">Battery Type</label>
             <input
               type="text"
               value={formData.battery_type}
               onChange={(e) => setFormData({ ...formData, battery_type: e.target.value })}
               placeholder="AA, AAA, CR123A, 18650, etc."
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div className="flex flex-wrap gap-4">
@@ -1142,27 +1142,27 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
                 type="checkbox"
                 checked={formData.needs_cleaning}
                 onChange={(e) => setFormData({ ...formData, needs_cleaning: e.target.checked })}
-                className="rounded border-gray-600"
+                className="rounded border"
               />
-              <span className="text-gray-300">Needs Cleaning</span>
+              <span className="text-secondary">Needs Cleaning</span>
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.needs_recharge}
                 onChange={(e) => setFormData({ ...formData, needs_recharge: e.target.checked })}
-                className="rounded border-gray-600"
+                className="rounded border"
               />
-              <span className="text-gray-300">Needs Recharge</span>
+              <span className="text-secondary">Needs Recharge</span>
             </label>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div className="flex justify-between pt-4">
@@ -1176,7 +1176,7 @@ function EditContentModal({ memberId, gearId, content, onClose, onSave }) {
               Replenished
             </button>
             <div className="flex gap-3">
-              <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">
+              <button type="button" onClick={onClose} className="px-4 py-2 text-muted hover:text-white">
                 Cancel
               </button>
               <button
@@ -1281,10 +1281,10 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="bg-surface rounded-lg w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-subtle">
           <h3 className="font-semibold">Add Content Item</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1295,33 +1295,33 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
             </div>
           )}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Item Name *</label>
+            <label className="block text-sm text-muted mb-1">Item Name *</label>
             <input
               type="text"
               value={formData.item_name}
               onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
               placeholder="e.g., TQ CAT Gen 7, MRE"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
               required
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Category</label>
+              <label className="block text-sm text-muted mb-1">Category</label>
               <input
                 type="text"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 placeholder="Medical, Food, etc."
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Status</label>
+              <label className="block text-sm text-muted mb-1">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               >
                 {CONTENT_STATUSES.map(s => (
                   <option key={s.value} value={s.value}>{s.label}</option>
@@ -1329,23 +1329,23 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Quantity</label>
+              <label className="block text-sm text-muted mb-1">Quantity</label>
               <input
                 type="number"
                 value={formData.quantity}
                 onChange={(e) => handleQuantityChange(e.target.value)}
                 min="1"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Min Quantity</label>
+              <label className="block text-sm text-muted mb-1">Min Quantity</label>
               <input
                 type="number"
                 value={formData.min_quantity}
                 onChange={(e) => setFormData({ ...formData, min_quantity: e.target.value })}
                 placeholder="Alert threshold"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               />
             </div>
           </div>
@@ -1357,7 +1357,7 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
                 type="checkbox"
                 checked={trackIndividual}
                 onChange={(e) => handleToggleIndividual(e.target.checked)}
-                className="rounded border-gray-600"
+                className="rounded border"
               />
               Track individual expirations (e.g., different lot numbers)
             </label>
@@ -1365,29 +1365,29 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
 
           {/* Individual Units Section */}
           {trackIndividual && units.length > 0 ? (
-            <div className="border border-gray-600 rounded-lg p-3 space-y-3">
-              <div className="text-sm font-medium text-gray-300">Individual Units</div>
+            <div className="border border rounded-lg p-3 space-y-3">
+              <div className="text-sm font-medium text-secondary">Individual Units</div>
               {units.map((unit, idx) => (
-                <div key={idx} className="bg-gray-700/50 rounded p-2 space-y-2">
-                  <div className="text-xs text-gray-400">Unit {idx + 1}</div>
+                <div key={idx} className="bg-surface-soft/50 rounded p-2 space-y-2">
+                  <div className="text-xs text-muted">Unit {idx + 1}</div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Expiration</label>
+                      <label className="block text-xs text-muted mb-1">Expiration</label>
                       <input
                         type="date"
                         value={unit.expiration_date || ''}
                         onChange={(e) => handleUnitChange(idx, 'expiration_date', e.target.value)}
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                        className="w-full bg-surface-soft border border rounded px-2 py-1 text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Lot #</label>
+                      <label className="block text-xs text-muted mb-1">Lot #</label>
                       <input
                         type="text"
                         value={unit.lot_number || ''}
                         onChange={(e) => handleUnitChange(idx, 'lot_number', e.target.value)}
                         placeholder="Optional"
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                        className="w-full bg-surface-soft border border rounded px-2 py-1 text-sm"
                       />
                     </div>
                   </div>
@@ -1395,12 +1395,12 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
               ))}
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Alert Days Before</label>
+                  <label className="block text-sm text-muted mb-1">Alert Days Before</label>
                   <input
                     type="number"
                     value={formData.expiration_alert_days}
                     onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2"
                   />
                 </div>
               </div>
@@ -1408,34 +1408,34 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Expiration Date</label>
+                <label className="block text-sm text-muted mb-1">Expiration Date</label>
                 <input
                   type="date"
                   value={formData.expiration_date}
                   onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Alert Days Before</label>
+                <label className="block text-sm text-muted mb-1">Alert Days Before</label>
                 <input
                   type="number"
                   value={formData.expiration_alert_days}
                   onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2"
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Battery Type</label>
+            <label className="block text-sm text-muted mb-1">Battery Type</label>
             <input
               type="text"
               value={formData.battery_type}
               onChange={(e) => setFormData({ ...formData, battery_type: e.target.value })}
               placeholder="AA, AAA, CR123A, 18650, etc."
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div className="flex flex-wrap gap-4">
@@ -1444,31 +1444,31 @@ function ContentModal({ memberId, gearId, onClose, onSave }) {
                 type="checkbox"
                 checked={formData.needs_cleaning}
                 onChange={(e) => setFormData({ ...formData, needs_cleaning: e.target.checked })}
-                className="rounded border-gray-600"
+                className="rounded border"
               />
-              <span className="text-gray-300">Needs Cleaning</span>
+              <span className="text-secondary">Needs Cleaning</span>
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
                 checked={formData.needs_recharge}
                 onChange={(e) => setFormData({ ...formData, needs_recharge: e.target.checked })}
-                className="rounded border-gray-600"
+                className="rounded border"
               />
-              <span className="text-gray-300">Needs Recharge</span>
+              <span className="text-secondary">Needs Recharge</span>
             </label>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="w-full bg-surface-soft border border rounded px-3 py-2"
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-muted hover:text-white">
               Cancel
             </button>
             <button

@@ -73,7 +73,7 @@ function FloatingActionButton({ onDailyCheckin, onLogWorkout, onLogVital, onLogW
     <div ref={menuRef} className="fixed bottom-6 right-6 z-50">
       {/* Expanded menu */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 mb-2 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden min-w-[220px]">
+        <div className="absolute bottom-16 right-0 mb-2 bg-surface border border-subtle rounded-lg shadow-xl overflow-hidden min-w-[220px]">
           {menuItems.map((item, index) => (
             <button
               key={index}
@@ -83,7 +83,7 @@ function FloatingActionButton({ onDailyCheckin, onLogWorkout, onLogVital, onLogW
               <item.icon className={`w-5 h-5 ${item.color}`} />
               <div>
                 <div className="text-white text-sm font-medium">{item.label}</div>
-                <div className="text-gray-400 text-xs">{item.description}</div>
+                <div className="text-muted text-xs">{item.description}</div>
               </div>
             </button>
           ))}
@@ -95,7 +95,7 @@ function FloatingActionButton({ onDailyCheckin, onLogWorkout, onLogVital, onLogW
         onClick={() => setIsOpen(!isOpen)}
         className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
           isOpen
-            ? 'bg-gray-700 rotate-45'
+            ? 'bg-surface-soft rotate-45'
             : 'bg-farm-green hover:bg-green-600'
         }`}
       >

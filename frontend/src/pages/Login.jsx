@@ -53,14 +53,14 @@ function Login() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-surface-app flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-farm-green animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-surface-app flex flex-col">
       {/* Dev Instance Banner */}
       {isDevInstance && (
         <div className="bg-orange-600 text-white text-center py-1 text-sm font-medium">
@@ -78,11 +78,11 @@ function Login() {
           <h1 className="text-3xl font-bold text-white">
             Isaac {isDevInstance && <span className="text-orange-400">(Dev)</span>}
           </h1>
-          <p className="text-gray-400 mt-2">Farm & Homestead Assistant</p>
+          <p className="text-muted mt-2">Farm & Homestead Assistant</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-gray-800 rounded-xl p-8 shadow-xl">
+        <div className="bg-surface rounded-xl p-8 shadow-xl">
           <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
             <LogIn className="w-5 h-5 text-farm-green" />
             Sign In
@@ -97,16 +97,16 @@ function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-secondary mb-2">
                 Username
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-farm-green focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 bg-surface-soft border border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-farm-green focus:border-transparent"
                   placeholder="Enter your username"
                   required
                   autoFocus
@@ -116,16 +116,16 @@ function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-secondary mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-farm-green focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 bg-surface-soft border border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-farm-green focus:border-transparent"
                   placeholder="Enter your password"
                   autoComplete="current-password"
                 />
@@ -135,7 +135,7 @@ function Login() {
             <button
               type="submit"
               disabled={loading || !username}
-              className="w-full py-3 px-4 bg-farm-green hover:bg-farm-green-light disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-farm-green hover:bg-farm-green-light disabled:bg-surface-hover disabled:cursor-not-allowed rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -153,7 +153,7 @@ function Login() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-500 text-sm mt-6">
+        <p className="text-center text-muted text-sm mt-6">
           Farm & Homestead Management
         </p>
       </div>

@@ -420,7 +420,7 @@ function WorkerTasks() {
       case 'purchased': return 'bg-purple-900/50 text-purple-300 border-purple-500/50'
       case 'delivered': return 'bg-green-900/50 text-green-300 border-green-500/50'
       case 'denied': return 'bg-red-900/50 text-red-300 border-red-500/50'
-      default: return 'bg-gray-700 text-gray-300 border-gray-500/50'
+      default: return 'bg-surface-soft text-secondary border-strong/50'
     }
   }
 
@@ -500,7 +500,7 @@ function WorkerTasks() {
       )}
 
       {/* Worker Tabs */}
-      <div className="flex flex-wrap gap-2 pb-2 border-b border-gray-700">
+      <div className="flex flex-wrap gap-2 pb-2 border-b border-subtle">
         {workers.map(worker => (
           <button
             key={worker.id}
@@ -508,14 +508,14 @@ function WorkerTasks() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               selectedWorker?.id === worker.id
                 ? 'bg-farm-green text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                : 'bg-surface-soft text-secondary hover:bg-surface-hover'
             }`}
           >
             <span>{getRoleIcon(worker.role)}</span>
             <span>{worker.name}</span>
             {worker.task_count > 0 && (
               <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                selectedWorker?.id === worker.id ? 'bg-white/20' : 'bg-gray-600'
+                selectedWorker?.id === worker.id ? 'bg-white/20' : 'bg-surface-hover'
               }`}>
                 {worker.task_count}
               </span>
@@ -524,7 +524,7 @@ function WorkerTasks() {
         ))}
         <button
           onClick={() => { setShowAddWorker(true); setEditingWorker(null); resetWorkerForm(); }}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-800 border border-dashed border-gray-600 rounded-lg text-gray-400 hover:border-farm-green hover:text-farm-green"
+          className="flex items-center gap-2 px-4 py-2 bg-surface border border-dashed border rounded-lg text-muted hover:border-farm-green hover:text-farm-green"
         >
           <Plus className="w-4 h-4" />
           {t('addWorker')}
@@ -535,22 +535,22 @@ function WorkerTasks() {
       {selectedWorker ? (
         <div className="space-y-4">
           {/* Worker Info Bar - stacks on mobile */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-800 rounded-lg p-3 sm:p-4 gap-2 sm:gap-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-surface rounded-lg p-3 sm:p-4 gap-2 sm:gap-0">
             <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
               <span className="text-2xl sm:text-3xl">{getRoleIcon(selectedWorker.role, 'text-2xl sm:text-3xl')}</span>
               <div className="min-w-0">
                 <h2 className="text-lg sm:text-xl font-bold truncate">{selectedWorker.name}</h2>
-                <p className="text-gray-400 text-xs sm:text-sm">{selectedWorker.role || 'No role specified'}</p>
+                <p className="text-muted text-xs sm:text-sm">{selectedWorker.role || 'No role specified'}</p>
               </div>
               {selectedWorker.phone && (
-                <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-400">
+                <div className="flex items-center gap-1 text-xs sm:text-sm text-muted">
                   <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="hidden sm:inline">{displayPhone(selectedWorker.phone)}</span>
                   <span className="sm:hidden">{selectedWorker.phone.slice(-4)}</span>
                 </div>
               )}
               {selectedWorker.email && (
-                <div className="hidden sm:flex items-center gap-1 text-sm text-gray-400">
+                <div className="hidden sm:flex items-center gap-1 text-sm text-muted">
                   <Mail className="w-4 h-4" />
                   {selectedWorker.email}
                 </div>
@@ -576,11 +576,11 @@ function WorkerTasks() {
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex gap-2 bg-gray-800 rounded-lg p-1 w-fit flex-wrap">
+          <div className="flex gap-2 bg-surface rounded-lg p-1 w-fit flex-wrap">
             <button
               onClick={() => setViewMode('tasks')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                viewMode === 'tasks' ? 'bg-farm-green text-white' : 'text-gray-400 hover:text-white'
+                viewMode === 'tasks' ? 'bg-farm-green text-white' : 'text-muted hover:text-white'
               }`}
             >
               <ClipboardList className="w-4 h-4" />
@@ -589,14 +589,14 @@ function WorkerTasks() {
             <button
               onClick={() => setViewMode('supplies')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                viewMode === 'supplies' ? 'bg-farm-green text-white' : 'text-gray-400 hover:text-white'
+                viewMode === 'supplies' ? 'bg-farm-green text-white' : 'text-muted hover:text-white'
               }`}
             >
               <ShoppingCart className="w-4 h-4" />
               {t('supplyRequests')}
               {supplyRequests.length > 0 && (
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  viewMode === 'supplies' ? 'bg-white/20' : 'bg-gray-600'
+                  viewMode === 'supplies' ? 'bg-white/20' : 'bg-surface-hover'
                 }`}>
                   {supplyRequests.filter(r => r.status === 'pending').length}
                 </span>
@@ -614,7 +614,7 @@ function WorkerTasks() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base sm:text-lg font-semibold">{t('tasksFor')} {selectedWorker.name}</h3>
-              <label className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+              <label className="flex items-center gap-2 text-xs sm:text-sm text-muted">
                 <input
                   type="checkbox"
                   checked={includeCompleted}
@@ -673,13 +673,13 @@ function WorkerTasks() {
                     return (
                     <div
                       key={task.id}
-                      className={`bg-gray-800 rounded-lg overflow-hidden ${
+                      className={`bg-surface rounded-lg overflow-hidden ${
                         task.is_completed ? 'opacity-60' : task.is_blocked ? 'border-l-4 border-orange-500' : ''
                       }`}
                     >
                       {/* Task Header */}
                       <div
-                        className="p-4 cursor-pointer hover:bg-gray-700/50"
+                        className="p-4 cursor-pointer hover:bg-surface-soft/50"
                         onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
                       >
                         <div className="flex items-center justify-between">
@@ -690,7 +690,7 @@ function WorkerTasks() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleMoveTask(task.id, 'up', false); }}
                                   disabled={taskIdxInList <= 0}
-                                  className="p-0.5 text-gray-500 hover:text-white disabled:opacity-20"
+                                  className="p-0.5 text-muted hover:text-white disabled:opacity-20"
                                   title="Move up"
                                 >
                                   <ArrowUp className="w-3.5 h-3.5" />
@@ -698,7 +698,7 @@ function WorkerTasks() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleMoveTask(task.id, 'down', false); }}
                                   disabled={taskIdxInList >= activeIncomplete.length - 1 || taskIdxInList === -1}
-                                  className="p-0.5 text-gray-500 hover:text-white disabled:opacity-20"
+                                  className="p-0.5 text-muted hover:text-white disabled:opacity-20"
                                   title="Move down"
                                 >
                                   <ArrowDown className="w-3.5 h-3.5" />
@@ -718,7 +718,7 @@ function WorkerTasks() {
                               <button
                                 onClick={(e) => handleQuickComplete(task.id, e)}
                                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors hover:border-green-400 hover:bg-green-500/10 ${
-                                  task.is_in_progress ? 'border-blue-400' : 'border-gray-500'
+                                  task.is_in_progress ? 'border-blue-400' : 'border-strong'
                                 }`}
                                 title="Complete task"
                               >
@@ -727,7 +727,7 @@ function WorkerTasks() {
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className={task.is_completed ? 'line-through text-gray-400' : ''}>
+                                <span className={task.is_completed ? 'line-through text-muted' : ''}>
                                   {task.title}
                                 </span>
                                 {task.is_in_progress && (
@@ -747,15 +747,15 @@ function WorkerTasks() {
                           </div>
                           <div className="flex items-center gap-3">
                             {task.due_date && (
-                              <span className="text-sm text-gray-400">
+                              <span className="text-sm text-muted">
                                 {format(new Date(task.due_date), 'MM/dd/yyyy')}
                                 {task.due_time && ` ${formatTime(task.due_time)}`}
                               </span>
                             )}
                             {expandedTask === task.id ? (
-                              <ChevronUp className="w-5 h-5 text-gray-400" />
+                              <ChevronUp className="w-5 h-5 text-muted" />
                             ) : (
-                              <ChevronDown className="w-5 h-5 text-gray-400" />
+                              <ChevronDown className="w-5 h-5 text-muted" />
                             )}
                           </div>
                         </div>
@@ -763,9 +763,9 @@ function WorkerTasks() {
 
                       {/* Task Details */}
                       {expandedTask === task.id && (
-                        <div className="border-t border-gray-700 p-4 space-y-3">
+                        <div className="border-t border-subtle p-4 space-y-3">
                           {task.description && (
-                            <p className="text-gray-300 text-sm">{task.description}</p>
+                            <p className="text-secondary text-sm">{task.description}</p>
                           )}
 
                           <div className="flex flex-wrap gap-4 text-sm">
@@ -773,7 +773,7 @@ function WorkerTasks() {
                               {getPriorityLabel(task.priority).label} Priority
                             </span>
                             {task.category && (
-                              <span className="text-gray-400">Category: {task.category}</span>
+                              <span className="text-muted">Category: {task.category}</span>
                             )}
                           </div>
 
@@ -783,7 +783,7 @@ function WorkerTasks() {
                                 <AlertCircle className="w-4 h-4" />
                                 <span className="font-medium">Blocked</span>
                               </div>
-                              <p className="text-sm text-gray-300">{task.blocked_reason}</p>
+                              <p className="text-sm text-secondary">{task.blocked_reason}</p>
                             </div>
                           )}
 
@@ -793,7 +793,7 @@ function WorkerTasks() {
                                 <Check className="w-4 h-4" />
                                 <span className="font-medium">Completion Note</span>
                               </div>
-                              <p className="text-sm text-gray-300">{task.completion_note}</p>
+                              <p className="text-sm text-secondary">{task.completion_note}</p>
                             </div>
                           )}
 
@@ -803,7 +803,7 @@ function WorkerTasks() {
                                 <StickyNote className="w-4 h-4" />
                                 <span className="font-medium">Worker Note</span>
                               </div>
-                              <p className="text-sm text-gray-300">{task.worker_note}</p>
+                              <p className="text-sm text-secondary">{task.worker_note}</p>
                             </div>
                           )}
 
@@ -830,7 +830,7 @@ function WorkerTasks() {
                                   ) : (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleRevertTask(task.id); }}
-                                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                                      className="flex items-center gap-2 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                                     >
                                       <RotateCcw className="w-4 h-4" />
                                       {t('task.revert')}
@@ -854,7 +854,7 @@ function WorkerTasks() {
                               )}
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleToggleBacklog(task.id); }}
-                                className="flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                                className="flex items-center gap-2 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                                 title="Move to backlog"
                               >
                                 <Archive className="w-4 h-4" />
@@ -870,7 +870,7 @@ function WorkerTasks() {
                               </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleUnassignTask(task.id); }}
-                                className="flex items-center gap-2 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                                className="flex items-center gap-2 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                                 title={t('task.unassign')}
                               >
                                 <Unlink className="w-4 h-4" />
@@ -911,7 +911,7 @@ function WorkerTasks() {
                       )}
                     </div>
                   )}) : (
-                    <div className="text-center py-6 text-gray-500 text-sm">
+                    <div className="text-center py-6 text-muted text-sm">
                       No active tasks
                     </div>
                   )}
@@ -922,26 +922,26 @@ function WorkerTasks() {
                   <div className="mt-4">
                     <button
                       onClick={() => setShowBacklog(!showBacklog)}
-                      className="flex items-center gap-2 text-gray-400 hover:text-white mb-2"
+                      className="flex items-center gap-2 text-muted hover:text-white mb-2"
                     >
                       <Archive className="w-4 h-4" />
                       <span className="font-medium">Backlog ({backlogTasks.filter(t => !t.is_completed).length})</span>
                       {showBacklog ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                     {showBacklog && (
-                      <div className="space-y-2 border-l-2 border-gray-700 pl-3">
+                      <div className="space-y-2 border-l-2 border-subtle pl-3">
                         {backlogTasks.map((task, idx) => {
                           const backlogIncomplete = backlogTasks.filter(t => !t.is_completed)
                           const taskIdxInList = backlogIncomplete.findIndex(t => t.id === task.id)
                           return (
                           <div
                             key={task.id}
-                            className={`bg-gray-800/60 rounded-lg overflow-hidden ${
+                            className={`bg-surface/60 rounded-lg overflow-hidden ${
                               task.is_completed ? 'opacity-60' : task.is_blocked ? 'border-l-4 border-orange-500' : ''
                             }`}
                           >
                             <div
-                              className="p-3 cursor-pointer hover:bg-gray-700/50"
+                              className="p-3 cursor-pointer hover:bg-surface-soft/50"
                               onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
                             >
                               <div className="flex items-center justify-between">
@@ -952,7 +952,7 @@ function WorkerTasks() {
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleMoveTask(task.id, 'up', true); }}
                                         disabled={taskIdxInList <= 0}
-                                        className="p-0.5 text-gray-500 hover:text-white disabled:opacity-20"
+                                        className="p-0.5 text-muted hover:text-white disabled:opacity-20"
                                         title="Move up"
                                       >
                                         <ArrowUp className="w-3.5 h-3.5" />
@@ -960,7 +960,7 @@ function WorkerTasks() {
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleMoveTask(task.id, 'down', true); }}
                                         disabled={taskIdxInList >= backlogIncomplete.length - 1 || taskIdxInList === -1}
-                                        className="p-0.5 text-gray-500 hover:text-white disabled:opacity-20"
+                                        className="p-0.5 text-muted hover:text-white disabled:opacity-20"
                                         title="Move down"
                                       >
                                         <ArrowDown className="w-3.5 h-3.5" />
@@ -974,11 +974,11 @@ function WorkerTasks() {
                                   ) : (
                                     <button
                                       onClick={(e) => handleQuickComplete(task.id, e)}
-                                      className="w-5 h-5 rounded-full border-2 border-gray-500 flex items-center justify-center transition-colors hover:border-green-400"
+                                      className="w-5 h-5 rounded-full border-2 border-strong flex items-center justify-center transition-colors hover:border-green-400"
                                       title="Complete task"
                                     />
                                   )}
-                                  <span className={`text-sm ${task.is_completed ? 'line-through text-gray-400' : ''}`}>
+                                  <span className={`text-sm ${task.is_completed ? 'line-through text-muted' : ''}`}>
                                     {task.title}
                                   </span>
                                 </div>
@@ -986,24 +986,24 @@ function WorkerTasks() {
                                   {!task.is_completed && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleToggleBacklog(task.id); }}
-                                      className="p-1 text-gray-500 hover:text-blue-400"
+                                      className="p-1 text-muted hover:text-blue-400"
                                       title="Move to active"
                                     >
                                       <Inbox className="w-4 h-4" />
                                     </button>
                                   )}
                                   {expandedTask === task.id ? (
-                                    <ChevronUp className="w-4 h-4 text-gray-400" />
+                                    <ChevronUp className="w-4 h-4 text-muted" />
                                   ) : (
-                                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                                    <ChevronDown className="w-4 h-4 text-muted" />
                                   )}
                                 </div>
                               </div>
                             </div>
                             {expandedTask === task.id && (
-                              <div className="border-t border-gray-700 p-3 space-y-2">
+                              <div className="border-t border-subtle p-3 space-y-2">
                                 {task.description && (
-                                  <p className="text-gray-300 text-sm">{task.description}</p>
+                                  <p className="text-secondary text-sm">{task.description}</p>
                                 )}
                                 <div className="flex flex-wrap gap-2">
                                   {!task.is_completed && (
@@ -1017,14 +1017,14 @@ function WorkerTasks() {
                                       </button>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
-                                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded hover:bg-gray-500"
+                                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-surface-hover rounded hover:bg-surface-muted"
                                       >
                                         <Edit className="w-3.5 h-3.5" />
                                         Edit
                                       </button>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleUnassignTask(task.id); }}
-                                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded hover:bg-gray-500"
+                                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-surface-hover rounded hover:bg-surface-muted"
                                       >
                                         <Unlink className="w-3.5 h-3.5" />
                                         Unassign
@@ -1054,7 +1054,7 @@ function WorkerTasks() {
             })()}
             </>
           ) : (
-            <div className="text-center py-12 text-gray-400 bg-gray-800 rounded-lg">
+            <div className="text-center py-12 text-muted bg-surface rounded-lg">
               <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>{t('noTasks')} {selectedWorker.name}</p>
               <button
@@ -1074,7 +1074,7 @@ function WorkerTasks() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <h3 className="text-lg font-semibold">{t('supply.requestsFrom')} {selectedWorker.name}</h3>
-              <label className="flex items-center gap-2 text-sm text-gray-400">
+              <label className="flex items-center gap-2 text-sm text-muted">
                 <input
                   type="checkbox"
                   checked={includeCompleted}
@@ -1098,17 +1098,17 @@ function WorkerTasks() {
               {supplyRequests.map(request => (
                 <div
                   key={request.id}
-                  className={`bg-gray-800 rounded-lg p-4 ${
+                  className={`bg-surface rounded-lg p-4 ${
                     request.status === 'delivered' || request.status === 'denied' ? 'opacity-60' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Package className="w-5 h-5 text-gray-400" />
+                      <Package className="w-5 h-5 text-muted" />
                       <div>
                         <span className="font-medium">{request.item_name}</span>
                         {request.quantity > 1 && (
-                          <span className="ml-2 text-gray-400">x{request.quantity}</span>
+                          <span className="ml-2 text-muted">x{request.quantity}</span>
                         )}
                       </div>
                     </div>
@@ -1119,15 +1119,15 @@ function WorkerTasks() {
                     </div>
                   </div>
                   {request.notes && (
-                    <p className="mt-2 text-sm text-gray-400 pl-8">{request.notes}</p>
+                    <p className="mt-2 text-sm text-muted pl-8">{request.notes}</p>
                   )}
                   {request.admin_notes && (
                     <div className="mt-2 pl-8 text-sm">
                       <span className="text-blue-400">Note: </span>
-                      <span className="text-gray-300">{request.admin_notes}</span>
+                      <span className="text-secondary">{request.admin_notes}</span>
                     </div>
                   )}
-                  <div className="mt-2 pl-8 text-xs text-gray-500">
+                  <div className="mt-2 pl-8 text-xs text-muted">
                     {t('supply.requested')} {format(new Date(request.created_at), 'MM/dd/yyyy')}
                   </div>
                   {/* Action buttons based on status */}
@@ -1161,7 +1161,7 @@ function WorkerTasks() {
                         </button>
                         <button
                           onClick={() => handleUpdateSupplyStatus(request.id, 'pending')}
-                          className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded-lg hover:bg-gray-500"
+                          className="flex items-center gap-1 px-3 py-1.5 text-sm bg-surface-hover rounded-lg hover:bg-surface-muted"
                         >
                           <RotateCcw className="w-3 h-3" />
                           {t('supply.backToPending')}
@@ -1179,7 +1179,7 @@ function WorkerTasks() {
                         </button>
                         <button
                           onClick={() => handleUpdateSupplyStatus(request.id, 'approved')}
-                          className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded-lg hover:bg-gray-500"
+                          className="flex items-center gap-1 px-3 py-1.5 text-sm bg-surface-hover rounded-lg hover:bg-surface-muted"
                         >
                           <RotateCcw className="w-3 h-3" />
                           {t('supply.backToApproved')}
@@ -1189,7 +1189,7 @@ function WorkerTasks() {
                     {request.status === 'delivered' && (
                       <button
                         onClick={() => handleUpdateSupplyStatus(request.id, 'purchased')}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded-lg hover:bg-gray-500"
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-surface-hover rounded-lg hover:bg-surface-muted"
                       >
                         <RotateCcw className="w-3 h-3" />
                         {t('supply.backToPurchased')}
@@ -1198,7 +1198,7 @@ function WorkerTasks() {
                     {request.status === 'denied' && (
                       <button
                         onClick={() => handleUpdateSupplyStatus(request.id, 'pending')}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded-lg hover:bg-gray-500"
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-surface-hover rounded-lg hover:bg-surface-muted"
                       >
                         <RotateCcw className="w-3 h-3" />
                         {t('supply.reopen')}
@@ -1207,14 +1207,14 @@ function WorkerTasks() {
                     {/* Edit and delete - available for all statuses */}
                     <button
                       onClick={() => startEditSupplyRequest(request)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded-lg hover:bg-gray-500"
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-surface-hover rounded-lg hover:bg-surface-muted"
                     >
                       <Edit className="w-3 h-3" />
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeleteSupplyRequest(request.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-600 rounded-lg hover:bg-gray-500 text-red-400"
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm bg-surface-hover rounded-lg hover:bg-surface-muted text-red-400"
                     >
                       <Trash2 className="w-3 h-3" />
                       Delete
@@ -1224,7 +1224,7 @@ function WorkerTasks() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-400 bg-gray-800 rounded-lg">
+            <div className="text-center py-12 text-muted bg-surface rounded-lg">
               <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>{t('supply.noRequests')} {selectedWorker.name}</p>
               <button
@@ -1250,7 +1250,7 @@ function WorkerTasks() {
           </button>
         </div>
       ) : (
-        <div className="text-center py-12 text-gray-400 bg-gray-800 rounded-lg">
+        <div className="text-center py-12 text-muted bg-surface rounded-lg">
           <p>{t('selectWorker')}</p>
         </div>
       )}
@@ -1258,80 +1258,80 @@ function WorkerTasks() {
       {/* Add/Edit Worker Modal */}
       {showAddWorker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingWorker ? t('worker.editWorker') : t('worker.addWorker')}
             </h2>
             <form onSubmit={handleAddWorker} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('worker.name')}</label>
+                <label className="block text-sm text-muted mb-1">{t('worker.name')}</label>
                 <input
                   type="text"
                   value={workerFormData.name}
                   onChange={(e) => setWorkerFormData({ ...workerFormData, name: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder={t('worker.namePlaceholder')}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('worker.role')}</label>
+                <label className="block text-sm text-muted mb-1">{t('worker.role')}</label>
                 <input
                   type="text"
                   value={workerFormData.role}
                   onChange={(e) => setWorkerFormData({ ...workerFormData, role: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder={t('worker.rolePlaceholder')}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">{t('worker.phone')}</label>
+                  <label className="block text-sm text-muted mb-1">{t('worker.phone')}</label>
                   <input
                     type="tel"
                     value={workerFormData.phone}
                     onChange={(e) => setWorkerFormData({ ...workerFormData, phone: formatPhoneNumber(e.target.value) })}
                     placeholder="(000)000-0000"
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">{t('worker.email')}</label>
+                  <label className="block text-sm text-muted mb-1">{t('worker.email')}</label>
                   <input
                     type="email"
                     value={workerFormData.email}
                     onChange={(e) => setWorkerFormData({ ...workerFormData, email: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('worker.notes')}</label>
+                <label className="block text-sm text-muted mb-1">{t('worker.notes')}</label>
                 <textarea
                   value={workerFormData.notes}
                   onChange={(e) => setWorkerFormData({ ...workerFormData, notes: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   rows={2}
                   placeholder={t('worker.notesPlaceholder')}
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('worker.language')}</label>
+                <label className="block text-sm text-muted mb-1">{t('worker.language')}</label>
                 <select
                   value={workerFormData.language}
                   onChange={(e) => setWorkerFormData({ ...workerFormData, language: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 >
                   <option value="en">English</option>
                   <option value="es">Español (Spanish)</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">{t('worker.languageHint')}</p>
+                <p className="text-xs text-muted mt-1">{t('worker.languageHint')}</p>
               </div>
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => { setShowAddWorker(false); setEditingWorker(null); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   {t('modal.cancel')}
                 </button>
@@ -1362,16 +1362,16 @@ function WorkerTasks() {
       {/* Complete Task Modal */}
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-surface rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">{t('modal.completeTask')}</h2>
-            <p className="text-gray-300 mb-4">{completeModal.title}</p>
+            <p className="text-secondary mb-4">{completeModal.title}</p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('modal.completionNoteOptional')}</label>
+                <label className="block text-sm text-muted mb-1">{t('modal.completionNoteOptional')}</label>
                 <textarea
                   value={completeNote}
                   onChange={(e) => setCompleteNote(e.target.value)}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   rows={2}
                   placeholder={t('modal.completionNotePlaceholder')}
                 />
@@ -1379,7 +1379,7 @@ function WorkerTasks() {
               <div className="flex gap-3">
                 <button
                   onClick={() => { setCompleteModal(null); setCompleteNote(''); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   {t('modal.cancel')}
                 </button>
@@ -1398,19 +1398,19 @@ function WorkerTasks() {
       {/* Block Task Modal */}
       {blockModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-surface rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <AlertCircle className="w-6 h-6 text-orange-400" />
               {t('modal.cannotCompleteTask')}
             </h2>
-            <p className="text-gray-300 mb-4">{blockModal.title}</p>
+            <p className="text-secondary mb-4">{blockModal.title}</p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('modal.reasonRequired')}</label>
+                <label className="block text-sm text-muted mb-1">{t('modal.reasonRequired')}</label>
                 <textarea
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   rows={3}
                   placeholder={t('modal.reasonPlaceholder')}
                   required
@@ -1419,7 +1419,7 @@ function WorkerTasks() {
               <div className="flex gap-3">
                 <button
                   onClick={() => { setBlockModal(null); setBlockReason(''); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   {t('modal.cancel')}
                 </button>
@@ -1439,19 +1439,19 @@ function WorkerTasks() {
       {/* Assign Existing Task Modal */}
       {showAssignModal && selectedWorker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg max-h-[80vh] flex flex-col">
+          <div className="bg-surface rounded-lg p-6 w-full max-w-lg max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">
                 Assign Task to {selectedWorker.name}
               </h2>
               <button
                 onClick={() => setShowAssignModal(false)}
-                className="p-1 text-gray-400 hover:text-white"
+                className="p-1 text-muted hover:text-white"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-muted mb-4">
               Select an existing task to assign to this worker. Assigned tasks will only appear here and won't show on the dashboard or calendar.
             </p>
             <div className="flex-1 overflow-y-auto">
@@ -1464,13 +1464,13 @@ function WorkerTasks() {
                   {assignableTasks.map(task => (
                     <div
                       key={task.id}
-                      className="flex items-center justify-between bg-gray-700 rounded-lg p-3 hover:bg-gray-600"
+                      className="flex items-center justify-between bg-surface-soft rounded-lg p-3 hover:bg-surface-hover"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{task.title}</div>
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <div className="flex items-center gap-2 text-sm text-muted">
                           {task.due_date && <span>{new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>}
-                          {task.category && <span className="px-2 py-0.5 bg-gray-600 rounded text-xs">{task.category}</span>}
+                          {task.category && <span className="px-2 py-0.5 bg-surface-hover rounded text-xs">{task.category}</span>}
                           {task.task_type && <span className="px-2 py-0.5 bg-blue-600/30 rounded text-xs">{task.task_type}</span>}
                         </div>
                       </div>
@@ -1485,17 +1485,17 @@ function WorkerTasks() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-muted">
                   <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No unassigned tasks available</p>
                   <p className="text-sm mt-2">Create a new task or unassign one from another worker</p>
                 </div>
               )}
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-700">
+            <div className="mt-4 pt-4 border-t border-subtle">
               <button
                 onClick={() => setShowAssignModal(false)}
-                className="w-full px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                className="w-full px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
               >
                 Close
               </button>
@@ -1507,39 +1507,39 @@ function WorkerTasks() {
       {/* Supply Request Modal (Create or Edit) */}
       {showSupplyModal && selectedWorker && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-surface rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <ShoppingCart className="w-6 h-6 text-farm-green" />
               {editingSupplyRequest ? t('supply.editRequest') : t('supply.requestSupply')}
             </h2>
             <form onSubmit={editingSupplyRequest ? handleEditSupplyRequest : handleAddSupplyRequest} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('supply.itemNeeded')}</label>
+                <label className="block text-sm text-muted mb-1">{t('supply.itemNeeded')}</label>
                 <input
                   type="text"
                   value={supplyFormData.item_name}
                   onChange={(e) => setSupplyFormData({ ...supplyFormData, item_name: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder={t('supply.itemPlaceholder')}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('supply.quantity')}</label>
+                <label className="block text-sm text-muted mb-1">{t('supply.quantity')}</label>
                 <input
                   type="number"
                   min="1"
                   value={supplyFormData.quantity}
                   onChange={(e) => setSupplyFormData({ ...supplyFormData, quantity: parseInt(e.target.value) || 1 })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">{t('supply.notesOptional')}</label>
+                <label className="block text-sm text-muted mb-1">{t('supply.notesOptional')}</label>
                 <textarea
                   value={supplyFormData.notes}
                   onChange={(e) => setSupplyFormData({ ...supplyFormData, notes: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   rows={2}
                   placeholder={t('supply.notesPlaceholder')}
                 />
@@ -1548,7 +1548,7 @@ function WorkerTasks() {
                 <button
                   type="button"
                   onClick={() => { setShowSupplyModal(false); setEditingSupplyRequest(null); setSupplyFormData({ item_name: '', quantity: 1, notes: '' }); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   {t('modal.cancel')}
                 </button>
@@ -1567,19 +1567,19 @@ function WorkerTasks() {
       {/* Worker Note Modal */}
       {noteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+          <div className="bg-surface rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <StickyNote className="w-6 h-6 text-purple-400" />
               {noteModal.worker_note ? 'Edit Note' : 'Add Note'}
             </h2>
-            <p className="text-gray-300 mb-4">{noteModal.title}</p>
+            <p className="text-secondary mb-4">{noteModal.title}</p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Your Note</label>
+                <label className="block text-sm text-muted mb-1">Your Note</label>
                 <textarea
                   value={workerNoteText}
                   onChange={(e) => setWorkerNoteText(e.target.value)}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   rows={4}
                   placeholder="e.g., Started cleaning, waiting for supplies, needs follow-up..."
                 />
@@ -1587,7 +1587,7 @@ function WorkerTasks() {
               <div className="flex gap-3">
                 <button
                   onClick={() => { setNoteModal(null); setWorkerNoteText(''); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   Cancel
                 </button>

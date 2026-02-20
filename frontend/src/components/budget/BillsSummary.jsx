@@ -209,7 +209,7 @@ function BillsSummary() {
   }
 
   if (loading && !summary) {
-    return <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
+    return <div className="animate-pulse bg-surface rounded-xl h-64" />
   }
 
   const totalMoneyIn = summary?.expected_income || 0
@@ -253,13 +253,13 @@ function BillsSummary() {
       {/* Month Navigation */}
       <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         <div className="flex items-center justify-between">
-          <button onClick={goToPrevMonth} className="p-1 rounded hover:bg-gray-700">
+          <button onClick={goToPrevMonth} className="p-1 rounded hover:bg-surface-soft">
             <ChevronLeft className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
           </button>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             Bills - {monthNames[currentMonth - 1]} {currentYear}
           </h3>
-          <button onClick={goToNextMonth} className="p-1 rounded hover:bg-gray-700">
+          <button onClick={goToNextMonth} className="p-1 rounded hover:bg-surface-soft">
             <ChevronRight className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
           </button>
         </div>
@@ -300,10 +300,10 @@ function BillsSummary() {
                 <div className="flex items-center gap-2">
                   <span className="font-semibold" style={{ color: 'var(--color-success-500)' }}>{fmt(monthlyAmt)}</span>
                   <div className="flex gap-1">
-                    <button onClick={() => setEditModal({ item: inc, type: 'income' })} className="p-1.5 text-gray-500 hover:text-blue-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Edit">
+                    <button onClick={() => setEditModal({ item: inc, type: 'income' })} className="p-1.5 text-muted hover:text-blue-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Edit">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => deleteIncomeItem(inc.id)} className="p-1.5 text-gray-500 hover:text-red-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Delete">
+                    <button onClick={() => deleteIncomeItem(inc.id)} className="p-1.5 text-muted hover:text-red-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Delete">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -324,10 +324,10 @@ function BillsSummary() {
                 {getAcctName(inc.account_id)}
               </span>
               <span className="hidden md:flex justify-center gap-1">
-                <button onClick={() => setEditModal({ item: inc, type: 'income' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
+                <button onClick={() => setEditModal({ item: inc, type: 'income' })} className="p-0.5 text-muted hover:text-blue-400" title="Edit">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => deleteIncomeItem(inc.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
+                <button onClick={() => deleteIncomeItem(inc.id)} className="p-0.5 text-muted hover:text-red-400" title="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </span>
@@ -338,23 +338,23 @@ function BillsSummary() {
           <div className="text-sm py-2 px-3 space-y-1.5" style={{ borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'rgba(34, 197, 94, 0.05)' }}>
             <div className="flex items-center gap-1.5">
               <input type="number" placeholder="Day" min="1" max="31" value={newDay} onChange={(e) => setNewDay(e.target.value)}
-                className="w-12 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} autoFocus />
+                className="w-12 px-1 py-0.5 bg-surface border border rounded text-sm" style={{ color: 'var(--color-text-primary)' }} autoFocus />
               <input type="text" placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)}
-                className="flex-1 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}
+                className="flex-1 px-1 py-0.5 bg-surface border border rounded text-sm" style={{ color: 'var(--color-text-primary)' }}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveNewIncome() }} />
               <input type="number" step="0.01" placeholder="Amount" value={newAmount} onChange={(e) => setNewAmount(e.target.value)}
-                className="w-20 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm text-right" style={{ color: 'var(--color-text-primary)' }}
+                className="w-20 px-1 py-0.5 bg-surface border border rounded text-sm text-right" style={{ color: 'var(--color-text-primary)' }}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveNewIncome() }} />
             </div>
             <div className="flex items-center gap-1.5">
               <select value={newAccountId} onChange={(e) => setNewAccountId(e.target.value)}
-                className="px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+                className="px-1 py-0.5 bg-surface border border rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
                 <option value="">Account...</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
               <span className="flex-1" />
               <button onClick={saveNewIncome} className="p-0.5 text-green-400"><Check className="w-3.5 h-3.5" /></button>
-              <button onClick={() => setAddingIncome(false)} className="p-0.5 text-gray-400"><X className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setAddingIncome(false)} className="p-0.5 text-muted"><X className="w-3.5 h-3.5" /></button>
             </div>
           </div>
         )}
@@ -394,10 +394,10 @@ function BillsSummary() {
                 <div className="flex items-center gap-2">
                   <span className="font-semibold" style={{ color: 'var(--color-error-500)' }}>-{fmt(amt)}</span>
                   <div className="flex gap-1">
-                    <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-1.5 text-gray-500 hover:text-blue-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Edit">
+                    <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-1.5 text-muted hover:text-blue-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Edit">
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button onClick={() => deleteCatItem(cat.id)} className="p-1.5 text-gray-500 hover:text-red-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Delete">
+                    <button onClick={() => deleteCatItem(cat.id)} className="p-1.5 text-muted hover:text-red-400 min-h-[36px] min-w-[36px] flex items-center justify-center" title="Delete">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -428,10 +428,10 @@ function BillsSummary() {
                 )}
               </span>
               <span className="hidden md:flex justify-center gap-1">
-                <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
+                <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-muted hover:text-blue-400" title="Edit">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
+                <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-muted hover:text-red-400" title="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </span>
@@ -442,33 +442,33 @@ function BillsSummary() {
           <div className="text-sm py-2 px-3 space-y-1.5" style={{ borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'rgba(239, 68, 68, 0.05)' }}>
             <div className="flex items-center gap-1.5">
               <input type="number" placeholder="Day" min="1" max="31" value={newDay} onChange={(e) => setNewDay(e.target.value)}
-                className="w-12 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} autoFocus />
+                className="w-12 px-1 py-0.5 bg-surface border border rounded text-sm" style={{ color: 'var(--color-text-primary)' }} autoFocus />
               <input type="text" placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)}
-                className="flex-1 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}
+                className="flex-1 px-1 py-0.5 bg-surface border border rounded text-sm" style={{ color: 'var(--color-text-primary)' }}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveNewBill() }} />
               <input type="number" step="0.01" placeholder="Monthly amt" value={newAmount} onChange={(e) => setNewAmount(e.target.value)}
-                className="w-24 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm text-right" style={{ color: 'var(--color-text-primary)' }}
+                className="w-24 px-1 py-0.5 bg-surface border border rounded text-sm text-right" style={{ color: 'var(--color-text-primary)' }}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveNewBill() }} />
             </div>
             <div className="flex items-center gap-1.5 flex-wrap">
               <select value={newAccountId} onChange={(e) => setNewAccountId(e.target.value)}
-                className="px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+                className="px-1 py-0.5 bg-surface border border rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
                 <option value="">Account...</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
               <select value={newBillingMonths} onChange={(e) => setNewBillingMonths(e.target.value)}
-                className="px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+                className="px-1 py-0.5 bg-surface border border rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
                 <option value="">Every month</option>
                 <option value="1,4,7,10">Quarterly</option>
                 <option value="4,5,6,7,8,9,10">Apr-Oct</option>
                 <option value="1,7">Twice/year</option>
               </select>
               <input type="month" placeholder="End date" value={newEndDate} onChange={(e) => setNewEndDate(e.target.value)}
-                className="px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}
+                className="px-1 py-0.5 bg-surface border border rounded text-xs" style={{ color: 'var(--color-text-primary)' }}
                 title="End date (for payment plans)" />
               <span className="flex-1" />
               <button onClick={saveNewBill} className="p-0.5 text-green-400"><Check className="w-3.5 h-3.5" /></button>
-              <button onClick={() => setAddingBill(false)} className="p-0.5 text-gray-400"><X className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setAddingBill(false)} className="p-0.5 text-muted"><X className="w-3.5 h-3.5" /></button>
             </div>
           </div>
         )}
@@ -504,10 +504,10 @@ function BillsSummary() {
                 {getAcctName(cat.account_id) || '—'}
               </span>
               <span className="flex justify-center gap-1">
-                <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
+                <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-muted hover:text-blue-400" title="Edit">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
+                <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-muted hover:text-red-400" title="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </span>
@@ -516,18 +516,18 @@ function BillsSummary() {
           {addingSpending && (
             <div className="flex items-center gap-1.5 text-sm py-2 px-3" style={{ borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'rgba(245, 158, 11, 0.05)' }}>
               <input type="text" placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)}
-                className="flex-1 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} autoFocus
+                className="flex-1 px-1 py-0.5 bg-surface border border rounded text-sm" style={{ color: 'var(--color-text-primary)' }} autoFocus
                 onKeyDown={(e) => { if (e.key === 'Enter') saveNewSpending() }} />
               <input type="number" step="0.01" placeholder="Per period" value={newAmount} onChange={(e) => setNewAmount(e.target.value)}
-                className="w-24 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm text-right" style={{ color: 'var(--color-text-primary)' }}
+                className="w-24 px-1 py-0.5 bg-surface border border rounded text-sm text-right" style={{ color: 'var(--color-text-primary)' }}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveNewSpending() }} />
               <select value={newAccountId} onChange={(e) => setNewAccountId(e.target.value)}
-                className="px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+                className="px-1 py-0.5 bg-surface border border rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
                 <option value="">Account...</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
               <button onClick={saveNewSpending} className="p-0.5 text-green-400"><Check className="w-3.5 h-3.5" /></button>
-              <button onClick={() => setAddingSpending(false)} className="p-0.5 text-gray-400"><X className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setAddingSpending(false)} className="p-0.5 text-muted"><X className="w-3.5 h-3.5" /></button>
             </div>
           )}
           <div className="grid grid-cols-[1fr_90px_80px_52px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>
@@ -562,10 +562,10 @@ function BillsSummary() {
                 {getAcctName(cat.account_id) || '—'}
               </span>
               <span className="flex justify-center gap-1">
-                <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-gray-500 hover:text-blue-400" title="Edit">
+                <button onClick={() => setEditModal({ item: cat, type: 'category' })} className="p-0.5 text-muted hover:text-blue-400" title="Edit">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-gray-500 hover:text-red-400" title="Delete">
+                <button onClick={() => deleteCatItem(cat.id)} className="p-0.5 text-muted hover:text-red-400" title="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </span>
@@ -574,18 +574,18 @@ function BillsSummary() {
           {addingTransfer && (
             <div className="flex items-center gap-1.5 text-sm py-2 px-3" style={{ borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'rgba(59, 130, 246, 0.05)' }}>
               <input type="text" placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)}
-                className="flex-1 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} autoFocus
+                className="flex-1 px-1 py-0.5 bg-surface border border rounded text-sm" style={{ color: 'var(--color-text-primary)' }} autoFocus
                 onKeyDown={(e) => { if (e.key === 'Enter') saveNewTransfer() }} />
               <input type="number" step="0.01" placeholder="Per period" value={newAmount} onChange={(e) => setNewAmount(e.target.value)}
-                className="w-24 px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-sm text-right" style={{ color: 'var(--color-text-primary)' }}
+                className="w-24 px-1 py-0.5 bg-surface border border rounded text-sm text-right" style={{ color: 'var(--color-text-primary)' }}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveNewTransfer() }} />
               <select value={newAccountId} onChange={(e) => setNewAccountId(e.target.value)}
-                className="px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+                className="px-1 py-0.5 bg-surface border border rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
                 <option value="">Destination...</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
               <button onClick={saveNewTransfer} className="p-0.5 text-green-400"><Check className="w-3.5 h-3.5" /></button>
-              <button onClick={() => setAddingTransfer(false)} className="p-0.5 text-gray-400"><X className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setAddingTransfer(false)} className="p-0.5 text-muted"><X className="w-3.5 h-3.5" /></button>
             </div>
           )}
           <div className="grid grid-cols-[1fr_90px_80px_52px] text-xs font-bold py-1.5 px-3" style={{ borderTop: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-surface-soft)' }}>

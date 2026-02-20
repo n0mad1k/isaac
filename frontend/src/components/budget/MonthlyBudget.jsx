@@ -260,8 +260,8 @@ function MonthlyBudget() {
   if (loading && categories.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="animate-pulse bg-gray-800 rounded-xl h-16" />
-        <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
+        <div className="animate-pulse bg-surface rounded-xl h-16" />
+        <div className="animate-pulse bg-surface rounded-xl h-64" />
       </div>
     )
   }
@@ -342,12 +342,12 @@ function MonthlyBudget() {
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit() }}
-            className="w-full px-1 py-0.5 bg-gray-800 border border-gray-600 rounded text-xs"
+            className="w-full px-1 py-0.5 bg-surface border border rounded text-xs"
             style={{ color: 'var(--color-text-primary)', textAlign: field === 'name' ? 'left' : 'right' }}
             autoFocus
           />
           <button onClick={saveEdit} className="p-0.5 text-green-400 flex-shrink-0"><Check className="w-3 h-3" /></button>
-          <button onClick={cancelEdit} className="p-0.5 text-gray-400 flex-shrink-0"><X className="w-3 h-3" /></button>
+          <button onClick={cancelEdit} className="p-0.5 text-muted flex-shrink-0"><X className="w-3 h-3" /></button>
         </span>
       )
     }
@@ -381,11 +381,11 @@ function MonthlyBudget() {
         <span className="text-right whitespace-nowrap overflow-hidden" style={{ color: amtColor }}>{displayAmt}</span>
         <span className="hidden sm:inline text-right truncate" style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>{accountName}</span>
         <span className="flex justify-end gap-0.5 flex-shrink-0">
-          <button onClick={openEdit} className="p-0.5 text-gray-600 hover:text-blue-400 flex-shrink-0" title="Edit">
+          <button onClick={openEdit} className="p-0.5 text-muted hover:text-blue-400 flex-shrink-0" title="Edit">
             <Pencil className="w-2.5 h-2.5" />
           </button>
           {canDelete ? (
-            <button onClick={() => deleteLine(type, id)} className="p-0.5 text-gray-600 hover:text-red-400 flex-shrink-0" title="Delete">
+            <button onClick={() => deleteLine(type, id)} className="p-0.5 text-muted hover:text-red-400 flex-shrink-0" title="Delete">
               <Trash2 className="w-2.5 h-2.5" />
             </button>
           ) : <span className="w-3.5" />}
@@ -411,7 +411,7 @@ function MonthlyBudget() {
       <div className="text-xs py-2 px-2 space-y-1.5" style={{ borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-success-bg)' }}>
         <div className="flex items-center gap-1.5 flex-wrap">
           <select value={type} onChange={(e) => setNewLine(f => ({ ...f, type: e.target.value }))}
-            className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+            className="px-1.5 py-1 bg-surface border border-subtle rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
             <option value="bill">Bill</option>
             <option value="income">Income</option>
             <option value="spending">Spending</option>
@@ -420,32 +420,32 @@ function MonthlyBudget() {
           </select>
           {isBillType && (
             <select value={newLine.bill_frequency || 'per_period'} onChange={(e) => setNewLine(f => ({ ...f, bill_frequency: e.target.value, bill_day: '' }))}
-              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+              className="px-1.5 py-1 bg-surface border border-subtle rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
               <option value="per_period">Each Half</option>
               <option value="monthly">Monthly</option>
             </select>
           )}
           {showDay && (
             <input type="number" placeholder="Day" min="1" max="31" value={newLine.bill_day} onChange={(e) => setNewLine(f => ({ ...f, bill_day: e.target.value }))}
-              className="w-12 px-1 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} title="Day of month (1-31)" />
+              className="w-12 px-1 py-1 bg-surface border border-subtle rounded text-xs" style={{ color: 'var(--color-text-primary)' }} title="Day of month (1-31)" />
           )}
           <input type="text" placeholder="Name" value={newLine.name} onChange={(e) => setNewLine(f => ({ ...f, name: e.target.value }))}
-            className="flex-1 min-w-0 px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }} autoFocus />
+            className="flex-1 min-w-0 px-1.5 py-1 bg-surface border border-subtle rounded text-xs" style={{ color: 'var(--color-text-primary)' }} autoFocus />
           <input type="number" step="0.01" placeholder={isPerPeriodBill ? 'Per half' : 'Amt'} value={newLine.amount} onChange={(e) => setNewLine(f => ({ ...f, amount: e.target.value }))}
-            className="w-20 px-1 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-right" style={{ color: 'var(--color-text-primary)' }}
+            className="w-20 px-1 py-1 bg-surface border border-subtle rounded text-xs text-right" style={{ color: 'var(--color-text-primary)' }}
             onKeyDown={(e) => { if (e.key === 'Enter') saveNewLine() }} />
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
           {showAccount && (
             <select value={newLine.account_id} onChange={(e) => setNewLine(f => ({ ...f, account_id: e.target.value }))}
-              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+              className="px-1.5 py-1 bg-surface border border-subtle rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
               <option value="">Account...</option>
               {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           )}
           {showFreq && (
             <select value={newLine.frequency} onChange={(e) => setNewLine(f => ({ ...f, frequency: e.target.value }))}
-              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+              className="px-1.5 py-1 bg-surface border border-subtle rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
               <option value="weekly">Weekly</option>
               <option value="biweekly">Bi-Weekly</option>
               <option value="semimonthly">Semi-Monthly</option>
@@ -454,12 +454,12 @@ function MonthlyBudget() {
           )}
           {showEndDate && (
             <input type="month" value={newLine.end_date} onChange={(e) => setNewLine(f => ({ ...f, end_date: e.target.value }))}
-              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}
+              className="px-1.5 py-1 bg-surface border border-subtle rounded text-xs" style={{ color: 'var(--color-text-primary)' }}
               title="End date (for payment plans)" />
           )}
           {showBillingMonths && (
             <select value={newLine.billing_months} onChange={(e) => setNewLine(f => ({ ...f, billing_months: e.target.value }))}
-              className="px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
+              className="px-1.5 py-1 bg-surface border border-subtle rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
               <option value="">Every month</option>
               <option value="1,2,3,4,5,6,7,8,9,10,11,12">Monthly</option>
               <option value="1,4,7,10">Quarterly</option>
@@ -470,7 +470,7 @@ function MonthlyBudget() {
           )}
           <span className="flex-1" />
           <button onClick={saveNewLine} disabled={saving} className="p-1 text-green-400"><Check className="w-3.5 h-3.5" /></button>
-          <button onClick={() => { setAddingTo(null); resetNewLine() }} className="p-1 text-gray-400"><X className="w-3.5 h-3.5" /></button>
+          <button onClick={() => { setAddingTo(null); resetNewLine() }} className="p-1 text-muted"><X className="w-3.5 h-3.5" /></button>
         </div>
         {newLine.billing_months === 'custom' && (
           <div className="flex items-center gap-1 flex-wrap">
@@ -485,7 +485,7 @@ function MonthlyBudget() {
                     const next = selected ? cur.filter(n => n !== monthNum) : [...cur, monthNum].sort((a, b) => a - b)
                     setNewLine(f => ({ ...f, _customMonths: next, billing_months: next.join(',') }))
                   }}
-                  className={`px-1.5 py-0.5 rounded text-xs ${selected ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400'}`}
+                  className={`px-1.5 py-0.5 rounded text-xs ${selected ? 'bg-blue-600 text-white' : 'bg-surface text-muted'}`}
                 >
                   {m}
                 </button>
@@ -648,7 +648,7 @@ function MonthlyBudget() {
         {addForm(`${sectionKey}-income`)}
         <div className="flex justify-end px-2 py-0.5">
           <button onClick={() => openAddForm(`${sectionKey}-income`, 'income')}
-            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Income
           </button>
         </div>
@@ -665,7 +665,7 @@ function MonthlyBudget() {
             {addForm(`${sectionKey}-dist`)}
             <div className="flex justify-end px-2 py-0.5">
               <button onClick={() => openAddForm(`${sectionKey}-dist`, 'transfer')}
-                className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+                className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
                 <Plus className="w-3 h-3" /> Add Transfer
               </button>
             </div>
@@ -683,7 +683,7 @@ function MonthlyBudget() {
             {addForm(`${sectionKey}-spending`)}
             <div className="flex justify-end px-2 py-0.5">
               <button onClick={() => openAddForm(`${sectionKey}-spending`, 'spending')}
-                className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+                className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
                 <Plus className="w-3 h-3" /> Add Spending
               </button>
             </div>
@@ -700,7 +700,7 @@ function MonthlyBudget() {
         {addForm(`${sectionKey}-bills`)}
         <div className="flex justify-end px-2 py-1">
           <button onClick={() => openAddForm(`${sectionKey}-bills`, 'bill')}
-            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Bill
           </button>
         </div>
@@ -755,7 +755,7 @@ function MonthlyBudget() {
         {firstDeposits.map(cat => lineRow('category', cat.id, cat.bill_day, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bFirst.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {/* Inline Half Summary */}
-        <div className="bg-gray-700/30 px-2 py-1.5 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--color-border-default)' }}>
+        <div className="bg-surface-soft/30 px-2 py-1.5 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-4">
             <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span className="font-semibold" style={{ color: 'var(--color-error-500)' }}>-{fmt(firstBillTotal)}</span></span>
             <span style={{ color: 'var(--color-text-muted)' }}>Total: <span className="font-semibold" style={{ color: firstHalfRemaining >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(firstHalfRemaining)}</span></span>
@@ -764,7 +764,7 @@ function MonthlyBudget() {
         {addForm(`${ownerKey}-first`)}
         <div className="flex justify-end px-2 py-0.5">
           <button onClick={() => openAddForm(`${ownerKey}-first`, 'bill')}
-            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
           </button>
         </div>
@@ -773,7 +773,7 @@ function MonthlyBudget() {
         {secondDeposits.map(cat => lineRow('category', cat.id, cat.bill_day, 'Deposit', getPerPeriodAmount(cat), moneyMarketName, true, false))}
         {bSecond.map(cat => lineRow('category', cat.id, cat.bill_day, cat.name, getHalfBillAmount(cat), getAccountName(cat)))}
         {/* Inline Half Summary */}
-        <div className="bg-gray-700/30 px-2 py-1.5 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--color-border-default)' }}>
+        <div className="bg-surface-soft/30 px-2 py-1.5 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--color-border-default)' }}>
           <div className="flex items-center gap-4">
             <span style={{ color: 'var(--color-text-muted)' }}>Bills: <span className="font-semibold" style={{ color: 'var(--color-error-500)' }}>-{fmt(secondBillTotal)}</span></span>
             <span style={{ color: 'var(--color-text-muted)' }}>Total: <span className="font-semibold" style={{ color: secondHalfRemaining >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(secondHalfRemaining)}</span></span>
@@ -782,7 +782,7 @@ function MonthlyBudget() {
         {addForm(`${ownerKey}-second`)}
         <div className="flex justify-end px-2 py-0.5">
           <button onClick={() => openAddForm(`${ownerKey}-second`, 'bill')}
-            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
           </button>
         </div>
@@ -827,13 +827,13 @@ function MonthlyBudget() {
       {/* Month Navigation */}
       <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
         <div className="flex items-center justify-between">
-          <button onClick={goToPrevMonth} className="p-1 rounded hover:bg-gray-700">
+          <button onClick={goToPrevMonth} className="p-1 rounded hover:bg-surface-soft">
             <ChevronLeft className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
           </button>
           <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             Monthly Budget - {monthNames[currentMonth - 1]} {currentYear}
           </h3>
-          <button onClick={goToNextMonth} className="p-1 rounded hover:bg-gray-700">
+          <button onClick={goToNextMonth} className="p-1 rounded hover:bg-surface-soft">
             <ChevronRight className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
           </button>
         </div>

@@ -184,19 +184,19 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-subtle">
           <h2 className="text-lg font-semibold">
             {isEditing ? 'Edit Team Member' : 'Add Team Member'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Section tabs */}
-        <div className="flex gap-1 p-2 border-b border-gray-700 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-1 p-2 border-b border-subtle overflow-x-auto scrollbar-hide">
           {sections.map(section => (
             <button
               key={section.id}
@@ -204,7 +204,7 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
               className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium whitespace-nowrap flex items-center gap-1 sm:gap-2 transition-colors ${
                 activeSection === section.id
                   ? 'bg-farm-green text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  : 'text-muted hover:text-white hover:bg-surface-soft'
               }`}
             >
               <section.icon className="w-4 h-4" />
@@ -226,39 +226,39 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Full Name *</label>
+                  <label className="block text-sm text-muted mb-1">Full Name *</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={e => handleChange('name', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Nickname</label>
+                  <label className="block text-sm text-muted mb-1">Nickname</label>
                   <input
                     type="text"
                     value={formData.nickname}
                     onChange={e => handleChange('nickname', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Callsign</label>
+                  <label className="block text-sm text-muted mb-1">Callsign</label>
                   <input
                     type="text"
                     value={formData.callsign}
                     onChange={e => handleChange('callsign', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Gender</label>
+                  <label className="block text-sm text-muted mb-1">Gender</label>
                   <select
                     value={formData.gender}
                     onChange={e => handleChange('gender', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   >
                     <option value="">Select...</option>
                     {genders.map(g => (
@@ -267,11 +267,11 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Role</label>
+                  <label className="block text-sm text-muted mb-1">Role</label>
                   <select
                     value={formData.role}
                     onChange={e => handleChange('role', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   >
                     {roles.map(role => (
                       <option key={role} value={role}>{role}</option>
@@ -279,13 +279,13 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm text-gray-400 mb-1">Role Title (custom)</label>
+                  <label className="block text-sm text-muted mb-1">Role Title (custom)</label>
                   <input
                     type="text"
                     value={formData.role_title}
                     onChange={e => handleChange('role_title', e.target.value)}
                     placeholder="e.g., Farm Manager, Medic, Security Lead"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
               </div>
@@ -295,17 +295,17 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                   id="is_active"
                   checked={formData.is_active}
                   onChange={e => handleChange('is_active', e.target.checked)}
-                  className="rounded border-gray-600 bg-gray-700"
+                  className="rounded border bg-surface-soft"
                 />
-                <label htmlFor="is_active" className="text-sm text-gray-300">Active Member</label>
+                <label htmlFor="is_active" className="text-sm text-secondary">Active Member</label>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm text-muted mb-1">Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={e => handleChange('notes', e.target.value)}
                   rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                 />
               </div>
             </div>
@@ -316,63 +316,63 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Email</label>
+                  <label className="block text-sm text-muted mb-1">Email</label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={e => handleChange('email', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Phone</label>
+                  <label className="block text-sm text-muted mb-1">Phone</label>
                   <input
                     type="tel"
                     value={formData.phone}
                     onChange={e => handleChange('phone', formatPhoneNumber(e.target.value))}
                     placeholder="(000)000-0000"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Join Date</label>
+                  <label className="block text-sm text-muted mb-1">Join Date</label>
                   <input
                     type="date"
                     value={formData.join_date}
                     onChange={e => handleChange('join_date', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Birth Date</label>
+                  <label className="block text-sm text-muted mb-1">Birth Date</label>
                   <input
                     type="date"
                     value={formData.birth_date}
                     onChange={e => handleChange('birth_date', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
               </div>
-              <div className="border-t border-gray-700 pt-4">
+              <div className="border-t border-subtle pt-4">
                 <h4 className="font-medium mb-3 text-red-400">Emergency Contact</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Contact Name</label>
+                    <label className="block text-sm text-muted mb-1">Contact Name</label>
                     <input
                       type="text"
                       value={formData.emergency_contact_name}
                       onChange={e => handleChange('emergency_contact_name', e.target.value)}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                      className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Contact Phone</label>
+                    <label className="block text-sm text-muted mb-1">Contact Phone</label>
                     <input
                       type="tel"
                       value={formData.emergency_contact_phone}
                       onChange={e => handleChange('emergency_contact_phone', formatPhoneNumber(e.target.value))}
                       placeholder="(000)000-0000"
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                      className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                     />
                   </div>
                 </div>
@@ -385,7 +385,7 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
+                  <label className="block text-sm text-muted mb-1">
                     Height ({settings?.team_units === 'metric' ? 'cm' : 'inches'})
                   </label>
                   <input
@@ -393,11 +393,11 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                     step="0.1"
                     value={formData.height_inches}
                     onChange={e => handleChange('height_inches', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
+                  <label className="block text-sm text-muted mb-1">
                     Current Weight ({settings?.team_units === 'metric' ? 'kg' : 'lbs'})
                   </label>
                   <input
@@ -405,11 +405,11 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                     step="0.1"
                     value={formData.current_weight}
                     onChange={e => handleChange('current_weight', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
+                  <label className="block text-sm text-muted mb-1">
                     Target Weight ({settings?.team_units === 'metric' ? 'kg' : 'lbs'})
                   </label>
                   <input
@@ -417,19 +417,19 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                     step="0.1"
                     value={formData.target_weight}
                     onChange={e => handleChange('target_weight', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
               </div>
-              <div className="border-t border-gray-700 pt-4">
+              <div className="border-t border-subtle pt-4">
                 <h4 className="font-medium mb-3">Overall Readiness</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Status</label>
+                    <label className="block text-sm text-muted mb-1">Status</label>
                     <select
                       value={formData.overall_readiness}
                       onChange={e => handleChange('overall_readiness', e.target.value)}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                      className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                     >
                       {readinessStatuses.map(status => (
                         <option key={status} value={status}>{status}</option>
@@ -437,12 +437,12 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                    <label className="block text-sm text-muted mb-1">Notes</label>
                     <input
                       type="text"
                       value={formData.readiness_notes}
                       onChange={e => handleChange('readiness_notes', e.target.value)}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                      className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                     />
                   </div>
                 </div>
@@ -455,11 +455,11 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Blood Type</label>
+                  <label className="block text-sm text-muted mb-1">Blood Type</label>
                   <select
                     value={formData.blood_type}
                     onChange={e => handleChange('blood_type', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   >
                     <option value="">Select...</option>
                     {bloodTypes.map(type => (
@@ -468,11 +468,11 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Shoe Size</label>
+                  <label className="block text-sm text-muted mb-1">Shoe Size</label>
                   <select
                     value={formData.shoe_size}
                     onChange={e => handleChange('shoe_size', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   >
                     <option value="">Select...</option>
                     {shoeSizeOptions.map(group => (
@@ -485,11 +485,11 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Shirt Size</label>
+                  <label className="block text-sm text-muted mb-1">Shirt Size</label>
                   <select
                     value={formData.shirt_size}
                     onChange={e => handleChange('shirt_size', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   >
                     <option value="">Select...</option>
                     {shirtSizes.map(size => (
@@ -498,31 +498,31 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Pants Size</label>
+                  <label className="block text-sm text-muted mb-1">Pants Size</label>
                   <input
                     type="text"
                     value={formData.pants_size}
                     onChange={e => handleChange('pants_size', e.target.value)}
                     placeholder="e.g., 32x30, 34W"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Hat Size</label>
+                  <label className="block text-sm text-muted mb-1">Hat Size</label>
                   <input
                     type="text"
                     value={formData.hat_size}
                     onChange={e => handleChange('hat_size', e.target.value)}
                     placeholder="e.g., 7 1/4, L/XL"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Glove Size</label>
+                  <label className="block text-sm text-muted mb-1">Glove Size</label>
                   <select
                     value={formData.glove_size}
                     onChange={e => handleChange('glove_size', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   >
                     <option value="">Select...</option>
                     {gloveSizes.map(size => (
@@ -540,11 +540,11 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
               {/* Readiness Statuses */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Medical Readiness</label>
+                  <label className="block text-sm text-muted mb-1">Medical Readiness</label>
                   <select
                     value={formData.medical_readiness}
                     onChange={e => handleChange('medical_readiness', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   >
                     {readinessStatuses.map(status => (
                       <option key={status} value={status}>{status}</option>
@@ -552,11 +552,11 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Dental Status</label>
+                  <label className="block text-sm text-muted mb-1">Dental Status</label>
                   <select
                     value={formData.dental_status}
                     onChange={e => handleChange('dental_status', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   >
                     {readinessStatuses.map(status => (
                       <option key={status} value={status}>{status}</option>
@@ -564,11 +564,11 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Vision Status</label>
+                  <label className="block text-sm text-muted mb-1">Vision Status</label>
                   <select
                     value={formData.vision_status}
                     onChange={e => handleChange('vision_status', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   >
                     {visionStatuses.map(status => (
                       <option key={status} value={status}>{status}</option>
@@ -580,53 +580,53 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
               {/* Dates */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Last Dental</label>
+                  <label className="block text-sm text-muted mb-1">Last Dental</label>
                   <input
                     type="date"
                     value={formData.last_dental_date}
                     onChange={e => handleChange('last_dental_date', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Next Dental Due</label>
+                  <label className="block text-sm text-muted mb-1">Next Dental Due</label>
                   <input
                     type="date"
                     value={formData.next_dental_due}
                     onChange={e => handleChange('next_dental_due', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Last Physical</label>
+                  <label className="block text-sm text-muted mb-1">Last Physical</label>
                   <input
                     type="date"
                     value={formData.last_physical_date}
                     onChange={e => handleChange('last_physical_date', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Next Physical Due</label>
+                  <label className="block text-sm text-muted mb-1">Next Physical Due</label>
                   <input
                     type="date"
                     value={formData.next_physical_due}
                     onChange={e => handleChange('next_physical_due', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
               </div>
 
               {/* Allergies */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Allergies</label>
+                <label className="block text-sm text-muted mb-1">Allergies</label>
                 <div className="flex gap-2 mb-2 items-center">
                   <input
                     type="text"
                     value={typeof newAllergy === 'object' ? newAllergy.name : newAllergy}
                     onChange={e => setNewAllergy(typeof newAllergy === 'object' ? { ...newAllergy, name: e.target.value } : e.target.value)}
                     placeholder="Add allergy..."
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="flex-1 bg-surface-soft border border rounded px-3 py-2 text-white"
                     onKeyPress={e => {
                       if (e.key === 'Enter') {
                         e.preventDefault()
@@ -664,7 +664,7 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                         handleAddArrayItem('allergies', allergyData, () => setNewAllergy(''))
                       }
                     }}
-                    className="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600"
+                    className="px-3 py-2 bg-surface-soft rounded hover:bg-surface-hover"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -712,25 +712,25 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
                     )
                   })}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Use the ↑↓ button to toggle anaphylaxis severity on existing allergies</p>
+                <p className="text-xs text-muted mt-1">Use the ↑↓ button to toggle anaphylaxis severity on existing allergies</p>
               </div>
 
               {/* Medical Conditions */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Medical Conditions</label>
+                <label className="block text-sm text-muted mb-1">Medical Conditions</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={newCondition}
                     onChange={e => setNewCondition(e.target.value)}
                     placeholder="Add condition..."
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="flex-1 bg-surface-soft border border rounded px-3 py-2 text-white"
                     onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddArrayItem('medical_conditions', newCondition, setNewCondition))}
                   />
                   <button
                     type="button"
                     onClick={() => handleAddArrayItem('medical_conditions', newCondition, setNewCondition)}
-                    className="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600"
+                    className="px-3 py-2 bg-surface-soft rounded hover:bg-surface-hover"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -749,12 +749,12 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
 
               {/* Physical Limitations */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Physical Limitations</label>
+                <label className="block text-sm text-muted mb-1">Physical Limitations</label>
                 <textarea
                   value={formData.physical_limitations}
                   onChange={e => handleChange('physical_limitations', e.target.value)}
                   rows={2}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                 />
               </div>
             </div>
@@ -765,20 +765,20 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
             <div className="space-y-6">
               {/* Skills */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Skills</label>
+                <label className="block text-sm text-muted mb-1">Skills</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={newSkill}
                     onChange={e => setNewSkill(e.target.value)}
                     placeholder="Add skill..."
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="flex-1 bg-surface-soft border border rounded px-3 py-2 text-white"
                     onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddArrayItem('skills', newSkill, setNewSkill))}
                   />
                   <button
                     type="button"
                     onClick={() => handleAddArrayItem('skills', newSkill, setNewSkill)}
-                    className="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600"
+                    className="px-3 py-2 bg-surface-soft rounded hover:bg-surface-hover"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -797,20 +797,20 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
 
               {/* Responsibilities */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Responsibilities</label>
+                <label className="block text-sm text-muted mb-1">Responsibilities</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={newResponsibility}
                     onChange={e => setNewResponsibility(e.target.value)}
                     placeholder="Add responsibility..."
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="flex-1 bg-surface-soft border border rounded px-3 py-2 text-white"
                     onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddArrayItem('responsibilities', newResponsibility, setNewResponsibility))}
                   />
                   <button
                     type="button"
                     onClick={() => handleAddArrayItem('responsibilities', newResponsibility, setNewResponsibility)}
-                    className="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600"
+                    className="px-3 py-2 bg-surface-soft rounded hover:bg-surface-hover"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -829,20 +829,20 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
 
               {/* Trainings */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Completed Training / Qualifications</label>
+                <label className="block text-sm text-muted mb-1">Completed Training / Qualifications</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={newTraining}
                     onChange={e => setNewTraining(e.target.value)}
                     placeholder="Add training..."
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="flex-1 bg-surface-soft border border rounded px-3 py-2 text-white"
                     onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddArrayItem('trainings', newTraining, setNewTraining))}
                   />
                   <button
                     type="button"
                     onClick={() => handleAddArrayItem('trainings', newTraining, setNewTraining)}
-                    className="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600"
+                    className="px-3 py-2 bg-surface-soft rounded hover:bg-surface-hover"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -863,11 +863,11 @@ function MemberForm({ member, settings, onSubmit, onClose }) {
         </form>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-4 border-t border-gray-700">
+        <div className="flex justify-end gap-3 p-4 border-t border-subtle">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-gray-400 hover:text-white"
+            className="px-4 py-2 text-muted hover:text-white"
           >
             Cancel
           </button>

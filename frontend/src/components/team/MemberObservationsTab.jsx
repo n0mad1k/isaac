@@ -112,7 +112,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
     return (
       <div key={obs.id} className={`${colorClass} border ${borderClass} rounded p-2 text-sm`}>
         <div className="flex items-start gap-2">
-          <ScopeIcon className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+          <ScopeIcon className="w-4 h-4 text-muted mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             {isEditing ? (
               <div className="flex gap-2">
@@ -120,7 +120,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
                   value={editContent}
                   onChange={e => setEditContent(e.target.value)}
                   rows={2}
-                  className="flex-1 bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-sm"
+                  className="flex-1 bg-surface-hover border border-strong rounded px-2 py-1 text-white text-sm"
                   autoFocus
                 />
                 <div className="flex flex-col gap-1">
@@ -133,7 +133,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
-                    className="p-1 text-gray-400 hover:text-gray-300"
+                    className="p-1 text-muted hover:text-secondary"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -151,7 +151,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
                   </button>
                   <button
                     onClick={() => setDeletingId(null)}
-                    className="px-2 py-1 text-xs text-gray-400 hover:text-white"
+                    className="px-2 py-1 text-xs text-muted hover:text-white"
                   >
                     Cancel
                   </button>
@@ -159,9 +159,9 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
               </div>
             ) : (
               <>
-                <p className="text-gray-200">{obs.content}</p>
+                <p className="text-primary">{obs.content}</p>
                 {(obs.linked_value || obs.linked_goal_category) && (
-                  <div className="mt-1 text-xs text-gray-400">
+                  <div className="mt-1 text-xs text-muted">
                     {obs.linked_goal_category && <span className="mr-2">#{obs.linked_goal_category}</span>}
                     {obs.linked_value && <span>#{obs.linked_value}</span>}
                   </div>
@@ -179,14 +179,14 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
             <div className="flex gap-1 shrink-0">
               <button
                 onClick={() => handleEdit(obs)}
-                className="p-1 text-gray-500 hover:text-gray-300"
+                className="p-1 text-muted hover:text-secondary"
                 title="Edit"
               >
                 <Pencil className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setDeletingId(obs.id)}
-                className="p-1 text-gray-500 hover:text-red-400"
+                className="p-1 text-muted hover:text-red-400"
                 title="Delete"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -209,7 +209,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
             className={`flex items-center gap-1 px-3 py-2 rounded text-sm transition-colors ${
               showingHistory
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-700 text-gray-400 hover:text-white'
+                : 'bg-surface-soft text-muted hover:text-white'
             }`}
             title={showingHistory ? 'Showing all observations' : 'Show past AAR observations'}
           >
@@ -228,7 +228,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
 
       {/* Add Form */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-gray-700 rounded-lg p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-surface-soft rounded-lg p-4 space-y-4">
           {error && (
             <div className="p-2 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
               {error}
@@ -263,7 +263,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
 
           {/* Scope Selection */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Scope</label>
+            <label className="block text-sm text-muted mb-1">Scope</label>
             <div className="flex gap-4">
               {['individual', 'team', 'operations'].map(scope => {
                 const Icon = scopeIcons[scope]
@@ -286,12 +286,12 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
 
           {/* Content */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Observation</label>
+            <label className="block text-sm text-muted mb-1">Observation</label>
             <textarea
               value={formData.content}
               onChange={e => setFormData(prev => ({ ...prev, content: e.target.value }))}
               rows={3}
-              className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white"
+              className="w-full bg-surface-hover border border-strong rounded px-3 py-2 text-white"
               placeholder={formData.observation_type === 'went_well'
                 ? "What went well this week..."
                 : "What needs improvement..."
@@ -303,11 +303,11 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
           {/* Optional Links */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Related Goal Category (optional)</label>
+              <label className="block text-sm text-muted mb-1">Related Goal Category (optional)</label>
               <select
                 value={formData.linked_goal_category}
                 onChange={e => setFormData(prev => ({ ...prev, linked_goal_category: e.target.value }))}
-                className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white"
+                className="w-full bg-surface-hover border border-strong rounded px-3 py-2 text-white"
               >
                 <option value="">None</option>
                 <option value="professional">Professional</option>
@@ -316,13 +316,13 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Related Value (optional)</label>
+              <label className="block text-sm text-muted mb-1">Related Value (optional)</label>
               <input
                 type="text"
                 value={formData.linked_value}
                 onChange={e => setFormData(prev => ({ ...prev, linked_value: e.target.value }))}
                 placeholder="e.g., Faith, Service"
-                className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white"
+                className="w-full bg-surface-hover border border-strong rounded px-3 py-2 text-white"
               />
             </div>
           </div>
@@ -332,7 +332,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 text-gray-400 hover:text-white"
+              className="px-4 py-2 text-muted hover:text-white"
             >
               Cancel
             </button>
@@ -353,8 +353,8 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
           {Object.entries(groupedObservations)
             .sort((a, b) => new Date(b[0]) - new Date(a[0]))
             .map(([weekStart, weekObs]) => (
-              <div key={weekStart} className="bg-gray-700 rounded-lg p-4">
-                <h4 className="font-medium mb-3 text-gray-400 text-sm">
+              <div key={weekStart} className="bg-surface-soft rounded-lg p-4">
+                <h4 className="font-medium mb-3 text-muted text-sm">
                   Week of {formatDate(weekStart)}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -371,7 +371,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">No entries</p>
+                      <p className="text-sm text-muted">No entries</p>
                     )}
                   </div>
 
@@ -388,7 +388,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
                         )}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">No entries</p>
+                      <p className="text-sm text-muted">No entries</p>
                     )}
                   </div>
                 </div>
@@ -396,7 +396,7 @@ function MemberObservationsTab({ member, observations, onUpdate, onToggleHistory
             ))}
         </div>
       ) : (
-        <div className="text-center py-8 text-gray-400">
+        <div className="text-center py-8 text-muted">
           <ThumbsUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p>No observations recorded yet</p>
           <p className="text-sm">Track what went well and what needs improvement each week</p>

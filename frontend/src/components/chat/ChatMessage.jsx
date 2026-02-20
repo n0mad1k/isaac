@@ -80,17 +80,17 @@ function ChatMessage({ message }) {
               <Calendar className="w-4 h-4 text-purple-400" />
               <span className="text-sm font-medium text-purple-300">Suggested Task</span>
             </div>
-            <div className="text-sm text-gray-200 mb-2">
+            <div className="text-sm text-primary mb-2">
               <strong>{taskData.title}</strong>
               {taskData.due_date && (
-                <span className="text-gray-400 ml-2">
+                <span className="text-muted ml-2">
                   Due: {new Date(taskData.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   {taskData.due_time && ` at ${taskData.due_time}`}
                 </span>
               )}
             </div>
             {taskData.description && (
-              <p className="text-xs text-gray-400 mb-2">{taskData.description}</p>
+              <p className="text-xs text-muted mb-2">{taskData.description}</p>
             )}
             {taskCreated ? (
               <div className="flex items-center gap-1 text-green-400 text-sm">

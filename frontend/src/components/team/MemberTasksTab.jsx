@@ -278,7 +278,7 @@ function MemberTasksTab({ member, onUpdate }) {
     const menuOpen = openMenuId === task.id
 
     return (
-      <div className={`bg-gray-700 rounded-lg p-3 ${task.is_completed ? 'opacity-60' : ''}`}>
+      <div className={`bg-surface-soft rounded-lg p-3 ${task.is_completed ? 'opacity-60' : ''}`}>
         <div className="flex items-start gap-3">
           {/* Status icon - clickable to complete */}
           <button
@@ -292,13 +292,13 @@ function MemberTasksTab({ member, onUpdate }) {
             ) : task.is_in_progress ? (
               <Clock className="w-5 h-5 text-yellow-500 hover:text-green-400" />
             ) : (
-              <Circle className="w-5 h-5 text-gray-400 hover:text-green-400" />
+              <Circle className="w-5 h-5 text-muted hover:text-green-400" />
             )}
           </button>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <span className={`font-medium ${task.is_completed ? 'line-through text-gray-400' : 'text-white'}`}>
+              <span className={`font-medium ${task.is_completed ? 'line-through text-muted' : 'text-white'}`}>
                 {task.title}
               </span>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -307,7 +307,7 @@ function MemberTasksTab({ member, onUpdate }) {
                 <div className="relative">
                   <button
                     onClick={() => setOpenMenuId(menuOpen ? null : task.id)}
-                    className="p-1 text-gray-400 hover:text-white rounded"
+                    className="p-1 text-muted hover:text-white rounded"
                   >
                     <MoreVertical className="w-4 h-4" />
                   </button>
@@ -317,19 +317,19 @@ function MemberTasksTab({ member, onUpdate }) {
                         className="fixed inset-0 z-40"
                         onClick={() => setOpenMenuId(null)}
                       />
-                      <div className="absolute right-0 mt-1 w-40 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50 py-1">
+                      <div className="absolute right-0 mt-1 w-40 bg-surface border border rounded-lg shadow-lg z-50 py-1">
                         {!task.is_completed && (
                           <>
                             <button
                               onClick={() => handleComplete(task)}
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-2"
                             >
                               <Check className="w-4 h-4 text-green-400" />
                               Complete
                             </button>
                             <button
                               onClick={() => handleToggleInProgress(task)}
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-2"
                             >
                               <Clock className="w-4 h-4 text-yellow-400" />
                               {task.is_in_progress ? 'Not Started' : 'In Progress'}
@@ -338,7 +338,7 @@ function MemberTasksTab({ member, onUpdate }) {
                         )}
                         <button
                           onClick={() => handleToggleBacklog(task)}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-2"
                         >
                           {isBacklog ? (
                             <>
@@ -354,14 +354,14 @@ function MemberTasksTab({ member, onUpdate }) {
                         </button>
                         <button
                           onClick={() => handleEdit(task)}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-2"
                         >
-                          <Edit className="w-4 h-4 text-gray-400" />
+                          <Edit className="w-4 h-4 text-muted" />
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(task)}
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2 text-red-400"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-2 text-red-400"
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete
@@ -374,17 +374,17 @@ function MemberTasksTab({ member, onUpdate }) {
             </div>
 
             {task.description && (
-              <p className="text-sm text-gray-400 mt-1 line-clamp-2">{task.description}</p>
+              <p className="text-sm text-muted mt-1 line-clamp-2">{task.description}</p>
             )}
 
-            <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+            <div className="flex items-center gap-3 mt-2 text-xs text-muted">
               <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-400' : ''}`}>
                 <Calendar className="w-3 h-3" />
                 {formatDate(task.due_date)}
               </span>
               {task.due_time && <span>{formatTime(task.due_time)}</span>}
               {task.category && (
-                <span className="px-1.5 py-0.5 bg-gray-600 rounded">
+                <span className="px-1.5 py-0.5 bg-surface-hover rounded">
                   {task.category.replace('_', ' ')}
                 </span>
               )}
@@ -452,7 +452,7 @@ function MemberTasksTab({ member, onUpdate }) {
           Do Today ({todayTasks.length})
         </h4>
         {todayTasks.length === 0 ? (
-          <div className="text-center py-4 text-gray-500 bg-gray-700/30 rounded-lg text-sm">
+          <div className="text-center py-4 text-muted bg-surface-soft/30 rounded-lg text-sm">
             Nothing due today
           </div>
         ) : (
@@ -471,7 +471,7 @@ function MemberTasksTab({ member, onUpdate }) {
           Upcoming ({upcomingTasks.length})
         </h4>
         {upcomingTasks.length === 0 ? (
-          <div className="text-center py-4 text-gray-500 bg-gray-700/30 rounded-lg text-sm">
+          <div className="text-center py-4 text-muted bg-surface-soft/30 rounded-lg text-sm">
             No upcoming tasks
           </div>
         ) : (
@@ -498,7 +498,7 @@ function MemberTasksTab({ member, onUpdate }) {
 
         {showBacklog && (
           backlogTasks.length === 0 ? (
-            <div className="text-center py-6 text-gray-400 bg-gray-700/50 rounded-lg">
+            <div className="text-center py-6 text-muted bg-surface-soft/50 rounded-lg">
               No backlog tasks assigned
             </div>
           ) : (
@@ -515,7 +515,7 @@ function MemberTasksTab({ member, onUpdate }) {
       <div>
         <button
           onClick={() => setShowCompleted(!showCompleted)}
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
+          className="flex items-center gap-2 text-sm text-muted hover:text-white"
         >
           {showCompleted ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           {showCompleted ? 'Hide' : 'Show'} Completed Tasks ({completedTasks.length})
@@ -533,45 +533,45 @@ function MemberTasksTab({ member, onUpdate }) {
       {/* Edit Task Modal */}
       {editingTask && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="bg-surface rounded-xl w-full max-w-sm sm:max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-subtle">
               <h3 className="text-xl font-semibold">{editingTask.id ? 'Edit Task' : 'New Task'}</h3>
-              <button onClick={() => closeEditModal()} className="p-1 hover:bg-gray-700 rounded">
+              <button onClick={() => closeEditModal()} className="p-1 hover:bg-surface-soft rounded">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Title *</label>
+                <label className="block text-sm text-muted mb-1">Title *</label>
                 <input
                   type="text"
                   value={editingTask.title}
                   onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <label className="block text-sm text-muted mb-1">Description</label>
                 <textarea
                   value={editingTask.description || ''}
                   onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
                   rows={2}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Location</label>
+                <label className="block text-sm text-muted mb-1">Location</label>
                 <input
                   type="text"
                   value={editingTask.location || ''}
                   onChange={(e) => setEditingTask({ ...editingTask, location: e.target.value })}
                   placeholder="e.g., Vet clinic, Farm, Home"
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               {/* Link to entity */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Link to (optional)</label>
+                <label className="block text-sm text-muted mb-1">Link to (optional)</label>
                 <select
                   value={linkType}
                   onChange={(e) => {
@@ -586,7 +586,7 @@ function MemberTasksTab({ member, onUpdate }) {
                       farm_area_id: null,
                     }))
                   }}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   <option value="none">None</option>
                   <option value="animal">Animal</option>
@@ -598,11 +598,11 @@ function MemberTasksTab({ member, onUpdate }) {
               </div>
               {linkType === 'animal' && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Select Animal</label>
+                  <label className="block text-sm text-muted mb-1">Select Animal</label>
                   <select
                     value={editingTask.animal_id || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, animal_id: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="">Choose animal...</option>
                     {linkEntities.animals.map(a => (
@@ -613,11 +613,11 @@ function MemberTasksTab({ member, onUpdate }) {
               )}
               {linkType === 'plant' && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Select Plant</label>
+                  <label className="block text-sm text-muted mb-1">Select Plant</label>
                   <select
                     value={editingTask.plant_id || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, plant_id: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="">Choose plant...</option>
                     {linkEntities.plants.map(p => (
@@ -628,11 +628,11 @@ function MemberTasksTab({ member, onUpdate }) {
               )}
               {linkType === 'vehicle' && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Select Vehicle</label>
+                  <label className="block text-sm text-muted mb-1">Select Vehicle</label>
                   <select
                     value={editingTask.vehicle_id || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, vehicle_id: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="">Choose vehicle...</option>
                     {linkEntities.vehicles.map(v => (
@@ -643,11 +643,11 @@ function MemberTasksTab({ member, onUpdate }) {
               )}
               {linkType === 'equipment' && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Select Equipment</label>
+                  <label className="block text-sm text-muted mb-1">Select Equipment</label>
                   <select
                     value={editingTask.equipment_id || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, equipment_id: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="">Choose equipment...</option>
                     {linkEntities.equipment.map(eq => (
@@ -658,11 +658,11 @@ function MemberTasksTab({ member, onUpdate }) {
               )}
               {linkType === 'farm_area' && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Select Farm Area</label>
+                  <label className="block text-sm text-muted mb-1">Select Farm Area</label>
                   <select
                     value={editingTask.farm_area_id || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, farm_area_id: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="">Choose farm area...</option>
                     {linkEntities.farmAreas.map(fa => (
@@ -673,11 +673,11 @@ function MemberTasksTab({ member, onUpdate }) {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Category</label>
+                  <label className="block text-sm text-muted mb-1">Category</label>
                   <select
                     value={editingTask.category || 'custom'}
                     onChange={(e) => setEditingTask({ ...editingTask, category: e.target.value })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="custom">Custom</option>
                     <option value="plant_care">Plant Care</option>
@@ -689,11 +689,11 @@ function MemberTasksTab({ member, onUpdate }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Priority</label>
+                  <label className="block text-sm text-muted mb-1">Priority</label>
                   <select
                     value={editingTask.priority || 2}
                     onChange={(e) => setEditingTask({ ...editingTask, priority: parseInt(e.target.value) })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value={1}>High</option>
                     <option value={2}>Medium</option>
@@ -702,42 +702,42 @@ function MemberTasksTab({ member, onUpdate }) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Due Date (optional)</label>
+                <label className="block text-sm text-muted mb-1">Due Date (optional)</label>
                 <input
                   type="date"
                   value={editingTask.due_date?.split('T')[0] || ''}
                   onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value || null })}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
               <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-muted">
                   <input
                     type="checkbox"
                     checked={isAllDay}
                     onChange={(e) => setIsAllDay(e.target.checked)}
-                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
+                    className="w-4 h-4 rounded bg-surface-soft border text-farm-green focus:ring-farm-green"
                   />
                   All day (no specific time)
                 </label>
               </div>
               {!isAllDay && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Time</label>
+                  <label className="block text-sm text-muted mb-1">Time</label>
                   <input
                     type="time"
                     value={editingTask.due_time || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, due_time: e.target.value || null })}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
               )}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Recurrence</label>
+                <label className="block text-sm text-muted mb-1">Recurrence</label>
                 <select
                   value={selectedRecurrence}
                   onChange={(e) => setSelectedRecurrence(e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   <option value="once">One-time</option>
                   <option value="daily">Daily</option>
@@ -752,20 +752,20 @@ function MemberTasksTab({ member, onUpdate }) {
               </div>
               {selectedRecurrence === 'custom' && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Repeat every (days)</label>
+                  <label className="block text-sm text-muted mb-1">Repeat every (days)</label>
                   <input
                     type="number"
                     min="1"
                     value={customInterval}
                     onChange={(e) => setCustomInterval(e.target.value)}
                     placeholder="e.g., 14"
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
               )}
               {selectedRecurrence === 'custom_weekly' && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Select days</label>
+                  <label className="block text-sm text-muted mb-1">Select days</label>
                   <div className="flex gap-1.5">
                     {[
                       { value: 0, label: 'Mon' },
@@ -791,7 +791,7 @@ function MemberTasksTab({ member, onUpdate }) {
                           className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
                             selected
                               ? 'bg-farm-green text-white'
-                              : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                              : 'bg-surface-soft text-muted hover:bg-surface-hover'
                           }`}
                         >
                           {day.label}
@@ -803,16 +803,16 @@ function MemberTasksTab({ member, onUpdate }) {
               )}
               {/* Assignment - Multi-select */}
               <div className="relative">
-                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                <label className="block text-sm text-muted mb-1 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   Assign To
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-left focus:outline-none focus:ring-2 focus:ring-farm-green flex items-center justify-between"
+                  className="w-full bg-surface-soft border border rounded-lg px-3 py-2 text-left focus:outline-none focus:ring-2 focus:ring-farm-green flex items-center justify-between"
                 >
-                  <span className={selectedMemberIds.length === 0 ? 'text-gray-400' : ''}>
+                  <span className={selectedMemberIds.length === 0 ? 'text-muted' : ''}>
                     {selectedMemberIds.length === 0
                       ? 'Not assigned'
                       : selectedMemberIds.length === 1
@@ -830,7 +830,7 @@ function MemberTasksTab({ member, onUpdate }) {
                       className="fixed inset-0 z-40"
                       onClick={() => setShowMemberDropdown(false)}
                     />
-                    <div className="absolute z-50 mt-1 w-full bg-gray-800 border border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    <div className="absolute z-50 mt-1 w-full bg-surface border border rounded-lg shadow-lg max-h-48 overflow-y-auto">
                       {/* Clear selection option */}
                       <button
                         type="button"
@@ -838,11 +838,11 @@ function MemberTasksTab({ member, onUpdate }) {
                           setSelectedMemberIds([])
                           setShowMemberDropdown(false)
                         }}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-700 text-gray-400"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-surface-soft text-muted"
                       >
                         Clear selection
                       </button>
-                      <div className="border-t border-gray-700" />
+                      <div className="border-t border-subtle" />
                       {teamMembers.filter(m => m.is_active !== false).map(m => {
                         const isSelected = selectedMemberIds.includes(m.id)
                         return (
@@ -856,12 +856,12 @@ function MemberTasksTab({ member, onUpdate }) {
                                   : [...prev, m.id]
                               )
                             }}
-                            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 flex items-center gap-2 ${
-                              isSelected ? 'bg-gray-700/50' : ''
+                            className={`w-full px-3 py-2 text-left text-sm hover:bg-surface-soft flex items-center gap-2 ${
+                              isSelected ? 'bg-surface-soft/50' : ''
                             }`}
                           >
                             <div className={`w-4 h-4 border rounded flex items-center justify-center ${
-                              isSelected ? 'bg-farm-green border-farm-green' : 'border-gray-500'
+                              isSelected ? 'bg-farm-green border-farm-green' : 'border-strong'
                             }`}>
                               {isSelected && <Check className="w-3 h-3 text-white" />}
                             </div>
@@ -875,40 +875,40 @@ function MemberTasksTab({ member, onUpdate }) {
               </div>
               {/* Visibility */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                <label className="block text-sm text-muted mb-1 flex items-center gap-2">
                   <Eye className="w-4 h-4" />
                   Show In
                 </label>
                 <select
                   value={selectedVisibility}
                   onChange={(e) => setSelectedVisibility(e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full bg-surface-soft border border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   <option value="schedule">Today's Schedule</option>
                   <option value="backlog">Main Backlog</option>
                   <option value="member_only">Member Only (private)</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted mt-1">
                   {selectedVisibility === 'schedule' && 'Task appears in main Today\'s Tasks for everyone'}
                   {selectedVisibility === 'backlog' && 'Task will appear in the main Backlog section'}
                   {selectedVisibility === 'member_only' && 'Task only visible on this member\'s task page'}
                 </p>
               </div>
               <div>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-muted">
                   <input
                     type="checkbox"
                     checked={editingTask.visible_to_farmhands || false}
                     onChange={(e) => setEditingTask({ ...editingTask, visible_to_farmhands: e.target.checked })}
-                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-cyan-500 focus:ring-cyan-500"
+                    className="w-4 h-4 rounded bg-surface-soft border text-cyan-500 focus:ring-cyan-500"
                   />
                   Visible to Farm Hands
-                  <span className="text-xs text-gray-500">(show this task to farm hand accounts)</span>
+                  <span className="text-xs text-muted">(show this task to farm hand accounts)</span>
                 </label>
               </div>
               {/* Alerts */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
+                <label className="block text-sm text-muted mb-2 flex items-center gap-2">
                   <Bell className="w-4 h-4" />
                   Alerts (optional)
                 </label>
@@ -929,7 +929,7 @@ function MemberTasksTab({ member, onUpdate }) {
                         className={`px-2 py-1 rounded text-xs font-medium transition-all ${
                           isSelected
                             ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
-                            : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                            : 'bg-surface-soft/50 border border text-muted hover:border-strong'
                         }`}
                       >
                         {opt.label}
@@ -939,10 +939,10 @@ function MemberTasksTab({ member, onUpdate }) {
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-3 p-4 border-t border-gray-700">
+            <div className="flex justify-end gap-3 p-4 border-t border-subtle">
               <button
                 onClick={() => closeEditModal()}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                className="px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
               >
                 Cancel
               </button>

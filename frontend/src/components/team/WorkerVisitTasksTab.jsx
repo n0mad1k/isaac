@@ -312,7 +312,7 @@ function WorkerVisitTasksTab({ worker }) {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-sm ${
                 showOriginal
                   ? 'bg-blue-600 text-white hover:bg-blue-500'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-surface-soft text-secondary hover:bg-surface-hover'
               }`}
               title={showOriginal ? 'Showing original English' : 'Showing translated text'}
             >
@@ -322,7 +322,7 @@ function WorkerVisitTasksTab({ worker }) {
           )}
           <button
             onClick={() => setShowStandardSettings(!showStandardSettings)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors text-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-soft text-secondary rounded-lg hover:bg-surface-hover transition-colors text-sm"
           >
             <Settings className="w-4 h-4" />
             {t('standardTasks', 'Standard Tasks')}
@@ -339,12 +339,12 @@ function WorkerVisitTasksTab({ worker }) {
             </h4>
             <button
               onClick={() => setShowStandardSettings(false)}
-              className="p-1 text-gray-400 hover:text-white"
+              className="p-1 text-muted hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-muted mb-4">
             {t('standardTasksDesc', 'These tasks are automatically added to each visit. Reorder to set priority.')}
           </p>
 
@@ -352,9 +352,9 @@ function WorkerVisitTasksTab({ worker }) {
             {standardTasks.map((task, idx) => (
               <div
                 key={task.id}
-                className="flex items-center gap-2 p-2 bg-gray-800 rounded-lg"
+                className="flex items-center gap-2 p-2 bg-surface rounded-lg"
               >
-                <span className="w-6 h-6 flex items-center justify-center text-sm font-medium text-gray-400 bg-gray-700 rounded">
+                <span className="w-6 h-6 flex items-center justify-center text-sm font-medium text-muted bg-surface-soft rounded">
                   {idx + 1}
                 </span>
                 {editingStandardTask?.id === task.id ? (
@@ -363,7 +363,7 @@ function WorkerVisitTasksTab({ worker }) {
                       type="text"
                       value={editingStandardTask.title}
                       onChange={(e) => setEditingStandardTask({ ...editingStandardTask, title: e.target.value })}
-                      className="flex-1 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-farm-green"
+                      className="flex-1 bg-surface-soft border border rounded px-2 py-1 text-sm focus:outline-none focus:border-farm-green"
                       autoFocus
                     />
                     <button
@@ -374,7 +374,7 @@ function WorkerVisitTasksTab({ worker }) {
                     </button>
                     <button
                       onClick={() => setEditingStandardTask(null)}
-                      className="p-1 text-gray-400 hover:text-white"
+                      className="p-1 text-muted hover:text-white"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -386,13 +386,13 @@ function WorkerVisitTasksTab({ worker }) {
                     </span>
                     <button
                       onClick={() => setEditingStandardTask(task)}
-                      className="p-1 text-gray-400 hover:text-white"
+                      className="p-1 text-muted hover:text-white"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteStandardTask(task.id)}
-                      className="p-1 text-gray-400 hover:text-red-400"
+                      className="p-1 text-muted hover:text-red-400"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -409,7 +409,7 @@ function WorkerVisitTasksTab({ worker }) {
               onChange={(e) => setNewTaskTitle(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddStandardTask()}
               placeholder={t('addStandardTask', 'Add standard task...')}
-              className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-farm-green"
+              className="flex-1 bg-surface border border-subtle rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-farm-green"
             />
             <button
               onClick={handleAddStandardTask}
@@ -425,13 +425,13 @@ function WorkerVisitTasksTab({ worker }) {
       {/* Current Visit */}
       {currentVisit && (
         <div className="rounded-xl" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-          <div className="p-4 border-b border-gray-700">
+          <div className="p-4 border-b border-subtle">
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
                   {t('currentVisit', 'Current Visit')}
                 </h4>
-                <p className="text-sm text-gray-400">{formatDate(currentVisit.visit_date)}</p>
+                <p className="text-sm text-muted">{formatDate(currentVisit.visit_date)}</p>
               </div>
               <div className="flex items-center gap-2">
                 {allTasksComplete ? (
@@ -443,7 +443,7 @@ function WorkerVisitTasksTab({ worker }) {
                     {t('completeVisit', 'Complete Visit')}
                   </button>
                 ) : (
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-muted">
                     {completedTasks.length}/{currentVisit.tasks?.length || 0} {t('done', 'done')}
                   </span>
                 )}
@@ -462,7 +462,7 @@ function WorkerVisitTasksTab({ worker }) {
             </div>
 
             {activeTasks.length === 0 && backlogTasks.length === 0 && completedTasks.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-muted">
                 {t('noTasksYet', 'No tasks yet. Add standard tasks or one-off tasks below.')}
               </div>
             ) : (
@@ -476,12 +476,12 @@ function WorkerVisitTasksTab({ worker }) {
                     onDragOver={(e) => handleDragOver(e, task.id)}
                     onDrop={(e) => handleDrop(e, task.id)}
                     className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                      idx === 0 ? 'bg-green-900/20 border border-green-700/50' : 'bg-gray-800'
+                      idx === 0 ? 'bg-green-900/20 border border-green-700/50' : 'bg-surface'
                     } ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
                   >
-                    <GripVertical className="w-4 h-4 text-gray-500 cursor-grab flex-shrink-0" />
+                    <GripVertical className="w-4 h-4 text-muted cursor-grab flex-shrink-0" />
                     <div className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold flex-shrink-0 ${
-                      idx === 0 ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300'
+                      idx === 0 ? 'bg-green-600 text-white' : 'bg-surface-soft text-secondary'
                     }`}>
                       {idx + 1}
                     </div>
@@ -489,7 +489,7 @@ function WorkerVisitTasksTab({ worker }) {
                       onClick={() => handleToggleTaskComplete(task)}
                       className="flex-shrink-0"
                     >
-                      <Circle className={`w-5 h-5 ${idx === 0 ? 'text-green-400 hover:text-green-300' : 'text-gray-400 hover:text-green-400'}`} />
+                      <Circle className={`w-5 h-5 ${idx === 0 ? 'text-green-400 hover:text-green-300' : 'text-muted hover:text-green-400'}`} />
                     </button>
                     <div className="flex-1 min-w-0">
                       <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
@@ -513,7 +513,7 @@ function WorkerVisitTasksTab({ worker }) {
                     </div>
                     <button
                       onClick={() => handleToggleBacklog(task)}
-                      className="p-1 text-gray-400 hover:text-yellow-400 flex-shrink-0"
+                      className="p-1 text-muted hover:text-yellow-400 flex-shrink-0"
                       title={t('moveToBacklog', 'Move to backlog')}
                     >
                       <Archive className="w-4 h-4" />
@@ -521,7 +521,7 @@ function WorkerVisitTasksTab({ worker }) {
                     {!task.is_standard && (
                       <button
                         onClick={() => handleDeleteVisitTask(task.id)}
-                        className="p-1 text-gray-400 hover:text-red-400 flex-shrink-0"
+                        className="p-1 text-muted hover:text-red-400 flex-shrink-0"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -531,10 +531,10 @@ function WorkerVisitTasksTab({ worker }) {
 
                 {/* Backlog section */}
                 {(backlogTasks.length > 0 || showBacklog) && (
-                  <div className="pt-3 mt-3 border-t border-gray-700">
+                  <div className="pt-3 mt-3 border-t border-subtle">
                     <button
                       onClick={() => setShowBacklog(!showBacklog)}
-                      className="flex items-center gap-2 text-sm text-gray-400 hover:text-white w-full"
+                      className="flex items-center gap-2 text-sm text-muted hover:text-white w-full"
                     >
                       <Archive className="w-4 h-4 text-yellow-500" />
                       {t('backlog', 'Backlog')} ({backlogTasks.length})
@@ -545,7 +545,7 @@ function WorkerVisitTasksTab({ worker }) {
                         {backlogTasks.map((task) => (
                           <div
                             key={task.id}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50"
+                            className="flex items-center gap-3 p-3 rounded-lg bg-surface/50"
                           >
                             <div className="w-4" />
                             <div className="w-7" />
@@ -553,10 +553,10 @@ function WorkerVisitTasksTab({ worker }) {
                               onClick={() => handleToggleTaskComplete(task)}
                               className="flex-shrink-0"
                             >
-                              <Circle className="w-5 h-5 text-gray-400 hover:text-green-400" />
+                              <Circle className="w-5 h-5 text-muted hover:text-green-400" />
                             </button>
                             <div className="flex-1 min-w-0">
-                              <span className="text-gray-300">{getTaskTitle(task)}</span>
+                              <span className="text-secondary">{getTaskTitle(task)}</span>
                               {task.is_standard && (
                                 <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
                                   {t('standard', 'Standard')}
@@ -570,7 +570,7 @@ function WorkerVisitTasksTab({ worker }) {
                             </div>
                             <button
                               onClick={() => handleToggleBacklog(task)}
-                              className="p-1 text-gray-400 hover:text-green-400 flex-shrink-0"
+                              className="p-1 text-muted hover:text-green-400 flex-shrink-0"
                               title={t('moveToActive', 'Move to active')}
                             >
                               <Inbox className="w-4 h-4" />
@@ -578,7 +578,7 @@ function WorkerVisitTasksTab({ worker }) {
                             {!task.is_standard && (
                               <button
                                 onClick={() => handleDeleteVisitTask(task.id)}
-                                className="p-1 text-gray-400 hover:text-red-400 flex-shrink-0"
+                                className="p-1 text-muted hover:text-red-400 flex-shrink-0"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -592,15 +592,15 @@ function WorkerVisitTasksTab({ worker }) {
 
                 {/* Completed tasks */}
                 {completedTasks.length > 0 && (
-                  <div className="pt-3 mt-3 border-t border-gray-700">
-                    <p className="text-sm text-gray-400 mb-2 flex items-center gap-2">
+                  <div className="pt-3 mt-3 border-t border-subtle">
+                    <p className="text-sm text-muted mb-2 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-500" />
                       {t('completed', 'Completed')} ({completedTasks.length})
                     </p>
                     {completedTasks.map((task) => (
                       <div
                         key={task.id}
-                        className="flex items-center gap-3 p-2 rounded-lg bg-gray-800/50 opacity-60"
+                        className="flex items-center gap-3 p-2 rounded-lg bg-surface/50 opacity-60"
                       >
                         <div className="w-4" />
                         <div className="w-7" />
@@ -610,7 +610,7 @@ function WorkerVisitTasksTab({ worker }) {
                         >
                           <CheckCircle className="w-5 h-5 text-green-500" />
                         </button>
-                        <span className="line-through text-gray-400">{getTaskTitle(task)}</span>
+                        <span className="line-through text-muted">{getTaskTitle(task)}</span>
                       </div>
                     ))}
                   </div>
@@ -619,8 +619,8 @@ function WorkerVisitTasksTab({ worker }) {
             )}
 
             {/* Add One-Off Task */}
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <label className="block text-sm text-gray-400 mb-2">{t('addTaskThisVisit', 'Add task for this visit only:')}</label>
+            <div className="mt-4 pt-4 border-t border-subtle">
+              <label className="block text-sm text-muted mb-2">{t('addTaskThisVisit', 'Add task for this visit only:')}</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -628,7 +628,7 @@ function WorkerVisitTasksTab({ worker }) {
                   onChange={(e) => setNewOneOffTitle(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAddOneOffTask()}
                   placeholder={t('exampleTask', 'e.g., Deep clean oven...')}
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-farm-green"
+                  className="flex-1 bg-surface border border-subtle rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-farm-green"
                 />
                 <button
                   onClick={handleAddOneOffTask}
@@ -647,7 +647,7 @@ function WorkerVisitTasksTab({ worker }) {
       <div>
         <button
           onClick={() => setShowHistory(!showHistory)}
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
+          className="flex items-center gap-2 text-sm text-muted hover:text-white"
         >
           <History className="w-4 h-4" />
           {showHistory ? t('hideVisitHistory', 'Hide Visit History') : t('showVisitHistory', 'Show Visit History')} ({visitHistory.length})
@@ -675,24 +675,24 @@ function WorkerVisitTasksTab({ worker }) {
                   </div>
                   <button
                     onClick={() => handleDuplicateVisit(visit.id)}
-                    className="flex items-center gap-1 text-sm text-gray-400 hover:text-white"
+                    className="flex items-center gap-1 text-sm text-muted hover:text-white"
                     title={t('duplicate', 'Duplicate')}
                   >
                     <Copy className="w-4 h-4" />
                     {t('duplicate', 'Duplicate')}
                   </button>
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted">
                   {visit.completed_count}/{visit.task_count} {t('tasksCompleted', 'tasks completed')}
                 </div>
                 {visit.tasks && visit.tasks.length > 0 && (
-                  <div className="mt-2 text-xs text-gray-500 space-y-0.5">
+                  <div className="mt-2 text-xs text-muted space-y-0.5">
                     {visit.tasks.slice(0, 5).map((task, idx) => (
                       <div key={task.id} className="flex items-center gap-1">
                         {task.is_completed ? (
                           <CheckCircle className="w-3 h-3 text-green-500" />
                         ) : (
-                          <Circle className="w-3 h-3 text-gray-500" />
+                          <Circle className="w-3 h-3 text-muted" />
                         )}
                         <span className={task.is_completed ? 'line-through' : ''}>
                           {getTaskTitle(task)}
@@ -700,7 +700,7 @@ function WorkerVisitTasksTab({ worker }) {
                       </div>
                     ))}
                     {visit.tasks.length > 5 && (
-                      <div className="text-gray-600">+{visit.tasks.length - 5} {t('more', 'more')}</div>
+                      <div className="text-muted">+{visit.tasks.length - 5} {t('more', 'more')}</div>
                     )}
                   </div>
                 )}

@@ -353,10 +353,10 @@ function FarmAreas() {
       {/* Areas Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {areas.map(area => (
-          <div key={area.id} className="bg-gray-800 rounded-lg overflow-hidden">
+          <div key={area.id} className="bg-surface rounded-lg overflow-hidden">
             {/* Area Header */}
             <div
-              className="p-4 cursor-pointer hover:bg-gray-700/50"
+              className="p-4 cursor-pointer hover:bg-surface-soft/50"
               onClick={() => handleExpand(area.id)}
             >
               <div className="flex items-center justify-between">
@@ -364,7 +364,7 @@ function FarmAreas() {
                   <span>{getAreaTypeIcon(area.type)}</span>
                   <div>
                     <div className="font-bold text-lg">{area.is_sub_location ? `↳ ${area.name}` : area.name}</div>
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-muted text-sm">
                       {area.is_sub_location && <span className="text-cyan-400">{area.full_path.split(' > ')[0]} &gt; </span>}
                       {area.display_type}
                     </div>
@@ -373,7 +373,7 @@ function FarmAreas() {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-3 text-sm">
                     {area.maintenance_count > 0 && (
-                      <div className={`flex items-center gap-1 ${area.overdue_count > 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                      <div className={`flex items-center gap-1 ${area.overdue_count > 0 ? 'text-red-400' : 'text-muted'}`}>
                         <Wrench className="w-3 h-3" /> {area.maintenance_count}{area.overdue_count > 0 && <span className="text-red-400 ml-1">({area.overdue_count} overdue)</span>}
                       </div>
                     )}
@@ -392,13 +392,13 @@ function FarmAreas() {
                 </div>
               </div>
               {area.size_acres && (
-                <div className="text-gray-400 text-sm mt-1">{area.size_acres} acres</div>
+                <div className="text-muted text-sm mt-1">{area.size_acres} acres</div>
               )}
             </div>
 
             {/* Area Details */}
             {expandedArea === area.id && (
-              <div className="border-t border-gray-700 p-4 space-y-4">
+              <div className="border-t border-subtle p-4 space-y-4">
                 {/* Plants in Area */}
                 {areaDetails[area.id]?.plants?.length > 0 && (
                   <div>
@@ -457,7 +457,7 @@ function FarmAreas() {
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setShowAddMaintenance(area.id); }}
-                        className="text-xs px-2 py-1 bg-gray-600 rounded hover:bg-gray-500"
+                        className="text-xs px-2 py-1 bg-surface-hover rounded hover:bg-surface-muted"
                       >
                         + Task
                       </button>
@@ -469,7 +469,7 @@ function FarmAreas() {
                       {maintenanceTasks[area.id].map(task => (
                         <div
                           key={task.id}
-                          className="flex items-center justify-between p-2 bg-gray-700/50 rounded-lg text-sm"
+                          className="flex items-center justify-between p-2 bg-surface-soft/50 rounded-lg text-sm"
                         >
                           <div>
                             <div className="flex items-center gap-2">
@@ -482,7 +482,7 @@ function FarmAreas() {
                                 <span className="text-xs text-purple-400">({task.active_months})</span>
                               )}
                             </div>
-                            <div className="text-xs text-gray-400 mt-1">
+                            <div className="text-xs text-muted mt-1">
                               {task.frequency_label || `Every ${task.frequency_days} days`}
                               {task.last_completed && (
                                 <span className="ml-2">
@@ -525,13 +525,13 @@ function FarmAreas() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-xs">No maintenance tasks</p>
+                    <p className="text-muted text-xs">No maintenance tasks</p>
                   )}
                 </div>
 
                 {/* Linked Reminders */}
                 {linkedTasks[area.id]?.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-700">
+                  <div className="mt-4 pt-4 border-t border-subtle">
                     <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
                       <CalendarPlus className="w-4 h-4 text-cyan-400" />
                       Reminders ({linkedTasks[area.id].length})
@@ -541,19 +541,19 @@ function FarmAreas() {
                         <div
                           key={task.id}
                           className={`flex items-center justify-between p-2 rounded-lg text-sm ${
-                            task.is_completed ? 'bg-gray-700/30 opacity-60' : 'bg-cyan-900/30'
+                            task.is_completed ? 'bg-surface-soft/30 opacity-60' : 'bg-cyan-900/30'
                           }`}
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className={task.is_completed ? 'line-through text-gray-400' : ''}>
+                              <span className={task.is_completed ? 'line-through text-muted' : ''}>
                                 {task.title}
                               </span>
                               {task.is_completed && (
                                 <span className="text-xs text-green-400">Done</span>
                               )}
                             </div>
-                            <div className="text-xs text-gray-400 mt-1">
+                            <div className="text-xs text-muted mt-1">
                               {task.due_date ? format(new Date(task.due_date), 'MM/dd/yyyy') : 'No due date'}
                               {task.due_time && ` at ${formatTime(task.due_time)}`}
                             </div>
@@ -597,7 +597,7 @@ function FarmAreas() {
       </div>
 
       {areas.length === 0 && !loading && (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-muted">
           <Fence className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>No farm areas yet. Add one to get started!</p>
         </div>
@@ -606,44 +606,44 @@ function FarmAreas() {
       {/* Add/Edit Area Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingArea ? 'Edit Area' : 'Add Farm Area'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Name</label>
+                  <label className="block text-sm text-muted mb-1">Name</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Parent Location (optional)</label>
+                  <label className="block text-sm text-muted mb-1">Parent Location (optional)</label>
                   <select
                     value={formData.parent_id}
                     onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   >
                     <option value="">No parent (top level)</option>
                     {areas.filter(a => !a.parent_id && a.id !== editingArea?.id).map(a => (
                       <option key={a.id} value={a.id}>{a.name}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">Create sub-location (e.g., House &gt; Bedroom)</p>
+                  <p className="text-xs text-muted mt-1">Create sub-location (e.g., House &gt; Bedroom)</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Type</label>
+                  <label className="block text-sm text-muted mb-1">Type</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   >
                     {areaTypes.map(t => (
                       <option key={t.value} value={t.value}>{t.label}</option>
@@ -652,74 +652,74 @@ function FarmAreas() {
                 </div>
                 {formData.type === 'custom' && (
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Custom Type</label>
+                    <label className="block text-sm text-muted mb-1">Custom Type</label>
                     <input
                       type="text"
                       value={formData.custom_type}
                       onChange={(e) => setFormData({ ...formData, custom_type: e.target.value })}
-                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      className="w-full bg-surface-soft rounded-lg px-4 py-2"
                     />
                   </div>
                 )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Size (acres)</label>
+                  <label className="block text-sm text-muted mb-1">Size (acres)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.size_acres}
                     onChange={(e) => setFormData({ ...formData, size_acres: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">or Size (sqft)</label>
+                  <label className="block text-sm text-muted mb-1">or Size (sqft)</label>
                   <input
                     type="number"
                     value={formData.size_sqft}
                     onChange={(e) => setFormData({ ...formData, size_sqft: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Location Notes</label>
+                <label className="block text-sm text-muted mb-1">Location Notes</label>
                 <input
                   type="text"
                   value={formData.location_notes}
                   onChange={(e) => setFormData({ ...formData, location_notes: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder="e.g., Behind the barn"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Soil Type</label>
+                  <label className="block text-sm text-muted mb-1">Soil Type</label>
                   <input
                     type="text"
                     value={formData.soil_type}
                     onChange={(e) => setFormData({ ...formData, soil_type: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Irrigation</label>
+                  <label className="block text-sm text-muted mb-1">Irrigation</label>
                   <input
                     type="text"
                     value={formData.irrigation_type}
                     onChange={(e) => setFormData({ ...formData, irrigation_type: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                     placeholder="e.g., Drip, Sprinkler"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <label className="block text-sm text-muted mb-1">Description</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   rows={2}
                 />
               </div>
@@ -727,7 +727,7 @@ function FarmAreas() {
                 <button
                   type="button"
                   onClick={() => { setShowAddForm(false); setEditingArea(null); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   Cancel
                 </button>
@@ -746,23 +746,23 @@ function FarmAreas() {
       {/* Add/Edit Maintenance Modal */}
       {showAddMaintenance && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingMaintenance ? 'Edit Maintenance Task' : 'Add Maintenance Task'}
             </h2>
             <form onSubmit={handleAddMaintenance} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Task Name</label>
+                <label className="block text-sm text-muted mb-1">Task Name</label>
                 <input
                   type="text"
                   value={maintFormData.name}
                   onChange={(e) => setMaintFormData({ ...maintFormData, name: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Frequency</label>
+                <label className="block text-sm text-muted mb-1">Frequency</label>
                 <select
                   value={maintFormData.frequency_days}
                   onChange={(e) => {
@@ -773,7 +773,7 @@ function FarmAreas() {
                       frequency_label: opt?.label || ''
                     })
                   }}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 >
                   {frequencyOptions.map(opt => (
                     <option key={opt.days} value={opt.days}>{opt.label}</option>
@@ -781,7 +781,7 @@ function FarmAreas() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                <label className="block text-sm text-muted mb-1 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   Manual Due Date (optional)
                 </label>
@@ -789,12 +789,12 @@ function FarmAreas() {
                   type="date"
                   value={maintFormData.manual_due_date}
                   onChange={(e) => setMaintFormData({ ...maintFormData, manual_due_date: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
-                <p className="text-xs text-gray-500 mt-1">Set a specific due date. Clears after completion.</p>
+                <p className="text-xs text-muted mt-1">Set a specific due date. Clears after completion.</p>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                <label className="block text-sm text-muted mb-1 flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   Last Completed (optional)
                 </label>
@@ -802,9 +802,9 @@ function FarmAreas() {
                   type="date"
                   value={maintFormData.last_completed}
                   onChange={(e) => setMaintFormData({ ...maintFormData, last_completed: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
-                <p className="text-xs text-gray-500 mt-1">When was this last done? Next due will be calculated from here.</p>
+                <p className="text-xs text-muted mt-1">When was this last done? Next due will be calculated from here.</p>
               </div>
               <div className="flex items-center gap-3">
                 <input
@@ -813,22 +813,22 @@ function FarmAreas() {
                   onChange={(e) => setMaintFormData({ ...maintFormData, seasonal: e.target.checked })}
                   className="w-4 h-4"
                 />
-                <label className="text-sm text-gray-400">Seasonal only</label>
+                <label className="text-sm text-muted">Seasonal only</label>
               </div>
               {maintFormData.seasonal && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Active Months (e.g., Mar-Oct)</label>
+                  <label className="block text-sm text-muted mb-1">Active Months (e.g., Mar-Oct)</label>
                   <input
                     type="text"
                     value={maintFormData.active_months}
                     onChange={(e) => setMaintFormData({ ...maintFormData, active_months: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
               )}
               {/* Alerts Section */}
-              <div className="space-y-2 pt-3 border-t border-gray-700">
-                <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+              <div className="space-y-2 pt-3 border-t border-subtle">
+                <label className="block text-sm text-muted mb-2">Alerts (optional)</label>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { value: 0, label: 'At time' },
@@ -857,7 +857,7 @@ function FarmAreas() {
                         className={`px-2 py-1 rounded text-xs font-medium transition-all ${
                           isSelected
                             ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
-                            : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                            : 'bg-surface-soft/50 border border text-muted hover:border-strong'
                         }`}
                       >
                         {opt.label}
@@ -870,7 +870,7 @@ function FarmAreas() {
                 <button
                   type="button"
                   onClick={() => { setShowAddMaintenance(null); setEditingMaintenance(null); setMaintFormData({ name: '', frequency_days: 30, frequency_label: 'Monthly', last_completed: '', manual_due_date: '', seasonal: false, active_months: '', notes: '', reminder_alerts: null }); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   Cancel
                 </button>
@@ -889,32 +889,32 @@ function FarmAreas() {
       {/* Complete Modal */}
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
             <h2 className="text-xl font-bold mb-4">Complete: {completeModal.name}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Cost (optional)</label>
+                <label className="block text-sm text-muted mb-1">Cost (optional)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={completeData.cost}
                   onChange={(e) => setCompleteData({ ...completeData, cost: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm text-muted mb-1">Notes</label>
                 <textarea
                   value={completeData.notes}
                   onChange={(e) => setCompleteData({ ...completeData, notes: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   rows={2}
                 />
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => setCompleteModal(null)}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   Cancel
                 </button>

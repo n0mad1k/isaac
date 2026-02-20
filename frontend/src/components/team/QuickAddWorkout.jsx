@@ -71,14 +71,14 @@ function QuickAddWorkout({ members, onClose, onSuccess, defaultMemberId }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
+      <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-md">
         {/* Header */}
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-subtle flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Dumbbell className="w-5 h-5 text-green-400" />
             <h2 className="text-lg font-semibold text-white">Log Workout</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -92,11 +92,11 @@ function QuickAddWorkout({ members, onClose, onSuccess, defaultMemberId }) {
 
           {/* Member Selection */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Team Member *</label>
+            <label className="block text-sm text-muted mb-1">Team Member *</label>
             <select
               value={selectedMemberId}
               onChange={(e) => setSelectedMemberId(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+              className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
             >
               <option value="">Select member...</option>
               {members.filter(m => m.is_active !== false).map(m => (
@@ -109,11 +109,11 @@ function QuickAddWorkout({ members, onClose, onSuccess, defaultMemberId }) {
 
           {/* Workout Type */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Workout Type *</label>
+            <label className="block text-sm text-muted mb-1">Workout Type *</label>
             <select
               value={workoutType}
               onChange={(e) => setWorkoutType(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+              className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
             >
               <option value="">Select type...</option>
               {workoutTypes.map(type => (
@@ -126,38 +126,38 @@ function QuickAddWorkout({ members, onClose, onSuccess, defaultMemberId }) {
 
           {/* Date/Time */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Date & Time</label>
+            <label className="block text-sm text-muted mb-1">Date & Time</label>
             <input
               type="datetime-local"
               value={workoutDate}
               onChange={(e) => setWorkoutDate(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+              className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
             />
           </div>
 
           {/* Duration */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Duration (minutes)</label>
+            <label className="block text-sm text-muted mb-1">Duration (minutes)</label>
             <input
               type="number"
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
               placeholder="45"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+              className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
             />
           </div>
 
           {/* Distance (for cardio) */}
           {isCardio && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Distance (miles)</label>
+              <label className="block text-sm text-muted mb-1">Distance (miles)</label>
               <input
                 type="number"
                 step="0.1"
                 value={distanceMiles}
                 onChange={(e) => setDistanceMiles(e.target.value)}
                 placeholder="3.5"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
               />
             </div>
           )}
@@ -165,21 +165,21 @@ function QuickAddWorkout({ members, onClose, onSuccess, defaultMemberId }) {
           {/* Weight Carried (for ruck) */}
           {isRuck && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Weight Carried (lbs)</label>
+              <label className="block text-sm text-muted mb-1">Weight Carried (lbs)</label>
               <input
                 type="number"
                 step="1"
                 value={weightCarried}
                 onChange={(e) => setWeightCarried(e.target.value)}
                 placeholder="45"
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
               />
             </div>
           )}
 
           {/* RPE */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">RPE (1-10)</label>
+            <label className="block text-sm text-muted mb-1">RPE (1-10)</label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
                 <button
@@ -189,7 +189,7 @@ function QuickAddWorkout({ members, onClose, onSuccess, defaultMemberId }) {
                   className={`flex-1 py-1.5 text-sm rounded ${
                     rpe === num.toString()
                       ? 'bg-green-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      : 'bg-surface-soft text-secondary hover:bg-surface-hover'
                   }`}
                 >
                   {num}
@@ -200,22 +200,22 @@ function QuickAddWorkout({ members, onClose, onSuccess, defaultMemberId }) {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Optional notes..."
               rows={2}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+              className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-6 py-4 border-t border-gray-700 flex justify-end gap-2">
+        <div className="px-4 sm:px-6 py-4 border-t border-subtle flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-400 hover:text-white"
+            className="px-4 py-2 text-muted hover:text-white"
           >
             Cancel
           </button>

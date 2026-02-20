@@ -120,7 +120,7 @@ function TeamGearTab({ members, onRefresh }) {
 
   const getStatusColor = (status) => {
     const found = GEAR_STATUS.find(s => s.value === status)
-    return found?.color || 'bg-gray-500'
+    return found?.color || 'bg-surface-muted'
   }
 
   const getStatusLabel = (status) => {
@@ -130,7 +130,7 @@ function TeamGearTab({ members, onRefresh }) {
 
   const getContentStatusColor = (status) => {
     const found = CONTENT_STATUSES.find(s => s.value === status)
-    return found?.color || 'text-gray-400'
+    return found?.color || 'text-muted'
   }
 
   const formatDate = (dateStr) => {
@@ -143,13 +143,13 @@ function TeamGearTab({ members, onRefresh }) {
   }
 
   const getDueDateClass = (dateStr) => {
-    if (!dateStr) return 'text-gray-400'
+    if (!dateStr) return 'text-muted'
     const date = new Date(dateStr)
     const now = new Date()
     const diffDays = Math.ceil((date - now) / (1000 * 60 * 60 * 24))
     if (diffDays < 0) return 'text-red-400'
     if (diffDays <= 30) return 'text-yellow-400'
-    return 'text-gray-400'
+    return 'text-muted'
   }
 
   const handleDeleteGear = async (gearId) => {
@@ -220,7 +220,7 @@ function TeamGearTab({ members, onRefresh }) {
         <div className="flex items-center gap-2">
           <Package className="w-6 h-6 text-farm-green" />
           <h2 className="text-xl font-semibold">Team Gear Inventory</h2>
-          <span className="text-sm text-gray-400">({gear.length} items)</span>
+          <span className="text-sm text-muted">({gear.length} items)</span>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
@@ -242,23 +242,23 @@ function TeamGearTab({ members, onRefresh }) {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 bg-gray-700/50 rounded-lg p-3">
+      <div className="flex flex-wrap gap-3 bg-surface-soft/50 rounded-lg p-3">
         <div className="flex-1 min-w-[200px]">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search gear..."
-              className="w-full pl-9 pr-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm"
+              className="w-full pl-9 pr-3 py-2 bg-surface-soft border border rounded text-sm"
             />
           </div>
         </div>
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm"
+          className="px-3 py-2 bg-surface-soft border border rounded text-sm"
         >
           <option value="">All Categories</option>
           {GEAR_CATEGORIES.map(cat => (
@@ -274,7 +274,7 @@ function TeamGearTab({ members, onRefresh }) {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm"
+          className="px-3 py-2 bg-surface-soft border border rounded text-sm"
         >
           <option value="">All Status</option>
           {GEAR_STATUS.map(s => (
@@ -284,7 +284,7 @@ function TeamGearTab({ members, onRefresh }) {
         <select
           value={filterAssignment}
           onChange={(e) => setFilterAssignment(e.target.value)}
-          className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm"
+          className="px-3 py-2 bg-surface-soft border border rounded text-sm"
         >
           <option value="all">All Gear</option>
           <option value="assigned">Assigned Only</option>
@@ -292,7 +292,7 @@ function TeamGearTab({ members, onRefresh }) {
         </select>
         <button
           onClick={loadGear}
-          className="p-2 text-gray-400 hover:text-white rounded hover:bg-gray-600"
+          className="p-2 text-muted hover:text-white rounded hover:bg-surface-hover"
           title="Refresh"
         >
           <RefreshCw className="w-4 h-4" />
@@ -301,23 +301,23 @@ function TeamGearTab({ members, onRefresh }) {
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+        <div className="bg-surface-soft/50 rounded-lg p-3 text-center">
           <div className="text-2xl font-bold text-white">{gear.length}</div>
-          <div className="text-xs text-gray-400">Total Items</div>
+          <div className="text-xs text-muted">Total Items</div>
         </div>
-        <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+        <div className="bg-surface-soft/50 rounded-lg p-3 text-center">
           <div className="text-2xl font-bold text-green-400">{gear.filter(g => g.member_id).length}</div>
-          <div className="text-xs text-gray-400">Assigned</div>
+          <div className="text-xs text-muted">Assigned</div>
         </div>
-        <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+        <div className="bg-surface-soft/50 rounded-lg p-3 text-center">
           <div className="text-2xl font-bold text-purple-400">{gear.filter(g => !g.member_id).length}</div>
-          <div className="text-xs text-gray-400">Pool</div>
+          <div className="text-xs text-muted">Pool</div>
         </div>
-        <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+        <div className="bg-surface-soft/50 rounded-lg p-3 text-center">
           <div className="text-2xl font-bold text-yellow-400">
             {gear.filter(g => g.status === 'NEEDS_MAINTENANCE' || g.status === 'NEEDS_REPAIR').length}
           </div>
-          <div className="text-xs text-gray-400">Needs Attention</div>
+          <div className="text-xs text-muted">Needs Attention</div>
         </div>
       </div>
 
@@ -329,16 +329,16 @@ function TeamGearTab({ members, onRefresh }) {
           const catLabel = GEAR_CATEGORIES.find(c => c.value === category)?.label || category
 
           return (
-            <div key={category} className="bg-gray-700/30 rounded-lg overflow-hidden">
+            <div key={category} className="bg-surface-soft/30 rounded-lg overflow-hidden">
               <button
                 onClick={() => toggleCategory(category)}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-700/50"
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-surface-soft/50"
               >
                 <div className="flex items-center gap-3">
                   {isCatExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   <Shield className="w-5 h-5 text-farm-green" />
                   <span className="font-medium">{catLabel}</span>
-                  <span className="text-sm text-gray-400">({items.length})</span>
+                  <span className="text-sm text-muted">({items.length})</span>
                 </div>
               </button>
 
@@ -349,7 +349,7 @@ function TeamGearTab({ members, onRefresh }) {
                     const contents = gearContents[item.id] || []
 
                     return (
-                      <div key={item.id} className="bg-gray-800 rounded-lg overflow-hidden">
+                      <div key={item.id} className="bg-surface rounded-lg overflow-hidden">
                         {/* Gear Item Header */}
                         <div className="p-3 group">
                           <div className="flex items-start justify-between gap-2">
@@ -357,7 +357,7 @@ function TeamGearTab({ members, onRefresh }) {
                               {item.is_container && (
                                 <button
                                   onClick={() => toggleGearExpand(item)}
-                                  className="p-1 hover:bg-gray-700 rounded flex-shrink-0 mt-0.5"
+                                  className="p-1 hover:bg-surface-soft rounded flex-shrink-0 mt-0.5"
                                 >
                                   {isGearExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                 </button>
@@ -367,10 +367,10 @@ function TeamGearTab({ members, onRefresh }) {
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                   <span className="font-medium">{item.name}</span>
                                   {item.make && item.model && (
-                                    <span className="text-sm text-gray-400">{item.make} {item.model}</span>
+                                    <span className="text-sm text-muted">{item.make} {item.model}</span>
                                   )}
                                   {item.color && (
-                                    <span className="text-xs px-2 py-0.5 bg-gray-600 rounded whitespace-nowrap">{item.color}</span>
+                                    <span className="text-xs px-2 py-0.5 bg-surface-hover rounded whitespace-nowrap">{item.color}</span>
                                   )}
                                 </div>
                                 {item.member && (
@@ -382,28 +382,28 @@ function TeamGearTab({ members, onRefresh }) {
                                   </div>
                                 )}
                                 {item.notes && (
-                                  <div className="text-xs text-gray-400 italic mt-1">{item.notes}</div>
+                                  <div className="text-xs text-muted italic mt-1">{item.notes}</div>
                                 )}
                               </div>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => setAssigningGear(item)}
-                                className="p-1.5 text-gray-400 hover:text-purple-400 rounded hover:bg-gray-700"
+                                className="p-1.5 text-muted hover:text-purple-400 rounded hover:bg-surface-soft"
                                 title={item.member_id ? 'Reassign' : 'Assign'}
                               >
                                 {item.member_id ? <UserMinus className="w-4 h-4" /> : <User className="w-4 h-4" />}
                               </button>
                               <button
                                 onClick={() => setEditingGear(item)}
-                                className="p-1.5 text-gray-400 hover:text-blue-400 rounded hover:bg-gray-700"
+                                className="p-1.5 text-muted hover:text-blue-400 rounded hover:bg-surface-soft"
                                 title="Edit"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteGear(item.id)}
-                                className="p-1.5 text-gray-400 hover:text-red-400 rounded hover:bg-gray-700"
+                                className="p-1.5 text-muted hover:text-red-400 rounded hover:bg-surface-soft"
                                 title="Delete"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -414,9 +414,9 @@ function TeamGearTab({ members, onRefresh }) {
 
                         {/* Expanded Contents */}
                         {isGearExpanded && item.is_container && (
-                          <div className="border-t border-gray-700 p-3 bg-gray-900/50">
+                          <div className="border-t border-subtle p-3 bg-surface-app/50">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-gray-300">Contents</span>
+                              <span className="text-sm font-medium text-secondary">Contents</span>
                               {item.member_id && (
                                 <button
                                   onClick={() => setAddingContent(item)}
@@ -427,20 +427,20 @@ function TeamGearTab({ members, onRefresh }) {
                               )}
                             </div>
                             {!item.member_id ? (
-                              <p className="text-xs text-gray-500">Assign this gear to a member to manage contents</p>
+                              <p className="text-xs text-muted">Assign this gear to a member to manage contents</p>
                             ) : contents.length === 0 ? (
-                              <p className="text-xs text-gray-500">No contents tracked</p>
+                              <p className="text-xs text-muted">No contents tracked</p>
                             ) : (
                               <div className="space-y-2">
                                 {contents.map(content => (
-                                  <div key={content.id} className="flex items-center justify-between bg-gray-800 rounded p-2 group/content">
+                                  <div key={content.id} className="flex items-center justify-between bg-surface rounded p-2 group/content">
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
                                         <span className={`text-sm font-medium ${getContentStatusColor(content.status)}`}>
                                           {content.item_name}
                                         </span>
                                         {content.category && (
-                                          <span className="text-xs text-gray-500">{content.category}</span>
+                                          <span className="text-xs text-muted">{content.category}</span>
                                         )}
                                         {content.battery_type && (
                                           <span className="px-1.5 py-0.5 rounded text-xs bg-blue-900/50 text-blue-300">
@@ -458,18 +458,18 @@ function TeamGearTab({ members, onRefresh }) {
                                           </span>
                                         )}
                                       </div>
-                                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                                      <div className="flex items-center gap-2 mt-1 text-xs text-muted">
                                         <span className="flex items-center gap-1">
                                           <button
                                             onClick={() => handleQuantityChange(item, content, -1)}
-                                            className="p-0.5 bg-gray-700 hover:bg-gray-600 rounded"
+                                            className="p-0.5 bg-surface-soft hover:bg-surface-hover rounded"
                                           >
                                             <Minus className="w-3 h-3" />
                                           </button>
                                           <span className="min-w-[1.5rem] text-center">{content.quantity}</span>
                                           <button
                                             onClick={() => handleQuantityChange(item, content, 1)}
-                                            className="p-0.5 bg-gray-700 hover:bg-gray-600 rounded"
+                                            className="p-0.5 bg-surface-soft hover:bg-surface-hover rounded"
                                           >
                                             <Plus className="w-3 h-3" />
                                           </button>
@@ -491,7 +491,7 @@ function TeamGearTab({ members, onRefresh }) {
                                       </div>
                                       {/* Show notes if present */}
                                       {content.notes && (
-                                        <div className="text-xs text-gray-500 mt-1 italic">
+                                        <div className="text-xs text-muted mt-1 italic">
                                           {content.notes}
                                         </div>
                                       )}
@@ -499,13 +499,13 @@ function TeamGearTab({ members, onRefresh }) {
                                     <div className="flex items-center gap-1 opacity-0 group-hover/content:opacity-100">
                                       <button
                                         onClick={() => setEditingContent({ gear: item, content })}
-                                        className="p-1 text-gray-400 hover:text-blue-400"
+                                        className="p-1 text-muted hover:text-blue-400"
                                       >
                                         <Edit2 className="w-3 h-3" />
                                       </button>
                                       <button
                                         onClick={() => handleDeleteContent(item, content.id)}
-                                        className="p-1 text-gray-400 hover:text-red-400"
+                                        className="p-1 text-muted hover:text-red-400"
                                       >
                                         <Trash2 className="w-3 h-3" />
                                       </button>
@@ -526,7 +526,7 @@ function TeamGearTab({ members, onRefresh }) {
         })}
 
         {Object.keys(groupedGear).length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted">
             No gear found matching your filters
           </div>
         )}
@@ -645,7 +645,7 @@ function GearFormModal({ gear, onClose, onSave, existingCategories = [] }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">
           {gear ? 'Edit Gear' : 'Add Gear'}
         </h3>
@@ -655,11 +655,11 @@ function GearFormModal({ gear, onClose, onSave, existingCategories = [] }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm text-gray-400 mb-1">Name *</label>
-              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" />
+              <label className="block text-sm text-muted mb-1">Name *</label>
+              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="w-full bg-surface-soft border border rounded px-3 py-2" />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Category</label>
+              <label className="block text-sm text-muted mb-1">Category</label>
               <select
                 value={useCustomCategory ? 'custom' : formData.category}
                 onChange={(e) => {
@@ -672,7 +672,7 @@ function GearFormModal({ gear, onClose, onSave, existingCategories = [] }) {
                     setFormData({ ...formData, category: newCat, is_container: newCat === 'BAG' ? true : formData.is_container })
                   }
                 }}
-                className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="w-full bg-surface-soft border border rounded px-3 py-2"
               >
                 {allCategories.map(cat => (<option key={cat.value} value={cat.value}>{cat.label}</option>))}
                 <option value="custom">+ Add New Category</option>
@@ -683,32 +683,32 @@ function GearFormModal({ gear, onClose, onSave, existingCategories = [] }) {
                   value={customCategoryName}
                   onChange={(e) => setCustomCategoryName(e.target.value)}
                   placeholder="Enter custom category name"
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 mt-2"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 mt-2"
                   autoFocus
                 />
               )}
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Status</label>
-              <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+              <label className="block text-sm text-muted mb-1">Status</label>
+              <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full bg-surface-soft border border rounded px-3 py-2">
                 {GEAR_STATUS.map(s => (<option key={s.value} value={s.value}>{s.label}</option>))}
               </select>
             </div>
-            <div><label className="block text-sm text-gray-400 mb-1">Make</label><input type="text" value={formData.make} onChange={(e) => setFormData({ ...formData, make: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
-            <div><label className="block text-sm text-gray-400 mb-1">Model</label><input type="text" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
-            <div><label className="block text-sm text-gray-400 mb-1">Serial Number</label><input type="text" value={formData.serial_number} onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
-            <div><label className="block text-sm text-gray-400 mb-1">Caliber</label><input type="text" value={formData.caliber} onChange={(e) => setFormData({ ...formData, caliber: e.target.value })} placeholder="For firearms" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
-            <div><label className="block text-sm text-gray-400 mb-1">Color</label><input type="text" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} placeholder="e.g., Black, OD Green" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
-            <div><label className="block text-sm text-gray-400 mb-1">Location</label><input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Where stored?" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+            <div><label className="block text-sm text-muted mb-1">Make</label><input type="text" value={formData.make} onChange={(e) => setFormData({ ...formData, make: e.target.value })} className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
+            <div><label className="block text-sm text-muted mb-1">Model</label><input type="text" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
+            <div><label className="block text-sm text-muted mb-1">Serial Number</label><input type="text" value={formData.serial_number} onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })} className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
+            <div><label className="block text-sm text-muted mb-1">Caliber</label><input type="text" value={formData.caliber} onChange={(e) => setFormData({ ...formData, caliber: e.target.value })} placeholder="For firearms" className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
+            <div><label className="block text-sm text-muted mb-1">Color</label><input type="text" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} placeholder="e.g., Black, OD Green" className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
+            <div><label className="block text-sm text-muted mb-1">Location</label><input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Where stored?" className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
           </div>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.is_container} onChange={(e) => setFormData({ ...formData, is_container: e.target.checked })} className="rounded" />Can Hold Contents</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.requires_cleaning} onChange={(e) => setFormData({ ...formData, requires_cleaning: e.target.checked })} className="rounded" />Requires Cleaning</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={formData.requires_charging} onChange={(e) => setFormData({ ...formData, requires_charging: e.target.checked })} className="rounded" />Requires Charging</label>
           </div>
-          <div><label className="block text-sm text-gray-400 mb-1">Notes</label><textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+          <div><label className="block text-sm text-muted mb-1">Notes</label><textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
           <div className="flex justify-end gap-2 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-muted hover:text-white">Cancel</button>
             <button type="submit" disabled={saving || !formData.name} className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50">{saving ? 'Saving...' : gear ? 'Update' : 'Add to Pool'}</button>
           </div>
         </form>
@@ -730,22 +730,22 @@ function AssignGearModal({ gear, members, onClose, onAssign }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
+      <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
         <h3 className="text-lg font-semibold mb-4">{gear.member_id ? 'Reassign Gear' : 'Assign Gear'}</h3>
         <div className="mb-4">
-          <div className="text-sm text-gray-400 mb-2">Gear Item:</div>
+          <div className="text-sm text-muted mb-2">Gear Item:</div>
           <div className="font-medium">{gear.name}</div>
-          {gear.make && gear.model && <div className="text-sm text-gray-400">{gear.make} {gear.model}</div>}
+          {gear.make && gear.model && <div className="text-sm text-muted">{gear.make} {gear.model}</div>}
         </div>
         <div className="mb-6">
-          <label className="block text-sm text-gray-400 mb-1">Assign To</label>
-          <select value={selectedMember} onChange={(e) => setSelectedMember(e.target.value)} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+          <label className="block text-sm text-muted mb-1">Assign To</label>
+          <select value={selectedMember} onChange={(e) => setSelectedMember(e.target.value)} className="w-full bg-surface-soft border border rounded px-3 py-2">
             <option value="">Pool (Unassigned)</option>
             {members.map(m => (<option key={m.id} value={m.id}>{m.nickname || m.name}</option>))}
           </select>
         </div>
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 text-muted hover:text-white">Cancel</button>
           <button onClick={handleAssign} disabled={assigning} className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500 disabled:opacity-50">{assigning ? 'Assigning...' : selectedMember ? 'Assign' : 'Move to Pool'}</button>
         </div>
       </div>
@@ -838,24 +838,24 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">{content ? 'Edit Content' : 'Add Content'}</h3>
         {error && <div className="bg-red-900/30 border border-red-700 rounded p-2 text-red-200 text-sm mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Item Name *</label>
-            <input type="text" value={formData.item_name} onChange={(e) => setFormData({ ...formData, item_name: e.target.value })} required className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" />
+            <label className="block text-sm text-muted mb-1">Item Name *</label>
+            <input type="text" value={formData.item_name} onChange={(e) => setFormData({ ...formData, item_name: e.target.value })} required className="w-full bg-surface-soft border border rounded px-3 py-2" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className="block text-sm text-gray-400 mb-1">Category</label><input type="text" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} placeholder="Medical, Food, etc." className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+            <div><label className="block text-sm text-muted mb-1">Category</label><input type="text" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} placeholder="Medical, Food, etc." className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Status</label>
-              <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+              <label className="block text-sm text-muted mb-1">Status</label>
+              <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full bg-surface-soft border border rounded px-3 py-2">
                 {CONTENT_STATUSES.map(s => (<option key={s.value} value={s.value}>{s.label}</option>))}
               </select>
             </div>
-            <div><label className="block text-sm text-gray-400 mb-1">Quantity</label><input type="number" value={formData.quantity} onChange={(e) => handleQuantityChange(e.target.value)} min="0" className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
-            <div><label className="block text-sm text-gray-400 mb-1">Min Quantity</label><input type="number" value={formData.min_quantity} onChange={(e) => setFormData({ ...formData, min_quantity: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+            <div><label className="block text-sm text-muted mb-1">Quantity</label><input type="number" value={formData.quantity} onChange={(e) => handleQuantityChange(e.target.value)} min="0" className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
+            <div><label className="block text-sm text-muted mb-1">Min Quantity</label><input type="number" value={formData.min_quantity} onChange={(e) => setFormData({ ...formData, min_quantity: e.target.value })} className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
           </div>
 
           {/* Individual Unit Tracking Toggle */}
@@ -865,44 +865,44 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
                 type="checkbox"
                 checked={trackIndividual}
                 onChange={(e) => handleToggleIndividual(e.target.checked)}
-                className="rounded border-gray-600"
+                className="rounded border"
               />
-              <span className="text-gray-300">Track individual expirations (e.g., different lot numbers)</span>
+              <span className="text-secondary">Track individual expirations (e.g., different lot numbers)</span>
             </label>
           )}
 
           {/* Single Expiration Date */}
           {!trackIndividual && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div><label className="block text-sm text-gray-400 mb-1">Expiration</label><input type="date" value={formData.expiration_date} onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
-              <div><label className="block text-sm text-gray-400 mb-1">Alert Days</label><input type="number" value={formData.expiration_alert_days} onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+              <div><label className="block text-sm text-muted mb-1">Expiration</label><input type="date" value={formData.expiration_date} onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })} className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
+              <div><label className="block text-sm text-muted mb-1">Alert Days</label><input type="number" value={formData.expiration_alert_days} onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })} className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
             </div>
           )}
 
           {/* Individual Unit Expirations */}
           {trackIndividual && units.length > 0 && (
-            <div className="space-y-3 bg-gray-700/50 rounded-lg p-3">
-              <div className="text-sm text-gray-400 font-medium">Individual Unit Expirations</div>
+            <div className="space-y-3 bg-surface-soft/50 rounded-lg p-3">
+              <div className="text-sm text-muted font-medium">Individual Unit Expirations</div>
               {units.map((unit, idx) => (
-                <div key={idx} className="bg-gray-800 rounded p-2 space-y-2">
-                  <div className="text-xs text-gray-500">Unit {idx + 1}</div>
+                <div key={idx} className="bg-surface rounded p-2 space-y-2">
+                  <div className="text-xs text-muted">Unit {idx + 1}</div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">Expiration</label>
+                      <label className="block text-xs text-muted mb-1">Expiration</label>
                       <input
                         type="date"
                         value={unit.expiration_date || ''}
                         onChange={(e) => handleUnitChange(idx, 'expiration_date', e.target.value)}
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                        className="w-full bg-surface-soft border border rounded px-2 py-1 text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">Lot Number</label>
+                      <label className="block text-xs text-muted mb-1">Lot Number</label>
                       <input
                         type="text"
                         value={unit.lot_number || ''}
                         onChange={(e) => handleUnitChange(idx, 'lot_number', e.target.value)}
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm"
+                        className="w-full bg-surface-soft border border rounded px-2 py-1 text-sm"
                         placeholder="Optional"
                       />
                     </div>
@@ -910,28 +910,28 @@ function ContentFormModal({ gearItem, content, onClose, onSave }) {
                 </div>
               ))}
               <div className="grid grid-cols-2 gap-4 pt-2">
-                <div><label className="block text-sm text-gray-400 mb-1">Alert Days Before</label><input type="number" value={formData.expiration_alert_days} onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+                <div><label className="block text-sm text-muted mb-1">Alert Days Before</label><input type="number" value={formData.expiration_alert_days} onChange={(e) => setFormData({ ...formData, expiration_alert_days: e.target.value })} className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Battery Type</label>
-            <input type="text" value={formData.battery_type} onChange={(e) => setFormData({ ...formData, battery_type: e.target.value })} placeholder="AA, AAA, CR123A, 18650, etc." className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" />
+            <label className="block text-sm text-muted mb-1">Battery Type</label>
+            <input type="text" value={formData.battery_type} onChange={(e) => setFormData({ ...formData, battery_type: e.target.value })} placeholder="AA, AAA, CR123A, 18650, etc." className="w-full bg-surface-soft border border rounded px-3 py-2" />
           </div>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" checked={formData.needs_cleaning} onChange={(e) => setFormData({ ...formData, needs_cleaning: e.target.checked })} className="rounded border-gray-600" />
-              <span className="text-gray-300">Needs Cleaning</span>
+              <input type="checkbox" checked={formData.needs_cleaning} onChange={(e) => setFormData({ ...formData, needs_cleaning: e.target.checked })} className="rounded border" />
+              <span className="text-secondary">Needs Cleaning</span>
             </label>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" checked={formData.needs_recharge} onChange={(e) => setFormData({ ...formData, needs_recharge: e.target.checked })} className="rounded border-gray-600" />
-              <span className="text-gray-300">Needs Recharge</span>
+              <input type="checkbox" checked={formData.needs_recharge} onChange={(e) => setFormData({ ...formData, needs_recharge: e.target.checked })} className="rounded border" />
+              <span className="text-secondary">Needs Recharge</span>
             </label>
           </div>
-          <div><label className="block text-sm text-gray-400 mb-1">Notes</label><textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2" /></div>
+          <div><label className="block text-sm text-muted mb-1">Notes</label><textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full bg-surface-soft border border rounded px-3 py-2" /></div>
           <div className="flex justify-end gap-2 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-400 hover:text-white">Cancel</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-muted hover:text-white">Cancel</button>
             <button type="submit" disabled={saving || !formData.item_name} className="px-4 py-2 bg-farm-green text-white rounded hover:bg-green-600 disabled:opacity-50">{saving ? 'Saving...' : content ? 'Update' : 'Add'}</button>
           </div>
         </form>

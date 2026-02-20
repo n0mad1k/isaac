@@ -47,9 +47,9 @@ function WeatherWidget({ weather, className = '' }) {
 
   if (!weather) {
     return (
-      <div className="bg-gray-800 rounded-xl p-6 animate-pulse">
-        <div className="h-8 bg-gray-700 rounded w-1/2 mb-4"></div>
-        <div className="h-16 bg-gray-700 rounded w-full"></div>
+      <div className="bg-surface rounded-xl p-6 animate-pulse">
+        <div className="h-8 bg-surface-soft rounded w-1/2 mb-4"></div>
+        <div className="h-16 bg-surface-soft rounded w-full"></div>
       </div>
     )
   }

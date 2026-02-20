@@ -210,7 +210,7 @@ function BudgetTransactions() {
                 className={`px-2 py-1 rounded text-xs transition-colors ${
                   periodFilter === f.key
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    : 'bg-surface text-muted hover:bg-surface-soft'
                 }`}
               >
                 {f.label}
@@ -230,7 +230,7 @@ function BudgetTransactions() {
             <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
               {editingId ? 'Edit Transaction' : 'New Transaction'}
             </h4>
-            <button onClick={resetForm} className="p-1 rounded hover:bg-gray-700">
+            <button onClick={resetForm} className="p-1 rounded hover:bg-surface-soft">
               <X className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
             </button>
           </div>
@@ -241,7 +241,7 @@ function BudgetTransactions() {
                 type="date"
                 value={formData.transaction_date}
                 onChange={(e) => setFormData(f => ({ ...f, transaction_date: e.target.value }))}
-                className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm"
+                className="w-full px-2 py-1.5 bg-surface border border-subtle rounded text-sm"
                 style={{ color: 'var(--color-text-primary)' }}
               />
             </div>
@@ -252,7 +252,7 @@ function BudgetTransactions() {
                 placeholder="Description"
                 value={formData.description}
                 onChange={(e) => setFormData(f => ({ ...f, description: e.target.value }))}
-                className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm"
+                className="w-full px-2 py-1.5 bg-surface border border-subtle rounded text-sm"
                 style={{ color: 'var(--color-text-primary)' }}
                 maxLength={500}
                 autoFocus
@@ -267,7 +267,7 @@ function BudgetTransactions() {
                 placeholder="0.00"
                 value={formData.amount}
                 onChange={(e) => setFormData(f => ({ ...f, amount: e.target.value }))}
-                className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm"
+                className="w-full px-2 py-1.5 bg-surface border border-subtle rounded text-sm"
                 style={{ color: 'var(--color-text-primary)' }}
               />
             </div>
@@ -276,7 +276,7 @@ function BudgetTransactions() {
               <select
                 value={formData.account_id}
                 onChange={(e) => setFormData(f => ({ ...f, account_id: e.target.value }))}
-                className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm"
+                className="w-full px-2 py-1.5 bg-surface border border-subtle rounded text-sm"
                 style={{ color: 'var(--color-text-primary)' }}
               >
                 <option value="">Default</option>
@@ -288,7 +288,7 @@ function BudgetTransactions() {
               <select
                 value={formData.category_id}
                 onChange={(e) => setFormData(f => ({ ...f, category_id: e.target.value }))}
-                className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm"
+                className="w-full px-2 py-1.5 bg-surface border border-subtle rounded text-sm"
                 style={{ color: 'var(--color-text-primary)' }}
               >
                 <option value="">Select...</option>
@@ -323,7 +323,7 @@ function BudgetTransactions() {
 
         {loading ? (
           <div className="p-4 space-y-2">
-            {[...Array(5)].map((_, i) => <div key={i} className="animate-pulse bg-gray-800 rounded h-8" />)}
+            {[...Array(5)].map((_, i) => <div key={i} className="animate-pulse bg-surface rounded h-8" />)}
           </div>
         ) : transactions.length === 0 ? (
           <div className="p-8 text-center" style={{ color: 'var(--color-text-muted)' }}>
@@ -336,7 +336,7 @@ function BudgetTransactions() {
               {transactions.map(txn => (
                 <div
                   key={txn.id}
-                  className="grid grid-cols-[90px_1fr_100px_110px_140px_50px] text-xs py-2 px-3 items-center hover:bg-gray-800/30 transition-colors"
+                  className="grid grid-cols-[90px_1fr_100px_110px_140px_50px] text-xs py-2 px-3 items-center hover:bg-surface/30 transition-colors"
                   style={{ borderBottom: '1px solid var(--color-border-default)' }}
                 >
                   <span style={{ color: 'var(--color-text-muted)' }}>
@@ -353,7 +353,7 @@ function BudgetTransactions() {
                     <select
                       value={txn.category_id || ''}
                       onChange={(e) => handleCategoryChange(txn.id, e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-1 py-0.5 bg-transparent border border-transparent hover:border-gray-600 rounded text-xs text-right cursor-pointer truncate"
+                      className="w-full px-1 py-0.5 bg-transparent border border-transparent hover:border rounded text-xs text-right cursor-pointer truncate"
                       style={{ color: 'var(--color-text-secondary)' }}
                     >
                       <option value="">--</option>
@@ -371,7 +371,7 @@ function BudgetTransactions() {
                   <span className="flex justify-end gap-1">
                     <button
                       onClick={() => handleEdit(txn)}
-                      className="p-0.5 rounded hover:bg-gray-700"
+                      className="p-0.5 rounded hover:bg-surface-soft"
                       style={{ color: 'var(--color-text-muted)' }}
                       title="Edit"
                     >
@@ -413,7 +413,7 @@ function BudgetTransactions() {
                     <select
                       value={txn.category_id || ''}
                       onChange={(e) => handleCategoryChange(txn.id, e.target.value ? parseInt(e.target.value) : null)}
-                      className="flex-1 min-w-0 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs cursor-pointer"
+                      className="flex-1 min-w-0 px-2 py-1 bg-surface border border-subtle rounded text-xs cursor-pointer"
                       style={{ color: 'var(--color-text-secondary)' }}
                     >
                       <option value="">Uncategorized</option>
@@ -430,7 +430,7 @@ function BudgetTransactions() {
                     <div className="flex gap-1 flex-shrink-0">
                       <button
                         onClick={() => handleEdit(txn)}
-                        className="p-1 rounded hover:bg-gray-700"
+                        className="p-1 rounded hover:bg-surface-soft"
                         style={{ color: 'var(--color-text-muted)' }}
                         title="Edit"
                       >
@@ -462,7 +462,7 @@ function BudgetTransactions() {
             <button
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0}
-              className="px-2 py-1 text-xs rounded bg-gray-800 disabled:opacity-50"
+              className="px-2 py-1 text-xs rounded bg-surface disabled:opacity-50"
               style={{ color: 'var(--color-text-secondary)' }}
             >
               Prev
@@ -470,7 +470,7 @@ function BudgetTransactions() {
             <button
               onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
               disabled={page >= totalPages - 1}
-              className="px-2 py-1 text-xs rounded bg-gray-800 disabled:opacity-50"
+              className="px-2 py-1 text-xs rounded bg-surface disabled:opacity-50"
               style={{ color: 'var(--color-text-secondary)' }}
             >
               Next

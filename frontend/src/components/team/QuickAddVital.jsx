@@ -71,14 +71,14 @@ function QuickAddVital({ members, onClose, onSuccess, defaultMemberId }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg w-full max-w-[95vw] sm:max-w-md">
+      <div className="bg-surface rounded-lg w-full max-w-[95vw] sm:max-w-md">
         {/* Header */}
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-subtle flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-red-400" />
             <h2 className="text-lg font-semibold text-white">Log Vital</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -92,11 +92,11 @@ function QuickAddVital({ members, onClose, onSuccess, defaultMemberId }) {
 
           {/* Member Selection */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Team Member *</label>
+            <label className="block text-sm text-muted mb-1">Team Member *</label>
             <select
               value={selectedMemberId}
               onChange={(e) => setSelectedMemberId(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+              className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
             >
               <option value="">Select member...</option>
               {members.filter(m => m.is_active !== false).map(m => (
@@ -109,7 +109,7 @@ function QuickAddVital({ members, onClose, onSuccess, defaultMemberId }) {
 
           {/* Vital Type */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Vital Type *</label>
+            <label className="block text-sm text-muted mb-1">Vital Type *</label>
             <select
               value={vitalType}
               onChange={(e) => {
@@ -117,7 +117,7 @@ function QuickAddVital({ members, onClose, onSuccess, defaultMemberId }) {
                 setValue('')
                 setValueSecondary('')
               }}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+              className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
             >
               <option value="">Select vital type...</option>
               {vitalTypes.map(type => (
@@ -133,28 +133,28 @@ function QuickAddVital({ members, onClose, onSuccess, defaultMemberId }) {
             <>
               {isBP ? (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Blood Pressure (mmHg) *</label>
+                  <label className="block text-sm text-muted mb-1">Blood Pressure (mmHg) *</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
                       value={value}
                       onChange={(e) => setValue(e.target.value)}
                       placeholder="120"
-                      className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                      className="flex-1 bg-surface-soft border border rounded px-3 py-2 text-white"
                     />
-                    <span className="text-gray-500">/</span>
+                    <span className="text-muted">/</span>
                     <input
                       type="number"
                       value={valueSecondary}
                       onChange={(e) => setValueSecondary(e.target.value)}
                       placeholder="80"
-                      className="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                      className="flex-1 bg-surface-soft border border rounded px-3 py-2 text-white"
                     />
                   </div>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
+                  <label className="block text-sm text-muted mb-1">
                     Value ({selectedVitalInfo?.unit || ''}) *
                   </label>
                   <input
@@ -163,7 +163,7 @@ function QuickAddVital({ members, onClose, onSuccess, defaultMemberId }) {
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     placeholder={selectedVitalInfo?.placeholder || ''}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   />
                 </div>
               )}
@@ -172,22 +172,22 @@ function QuickAddVital({ members, onClose, onSuccess, defaultMemberId }) {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Optional notes..."
               rows={2}
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+              className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-4 sm:px-6 py-4 border-t border-gray-700 flex justify-end gap-2">
+        <div className="px-4 sm:px-6 py-4 border-t border-subtle flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-400 hover:text-white"
+            className="px-4 py-2 text-muted hover:text-white"
           >
             Cancel
           </button>

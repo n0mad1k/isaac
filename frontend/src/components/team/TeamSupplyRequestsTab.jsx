@@ -19,7 +19,7 @@ function TeamSupplyRequestsTab({ members }) {
   const [editData, setEditData] = useState({})
 
   const priorityOptions = [
-    { value: 'low', label: 'Low', color: 'bg-gray-500' },
+    { value: 'low', label: 'Low', color: 'bg-surface-muted' },
     { value: 'medium', label: 'Medium', color: 'bg-blue-500' },
     { value: 'high', label: 'High', color: 'bg-yellow-500' },
     { value: 'urgent', label: 'Urgent', color: 'bg-red-500' }
@@ -141,13 +141,13 @@ function TeamSupplyRequestsTab({ members }) {
             <Package className="w-5 h-5" />
             Supply Requests ({requests.length})
           </h3>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-muted mt-1">
             Track and manage all team member supply requests
           </p>
         </div>
         <button
           onClick={loadRequests}
-          className="p-2 text-gray-400 hover:text-white rounded hover:bg-gray-700"
+          className="p-2 text-muted hover:text-white rounded hover:bg-surface-soft"
           title="Refresh"
         >
           <RefreshCw className="w-5 h-5" />
@@ -166,12 +166,12 @@ function TeamSupplyRequestsTab({ members }) {
               className={`p-3 rounded-lg text-center transition-colors ${
                 filterStatus === status.value
                   ? status.bgColor + ' ring-2 ring-white/30'
-                  : 'bg-gray-700/50 hover:bg-gray-700'
+                  : 'bg-surface-soft/50 hover:bg-surface-soft'
               }`}
             >
               <StatusIcon className={`w-5 h-5 mx-auto ${status.color}`} />
               <div className="text-xl font-bold mt-1">{count}</div>
-              <div className="text-xs text-gray-400">{status.label}</div>
+              <div className="text-xs text-muted">{status.label}</div>
             </button>
           )
         })}
@@ -196,12 +196,12 @@ function TeamSupplyRequestsTab({ members }) {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <Filter className="w-4 h-4 text-gray-400" />
+        <Filter className="w-4 h-4 text-muted" />
 
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-sm"
+          className="px-3 py-1.5 bg-surface-soft border border rounded text-sm"
         >
           <option value="all">All Status</option>
           {statusOptions.map(opt => (
@@ -212,7 +212,7 @@ function TeamSupplyRequestsTab({ members }) {
         <select
           value={filterPriority}
           onChange={(e) => setFilterPriority(e.target.value)}
-          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-sm"
+          className="px-3 py-1.5 bg-surface-soft border border rounded text-sm"
         >
           <option value="all">All Priority</option>
           {priorityOptions.map(opt => (
@@ -223,7 +223,7 @@ function TeamSupplyRequestsTab({ members }) {
         <select
           value={filterMember}
           onChange={(e) => setFilterMember(e.target.value)}
-          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-sm"
+          className="px-3 py-1.5 bg-surface-soft border border rounded text-sm"
         >
           <option value="all">All Members</option>
           {members.map(m => (
@@ -234,7 +234,7 @@ function TeamSupplyRequestsTab({ members }) {
         {(filterStatus !== 'all' || filterPriority !== 'all' || filterMember !== 'all') && (
           <button
             onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setFilterMember('all'); }}
-            className="text-sm text-gray-400 hover:text-white"
+            className="text-sm text-muted hover:text-white"
           >
             Clear filters
           </button>
@@ -243,7 +243,7 @@ function TeamSupplyRequestsTab({ members }) {
 
       {/* Requests List */}
       {filteredRequests.length === 0 ? (
-        <div className="text-center py-8 text-gray-400 bg-gray-700/50 rounded-lg">
+        <div className="text-center py-8 text-muted bg-surface-soft/50 rounded-lg">
           <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p>No supply requests found</p>
         </div>
@@ -256,11 +256,11 @@ function TeamSupplyRequestsTab({ members }) {
             const isEditing = editingId === request.id
 
             return (
-              <div key={request.id} className="bg-gray-700 rounded-lg p-4">
+              <div key={request.id} className="bg-surface-soft rounded-lg p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     {/* Member Name */}
-                    <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
+                    <div className="flex items-center gap-2 text-sm text-muted mb-1">
                       <User className="w-4 h-4" />
                       <span>{request.member_name || 'Unknown'}</span>
                     </div>
@@ -269,7 +269,7 @@ function TeamSupplyRequestsTab({ members }) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-medium text-white">{request.item_name}</h4>
                       {request.quantity > 1 && (
-                        <span className="text-sm text-gray-400">x{request.quantity}</span>
+                        <span className="text-sm text-muted">x{request.quantity}</span>
                       )}
                       <span className={`px-2 py-0.5 rounded text-xs text-white ${priorityInfo.color}`}>
                         {priorityInfo.label}
@@ -277,11 +277,11 @@ function TeamSupplyRequestsTab({ members }) {
                     </div>
 
                     {request.description && (
-                      <p className="text-sm text-gray-400 mt-1">{request.description}</p>
+                      <p className="text-sm text-muted mt-1">{request.description}</p>
                     )}
 
                     {request.reason && (
-                      <p className="text-sm text-gray-500 mt-1 italic">Reason: {request.reason}</p>
+                      <p className="text-sm text-muted mt-1 italic">Reason: {request.reason}</p>
                     )}
 
                     <div className="flex items-center gap-4 mt-2 text-sm flex-wrap">
@@ -290,7 +290,7 @@ function TeamSupplyRequestsTab({ members }) {
                         <select
                           value={request.status}
                           onChange={(e) => handleStatusChange(request, e.target.value)}
-                          className={`px-2 py-1 rounded text-sm bg-gray-600 border border-gray-500 ${statusInfo.color}`}
+                          className={`px-2 py-1 rounded text-sm bg-surface-hover border border-strong ${statusInfo.color}`}
                         >
                           {statusOptions.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -300,7 +300,7 @@ function TeamSupplyRequestsTab({ members }) {
                         <select
                           value={editData.status}
                           onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                          className="px-2 py-1 rounded text-sm bg-gray-600 border border-gray-500"
+                          className="px-2 py-1 rounded text-sm bg-surface-hover border border-strong"
                         >
                           {statusOptions.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -309,7 +309,7 @@ function TeamSupplyRequestsTab({ members }) {
                       )}
 
                       {request.price && (
-                        <span className="flex items-center gap-1 text-gray-400">
+                        <span className="flex items-center gap-1 text-muted">
                           <DollarSign className="w-4 h-4" />
                           {formatPrice(request.price)}
                           {request.quantity > 1 && (
@@ -319,13 +319,13 @@ function TeamSupplyRequestsTab({ members }) {
                       )}
 
                       {request.category && (
-                        <span className="px-2 py-0.5 bg-gray-600 rounded text-gray-300 text-xs">
+                        <span className="px-2 py-0.5 bg-surface-hover rounded text-secondary text-xs">
                           {request.category}
                         </span>
                       )}
 
                       {request.vendor && (
-                        <span className="text-gray-400 text-xs">From: {request.vendor}</span>
+                        <span className="text-muted text-xs">From: {request.vendor}</span>
                       )}
                     </div>
 
@@ -344,12 +344,12 @@ function TeamSupplyRequestsTab({ members }) {
                     {/* Admin Notes */}
                     {isEditing ? (
                       <div className="mt-3">
-                        <label className="block text-sm text-gray-400 mb-1">Admin Notes</label>
+                        <label className="block text-sm text-muted mb-1">Admin Notes</label>
                         <textarea
                           value={editData.admin_notes}
                           onChange={(e) => setEditData({ ...editData, admin_notes: e.target.value })}
                           rows={2}
-                          className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white text-sm"
+                          className="w-full px-3 py-2 bg-surface-hover border border-strong rounded text-white text-sm"
                           placeholder="Add notes about this request..."
                         />
                         <div className="flex gap-2 mt-2">
@@ -361,16 +361,16 @@ function TeamSupplyRequestsTab({ members }) {
                           </button>
                           <button
                             onClick={() => { setEditingId(null); setEditData({}); }}
-                            className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-500"
+                            className="px-3 py-1 bg-surface-hover text-white rounded text-sm hover:bg-surface-muted"
                           >
                             Cancel
                           </button>
                         </div>
                       </div>
                     ) : request.admin_notes && (
-                      <div className="mt-2 p-2 bg-gray-600 rounded text-sm">
-                        <span className="text-gray-400">Admin notes: </span>
-                        <span className="text-gray-300">{request.admin_notes}</span>
+                      <div className="mt-2 p-2 bg-surface-hover rounded text-sm">
+                        <span className="text-muted">Admin notes: </span>
+                        <span className="text-secondary">{request.admin_notes}</span>
                       </div>
                     )}
                   </div>
@@ -380,14 +380,14 @@ function TeamSupplyRequestsTab({ members }) {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEdit(request)}
-                        className="p-1.5 text-gray-400 hover:text-white"
+                        className="p-1.5 text-muted hover:text-white"
                         title="Edit Notes"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(request.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-400"
+                        className="p-1.5 text-muted hover:text-red-400"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -396,7 +396,7 @@ function TeamSupplyRequestsTab({ members }) {
                   )}
                 </div>
 
-                <div className="text-xs text-gray-500 mt-2">
+                <div className="text-xs text-muted mt-2">
                   Requested {new Date(request.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                 </div>
               </div>

@@ -24,7 +24,7 @@ const ACTIVITY_COLORS = {
   direct_sow: { bg: 'bg-green-900/40', border: 'border-green-500', text: 'text-green-300', label: 'Direct Sow', bar: 'bg-green-500' },
   transplant: { bg: 'bg-yellow-900/40', border: 'border-yellow-500', text: 'text-yellow-300', label: 'Transplant', bar: 'bg-yellow-500' },
   harvest: { bg: 'bg-orange-900/40', border: 'border-orange-500', text: 'text-orange-300', label: 'Harvest', bar: 'bg-orange-500' },
-  other: { bg: 'bg-gray-800/40', border: 'border-gray-500', text: 'text-gray-300', label: 'Other', bar: 'bg-gray-500' },
+  other: { bg: 'bg-surface/40', border: 'border-strong', text: 'text-secondary', label: 'Other', bar: 'bg-surface-muted' },
 }
 
 const STAGE_COLORS = {
@@ -35,7 +35,7 @@ const STAGE_COLORS = {
   flowering: 'bg-pink-600',
   fruiting: 'bg-orange-600',
   harvesting: 'bg-red-600',
-  dormant: 'bg-gray-600',
+  dormant: 'bg-surface-hover',
 }
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -43,7 +43,7 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 const BED_TYPES = [
   { value: 'raised_bed', label: 'Raised Bed', color: 'bg-amber-800' },
   { value: 'in_ground', label: 'In Ground', color: 'bg-green-800' },
-  { value: 'container', label: 'Container', color: 'bg-gray-600' },
+  { value: 'container', label: 'Container', color: 'bg-surface-hover' },
   { value: 'row', label: 'Row', color: 'bg-yellow-900' },
   { value: 'greenhouse', label: 'Greenhouse', color: 'bg-emerald-900' },
 ]
@@ -80,7 +80,7 @@ function OverviewTab({ onSwitchTab }) {
   }
 
   if (!overview) {
-    return <div className="text-gray-400 text-center py-12">Failed to load garden overview</div>
+    return <div className="text-muted text-center py-12">Failed to load garden overview</div>
   }
 
   const { this_month, needs_attention, stats, active_lifecycle, recent_care, frost_dates } = overview
@@ -95,14 +95,14 @@ function OverviewTab({ onSwitchTab }) {
     <div className="space-y-4">
       {/* Frost Dates Banner */}
       {frost_dates && (
-        <div className="flex items-center gap-4 bg-gray-800/50 rounded-lg px-4 py-2 text-sm text-gray-300 flex-wrap">
+        <div className="flex items-center gap-4 bg-surface/50 rounded-lg px-4 py-2 text-sm text-secondary flex-wrap">
           <Snowflake className="w-4 h-4 text-blue-400" />
           <span>Last Frost: <span className="text-white font-medium">{frost_dates.last_frost_date}</span></span>
-          <span className="text-gray-600">|</span>
+          <span className="text-muted">|</span>
           <span>First Frost: <span className="text-white font-medium">{frost_dates.first_frost_date}</span></span>
           {stats?.growing_season && (
             <>
-              <span className="text-gray-600">|</span>
+              <span className="text-muted">|</span>
               <span>Season: <span className="text-green-400 font-medium">{stats.growing_season.progress_pct}%</span></span>
             </>
           )}
@@ -110,7 +110,7 @@ function OverviewTab({ onSwitchTab }) {
       )}
 
       {/* This Month's Activities */}
-      <div className="bg-gray-800/30 rounded-lg p-4">
+      <div className="bg-surface/30 rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-white">{this_month?.name || 'This Month'}</h3>
           <button onClick={() => onSwitchTab('planner')} className="text-sm text-green-400 hover:text-green-300 flex items-center gap-1">
@@ -126,21 +126,21 @@ function OverviewTab({ onSwitchTab }) {
                 <div key={type} className={`${colors.bg} border ${colors.border} rounded-lg p-3`}>
                   <div className={`text-xs font-semibold ${colors.text} mb-2`}>{colors.label}</div>
                   {items.map((item, i) => (
-                    <div key={i} className="text-sm text-gray-200 mb-1">{item.name}</div>
+                    <div key={i} className="text-sm text-primary mb-1">{item.name}</div>
                   ))}
                 </div>
               )
             })}
           </div>
         ) : (
-          <p className="text-gray-500 text-sm">No planting activities this month</p>
+          <p className="text-muted text-sm">No planting activities this month</p>
         )}
       </div>
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Needs Attention */}
-        <div className="bg-gray-800/30 rounded-lg p-4">
+        <div className="bg-surface/30 rounded-lg p-4">
           <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-yellow-400" />
             Needs Attention
@@ -150,49 +150,49 @@ function OverviewTab({ onSwitchTab }) {
               {needs_attention.needs_water?.map((p, i) => (
                 <div key={`w-${i}`} className="flex items-center gap-2 text-sm">
                   <Droplets className="w-4 h-4 text-blue-400" />
-                  <span className="text-gray-200">{p.name}</span>
+                  <span className="text-primary">{p.name}</span>
                   {p.days_overdue > 0 && <span className="text-red-400 text-xs">({p.days_overdue}d overdue)</span>}
                 </div>
               ))}
               {needs_attention.needs_fertilizer?.map((p, i) => (
                 <div key={`f-${i}`} className="flex items-center gap-2 text-sm">
                   <Sun className="w-4 h-4 text-yellow-400" />
-                  <span className="text-gray-200">{p.name}</span>
+                  <span className="text-primary">{p.name}</span>
                   <span className="text-yellow-400 text-xs">(needs fertilizer)</span>
                 </div>
               ))}
               {needs_attention.overdue_events?.map((e, i) => (
                 <div key={`e-${i}`} className="flex items-center gap-2 text-sm">
                   <Calendar className="w-4 h-4 text-red-400" />
-                  <span className="text-gray-200">{e.seed_name} - {ACTIVITY_COLORS[e.activity_type]?.label || e.activity_type}</span>
+                  <span className="text-primary">{e.seed_name} - {ACTIVITY_COLORS[e.activity_type]?.label || e.activity_type}</span>
                   <span className="text-red-400 text-xs">({e.days_overdue}d overdue)</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-sm">Everything looks good!</p>
+            <p className="text-muted text-sm">Everything looks good!</p>
           )}
         </div>
 
         {/* Quick Stats */}
-        <div className="bg-gray-800/30 rounded-lg p-4">
+        <div className="bg-surface/30 rounded-lg p-4">
           <h3 className="text-lg font-semibold text-white mb-3">Quick Stats</h3>
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-700/30 rounded-lg p-3 text-center">
+            <div className="bg-surface-soft/30 rounded-lg p-3 text-center">
               <div className="text-2xl font-bold text-green-400">{stats?.total_plants || 0}</div>
-              <div className="text-xs text-gray-400">Active Plants</div>
+              <div className="text-xs text-muted">Active Plants</div>
             </div>
-            <div className="bg-gray-700/30 rounded-lg p-3 text-center">
+            <div className="bg-surface-soft/30 rounded-lg p-3 text-center">
               <div className="text-2xl font-bold text-emerald-400">{stats?.total_seeds || 0}</div>
-              <div className="text-xs text-gray-400">Seed Varieties</div>
+              <div className="text-xs text-muted">Seed Varieties</div>
             </div>
           </div>
           {stats?.stages && Object.keys(stats.stages).length > 0 && (
             <div className="mt-3">
-              <div className="text-xs text-gray-400 mb-2">By Growth Stage</div>
+              <div className="text-xs text-muted mb-2">By Growth Stage</div>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(stats.stages).map(([stage, count]) => (
-                  <span key={stage} className={`${STAGE_COLORS[stage] || 'bg-gray-600'} text-white text-xs px-2 py-1 rounded-full`}>
+                  <span key={stage} className={`${STAGE_COLORS[stage] || 'bg-surface-hover'} text-white text-xs px-2 py-1 rounded-full`}>
                     {stage}: {count}
                   </span>
                 ))}
@@ -201,14 +201,14 @@ function OverviewTab({ onSwitchTab }) {
           )}
           {stats?.growing_season && (
             <div className="mt-3">
-              <div className="flex justify-between text-xs text-gray-400 mb-1">
+              <div className="flex justify-between text-xs text-muted mb-1">
                 <span>Growing Season</span>
                 <span>{stats.growing_season.progress_pct}%</span>
               </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
+              <div className="w-full bg-surface-soft rounded-full h-2">
                 <div className="bg-green-500 h-2 rounded-full transition-all" style={{ width: `${stats.growing_season.progress_pct}%` }} />
               </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-muted mt-1">
                 <span>{stats.growing_season.days_since_last_frost}d since last frost</span>
                 <span>{stats.growing_season.days_until_first_frost}d until first frost</span>
               </div>
@@ -219,19 +219,19 @@ function OverviewTab({ onSwitchTab }) {
 
       {/* Active Lifecycle */}
       {active_lifecycle && active_lifecycle.length > 0 && (
-        <div className="bg-gray-800/30 rounded-lg p-4">
+        <div className="bg-surface/30 rounded-lg p-4">
           <h3 className="text-lg font-semibold text-white mb-3">Active Lifecycle</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {active_lifecycle.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 bg-gray-700/30 rounded-lg p-2">
-                <span className={`${STAGE_COLORS[p.growth_stage] || 'bg-gray-600'} text-white text-xs px-2 py-0.5 rounded-full`}>
+              <div key={p.id} className="flex items-center gap-3 bg-surface-soft/30 rounded-lg p-2">
+                <span className={`${STAGE_COLORS[p.growth_stage] || 'bg-surface-hover'} text-white text-xs px-2 py-0.5 rounded-full`}>
                   {p.growth_stage}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-gray-200 truncate">{p.name}</div>
-                  {p.seed_name && <div className="text-xs text-gray-500">from: {p.seed_name}</div>}
+                  <div className="text-sm text-primary truncate">{p.name}</div>
+                  {p.seed_name && <div className="text-xs text-muted">from: {p.seed_name}</div>}
                 </div>
-                <div className="text-xs text-gray-500">{p.days_in_stage}d</div>
+                <div className="text-xs text-muted">{p.days_in_stage}d</div>
               </div>
             ))}
           </div>
@@ -240,18 +240,18 @@ function OverviewTab({ onSwitchTab }) {
 
       {/* Recent Activity */}
       {recent_care && recent_care.length > 0 && (
-        <div className="bg-gray-800/30 rounded-lg p-4">
+        <div className="bg-surface/30 rounded-lg p-4">
           <h3 className="text-lg font-semibold text-white mb-3">Recent Activity</h3>
           <div className="space-y-2">
             {recent_care.map((log, i) => (
               <div key={i} className="flex items-center gap-3 text-sm">
-                <span className="text-gray-500 text-xs w-24">
+                <span className="text-muted text-xs w-24">
                   {log.performed_at ? formatDate(log.performed_at) : ''}
                 </span>
-                <span className="text-gray-200">{log.plant_name}</span>
-                <span className="text-gray-400">-</span>
+                <span className="text-primary">{log.plant_name}</span>
+                <span className="text-muted">-</span>
                 <span className="text-green-400">{log.care_type}</span>
-                {log.quantity && <span className="text-gray-500">({log.quantity})</span>}
+                {log.quantity && <span className="text-muted">({log.quantity})</span>}
               </div>
             ))}
           </div>
@@ -406,39 +406,39 @@ function PlannerTab() {
   return (
     <div className="space-y-4">
       {/* Frost Date Banner + View Toggle */}
-      <div className="bg-gray-800/50 rounded-lg px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+      <div className="bg-surface/50 rounded-lg px-4 py-3 flex items-center justify-between flex-wrap gap-2">
         {editingFrost ? (
           <div className="flex items-center gap-3 flex-wrap">
-            <label className="text-sm text-gray-300">
+            <label className="text-sm text-secondary">
               Last Frost:
-              <input type="text" value={frostForm.last_frost_date} onChange={(e) => setFrostForm({ ...frostForm, last_frost_date: e.target.value })} className="ml-2 w-20 bg-gray-700 text-white px-2 py-1 rounded text-sm" placeholder="MM/DD" />
+              <input type="text" value={frostForm.last_frost_date} onChange={(e) => setFrostForm({ ...frostForm, last_frost_date: e.target.value })} className="ml-2 w-20 bg-surface-soft text-white px-2 py-1 rounded text-sm" placeholder="MM/DD" />
             </label>
-            <label className="text-sm text-gray-300">
+            <label className="text-sm text-secondary">
               First Frost:
-              <input type="text" value={frostForm.first_frost_date} onChange={(e) => setFrostForm({ ...frostForm, first_frost_date: e.target.value })} className="ml-2 w-20 bg-gray-700 text-white px-2 py-1 rounded text-sm" placeholder="MM/DD" />
+              <input type="text" value={frostForm.first_frost_date} onChange={(e) => setFrostForm({ ...frostForm, first_frost_date: e.target.value })} className="ml-2 w-20 bg-surface-soft text-white px-2 py-1 rounded text-sm" placeholder="MM/DD" />
             </label>
             <button onClick={handleSaveFrost} className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm">Save</button>
-            <button onClick={() => setEditingFrost(false)} className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm">Cancel</button>
+            <button onClick={() => setEditingFrost(false)} className="px-3 py-1 bg-surface-hover hover:bg-surface-soft text-white rounded text-sm">Cancel</button>
           </div>
         ) : (
-          <div className="flex items-center gap-4 text-sm text-gray-300">
+          <div className="flex items-center gap-4 text-sm text-secondary">
             <Snowflake className="w-4 h-4 text-blue-400" />
             <span>Last Frost: <span className="text-white font-medium">{frostDates?.last_frost_date || '02/15'}</span></span>
-            <span className="text-gray-600">|</span>
+            <span className="text-muted">|</span>
             <span>First Frost: <span className="text-white font-medium">{frostDates?.first_frost_date || '12/15'}</span></span>
-            <span className="text-gray-600">|</span>
+            <span className="text-muted">|</span>
             <span>Zone: <span className="text-white font-medium">{frostDates?.usda_zone || '9b'}</span></span>
           </div>
         )}
         <div className="flex items-center gap-2">
           {!editingFrost && (
-            <button onClick={() => setEditingFrost(true)} className="text-gray-400 hover:text-white"><Pencil className="w-4 h-4" /></button>
+            <button onClick={() => setEditingFrost(true)} className="text-muted hover:text-white"><Pencil className="w-4 h-4" /></button>
           )}
-          <div className="flex bg-gray-700 rounded overflow-hidden">
-            <button onClick={() => setViewMode('calendar')} className={`px-3 py-1 text-xs ${viewMode === 'calendar' ? 'bg-green-600 text-white' : 'text-gray-300 hover:text-white'}`}>
+          <div className="flex bg-surface-soft rounded overflow-hidden">
+            <button onClick={() => setViewMode('calendar')} className={`px-3 py-1 text-xs ${viewMode === 'calendar' ? 'bg-green-600 text-white' : 'text-secondary hover:text-white'}`}>
               <Calendar className="w-3 h-3 inline mr-1" />Calendar
             </button>
-            <button onClick={() => setViewMode('timeline')} className={`px-3 py-1 text-xs ${viewMode === 'timeline' ? 'bg-green-600 text-white' : 'text-gray-300 hover:text-white'}`}>
+            <button onClick={() => setViewMode('timeline')} className={`px-3 py-1 text-xs ${viewMode === 'timeline' ? 'bg-green-600 text-white' : 'text-secondary hover:text-white'}`}>
               <BarChart3 className="w-3 h-3 inline mr-1" />Timeline
             </button>
           </div>
@@ -455,10 +455,10 @@ function PlannerTab() {
             const hasContent = Object.values(month.activities).some(a => a.length > 0) || monthEvents.length > 0
 
             return (
-              <div key={month.month} className={`bg-gray-800/40 rounded-lg overflow-hidden border ${isCurrent ? 'border-green-500 ring-1 ring-green-500/30' : isFrostMonth ? 'border-blue-800/50' : 'border-gray-700/50'}`}>
+              <div key={month.month} className={`bg-surface/40 rounded-lg overflow-hidden border ${isCurrent ? 'border-green-500 ring-1 ring-green-500/30' : isFrostMonth ? 'border-blue-800/50' : 'border-subtle/50'}`}>
                 <div className={`px-3 py-2 flex items-center justify-between ${isFrostMonth ? 'bg-blue-900/30' : 'bg-green-900/20'}`}>
-                  <span className={`font-semibold text-sm ${isCurrent ? 'text-green-400' : 'text-gray-200'}`}>{month.name}</span>
-                  <button onClick={() => openAddEvent(month.month)} className="text-gray-500 hover:text-green-400 transition-colors" title="Add planting event">
+                  <span className={`font-semibold text-sm ${isCurrent ? 'text-green-400' : 'text-primary'}`}>{month.name}</span>
+                  <button onClick={() => openAddEvent(month.month)} className="text-muted hover:text-green-400 transition-colors" title="Add planting event">
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
@@ -472,7 +472,7 @@ function PlannerTab() {
                           <div key={type}>
                             <div className={`text-xs font-semibold ${colors.text} mb-1`}>{colors.label}</div>
                             {items.map((item, i) => (
-                              <div key={i} className={`text-xs text-gray-300 pl-2 border-l-2 ${colors.border} mb-1`}>{item.name}</div>
+                              <div key={i} className={`text-xs text-secondary pl-2 border-l-2 ${colors.border} mb-1`}>{item.name}</div>
                             ))}
                           </div>
                         )
@@ -482,11 +482,11 @@ function PlannerTab() {
                         return (
                           <div key={evt.id} className={`${colors.bg} border ${colors.border} rounded p-2 flex items-center justify-between ${evt.is_completed ? 'opacity-50' : ''}`}>
                             <div>
-                              <div className="text-xs text-gray-200">
+                              <div className="text-xs text-primary">
                                 {evt.seed_name} - {colors.label}
-                                {evt.succession_number && <span className="text-gray-500 ml-1">(#{evt.succession_number})</span>}
+                                {evt.succession_number && <span className="text-muted ml-1">(#{evt.succession_number})</span>}
                               </div>
-                              {evt.notes && <div className="text-xs text-gray-400">{evt.notes}</div>}
+                              {evt.notes && <div className="text-xs text-muted">{evt.notes}</div>}
                             </div>
                             <div className="flex gap-1 flex-shrink-0">
                               {!evt.is_completed && (
@@ -499,7 +499,7 @@ function PlannerTab() {
                       })}
                     </>
                   ) : (
-                    <p className="text-xs text-gray-600 italic">No activities</p>
+                    <p className="text-xs text-muted italic">No activities</p>
                   )}
                 </div>
               </div>
@@ -510,14 +510,14 @@ function PlannerTab() {
 
       {/* Timeline View (Gantt-style) */}
       {viewMode === 'timeline' && (
-        <div className="bg-gray-800/30 rounded-lg p-4 overflow-x-auto">
+        <div className="bg-surface/30 rounded-lg p-4 overflow-x-auto">
           <div className="min-w-[800px]">
             {/* Month headers */}
-            <div className="flex border-b border-gray-700 pb-2 mb-2">
-              <div className="w-40 flex-shrink-0 text-sm font-medium text-gray-400">Crop</div>
+            <div className="flex border-b border-subtle pb-2 mb-2">
+              <div className="w-40 flex-shrink-0 text-sm font-medium text-muted">Crop</div>
               <div className="flex-1 grid grid-cols-12 gap-0">
                 {MONTH_NAMES.map((m, i) => (
-                  <div key={i} className={`text-center text-xs ${i + 1 === currentMonth ? 'text-green-400 font-bold' : 'text-gray-500'}`}>
+                  <div key={i} className={`text-center text-xs ${i + 1 === currentMonth ? 'text-green-400 font-bold' : 'text-muted'}`}>
                     {m}
                   </div>
                 ))}
@@ -536,8 +536,8 @@ function PlannerTab() {
             </div>
             {/* Crop rows */}
             {buildTimelineData().map((crop, idx) => (
-              <div key={idx} className="flex items-center border-b border-gray-800 py-1 hover:bg-gray-800/30">
-                <div className="w-40 flex-shrink-0 text-xs text-gray-300 truncate pr-2">{crop.name}</div>
+              <div key={idx} className="flex items-center border-b border-subtle py-1 hover:bg-surface/30">
+                <div className="w-40 flex-shrink-0 text-xs text-secondary truncate pr-2">{crop.name}</div>
                 <div className="flex-1 grid grid-cols-12 gap-0">
                   {Array.from({ length: 12 }, (_, i) => {
                     const m = i + 1
@@ -546,7 +546,7 @@ function PlannerTab() {
                     // Show the highest priority type
                     const priority = ['start_indoors', 'direct_sow', 'transplant', 'harvest']
                     const topType = priority.find(t => types.includes(t)) || types[0]
-                    const color = ACTIVITY_COLORS[topType]?.bar || 'bg-gray-500'
+                    const color = ACTIVITY_COLORS[topType]?.bar || 'bg-surface-muted'
                     return (
                       <div key={i} className="h-6 px-0.5">
                         <div className={`${color} h-full rounded-sm opacity-80`} title={`${crop.name}: ${types.map(t => ACTIVITY_COLORS[t]?.label || t).join(', ')}`} />
@@ -557,12 +557,12 @@ function PlannerTab() {
               </div>
             ))}
             {buildTimelineData().length === 0 && (
-              <p className="text-gray-500 text-sm text-center py-4">Add seeds with planting data to see the timeline</p>
+              <p className="text-muted text-sm text-center py-4">Add seeds with planting data to see the timeline</p>
             )}
             {/* Legend */}
-            <div className="flex gap-4 mt-3 pt-2 border-t border-gray-700">
+            <div className="flex gap-4 mt-3 pt-2 border-t border-subtle">
               {Object.entries(ACTIVITY_COLORS).filter(([k]) => k !== 'other').map(([key, val]) => (
-                <div key={key} className="flex items-center gap-1.5 text-xs text-gray-400">
+                <div key={key} className="flex items-center gap-1.5 text-xs text-muted">
                   <div className={`w-3 h-3 rounded-sm ${val.bar}`} />
                   {val.label}
                 </div>
@@ -575,54 +575,54 @@ function PlannerTab() {
       {/* Add Event Modal */}
       {showAddEvent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => { setShowAddEvent(null); setSuccessionMode(false) }}>
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">Add Planting Event</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Seed</label>
-                <select value={eventForm.seed_id} onChange={(e) => setEventForm({ ...eventForm, seed_id: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded">
+                <label className="block text-sm text-secondary mb-1">Seed</label>
+                <select value={eventForm.seed_id} onChange={(e) => setEventForm({ ...eventForm, seed_id: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded">
                   <option value="">Select a seed...</option>
                   {seedList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Activity</label>
-                <select value={eventForm.activity_type} onChange={(e) => setEventForm({ ...eventForm, activity_type: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded">
+                <label className="block text-sm text-secondary mb-1">Activity</label>
+                <select value={eventForm.activity_type} onChange={(e) => setEventForm({ ...eventForm, activity_type: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded">
                   {Object.entries(ACTIVITY_COLORS).map(([key, val]) => <option key={key} value={key}>{val.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-300 mb-1">{successionMode ? 'First Date' : 'Date'}</label>
-                <input type="date" value={eventForm.start_date} onChange={(e) => setEventForm({ ...eventForm, start_date: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" />
+                <label className="block text-sm text-secondary mb-1">{successionMode ? 'First Date' : 'Date'}</label>
+                <input type="date" value={eventForm.start_date} onChange={(e) => setEventForm({ ...eventForm, start_date: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" />
               </div>
 
               {/* Succession Planting Toggle */}
               <div className="flex items-center gap-2 pt-1">
-                <input type="checkbox" id="succession-toggle" checked={successionMode} onChange={(e) => setSuccessionMode(e.target.checked)} className="rounded border-gray-600 bg-gray-800 text-green-500" />
-                <label htmlFor="succession-toggle" className="text-sm text-gray-300 flex items-center gap-1">
+                <input type="checkbox" id="succession-toggle" checked={successionMode} onChange={(e) => setSuccessionMode(e.target.checked)} className="rounded border bg-surface text-green-500" />
+                <label htmlFor="succession-toggle" className="text-sm text-secondary flex items-center gap-1">
                   <Repeat className="w-3 h-3" /> Succession Planting
                 </label>
               </div>
 
               {successionMode && (
-                <div className="bg-gray-700/30 rounded-lg p-3 space-y-3">
+                <div className="bg-surface-soft/30 rounded-lg p-3 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">Every N weeks</label>
-                      <select value={successionForm.interval_weeks} onChange={(e) => setSuccessionForm({ ...successionForm, interval_weeks: parseInt(e.target.value) })} className="w-full bg-gray-700 text-white px-2 py-1.5 rounded text-sm">
+                      <label className="block text-xs text-muted mb-1">Every N weeks</label>
+                      <select value={successionForm.interval_weeks} onChange={(e) => setSuccessionForm({ ...successionForm, interval_weeks: parseInt(e.target.value) })} className="w-full bg-surface-soft text-white px-2 py-1.5 rounded text-sm">
                         {[1, 2, 3, 4, 6, 8].map(w => <option key={w} value={w}>{w} week{w > 1 ? 's' : ''}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-400 mb-1">How many plantings</label>
-                      <select value={successionForm.num_plantings} onChange={(e) => setSuccessionForm({ ...successionForm, num_plantings: parseInt(e.target.value) })} className="w-full bg-gray-700 text-white px-2 py-1.5 rounded text-sm">
+                      <label className="block text-xs text-muted mb-1">How many plantings</label>
+                      <select value={successionForm.num_plantings} onChange={(e) => setSuccessionForm({ ...successionForm, num_plantings: parseInt(e.target.value) })} className="w-full bg-surface-soft text-white px-2 py-1.5 rounded text-sm">
                         {[2, 3, 4, 5, 6, 8, 10, 12].map(n => <option key={n} value={n}>{n} plantings</option>)}
                       </select>
                     </div>
                   </div>
                   {eventForm.start_date && (
-                    <div className="text-xs text-gray-400">
-                      <span className="text-gray-500">Preview: </span>
+                    <div className="text-xs text-muted">
+                      <span className="text-muted">Preview: </span>
                       {getSuccessionPreview().join(' → ')}
                     </div>
                   )}
@@ -630,15 +630,15 @@ function PlannerTab() {
               )}
 
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Notes</label>
-                <textarea value={eventForm.notes} onChange={(e) => setEventForm({ ...eventForm, notes: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" rows={2} placeholder="Optional notes..." />
+                <label className="block text-sm text-secondary mb-1">Notes</label>
+                <textarea value={eventForm.notes} onChange={(e) => setEventForm({ ...eventForm, notes: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" rows={2} placeholder="Optional notes..." />
               </div>
             </div>
             <div className="flex gap-2 mt-4">
               <button onClick={handleAddEvent} disabled={!eventForm.seed_id || !eventForm.start_date} className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded font-medium">
                 {successionMode ? `Create ${successionForm.num_plantings} Events` : 'Add Event'}
               </button>
-              <button onClick={() => { setShowAddEvent(null); setSuccessionMode(false) }} className="px-4 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded">Cancel</button>
+              <button onClick={() => { setShowAddEvent(null); setSuccessionMode(false) }} className="px-4 bg-surface-hover hover:bg-surface-soft text-white py-2 rounded">Cancel</button>
             </div>
           </div>
         </div>
@@ -745,11 +745,11 @@ function JournalTab() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex gap-2 flex-wrap">
-          <select value={filterPlant} onChange={(e) => { setFilterPlant(e.target.value); setTimeout(loadData, 0) }} className="bg-gray-700 text-white px-2 py-1.5 rounded text-sm">
+          <select value={filterPlant} onChange={(e) => { setFilterPlant(e.target.value); setTimeout(loadData, 0) }} className="bg-surface-soft text-white px-2 py-1.5 rounded text-sm">
             <option value="">All Plants</option>
             {plants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <select value={filterSeed} onChange={(e) => { setFilterSeed(e.target.value); setTimeout(loadData, 0) }} className="bg-gray-700 text-white px-2 py-1.5 rounded text-sm">
+          <select value={filterSeed} onChange={(e) => { setFilterSeed(e.target.value); setTimeout(loadData, 0) }} className="bg-surface-soft text-white px-2 py-1.5 rounded text-sm">
             <option value="">All Seeds</option>
             {seeds.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -761,20 +761,20 @@ function JournalTab() {
 
       {/* Entries */}
       {entries.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+        <div className="text-center py-12 text-muted">
+          <BookOpen className="w-12 h-12 mx-auto mb-3 text-muted" />
           <p>No journal entries yet</p>
           <p className="text-sm mt-1">Document your garden observations, notes, and progress</p>
         </div>
       ) : (
         <div className="space-y-3">
           {entries.map((entry) => (
-            <div key={entry.id} className="bg-gray-800/40 rounded-lg border border-gray-700/50 overflow-hidden">
+            <div key={entry.id} className="bg-surface/40 rounded-lg border border-subtle/50 overflow-hidden">
               <div className="p-4 cursor-pointer" onClick={() => setExpandedId(expandedId === entry.id ? null : entry.id)}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-gray-500">{formatDate(entry.entry_date)}</span>
+                      <span className="text-xs text-muted">{formatDate(entry.entry_date)}</span>
                       <h3 className="font-medium text-white">{entry.title}</h3>
                       {entry.plant_name && (
                         <span className="text-xs bg-green-900/40 text-green-300 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -787,11 +787,11 @@ function JournalTab() {
                         </span>
                       )}
                       {entry.tags && entry.tags.split(',').map((tag, i) => (
-                        <span key={i} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">{tag.trim()}</span>
+                        <span key={i} className="text-xs bg-surface-soft text-secondary px-2 py-0.5 rounded-full">{tag.trim()}</span>
                       ))}
                     </div>
                     {!expandedId !== entry.id && entry.content && (
-                      <p className="text-sm text-gray-400 mt-1 line-clamp-2">{entry.content}</p>
+                      <p className="text-sm text-muted mt-1 line-clamp-2">{entry.content}</p>
                     )}
                   </div>
                   {entry.photo_path && (
@@ -800,8 +800,8 @@ function JournalTab() {
                 </div>
               </div>
               {expandedId === entry.id && (
-                <div className="px-4 pb-4 border-t border-gray-700 pt-3">
-                  {entry.content && <p className="text-sm text-gray-300 whitespace-pre-wrap mb-3">{entry.content}</p>}
+                <div className="px-4 pb-4 border-t border-subtle pt-3">
+                  {entry.content && <p className="text-sm text-secondary whitespace-pre-wrap mb-3">{entry.content}</p>}
                   {entry.photo_path && (
                     <img src={getJournalPhotoUrl(entry.photo_path)} alt="" className="max-h-64 rounded-lg object-contain mb-3" />
                   )}
@@ -815,7 +815,7 @@ function JournalTab() {
                       input.accept = 'image/*'
                       input.onchange = (e) => { if (e.target.files[0]) handlePhotoUpload(entry.id, e.target.files[0]) }
                       input.click()
-                    }} className="px-2 py-1 bg-gray-600/50 hover:bg-gray-600 rounded text-xs text-white flex items-center gap-1">
+                    }} className="px-2 py-1 bg-surface-hover/50 hover:bg-surface-hover rounded text-xs text-white flex items-center gap-1">
                       <Camera className="w-3 h-3" /> Photo
                     </button>
                     <button onClick={() => handleDelete(entry.id)} className="px-2 py-1 bg-red-600/50 hover:bg-red-600 rounded text-xs text-white flex items-center gap-1 ml-auto">
@@ -832,49 +832,49 @@ function JournalTab() {
       {/* Add/Edit Entry Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowForm(false)}>
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">{editingId ? 'Edit Entry' : 'New Journal Entry'}</h3>
             <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Title</label>
-                  <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" placeholder="Entry title..." />
+                  <label className="block text-sm text-secondary mb-1">Title</label>
+                  <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" placeholder="Entry title..." />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Date</label>
-                  <input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" />
+                  <label className="block text-sm text-secondary mb-1">Date</label>
+                  <input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Content</label>
-                <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" rows={5} placeholder="Your observations, notes, progress..." />
+                <label className="block text-sm text-secondary mb-1">Content</label>
+                <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" rows={5} placeholder="Your observations, notes, progress..." />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Link to Plant</label>
-                  <select value={form.plant_id} onChange={(e) => setForm({ ...form, plant_id: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded">
+                  <label className="block text-sm text-secondary mb-1">Link to Plant</label>
+                  <select value={form.plant_id} onChange={(e) => setForm({ ...form, plant_id: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded">
                     <option value="">None</option>
                     {plants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Link to Seed</label>
-                  <select value={form.seed_id} onChange={(e) => setForm({ ...form, seed_id: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded">
+                  <label className="block text-sm text-secondary mb-1">Link to Seed</label>
+                  <select value={form.seed_id} onChange={(e) => setForm({ ...form, seed_id: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded">
                     <option value="">None</option>
                     {seeds.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Tags (comma separated)</label>
-                <input type="text" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" placeholder="transplant, tomato, greenhouse" />
+                <label className="block text-sm text-secondary mb-1">Tags (comma separated)</label>
+                <input type="text" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" placeholder="transplant, tomato, greenhouse" />
               </div>
             </div>
             <div className="flex gap-2 mt-4">
               <button onClick={handleSave} disabled={!form.title.trim()} className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded font-medium">
                 {editingId ? 'Save Changes' : 'Create Entry'}
               </button>
-              <button onClick={() => setShowForm(false)} className="px-4 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded">Cancel</button>
+              <button onClick={() => setShowForm(false)} className="px-4 bg-surface-hover hover:bg-surface-soft text-white py-2 rounded">Cancel</button>
             </div>
           </div>
         </div>
@@ -910,7 +910,7 @@ function CompanionTab() {
   }
 
   if (!chart) {
-    return <div className="text-gray-400 text-center py-12">Failed to load companion planting data</div>
+    return <div className="text-muted text-center py-12">Failed to load companion planting data</div>
   }
 
   const plantNames = Object.keys(chart).sort()
@@ -921,27 +921,27 @@ function CompanionTab() {
     <div className="space-y-4">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search plants..."
-          className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
+          className="w-full pl-10 pr-4 py-2 bg-surface border border-subtle rounded-lg text-white text-sm"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Plant list */}
-        <div className="lg:col-span-1 bg-gray-800/30 rounded-lg p-3 max-h-[600px] overflow-y-auto">
-          <h4 className="text-sm font-medium text-gray-400 mb-2">Plants ({filtered.length})</h4>
+        <div className="lg:col-span-1 bg-surface/30 rounded-lg p-3 max-h-[600px] overflow-y-auto">
+          <h4 className="text-sm font-medium text-muted mb-2">Plants ({filtered.length})</h4>
           <div className="space-y-1">
             {filtered.map(name => (
               <button
                 key={name}
                 onClick={() => setSelected(name)}
                 className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                  selected === name ? 'bg-green-600 text-white' : 'text-gray-300 hover:bg-gray-700'
+                  selected === name ? 'bg-green-600 text-white' : 'text-secondary hover:bg-surface-soft'
                 }`}
               >
                 {name.charAt(0).toUpperCase() + name.slice(1)}
@@ -956,7 +956,7 @@ function CompanionTab() {
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-white capitalize">{selected}</h3>
               {selectedData.notes && (
-                <p className="text-sm text-gray-400 italic">{selectedData.notes}</p>
+                <p className="text-sm text-muted italic">{selectedData.notes}</p>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-4">
@@ -974,7 +974,7 @@ function CompanionTab() {
                       </button>
                     ))}
                     {(!selectedData.companions || selectedData.companions.length === 0) && (
-                      <span className="text-sm text-gray-500">No known companions</span>
+                      <span className="text-sm text-muted">No known companions</span>
                     )}
                   </div>
                 </div>
@@ -993,15 +993,15 @@ function CompanionTab() {
                       </button>
                     ))}
                     {(!selectedData.antagonists || selectedData.antagonists.length === 0) && (
-                      <span className="text-sm text-gray-500">No known antagonists</span>
+                      <span className="text-sm text-muted">No known antagonists</span>
                     )}
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              <Leaf className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+            <div className="text-center py-12 text-muted">
+              <Leaf className="w-12 h-12 mx-auto mb-3 text-muted" />
               <p>Select a plant to see companion planting info</p>
             </div>
           )}
@@ -1120,8 +1120,8 @@ function LayoutTab() {
       </div>
 
       {beds.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <Grid3X3 className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+        <div className="text-center py-12 text-muted">
+          <Grid3X3 className="w-12 h-12 mx-auto mb-3 text-muted" />
           <p>No garden beds yet</p>
           <p className="text-sm mt-1">Create beds to plan what goes where</p>
         </div>
@@ -1137,14 +1137,14 @@ function LayoutTab() {
                   key={bed.id}
                   onClick={() => setSelectedBed(bed)}
                   className={`p-3 rounded-lg cursor-pointer transition-colors border ${
-                    isSelected ? 'border-green-500 bg-gray-800' : 'border-gray-700/50 bg-gray-800/40 hover:bg-gray-800/60'
+                    isSelected ? 'border-green-500 bg-surface' : 'border-subtle/50 bg-surface/40 hover:bg-surface/60'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="font-medium text-white text-sm">{bed.name}</div>
-                      <div className="text-xs text-gray-500">{typeInfo.label} - {bed.width_inches}"x{bed.length_inches}"</div>
-                      <div className="text-xs text-gray-500">{bed.plantings?.length || 0} plantings</div>
+                      <div className="text-xs text-muted">{typeInfo.label} - {bed.width_inches}"x{bed.length_inches}"</div>
+                      <div className="text-xs text-muted">{bed.plantings?.length || 0} plantings</div>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); handleDeleteBed(bed.id) }} className="text-red-400 hover:text-red-300 p-1">
                       <Trash2 className="w-3.5 h-3.5" />
@@ -1158,11 +1158,11 @@ function LayoutTab() {
           {/* Bed detail / grid view */}
           <div className="lg:col-span-2">
             {currentBed ? (
-              <div className="bg-gray-800/30 rounded-lg p-4 space-y-4">
+              <div className="bg-surface/30 rounded-lg p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-lg font-medium text-white">{currentBed.name}</h4>
-                    <p className="text-sm text-gray-500">{currentBed.width_inches}"x{currentBed.length_inches}" - {gridCols} cols x {gridRows} rows ({currentBed.plant_spacing_inches || 12}" spacing)</p>
+                    <p className="text-sm text-muted">{currentBed.width_inches}"x{currentBed.length_inches}" - {gridCols} cols x {gridRows} rows ({currentBed.plant_spacing_inches || 12}" spacing)</p>
                   </div>
                   <button onClick={() => setShowAddPlanting(true)} className="px-3 py-1.5 bg-green-600/80 hover:bg-green-600 rounded text-sm text-white flex items-center gap-1">
                     <Plus className="w-3 h-3" /> Add Plant
@@ -1184,7 +1184,7 @@ function LayoutTab() {
                           className={`w-10 h-10 rounded flex items-center justify-center text-xs cursor-pointer transition-colors ${
                             planting
                               ? 'bg-green-700/60 hover:bg-green-600/60 text-white'
-                              : 'bg-gray-800/50 hover:bg-gray-700/50 text-gray-600'
+                              : 'bg-surface/50 hover:bg-surface-soft/50 text-muted'
                           }`}
                           title={planting ? `${name} (${row},${col})` : `Empty (${row},${col})`}
                           onClick={() => {
@@ -1207,12 +1207,12 @@ function LayoutTab() {
                 {/* Plantings list */}
                 {currentBed.plantings && currentBed.plantings.length > 0 && (
                   <div>
-                    <h5 className="text-sm font-medium text-gray-400 mb-2">Planted in this bed</h5>
+                    <h5 className="text-sm font-medium text-muted mb-2">Planted in this bed</h5>
                     <div className="flex flex-wrap gap-2">
                       {currentBed.plantings.map(p => (
-                        <div key={p.id} className="flex items-center gap-1 bg-gray-700/50 rounded-full px-3 py-1 text-sm">
-                          <span className="text-gray-200">{p.seed_name || p.plant_name}</span>
-                          <span className="text-gray-500 text-xs">({p.grid_row},{p.grid_col})</span>
+                        <div key={p.id} className="flex items-center gap-1 bg-surface-soft/50 rounded-full px-3 py-1 text-sm">
+                          <span className="text-primary">{p.seed_name || p.plant_name}</span>
+                          <span className="text-muted text-xs">({p.grid_row},{p.grid_col})</span>
                           <button onClick={() => handleRemovePlanting(p.id)} className="text-red-400 hover:text-red-300 ml-1">
                             <X className="w-3 h-3" />
                           </button>
@@ -1224,8 +1224,8 @@ function LayoutTab() {
 
                 {/* Companion info */}
                 {companions && (
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <h5 className="text-sm font-medium text-gray-400 mb-2">Companion Info</h5>
+                  <div className="bg-surface/50 rounded-lg p-3">
+                    <h5 className="text-sm font-medium text-muted mb-2">Companion Info</h5>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {companions.companions?.length > 0 && (
                         <div>
@@ -1252,7 +1252,7 @@ function LayoutTab() {
                 )}
               </div>
             ) : (
-              <div className="text-center py-12 text-gray-500 bg-gray-800/20 rounded-lg">
+              <div className="text-center py-12 text-muted bg-surface/20 rounded-lg">
                 <p>Select a bed to view and manage plantings</p>
               </div>
             )}
@@ -1263,33 +1263,33 @@ function LayoutTab() {
       {/* Add Bed Modal */}
       {showAddBed && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddBed(false)}>
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">New Garden Bed</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Name</label>
-                <input type="text" value={bedForm.name} onChange={(e) => setBedForm({ ...bedForm, name: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" placeholder="e.g., Raised Bed A" />
+                <label className="block text-sm text-secondary mb-1">Name</label>
+                <input type="text" value={bedForm.name} onChange={(e) => setBedForm({ ...bedForm, name: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" placeholder="e.g., Raised Bed A" />
               </div>
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Type</label>
-                <select value={bedForm.bed_type} onChange={(e) => setBedForm({ ...bedForm, bed_type: e.target.value })} className="w-full bg-gray-700 text-white px-3 py-2 rounded">
+                <label className="block text-sm text-secondary mb-1">Type</label>
+                <select value={bedForm.bed_type} onChange={(e) => setBedForm({ ...bedForm, bed_type: e.target.value })} className="w-full bg-surface-soft text-white px-3 py-2 rounded">
                   {BED_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Width (inches)</label>
-                  <input type="number" value={bedForm.width_inches} onChange={(e) => setBedForm({ ...bedForm, width_inches: parseInt(e.target.value) || 48 })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" />
+                  <label className="block text-sm text-secondary mb-1">Width (inches)</label>
+                  <input type="number" value={bedForm.width_inches} onChange={(e) => setBedForm({ ...bedForm, width_inches: parseInt(e.target.value) || 48 })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Length (inches)</label>
-                  <input type="number" value={bedForm.length_inches} onChange={(e) => setBedForm({ ...bedForm, length_inches: parseInt(e.target.value) || 96 })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" />
+                  <label className="block text-sm text-secondary mb-1">Length (inches)</label>
+                  <input type="number" value={bedForm.length_inches} onChange={(e) => setBedForm({ ...bedForm, length_inches: parseInt(e.target.value) || 96 })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" />
                 </div>
               </div>
             </div>
             <div className="flex gap-2 mt-4">
               <button onClick={handleCreateBed} disabled={!bedForm.name.trim()} className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded font-medium">Create Bed</button>
-              <button onClick={() => setShowAddBed(false)} className="px-4 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded">Cancel</button>
+              <button onClick={() => setShowAddBed(false)} className="px-4 bg-surface-hover hover:bg-surface-soft text-white py-2 rounded">Cancel</button>
             </div>
           </div>
         </div>
@@ -1298,38 +1298,38 @@ function LayoutTab() {
       {/* Add Planting Modal */}
       {showAddPlanting && selectedBed && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddPlanting(false)}>
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">Add Plant to {selectedBed.name}</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Seed</label>
-                <select value={plantingForm.seed_id} onChange={(e) => setPlantingForm({ ...plantingForm, seed_id: e.target.value, plant_id: '' })} className="w-full bg-gray-700 text-white px-3 py-2 rounded">
+                <label className="block text-sm text-secondary mb-1">Seed</label>
+                <select value={plantingForm.seed_id} onChange={(e) => setPlantingForm({ ...plantingForm, seed_id: e.target.value, plant_id: '' })} className="w-full bg-surface-soft text-white px-3 py-2 rounded">
                   <option value="">Select a seed...</option>
                   {seedList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-              <div className="text-center text-xs text-gray-500">— or —</div>
+              <div className="text-center text-xs text-muted">— or —</div>
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Existing Plant</label>
-                <select value={plantingForm.plant_id} onChange={(e) => setPlantingForm({ ...plantingForm, plant_id: e.target.value, seed_id: '' })} className="w-full bg-gray-700 text-white px-3 py-2 rounded">
+                <label className="block text-sm text-secondary mb-1">Existing Plant</label>
+                <select value={plantingForm.plant_id} onChange={(e) => setPlantingForm({ ...plantingForm, plant_id: e.target.value, seed_id: '' })} className="w-full bg-surface-soft text-white px-3 py-2 rounded">
                   <option value="">Select a plant...</option>
                   {plantList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Grid Row</label>
-                  <input type="number" min="0" max={gridRows - 1} value={plantingForm.grid_row} onChange={(e) => setPlantingForm({ ...plantingForm, grid_row: parseInt(e.target.value) || 0 })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" />
+                  <label className="block text-sm text-secondary mb-1">Grid Row</label>
+                  <input type="number" min="0" max={gridRows - 1} value={plantingForm.grid_row} onChange={(e) => setPlantingForm({ ...plantingForm, grid_row: parseInt(e.target.value) || 0 })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-300 mb-1">Grid Col</label>
-                  <input type="number" min="0" max={gridCols - 1} value={plantingForm.grid_col} onChange={(e) => setPlantingForm({ ...plantingForm, grid_col: parseInt(e.target.value) || 0 })} className="w-full bg-gray-700 text-white px-3 py-2 rounded" />
+                  <label className="block text-sm text-secondary mb-1">Grid Col</label>
+                  <input type="number" min="0" max={gridCols - 1} value={plantingForm.grid_col} onChange={(e) => setPlantingForm({ ...plantingForm, grid_col: parseInt(e.target.value) || 0 })} className="w-full bg-surface-soft text-white px-3 py-2 rounded" />
                 </div>
               </div>
             </div>
             <div className="flex gap-2 mt-4">
               <button onClick={handleAddPlanting} disabled={!plantingForm.seed_id && !plantingForm.plant_id} className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded font-medium">Add to Bed</button>
-              <button onClick={() => setShowAddPlanting(false)} className="px-4 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded">Cancel</button>
+              <button onClick={() => setShowAddPlanting(false)} className="px-4 bg-surface-hover hover:bg-surface-soft text-white py-2 rounded">Cancel</button>
             </div>
           </div>
         </div>
@@ -1364,7 +1364,7 @@ function Garden() {
   return (
     <div>
       {/* Tab bar - scrollable on mobile, icons only on small screens */}
-      <div className="flex gap-1 mb-4 border-b border-gray-700 pb-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="flex gap-1 mb-4 border-b border-subtle pb-1 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         {tabs.map((tab) => {
           const Icon = tab.icon
           return (
@@ -1374,8 +1374,8 @@ function Garden() {
               title={tab.label}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 min-h-[44px] ${
                 activeTab === tab.id
-                  ? 'bg-gray-800 text-green-400 border-b-2 border-green-400'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                  ? 'bg-surface text-green-400 border-b-2 border-green-400'
+                  : 'text-muted hover:text-primary hover:bg-surface/50'
               }`}
             >
               <Icon className="w-5 h-5" />

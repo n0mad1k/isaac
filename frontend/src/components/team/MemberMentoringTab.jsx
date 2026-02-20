@@ -127,12 +127,12 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
 
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-800 rounded-lg w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className="bg-surface rounded-lg w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b border-subtle">
             <h3 className="font-semibold text-lg">
               {session ? 'Edit Mentoring Session' : 'New Mentoring Session'} - {member.name}
             </h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-white">
+            <button onClick={onClose} className="text-muted hover:text-white">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -147,31 +147,31 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
             {/* Session Info */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Session Date</label>
+                <label className="block text-sm text-muted mb-1">Session Date</label>
                 <input
                   type="date"
                   value={formData.session_date}
                   onChange={e => setFormData(prev => ({ ...prev, session_date: e.target.value }))}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Week Number</label>
+                <label className="block text-sm text-muted mb-1">Week Number</label>
                 <input
                   type="number"
                   value={formData.week_number}
                   onChange={e => setFormData(prev => ({ ...prev, week_number: parseInt(e.target.value) }))}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                 />
               </div>
             </div>
 
             {/* Previous Goals Review */}
             {sessions.length > 0 && (
-              <div className="bg-gray-700 rounded-lg p-4">
+              <div className="bg-surface-soft rounded-lg p-4">
                 <h4 className="font-medium mb-3">Previous Goals Review</h4>
                 <div className="mb-3">
-                  <label className="block text-sm text-gray-400 mb-1">Did member meet previous goals?</label>
+                  <label className="block text-sm text-muted mb-1">Did member meet previous goals?</label>
                   <div className="flex gap-4">
                     {['YES', 'PARTIAL', 'NO'].map(option => (
                       <label key={option} className="flex items-center gap-2 cursor-pointer">
@@ -188,12 +188,12 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Notes on Previous Goals</label>
+                  <label className="block text-sm text-muted mb-1">Notes on Previous Goals</label>
                   <textarea
                     value={formData.previous_goals_review}
                     onChange={e => setFormData(prev => ({ ...prev, previous_goals_review: e.target.value }))}
                     rows={2}
-                    className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-hover border border-strong rounded px-3 py-2 text-white"
                   />
                 </div>
               </div>
@@ -204,11 +204,11 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
               <h4 className="font-medium">Goals for This Week</h4>
 
               {/* Professional Goals */}
-              <div className="bg-gray-700 rounded-lg p-4">
+              <div className="bg-surface-soft rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Briefcase className="w-4 h-4 text-blue-400" />
                   <span className="font-medium">Professional Goals</span>
-                  <span className="text-xs text-gray-400">(career, leadership, job skills)</span>
+                  <span className="text-xs text-muted">(career, leadership, job skills)</span>
                 </div>
                 <div className="flex gap-2 mb-2">
                   <input
@@ -216,25 +216,25 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                     value={newGoals.professional}
                     onChange={e => setNewGoals(prev => ({ ...prev, professional: e.target.value }))}
                     placeholder="Add professional goal..."
-                    className="flex-1 bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white text-sm"
+                    className="flex-1 bg-surface-hover border border-strong rounded px-3 py-2 text-white text-sm"
                     onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddGoal('professional'))}
                   />
                   <button
                     type="button"
                     onClick={() => handleAddGoal('professional')}
-                    className="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                    className="px-3 py-2 bg-surface-hover rounded hover:bg-surface-muted"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="space-y-1">
                   {formData.professional_goals.map((g, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm bg-gray-600/50 rounded px-2 py-1">
+                    <div key={idx} className="flex items-center gap-2 text-sm bg-surface-hover/50 rounded px-2 py-1">
                       <span className="flex-1">{g.goal}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveGoal('professional', idx)}
-                        className="text-gray-400 hover:text-red-400"
+                        className="text-muted hover:text-red-400"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -244,11 +244,11 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
               </div>
 
               {/* Personal Goals */}
-              <div className="bg-gray-700 rounded-lg p-4">
+              <div className="bg-surface-soft rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Heart className="w-4 h-4 text-pink-400" />
                   <span className="font-medium">Personal Goals</span>
-                  <span className="text-xs text-gray-400">(family, health, spiritual, hobbies)</span>
+                  <span className="text-xs text-muted">(family, health, spiritual, hobbies)</span>
                 </div>
                 <div className="flex gap-2 mb-2">
                   <input
@@ -256,25 +256,25 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                     value={newGoals.personal}
                     onChange={e => setNewGoals(prev => ({ ...prev, personal: e.target.value }))}
                     placeholder="Add personal goal..."
-                    className="flex-1 bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white text-sm"
+                    className="flex-1 bg-surface-hover border border-strong rounded px-3 py-2 text-white text-sm"
                     onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddGoal('personal'))}
                   />
                   <button
                     type="button"
                     onClick={() => handleAddGoal('personal')}
-                    className="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                    className="px-3 py-2 bg-surface-hover rounded hover:bg-surface-muted"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="space-y-1">
                   {formData.personal_goals.map((g, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm bg-gray-600/50 rounded px-2 py-1">
+                    <div key={idx} className="flex items-center gap-2 text-sm bg-surface-hover/50 rounded px-2 py-1">
                       <span className="flex-1">{g.goal}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveGoal('personal', idx)}
-                        className="text-gray-400 hover:text-red-400"
+                        className="text-muted hover:text-red-400"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -284,11 +284,11 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
               </div>
 
               {/* Readiness Goals */}
-              <div className="bg-gray-700 rounded-lg p-4">
+              <div className="bg-surface-soft rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="w-4 h-4 text-green-400" />
                   <span className="font-medium">Readiness Goals</span>
-                  <span className="text-xs text-gray-400">(training, fitness, certifications)</span>
+                  <span className="text-xs text-muted">(training, fitness, certifications)</span>
                 </div>
                 <div className="flex gap-2 mb-2">
                   <input
@@ -296,25 +296,25 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                     value={newGoals.readiness}
                     onChange={e => setNewGoals(prev => ({ ...prev, readiness: e.target.value }))}
                     placeholder="Add readiness goal..."
-                    className="flex-1 bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white text-sm"
+                    className="flex-1 bg-surface-hover border border-strong rounded px-3 py-2 text-white text-sm"
                     onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddGoal('readiness'))}
                   />
                   <button
                     type="button"
                     onClick={() => handleAddGoal('readiness')}
-                    className="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                    className="px-3 py-2 bg-surface-hover rounded hover:bg-surface-muted"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="space-y-1">
                   {formData.readiness_goals.map((g, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm bg-gray-600/50 rounded px-2 py-1">
+                    <div key={idx} className="flex items-center gap-2 text-sm bg-surface-hover/50 rounded px-2 py-1">
                       <span className="flex-1">{g.goal}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveGoal('readiness', idx)}
-                        className="text-gray-400 hover:text-red-400"
+                        className="text-muted hover:text-red-400"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -326,18 +326,18 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
 
             {/* Values Assessment */}
             {settings?.team_values && settings.team_values.length > 0 && (
-              <div className="bg-gray-700 rounded-lg p-4">
+              <div className="bg-surface-soft rounded-lg p-4">
                 <h4 className="font-medium mb-3 flex items-center gap-2">
                   <Target className="w-4 h-4 text-farm-green" />
                   Values Alignment Assessment
                 </h4>
                 <div className="space-y-4">
                   {settings.team_values.map(value => (
-                    <div key={value.name} className="border-b border-gray-600 pb-4 last:border-0 last:pb-0">
+                    <div key={value.name} className="border-b border pb-4 last:border-0 last:pb-0">
                       <div className="font-medium mb-1">{value.name}</div>
-                      <p className="text-xs text-gray-400 mb-2">{value.description}</p>
+                      <p className="text-xs text-muted mb-2">{value.description}</p>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm text-gray-400">Rating:</span>
+                        <span className="text-sm text-muted">Rating:</span>
                         {[1, 2, 3, 4, 5].map(rating => (
                           <button
                             key={rating}
@@ -346,7 +346,7 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                             className={`w-8 h-8 rounded ${
                               formData.values_assessment[value.name]?.rating === rating
                                 ? 'bg-farm-green text-white'
-                                : 'bg-gray-600 hover:bg-gray-500'
+                                : 'bg-surface-hover hover:bg-surface-muted'
                             }`}
                           >
                             {rating}
@@ -358,10 +358,10 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                         placeholder="Notes..."
                         value={formData.values_assessment[value.name]?.notes || ''}
                         onChange={e => handleValueNotes(value.name, e.target.value)}
-                        className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-1 text-white text-sm"
+                        className="w-full bg-surface-hover border border-strong rounded px-3 py-1 text-white text-sm"
                       />
                       {value.questions && value.questions.length > 0 && (
-                        <div className="mt-2 text-xs text-gray-400">
+                        <div className="mt-2 text-xs text-muted">
                           <p className="mb-1">Questions to consider:</p>
                           <ul className="list-disc list-inside">
                             {value.questions.map((q, idx) => (
@@ -379,22 +379,22 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
             {/* Observations */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Positive Observations</label>
+                <label className="block text-sm text-muted mb-1">Positive Observations</label>
                 <textarea
                   value={formData.positive_observations}
                   onChange={e => setFormData(prev => ({ ...prev, positive_observations: e.target.value }))}
                   rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   placeholder="Things going well..."
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Areas for Improvement</label>
+                <label className="block text-sm text-muted mb-1">Areas for Improvement</label>
                 <textarea
                   value={formData.areas_for_improvement}
                   onChange={e => setFormData(prev => ({ ...prev, areas_for_improvement: e.target.value }))}
                   rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                   placeholder="Areas needing work..."
                 />
               </div>
@@ -403,27 +403,27 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
             {/* Notes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Mentor Notes (Private)</label>
+                <label className="block text-sm text-muted mb-1">Mentor Notes (Private)</label>
                 <textarea
                   value={formData.mentor_notes}
                   onChange={e => setFormData(prev => ({ ...prev, mentor_notes: e.target.value }))}
                   rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Member Notes/Response</label>
+                <label className="block text-sm text-muted mb-1">Member Notes/Response</label>
                 <textarea
                   value={formData.member_notes}
                   onChange={e => setFormData(prev => ({ ...prev, member_notes: e.target.value }))}
                   rows={3}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft border border rounded px-3 py-2 text-white"
                 />
               </div>
             </div>
 
             {/* Action Items */}
-            <div className="bg-gray-700 rounded-lg p-4">
+            <div className="bg-surface-soft rounded-lg p-4">
               <h4 className="font-medium mb-2">Action Items</h4>
               <div className="flex gap-2 mb-2">
                 <input
@@ -431,20 +431,20 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                   value={newActionItem}
                   onChange={e => setNewActionItem(e.target.value)}
                   placeholder="Add action item..."
-                  className="flex-1 bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white text-sm"
+                  className="flex-1 bg-surface-hover border border-strong rounded px-3 py-2 text-white text-sm"
                   onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddActionItem())}
                 />
                 <button
                   type="button"
                   onClick={handleAddActionItem}
-                  className="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                  className="px-3 py-2 bg-surface-hover rounded hover:bg-surface-muted"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
               <div className="space-y-1">
                 {formData.action_items.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-sm bg-gray-600/50 rounded px-2 py-1">
+                  <div key={idx} className="flex items-center gap-2 text-sm bg-surface-hover/50 rounded px-2 py-1">
                     <span className="flex-1">{item.item}</span>
                     <button
                       type="button"
@@ -452,7 +452,7 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                         ...prev,
                         action_items: prev.action_items.filter((_, i) => i !== idx)
                       }))}
-                      className="text-gray-400 hover:text-red-400"
+                      className="text-muted hover:text-red-400"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -462,11 +462,11 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 p-4 border-t border-gray-700">
+          <div className="flex justify-end gap-3 p-4 border-t border-subtle">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-400 hover:text-white"
+              className="px-4 py-2 text-muted hover:text-white"
             >
               Cancel
             </button>
@@ -485,19 +485,19 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
 
   // Session Card Component
   const SessionCard = ({ session, isExpanded, onToggle }) => (
-    <div className="bg-gray-700 rounded-lg overflow-hidden">
+    <div className="bg-surface-soft rounded-lg overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full p-4 text-left flex items-center justify-between hover:bg-gray-600/50"
+        className="w-full p-4 text-left flex items-center justify-between hover:bg-surface-hover/50"
       >
         <div className="flex items-center gap-4">
           <div className="text-center">
-            <div className="text-sm text-gray-400">Week</div>
+            <div className="text-sm text-muted">Week</div>
             <div className="text-xl font-bold">{session.week_number || '?'}</div>
           </div>
           <div>
             <div className="font-medium">{formatDate(session.session_date)}</div>
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-muted">
               {session.professional_goals?.length || 0} prof · {session.personal_goals?.length || 0} personal · {session.readiness_goals?.length || 0} readiness goals
             </div>
           </div>
@@ -517,7 +517,7 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
       </button>
 
       {isExpanded && (
-        <div className="p-4 border-t border-gray-600 space-y-4">
+        <div className="p-4 border-t border space-y-4">
           {/* Goals */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -528,13 +528,13 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                 <ul className="text-sm space-y-1">
                   {session.professional_goals.map((g, idx) => (
                     <li key={idx} className="flex items-start gap-1">
-                      <CheckCircle className="w-4 h-4 text-gray-500 mt-0.5" />
+                      <CheckCircle className="w-4 h-4 text-muted mt-0.5" />
                       <span>{g.goal}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-500">No goals set</p>
+                <p className="text-sm text-muted">No goals set</p>
               )}
             </div>
             <div>
@@ -545,13 +545,13 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                 <ul className="text-sm space-y-1">
                   {session.personal_goals.map((g, idx) => (
                     <li key={idx} className="flex items-start gap-1">
-                      <CheckCircle className="w-4 h-4 text-gray-500 mt-0.5" />
+                      <CheckCircle className="w-4 h-4 text-muted mt-0.5" />
                       <span>{g.goal}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-500">No goals set</p>
+                <p className="text-sm text-muted">No goals set</p>
               )}
             </div>
             <div>
@@ -562,13 +562,13 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
                 <ul className="text-sm space-y-1">
                   {session.readiness_goals.map((g, idx) => (
                     <li key={idx} className="flex items-start gap-1">
-                      <CheckCircle className="w-4 h-4 text-gray-500 mt-0.5" />
+                      <CheckCircle className="w-4 h-4 text-muted mt-0.5" />
                       <span>{g.goal}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-gray-500">No goals set</p>
+                <p className="text-sm text-muted">No goals set</p>
               )}
             </div>
           </div>
@@ -579,10 +579,10 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
               <h5 className="text-sm font-medium mb-2">Values Assessment</h5>
               <div className="flex flex-wrap gap-4">
                 {Object.entries(session.values_assessment).map(([name, data]) => (
-                  <div key={name} className="bg-gray-600/50 rounded px-3 py-2">
+                  <div key={name} className="bg-surface-hover/50 rounded px-3 py-2">
                     <span className="font-medium">{name}:</span>
                     <span className="ml-2 text-farm-green">{data.rating}/5</span>
-                    {data.notes && <span className="ml-2 text-gray-400 text-sm">- {data.notes}</span>}
+                    {data.notes && <span className="ml-2 text-muted text-sm">- {data.notes}</span>}
                   </div>
                 ))}
               </div>
@@ -595,26 +595,26 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
               {session.positive_observations && (
                 <div>
                   <h5 className="text-sm font-medium text-green-400 mb-1">Positives</h5>
-                  <p className="text-sm text-gray-300">{session.positive_observations}</p>
+                  <p className="text-sm text-secondary">{session.positive_observations}</p>
                 </div>
               )}
               {session.areas_for_improvement && (
                 <div>
                   <h5 className="text-sm font-medium text-yellow-400 mb-1">Areas to Improve</h5>
-                  <p className="text-sm text-gray-300">{session.areas_for_improvement}</p>
+                  <p className="text-sm text-secondary">{session.areas_for_improvement}</p>
                 </div>
               )}
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2 border-t border-gray-600">
+          <div className="flex justify-end gap-2 pt-2 border-t border">
             <button
               onClick={() => {
                 setEditingSession(session)
                 setShowForm(true)
               }}
-              className="px-3 py-1 text-sm bg-gray-600 rounded hover:bg-gray-500 flex items-center gap-1"
+              className="px-3 py-1 text-sm bg-surface-hover rounded hover:bg-surface-muted flex items-center gap-1"
             >
               <Edit className="w-4 h-4" /> Edit
             </button>
@@ -657,7 +657,7 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
           ))}
         </div>
       ) : (
-        <div className="text-center py-8 text-gray-400">
+        <div className="text-center py-8 text-muted">
           <Brain className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p>No mentoring sessions yet</p>
           <p className="text-sm">Start tracking weekly progress by creating a session</p>
@@ -669,7 +669,7 @@ function MemberMentoringTab({ member, sessions, settings, onUpdate }) {
         <div>
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white"
+            className="flex items-center gap-2 text-sm text-muted hover:text-white"
           >
             {showArchived ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             {showArchived ? 'Hide' : 'Show'} Archived ({archivedSessions.length})

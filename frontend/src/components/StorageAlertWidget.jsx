@@ -70,7 +70,7 @@ function StorageAlertWidget() {
       {expanded && (
         <div className="px-3 pb-3 space-y-3">
           {/* Progress Bar */}
-          <div className="w-full bg-gray-600 rounded-full h-2">
+          <div className="w-full bg-surface-hover rounded-full h-2">
             <div
               className={`h-2 rounded-full ${isCritical ? 'bg-red-500' : 'bg-yellow-500'}`}
               style={{ width: `${Math.min(storageStats.disk_usage_percent, 100)}%` }}
@@ -80,17 +80,17 @@ function StorageAlertWidget() {
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-400">Available:</span>
+              <span className="text-muted">Available:</span>
               <span>{storageStats.disk_available_human}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Total:</span>
+              <span className="text-muted">Total:</span>
               <span>{storageStats.disk_total_human}</span>
             </div>
           </div>
 
           {/* App Breakdown */}
-          <div className="text-xs text-gray-400 space-y-1">
+          <div className="text-xs text-muted space-y-1">
             <div className="flex items-center gap-1">
               <HardDrive className="w-3 h-3" />
               <span>Isaac: Database {storageStats.database_human}, Logs {storageStats.logs_human}</span>

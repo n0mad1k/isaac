@@ -97,7 +97,7 @@ const ORDER_STATUSES = [
   { value: 'reserved', label: 'Reserved', color: 'bg-blue-600' },
   { value: 'in_progress', label: 'In Progress', color: 'bg-yellow-600' },
   { value: 'ready', label: 'Ready', color: 'bg-green-600' },
-  { value: 'completed', label: 'Completed', color: 'bg-gray-600' },
+  { value: 'completed', label: 'Completed', color: 'bg-surface-hover' },
   { value: 'cancelled', label: 'Cancelled', color: 'bg-red-600' },
 ]
 
@@ -927,7 +927,7 @@ function FarmFinances() {
       fair: 'bg-yellow-600 text-black',
       poor: 'bg-red-600 text-white',
     }
-    return colors[quality] || 'bg-gray-600 text-white'
+    return colors[quality] || 'bg-surface-hover text-white'
   }
 
   const getCategoryColor = (category) => {
@@ -935,14 +935,14 @@ function FarmFinances() {
       livestock: 'border-red-500',
       plant: 'border-green-500',
       produce: 'border-yellow-500',
-      other: 'border-gray-500',
+      other: 'border-strong',
     }
-    return colors[category] || 'border-gray-500'
+    return colors[category] || 'border-strong'
   }
 
   const getStatusBadge = (status) => {
     const config = ORDER_STATUSES.find(s => s.value === status)
-    return config ? config : { label: status, color: 'bg-gray-600' }
+    return config ? config : { label: status, color: 'bg-surface-hover' }
   }
 
   const getPaymentProgress = (order) => {
@@ -982,7 +982,7 @@ function FarmFinances() {
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            className="px-3 py-2 bg-surface border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
           >
             {years.map(year => (
               <option key={year} value={year}>{year}</option>
@@ -1000,7 +1000,7 @@ function FarmFinances() {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               activeTab === tab.key
                 ? 'bg-farm-green text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                : 'bg-surface text-muted hover:bg-surface-soft'
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -1243,49 +1243,49 @@ function FarmFinances() {
       {/* Scheduled Invoice Modal */}
       {showScheduledInvoiceModal && selectedOrderForSchedule && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="bg-surface rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-subtle">
               <h3 className="text-lg font-semibold">
                 {editingScheduledInvoice ? 'Edit Scheduled Invoice' : 'Schedule Invoice'}
               </h3>
-              <button onClick={() => setShowScheduledInvoiceModal(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowScheduledInvoiceModal(false)} className="text-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleScheduledInvoiceSubmit} className="p-4 space-y-4">
-              <div className="bg-gray-700/50 rounded-lg p-3 text-sm">
+              <div className="bg-surface-soft/50 rounded-lg p-3 text-sm">
                 <div className="font-medium">{selectedOrderForSchedule.customer_name}</div>
-                <div className="text-gray-400">{selectedOrderForSchedule.description}</div>
+                <div className="text-muted">{selectedOrderForSchedule.description}</div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Send Date *</label>
+                  <label className="block text-sm text-muted mb-1">Send Date *</label>
                   <input
                     type="date"
                     required
                     value={scheduledInvoiceFormData.scheduled_date}
                     onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Send Time</label>
+                  <label className="block text-sm text-muted mb-1">Send Time</label>
                   <input
                     type="time"
                     value={scheduledInvoiceFormData.scheduled_time}
                     onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, scheduled_time: e.target.value }))}
-                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Payment Type</label>
+                <label className="block text-sm text-muted mb-1">Payment Type</label>
                 <select
                   value={scheduledInvoiceFormData.payment_type}
                   onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, payment_type: e.target.value }))}
-                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                 >
                   <option value="deposit">Deposit</option>
                   <option value="partial">Partial Payment</option>
@@ -1294,7 +1294,7 @@ function FarmFinances() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Amount Due *</label>
+                <label className="block text-sm text-muted mb-1">Amount Due *</label>
                 <input
                   type="number"
                   step="0.01"
@@ -1302,66 +1302,66 @@ function FarmFinances() {
                   required
                   value={scheduledInvoiceFormData.amount_due}
                   onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, amount_due: e.target.value }))}
-                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                   placeholder="0.00"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <label className="block text-sm text-muted mb-1">Description</label>
                 <input
                   type="text"
                   value={scheduledInvoiceFormData.description}
                   onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                   placeholder="e.g., Switch to feed payment"
                 />
               </div>
 
               {/* Email Customization Fields */}
-              <div className="border-t border-gray-700 pt-4 mt-4">
-                <div className="text-sm text-gray-400 mb-3">Email Settings</div>
+              <div className="border-t border-subtle pt-4 mt-4">
+                <div className="text-sm text-muted mb-3">Email Settings</div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Recipient Email *</label>
+                    <label className="block text-sm text-muted mb-1">Recipient Email *</label>
                     <input
                       type="email"
                       required
                       value={scheduledInvoiceFormData.recipient_email}
                       onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, recipient_email: e.target.value }))}
-                      className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                      className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                       placeholder="customer@email.com"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Subject</label>
+                    <label className="block text-sm text-muted mb-1">Subject</label>
                     <input
                       type="text"
                       value={scheduledInvoiceFormData.subject}
                       onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, subject: e.target.value }))}
-                      className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                      className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Custom Message (optional)</label>
+                    <label className="block text-sm text-muted mb-1">Custom Message (optional)</label>
                     <textarea
                       value={scheduledInvoiceFormData.custom_message}
                       onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, custom_message: e.target.value }))}
-                      className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                      className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                       rows={3}
                       placeholder="Add a personal note to include in the email..."
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Payment Instructions</label>
+                    <label className="block text-sm text-muted mb-1">Payment Instructions</label>
                     <textarea
                       value={scheduledInvoiceFormData.payment_instructions}
                       onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, payment_instructions: e.target.value }))}
-                      className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                      className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                       rows={2}
                       placeholder="Venmo: @username, Zelle: phone@email.com, etc."
                     />
@@ -1369,11 +1369,11 @@ function FarmFinances() {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-gray-700">
+              <div className="flex gap-3 pt-4 border-t border-subtle">
                 <button
                   type="button"
                   onClick={() => setShowScheduledInvoiceModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                  className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
@@ -1422,59 +1422,59 @@ function FarmFinances() {
       {/* Invoice/Receipt Editor Modal */}
       {showInvoiceModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="bg-surface rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-subtle">
               <h3 className="text-lg font-semibold">
                 {invoiceFormData.type === 'invoice' ? 'Send Invoice' : 'Send Receipt'}
               </h3>
-              <button onClick={() => setShowInvoiceModal(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowInvoiceModal(false)} className="text-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleSubmitInvoice} className="p-4 space-y-4">
               {/* Recipient Email */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Recipient Email *</label>
+                <label className="block text-sm text-muted mb-1">Recipient Email *</label>
                 <input
                   type="email"
                   required
                   value={invoiceFormData.toEmail}
                   onChange={(e) => setInvoiceFormData(prev => ({ ...prev, toEmail: e.target.value }))}
-                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                   placeholder="customer@email.com"
                 />
               </div>
 
               {/* Subject */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Subject *</label>
+                <label className="block text-sm text-muted mb-1">Subject *</label>
                 <input
                   type="text"
                   required
                   value={invoiceFormData.subject}
                   onChange={(e) => setInvoiceFormData(prev => ({ ...prev, subject: e.target.value }))}
-                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                 />
               </div>
 
               {/* Customer Name */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Customer Name</label>
+                <label className="block text-sm text-muted mb-1">Customer Name</label>
                 <input
                   type="text"
                   value={invoiceFormData.customerName}
                   onChange={(e) => setInvoiceFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <label className="block text-sm text-muted mb-1">Description</label>
                 <textarea
                   value={invoiceFormData.description}
                   onChange={(e) => setInvoiceFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                   rows={2}
                 />
               </div>
@@ -1482,7 +1482,7 @@ function FarmFinances() {
               {/* Amount Fields */}
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Total</label>
+                  <label className="block text-sm text-muted mb-1">Total</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1495,11 +1495,11 @@ function FarmFinances() {
                         balanceDue: total - prev.totalPaid
                       }))
                     }}
-                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Paid</label>
+                  <label className="block text-sm text-muted mb-1">Paid</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1512,28 +1512,28 @@ function FarmFinances() {
                         balanceDue: prev.total - paid
                       }))
                     }}
-                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Balance Due</label>
+                  <label className="block text-sm text-muted mb-1">Balance Due</label>
                   <input
                     type="number"
                     step="0.01"
                     value={invoiceFormData.balanceDue}
                     onChange={(e) => setInvoiceFormData(prev => ({ ...prev, balanceDue: parseFloat(e.target.value) || 0 }))}
-                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                   />
                 </div>
               </div>
 
               {/* Custom Message */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Custom Message (optional)</label>
+                <label className="block text-sm text-muted mb-1">Custom Message (optional)</label>
                 <textarea
                   value={invoiceFormData.customMessage}
                   onChange={(e) => setInvoiceFormData(prev => ({ ...prev, customMessage: e.target.value }))}
-                  className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                   rows={3}
                   placeholder="Add a personal note to include in the email..."
                 />
@@ -1542,11 +1542,11 @@ function FarmFinances() {
               {/* Payment Instructions (invoice only) */}
               {invoiceFormData.type === 'invoice' && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Payment Instructions</label>
+                  <label className="block text-sm text-muted mb-1">Payment Instructions</label>
                   <textarea
                     value={invoiceFormData.paymentInstructions}
                     onChange={(e) => setInvoiceFormData(prev => ({ ...prev, paymentInstructions: e.target.value }))}
-                    className="w-full bg-gray-700 rounded px-3 py-2 text-white"
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
                     rows={2}
                     placeholder="Venmo: @username, Zelle: phone@email.com, etc."
                   />
@@ -1558,7 +1558,7 @@ function FarmFinances() {
                 <button
                   type="button"
                   onClick={() => setShowInvoiceModal(false)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded transition-colors"
+                  className="px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded transition-colors"
                 >
                   Cancel
                 </button>
@@ -1584,17 +1584,17 @@ function CollapsibleSection({ title, icon: Icon, iconColor, count, children, def
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
   return (
-    <div className="bg-gray-800 rounded-xl overflow-hidden">
+    <div className="bg-surface rounded-xl overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-700/50 transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-surface-soft/50 transition-colors"
       >
         <div className="flex items-center gap-2">
-          {isOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
-          {Icon && <Icon className={`w-5 h-5 ${iconColor || 'text-gray-400'}`} />}
+          {isOpen ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
+          {Icon && <Icon className={`w-5 h-5 ${iconColor || 'text-muted'}`} />}
           <h3 className="text-lg font-semibold">{title}</h3>
           {count !== undefined && (
-            <span className="text-xs px-2 py-0.5 bg-gray-700 rounded-full text-gray-400">{count}</span>
+            <span className="text-xs px-2 py-0.5 bg-surface-soft rounded-full text-muted">{count}</span>
           )}
         </div>
         {actions && (
@@ -1617,8 +1617,8 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
     <div className="space-y-6">
       {/* Top P&L Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-gray-400 mb-1">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
             <TrendingUp className="w-4 h-4" />
             <span className="text-sm">Revenue</span>
           </div>
@@ -1626,8 +1626,8 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
             {formatCurrency(summary.summary?.total_revenue)}
           </div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-gray-400 mb-1">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
             <DollarSign className="w-4 h-4" />
             <span className="text-sm">Expenses</span>
           </div>
@@ -1635,17 +1635,17 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
             {formatCurrency(summary.summary?.total_expenses)}
           </div>
           {summary.summary?.expense_breakdown && (
-            <div className="mt-2 text-xs space-y-0.5 border-t border-gray-700 pt-2">
-              <div className="flex justify-between text-gray-400">
+            <div className="mt-2 text-xs space-y-0.5 border-t border-subtle pt-2">
+              <div className="flex justify-between text-muted">
                 <span>Animal Costs</span>
                 <span>{formatCurrency(summary.summary.expense_breakdown.animal_expenses)}</span>
               </div>
-              <div className="flex justify-between text-gray-400">
+              <div className="flex justify-between text-muted">
                 <span>Processing</span>
                 <span>{formatCurrency(summary.summary.expense_breakdown.processing_costs)}</span>
               </div>
               {summary.summary.expense_breakdown.business_expenses > 0 && (
-                <div className="flex justify-between text-gray-400">
+                <div className="flex justify-between text-muted">
                   <span>Business</span>
                   <span>{formatCurrency(summary.summary.expense_breakdown.business_expenses)}</span>
                 </div>
@@ -1653,8 +1653,8 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
             </div>
           )}
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-gray-400 mb-1">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
             <PiggyBank className="w-4 h-4" />
             <span className="text-sm">Net Profit</span>
           </div>
@@ -1662,8 +1662,8 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
             {formatCurrency(summary.summary?.net_profit)}
           </div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-gray-400 mb-1">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
             <AlertCircle className="w-4 h-4" />
             <span className="text-sm">Outstanding</span>
           </div>
@@ -1671,8 +1671,8 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
             {formatCurrency(summary.summary?.outstanding_payments)}
           </div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-gray-400 mb-1">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
             <HomeIcon className="w-4 h-4" />
             <span className="text-sm">Homestead</span>
           </div>
@@ -1684,30 +1684,30 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-gray-400 mb-1">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
             <Beef className="w-4 h-4 text-red-400" />
             <span className="text-sm">Processed</span>
           </div>
           <div className="text-xl font-bold">{summary.livestock?.total_processed || 0}</div>
-          <div className="text-xs text-gray-500">{(summary.livestock?.total_meat_lbs || 0).toFixed(0)} lbs</div>
+          <div className="text-xs text-muted">{(summary.livestock?.total_meat_lbs || 0).toFixed(0)} lbs</div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-gray-400 mb-1">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
             <Apple className="w-4 h-4 text-green-400" />
             <span className="text-sm">Harvests</span>
           </div>
           <div className="text-xl font-bold">{summary.harvests?.total_harvests || 0}</div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-gray-400 mb-1">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
             <ClipboardList className="w-4 h-4 text-blue-400" />
             <span className="text-sm">Active Orders</span>
           </div>
           <div className="text-xl font-bold">{summary.orders?.active_orders || 0}</div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-gray-400 mb-1">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
             <Scale className="w-4 h-4 text-cyan-400" />
             <span className="text-sm">Avg Cost/lb</span>
           </div>
@@ -1717,7 +1717,7 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
 
       {/* Monthly Trends */}
       {summary.monthly_trends && summary.monthly_trends.length > 0 && (
-        <div className="bg-gray-800 rounded-xl p-4">
+        <div className="bg-surface rounded-xl p-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
             <Calendar className="w-5 h-5 text-blue-400" />
             Monthly Trends
@@ -1725,18 +1725,18 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left p-2 text-gray-400">Month</th>
-                  <th className="text-right p-2 text-gray-400">Revenue</th>
-                  <th className="text-right p-2 text-gray-400">Expenses</th>
-                  <th className="text-right p-2 text-gray-400">Net</th>
+                <tr className="border-b border-subtle">
+                  <th className="text-left p-2 text-muted">Month</th>
+                  <th className="text-right p-2 text-muted">Revenue</th>
+                  <th className="text-right p-2 text-muted">Expenses</th>
+                  <th className="text-right p-2 text-muted">Net</th>
                 </tr>
               </thead>
               <tbody>
                 {summary.monthly_trends.map((row) => {
                   const net = row.revenue - row.expenses
                   return (
-                    <tr key={row.month} className="border-b border-gray-700/50">
+                    <tr key={row.month} className="border-b border-subtle/50">
                       <td className="p-2 font-medium">{MONTH_NAMES[row.month]}</td>
                       <td className="p-2 text-right text-green-400">{formatCurrency(row.revenue)}</td>
                       <td className="p-2 text-right text-yellow-400">{formatCurrency(row.expenses)}</td>
@@ -1754,21 +1754,21 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
 
       {/* Outstanding Payments */}
       {outstandingPayments.length > 0 && (
-        <div className="bg-gray-800 rounded-xl p-4">
+        <div className="bg-surface rounded-xl p-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
             <AlertCircle className="w-5 h-5 text-orange-400" />
             Outstanding Payments ({outstandingPayments.length})
           </h3>
           <div className="space-y-3">
             {outstandingPayments.map((item) => (
-              <div key={item.order.id} className="bg-gray-700 rounded-lg p-3 flex items-center justify-between">
+              <div key={item.order.id} className="bg-surface-soft rounded-lg p-3 flex items-center justify-between">
                 <div>
                   <div className="font-medium">{item.order.customer_name || 'Unknown Customer'}</div>
-                  <div className="text-sm text-gray-400">{item.order.description}</div>
+                  <div className="text-sm text-muted">{item.order.description}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-orange-400 font-bold">{formatCurrency(item.balance_due)} due</div>
-                  <div className="text-sm text-gray-400">
+                  <div className="text-sm text-muted">
                     {formatCurrency(item.total_paid)} of {formatCurrency(item.total_due)} paid
                   </div>
                   <button
@@ -1786,15 +1786,15 @@ function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPaymen
 
       {/* Expense Breakdown by Category */}
       {summary.standalone_expenses && Object.keys(summary.standalone_expenses.by_category || {}).length > 0 && (
-        <div className="bg-gray-800 rounded-xl p-4">
+        <div className="bg-surface rounded-xl p-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
             <Receipt className="w-5 h-5 text-yellow-400" />
             Expense Breakdown
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(summary.standalone_expenses.by_category).sort((a, b) => b[1] - a[1]).map(([cat, amount]) => (
-              <div key={cat} className="bg-gray-700 rounded-lg p-3">
-                <div className="text-sm text-gray-400 capitalize">{cat}</div>
+              <div key={cat} className="bg-surface-soft rounded-lg p-3">
+                <div className="text-sm text-muted capitalize">{cat}</div>
                 <div className="text-lg font-bold text-yellow-400">{formatCurrency(amount)}</div>
               </div>
             ))}
@@ -1875,8 +1875,8 @@ function BusinessTab({
   }
 
   const renderCalcInputs = () => {
-    const inputClass = "w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
-    const labelClass = "block text-sm text-gray-400 mb-1"
+    const inputClass = "w-full px-3 py-2 bg-surface-hover border border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+    const labelClass = "block text-sm text-muted mb-1"
 
     const updateInput = (key, value) => setCalcInputs(prev => ({ ...prev, [key]: value }))
 
@@ -1960,7 +1960,7 @@ function BusinessTab({
         iconColor="text-cyan-400"
         defaultOpen={false}
       >
-        <div className="bg-gray-700 rounded-lg p-4 space-y-4">
+        <div className="bg-surface-soft rounded-lg p-4 space-y-4">
           {/* Calculator Mode Selector */}
           <div className="flex flex-wrap gap-2">
             {CALC_MODES.map((mode) => (
@@ -1970,7 +1970,7 @@ function BusinessTab({
                 className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                   calcMode === mode.key
                     ? 'bg-cyan-600 text-white'
-                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                    : 'bg-surface-hover text-secondary hover:bg-surface-muted'
                 }`}
               >
                 {mode.label}
@@ -1978,7 +1978,7 @@ function BusinessTab({
             ))}
           </div>
 
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-muted">
             {CALC_MODES.find(m => m.key === calcMode)?.desc}
           </p>
 
@@ -1987,16 +1987,16 @@ function BusinessTab({
             {renderCalcInputs()}
 
             {/* Result Display */}
-            <div className="bg-gray-600 rounded-lg p-3 text-center">
+            <div className="bg-surface-hover rounded-lg p-3 text-center">
               {calcResult ? (
                 <>
-                  <span className="text-sm text-gray-400 block">{calcResult.label}</span>
+                  <span className="text-sm text-muted block">{calcResult.label}</span>
                   <span className={`text-2xl font-bold ${calcResult.value >= 0 ? 'text-cyan-400' : 'text-red-400'}`}>
                     {formatResult(calcResult.value, calcResult.format)}
                   </span>
                   {calcResult.secondary && (
-                    <div className="mt-1 pt-1 border-t border-gray-500">
-                      <span className="text-xs text-gray-400">{calcResult.secondary.label}: </span>
+                    <div className="mt-1 pt-1 border-t border-strong">
+                      <span className="text-xs text-muted">{calcResult.secondary.label}: </span>
                       <span className={`text-sm font-medium ${calcResult.secondary.value >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                         {formatResult(calcResult.secondary.value, calcResult.secondary.format)}
                       </span>
@@ -2004,7 +2004,7 @@ function BusinessTab({
                   )}
                 </>
               ) : (
-                <span className="text-gray-500">Enter values</span>
+                <span className="text-muted">Enter values</span>
               )}
             </div>
           </div>
@@ -2024,25 +2024,25 @@ function BusinessTab({
         }
       >
         {sales.length === 0 ? (
-          <p className="text-gray-500 text-sm py-4 text-center">No sales recorded yet</p>
+          <p className="text-muted text-sm py-4 text-center">No sales recorded yet</p>
         ) : (
           <div className="space-y-3">
             {sales.map((sale) => (
-              <div key={sale.id} className={`bg-gray-700 rounded-lg p-3 border-l-4 ${getCategoryColor(sale.category)}`}>
+              <div key={sale.id} className={`bg-surface-soft rounded-lg p-3 border-l-4 ${getCategoryColor(sale.category)}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium">{sale.item_name}</h4>
-                      <span className="text-xs px-2 py-0.5 bg-gray-600 rounded capitalize">{sale.category}</span>
+                      <span className="text-xs px-2 py-0.5 bg-surface-hover rounded capitalize">{sale.category}</span>
                     </div>
                     <div className="flex items-center gap-4 mt-1 text-sm flex-wrap">
                       <span className="text-green-400 font-medium">{formatCurrency(sale.total_price)}</span>
-                      <span className="text-gray-400">{sale.quantity} {sale.unit} @ {formatCurrency(sale.unit_price)}/{sale.unit}</span>
+                      <span className="text-muted">{sale.quantity} {sale.unit} @ {formatCurrency(sale.unit_price)}/{sale.unit}</span>
                       {sale.customer_name && (
-                        <span className="text-gray-400">{sale.customer_name}</span>
+                        <span className="text-muted">{sale.customer_name}</span>
                       )}
                       {sale.sale_date && (
-                        <span className="flex items-center gap-1 text-gray-400">
+                        <span className="flex items-center gap-1 text-muted">
                           <Calendar className="w-3 h-3" />
                           {format(parseISO(sale.sale_date), 'MM/dd/yyyy')}
                         </span>
@@ -2051,11 +2051,11 @@ function BusinessTab({
                   </div>
                   <div className="flex gap-1">
                     {sale.customer_email && (
-                      <button onClick={() => handleSendSaleReceipt(sale.id)} className="p-1 text-gray-400 hover:text-amber-400" title="Email Receipt">
+                      <button onClick={() => handleSendSaleReceipt(sale.id)} className="p-1 text-muted hover:text-amber-400" title="Email Receipt">
                         <Receipt className="w-4 h-4" />
                       </button>
                     )}
-                    <button onClick={() => handleDeleteSale(sale.id, sale.item_name)} className="p-1 text-gray-400 hover:text-red-400">
+                    <button onClick={() => handleDeleteSale(sale.id, sale.item_name)} className="p-1 text-muted hover:text-red-400">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -2074,35 +2074,35 @@ function BusinessTab({
         count={livestock.length}
       >
         {livestock.length === 0 ? (
-          <p className="text-gray-500 text-sm py-4 text-center">No livestock production records. Archive livestock from the Animals page.</p>
+          <p className="text-muted text-sm py-4 text-center">No livestock production records. Archive livestock from the Animals page.</p>
         ) : (
           <div className="space-y-3">
             {livestock.map((record) => (
-              <div key={record.id} className="bg-gray-700 rounded-lg p-3 border-l-4 border-red-500">
+              <div key={record.id} className="bg-surface-soft rounded-lg p-3 border-l-4 border-red-500">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium">{record.animal_name}</h4>
-                      <span className="text-sm text-gray-400">{formatAnimalType(record.animal_type)}</span>
-                      {record.breed && <span className="text-sm text-gray-500">- {record.breed}</span>}
+                      <span className="text-sm text-muted">{formatAnimalType(record.animal_type)}</span>
+                      {record.breed && <span className="text-sm text-muted">- {record.breed}</span>}
                     </div>
                     <div className="flex flex-wrap gap-4 mt-1 text-sm">
                       {record.slaughter_date && (
-                        <span className="flex items-center gap-1 text-gray-400">
+                        <span className="flex items-center gap-1 text-muted">
                           <Calendar className="w-3 h-3" />
                           {format(parseISO(record.slaughter_date), 'MM/dd/yyyy')}
                         </span>
                       )}
-                      {record.final_weight && <span className="text-gray-400">Final: <span className="text-green-400 font-medium">{record.final_weight} lbs</span></span>}
-                      {record.cost_per_pound > 0 && <span className="text-gray-400">Cost/lb: <span className="text-cyan-400">{formatCurrency(record.cost_per_pound)}</span></span>}
-                      {record.total_expenses > 0 && <span className="text-gray-400">Expenses: <span className="text-yellow-400">{formatCurrency(record.total_expenses)}</span></span>}
+                      {record.final_weight && <span className="text-muted">Final: <span className="text-green-400 font-medium">{record.final_weight} lbs</span></span>}
+                      {record.cost_per_pound > 0 && <span className="text-muted">Cost/lb: <span className="text-cyan-400">{formatCurrency(record.cost_per_pound)}</span></span>}
+                      {record.total_expenses > 0 && <span className="text-muted">Expenses: <span className="text-yellow-400">{formatCurrency(record.total_expenses)}</span></span>}
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => onAllocate(record)} className="p-1 text-gray-400 hover:text-blue-400" title="Allocate">
+                    <button onClick={() => onAllocate(record)} className="p-1 text-muted hover:text-blue-400" title="Allocate">
                       <Percent className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDeleteLivestock(record.id, record.animal_name)} className="p-1 text-gray-400 hover:text-red-400" title="Delete">
+                    <button onClick={() => handleDeleteLivestock(record.id, record.animal_name)} className="p-1 text-muted hover:text-red-400" title="Delete">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -2126,7 +2126,7 @@ function BusinessTab({
         }
       >
         {orders.length === 0 ? (
-          <p className="text-gray-500 text-sm py-4 text-center">No orders yet</p>
+          <p className="text-muted text-sm py-4 text-center">No orders yet</p>
         ) : (
           <div className="space-y-4">
             {orders.map((order) => {
@@ -2135,45 +2135,45 @@ function BusinessTab({
               const total = order.final_total || order.estimated_total || 0
 
               return (
-                <div key={order.id} className="bg-gray-700 rounded-lg p-4">
+                <div key={order.id} className="bg-surface-soft rounded-lg p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <div className="flex items-center gap-2">
                         <h4 className="font-medium">{order.customer_name || 'Unknown Customer'}</h4>
                         <span className={`text-xs px-2 py-0.5 rounded ${statusBadge.color} text-white`}>{statusBadge.label}</span>
                       </div>
-                      {order.description && <p className="text-gray-400 text-sm mt-1">{order.description}</p>}
+                      {order.description && <p className="text-muted text-sm mt-1">{order.description}</p>}
                     </div>
                     <div className="flex gap-1">
-                      <button onClick={() => onEditOrder(order)} className="p-1 text-gray-400 hover:text-blue-400" title="Edit"><Edit className="w-4 h-4" /></button>
-                      <button onClick={() => handleSendReceipt(order.id)} className="p-1 text-gray-400 hover:text-amber-400" title="Email Receipt"><Receipt className="w-4 h-4" /></button>
+                      <button onClick={() => onEditOrder(order)} className="p-1 text-muted hover:text-blue-400" title="Edit"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleSendReceipt(order.id)} className="p-1 text-muted hover:text-amber-400" title="Email Receipt"><Receipt className="w-4 h-4" /></button>
                       {order.balance_due > 0 && (
-                        <button onClick={() => handleSendInvoice(order.id)} className="p-1 text-gray-400 hover:text-red-400" title="Send Invoice"><FileText className="w-4 h-4" /></button>
+                        <button onClick={() => handleSendInvoice(order.id)} className="p-1 text-muted hover:text-red-400" title="Send Invoice"><FileText className="w-4 h-4" /></button>
                       )}
                       {order.status !== 'completed' && order.status !== 'cancelled' && (
                         <>
-                          <button onClick={() => handleAddScheduledInvoice(order)} className="p-1 text-gray-400 hover:text-amber-400" title="Schedule Invoice"><Calendar className="w-4 h-4" /></button>
-                          <button onClick={() => handleCompleteOrder(order.id)} className="p-1 text-gray-400 hover:text-green-400" title="Complete"><CheckCircle2 className="w-4 h-4" /></button>
+                          <button onClick={() => handleAddScheduledInvoice(order)} className="p-1 text-muted hover:text-amber-400" title="Schedule Invoice"><Calendar className="w-4 h-4" /></button>
+                          <button onClick={() => handleCompleteOrder(order.id)} className="p-1 text-muted hover:text-green-400" title="Complete"><CheckCircle2 className="w-4 h-4" /></button>
                         </>
                       )}
-                      <button onClick={() => handleDeleteOrder(order.id)} className="p-1 text-gray-400 hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeleteOrder(order.id)} className="p-1 text-muted hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
-                    <div><span className="text-gray-400">Portion:</span> <span className="capitalize">{order.portion_type}</span></div>
-                    {total > 0 && <div><span className="text-gray-400">Total:</span> <span className="text-green-400 font-medium">{formatCurrency(total)}</span></div>}
-                    {order.estimated_weight && <div><span className="text-gray-400">Est:</span> {order.estimated_weight} lbs</div>}
-                    {order.order_date && <div><span className="text-gray-400">Date:</span> {format(parseISO(order.order_date), 'MM/dd/yyyy')}</div>}
+                    <div><span className="text-muted">Portion:</span> <span className="capitalize">{order.portion_type}</span></div>
+                    {total > 0 && <div><span className="text-muted">Total:</span> <span className="text-green-400 font-medium">{formatCurrency(total)}</span></div>}
+                    {order.estimated_weight && <div><span className="text-muted">Est:</span> {order.estimated_weight} lbs</div>}
+                    {order.order_date && <div><span className="text-muted">Date:</span> {format(parseISO(order.order_date), 'MM/dd/yyyy')}</div>}
                   </div>
 
                   {/* Payment Progress */}
                   <div className="mb-2">
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-400">Payment</span>
+                      <span className="text-muted">Payment</span>
                       <span><span className="text-green-400">{formatCurrency(order.total_paid)}</span> / {formatCurrency(total)}</span>
                     </div>
-                    <div className="w-full bg-gray-600 rounded-full h-1.5">
+                    <div className="w-full bg-surface-hover rounded-full h-1.5">
                       <div className={`h-1.5 rounded-full ${progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${progress}%` }} />
                     </div>
                     {order.balance_due > 0 && <div className="text-right text-xs mt-1 text-orange-400">{formatCurrency(order.balance_due)} remaining</div>}
@@ -2181,21 +2181,21 @@ function BusinessTab({
 
                   {/* Payments */}
                   {order.payments && order.payments.length > 0 && (
-                    <div className="border-t border-gray-600 pt-2 mt-2 space-y-1">
+                    <div className="border-t border pt-2 mt-2 space-y-1">
                       {order.payments.map((payment) => (
                         <div key={payment.id} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
-                            <CreditCard className="w-3 h-3 text-gray-400" />
+                            <CreditCard className="w-3 h-3 text-muted" />
                             <span className="capitalize">{payment.payment_type}</span>
-                            <span className="text-gray-500">via {payment.payment_method}</span>
+                            <span className="text-muted">via {payment.payment_method}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={payment.payment_type === 'refund' ? 'text-red-400' : 'text-green-400'}>
                               {payment.payment_type === 'refund' ? '-' : '+'}{formatCurrency(payment.amount)}
                             </span>
-                            <span className="text-gray-500">{format(parseISO(payment.payment_date), 'MM/dd/yyyy')}</span>
-                            <button onClick={() => handleSendPaymentReceipt(order.id, payment.id)} className="text-gray-500 hover:text-amber-400" title="Send Receipt"><Receipt className="w-3 h-3" /></button>
-                            <button onClick={() => handleDeletePayment(order.id, payment.id)} className="text-gray-500 hover:text-red-400" title="Delete Payment"><X className="w-3 h-3" /></button>
+                            <span className="text-muted">{format(parseISO(payment.payment_date), 'MM/dd/yyyy')}</span>
+                            <button onClick={() => handleSendPaymentReceipt(order.id, payment.id)} className="text-muted hover:text-amber-400" title="Send Receipt"><Receipt className="w-3 h-3" /></button>
+                            <button onClick={() => handleDeletePayment(order.id, payment.id)} className="text-muted hover:text-red-400" title="Delete Payment"><X className="w-3 h-3" /></button>
                           </div>
                         </div>
                       ))}
@@ -2204,14 +2204,14 @@ function BusinessTab({
 
                   {/* Scheduled Invoices */}
                   {order.scheduled_invoices && order.scheduled_invoices.length > 0 && (
-                    <div className="border-t border-gray-600 pt-2 mt-2 space-y-1">
-                      <div className="text-xs text-gray-400 mb-1">Scheduled Invoices</div>
+                    <div className="border-t border pt-2 mt-2 space-y-1">
+                      <div className="text-xs text-muted mb-1">Scheduled Invoices</div>
                       {order.scheduled_invoices.map((invoice) => (
                         <div key={invoice.id} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                             <Calendar className={`w-3 h-3 ${invoice.is_sent ? 'text-green-400' : 'text-amber-400'}`} />
                             <span>{invoice.description || invoice.payment_type}</span>
-                            <span className="text-gray-500">{format(parseISO(invoice.scheduled_date), 'MM/dd/yyyy')}</span>
+                            <span className="text-muted">{format(parseISO(invoice.scheduled_date), 'MM/dd/yyyy')}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-amber-400">{formatCurrency(invoice.amount_due)}</span>
@@ -2219,11 +2219,11 @@ function BusinessTab({
                               <span className="text-xs text-green-400">Sent</span>
                             ) : (
                               <>
-                                <button onClick={() => handleSendScheduledInvoiceNow(order.id, invoice.id)} className="text-gray-500 hover:text-green-400" title="Send Now"><FileText className="w-3 h-3" /></button>
-                                <button onClick={() => handleEditScheduledInvoice(order, invoice)} className="text-gray-500 hover:text-blue-400" title="Edit"><Edit className="w-3 h-3" /></button>
+                                <button onClick={() => handleSendScheduledInvoiceNow(order.id, invoice.id)} className="text-muted hover:text-green-400" title="Send Now"><FileText className="w-3 h-3" /></button>
+                                <button onClick={() => handleEditScheduledInvoice(order, invoice)} className="text-muted hover:text-blue-400" title="Edit"><Edit className="w-3 h-3" /></button>
                               </>
                             )}
-                            <button onClick={() => handleDeleteScheduledInvoice(order.id, invoice.id)} className="text-gray-500 hover:text-red-400" title="Delete"><X className="w-3 h-3" /></button>
+                            <button onClick={() => handleDeleteScheduledInvoice(order.id, invoice.id)} className="text-muted hover:text-red-400" title="Delete"><X className="w-3 h-3" /></button>
                           </div>
                         </div>
                       ))}
@@ -2261,31 +2261,31 @@ function BusinessTab({
         }
       >
         {customers.length === 0 ? (
-          <p className="text-gray-500 text-sm py-4 text-center">No customers yet</p>
+          <p className="text-muted text-sm py-4 text-center">No customers yet</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-600">
-                  <th className="text-left p-2 text-gray-400">Name</th>
-                  <th className="text-left p-2 text-gray-400">Contact</th>
-                  <th className="text-left p-2 text-gray-400 hidden md:table-cell">Notes</th>
-                  <th className="text-right p-2 text-gray-400">Actions</th>
+                <tr className="border-b border">
+                  <th className="text-left p-2 text-muted">Name</th>
+                  <th className="text-left p-2 text-muted">Contact</th>
+                  <th className="text-left p-2 text-muted hidden md:table-cell">Notes</th>
+                  <th className="text-right p-2 text-muted">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {customers.filter(c => c.is_active).map((customer) => (
-                  <tr key={customer.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                  <tr key={customer.id} className="border-b border-subtle/50 hover:bg-surface-soft/30">
                     <td className="p-2 font-medium">{customer.name}</td>
-                    <td className="p-2 text-gray-400">
+                    <td className="p-2 text-muted">
                       {customer.phone && <div>{displayPhone(customer.phone)}</div>}
                       {customer.email && <div>{customer.email}</div>}
                     </td>
-                    <td className="p-2 hidden md:table-cell text-gray-500 italic">{customer.notes}</td>
+                    <td className="p-2 hidden md:table-cell text-muted italic">{customer.notes}</td>
                     <td className="p-2 text-right">
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => onEditCustomer(customer)} className="p-1 text-gray-400 hover:text-blue-400"><Edit className="w-4 h-4" /></button>
-                        <button onClick={() => handleDeleteCustomer(customer.id, customer.name)} className="p-1 text-gray-400 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => onEditCustomer(customer)} className="p-1 text-muted hover:text-blue-400"><Edit className="w-4 h-4" /></button>
+                        <button onClick={() => handleDeleteCustomer(customer.id, customer.name)} className="p-1 text-muted hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -2336,32 +2336,32 @@ function HomesteadTab({
         count={harvests.length}
       >
         {harvests.length === 0 ? (
-          <p className="text-gray-500 text-sm py-4 text-center">No harvest records. Record harvests from the Plants page.</p>
+          <p className="text-muted text-sm py-4 text-center">No harvest records. Record harvests from the Plants page.</p>
         ) : (
           <div className="space-y-3">
             {harvests.map((record) => (
-              <div key={record.id} className="bg-gray-700 rounded-lg p-3 border-l-4 border-green-500">
+              <div key={record.id} className="bg-surface-soft rounded-lg p-3 border-l-4 border-green-500">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium">{record.plant_name}</h4>
-                      {record.plant_variety && <span className="text-sm text-gray-400">({record.plant_variety})</span>}
+                      {record.plant_variety && <span className="text-sm text-muted">({record.plant_variety})</span>}
                       <span className={`text-xs px-2 py-0.5 rounded ${formatQuality(record.quality)}`}>{record.quality}</span>
                     </div>
                     <div className="flex items-center gap-4 mt-1 text-sm">
                       <span className="text-green-400 font-medium">{record.quantity} {record.unit}</span>
                       {record.harvest_date && (
-                        <span className="flex items-center gap-1 text-gray-400">
+                        <span className="flex items-center gap-1 text-muted">
                           <Calendar className="w-3 h-3" />
                           {format(parseISO(record.harvest_date), 'MM/dd/yyyy')}
                         </span>
                       )}
                     </div>
-                    {record.notes && <p className="text-sm text-gray-500 mt-1">{record.notes}</p>}
+                    {record.notes && <p className="text-sm text-muted mt-1">{record.notes}</p>}
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => onAllocate(record)} className="p-1 text-gray-400 hover:text-blue-400" title="Track Usage"><Percent className="w-4 h-4" /></button>
-                    <button onClick={() => handleDeleteHarvest(record.id, record.plant_name)} className="p-1 text-gray-400 hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => onAllocate(record)} className="p-1 text-muted hover:text-blue-400" title="Track Usage"><Percent className="w-4 h-4" /></button>
+                    <button onClick={() => handleDeleteHarvest(record.id, record.plant_name)} className="p-1 text-muted hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               </div>
@@ -2399,28 +2399,28 @@ function HomesteadTab({
           iconColor="text-purple-400"
         >
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="bg-gray-700 rounded-lg p-3">
-              <div className="text-sm text-gray-400">Meat Kept</div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Meat Kept</div>
               <div className="text-xl font-bold">{(summary.allocations?.personal_weight || 0).toFixed(0)} lbs</div>
             </div>
-            <div className="bg-gray-700 rounded-lg p-3">
-              <div className="text-sm text-gray-400">Meat Sold</div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Meat Sold</div>
               <div className="text-xl font-bold">{(summary.allocations?.sold_weight || 0).toFixed(0)} lbs</div>
             </div>
-            <div className="bg-gray-700 rounded-lg p-3">
-              <div className="text-sm text-gray-400">Personal Value</div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Personal Value</div>
               <div className="text-xl font-bold text-cyan-400">{formatCurrency(summary.allocations?.personal_cost)}</div>
             </div>
-            <div className="bg-gray-700 rounded-lg p-3">
-              <div className="text-sm text-gray-400">Harvests Consumed</div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Harvests Consumed</div>
               <div className="text-xl font-bold text-blue-400">{summary.harvests?.consumed || 0}</div>
             </div>
-            <div className="bg-gray-700 rounded-lg p-3">
-              <div className="text-sm text-gray-400">Preserved</div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Preserved</div>
               <div className="text-xl font-bold text-yellow-400">{summary.harvests?.preserved || 0}</div>
             </div>
-            <div className="bg-gray-700 rounded-lg p-3">
-              <div className="text-sm text-gray-400">Gifted</div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Gifted</div>
               <div className="text-xl font-bold text-purple-400">{summary.harvests?.gifted || 0}</div>
             </div>
           </div>
@@ -2434,17 +2434,17 @@ function HomesteadTab({
 
 function ExpenseList({ expenses, formatCurrency, onEdit, onDelete }) {
   if (expenses.length === 0) {
-    return <p className="text-gray-500 text-sm py-4 text-center">No expenses recorded</p>
+    return <p className="text-muted text-sm py-4 text-center">No expenses recorded</p>
   }
 
   return (
     <div className="space-y-2">
       {expenses.map((expense) => (
-        <div key={expense.id} className="bg-gray-700 rounded-lg p-3 flex items-center justify-between">
+        <div key={expense.id} className="bg-surface-soft rounded-lg p-3 flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="font-medium">{expense.description}</span>
-              <span className="text-xs px-2 py-0.5 bg-gray-600 rounded capitalize">{expense.category}</span>
+              <span className="text-xs px-2 py-0.5 bg-surface-hover rounded capitalize">{expense.category}</span>
               {expense.scope === 'shared' && (
                 <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">
                   Shared ({expense.business_split_pct}% biz)
@@ -2470,9 +2470,9 @@ function ExpenseList({ expenses, formatCurrency, onEdit, onDelete }) {
             </div>
             <div className="flex items-center gap-4 mt-1 text-sm">
               <span className="text-yellow-400 font-medium">{formatCurrency(expense.amount)}</span>
-              {expense.vendor && <span className="text-gray-400">{expense.vendor}</span>}
+              {expense.vendor && <span className="text-muted">{expense.vendor}</span>}
               {expense.expense_date && (
-                <span className="flex items-center gap-1 text-gray-400">
+                <span className="flex items-center gap-1 text-muted">
                   <Calendar className="w-3 h-3" />
                   {format(parseISO(expense.expense_date), 'MM/dd/yyyy')}
                 </span>
@@ -2480,8 +2480,8 @@ function ExpenseList({ expenses, formatCurrency, onEdit, onDelete }) {
             </div>
           </div>
           <div className="flex gap-1">
-            <button onClick={() => onEdit(expense)} className="p-1 text-gray-400 hover:text-blue-400"><Edit className="w-4 h-4" /></button>
-            <button onClick={() => onDelete(expense.id, expense.description)} className="p-1 text-gray-400 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+            <button onClick={() => onEdit(expense)} className="p-1 text-muted hover:text-blue-400"><Edit className="w-4 h-4" /></button>
+            <button onClick={() => onDelete(expense.id, expense.description)} className="p-1 text-muted hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
           </div>
         </div>
       ))}
@@ -2494,21 +2494,21 @@ function ExpenseList({ expenses, formatCurrency, onEdit, onDelete }) {
 function SaleModal({ formData, setFormData, customers, onSubmit, onClose, formatCurrency }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between sticky top-0 bg-surface">
           <h2 className="text-lg font-semibold">Record Sale</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Category *</label>
+            <label className="block text-sm text-muted mb-1">Category *</label>
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             >
               {SALE_CATEGORIES.map(cat => (
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -2517,11 +2517,11 @@ function SaleModal({ formData, setFormData, customers, onSubmit, onClose, format
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Customer (Optional)</label>
+            <label className="block text-sm text-muted mb-1">Customer (Optional)</label>
             <select
               value={formData.customer_id || ''}
               onChange={(e) => setFormData({ ...formData, customer_id: e.target.value ? parseInt(e.target.value) : null })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             >
               <option value="">-- No Customer --</option>
               {customers.filter(c => c.is_active).map(c => (
@@ -2531,20 +2531,20 @@ function SaleModal({ formData, setFormData, customers, onSubmit, onClose, format
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Item Name *</label>
+            <label className="block text-sm text-muted mb-1">Item Name *</label>
             <input
               type="text"
               required
               value={formData.item_name}
               onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
               placeholder="e.g., Beef - Ground, Tomato Seedlings, Eggs"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Quantity *</label>
+              <label className="block text-sm text-muted mb-1">Quantity *</label>
               <input
                 type="number"
                 required
@@ -2552,21 +2552,21 @@ function SaleModal({ formData, setFormData, customers, onSubmit, onClose, format
                 step="0.01"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Unit</label>
+              <label className="block text-sm text-muted mb-1">Unit</label>
               <input
                 type="text"
                 value={formData.unit}
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 placeholder="lbs, dozen, each"
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Price/Unit *</label>
+              <label className="block text-sm text-muted mb-1">Price/Unit *</label>
               <input
                 type="number"
                 required
@@ -2574,41 +2574,41 @@ function SaleModal({ formData, setFormData, customers, onSubmit, onClose, format
                 step="0.01"
                 value={formData.unit_price}
                 onChange={(e) => setFormData({ ...formData, unit_price: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               />
             </div>
           </div>
 
-          <div className="bg-gray-700 rounded-lg p-3 text-center">
-            <span className="text-gray-400">Total:</span>
+          <div className="bg-surface-soft rounded-lg p-3 text-center">
+            <span className="text-muted">Total:</span>
             <span className="text-2xl font-bold text-green-400 ml-2">
               {formatCurrency(formData.quantity * formData.unit_price)}
             </span>
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Sale Date</label>
+            <label className="block text-sm text-muted mb-1">Sale Date</label>
             <input
               type="date"
               value={formData.sale_date}
               onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={2}
               placeholder="Optional notes"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
             <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Record Sale</button>
           </div>
         </form>
@@ -2620,35 +2620,35 @@ function SaleModal({ formData, setFormData, customers, onSubmit, onClose, format
 function CustomerModal({ formData, setFormData, editing, onSubmit, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between sticky top-0 bg-surface">
           <h2 className="text-lg font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Name *</label>
-            <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Name *</label>
+            <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Email</label>
-            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Email</label>
+            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Phone</label>
-            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })} placeholder="(000)000-0000" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Phone</label>
+            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })} placeholder="(000)000-0000" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Address</label>
-            <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} rows={2} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Address</label>
+            <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} rows={2} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
-            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
             <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">{editing ? 'Save Changes' : 'Add Customer'}</button>
           </div>
         </form>
@@ -2673,16 +2673,16 @@ function OrderModal({ formData, setFormData, customers, livestock, editing, onSu
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between sticky top-0 bg-surface">
           <h2 className="text-lg font-semibold">{editing ? 'Edit Order' : 'New Order'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Customer</label>
-            <select value={formData.customer_id || ''} onChange={(e) => setFormData({ ...formData, customer_id: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+            <label className="block text-sm text-muted mb-1">Customer</label>
+            <select value={formData.customer_id || ''} onChange={(e) => setFormData({ ...formData, customer_id: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
               <option value="">-- Select Customer --</option>
               {customers.filter(c => c.is_active).map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -2692,14 +2692,14 @@ function OrderModal({ formData, setFormData, customers, livestock, editing, onSu
 
           {!formData.customer_id && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Customer Name (if not in list)</label>
-              <input type="text" value={formData.customer_name} onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              <label className="block text-sm text-muted mb-1">Customer Name (if not in list)</label>
+              <input type="text" value={formData.customer_name} onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Linked Livestock (Optional)</label>
-            <select value={formData.livestock_production_id || ''} onChange={(e) => setFormData({ ...formData, livestock_production_id: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+            <label className="block text-sm text-muted mb-1">Linked Livestock (Optional)</label>
+            <select value={formData.livestock_production_id || ''} onChange={(e) => setFormData({ ...formData, livestock_production_id: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
               <option value="">-- No Link --</option>
               {livestock.map(l => (
                 <option key={l.id} value={l.id}>{l.animal_name} ({l.animal_type})</option>
@@ -2708,72 +2708,72 @@ function OrderModal({ formData, setFormData, customers, livestock, editing, onSu
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Description</label>
-            <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="e.g., 1/2 Beef - Brody" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Description</label>
+            <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="e.g., 1/2 Beef - Brody" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Portion</label>
-              <select value={formData.portion_type} onChange={(e) => handlePortionChange(e.target.value)} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+              <label className="block text-sm text-muted mb-1">Portion</label>
+              <select value={formData.portion_type} onChange={(e) => handlePortionChange(e.target.value)} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
                 {PORTION_TYPES.map(p => (<option key={p.value} value={p.value}>{p.label}</option>))}
               </select>
             </div>
             {formData.portion_type === 'custom' && (
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Percentage</label>
-                <input type="number" min="0" max="100" value={formData.portion_percentage} onChange={(e) => setFormData({ ...formData, portion_percentage: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+                <label className="block text-sm text-muted mb-1">Percentage</label>
+                <input type="number" min="0" max="100" value={formData.portion_percentage} onChange={(e) => setFormData({ ...formData, portion_percentage: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
               </div>
             )}
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Order Total ($)</label>
-            <input type="number" min="0" step="0.01" value={formData.estimated_total || ''} onChange={(e) => setFormData({ ...formData, estimated_total: e.target.value })} placeholder="Total price for this order" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-lg" />
+            <label className="block text-sm text-muted mb-1">Order Total ($)</label>
+            <input type="number" min="0" step="0.01" value={formData.estimated_total || ''} onChange={(e) => setFormData({ ...formData, estimated_total: e.target.value })} placeholder="Total price for this order" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-lg" />
           </div>
 
-          <button type="button" onClick={() => setShowWeightDetails(!showWeightDetails)} className="text-sm text-gray-400 hover:text-gray-300 flex items-center gap-1">
+          <button type="button" onClick={() => setShowWeightDetails(!showWeightDetails)} className="text-sm text-muted hover:text-secondary flex items-center gap-1">
             {showWeightDetails ? '▾' : '▸'} Weight & Price/lb Details (optional)
           </button>
 
           {showWeightDetails && (
-            <div className="grid grid-cols-2 gap-4 pl-3 border-l-2 border-gray-600">
+            <div className="grid grid-cols-2 gap-4 pl-3 border-l-2 border">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Estimated Weight (lbs)</label>
-                <input type="number" min="0" step="0.1" value={formData.estimated_weight} onChange={(e) => setFormData({ ...formData, estimated_weight: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+                <label className="block text-sm text-muted mb-1">Estimated Weight (lbs)</label>
+                <input type="number" min="0" step="0.1" value={formData.estimated_weight} onChange={(e) => setFormData({ ...formData, estimated_weight: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Price per Pound</label>
-                <input type="number" min="0" step="0.01" value={formData.price_per_pound} onChange={(e) => setFormData({ ...formData, price_per_pound: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+                <label className="block text-sm text-muted mb-1">Price per Pound</label>
+                <input type="number" min="0" step="0.01" value={formData.price_per_pound} onChange={(e) => setFormData({ ...formData, price_per_pound: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
               </div>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Order Date</label>
-              <input type="date" value={formData.order_date} onChange={(e) => setFormData({ ...formData, order_date: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              <label className="block text-sm text-muted mb-1">Order Date</label>
+              <input type="date" value={formData.order_date} onChange={(e) => setFormData({ ...formData, order_date: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Expected Ready Date</label>
-              <input type="date" value={formData.expected_ready_date} onChange={(e) => setFormData({ ...formData, expected_ready_date: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              <label className="block text-sm text-muted mb-1">Expected Ready Date</label>
+              <input type="date" value={formData.expected_ready_date} onChange={(e) => setFormData({ ...formData, expected_ready_date: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Status</label>
-            <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+            <label className="block text-sm text-muted mb-1">Status</label>
+            <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
               {ORDER_STATUSES.map(s => (<option key={s.value} value={s.value}>{s.label}</option>))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
-            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
             <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">{editing ? 'Save Changes' : 'Create Order'}</button>
           </div>
         </form>
@@ -2787,52 +2787,52 @@ function PaymentModal({ order, formData, setFormData, onSubmit, onClose, formatC
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between">
           <h2 className="text-lg font-semibold">Add Payment</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
-        <div className="px-4 py-2 bg-gray-700/50">
-          <div className="text-sm text-gray-400">Order: {order.customer_name}</div>
+        <div className="px-4 py-2 bg-surface-soft/50">
+          <div className="text-sm text-muted">Order: {order.customer_name}</div>
           <div className="text-sm">Balance: <span className="text-orange-400 font-medium">{formatCurrency(remaining)}</span></div>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Payment Type</label>
-              <select value={formData.payment_type} onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+              <label className="block text-sm text-muted mb-1">Payment Type</label>
+              <select value={formData.payment_type} onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
                 {PAYMENT_TYPES.map(t => (<option key={t.value} value={t.value}>{t.label}</option>))}
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Method</label>
-              <select value={formData.payment_method} onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+              <label className="block text-sm text-muted mb-1">Method</label>
+              <select value={formData.payment_method} onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
                 {PAYMENT_METHODS.map(m => (<option key={m.value} value={m.value}>{m.label}</option>))}
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Amount *</label>
-            <input type="number" required min="0" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder={`Remaining: ${formatCurrency(remaining)}`} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Amount *</label>
+            <input type="number" required min="0" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder={`Remaining: ${formatCurrency(remaining)}`} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Payment Date</label>
-              <input type="date" value={formData.payment_date} onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              <label className="block text-sm text-muted mb-1">Payment Date</label>
+              <input type="date" value={formData.payment_date} onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Reference #</label>
-              <input type="text" value={formData.reference} onChange={(e) => setFormData({ ...formData, reference: e.target.value })} placeholder="Check #, ID, etc." className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              <label className="block text-sm text-muted mb-1">Reference #</label>
+              <input type="text" value={formData.reference} onChange={(e) => setFormData({ ...formData, reference: e.target.value })} placeholder="Check #, ID, etc." className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
-            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
           <div className="flex items-center gap-2">
@@ -2841,13 +2841,13 @@ function PaymentModal({ order, formData, setFormData, onSubmit, onClose, formatC
               id="sendReceipt"
               checked={formData.sendReceipt || false}
               onChange={(e) => setFormData({ ...formData, sendReceipt: e.target.checked })}
-              className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-farm-green focus:ring-farm-green"
+              className="w-4 h-4 rounded border bg-surface-soft text-farm-green focus:ring-farm-green"
             />
-            <label htmlFor="sendReceipt" className="text-sm text-gray-400">Send receipt email after adding payment</label>
+            <label htmlFor="sendReceipt" className="text-sm text-muted">Send receipt email after adding payment</label>
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
             <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Add Payment</button>
           </div>
         </form>
@@ -2866,14 +2866,14 @@ function AllocationModal({ production, formData, setFormData, onSubmit, onClose,
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between">
           <h2 className="text-lg font-semibold">Allocate for Personal Use</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
-        <div className="px-4 py-2 bg-gray-700/50">
-          <div className="text-sm text-gray-400">{production.animal_name} ({production.animal_type})</div>
+        <div className="px-4 py-2 bg-surface-soft/50">
+          <div className="text-sm text-muted">{production.animal_name} ({production.animal_type})</div>
           <div className="text-sm">
             Total Weight: <span className="font-medium">{production.final_weight} lbs</span>
             {production.cost_per_pound && (
@@ -2884,19 +2884,19 @@ function AllocationModal({ production, formData, setFormData, onSubmit, onClose,
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Percentage to Keep *</label>
-            <input type="number" required min="0" max="100" step="0.1" value={formData.percentage} onChange={(e) => setFormData({ ...formData, percentage: e.target.value })} placeholder="e.g., 50 for half" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Percentage to Keep *</label>
+            <input type="number" required min="0" max="100" step="0.1" value={formData.percentage} onChange={(e) => setFormData({ ...formData, percentage: e.target.value })} placeholder="e.g., 50 for half" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
           {calculatedWeight > 0 && (
-            <div className="bg-gray-700 rounded-lg p-3 space-y-1">
+            <div className="bg-surface-soft rounded-lg p-3 space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Weight:</span>
+                <span className="text-muted">Weight:</span>
                 <span className="font-medium">{calculatedWeight.toFixed(1)} lbs</span>
               </div>
               {calculatedCost > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Cost Value:</span>
+                  <span className="text-muted">Cost Value:</span>
                   <span className="text-cyan-400 font-medium">{formatCurrency(calculatedCost)}</span>
                 </div>
               )}
@@ -2904,12 +2904,12 @@ function AllocationModal({ production, formData, setFormData, onSubmit, onClose,
           )}
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
-            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Optional notes" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Optional notes" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
             <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Allocate</button>
           </div>
         </form>
@@ -2921,33 +2921,33 @@ function AllocationModal({ production, formData, setFormData, onSubmit, onClose,
 function HarvestAllocationModal({ harvest, formData, setFormData, onSubmit, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between">
           <h2 className="text-lg font-semibold">Track Harvest Usage</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
-        <div className="px-4 py-2 bg-gray-700/50">
-          <div className="text-sm text-gray-400">{harvest.plant_name}</div>
+        <div className="px-4 py-2 bg-surface-soft/50">
+          <div className="text-sm text-muted">{harvest.plant_name}</div>
           <div className="text-sm">Total Harvest: <span className="font-medium">{harvest.quantity} {harvest.unit}</span></div>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Quantity Consumed *</label>
+            <label className="block text-sm text-muted mb-1">Quantity Consumed *</label>
             <div className="flex gap-2">
-              <input type="number" required min="0" step="0.1" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
-              <span className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400">{harvest.unit}</span>
+              <input type="number" required min="0" step="0.1" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} className="flex-1 px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              <span className="px-3 py-2 bg-surface-soft border border rounded-lg text-muted">{harvest.unit}</span>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
-            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Optional notes" className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Optional notes" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
             <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Record Usage</button>
           </div>
         </form>
@@ -3013,19 +3013,19 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between sticky top-0 bg-surface">
           <h2 className="text-lg font-semibold">{editing ? 'Edit Expense' : 'Add Expense'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
         </div>
 
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Category *</label>
+            <label className="block text-sm text-muted mb-1">Category *</label>
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             >
               {EXPENSE_CATEGORIES.map(cat => (
                 <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -3034,7 +3034,7 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Scope *</label>
+            <label className="block text-sm text-muted mb-2">Scope *</label>
             <div className="flex gap-2">
               {EXPENSE_SCOPES.map(s => (
                 <button
@@ -3044,7 +3044,7 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
                   className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     formData.scope === s.value
                       ? 'bg-farm-green text-white'
-                      : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                      : 'bg-surface-soft text-muted hover:bg-surface-hover'
                   }`}
                 >
                   {s.label}
@@ -3054,7 +3054,7 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Amount *</label>
+            <label className="block text-sm text-muted mb-1">Amount *</label>
             <input
               type="number"
               required
@@ -3063,47 +3063,47 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
               placeholder="0.00"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Date *</label>
+            <label className="block text-sm text-muted mb-1">Date *</label>
             <input
               type="date"
               required
               value={formData.expense_date}
               onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Description *</label>
+            <label className="block text-sm text-muted mb-1">Description *</label>
             <input
               type="text"
               required
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="e.g., Monthly feed order, Vet visit"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Vendor</label>
+            <label className="block text-sm text-muted mb-1">Vendor</label>
             <input
               type="text"
               value={formData.vendor}
               onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
               placeholder="e.g., Tractor Supply, Local Vet"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           {formData.scope === 'shared' && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Business Split %</label>
+              <label className="block text-sm text-muted mb-1">Business Split %</label>
               <div className="flex items-center gap-3">
                 <input
                   type="range"
@@ -3116,7 +3116,7 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
                 <span className="text-sm w-16 text-right">{formData.business_split_pct}% biz</span>
               </div>
               {formData.amount && (
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <div className="flex justify-between text-xs text-muted mt-1">
                   <span>Business: {formatCurrency(parseFloat(formData.amount) * formData.business_split_pct / 100)}</span>
                   <span>Homestead: {formatCurrency(parseFloat(formData.amount) * (100 - formData.business_split_pct) / 100)}</span>
                 </div>
@@ -3132,17 +3132,17 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
                 onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
                 className="rounded"
               />
-              <span className="text-sm text-gray-400">Recurring expense</span>
+              <span className="text-sm text-muted">Recurring expense</span>
             </label>
           </div>
 
           {formData.is_recurring && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Interval</label>
+              <label className="block text-sm text-muted mb-1">Interval</label>
               <select
                 value={formData.recurring_interval}
                 onChange={(e) => setFormData({ ...formData, recurring_interval: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               >
                 <option value="">Select interval</option>
                 <option value="monthly">Monthly</option>
@@ -3153,23 +3153,23 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
           )}
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
               placeholder="Optional notes"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           {/* Receipt Section */}
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Receipt</label>
+            <label className="block text-sm text-muted mb-2">Receipt</label>
             {editing?.id ? (
               receiptUrl ? (
                 <div className="space-y-2">
-                  <div className="bg-gray-700 rounded-lg p-3">
+                  <div className="bg-surface-soft rounded-lg p-3">
                     {isPdf ? (
                       <a href={receiptUrl} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-2 text-blue-400 hover:text-blue-300">
@@ -3201,20 +3201,20 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
                     }}
                   />
                   <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors disabled:opacity-50">
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg text-sm transition-colors disabled:opacity-50">
                     <Upload className="w-4 h-4" /> {uploading ? 'Uploading...' : 'Upload'}
                   </button>
                   <button type="button" onClick={handlePaste} disabled={uploading}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors disabled:opacity-50">
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg text-sm transition-colors disabled:opacity-50">
                     <Clipboard className="w-4 h-4" /> Paste
                   </button>
                 </div>
               )
             ) : (
               pendingReceipt ? (
-                <div className="flex items-center gap-2 bg-gray-700 rounded-lg p-3">
+                <div className="flex items-center gap-2 bg-surface-soft rounded-lg p-3">
                   <Receipt className="w-4 h-4 text-green-400 flex-shrink-0" />
-                  <span className="text-sm text-gray-300 truncate flex-1">{pendingReceipt.name}</span>
+                  <span className="text-sm text-secondary truncate flex-1">{pendingReceipt.name}</span>
                   <button type="button" onClick={() => setPendingReceipt(null)}
                     className="text-red-400 hover:text-red-300">
                     <X className="w-4 h-4" />
@@ -3234,7 +3234,7 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
                     }}
                   />
                   <button type="button" onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg text-sm transition-colors">
                     <Upload className="w-4 h-4" /> Upload
                   </button>
                   <button type="button" onClick={async () => {
@@ -3255,7 +3255,7 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
                       alert('Could not read clipboard. Try uploading instead.')
                     }
                   }}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg text-sm transition-colors">
                     <Clipboard className="w-4 h-4" /> Paste
                   </button>
                 </div>
@@ -3263,8 +3263,8 @@ function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, forma
             )}
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">Cancel</button>
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
             <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">{editing ? 'Save Changes' : 'Add Expense'}</button>
           </div>
         </form>

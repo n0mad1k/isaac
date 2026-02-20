@@ -298,14 +298,14 @@ function WeeklyAARView({ settings, members }) {
             <Calendar className="w-5 h-5 text-farm-green" />
             Weekly After Action Review
           </h3>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-muted">
             Week {weekNum} · {formatDate(monday)} - {formatDate(new Date(monday.getTime() + 6 * 24 * 60 * 60 * 1000))}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowQuickAdd(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
+            className="flex items-center gap-2 px-3 py-2 bg-surface-soft text-white rounded hover:bg-surface-hover"
           >
             <Plus className="w-4 h-4" />
             Add Observation
@@ -334,7 +334,7 @@ function WeeklyAARView({ settings, members }) {
           const Icon = info.icon
           const obs = groupedObservations[scope]
           return (
-            <div key={scope} className="bg-gray-700 rounded-lg p-4">
+            <div key={scope} className="bg-surface-soft rounded-lg p-4">
               <h4 className={`font-medium mb-3 flex items-center gap-2 text-${info.color}-400`}>
                 <Icon className="w-4 h-4" />
                 {info.label}
@@ -356,26 +356,26 @@ function WeeklyAARView({ settings, members }) {
                                 value={editObsContent}
                                 onChange={e => setEditObsContent(e.target.value)}
                                 rows={2}
-                                className="flex-1 bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-sm"
+                                className="flex-1 bg-surface-hover border border-strong rounded px-2 py-1 text-white text-sm"
                                 autoFocus
                               />
                               <button onClick={() => handleEditObsSave(o.id)} disabled={editObsSaving} className="p-1 text-green-400 hover:text-green-300"><Check className="w-4 h-4" /></button>
-                              <button onClick={() => setEditingObsId(null)} className="p-1 text-gray-400 hover:text-gray-300"><X className="w-4 h-4" /></button>
+                              <button onClick={() => setEditingObsId(null)} className="p-1 text-muted hover:text-secondary"><X className="w-4 h-4" /></button>
                             </div>
                           ) : deletingObsId === o.id ? (
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-red-300">Delete this?</span>
                               <div className="flex gap-2">
                                 <button onClick={() => handleDeleteObs(o.id)} className="px-2 py-0.5 text-xs bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
-                                <button onClick={() => setDeletingObsId(null)} className="px-2 py-0.5 text-xs text-gray-400 hover:text-white">Cancel</button>
+                                <button onClick={() => setDeletingObsId(null)} className="px-2 py-0.5 text-xs text-muted hover:text-white">Cancel</button>
                               </div>
                             </div>
                           ) : (
                             <div className="flex items-start gap-1">
-                              <span className="text-gray-300 flex-1">• {o.content} <span className="text-gray-500 text-xs">- {o.member_name}</span></span>
+                              <span className="text-secondary flex-1">• {o.content} <span className="text-muted text-xs">- {o.member_name}</span></span>
                               <div className="hidden group-hover:flex gap-0.5 shrink-0">
-                                <button onClick={() => handleEditObs(o)} className="p-0.5 text-gray-500 hover:text-gray-300"><Pencil className="w-3 h-3" /></button>
-                                <button onClick={() => setDeletingObsId(o.id)} className="p-0.5 text-gray-500 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                                <button onClick={() => handleEditObs(o)} className="p-0.5 text-muted hover:text-secondary"><Pencil className="w-3 h-3" /></button>
+                                <button onClick={() => setDeletingObsId(o.id)} className="p-0.5 text-muted hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
                               </div>
                             </div>
                           )}
@@ -383,7 +383,7 @@ function WeeklyAARView({ settings, members }) {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">None reported</p>
+                    <p className="text-sm text-muted">None reported</p>
                   )}
                 </div>
 
@@ -403,26 +403,26 @@ function WeeklyAARView({ settings, members }) {
                                 value={editObsContent}
                                 onChange={e => setEditObsContent(e.target.value)}
                                 rows={2}
-                                className="flex-1 bg-gray-600 border border-gray-500 rounded px-2 py-1 text-white text-sm"
+                                className="flex-1 bg-surface-hover border border-strong rounded px-2 py-1 text-white text-sm"
                                 autoFocus
                               />
                               <button onClick={() => handleEditObsSave(o.id)} disabled={editObsSaving} className="p-1 text-green-400 hover:text-green-300"><Check className="w-4 h-4" /></button>
-                              <button onClick={() => setEditingObsId(null)} className="p-1 text-gray-400 hover:text-gray-300"><X className="w-4 h-4" /></button>
+                              <button onClick={() => setEditingObsId(null)} className="p-1 text-muted hover:text-secondary"><X className="w-4 h-4" /></button>
                             </div>
                           ) : deletingObsId === o.id ? (
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-red-300">Delete this?</span>
                               <div className="flex gap-2">
                                 <button onClick={() => handleDeleteObs(o.id)} className="px-2 py-0.5 text-xs bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
-                                <button onClick={() => setDeletingObsId(null)} className="px-2 py-0.5 text-xs text-gray-400 hover:text-white">Cancel</button>
+                                <button onClick={() => setDeletingObsId(null)} className="px-2 py-0.5 text-xs text-muted hover:text-white">Cancel</button>
                               </div>
                             </div>
                           ) : (
                             <div className="flex items-start gap-1">
-                              <span className="text-gray-300 flex-1">• {o.content} <span className="text-gray-500 text-xs">- {o.member_name}</span></span>
+                              <span className="text-secondary flex-1">• {o.content} <span className="text-muted text-xs">- {o.member_name}</span></span>
                               <div className="hidden group-hover:flex gap-0.5 shrink-0">
-                                <button onClick={() => handleEditObs(o)} className="p-0.5 text-gray-500 hover:text-gray-300"><Pencil className="w-3 h-3" /></button>
-                                <button onClick={() => setDeletingObsId(o.id)} className="p-0.5 text-gray-500 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                                <button onClick={() => handleEditObs(o)} className="p-0.5 text-muted hover:text-secondary"><Pencil className="w-3 h-3" /></button>
+                                <button onClick={() => setDeletingObsId(o.id)} className="p-0.5 text-muted hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
                               </div>
                             </div>
                           )}
@@ -430,7 +430,7 @@ function WeeklyAARView({ settings, members }) {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">None reported</p>
+                    <p className="text-sm text-muted">None reported</p>
                   )}
                 </div>
               </div>
@@ -440,7 +440,7 @@ function WeeklyAARView({ settings, members }) {
       </div>
 
       {/* AAR Notes & Action Items */}
-      <div className="bg-gray-700 rounded-lg p-4">
+      <div className="bg-surface-soft rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-medium">Summary & Action Items</h4>
           {!editMode && !currentAAR?.is_completed && (
@@ -457,32 +457,32 @@ function WeeklyAARView({ settings, members }) {
           <div className="space-y-4">
             {/* Summary Notes */}
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Summary Notes</label>
+              <label className="block text-sm text-muted mb-1">Summary Notes</label>
               <textarea
                 value={formData.summary_notes}
                 onChange={e => setFormData(prev => ({ ...prev, summary_notes: e.target.value }))}
                 rows={4}
-                className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white"
+                className="w-full bg-surface-hover border border-strong rounded px-3 py-2 text-white"
                 placeholder="Key takeaways from this week's review..."
               />
             </div>
 
             {/* Action Items */}
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Action Items</label>
+              <label className="block text-sm text-muted mb-1">Action Items</label>
               <div className="flex gap-2 mb-2">
                 <input
                   type="text"
                   value={newActionItem.item}
                   onChange={e => setNewActionItem(prev => ({ ...prev, item: e.target.value }))}
                   placeholder="Action item..."
-                  className="flex-1 bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white text-sm"
+                  className="flex-1 bg-surface-hover border border-strong rounded px-3 py-2 text-white text-sm"
                   onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddActionItem())}
                 />
                 <select
                   value={newActionItem.assigned_to}
                   onChange={e => setNewActionItem(prev => ({ ...prev, assigned_to: e.target.value }))}
-                  className="bg-gray-600 border border-gray-500 rounded px-3 py-2 text-white text-sm"
+                  className="bg-surface-hover border border-strong rounded px-3 py-2 text-white text-sm"
                 >
                   <option value="">Unassigned</option>
                   {members.map(m => (
@@ -492,21 +492,21 @@ function WeeklyAARView({ settings, members }) {
                 <button
                   type="button"
                   onClick={handleAddActionItem}
-                  className="px-3 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                  className="px-3 py-2 bg-surface-hover rounded hover:bg-surface-muted"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
               <div className="space-y-2">
                 {formData.action_items.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 bg-gray-600/50 rounded px-3 py-2">
+                  <div key={idx} className="flex items-center gap-2 bg-surface-hover/50 rounded px-3 py-2">
                     {editingActionIdx === idx ? (
                       <>
                         <input
                           type="text"
                           value={editActionItem.item}
                           onChange={e => setEditActionItem(prev => ({ ...prev, item: e.target.value }))}
-                          className="flex-1 px-2 py-1 bg-gray-700 border border-gray-500 rounded text-sm"
+                          className="flex-1 px-2 py-1 bg-surface-soft border border-strong rounded text-sm"
                           placeholder="Action item..."
                           autoFocus
                           onKeyPress={e => e.key === 'Enter' && handleSaveEditActionItem()}
@@ -515,7 +515,7 @@ function WeeklyAARView({ settings, members }) {
                           type="text"
                           value={editActionItem.assigned_to}
                           onChange={e => setEditActionItem(prev => ({ ...prev, assigned_to: e.target.value }))}
-                          className="w-24 px-2 py-1 bg-gray-700 border border-gray-500 rounded text-sm"
+                          className="w-24 px-2 py-1 bg-surface-soft border border-strong rounded text-sm"
                           placeholder="Assigned"
                           onKeyPress={e => e.key === 'Enter' && handleSaveEditActionItem()}
                         />
@@ -529,7 +529,7 @@ function WeeklyAARView({ settings, members }) {
                         <button
                           type="button"
                           onClick={handleCancelEditActionItem}
-                          className="text-gray-400 hover:text-red-400"
+                          className="text-muted hover:text-red-400"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -542,30 +542,30 @@ function WeeklyAARView({ settings, members }) {
                           className={`w-5 h-5 rounded border ${
                             item.completed
                               ? 'bg-green-500 border-green-500 text-white'
-                              : 'border-gray-500'
+                              : 'border-strong'
                           } flex items-center justify-center`}
                         >
                           {item.completed && <Check className="w-3 h-3" />}
                         </button>
-                        <span className={`flex-1 ${item.completed ? 'line-through text-gray-500' : ''}`}>
+                        <span className={`flex-1 ${item.completed ? 'line-through text-muted' : ''}`}>
                           {item.item}
                         </span>
                         {item.assigned_to && (
-                          <span className="text-xs text-gray-400 bg-gray-600 px-2 py-0.5 rounded">
+                          <span className="text-xs text-muted bg-surface-hover px-2 py-0.5 rounded">
                             {item.assigned_to}
                           </span>
                         )}
                         <button
                           type="button"
                           onClick={() => handleStartEditActionItem(idx)}
-                          className="text-gray-400 hover:text-blue-400"
+                          className="text-muted hover:text-blue-400"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleRemoveActionItem(idx)}
-                          className="text-gray-400 hover:text-red-400"
+                          className="text-muted hover:text-red-400"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -581,7 +581,7 @@ function WeeklyAARView({ settings, members }) {
               <button
                 type="button"
                 onClick={() => setEditMode(false)}
-                className="px-4 py-2 text-gray-400 hover:text-white"
+                className="px-4 py-2 text-muted hover:text-white"
               >
                 Cancel
               </button>
@@ -598,32 +598,32 @@ function WeeklyAARView({ settings, members }) {
           <div>
             {/* Display mode */}
             {formData.summary_notes ? (
-              <p className="text-gray-300 mb-4 whitespace-pre-wrap">{formData.summary_notes}</p>
+              <p className="text-secondary mb-4 whitespace-pre-wrap">{formData.summary_notes}</p>
             ) : (
-              <p className="text-gray-500 mb-4 italic">No summary notes yet</p>
+              <p className="text-muted mb-4 italic">No summary notes yet</p>
             )}
 
             {formData.action_items.length > 0 ? (
               <div className="space-y-2">
-                <h5 className="text-sm text-gray-400 mb-2">Action Items ({formData.action_items.filter(i => !i.completed).length} pending)</h5>
+                <h5 className="text-sm text-muted mb-2">Action Items ({formData.action_items.filter(i => !i.completed).length} pending)</h5>
                 {formData.action_items.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-sm">
                     {item.completed ? (
                       <Check className="w-4 h-4 text-green-500" />
                     ) : (
-                      <div className="w-4 h-4 rounded border border-gray-500" />
+                      <div className="w-4 h-4 rounded border border-strong" />
                     )}
-                    <span className={item.completed ? 'line-through text-gray-500' : ''}>
+                    <span className={item.completed ? 'line-through text-muted' : ''}>
                       {item.item}
                     </span>
                     {item.assigned_to && (
-                      <span className="text-xs text-gray-400">({item.assigned_to})</span>
+                      <span className="text-xs text-muted">({item.assigned_to})</span>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm italic">No action items</p>
+              <p className="text-muted text-sm italic">No action items</p>
             )}
           </div>
         )}
@@ -632,46 +632,46 @@ function WeeklyAARView({ settings, members }) {
       {/* Past AARs */}
       {pastAARs.length > 0 && (
         <div>
-          <h4 className="font-medium mb-3 text-gray-400">Previous AARs</h4>
+          <h4 className="font-medium mb-3 text-muted">Previous AARs</h4>
           <div className="space-y-2">
             {pastAARs.map(aar => (
-              <div key={aar.id} className="bg-gray-700 rounded-lg overflow-hidden">
+              <div key={aar.id} className="bg-surface-soft rounded-lg overflow-hidden">
                 <button
                   onClick={() => setExpandedAAR(expandedAAR === aar.id ? null : aar.id)}
-                  className="w-full p-3 text-left flex items-center justify-between hover:bg-gray-600/50"
+                  className="w-full p-3 text-left flex items-center justify-between hover:bg-surface-hover/50"
                 >
                   <div>
                     <span className="font-medium">Week {aar.week_number || '?'}</span>
-                    <span className="text-gray-400 text-sm ml-2">{formatDate(aar.week_start)}</span>
+                    <span className="text-muted text-sm ml-2">{formatDate(aar.week_start)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {aar.is_completed && (
                       <span className="text-xs text-green-400">Completed</span>
                     )}
                     {expandedAAR === aar.id ? (
-                      <ChevronUp className="w-4 h-4 text-gray-400" />
+                      <ChevronUp className="w-4 h-4 text-muted" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                      <ChevronDown className="w-4 h-4 text-muted" />
                     )}
                   </div>
                 </button>
                 {expandedAAR === aar.id && (
-                  <div className="p-3 border-t border-gray-600">
+                  <div className="p-3 border-t border">
                     {aar.summary_notes && (
-                      <p className="text-sm text-gray-300 mb-2">{aar.summary_notes}</p>
+                      <p className="text-sm text-secondary mb-2">{aar.summary_notes}</p>
                     )}
                     {aar.action_items && aar.action_items.length > 0 && (
                       <div className="text-sm">
-                        <p className="text-gray-400 mb-1">Action Items:</p>
+                        <p className="text-muted mb-1">Action Items:</p>
                         <ul className="space-y-1">
                           {aar.action_items.map((item, idx) => (
                             <li key={idx} className="flex items-center gap-2">
                               {item.completed ? (
                                 <Check className="w-3 h-3 text-green-500" />
                               ) : (
-                                <div className="w-3 h-3 rounded-full border border-gray-500" />
+                                <div className="w-3 h-3 rounded-full border border-strong" />
                               )}
-                              <span className={item.completed ? 'line-through text-gray-500' : 'text-gray-300'}>
+                              <span className={item.completed ? 'line-through text-muted' : 'text-secondary'}>
                                 {item.item}
                               </span>
                             </li>
@@ -690,7 +690,7 @@ function WeeklyAARView({ settings, members }) {
       {/* Quick Add Observation Modal */}
       {showQuickAdd && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-sm sm:max-w-md">
+          <div className="bg-surface rounded-lg p-6 w-full max-w-sm sm:max-w-md">
             <h3 className="text-lg font-semibold mb-4">Add Observation</h3>
 
             {/* Type Selection */}
@@ -700,7 +700,7 @@ function WeeklyAARView({ settings, members }) {
                 className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors ${
                   quickAddType === 'went_well'
                     ? 'bg-green-600 text-white'
-                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                    : 'bg-surface-soft text-muted hover:bg-surface-hover'
                 }`}
               >
                 <ThumbsUp className="w-4 h-4" />
@@ -711,7 +711,7 @@ function WeeklyAARView({ settings, members }) {
                 className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors ${
                   quickAddType === 'needs_improvement'
                     ? 'bg-red-600 text-white'
-                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                    : 'bg-surface-soft text-muted hover:bg-surface-hover'
                 }`}
               >
                 <ThumbsDown className="w-4 h-4" />
@@ -721,7 +721,7 @@ function WeeklyAARView({ settings, members }) {
 
             {/* Scope Selection */}
             <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-1">Scope</label>
+              <label className="block text-sm text-muted mb-1">Scope</label>
               <div className="flex gap-2">
                 {[
                   { value: 'individual', label: 'Individual', icon: User },
@@ -734,7 +734,7 @@ function WeeklyAARView({ settings, members }) {
                     className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1 text-sm transition-colors ${
                       quickAddScope === value
                         ? 'bg-farm-green text-white'
-                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                        : 'bg-surface-soft text-muted hover:bg-surface-hover'
                     }`}
                   >
                     <Icon className="w-3 h-3" />
@@ -746,11 +746,11 @@ function WeeklyAARView({ settings, members }) {
 
             {/* Member Selection */}
             <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-1">Who are you?</label>
+              <label className="block text-sm text-muted mb-1">Who are you?</label>
               <select
                 value={quickAddMember}
                 onChange={(e) => setQuickAddMember(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg text-white"
               >
                 <option value="">Select member...</option>
                 {members.map(m => (
@@ -763,14 +763,14 @@ function WeeklyAARView({ settings, members }) {
 
             {/* Content */}
             <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-1">
+              <label className="block text-sm text-muted mb-1">
                 {quickAddType === 'went_well' ? 'What went well?' : 'What needs improvement?'}
               </label>
               <textarea
                 value={quickAddContent}
                 onChange={(e) => setQuickAddContent(e.target.value)}
                 placeholder="Enter your observation..."
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white resize-none"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg text-white resize-none"
                 rows={3}
               />
             </div>
@@ -782,7 +782,7 @@ function WeeklyAARView({ settings, members }) {
                   setShowQuickAdd(false)
                   setQuickAddContent('')
                 }}
-                className="px-4 py-2 text-gray-400 hover:text-white"
+                className="px-4 py-2 text-muted hover:text-white"
               >
                 Cancel
               </button>

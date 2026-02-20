@@ -27,7 +27,7 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
   })
 
   const priorityOptions = [
-    { value: 'low', label: 'Low', color: 'bg-gray-500' },
+    { value: 'low', label: 'Low', color: 'bg-surface-muted' },
     { value: 'medium', label: 'Medium', color: 'bg-blue-500' },
     { value: 'high', label: 'High', color: 'bg-yellow-500' },
     { value: 'urgent', label: 'Urgent', color: 'bg-red-500' }
@@ -171,12 +171,12 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
 
       {/* Request Form */}
       {showForm && (
-        <div className="bg-gray-700 rounded-lg p-4">
+        <div className="bg-surface-soft rounded-lg p-4">
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-medium text-white">
               {editingId ? 'Edit Request' : 'New Supply Request'}
             </h4>
-            <button onClick={resetForm} className="text-gray-400 hover:text-white">
+            <button onClick={resetForm} className="text-muted hover:text-white">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -184,45 +184,45 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Item Name *</label>
+                <label className="block text-sm text-muted mb-1">Item Name *</label>
                 <input
                   type="text"
                   value={formData.item_name}
                   onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
                   required
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white"
+                  className="w-full px-3 py-2 bg-surface-hover border border-strong rounded text-white"
                   placeholder="What do you need?"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Category</label>
+                <label className="block text-sm text-muted mb-1">Category</label>
                 <input
                   type="text"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white"
+                  className="w-full px-3 py-2 bg-surface-hover border border-strong rounded text-white"
                   placeholder="e.g., Gear, Medical, Equipment"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Quantity</label>
+                <label className="block text-sm text-muted mb-1">Quantity</label>
                 <input
                   type="number"
                   min="1"
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white"
+                  className="w-full px-3 py-2 bg-surface-hover border border-strong rounded text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Priority</label>
+                <label className="block text-sm text-muted mb-1">Priority</label>
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white"
+                  className="w-full px-3 py-2 bg-surface-hover border border-strong rounded text-white"
                 >
                   {priorityOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -231,59 +231,59 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Estimated Price</label>
+                <label className="block text-sm text-muted mb-1">Estimated Price</label>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white"
+                  className="w-full px-3 py-2 bg-surface-hover border border-strong rounded text-white"
                   placeholder="0.00"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Vendor</label>
+                <label className="block text-sm text-muted mb-1">Vendor</label>
                 <input
                   type="text"
                   value={formData.vendor}
                   onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white"
+                  className="w-full px-3 py-2 bg-surface-hover border border-strong rounded text-white"
                   placeholder="Where to buy"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Product Link</label>
+              <label className="block text-sm text-muted mb-1">Product Link</label>
               <input
                 type="url"
                 value={formData.link}
                 onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white"
+                className="w-full px-3 py-2 bg-surface-hover border border-strong rounded text-white"
                 placeholder="https://..."
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Description</label>
+              <label className="block text-sm text-muted mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white"
+                className="w-full px-3 py-2 bg-surface-hover border border-strong rounded text-white"
                 placeholder="Specific details, model, size, etc."
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Reason Needed</label>
+              <label className="block text-sm text-muted mb-1">Reason Needed</label>
               <textarea
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded text-white"
+                className="w-full px-3 py-2 bg-surface-hover border border-strong rounded text-white"
                 placeholder="Why do you need this?"
               />
             </div>
@@ -292,7 +292,7 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
+                className="px-4 py-2 bg-surface-hover text-white rounded hover:bg-surface-muted"
               >
                 Cancel
               </button>
@@ -309,7 +309,7 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
 
       {/* Requests List */}
       {requests.length === 0 ? (
-        <div className="text-center py-8 text-gray-400 bg-gray-700/50 rounded-lg">
+        <div className="text-center py-8 text-muted bg-surface-soft/50 rounded-lg">
           <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p>No supply requests yet</p>
           <button
@@ -327,13 +327,13 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
             const StatusIcon = statusInfo.icon
 
             return (
-              <div key={request.id} className="bg-gray-700 rounded-lg p-4">
+              <div key={request.id} className="bg-surface-soft rounded-lg p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-medium text-white">{request.item_name}</h4>
                       {request.quantity > 1 && (
-                        <span className="text-sm text-gray-400">x{request.quantity}</span>
+                        <span className="text-sm text-muted">x{request.quantity}</span>
                       )}
                       <span className={`px-2 py-0.5 rounded text-xs text-white ${priorityInfo.color}`}>
                         {priorityInfo.label}
@@ -341,7 +341,7 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
                     </div>
 
                     {request.description && (
-                      <p className="text-sm text-gray-400 mt-1">{request.description}</p>
+                      <p className="text-sm text-muted mt-1">{request.description}</p>
                     )}
 
                     <div className="flex items-center gap-4 mt-2 text-sm">
@@ -351,7 +351,7 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
                       </span>
 
                       {request.price && (
-                        <span className="flex items-center gap-1 text-gray-400">
+                        <span className="flex items-center gap-1 text-muted">
                           <DollarSign className="w-4 h-4" />
                           {formatPrice(request.price)}
                           {request.quantity > 1 && (
@@ -361,7 +361,7 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
                       )}
 
                       {request.category && (
-                        <span className="px-2 py-0.5 bg-gray-600 rounded text-gray-300">
+                        <span className="px-2 py-0.5 bg-surface-hover rounded text-secondary">
                           {request.category}
                         </span>
                       )}
@@ -380,9 +380,9 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
                     )}
 
                     {request.admin_notes && (
-                      <div className="mt-2 p-2 bg-gray-600 rounded text-sm">
-                        <span className="text-gray-400">Admin notes: </span>
-                        <span className="text-gray-300">{request.admin_notes}</span>
+                      <div className="mt-2 p-2 bg-surface-hover rounded text-sm">
+                        <span className="text-muted">Admin notes: </span>
+                        <span className="text-secondary">{request.admin_notes}</span>
                       </div>
                     )}
                   </div>
@@ -391,14 +391,14 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEdit(request)}
-                        className="p-1.5 text-gray-400 hover:text-white"
+                        className="p-1.5 text-muted hover:text-white"
                         title="Edit"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(request.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-400"
+                        className="p-1.5 text-muted hover:text-red-400"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -407,7 +407,7 @@ function MemberSupplyRequestsTab({ member, onUpdate }) {
                   )}
                 </div>
 
-                <div className="text-xs text-gray-500 mt-2">
+                <div className="text-xs text-muted mt-2">
                   Requested {new Date(request.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   {request.vendor && ` | From: ${request.vendor}`}
                 </div>

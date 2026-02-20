@@ -170,7 +170,7 @@ function StatementImport() {
             <select
               value={selectedAccountId}
               onChange={(e) => setSelectedAccountId(e.target.value)}
-              className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm"
+              className="w-full px-2 py-1.5 bg-surface border border-subtle rounded text-sm"
               style={{ color: 'var(--color-text-primary)' }}
             >
               <option value="">Select Account...</option>
@@ -184,7 +184,7 @@ function StatementImport() {
               placeholder="Auto-detect"
               value={statementYear}
               onChange={(e) => setStatementYear(e.target.value)}
-              className="w-full px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm"
+              className="w-full px-2 py-1.5 bg-surface border border-subtle rounded text-sm"
               style={{ color: 'var(--color-text-primary)' }}
               min={2020}
               max={2030}
@@ -192,7 +192,7 @@ function StatementImport() {
           </div>
           <div>
             <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Format</label>
-            <div className="px-2 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+            <div className="px-2 py-1.5 bg-surface border border-subtle rounded text-sm" style={{ color: 'var(--color-text-secondary)' }}>
               Chase PDF
             </div>
           </div>
@@ -203,7 +203,7 @@ function StatementImport() {
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-gray-600 rounded-xl p-8 text-center cursor-pointer hover:border-gray-500 transition-colors"
+          className="border-2 border-dashed border rounded-xl p-8 text-center cursor-pointer hover:border-strong transition-colors"
         >
           <input
             ref={fileInputRef}
@@ -218,7 +218,7 @@ function StatementImport() {
               <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{file.name}</span>
               <button
                 onClick={(e) => { e.stopPropagation(); setFile(null); setPreview(null); setResult(null) }}
-                className="p-0.5 rounded hover:bg-gray-700"
+                className="p-0.5 rounded hover:bg-surface-soft"
               >
                 <X className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
               </button>
@@ -278,7 +278,7 @@ function StatementImport() {
       {/* Preview Table */}
       {preview && (
         <div className="rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 flex-wrap gap-2">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-subtle flex-wrap gap-2">
             <div>
               <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                 Preview ({preview.total_parsed} parsed, {selectedCount} selected)
@@ -299,7 +299,7 @@ function StatementImport() {
 
           <div className="max-h-[500px] overflow-y-auto">
             {/* Table Header */}
-            <div className="hidden md:grid grid-cols-[36px_80px_1fr_140px_100px_50px] gap-2 px-4 py-2 border-b border-gray-700 sticky top-0" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
+            <div className="hidden md:grid grid-cols-[36px_80px_1fr_140px_100px_50px] gap-2 px-4 py-2 border-b border-subtle sticky top-0" style={{ backgroundColor: 'var(--color-bg-surface)' }}>
               <button onClick={handleSelectAll} className="flex items-center justify-center" title="Select/Deselect All">
                 {preview.transactions.filter(t => !t.is_duplicate).every(t => t.selected)
                   ? <CheckSquare className="w-4 h-4 text-green-400" />
@@ -317,7 +317,7 @@ function StatementImport() {
               <div key={idx}>
                 {/* Normal row */}
                 <div
-                  className={`grid grid-cols-[36px_1fr] md:grid-cols-[36px_80px_1fr_140px_100px_50px] gap-1 md:gap-2 px-4 py-2 border-b border-gray-800 ${
+                  className={`grid grid-cols-[36px_1fr] md:grid-cols-[36px_80px_1fr_140px_100px_50px] gap-1 md:gap-2 px-4 py-2 border-b border-subtle ${
                     txn.is_duplicate ? 'opacity-40' : ''
                   } ${!txn.selected && !txn.is_duplicate ? 'opacity-50' : ''}`}
                 >
@@ -350,7 +350,7 @@ function StatementImport() {
                         value={txn.suggested_category_id || ''}
                         onChange={(e) => handleFieldChange(idx, 'suggested_category_id', e.target.value)}
                         disabled={txn.is_duplicate}
-                        className="flex-1 px-1 py-0.5 bg-gray-800 border border-gray-700 rounded text-xs"
+                        className="flex-1 px-1 py-0.5 bg-surface border border-subtle rounded text-xs"
                         style={{ color: 'var(--color-text-secondary)' }}
                       >
                         <option value="">Uncategorized</option>
@@ -358,7 +358,7 @@ function StatementImport() {
                       </select>
                       {!txn.is_duplicate && (
                         <button onClick={() => setEditingIdx(editingIdx === idx ? null : idx)}
-                          className="p-0.5 rounded hover:bg-gray-700">
+                          className="p-0.5 rounded hover:bg-surface-soft">
                           <Edit className="w-3 h-3" style={{ color: 'var(--color-text-muted)' }} />
                         </button>
                       )}
@@ -372,7 +372,7 @@ function StatementImport() {
                     value={txn.suggested_category_id || ''}
                     onChange={(e) => handleFieldChange(idx, 'suggested_category_id', e.target.value)}
                     disabled={txn.is_duplicate}
-                    className="hidden md:block px-1 py-0.5 bg-gray-800 border border-gray-700 rounded text-xs"
+                    className="hidden md:block px-1 py-0.5 bg-surface border border-subtle rounded text-xs"
                     style={{ color: 'var(--color-text-secondary)' }}
                   >
                     <option value="">Uncategorized</option>
@@ -384,7 +384,7 @@ function StatementImport() {
                   <div className="hidden md:flex justify-center">
                     {!txn.is_duplicate && (
                       <button onClick={() => setEditingIdx(editingIdx === idx ? null : idx)}
-                        className="p-0.5 rounded hover:bg-gray-700">
+                        className="p-0.5 rounded hover:bg-surface-soft">
                         <Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} />
                       </button>
                     )}
@@ -393,7 +393,7 @@ function StatementImport() {
 
                 {/* Inline edit row */}
                 {editingIdx === idx && !txn.is_duplicate && (
-                  <div className="px-4 py-2 border-b border-gray-800 bg-gray-800/50">
+                  <div className="px-4 py-2 border-b border-subtle bg-surface/50">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                       <div>
                         <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Date</label>
@@ -401,7 +401,7 @@ function StatementImport() {
                           type="date"
                           value={txn.date}
                           onChange={(e) => handleFieldChange(idx, 'date', e.target.value)}
-                          className="w-full px-2 py-1 bg-gray-900 border border-gray-700 rounded text-xs"
+                          className="w-full px-2 py-1 bg-surface-app border border-subtle rounded text-xs"
                           style={{ color: 'var(--color-text-primary)' }}
                         />
                       </div>
@@ -411,7 +411,7 @@ function StatementImport() {
                           type="text"
                           value={txn.description}
                           onChange={(e) => handleFieldChange(idx, 'description', e.target.value)}
-                          className="w-full px-2 py-1 bg-gray-900 border border-gray-700 rounded text-xs"
+                          className="w-full px-2 py-1 bg-surface-app border border-subtle rounded text-xs"
                           style={{ color: 'var(--color-text-primary)' }}
                           maxLength={500}
                         />
@@ -423,7 +423,7 @@ function StatementImport() {
                           step="0.01"
                           value={txn.amount}
                           onChange={(e) => handleFieldChange(idx, 'amount', parseFloat(e.target.value) || 0)}
-                          className="w-full px-2 py-1 bg-gray-900 border border-gray-700 rounded text-xs"
+                          className="w-full px-2 py-1 bg-surface-app border border-subtle rounded text-xs"
                           style={{ color: 'var(--color-text-primary)' }}
                         />
                       </div>
@@ -431,7 +431,7 @@ function StatementImport() {
                     <div className="flex justify-end mt-2">
                       <button
                         onClick={() => setEditingIdx(null)}
-                        className="px-2 py-1 text-xs bg-gray-700 rounded hover:bg-gray-600"
+                        className="px-2 py-1 text-xs bg-surface-soft rounded hover:bg-surface-hover"
                         style={{ color: 'var(--color-text-secondary)' }}
                       >
                         Done

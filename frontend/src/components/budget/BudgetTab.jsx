@@ -32,7 +32,7 @@ function BudgetTab() {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
               activeSubTab === tab.key
                 ? 'bg-farm-green text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                : 'bg-surface text-muted hover:bg-surface-soft'
             }`}
           >
             <tab.icon className="w-3.5 h-3.5" />

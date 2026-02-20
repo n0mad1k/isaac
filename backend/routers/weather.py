@@ -22,18 +22,20 @@ router = APIRouter(prefix="/weather", tags=["Weather"])
 
 # Pydantic Schemas
 class WeatherSummary(BaseModel):
-    temperature: Optional[float]
-    feels_like: Optional[float]
-    humidity: Optional[int]
-    wind_speed: Optional[float]
-    wind_gust: Optional[float]
-    wind_direction: Optional[str]
-    rain_today: Optional[float]
-    rain_rate: Optional[float]
-    uv_index: Optional[int]
-    pressure: Optional[float]
-    soil_moisture: Optional[int]
-    reading_time: Optional[str]
+    temperature: Optional[float] = None
+    feels_like: Optional[float] = None
+    humidity: Optional[int] = None
+    wind_speed: Optional[float] = None
+    wind_gust: Optional[float] = None
+    wind_direction: Optional[str] = None
+    rain_today: Optional[float] = None
+    rain_rate: Optional[float] = None
+    uv_index: Optional[int] = None
+    pressure: Optional[float] = None
+    soil_moisture: Optional[int] = None
+    reading_time: Optional[str] = None
+    conditions: Optional[str] = None
+    source: Optional[str] = None  # "awn" or "nws"
 
 
 class WeatherReadingResponse(BaseModel):
@@ -82,12 +84,27 @@ forecast_service = NWSForecastService()
 # Routes
 @router.get("/current/", response_model=WeatherSummary)
 async def get_current_weather(user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
-    """Get current weather conditions from most recent reading"""
+    """Get current weather conditions from most recent reading or NWS fallback"""
     reading = await weather_service.get_latest_reading(db)
-    if not reading:
-        raise HTTPException(status_code=404, detail="No weather data available")
 
-    return weather_service.get_weather_summary(reading)
+    if reading:
+        return weather_service.get_weather_summary(reading)
+
+    # Fallback to NWS observation if no stored readings
+    nws_obs = await forecast_service.get_current_observation()
+    if nws_obs:
+        # Return NWS data in summary format
+        return WeatherSummary(
+            temperature=nws_obs.get("temp_outdoor"),
+            feels_like=nws_obs.get("temp_outdoor"),  # NWS doesn't provide feels_like
+            humidity=nws_obs.get("humidity_outdoor"),
+            wind_speed=nws_obs.get("wind_speed"),
+            wind_direction=nws_obs.get("wind_direction"),
+            conditions=nws_obs.get("text_description", "Unknown"),
+            source="nws"
+        )
+
+    raise HTTPException(status_code=404, detail="No weather data available")
 
 
 @router.get("/current/raw/", response_model=WeatherReadingResponse)
@@ -101,22 +118,37 @@ async def get_current_weather_raw(user: User = Depends(require_auth), db: AsyncS
 
 @router.post("/refresh/")
 async def refresh_weather(user: User = Depends(require_auth), db: AsyncSession = Depends(get_db)):
-    """Manually trigger a weather data fetch"""
+    """Manually trigger a weather data fetch (AWN or NWS fallback)"""
     logger.info("Manual weather refresh triggered by user {}", user.username)
+
+    # Try AWN first
     data = await weather_service.fetch_current_weather()
-    if not data:
-        logger.warning("Weather data fetch returned no data")
-        raise HTTPException(status_code=503, detail="Could not fetch weather data")
 
-    reading = await weather_service.save_reading(db, data)
-    await weather_service.check_alerts(db, reading)
-    logger.info("Weather refreshed: temp={}, humidity={}", reading.temp_outdoor, reading.humidity_outdoor)
+    if data:
+        reading = await weather_service.save_reading(db, data)
+        await weather_service.check_alerts(db, reading)
+        logger.info("Weather refreshed from AWN: temp={}, humidity={}", reading.temp_outdoor, reading.humidity_outdoor)
+        return {
+            "message": "Weather data refreshed",
+            "source": "awn",
+            "temperature": reading.temp_outdoor,
+            "humidity": reading.humidity_outdoor,
+        }
 
-    return {
-        "message": "Weather data refreshed",
-        "temperature": reading.temp_outdoor,
-        "humidity": reading.humidity_outdoor,
-    }
+    # Fallback to NWS observation
+    nws_obs = await forecast_service.get_current_observation()
+    if nws_obs:
+        logger.info("Weather refreshed from NWS: temp={}", nws_obs.get("temp_outdoor"))
+        return {
+            "message": "Weather data from NWS (no weather station configured)",
+            "source": "nws",
+            "temperature": nws_obs.get("temp_outdoor"),
+            "humidity": nws_obs.get("humidity_outdoor"),
+            "conditions": nws_obs.get("text_description"),
+        }
+
+    logger.warning("Weather data fetch failed from both AWN and NWS")
+    raise HTTPException(status_code=503, detail="Could not fetch weather data")
 
 
 @router.get("/soil-moisture/")

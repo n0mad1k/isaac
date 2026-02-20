@@ -140,6 +140,7 @@ class NWSForecastService:
                 "gridY": data["properties"]["gridY"],
                 "forecast_url": data["properties"]["forecast"],
                 "forecast_hourly_url": data["properties"]["forecastHourly"],
+                "observation_stations_url": data["properties"]["observationStations"],
             }
             return self._grid_cache
         except Exception as e:
@@ -349,6 +350,95 @@ class NWSForecastService:
             "forecast": rain_hour["short_forecast"],
             "message": f"Rain in {hours_until}hr ({rain_hour['rain_chance']}%)"
         }
+
+    async def get_current_observation(self, lat: float = None, lon: float = None) -> Optional[Dict[str, Any]]:
+        """
+        Get current weather observation from nearest NWS station.
+        Used as fallback when Ambient Weather is not configured.
+        """
+        lat = lat or config_settings.latitude
+        lon = lon or config_settings.longitude
+
+        if not lat or not lon:
+            logger.warning("Location not configured - cannot get observations")
+            return None
+
+        grid = await self.get_grid_info(lat, lon)
+        if not grid or "observation_stations_url" not in grid:
+            return None
+
+        client = await self.get_client()
+        try:
+            # Get list of observation stations
+            response = await client.get(grid["observation_stations_url"])
+            response.raise_for_status()
+            stations_data = response.json()
+
+            stations = stations_data.get("features", [])
+            if not stations:
+                logger.warning("No NWS observation stations found")
+                return None
+
+            # Get latest observation from first (nearest) station
+            station_id = stations[0]["properties"]["stationIdentifier"]
+            obs_url = f"{self.BASE_URL}/stations/{station_id}/observations/latest"
+
+            response = await client.get(obs_url)
+            response.raise_for_status()
+            obs_data = response.json()
+
+            props = obs_data.get("properties", {})
+
+            # Helper to extract value from NWS format ({"value": X, "unitCode": "..."} or null)
+            def get_value(data, key, default=None):
+                val = data.get(key)
+                if val is None:
+                    return default
+                if isinstance(val, dict):
+                    return val.get("value", default)
+                return val
+
+            # Convert Celsius to Fahrenheit
+            def c_to_f(c):
+                if c is None:
+                    return None
+                return round(c * 9/5 + 32, 1)
+
+            # Convert m/s to mph
+            def ms_to_mph(ms):
+                if ms is None:
+                    return None
+                return round(ms * 2.237, 1)
+
+            # Convert Pa to inHg
+            def pa_to_inhg(pa):
+                if pa is None:
+                    return None
+                return round(pa * 0.0002953, 2)
+
+            temp_c = get_value(props, "temperature")
+            dewpoint_c = get_value(props, "dewpoint")
+            wind_ms = get_value(props, "windSpeed")
+            gust_ms = get_value(props, "windGust")
+            pressure_pa = get_value(props, "barometricPressure")
+
+            return {
+                "source": "nws",
+                "station": station_id,
+                "timestamp": props.get("timestamp"),
+                "temp_outdoor": c_to_f(temp_c),
+                "humidity_outdoor": get_value(props, "relativeHumidity"),
+                "dew_point": c_to_f(dewpoint_c),
+                "wind_speed": ms_to_mph(wind_ms),
+                "wind_gust": ms_to_mph(gust_ms),
+                "wind_direction": get_value(props, "windDirection"),
+                "pressure_relative": pa_to_inhg(pressure_pa),
+                "text_description": props.get("textDescription"),
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to get NWS observation: {e}")
+            return None
 
 
 class WeatherService:

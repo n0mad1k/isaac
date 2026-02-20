@@ -5,14 +5,14 @@ import MottoDisplay from '../components/MottoDisplay'
 
 // Reusable inline editable field component
 function EditableField({ label, value, onChange, type = 'text', options = null, placeholder = '', rows = 1, editing = true }) {
-  const readOnlyClass = "text-sm text-gray-300"
+  const readOnlyClass = "text-sm text-secondary"
 
   // Read-only mode
   if (!editing) {
     if (type === 'checkbox') {
       return (
-        <div className="flex items-center gap-2 bg-gray-900/30 rounded-lg p-3">
-          <span className="text-sm text-gray-300">{label}:</span>
+        <div className="flex items-center gap-2 bg-surface-app/30 rounded-lg p-3">
+          <span className="text-sm text-secondary">{label}:</span>
           <span className={value ? "text-green-400" : "text-red-400"}>{value ? "Yes" : "No"}</span>
         </div>
       )
@@ -22,8 +22,8 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
       const selectedOption = options.find(opt => opt.value === value)
       const display = selectedOption?.label || value || '-'
       return (
-        <div className="bg-gray-900/30 rounded-lg p-3">
-          <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+        <div className="bg-surface-app/30 rounded-lg p-3">
+          <label className="text-xs text-muted mb-1 block">{label}</label>
           <div className={readOnlyClass}>{display}</div>
         </div>
       )
@@ -31,9 +31,9 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
 
     if (type === 'textarea' && value) {
       return (
-        <div className="bg-gray-900/30 rounded-lg p-3">
-          <label className="text-xs text-gray-500 mb-1 block">{label}</label>
-          <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+        <div className="bg-surface-app/30 rounded-lg p-3">
+          <label className="text-xs text-muted mb-1 block">{label}</label>
+          <div className="text-sm text-secondary whitespace-pre-wrap max-h-[200px] overflow-y-auto">
             {value}
           </div>
         </div>
@@ -43,8 +43,8 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
     // Simple text display
     if (!value) return null
     return (
-      <div className="bg-gray-900/30 rounded-lg p-3">
-        <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+      <div className="bg-surface-app/30 rounded-lg p-3">
+        <label className="text-xs text-muted mb-1 block">{label}</label>
         <div className={readOnlyClass}>{value}</div>
       </div>
     )
@@ -53,12 +53,12 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
   // Edit mode
   if (type === 'select' && options) {
     return (
-      <div className="bg-gray-900/30 rounded-lg p-3">
-        <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+      <div className="bg-surface-app/30 rounded-lg p-3">
+        <label className="text-xs text-muted mb-1 block">{label}</label>
         <select
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-farm-green"
+          className="w-full bg-surface border border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-farm-green"
         >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -70,7 +70,7 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
 
   if (type === 'checkbox') {
     return (
-      <label className="flex items-center gap-2 bg-gray-900/30 rounded-lg p-3 cursor-pointer hover:bg-gray-900/50">
+      <label className="flex items-center gap-2 bg-surface-app/30 rounded-lg p-3 cursor-pointer hover:bg-surface-app/50">
         <input
           type="checkbox"
           checked={value || false}
@@ -84,28 +84,28 @@ function EditableField({ label, value, onChange, type = 'text', options = null, 
 
   if (type === 'textarea') {
     return (
-      <div className="bg-gray-900/30 rounded-lg p-3">
-        <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+      <div className="bg-surface-app/30 rounded-lg p-3">
+        <label className="text-xs text-muted mb-1 block">{label}</label>
         <textarea
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           rows={rows}
           placeholder={placeholder}
-          className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-farm-green resize-none"
+          className="w-full bg-surface border border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-farm-green resize-none"
         />
       </div>
     )
   }
 
   return (
-    <div className="bg-gray-900/30 rounded-lg p-3">
-      <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+    <div className="bg-surface-app/30 rounded-lg p-3">
+      <label className="text-xs text-muted mb-1 block">{label}</label>
       <input
         type={type}
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-farm-green"
+        className="w-full bg-surface border border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-farm-green"
       />
     </div>
   )
@@ -178,7 +178,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
       vine: 'bg-lime-900/50 text-lime-300',
       shrub: 'bg-amber-900/50 text-amber-300',
       tree: 'bg-orange-900/50 text-orange-300',
-      other: 'bg-gray-700 text-gray-300',
+      other: 'bg-surface-soft text-secondary',
     }
     return colors[category] || colors.other
   }
@@ -207,10 +207,10 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl overflow-hidden">
+    <div className="bg-surface rounded-xl overflow-hidden">
       {/* Header - clickable to expand */}
       <div
-        className="p-4 cursor-pointer hover:bg-gray-750"
+        className="p-4 cursor-pointer hover:bg-surface-muted"
         onClick={onToggle}
       >
         <div className="flex items-center justify-between">
@@ -222,8 +222,8 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
                 className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
-                <Sprout className="w-5 h-5 text-gray-500" />
+              <div className="w-10 h-10 rounded-lg bg-surface-soft flex items-center justify-center flex-shrink-0">
+                <Sprout className="w-5 h-5 text-muted" />
               </div>
             )}
             <h3 className="font-semibold text-lg">{seed.name}</h3>
@@ -237,14 +237,14 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
             )}
           </div>
           {isExpanded ? (
-            <ChevronUp className="w-5 h-5 text-gray-400" />
+            <ChevronUp className="w-5 h-5 text-muted" />
           ) : (
-            <ChevronDown className="w-5 h-5 text-gray-400" />
+            <ChevronDown className="w-5 h-5 text-muted" />
           )}
         </div>
 
         {seed.description && (
-          <p className="text-sm text-gray-400 mt-1 line-clamp-2">{seed.description}</p>
+          <p className="text-sm text-muted mt-1 line-clamp-2">{seed.description}</p>
         )}
 
         {/* Quick tags */}
@@ -264,7 +264,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
             </span>
           )}
           {seed.grow_zones && (
-            <span className="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-xs">
+            <span className="px-2 py-0.5 bg-surface-soft text-secondary rounded text-xs">
               Zones {seed.grow_zones}
             </span>
           )}
@@ -273,7 +273,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
 
       {/* Expanded content with inline editing */}
       {isExpanded && editData && (
-        <div className="px-4 pb-4 border-t border-gray-700 pt-4 space-y-4">
+        <div className="px-4 pb-4 border-t border-subtle pt-4 space-y-4">
           {/* Action Buttons - Edit/Save/Cancel and Delete */}
           <div className="flex gap-2 flex-wrap">
             {isEditing ? (
@@ -287,7 +287,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="px-3 py-1.5 bg-gray-600 hover:bg-gray-500 rounded text-sm text-white transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 bg-surface-hover hover:bg-surface-muted rounded text-sm text-white transition-colors flex items-center gap-1"
                 >
                   <X className="w-3 h-3" /> Cancel
                 </button>
@@ -324,7 +324,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
                   <img
                     src={getSeedPhotoUrl(seed.photo_path)}
                     alt={seed.name}
-                    className="w-full max-h-48 object-contain rounded-lg bg-gray-800"
+                    className="w-full max-h-48 object-contain rounded-lg bg-surface"
                   />
                   {isEditing && (
                     <button
@@ -344,9 +344,9 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
                 </div>
               ) : isEditing && (
                 <div className="flex gap-2">
-                  <label className="flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-green-500 transition-colors">
-                    <Camera className="w-8 h-8 text-gray-500 mb-2" />
-                    <span className="text-sm text-gray-500">Upload Photo</span>
+                  <label className="flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed border rounded-lg cursor-pointer hover:border-green-500 transition-colors">
+                    <Camera className="w-8 h-8 text-muted mb-2" />
+                    <span className="text-sm text-muted">Upload Photo</span>
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/gif,image/webp"
@@ -384,11 +384,11 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
                         }
                       } catch (err) { console.error('Failed to paste image:', err) }
                     }}
-                    className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-600 rounded-lg hover:border-blue-500 transition-colors"
+                    className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border rounded-lg hover:border-blue-500 transition-colors"
                     title="Paste image from clipboard"
                   >
-                    <Clipboard className="w-8 h-8 text-gray-500 mb-2" />
-                    <span className="text-sm text-gray-500">Paste</span>
+                    <Clipboard className="w-8 h-8 text-muted mb-2" />
+                    <span className="text-sm text-muted">Paste</span>
                   </button>
                 </div>
               )}
@@ -438,7 +438,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
           />
 
           {/* Germination & Growth */}
-          <h4 className="text-sm font-medium text-gray-400 pt-2">Germination & Growth</h4>
+          <h4 className="text-sm font-medium text-muted pt-2">Germination & Growth</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField
               label="Germination Days"
@@ -488,7 +488,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
           </div>
 
           {/* Planting Requirements */}
-          <h4 className="text-sm font-medium text-gray-400 pt-2">Planting Requirements</h4>
+          <h4 className="text-sm font-medium text-muted pt-2">Planting Requirements</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField
               label="Sow Depth"
@@ -521,7 +521,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
           </div>
 
           {/* Growing Conditions */}
-          <h4 className="text-sm font-medium text-gray-400 pt-2">Growing Conditions</h4>
+          <h4 className="text-sm font-medium text-muted pt-2">Growing Conditions</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField
               label="Sun Requirement"
@@ -556,7 +556,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
           </div>
 
           {/* Sowing & Harvest Calendar */}
-          <h4 className="text-sm font-medium text-gray-400 pt-2">Sowing & Harvest</h4>
+          <h4 className="text-sm font-medium text-muted pt-2">Sowing & Harvest</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <EditableField
               label="When to Sow"
@@ -589,7 +589,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
           </div>
 
           {/* Characteristics Flags */}
-          <h4 className="text-sm font-medium text-gray-400 pt-2">Characteristics</h4>
+          <h4 className="text-sm font-medium text-muted pt-2">Characteristics</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
             <EditableField
               label="Perennial"
@@ -664,7 +664,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
           </div>
 
           {/* Notes */}
-          <h4 className="text-sm font-medium text-gray-400 pt-2">Notes</h4>
+          <h4 className="text-sm font-medium text-muted pt-2">Notes</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <EditableField
               label="Growing Notes"
@@ -706,35 +706,35 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
       {/* Plant This Seed Modal */}
       {showPlantForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowPlantForm(false)}>
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-1">Plant This Seed</h3>
-            <p className="text-sm text-gray-400 mb-4">Create a new plant from <span className="text-green-400">{seed.name}</span></p>
+            <p className="text-sm text-muted mb-4">Create a new plant from <span className="text-green-400">{seed.name}</span></p>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Date Sown</label>
+                <label className="block text-sm text-secondary mb-1">Date Sown</label>
                 <input
                   type="date"
                   value={plantForm.date_sown}
                   onChange={(e) => setPlantForm({ ...plantForm, date_sown: e.target.value })}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+                  className="w-full bg-surface-soft text-white px-3 py-2 rounded"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Location</label>
+                <label className="block text-sm text-secondary mb-1">Location</label>
                 <input
                   type="text"
                   value={plantForm.location}
                   onChange={(e) => setPlantForm({ ...plantForm, location: e.target.value })}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+                  className="w-full bg-surface-soft text-white px-3 py-2 rounded"
                   placeholder="e.g., Garden bed A, Greenhouse"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-300 mb-1">Notes</label>
+                <label className="block text-sm text-secondary mb-1">Notes</label>
                 <textarea
                   value={plantForm.notes}
                   onChange={(e) => setPlantForm({ ...plantForm, notes: e.target.value })}
-                  className="w-full bg-gray-700 text-white px-3 py-2 rounded"
+                  className="w-full bg-surface-soft text-white px-3 py-2 rounded"
                   rows={2}
                   placeholder="Optional notes..."
                 />
@@ -769,7 +769,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
               </button>
               <button
                 onClick={() => setShowPlantForm(false)}
-                className="px-4 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded"
+                className="px-4 bg-surface-hover hover:bg-surface-soft text-white py-2 rounded"
               >
                 Cancel
               </button>
@@ -944,21 +944,21 @@ function Seeds() {
       {/* Stats */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-800 rounded-xl p-4">
+          <div className="bg-surface rounded-xl p-4">
             <div className="text-2xl font-bold text-green-400">{stats.total}</div>
-            <div className="text-sm text-gray-400">Total Seeds</div>
+            <div className="text-sm text-muted">Total Seeds</div>
           </div>
-          <div className="bg-gray-800 rounded-xl p-4">
+          <div className="bg-surface rounded-xl p-4">
             <div className="text-2xl font-bold text-purple-400">{stats.medicinal}</div>
-            <div className="text-sm text-gray-400">Medicinal</div>
+            <div className="text-sm text-muted">Medicinal</div>
           </div>
-          <div className="bg-gray-800 rounded-xl p-4">
+          <div className="bg-surface rounded-xl p-4">
             <div className="text-2xl font-bold text-cyan-400">{stats.native}</div>
-            <div className="text-sm text-gray-400">Native Florida</div>
+            <div className="text-sm text-muted">Native Florida</div>
           </div>
-          <div className="bg-gray-800 rounded-xl p-4">
+          <div className="bg-surface rounded-xl p-4">
             <div className="text-2xl font-bold text-amber-400">{stats.perennial}</div>
-            <div className="text-sm text-gray-400">Perennial</div>
+            <div className="text-sm text-muted">Perennial</div>
           </div>
         </div>
       )}
@@ -966,19 +966,19 @@ function Seeds() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted" />
           <input
             type="text"
             placeholder="Search seeds..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            className="w-full pl-10 pr-4 py-2 bg-surface border border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
           />
         </div>
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+          className="px-4 py-2 bg-surface border border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
         >
           <option value="">All Categories</option>
           {categories.map((cat) => (
@@ -989,7 +989,7 @@ function Seeds() {
 
       {/* Seed List */}
       {seeds.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-muted">
           <Sprout className="w-16 h-16 mx-auto mb-4 opacity-50" />
           <p>No seeds found. Add your first seed!</p>
         </div>
@@ -1013,38 +1013,38 @@ function Seeds() {
       {/* Add Seed Modal (only for new seeds) */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-4">Add New Seed</h2>
             <form onSubmit={handleAddNew} className="space-y-4">
               {/* Basic Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Name *</label>
+                  <label className="block text-sm text-muted mb-1">Name *</label>
                   <input
                     type="text"
                     name="name"
                     required
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Latin Name</label>
+                  <label className="block text-sm text-muted mb-1">Latin Name</label>
                   <input
                     type="text"
                     name="latin_name"
                     placeholder="Genus species"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Category</label>
+                  <label className="block text-sm text-muted mb-1">Category</label>
                   <select
                     name="category"
                     defaultValue="other"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     {categories.map((cat) => (
                       <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -1052,44 +1052,44 @@ function Seeds() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Variety</label>
+                  <label className="block text-sm text-muted mb-1">Variety</label>
                   <input
                     type="text"
                     name="variety"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Grow Zones</label>
+                  <label className="block text-sm text-muted mb-1">Grow Zones</label>
                   <input
                     type="text"
                     name="grow_zones"
                     placeholder="e.g., 8-11"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <label className="block text-sm text-muted mb-1">Description</label>
                 <textarea
                   name="description"
                   rows={3}
                   placeholder="Plant appearance, uses, characteristics..."
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 />
               </div>
 
               {/* Growing Conditions */}
-              <h3 className="text-lg font-medium pt-2 border-t border-gray-700">Growing Conditions</h3>
+              <h3 className="text-lg font-medium pt-2 border-t border-subtle">Growing Conditions</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Sun</label>
+                  <label className="block text-sm text-muted mb-1">Sun</label>
                   <select
                     name="sun_requirement"
                     defaultValue="full_sun"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="full_sun">Full Sun</option>
                     <option value="partial_sun">Partial Sun</option>
@@ -1098,11 +1098,11 @@ function Seeds() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Water</label>
+                  <label className="block text-sm text-muted mb-1">Water</label>
                   <select
                     name="water_requirement"
                     defaultValue="moderate"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="low">Low</option>
                     <option value="moderate">Moderate</option>
@@ -1112,7 +1112,7 @@ function Seeds() {
               </div>
 
               {/* Flags */}
-              <h3 className="text-lg font-medium pt-2 border-t border-gray-700">Characteristics</h3>
+              <h3 className="text-lg font-medium pt-2 border-t border-subtle">Characteristics</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <label className="flex items-center gap-2">
                   <input type="checkbox" name="is_perennial" className="w-4 h-4" />
@@ -1157,11 +1157,11 @@ function Seeds() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-4 border-t border-gray-700">
+              <div className="flex gap-3 pt-4 border-t border-subtle">
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                  className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
                 >
                   Cancel
                 </button>

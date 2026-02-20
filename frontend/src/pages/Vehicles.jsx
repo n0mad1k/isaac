@@ -311,17 +311,17 @@ function Vehicles() {
       {/* Vehicles Grid */}
       <div className="space-y-4">
         {vehicles.map(vehicle => (
-          <div key={vehicle.id} className="bg-gray-800 rounded-lg overflow-hidden">
+          <div key={vehicle.id} className="bg-surface rounded-lg overflow-hidden">
             {/* Vehicle Header */}
             <div
-              className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-700/50"
+              className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-soft/50"
               onClick={() => handleExpand(vehicle.id)}
             >
               <div className="flex items-center gap-4">
                 <span className="text-3xl">{TYPE_ICONS[vehicle.type] || '🚗'}</span>
                 <div>
                   <div className="font-bold text-lg">{vehicle.name}</div>
-                  <div className="text-gray-400 text-sm">
+                  <div className="text-muted text-sm">
                     {vehicle.year} {vehicle.make} {vehicle.model}
                   </div>
                 </div>
@@ -372,12 +372,12 @@ function Vehicles() {
 
             {/* Maintenance Tasks */}
             {expandedVehicle === vehicle.id && (
-              <div className="border-t border-gray-700 p-4">
+              <div className="border-t border-subtle p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold">Maintenance Schedule</h3>
                   <button
                     onClick={() => setShowAddMaintenance({ vehicleId: vehicle.id, vehicleType: vehicle.type })}
-                    className="text-sm px-3 py-1 bg-gray-700 rounded-lg hover:bg-gray-600"
+                    className="text-sm px-3 py-1 bg-surface-soft rounded-lg hover:bg-surface-hover"
                   >
                     + Add Task
                   </button>
@@ -388,7 +388,7 @@ function Vehicles() {
                     {maintenanceTasks[vehicle.id].map(task => (
                       <div
                         key={task.id}
-                        className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg"
+                        className="flex items-center justify-between p-3 bg-surface-soft/50 rounded-lg"
                       >
                         <div>
                           <div className="flex items-center gap-2">
@@ -398,7 +398,7 @@ function Vehicles() {
                             }`}></span>
                             <span className="font-medium">{task.name}</span>
                           </div>
-                          <div className="text-sm text-gray-400 mt-1">
+                          <div className="text-sm text-muted mt-1">
                             {usesHours(vehicle.type)
                               ? task.frequency_hours && `Every ${task.frequency_hours} hrs`
                               : task.frequency_miles && `Every ${task.frequency_miles.toLocaleString()} mi`
@@ -451,12 +451,12 @@ function Vehicles() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-400 text-sm">No maintenance tasks. Add one to track service intervals.</p>
+                  <p className="text-muted text-sm">No maintenance tasks. Add one to track service intervals.</p>
                 )}
 
                 {/* Linked Reminders */}
                 {linkedTasks[vehicle.id]?.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-700">
+                  <div className="mt-4 pt-4 border-t border-subtle">
                     <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
                       <CalendarPlus className="w-4 h-4 text-cyan-400" />
                       Reminders ({linkedTasks[vehicle.id].length})
@@ -466,19 +466,19 @@ function Vehicles() {
                         <div
                           key={task.id}
                           className={`flex items-center justify-between p-2 rounded-lg text-sm ${
-                            task.is_completed ? 'bg-gray-700/30 opacity-60' : 'bg-cyan-900/30'
+                            task.is_completed ? 'bg-surface-soft/30 opacity-60' : 'bg-cyan-900/30'
                           }`}
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className={task.is_completed ? 'line-through text-gray-400' : ''}>
+                              <span className={task.is_completed ? 'line-through text-muted' : ''}>
                                 {task.title}
                               </span>
                               {task.is_completed && (
                                 <span className="text-xs text-green-400">Done</span>
                               )}
                             </div>
-                            <div className="text-xs text-gray-400 mt-1">
+                            <div className="text-xs text-muted mt-1">
                               {task.due_date ? format(new Date(task.due_date), 'MM/dd/yyyy') : 'No due date'}
                               {task.due_time && ` at ${formatTime(task.due_time)}`}
                             </div>
@@ -512,7 +512,7 @@ function Vehicles() {
         ))}
 
         {vehicles.length === 0 && !loading && (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-muted">
             <Car className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No vehicles yet. Add one to get started!</p>
           </div>
@@ -522,29 +522,29 @@ function Vehicles() {
       {/* Add/Edit Vehicle Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingVehicle ? 'Edit Vehicle' : 'Add Vehicle'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Name</label>
+                <label className="block text-sm text-muted mb-1">Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder="e.g., 2020 Ford F-150"
                   required
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Type</label>
+                  <label className="block text-sm text-muted mb-1">Type</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   >
                     {vehicleTypes.map(t => (
                       <option key={t.value} value={t.value}>{t.label}</option>
@@ -552,77 +552,77 @@ function Vehicles() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Year</label>
+                  <label className="block text-sm text-muted mb-1">Year</label>
                   <input
                     type="number"
                     value={formData.year}
                     onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Make</label>
+                  <label className="block text-sm text-muted mb-1">Make</label>
                   <input
                     type="text"
                     value={formData.make}
                     onChange={(e) => setFormData({ ...formData, make: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Model</label>
+                  <label className="block text-sm text-muted mb-1">Model</label>
                   <input
                     type="text"
                     value={formData.model}
                     onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
               </div>
               <div>
                 {usesHours(formData.type) ? (
                   <>
-                    <label className="block text-sm text-gray-400 mb-1">Current Hours</label>
+                    <label className="block text-sm text-muted mb-1">Current Hours</label>
                     <input
                       type="text"
                       inputMode="decimal"
                       value={formData.current_hours}
                       onChange={(e) => setFormData({ ...formData, current_hours: e.target.value.replace(/[^0-9.]/g, '') })}
-                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      className="w-full bg-surface-soft rounded-lg px-4 py-2"
                       placeholder="0"
                     />
                   </>
                 ) : (
                   <>
-                    <label className="block text-sm text-gray-400 mb-1">Current Mileage</label>
+                    <label className="block text-sm text-muted mb-1">Current Mileage</label>
                     <input
                       type="text"
                       inputMode="numeric"
                       value={formData.current_mileage}
                       onChange={(e) => setFormData({ ...formData, current_mileage: e.target.value.replace(/[^0-9]/g, '') })}
-                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      className="w-full bg-surface-soft rounded-lg px-4 py-2"
                       placeholder="0"
                     />
                   </>
                 )}
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">VIN/Serial</label>
+                <label className="block text-sm text-muted mb-1">VIN/Serial</label>
                 <input
                   type="text"
                   value={formData.vin}
                   onChange={(e) => setFormData({ ...formData, vin: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm text-muted mb-1">Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   rows={2}
                 />
               </div>
@@ -630,7 +630,7 @@ function Vehicles() {
                 <button
                   type="button"
                   onClick={() => { setShowAddForm(false); setEditingVehicle(null); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   Cancel
                 </button>
@@ -649,57 +649,57 @@ function Vehicles() {
       {/* Add/Edit Maintenance Modal */}
       {showAddMaintenance && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingMaintenance ? 'Edit Maintenance Task' : 'Add Maintenance Task'}
             </h2>
             <form onSubmit={handleAddMaintenance} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Task Name</label>
+                <label className="block text-sm text-muted mb-1">Task Name</label>
                 <input
                   type="text"
                   value={maintFormData.name}
                   onChange={(e) => setMaintFormData({ ...maintFormData, name: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder="e.g., Oil Change"
                   required
                 />
               </div>
               {usesHours(showAddMaintenance.vehicleType) ? (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Every X Hours (recurring)</label>
+                  <label className="block text-sm text-muted mb-1">Every X Hours (recurring)</label>
                   <input
                     type="number"
                     value={maintFormData.frequency_hours}
                     onChange={(e) => setMaintFormData({ ...maintFormData, frequency_hours: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                     placeholder="e.g., 100"
                   />
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Every X Miles (recurring)</label>
+                  <label className="block text-sm text-muted mb-1">Every X Miles (recurring)</label>
                   <input
                     type="number"
                     value={maintFormData.frequency_miles}
                     onChange={(e) => setMaintFormData({ ...maintFormData, frequency_miles: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                     placeholder="e.g., 5000"
                   />
                 </div>
               )}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Every X Days (recurring)</label>
+                <label className="block text-sm text-muted mb-1">Every X Days (recurring)</label>
                 <input
                   type="number"
                   value={maintFormData.frequency_days}
                   onChange={(e) => setMaintFormData({ ...maintFormData, frequency_days: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder="e.g., 180"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                <label className="block text-sm text-muted mb-1 flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   Last Completed (optional)
                 </label>
@@ -707,35 +707,35 @@ function Vehicles() {
                   type="date"
                   value={maintFormData.last_completed}
                   onChange={(e) => setMaintFormData({ ...maintFormData, last_completed: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
-                <p className="text-xs text-gray-500 mt-1">When was this last done? Next due will be calculated from here.</p>
+                <p className="text-xs text-muted mt-1">When was this last done? Next due will be calculated from here.</p>
               </div>
               {usesHours(showAddMaintenance.vehicleType) ? (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Hours at Last Service</label>
+                  <label className="block text-sm text-muted mb-1">Hours at Last Service</label>
                   <input
                     type="number"
                     value={maintFormData.last_hours}
                     onChange={(e) => setMaintFormData({ ...maintFormData, last_hours: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                     placeholder="e.g., 150"
                   />
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Mileage at Last Service</label>
+                  <label className="block text-sm text-muted mb-1">Mileage at Last Service</label>
                   <input
                     type="number"
                     value={maintFormData.last_mileage}
                     onChange={(e) => setMaintFormData({ ...maintFormData, last_mileage: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                     placeholder="e.g., 45000"
                   />
                 </div>
               )}
               <div>
-                <label className="block text-sm text-gray-400 mb-1">
+                <label className="block text-sm text-muted mb-1">
                   <Calendar className="w-4 h-4 inline mr-1" />
                   Manual Due Date (one-time override)
                 </label>
@@ -743,24 +743,24 @@ function Vehicles() {
                   type="date"
                   value={maintFormData.manual_due_date}
                   onChange={(e) => setMaintFormData({ ...maintFormData, manual_due_date: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Set a specific date. After completing, it will use recurring schedule if set, otherwise clear.
                 </p>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm text-muted mb-1">Notes</label>
                 <textarea
                   value={maintFormData.notes}
                   onChange={(e) => setMaintFormData({ ...maintFormData, notes: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   rows={2}
                 />
               </div>
               {/* Alerts Section */}
-              <div className="space-y-2 pt-3 border-t border-gray-700">
-                <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+              <div className="space-y-2 pt-3 border-t border-subtle">
+                <label className="block text-sm text-muted mb-2">Alerts (optional)</label>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { value: 0, label: 'At time' },
@@ -789,7 +789,7 @@ function Vehicles() {
                         className={`px-2 py-1 rounded text-xs font-medium transition-all ${
                           isSelected
                             ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
-                            : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                            : 'bg-surface-soft/50 border border text-muted hover:border-strong'
                         }`}
                       >
                         {opt.label}
@@ -806,7 +806,7 @@ function Vehicles() {
                     setEditingMaintenance(null)
                     setMaintFormData({ name: '', frequency_miles: '', frequency_hours: '', frequency_days: '', last_completed: '', last_mileage: '', last_hours: '', manual_due_date: '', notes: '', reminder_alerts: null })
                   }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   Cancel
                 </button>
@@ -825,60 +825,60 @@ function Vehicles() {
       {/* Complete Maintenance Modal */}
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
             <h2 className="text-xl font-bold mb-4">Complete: {completeModal.name}</h2>
             <div className="space-y-4">
               <div>
                 {usesHours(completeModal.vehicleType) ? (
                   <>
-                    <label className="block text-sm text-gray-400 mb-1">Current Hours</label>
+                    <label className="block text-sm text-muted mb-1">Current Hours</label>
                     <input
                       type="text"
                       inputMode="decimal"
                       value={completeData.hours_at}
                       onChange={(e) => setCompleteData({ ...completeData, hours_at: e.target.value.replace(/[^0-9.]/g, '') })}
-                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      className="w-full bg-surface-soft rounded-lg px-4 py-2"
                       placeholder="Current hours"
                     />
                   </>
                 ) : (
                   <>
-                    <label className="block text-sm text-gray-400 mb-1">Current Mileage</label>
+                    <label className="block text-sm text-muted mb-1">Current Mileage</label>
                     <input
                       type="text"
                       inputMode="numeric"
                       value={completeData.mileage_at}
                       onChange={(e) => setCompleteData({ ...completeData, mileage_at: e.target.value.replace(/[^0-9]/g, '') })}
-                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      className="w-full bg-surface-soft rounded-lg px-4 py-2"
                       placeholder="Current mileage"
                     />
                   </>
                 )}
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Cost</label>
+                <label className="block text-sm text-muted mb-1">Cost</label>
                 <input
                   type="number"
                   step="0.01"
                   value={completeData.cost}
                   onChange={(e) => setCompleteData({ ...completeData, cost: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder="0.00"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Notes</label>
+                <label className="block text-sm text-muted mb-1">Notes</label>
                 <textarea
                   value={completeData.notes}
                   onChange={(e) => setCompleteData({ ...completeData, notes: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   rows={2}
                 />
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => setCompleteModal(null)}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   Cancel
                 </button>

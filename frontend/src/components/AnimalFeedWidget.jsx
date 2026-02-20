@@ -11,7 +11,7 @@ const ANIMAL_TAGS = {
   for_sale: { label: 'For Sale', color: 'bg-green-600 text-white' },
   new: { label: 'New', color: 'bg-blue-600 text-white' },
   special_diet: { label: 'Special Diet', color: 'bg-cyan-600 text-white' },
-  senior: { label: 'Senior', color: 'bg-gray-500 text-white' },
+  senior: { label: 'Senior', color: 'bg-surface-muted text-white' },
   breeding: { label: 'Breeding', color: 'bg-rose-600 text-white' },
 }
 

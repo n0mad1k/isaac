@@ -268,8 +268,8 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="animate-pulse bg-gray-800 rounded-xl h-32" />
-        <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
+        <div className="animate-pulse bg-surface rounded-xl h-32" />
+        <div className="animate-pulse bg-surface rounded-xl h-64" />
       </div>
     )
   }
@@ -277,7 +277,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
   if (!account) {
     return (
       <div className="rounded-xl p-8 text-center" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-        <p className="text-gray-400">Account not found</p>
+        <p className="text-muted">Account not found</p>
       </div>
     )
   }
@@ -310,14 +310,14 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
           <div className="flex gap-2">
             <button
               onClick={() => setShowSettings(true)}
-              className="p-2 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-lg bg-surface text-muted hover:bg-surface-soft transition-colors"
               title="Account Settings"
             >
               <Settings className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 rounded-lg bg-gray-800 text-red-400 hover:bg-red-900/30 transition-colors"
+              className="p-2 rounded-lg bg-surface text-red-400 hover:bg-red-900/30 transition-colors"
               title="Delete Account"
             >
               <Trash2 className="w-4 h-4" />
@@ -355,7 +355,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
               setNewBucket({ name: '', balance: '' })
               setShowNewBucketModal(true)
             }}
-            className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-surface-soft text-secondary hover:bg-surface-hover transition-colors"
           >
             <Plus className="w-3 h-3" />
             Add
@@ -364,7 +364,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
         {hasBuckets ? (
           <div className="space-y-2">
             {account.buckets.map((bucket) => (
-              <div key={bucket.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
+              <div key={bucket.id} className="flex items-center justify-between p-3 rounded-lg bg-surface/50">
                 <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>{bucket.name}</p>
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-medium" style={{ color: 'var(--color-text-primary)' }}>{fmt(bucket.balance)}</span>
@@ -374,13 +374,13 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                       setBucketAdjust({ amount: '', operation: 'add' })
                       setShowBucketModal(true)
                     }}
-                    className="px-2 py-1 text-xs rounded bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+                    className="px-2 py-1 text-xs rounded bg-surface-soft text-secondary hover:bg-surface-hover transition-colors"
                   >
                     Adjust
                   </button>
                   <button
                     onClick={() => handleDeleteBucket(bucket.id)}
-                    className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                    className="p-1 text-muted hover:text-red-400 transition-colors"
                     title="Delete bucket"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -388,15 +388,15 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                 </div>
               </div>
             ))}
-            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/30 border border-dashed border-gray-700">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-surface/30 border border-dashed border-subtle">
               <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Unallocated</p>
-              <span className={`text-lg font-medium ${unallocated >= 0 ? 'text-gray-400' : 'text-yellow-400'}`}>
+              <span className={`text-lg font-medium ${unallocated >= 0 ? 'text-muted' : 'text-yellow-400'}`}>
                 {fmt(unallocated)}
               </span>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-500 text-center py-4">
+          <p className="text-sm text-muted text-center py-4">
             No buckets yet. Create buckets to track separate pots of money within this account (e.g., "Travel", "House").
           </p>
         )}
@@ -428,20 +428,20 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
 
       {/* Transactions List */}
       <div className="rounded-xl" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-        <div className="p-4 border-b border-gray-700">
+        <div className="p-4 border-b border-subtle">
           <h3 className="text-lg font-medium" style={{ color: 'var(--color-text-primary)' }}>
             Transactions
-            <span className="text-sm font-normal text-gray-400 ml-2">({totalTransactions} total)</span>
+            <span className="text-sm font-normal text-muted ml-2">({totalTransactions} total)</span>
           </h3>
         </div>
         {transactions.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">
+          <div className="p-8 text-center text-muted">
             No transactions yet
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: 'var(--color-border-default)' }}>
             {visibleTransactions.map((txn) => (
-              <div key={txn.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-800/20 transition-colors">
+              <div key={txn.id} className="px-4 py-3 flex items-center justify-between hover:bg-surface/20 transition-colors">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
@@ -464,14 +464,14 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   <div className="flex gap-1 opacity-50 hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => setEditingTransaction(txn)}
-                      className="p-1.5 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                      className="p-1.5 rounded text-muted hover:text-white hover:bg-surface-soft transition-colors"
                       title="Edit"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteTransaction(txn.id)}
-                      className="p-1.5 rounded text-gray-400 hover:text-red-400 hover:bg-red-900/30 transition-colors"
+                      className="p-1.5 rounded text-muted hover:text-red-400 hover:bg-red-900/30 transition-colors"
                       title="Delete"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -483,11 +483,11 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
           </div>
         )}
         {(hasMoreToShow || hasMoreToLoad) && (
-          <div className="p-3 border-t border-gray-800 flex justify-center gap-2">
+          <div className="p-3 border-t border-subtle flex justify-center gap-2">
             {hasMoreToShow && (
               <button
                 onClick={() => setShowAllTransactions(true)}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-muted hover:text-white transition-colors"
               >
                 <ChevronDown className="w-4 h-4" />
                 Show All ({transactions.length})
@@ -496,7 +496,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
             {showAllTransactions && transactions.length > 5 && (
               <button
                 onClick={() => setShowAllTransactions(false)}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-muted hover:text-white transition-colors"
               >
                 <ChevronUp className="w-4 h-4" />
                 Show Less
@@ -505,7 +505,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
             {hasMoreToLoad && showAllTransactions && (
               <button
                 onClick={loadMoreTransactions}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-800 rounded text-gray-300 hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 text-sm bg-surface rounded text-secondary hover:bg-surface-soft transition-colors"
               >
                 Load More...
               </button>
@@ -518,11 +518,11 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
       {showTransactionModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+            <div className="p-4 border-b border-subtle flex items-center justify-between">
               <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                 Add {newTransaction.type === 'deposit' ? 'Deposit' : 'Withdrawal'}
               </h2>
-              <button onClick={() => setShowTransactionModal(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowTransactionModal(false)} className="text-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -534,7 +534,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   className={`flex-1 py-2 rounded-lg transition-colors ${
                     newTransaction.type === 'deposit'
                       ? 'bg-green-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      : 'bg-surface text-muted hover:bg-surface-soft'
                   }`}
                 >
                   Deposit
@@ -545,7 +545,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   className={`flex-1 py-2 rounded-lg transition-colors ${
                     newTransaction.type === 'withdrawal'
                       ? 'bg-red-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      : 'bg-surface text-muted hover:bg-surface-soft'
                   }`}
                 >
                   Withdrawal
@@ -559,7 +559,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   step="0.01"
                   value={newTransaction.amount}
                   onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                   placeholder="0.00"
                   required
                 />
@@ -571,7 +571,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   type="text"
                   value={newTransaction.description}
                   onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                   placeholder={newTransaction.type === 'deposit' ? 'Deposit' : 'Withdrawal'}
                 />
               </div>
@@ -582,7 +582,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   type="date"
                   value={newTransaction.transaction_date}
                   onChange={(e) => setNewTransaction({ ...newTransaction, transaction_date: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                 />
               </div>
 
@@ -591,7 +591,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                 <textarea
                   value={newTransaction.notes}
                   onChange={(e) => setNewTransaction({ ...newTransaction, notes: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none resize-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none resize-none"
                   rows={2}
                   placeholder="Optional notes..."
                 />
@@ -601,7 +601,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                 <button
                   type="button"
                   onClick={() => setShowTransactionModal(false)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-lg bg-surface-soft text-secondary hover:bg-surface-hover transition-colors"
                 >
                   Cancel
                 </button>
@@ -634,9 +634,9 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
       {showSettings && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+            <div className="p-4 border-b border-subtle flex items-center justify-between">
               <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>Account Settings</h2>
-              <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowSettings(false)} className="text-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -647,7 +647,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   type="text"
                   value={editAccount.name}
                   onChange={(e) => setEditAccount({ ...editAccount, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                 />
               </div>
               <div>
@@ -656,7 +656,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   type="text"
                   value={editAccount.institution}
                   onChange={(e) => setEditAccount({ ...editAccount, institution: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -667,7 +667,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                     step="0.01"
                     value={editAccount.initial_balance}
                     onChange={(e) => setEditAccount({ ...editAccount, initial_balance: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                   />
                 </div>
                 <div>
@@ -676,14 +676,14 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                     type="date"
                     value={editAccount.balance_as_of}
                     onChange={(e) => setEditAccount({ ...editAccount, balance_as_of: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                   />
                 </div>
               </div>
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => setShowSettings(false)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-lg bg-surface-soft text-secondary hover:bg-surface-hover transition-colors"
                 >
                   Cancel
                 </button>
@@ -704,11 +704,11 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-sm" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="p-4 border-b border-gray-700">
+            <div className="p-4 border-b border-subtle">
               <h2 className="text-lg font-semibold text-red-400">Delete Account</h2>
             </div>
             <div className="p-4">
-              <p className="text-gray-300 mb-4">
+              <p className="text-secondary mb-4">
                 Are you sure you want to delete <strong>{account.name}</strong>?
                 {totalTransactions > 0 && (
                   <span className="block text-yellow-400 text-sm mt-2">
@@ -719,7 +719,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-lg bg-surface-soft text-secondary hover:bg-surface-hover transition-colors"
                 >
                   Cancel
                 </button>
@@ -740,14 +740,14 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
       {showNewBucketModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-sm" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+            <div className="p-4 border-b border-subtle flex items-center justify-between">
               <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>New Bucket</h2>
-              <button onClick={() => setShowNewBucketModal(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowNewBucketModal(false)} className="text-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4 space-y-4">
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted">
                 Create a bucket to track a separate pot of money within this account (e.g., "Travel", "House").
               </p>
               <div>
@@ -756,7 +756,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   type="text"
                   value={newBucket.name}
                   onChange={(e) => setNewBucket({ ...newBucket, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                   placeholder="e.g., Travel"
                 />
               </div>
@@ -767,14 +767,14 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   step="0.01"
                   value={newBucket.balance}
                   onChange={(e) => setNewBucket({ ...newBucket, balance: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                   placeholder="0.00"
                 />
               </div>
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => setShowNewBucketModal(false)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-lg bg-surface-soft text-secondary hover:bg-surface-hover transition-colors"
                 >
                   Cancel
                 </button>
@@ -795,16 +795,16 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
       {showBucketModal && selectedBucket && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl w-full max-w-sm" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+            <div className="p-4 border-b border-subtle flex items-center justify-between">
               <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                 Adjust {selectedBucket.name}
               </h2>
-              <button onClick={() => setShowBucketModal(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowBucketModal(false)} className="text-muted hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4 space-y-4">
-              <div className="text-center p-3 rounded-lg bg-gray-800/50">
+              <div className="text-center p-3 rounded-lg bg-surface/50">
                 <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Current Balance</p>
                 <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
                   {fmt(selectedBucket.balance)}
@@ -818,7 +818,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   className={`flex-1 py-2 rounded-lg transition-colors ${
                     bucketAdjust.operation === 'add'
                       ? 'bg-green-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      : 'bg-surface text-muted hover:bg-surface-soft'
                   }`}
                 >
                   Add
@@ -829,7 +829,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   className={`flex-1 py-2 rounded-lg transition-colors ${
                     bucketAdjust.operation === 'subtract'
                       ? 'bg-red-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      : 'bg-surface text-muted hover:bg-surface-soft'
                   }`}
                 >
                   Remove
@@ -843,13 +843,13 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
                   step="0.01"
                   value={bucketAdjust.amount}
                   onChange={(e) => setBucketAdjust({ ...bucketAdjust, amount: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
                   placeholder="0.00"
                 />
               </div>
 
               {bucketAdjust.amount && (
-                <div className="text-center p-3 rounded-lg bg-gray-800/30 border border-dashed border-gray-700">
+                <div className="text-center p-3 rounded-lg bg-surface/30 border border-dashed border-subtle">
                   <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>New Balance</p>
                   <p className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
                     {fmt(
@@ -864,7 +864,7 @@ function AccountView({ accountId, onAccountUpdated, onAccountDeleted }) {
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => setShowBucketModal(false)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-lg bg-surface-soft text-secondary hover:bg-surface-hover transition-colors"
                 >
                   Cancel
                 </button>
@@ -909,9 +909,9 @@ function EditTransactionModal({ transaction, onClose, onSave, saving }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="rounded-xl w-full max-w-md" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="p-4 border-b border-subtle flex items-center justify-between">
           <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>Edit Transaction</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -923,7 +923,7 @@ function EditTransactionModal({ transaction, onClose, onSave, saving }) {
               className={`flex-1 py-2 rounded-lg transition-colors ${
                 form.type === 'deposit'
                   ? 'bg-green-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  : 'bg-surface text-muted hover:bg-surface-soft'
               }`}
             >
               Deposit
@@ -934,7 +934,7 @@ function EditTransactionModal({ transaction, onClose, onSave, saving }) {
               className={`flex-1 py-2 rounded-lg transition-colors ${
                 form.type === 'withdrawal'
                   ? 'bg-red-600 text-white'
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  : 'bg-surface text-muted hover:bg-surface-soft'
               }`}
             >
               Withdrawal
@@ -948,7 +948,7 @@ function EditTransactionModal({ transaction, onClose, onSave, saving }) {
               step="0.01"
               value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
               required
             />
           </div>
@@ -959,7 +959,7 @@ function EditTransactionModal({ transaction, onClose, onSave, saving }) {
               type="text"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
             />
           </div>
 
@@ -969,7 +969,7 @@ function EditTransactionModal({ transaction, onClose, onSave, saving }) {
               type="date"
               value={form.transaction_date}
               onChange={(e) => setForm({ ...form, transaction_date: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none"
+              className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none"
             />
           </div>
 
@@ -978,7 +978,7 @@ function EditTransactionModal({ transaction, onClose, onSave, saving }) {
             <textarea
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-farm-green focus:outline-none resize-none"
+              className="w-full px-3 py-2 rounded-lg bg-surface border border-subtle text-white focus:border-farm-green focus:outline-none resize-none"
               rows={2}
             />
           </div>
@@ -987,7 +987,7 @@ function EditTransactionModal({ transaction, onClose, onSave, saving }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+              className="flex-1 px-4 py-2 rounded-lg bg-surface-soft text-secondary hover:bg-surface-hover transition-colors"
             >
               Cancel
             </button>

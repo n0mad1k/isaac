@@ -70,7 +70,7 @@ function BudgetSettings() {
   ]
 
   if (loading) {
-    return <div className="animate-pulse bg-gray-800 rounded-xl h-64" />
+    return <div className="animate-pulse bg-surface rounded-xl h-64" />
   }
 
   return (
@@ -84,7 +84,7 @@ function BudgetSettings() {
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
               activeSection === s.key
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                : 'bg-surface text-muted hover:bg-surface-soft'
             }`}
           >
             {s.label}
@@ -171,28 +171,28 @@ function AccountsSection({ accounts, onRefresh }) {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-gray-800 rounded-lg space-y-2">
+        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-surface rounded-lg space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" placeholder="Account Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
-            <select value={form.account_type} onChange={(e) => setForm(p => ({ ...p, account_type: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
+            <input type="text" placeholder="Account Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
+            <select value={form.account_type} onChange={(e) => setForm(p => ({ ...p, account_type: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
               {ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input type="text" placeholder="Institution" value={form.institution} onChange={(e) => setForm(p => ({ ...p, institution: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} maxLength={100} />
-            <input type="text" placeholder="Last 4" value={form.last_four} onChange={(e) => setForm(p => ({ ...p, last_four: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} maxLength={4} />
-            <input type="number" placeholder="Sort Order" value={form.sort_order} onChange={(e) => setForm(p => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
+            <input type="text" placeholder="Institution" value={form.institution} onChange={(e) => setForm(p => ({ ...p, institution: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} maxLength={100} />
+            <input type="text" placeholder="Last 4" value={form.last_four} onChange={(e) => setForm(p => ({ ...p, last_four: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} maxLength={4} />
+            <input type="number" placeholder="Sort Order" value={form.sort_order} onChange={(e) => setForm(p => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
           </div>
           <div className="flex gap-2">
             <button type="submit" className="px-3 py-1.5 bg-farm-green text-white rounded text-xs hover:bg-green-700">{editingId ? 'Update' : 'Add'}</button>
-            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-gray-700 rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
+            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-surface-soft rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
           </div>
         </form>
       )}
 
       <div className="space-y-1.5">
         {accounts.map(acc => (
-          <div key={acc.id} className="flex items-center justify-between px-3 py-2 bg-gray-800 rounded-lg">
+          <div key={acc.id} className="flex items-center justify-between px-3 py-2 bg-surface rounded-lg">
             <div>
               <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{acc.name}</span>
               <span className="text-xs ml-2" style={{ color: 'var(--color-text-muted)' }}>
@@ -200,7 +200,7 @@ function AccountsSection({ accounts, onRefresh }) {
               </span>
             </div>
             <div className="flex gap-1">
-              <button onClick={() => handleEdit(acc)} className="p-1 rounded hover:bg-gray-700"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
+              <button onClick={() => handleEdit(acc)} className="p-1 rounded hover:bg-surface-soft"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
               <button onClick={() => handleDelete(acc.id)} className="p-1 rounded hover:bg-red-900/50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
             </div>
           </div>
@@ -291,10 +291,10 @@ function PotsSection({ categories, onRefresh }) {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-gray-800 rounded-lg space-y-2">
+        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-surface rounded-lg space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" placeholder="Pot Name (e.g., Emergency Fund)" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
-            <select value={form.category_type} onChange={(e) => setForm(p => ({ ...p, category_type: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
+            <input type="text" placeholder="Pot Name (e.g., Emergency Fund)" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
+            <select value={form.category_type} onChange={(e) => setForm(p => ({ ...p, category_type: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
               <option value="variable">Spending Pot (Gas, Groceries, etc.)</option>
               <option value="transfer">Fund/Transfer (Savings, Travel, etc.)</option>
             </select>
@@ -302,11 +302,11 @@ function PotsSection({ categories, onRefresh }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Budget Per Half-Month</label>
-              <input type="number" step="0.01" placeholder="0.00" value={form.budget_amount} onChange={(e) => setForm(p => ({ ...p, budget_amount: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
+              <input type="number" step="0.01" placeholder="0.00" value={form.budget_amount} onChange={(e) => setForm(p => ({ ...p, budget_amount: e.target.value }))} className="w-full px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
             </div>
             <div>
               <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Monthly Budget (optional)</label>
-              <input type="number" step="0.01" placeholder="Auto = 2x per-period" value={form.monthly_budget} onChange={(e) => setForm(p => ({ ...p, monthly_budget: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
+              <input type="number" step="0.01" placeholder="Auto = 2x per-period" value={form.monthly_budget} onChange={(e) => setForm(p => ({ ...p, monthly_budget: e.target.value }))} className="w-full px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
             </div>
           </div>
           <div>
@@ -321,25 +321,25 @@ function PotsSection({ categories, onRefresh }) {
           </div>
           <div className="flex gap-2">
             <button type="submit" className="px-3 py-1.5 bg-farm-green text-white rounded text-xs hover:bg-green-700">{editingId ? 'Update' : 'Add Pot'}</button>
-            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-gray-700 rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
+            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-surface-soft rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
           </div>
         </form>
       )}
 
       <div className="space-y-2">
         {pots.map(cat => (
-          <div key={cat.id} className="px-3 py-2 bg-gray-800 rounded-lg">
+          <div key={cat.id} className="px-3 py-2 bg-surface rounded-lg">
             {/* Top row: Color, Name, Actions */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                 <span className="text-sm truncate" style={{ color: 'var(--color-text-primary)' }}>{cat.name}</span>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700 flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
+                <span className="text-xs px-1.5 py-0.5 rounded bg-surface-soft flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
                   {cat.category_type === 'variable' ? 'Spending' : 'Fund'}
                 </span>
               </div>
               <div className="flex gap-1 flex-shrink-0">
-                <button onClick={() => handleEdit(cat)} className="p-1.5 rounded hover:bg-gray-700"><Edit className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} /></button>
+                <button onClick={() => handleEdit(cat)} className="p-1.5 rounded hover:bg-surface-soft"><Edit className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} /></button>
                 <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded hover:bg-red-900/50"><Trash2 className="w-4 h-4 text-red-500" /></button>
               </div>
             </div>
@@ -429,25 +429,25 @@ function CategoriesSection({ categories, onRefresh }) {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-gray-800 rounded-lg space-y-2">
+        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-surface rounded-lg space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" placeholder="Category Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
-            <select value={form.category_type} onChange={(e) => setForm(p => ({ ...p, category_type: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
+            <input type="text" placeholder="Category Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
+            <select value={form.category_type} onChange={(e) => setForm(p => ({ ...p, category_type: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
               {CATEGORY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div>
               <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Per Period Budget</label>
-              <input type="number" step="0.01" placeholder="0.00" value={form.budget_amount} onChange={(e) => setForm(p => ({ ...p, budget_amount: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
+              <input type="number" step="0.01" placeholder="0.00" value={form.budget_amount} onChange={(e) => setForm(p => ({ ...p, budget_amount: e.target.value }))} className="w-full px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
             </div>
             <div>
               <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Monthly Budget</label>
-              <input type="number" step="0.01" placeholder="Optional" value={form.monthly_budget} onChange={(e) => setForm(p => ({ ...p, monthly_budget: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
+              <input type="number" step="0.01" placeholder="Optional" value={form.monthly_budget} onChange={(e) => setForm(p => ({ ...p, monthly_budget: e.target.value }))} className="w-full px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
             </div>
             <div>
               <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Sort Order</label>
-              <input type="number" value={form.sort_order} onChange={(e) => setForm(p => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
+              <input type="number" value={form.sort_order} onChange={(e) => setForm(p => ({ ...p, sort_order: parseInt(e.target.value) || 0 }))} className="w-full px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} />
             </div>
           </div>
           <div>
@@ -463,14 +463,14 @@ function CategoriesSection({ categories, onRefresh }) {
           </div>
           <div className="flex gap-2">
             <button type="submit" className="px-3 py-1.5 bg-farm-green text-white rounded text-xs hover:bg-green-700">{editingId ? 'Update' : 'Add'}</button>
-            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-gray-700 rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
+            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-surface-soft rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
           </div>
         </form>
       )}
 
       <div className="space-y-2">
         {categories.map(cat => (
-          <div key={cat.id} className="px-3 py-2 bg-gray-800 rounded-lg">
+          <div key={cat.id} className="px-3 py-2 bg-surface rounded-lg">
             {/* Top row: Color, Name, Actions */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -485,18 +485,18 @@ function CategoriesSection({ categories, onRefresh }) {
                       onRefresh()
                     } catch (err) { console.error('Failed to toggle dashboard:', err) }
                   }}
-                  className="p-1.5 rounded hover:bg-gray-700"
+                  className="p-1.5 rounded hover:bg-surface-soft"
                   title={cat.show_on_dashboard ? 'Shown on dashboard' : 'Not on dashboard'}
                 >
                   <LayoutDashboard className="w-4 h-4" style={{ color: cat.show_on_dashboard ? 'var(--color-success-500)' : 'var(--color-text-muted)', opacity: cat.show_on_dashboard ? 1 : 0.4 }} />
                 </button>
-                <button onClick={() => handleEdit(cat)} className="p-1.5 rounded hover:bg-gray-700"><Edit className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} /></button>
+                <button onClick={() => handleEdit(cat)} className="p-1.5 rounded hover:bg-surface-soft"><Edit className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} /></button>
                 <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded hover:bg-red-900/50"><Trash2 className="w-4 h-4 text-red-500" /></button>
               </div>
             </div>
             {/* Bottom row: Type badge and amounts */}
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>{cat.category_type}</span>
+              <span className="text-xs px-1.5 py-0.5 rounded bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>{cat.category_type}</span>
               {cat.budget_amount > 0 && (
                 <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(cat.budget_amount)}/period</span>
               )}
@@ -604,10 +604,10 @@ function IncomeSection({ incomes, accounts, onRefresh }) {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-gray-800 rounded-lg space-y-2">
+        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-surface rounded-lg space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" placeholder="Income Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
-            <input type="number" step="0.01" placeholder="Amount" value={form.amount} onChange={(e) => setForm(p => ({ ...p, amount: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required />
+            <input type="text" placeholder="Income Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={100} />
+            <input type="number" step="0.01" placeholder="Amount" value={form.amount} onChange={(e) => setForm(p => ({ ...p, amount: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div>
@@ -619,7 +619,7 @@ function IncomeSection({ incomes, accounts, onRefresh }) {
                   frequency: freq,
                   pay_day: (freq === 'weekly' || freq === 'biweekly') ? '4' : '1'
                 }))
-              }} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
+              }} className="w-full px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
                 {FREQUENCY_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
               </select>
             </div>
@@ -628,16 +628,16 @@ function IncomeSection({ incomes, accounts, onRefresh }) {
                 {isWeeklyType ? 'Pay Day (Day of Week)' : 'Pay Day (Day of Month)'}
               </label>
               {isWeeklyType ? (
-                <select value={form.pay_day} onChange={(e) => setForm(p => ({ ...p, pay_day: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required>
+                <select value={form.pay_day} onChange={(e) => setForm(p => ({ ...p, pay_day: e.target.value }))} className="w-full px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required>
                   {DAY_OF_WEEK_OPTIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                 </select>
               ) : (
-                <input type="number" min="1" max="31" value={form.pay_day} onChange={(e) => setForm(p => ({ ...p, pay_day: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required />
+                <input type="number" min="1" max="31" value={form.pay_day} onChange={(e) => setForm(p => ({ ...p, pay_day: e.target.value }))} className="w-full px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required />
               )}
             </div>
             <div>
               <label className="block text-xs mb-0.5" style={{ color: 'var(--color-text-muted)' }}>Account</label>
-              <select value={form.account_id} onChange={(e) => setForm(p => ({ ...p, account_id: e.target.value }))} className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required>
+              <select value={form.account_id} onChange={(e) => setForm(p => ({ ...p, account_id: e.target.value }))} className="w-full px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required>
                 <option value="">Select...</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -645,18 +645,18 @@ function IncomeSection({ incomes, accounts, onRefresh }) {
           </div>
           <div className="flex gap-2">
             <button type="submit" className="px-3 py-1.5 bg-farm-green text-white rounded text-xs hover:bg-green-700">{editingId ? 'Update' : 'Add'}</button>
-            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-gray-700 rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
+            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-surface-soft rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
           </div>
         </form>
       )}
 
       <div className="space-y-1.5">
         {incomes.map(inc => (
-          <div key={inc.id} className="flex items-center justify-between px-3 py-2 bg-gray-800 rounded-lg">
+          <div key={inc.id} className="flex items-center justify-between px-3 py-2 bg-surface rounded-lg">
             <div>
               <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{inc.name}</span>
               <span className="text-sm font-medium text-green-400 ml-2">{formatCurrency(inc.amount)}</span>
-              <span className="text-xs ml-2 px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>
+              <span className="text-xs ml-2 px-1.5 py-0.5 rounded bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
                 {getFrequencyLabel(inc.frequency)}
               </span>
               <span className="text-xs ml-1" style={{ color: 'var(--color-text-muted)' }}>
@@ -664,7 +664,7 @@ function IncomeSection({ incomes, accounts, onRefresh }) {
               </span>
             </div>
             <div className="flex gap-1">
-              <button onClick={() => handleEdit(inc)} className="p-1 rounded hover:bg-gray-700"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
+              <button onClick={() => handleEdit(inc)} className="p-1 rounded hover:bg-surface-soft"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
               <button onClick={() => handleDelete(inc.id)} className="p-1 rounded hover:bg-red-900/50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
             </div>
           </div>
@@ -735,40 +735,40 @@ function RulesSection({ rules, categories, onRefresh }) {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-gray-800 rounded-lg space-y-2">
+        <form onSubmit={handleSubmit} className="mb-4 p-3 bg-surface rounded-lg space-y-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input type="text" placeholder="Pattern (e.g., COSTCO)" value={form.pattern} onChange={(e) => setForm(p => ({ ...p, pattern: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={200} />
-            <select value={form.match_type} onChange={(e) => setForm(p => ({ ...p, match_type: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
+            <input type="text" placeholder="Pattern (e.g., COSTCO)" value={form.pattern} onChange={(e) => setForm(p => ({ ...p, pattern: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required maxLength={200} />
+            <select value={form.match_type} onChange={(e) => setForm(p => ({ ...p, match_type: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }}>
               {MATCH_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <select value={form.category_id} onChange={(e) => setForm(p => ({ ...p, category_id: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required>
+            <select value={form.category_id} onChange={(e) => setForm(p => ({ ...p, category_id: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} required>
               <option value="">Select Category...</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <input type="number" placeholder="Priority" value={form.priority} onChange={(e) => setForm(p => ({ ...p, priority: e.target.value }))} className="px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm" style={{ color: 'var(--color-text-primary)' }} min="0" max="1000" />
+            <input type="number" placeholder="Priority" value={form.priority} onChange={(e) => setForm(p => ({ ...p, priority: e.target.value }))} className="px-2 py-1.5 bg-surface-app border border-subtle rounded text-sm" style={{ color: 'var(--color-text-primary)' }} min="0" max="1000" />
           </div>
           <div className="flex gap-2">
             <button type="submit" className="px-3 py-1.5 bg-farm-green text-white rounded text-xs hover:bg-green-700">{editingId ? 'Update' : 'Add'}</button>
-            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-gray-700 rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
+            <button type="button" onClick={() => { setShowForm(false); resetForm() }} className="px-3 py-1.5 bg-surface-soft rounded text-xs" style={{ color: 'var(--color-text-secondary)' }}>Cancel</button>
           </div>
         </form>
       )}
 
       <div className="space-y-1.5">
         {rules.map(rule => (
-          <div key={rule.id} className="flex items-center justify-between px-3 py-2 bg-gray-800 rounded-lg">
+          <div key={rule.id} className="flex items-center justify-between px-3 py-2 bg-surface rounded-lg">
             <div className="flex items-center gap-2 flex-wrap">
-              <code className="text-xs px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-primary)' }}>{rule.pattern}</code>
-              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-700" style={{ color: 'var(--color-text-muted)' }}>{rule.match_type}</span>
+              <code className="text-xs px-1.5 py-0.5 rounded bg-surface-soft" style={{ color: 'var(--color-text-primary)' }}>{rule.pattern}</code>
+              <span className="text-xs px-1.5 py-0.5 rounded bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>{rule.match_type}</span>
               <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                 &rarr; {rule.category_name || `Category #${rule.category_id}`}
               </span>
               <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>P:{rule.priority}</span>
             </div>
             <div className="flex gap-1 flex-shrink-0">
-              <button onClick={() => handleEdit(rule)} className="p-1 rounded hover:bg-gray-700"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
+              <button onClick={() => handleEdit(rule)} className="p-1 rounded hover:bg-surface-soft"><Edit className="w-3.5 h-3.5" style={{ color: 'var(--color-text-muted)' }} /></button>
               <button onClick={() => handleDelete(rule.id)} className="p-1 rounded hover:bg-red-900/50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
             </div>
           </div>
@@ -831,7 +831,7 @@ function PayPeriodSection() {
   }
 
   if (loading) {
-    return <div className="animate-pulse bg-gray-800 rounded-xl h-32" />
+    return <div className="animate-pulse bg-surface rounded-xl h-32" />
   }
 
   const refDate = periodInfo?.reference_date ? new Date(periodInfo.reference_date + 'T12:00:00') : null

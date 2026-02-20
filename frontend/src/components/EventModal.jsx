@@ -105,29 +105,29 @@ function DateInputMMDDYYYY({ value, onChange, required = false, min = null, clas
         value={month}
         onChange={(e) => handleChange('month', e.target.value)}
         required={required}
-        className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+        className="flex-1 px-2 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
       >
         {months.map(m => (
           <option key={m.value} value={m.value}>{m.label}</option>
         ))}
       </select>
-      <span className="flex items-center text-gray-400">/</span>
+      <span className="flex items-center text-muted">/</span>
       <select
         value={day}
         onChange={(e) => handleChange('day', e.target.value)}
         required={required}
-        className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+        className="flex-1 px-2 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
       >
         {days.map(d => (
           <option key={d} value={d}>{d}</option>
         ))}
       </select>
-      <span className="flex items-center text-gray-400">/</span>
+      <span className="flex items-center text-muted">/</span>
       <select
         value={year}
         onChange={(e) => handleChange('year', e.target.value)}
         required={required}
-        className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+        className="flex-1 px-2 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
       >
         {years.map(y => (
           <option key={y} value={y}>{y}</option>
@@ -199,17 +199,17 @@ function TimeInput({ value, onChange, className = '' }) {
         <select
           value={parsed.hour}
           onChange={(e) => handleChange('hour', e.target.value)}
-          className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+          className="flex-1 px-2 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
         >
           {hours12.map(h => (
             <option key={h} value={h}>{h}</option>
           ))}
         </select>
-        <span className="flex items-center text-gray-400">:</span>
+        <span className="flex items-center text-muted">:</span>
         <select
           value={parsed.minute}
           onChange={(e) => handleChange('minute', e.target.value)}
-          className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+          className="flex-1 px-2 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
         >
           {minutes.map(m => (
             <option key={m} value={m}>{m}</option>
@@ -218,7 +218,7 @@ function TimeInput({ value, onChange, className = '' }) {
         <select
           value={parsed.period}
           onChange={(e) => handleChange('period', e.target.value)}
-          className="px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+          className="px-2 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
         >
           <option value="AM">AM</option>
           <option value="PM">PM</option>
@@ -232,17 +232,17 @@ function TimeInput({ value, onChange, className = '' }) {
         <select
           value={parsed.hour}
           onChange={(e) => handleChange('hour', e.target.value)}
-          className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+          className="flex-1 px-2 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
         >
           {hours24.map(h => (
             <option key={h} value={h}>{h}</option>
           ))}
         </select>
-        <span className="flex items-center text-gray-400">:</span>
+        <span className="flex items-center text-muted">:</span>
         <select
           value={parsed.minute}
           onChange={(e) => handleChange('minute', e.target.value)}
-          className="flex-1 px-2 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
+          className="flex-1 px-2 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-center"
         >
           {minutes.map(m => (
             <option key={m} value={m}>{m}</option>
@@ -260,34 +260,34 @@ export function RecurrenceChoiceModal({ action, onChoice, onCancel }) {
   const isDelete = action === 'delete'
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4" onClick={onCancel}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-sm p-4 sm:p-5" onClick={e => e.stopPropagation()}>
+      <div className="bg-surface rounded-xl w-full max-w-[95vw] sm:max-w-sm p-4 sm:p-5" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2 mb-4">
           <Repeat className="w-5 h-5 text-cyan-400" />
           <h3 className="text-lg font-semibold text-white">
             {isDelete ? 'Delete Recurring Event' : 'Edit Recurring Event'}
           </h3>
         </div>
-        <p className="text-sm text-gray-300 mb-5">
+        <p className="text-sm text-secondary mb-5">
           This is a recurring event. What would you like to {isDelete ? 'delete' : 'edit'}?
         </p>
         <div className="space-y-2">
           <button
             onClick={() => onChoice('this')}
-            className="w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
+            className="w-full px-4 py-3 bg-surface-soft hover:bg-surface-hover rounded-lg text-left transition-colors"
           >
             <div className="font-medium text-white">This occurrence only</div>
-            <div className="text-xs text-gray-400 mt-0.5">Only affects the selected date</div>
+            <div className="text-xs text-muted mt-0.5">Only affects the selected date</div>
           </button>
           <button
             onClick={() => onChoice('all')}
-            className="w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
+            className="w-full px-4 py-3 bg-surface-soft hover:bg-surface-hover rounded-lg text-left transition-colors"
           >
             <div className="font-medium text-white">All occurrences</div>
-            <div className="text-xs text-gray-400 mt-0.5">{isDelete ? 'Deletes the entire series' : 'Edits every occurrence'}</div>
+            <div className="text-xs text-muted mt-0.5">{isDelete ? 'Deletes the entire series' : 'Edits every occurrence'}</div>
           </button>
           <button
             onClick={onCancel}
-            className="w-full px-4 py-2 text-gray-400 hover:text-white text-sm transition-colors mt-2"
+            className="w-full px-4 py-2 text-muted hover:text-white text-sm transition-colors mt-2"
           >
             Cancel
           </button>
@@ -558,29 +558,29 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
       />
     )}
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-gray-800 rounded-xl w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-4 sm:p-6 border-b border-gray-700 flex items-center justify-between sticky top-0 bg-gray-800">
+      <div className="bg-surface rounded-xl w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 sm:p-6 border-b border-subtle flex items-center justify-between sticky top-0 bg-surface">
           <h2 className="text-lg font-semibold">
             {event ? 'Edit' : 'Add'} {formData.task_type === 'event' ? 'Event' : 'Reminder'}
             {preselectedEntity && (
-              <span className="text-sm font-normal text-gray-400 ml-2">
+              <span className="text-sm font-normal text-muted ml-2">
                 for {preselectedEntity.name}
               </span>
             )}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4" id="event-form">
           {/* Type Toggle */}
-          <div className="flex bg-gray-700 rounded-lg p-1">
+          <div className="flex bg-surface-soft rounded-lg p-1">
             <button
               type="button"
               onClick={() => setFormData({ ...formData, task_type: 'event' })}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm transition-colors ${
-                formData.task_type === 'event' ? 'bg-farm-green text-white' : 'text-gray-300'
+                formData.task_type === 'event' ? 'bg-farm-green text-white' : 'text-secondary'
               }`}
             >
               <CalendarIcon className="w-4 h-4" />
@@ -590,7 +590,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
               type="button"
               onClick={() => setFormData({ ...formData, task_type: 'todo' })}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm transition-colors ${
-                formData.task_type === 'todo' ? 'bg-blue-600 text-white' : 'text-gray-300'
+                formData.task_type === 'todo' ? 'bg-blue-600 text-white' : 'text-secondary'
               }`}
             >
               <CheckSquare className="w-4 h-4" />
@@ -599,14 +599,14 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Title *</label>
+            <label className="block text-sm text-muted mb-1">Title *</label>
             <input
               type="text"
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="Event title"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
@@ -618,18 +618,18 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                   type="checkbox"
                   checked={hasDate}
                   onChange={(e) => setHasDate(e.target.checked)}
-                  className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                  className="w-4 h-4 rounded bg-surface-soft border"
                 />
-                <span className="text-sm text-gray-300">Has a due date</span>
+                <span className="text-sm text-secondary">Has a due date</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.is_backlog}
                   onChange={(e) => setFormData({ ...formData, is_backlog: e.target.checked })}
-                  className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                  className="w-4 h-4 rounded bg-surface-soft border"
                 />
-                <span className="text-sm text-gray-300">Add to backlog (not due today)</span>
+                <span className="text-sm text-secondary">Add to backlog (not due today)</span>
               </label>
             </div>
           )}
@@ -641,16 +641,16 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                 type="checkbox"
                 checked={formData.visible_to_farmhands}
                 onChange={(e) => setFormData({ ...formData, visible_to_farmhands: e.target.checked })}
-                className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                className="w-4 h-4 rounded bg-surface-soft border"
               />
-              <span className="text-sm text-gray-300">Visible to farm hand accounts</span>
+              <span className="text-sm text-secondary">Visible to farm hand accounts</span>
             </label>
           )}
 
           {/* Date field - required for events, optional for reminders */}
           {(formData.task_type === 'event' || hasDate) && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">
+              <label className="block text-sm text-muted mb-1">
                 {isMultiDay ? 'Start Date' : 'Date'} {formData.task_type === 'event' ? '*' : ''}
               </label>
               <DateInputMMDDYYYY
@@ -673,16 +673,16 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                     setFormData({ ...formData, end_date: '' })
                   }
                 }}
-                className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                className="w-4 h-4 rounded bg-surface-soft border"
               />
-              <span className="text-sm text-gray-300">Multi-day event</span>
+              <span className="text-sm text-secondary">Multi-day event</span>
             </label>
           )}
 
           {/* End date for multi-day events */}
           {isMultiDay && (formData.task_type === 'event' || hasDate) && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">
+              <label className="block text-sm text-muted mb-1">
                 End Date *
               </label>
               <DateInputMMDDYYYY
@@ -700,9 +700,9 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                 type="checkbox"
                 checked={isAllDay}
                 onChange={(e) => setIsAllDay(e.target.checked)}
-                className="w-4 h-4 rounded bg-gray-700 border-gray-600"
+                className="w-4 h-4 rounded bg-surface-soft border"
               />
-              <span className="text-sm text-gray-300">All day</span>
+              <span className="text-sm text-secondary">All day</span>
             </label>
           )}
 
@@ -710,14 +710,14 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
           {(formData.task_type === 'event' || hasDate) && !isAllDay && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Start Time</label>
+                <label className="block text-sm text-muted mb-1">Start Time</label>
                 <TimeInput
                   value={formData.due_time}
                   onChange={(time) => setFormData({ ...formData, due_time: time })}
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">End Time</label>
+                <label className="block text-sm text-muted mb-1">End Time</label>
                 <TimeInput
                   value={formData.end_time}
                   onChange={(time) => setFormData({ ...formData, end_time: time })}
@@ -728,23 +728,23 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
 
           {/* Location */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Location</label>
+            <label className="block text-sm text-muted mb-1">Location</label>
             <input
               type="text"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               placeholder="e.g., Vet clinic, Farm, Home"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Category</label>
+              <label className="block text-sm text-muted mb-1">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               >
                 {TASK_CATEGORIES.map(cat => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -752,11 +752,11 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Priority</label>
+              <label className="block text-sm text-muted mb-1">Priority</label>
               <select
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
               >
                 <option value={1}>High</option>
                 <option value={2}>Medium</option>
@@ -769,11 +769,11 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
           {(formData.task_type === 'event' || hasDate) && (
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Repeat</label>
+                <label className="block text-sm text-muted mb-1">Repeat</label>
                 <select
                   value={formData.recurrence}
                   onChange={(e) => setFormData({ ...formData, recurrence: e.target.value })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   {RECURRENCE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -782,20 +782,20 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
               </div>
               {formData.recurrence === 'custom' && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Repeat every (days)</label>
+                  <label className="block text-sm text-muted mb-1">Repeat every (days)</label>
                   <input
                     type="number"
                     min="1"
                     value={formData.recurrence_interval || ''}
                     onChange={(e) => setFormData({ ...formData, recurrence_interval: e.target.value ? parseInt(e.target.value) : null })}
                     placeholder="e.g., 14"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   />
                 </div>
               )}
               {formData.recurrence === 'custom_weekly' && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Select days</label>
+                  <label className="block text-sm text-muted mb-1">Select days</label>
                   <div className="flex gap-1.5">
                     {DAY_OPTIONS.map(day => {
                       const selected = (formData.recurrence_days_of_week || []).includes(day.value)
@@ -813,7 +813,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                           className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
                             selected
                               ? 'bg-farm-green text-white'
-                              : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                              : 'bg-surface-soft text-muted hover:bg-surface-hover'
                           }`}
                         >
                           {day.label}
@@ -827,20 +827,20 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
           )}
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Notes</label>
+            <label className="block text-sm text-muted mb-1">Notes</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
               placeholder="Optional notes or description"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
           </div>
 
           {/* Alerts Section - hide for worker tasks */}
           {!forWorkerTask && (
-            <div className="space-y-2 pt-3 border-t border-gray-700">
-              <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+            <div className="space-y-2 pt-3 border-t border-subtle">
+              <label className="block text-sm text-muted mb-2">Alerts (optional)</label>
               <div className="flex flex-wrap gap-2">
                 {[
                   { value: 0, label: 'At time' },
@@ -869,7 +869,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                       className={`px-2 py-1 rounded text-xs font-medium transition-all ${
                         isSelected
                           ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
-                          : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                          : 'bg-surface-soft/50 border border text-muted hover:border-strong'
                       }`}
                     >
                       {opt.label}
@@ -882,10 +882,10 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
 
           {/* Entity Linking Section - only show if no preselected entity and not for worker tasks */}
           {!preselectedEntity && !forWorkerTask && (
-            <div className="space-y-3 pt-3 border-t border-gray-700">
-              <label className="block text-sm text-gray-400">Link to (optional)</label>
+            <div className="space-y-3 pt-3 border-t border-subtle">
+              <label className="block text-sm text-muted">Link to (optional)</label>
               {entitiesLoading ? (
-                <div className="text-sm text-gray-500">Loading...</div>
+                <div className="text-sm text-muted">Loading...</div>
               ) : (
                 <>
                   <select
@@ -901,7 +901,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                         farm_area_id: null,
                       })
                     }}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                   >
                     <option value="none">None</option>
                     <option value="animal">Animal</option>
@@ -915,7 +915,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                     <select
                       value={formData.animal_id || ''}
                       onChange={(e) => setFormData({ ...formData, animal_id: e.target.value ? parseInt(e.target.value) : null })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                      className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     >
                       <option value="">Select an animal...</option>
                       {entities.animals.map(a => (
@@ -928,7 +928,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                     <select
                       value={formData.plant_id || ''}
                       onChange={(e) => setFormData({ ...formData, plant_id: e.target.value ? parseInt(e.target.value) : null })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                      className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     >
                       <option value="">Select a plant...</option>
                       {entities.plants.map(p => (
@@ -941,7 +941,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                     <select
                       value={formData.vehicle_id || ''}
                       onChange={(e) => setFormData({ ...formData, vehicle_id: e.target.value ? parseInt(e.target.value) : null })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                      className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     >
                       <option value="">Select a vehicle...</option>
                       {entities.vehicles.map(v => (
@@ -954,7 +954,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                     <select
                       value={formData.equipment_id || ''}
                       onChange={(e) => setFormData({ ...formData, equipment_id: e.target.value ? parseInt(e.target.value) : null })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                      className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     >
                       <option value="">Select equipment...</option>
                       {entities.equipment.map(eq => (
@@ -967,7 +967,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                     <select
                       value={formData.farm_area_id || ''}
                       onChange={(e) => setFormData({ ...formData, farm_area_id: e.target.value ? parseInt(e.target.value) : null })}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                      className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                     >
                       <option value="">Select a farm area...</option>
                       {entities.farmAreas.map(fa => (
@@ -982,10 +982,10 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
 
           {/* Show linked entity info if preselected */}
           {preselectedEntity && (
-            <div className="pt-3 border-t border-gray-700">
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+            <div className="pt-3 border-t border-subtle">
+              <div className="flex items-center gap-2 text-sm text-muted">
                 <span>Linked to:</span>
-                <span className="px-2 py-1 bg-gray-700 rounded text-white">
+                <span className="px-2 py-1 bg-surface-soft rounded text-white">
                   {preselectedEntity.name}
                 </span>
               </div>
@@ -994,8 +994,8 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
 
           {/* Assignment Section - hide when already in worker task mode */}
           {!forWorkerTask && !entitiesLoading && (
-            <div className="space-y-2 pt-3 border-t border-gray-700">
-              <label className="block text-sm text-gray-400 flex items-center gap-2">
+            <div className="space-y-2 pt-3 border-t border-subtle">
+              <label className="block text-sm text-muted flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Assign To (optional)
               </label>
@@ -1005,9 +1005,9 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                   <button
                     type="button"
                     onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-left flex items-center justify-between"
+                    className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-left flex items-center justify-between"
                   >
-                    <span className={!(formData.assigned_member_ids?.length > 0) ? 'text-gray-400' : ''}>
+                    <span className={!(formData.assigned_member_ids?.length > 0) ? 'text-muted' : ''}>
                       {!(formData.assigned_member_ids?.length > 0)
                         ? 'Select team members...'
                         : formData.assigned_member_ids.length === 1
@@ -1017,7 +1017,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                     <ChevronDown className={`w-4 h-4 transition-transform ${showMemberDropdown ? 'rotate-180' : ''}`} />
                   </button>
                   {showMemberDropdown && (
-                    <div className="absolute z-50 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    <div className="absolute z-50 w-full mt-1 bg-surface-soft border border rounded-lg shadow-lg max-h-48 overflow-y-auto">
                       {entities.members.filter(m => m.is_active !== false).map(m => {
                         const isSelected = formData.assigned_member_ids?.includes(m.id) || false
                         return (
@@ -1031,9 +1031,9 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                                 : [...currentIds, m.id]
                               setFormData({ ...formData, assigned_member_ids: newIds })
                             }}
-                            className="w-full px-3 py-2 text-left hover:bg-gray-600 flex items-center gap-2"
+                            className="w-full px-3 py-2 text-left hover:bg-surface-hover flex items-center gap-2"
                           >
-                            <div className={`w-4 h-4 border rounded flex items-center justify-center ${isSelected ? 'bg-farm-green border-farm-green' : 'border-gray-500'}`}>
+                            <div className={`w-4 h-4 border rounded flex items-center justify-center ${isSelected ? 'bg-farm-green border-farm-green' : 'border-strong'}`}>
                               {isSelected && <Check className="w-3 h-3 text-white" />}
                             </div>
                             <span>{m.nickname || m.name}{m.role_title ? ` (${m.role_title})` : ''}</span>
@@ -1044,7 +1044,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, assigned_member_ids: [] })}
-                          className="w-full px-3 py-2 text-left text-red-400 hover:bg-gray-600 border-t border-gray-600"
+                          className="w-full px-3 py-2 text-left text-red-400 hover:bg-surface-hover border-t border"
                         >
                           Clear selection
                         </button>
@@ -1058,7 +1058,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
                 <select
                   value={formData.assigned_to_worker_id || ''}
                   onChange={(e) => setFormData({ ...formData, assigned_to_worker_id: e.target.value ? parseInt(e.target.value) : null })}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
                 >
                   <option value="">No worker assigned</option>
                   {entities.workers.map(w => (
@@ -1071,7 +1071,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t border-gray-700">
+          <div className="flex gap-3 pt-4 border-t border-subtle">
             {/* Delete button - only show when editing an existing event */}
             {event && (
               <button
@@ -1089,7 +1089,7 @@ function EventModal({ event, defaultDate, projectedDate, preselectedEntity, defa
             <button
               type="button"
               onClick={onClose}
-              className={`${event ? '' : 'flex-1'} px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors`}
+              className={`${event ? '' : 'flex-1'} px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors`}
             >
               Cancel
             </button>

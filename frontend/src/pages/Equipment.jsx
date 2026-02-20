@@ -95,8 +95,8 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
     const displayLocation = [value, subValue].filter(Boolean).join(' > ')
     return (
       <div>
-        <label className="block text-xs text-gray-500 mb-1">{label}</label>
-        <div className="text-sm text-gray-300">{displayLocation || '-'}</div>
+        <label className="block text-xs text-muted mb-1">{label}</label>
+        <div className="text-sm text-secondary">{displayLocation || '-'}</div>
       </div>
     )
   }
@@ -104,7 +104,7 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
   return (
     <div className="space-y-2">
       <div>
-        {label && <label className="block text-sm text-gray-400 mb-1">{label}</label>}
+        {label && <label className="block text-sm text-muted mb-1">{label}</label>}
         {showCustomInput ? (
           <div className="flex gap-2">
             <input
@@ -112,12 +112,12 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
               value={customValue}
               onChange={handleCustomChange}
               placeholder="Enter custom location"
-              className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+              className="flex-1 px-3 py-2 bg-surface-soft border border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
             />
             <button
               type="button"
               onClick={() => { setIsCustom(false); setCustomValue(''); onChange('') }}
-              className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-500 rounded"
+              className="px-2 py-1 text-xs bg-surface-hover hover:bg-surface-muted rounded"
               title="Use dropdown"
             >
               ↓
@@ -127,7 +127,7 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
           <select
             value={value || ''}
             onChange={handleSelectChange}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+            className="w-full px-3 py-2 bg-surface-soft border border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
           >
             <option value="">No location</option>
             {farmAreas.map(area => (
@@ -140,13 +140,13 @@ function LocationSelect({ value, subValue, onChange, onSubChange, farmAreas, edi
         )}
       </div>
       <div>
-        <label className="block text-sm text-gray-400 mb-1">Sub-location</label>
+        <label className="block text-sm text-muted mb-1">Sub-location</label>
         <input
           type="text"
           value={subValue || ''}
           onChange={(e) => onSubChange(e.target.value)}
           placeholder="e.g., Shelf 3, West wall"
-          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+          className="w-full px-3 py-2 bg-surface-soft border border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
         />
       </div>
     </div>
@@ -440,10 +440,10 @@ function Equipment() {
       {/* Equipment Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {equipment.map(equip => (
-          <div key={equip.id} className="bg-gray-800 rounded-lg overflow-hidden">
+          <div key={equip.id} className="bg-surface rounded-lg overflow-hidden">
             {/* Equipment Header */}
             <div
-              className="p-4 cursor-pointer hover:bg-gray-700/50"
+              className="p-4 cursor-pointer hover:bg-surface-soft/50"
               onClick={() => handleExpand(equip.id)}
             >
               <div className="flex items-center justify-between">
@@ -451,13 +451,13 @@ function Equipment() {
                   <span>{getTypeIcon(equip.type)}</span>
                   <div>
                     <div className="font-bold">{equip.name}</div>
-                    <div className="text-gray-400 text-sm">{equip.display_type}</div>
+                    <div className="text-muted text-sm">{equip.display_type}</div>
                   </div>
                 </div>
                 {expandedEquipment === equip.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </div>
               <div className="flex items-center justify-between mt-2">
-                <div className="flex items-center gap-4 text-sm text-gray-400">
+                <div className="flex items-center gap-4 text-sm text-muted">
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
                     <span>{equip.current_hours || 0} hours</span>
@@ -477,7 +477,7 @@ function Equipment() {
 
             {/* Maintenance Tasks */}
             {expandedEquipment === equip.id && (
-              <div className="border-t border-gray-700 p-4">
+              <div className="border-t border-subtle p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-sm">Maintenance</h3>
                   <div className="flex gap-2">
@@ -502,7 +502,7 @@ function Equipment() {
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setShowAddMaintenance(equip.id); }}
-                      className="text-xs px-2 py-1 bg-gray-600 rounded hover:bg-gray-500"
+                      className="text-xs px-2 py-1 bg-surface-hover rounded hover:bg-surface-muted"
                     >
                       + Task
                     </button>
@@ -514,7 +514,7 @@ function Equipment() {
                     {maintenanceTasks[equip.id].map(task => (
                       <div
                         key={task.id}
-                        className="flex items-center justify-between p-2 bg-gray-700/50 rounded-lg text-sm"
+                        className="flex items-center justify-between p-2 bg-surface-soft/50 rounded-lg text-sm"
                       >
                         <div>
                           <div className="flex items-center gap-2">
@@ -524,7 +524,7 @@ function Equipment() {
                             }`}></span>
                             <span>{task.name}</span>
                           </div>
-                          <div className="text-xs text-gray-400 mt-1">
+                          <div className="text-xs text-muted mt-1">
                             {task.frequency_hours && `Every ${task.frequency_hours} hrs`}
                             {task.frequency_days && ` | Every ${task.frequency_days} days`}
                             {(task.next_due_date || task.manual_due_date) && (
@@ -563,12 +563,12 @@ function Equipment() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-xs">No maintenance tasks</p>
+                  <p className="text-muted text-xs">No maintenance tasks</p>
                 )}
 
                 {/* Linked Reminders */}
                 {linkedTasks[equip.id]?.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-700">
+                  <div className="mt-4 pt-4 border-t border-subtle">
                     <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
                       <CalendarPlus className="w-4 h-4 text-cyan-400" />
                       Reminders ({linkedTasks[equip.id].length})
@@ -578,19 +578,19 @@ function Equipment() {
                         <div
                           key={task.id}
                           className={`flex items-center justify-between p-2 rounded-lg text-sm ${
-                            task.is_completed ? 'bg-gray-700/30 opacity-60' : 'bg-cyan-900/30'
+                            task.is_completed ? 'bg-surface-soft/30 opacity-60' : 'bg-cyan-900/30'
                           }`}
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className={task.is_completed ? 'line-through text-gray-400' : ''}>
+                              <span className={task.is_completed ? 'line-through text-muted' : ''}>
                                 {task.title}
                               </span>
                               {task.is_completed && (
                                 <span className="text-xs text-green-400">Done</span>
                               )}
                             </div>
-                            <div className="text-xs text-gray-400 mt-1">
+                            <div className="text-xs text-muted mt-1">
                               {task.due_date ? format(new Date(task.due_date), 'MM/dd/yyyy') : 'No due date'}
                               {task.due_time && ` at ${formatTime(task.due_time)}`}
                             </div>
@@ -625,7 +625,7 @@ function Equipment() {
       </div>
 
       {equipment.length === 0 && !loading && (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-muted">
           <Wrench className="w-12 h-12 mx-auto mb-4 opacity-50" />
           <p>No equipment yet. Add one to get started!</p>
         </div>
@@ -634,28 +634,28 @@ function Equipment() {
       {/* Add/Edit Equipment Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingEquipment ? 'Edit Equipment' : 'Add Equipment'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Name</label>
+                <label className="block text-sm text-muted mb-1">Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   required
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Type</label>
+                  <label className="block text-sm text-muted mb-1">Type</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   >
                     {equipmentTypes.map(t => (
                       <option key={t.value} value={t.value}>{t.label}</option>
@@ -664,54 +664,54 @@ function Equipment() {
                 </div>
                 {formData.type === 'other' && (
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Custom Type</label>
+                    <label className="block text-sm text-muted mb-1">Custom Type</label>
                     <input
                       type="text"
                       value={formData.custom_type}
                       onChange={(e) => setFormData({ ...formData, custom_type: e.target.value })}
-                      className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                      className="w-full bg-surface-soft rounded-lg px-4 py-2"
                     />
                   </div>
                 )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Make</label>
+                  <label className="block text-sm text-muted mb-1">Make</label>
                   <input
                     type="text"
                     value={formData.make}
                     onChange={(e) => setFormData({ ...formData, make: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Model</label>
+                  <label className="block text-sm text-muted mb-1">Model</label>
                   <input
                     type="text"
                     value={formData.model}
                     onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                    className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                    className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Current Hours</label>
+                <label className="block text-sm text-muted mb-1">Current Hours</label>
                 <input
                   type="text"
                   inputMode="decimal"
                   value={formData.current_hours}
                   onChange={(e) => setFormData({ ...formData, current_hours: e.target.value.replace(/[^0-9.]/g, '') })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder="0"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Serial Number</label>
+                <label className="block text-sm text-muted mb-1">Serial Number</label>
                 <input
                   type="text"
                   value={formData.serial_number}
                   onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
               </div>
               <LocationSelect
@@ -726,7 +726,7 @@ function Equipment() {
                 <button
                   type="button"
                   onClick={() => { setShowAddForm(false); setEditingEquipment(null); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   Cancel
                 </button>
@@ -745,41 +745,41 @@ function Equipment() {
       {/* Add/Edit Maintenance Modal */}
       {showAddMaintenance && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingMaintenance ? 'Edit Maintenance Task' : 'Add Maintenance Task'}
             </h2>
             <form onSubmit={handleAddMaintenance} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Task Name</label>
+                <label className="block text-sm text-muted mb-1">Task Name</label>
                 <input
                   type="text"
                   value={maintFormData.name}
                   onChange={(e) => setMaintFormData({ ...maintFormData, name: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Every X Hours</label>
+                <label className="block text-sm text-muted mb-1">Every X Hours</label>
                 <input
                   type="number"
                   value={maintFormData.frequency_hours}
                   onChange={(e) => setMaintFormData({ ...maintFormData, frequency_hours: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Every X Days</label>
+                <label className="block text-sm text-muted mb-1">Every X Days</label>
                 <input
                   type="number"
                   value={maintFormData.frequency_days}
                   onChange={(e) => setMaintFormData({ ...maintFormData, frequency_days: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                <label className="block text-sm text-muted mb-1 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   Manual Due Date (optional)
                 </label>
@@ -787,12 +787,12 @@ function Equipment() {
                   type="date"
                   value={maintFormData.manual_due_date}
                   onChange={(e) => setMaintFormData({ ...maintFormData, manual_due_date: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
-                <p className="text-xs text-gray-500 mt-1">Set a specific due date. Clears after completion if recurring.</p>
+                <p className="text-xs text-muted mt-1">Set a specific due date. Clears after completion if recurring.</p>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1 flex items-center gap-2">
+                <label className="block text-sm text-muted mb-1 flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   Last Completed (optional)
                 </label>
@@ -800,23 +800,23 @@ function Equipment() {
                   type="date"
                   value={maintFormData.last_completed}
                   onChange={(e) => setMaintFormData({ ...maintFormData, last_completed: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
-                <p className="text-xs text-gray-500 mt-1">When was this last done? Next due will be calculated from here.</p>
+                <p className="text-xs text-muted mt-1">When was this last done? Next due will be calculated from here.</p>
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Hours at Last Service</label>
+                <label className="block text-sm text-muted mb-1">Hours at Last Service</label>
                 <input
                   type="number"
                   value={maintFormData.last_hours}
                   onChange={(e) => setMaintFormData({ ...maintFormData, last_hours: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder="Hours when last done"
                 />
               </div>
               {/* Alerts Section */}
-              <div className="space-y-2 pt-3 border-t border-gray-700">
-                <label className="block text-sm text-gray-400 mb-2">Alerts (optional)</label>
+              <div className="space-y-2 pt-3 border-t border-subtle">
+                <label className="block text-sm text-muted mb-2">Alerts (optional)</label>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { value: 0, label: 'At time' },
@@ -845,7 +845,7 @@ function Equipment() {
                         className={`px-2 py-1 rounded text-xs font-medium transition-all ${
                           isSelected
                             ? 'bg-cyan-600/30 border border-cyan-500 text-cyan-300'
-                            : 'bg-gray-700/50 border border-gray-600 text-gray-400 hover:border-gray-500'
+                            : 'bg-surface-soft/50 border border text-muted hover:border-strong'
                         }`}
                       >
                         {opt.label}
@@ -858,7 +858,7 @@ function Equipment() {
                 <button
                   type="button"
                   onClick={() => { setShowAddMaintenance(null); setEditingMaintenance(null); setMaintFormData({ name: '', frequency_hours: '', frequency_days: '', last_completed: '', last_hours: '', manual_due_date: '', notes: '', reminder_alerts: null }); }}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   Cancel
                 </button>
@@ -877,34 +877,34 @@ function Equipment() {
       {/* Complete Modal */}
       {completeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md">
             <h2 className="text-xl font-bold mb-4">Complete: {completeModal.name}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Hours</label>
+                <label className="block text-sm text-muted mb-1">Hours</label>
                 <input
                   type="text"
                   inputMode="decimal"
                   value={completeData.hours_at}
                   onChange={(e) => setCompleteData({ ...completeData, hours_at: e.target.value.replace(/[^0-9.]/g, '') })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                   placeholder="Current hours"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Cost</label>
+                <label className="block text-sm text-muted mb-1">Cost</label>
                 <input
                   type="number"
                   step="0.01"
                   value={completeData.cost}
                   onChange={(e) => setCompleteData({ ...completeData, cost: e.target.value })}
-                  className="w-full bg-gray-700 rounded-lg px-4 py-2"
+                  className="w-full bg-surface-soft rounded-lg px-4 py-2"
                 />
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => setCompleteModal(null)}
-                  className="flex-1 px-4 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                  className="flex-1 px-4 py-2 bg-surface-hover rounded-lg hover:bg-surface-muted"
                 >
                   Cancel
                 </button>

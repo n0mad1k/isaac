@@ -278,7 +278,7 @@ function Layout() {
   ]
 
   return (
-    <div className="h-screen bg-gray-900 text-white flex flex-col">
+    <div className="h-screen bg-surface-app text-white flex flex-col">
       {/* Dev Instance Banner */}
       {isDevInstance && (
         <div className="bg-orange-600 text-white text-center py-1 text-sm font-medium z-[70]">
@@ -366,11 +366,11 @@ function Layout() {
                 </span>
               </button>
               {userMenuOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-1 z-50">
+                <div className="absolute bottom-full left-0 mb-2 w-40 bg-surface border border-subtle rounded-lg shadow-lg py-1 z-50">
                   {isAdmin && (
                     <button
                       onClick={handleUserManagement}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-secondary hover:bg-surface-soft hover:text-white"
                     >
                       <Users className="w-4 h-4" />
                       User Management
@@ -378,7 +378,7 @@ function Layout() {
                   )}
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-surface-soft hover:text-red-300"
                   >
                     <LogOut className="w-4 h-4" />
                     Log Out
