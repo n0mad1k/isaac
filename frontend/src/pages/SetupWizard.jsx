@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Settings, User, Lock, MapPin, Clock, Mail, Cloud, Check, ChevronRight,
-  ChevronLeft, Loader2, AlertCircle, LayoutGrid
+  ChevronLeft, Loader2, AlertCircle, LayoutGrid, Calendar
 } from 'lucide-react'
 import { getAvailableModules, completeSetupWizard } from '../services/api'
 
@@ -31,6 +31,7 @@ function SetupWizard() {
     timezone: 'America/New_York',
     latitude: 40.7128,
     longitude: -74.0060,
+    usda_zone: '',
     admin_username: '',
     admin_password: '',
     confirm_password: '',
@@ -39,8 +40,12 @@ function SetupWizard() {
     smtp_port: 587,
     smtp_user: '',
     smtp_password: '',
+    notification_email: '',
     awn_api_key: '',
     awn_app_key: '',
+    caldav_enabled: false,
+    caldav_username: '',
+    caldav_password: '',
   })
 
   useEffect(() => {
@@ -137,7 +142,12 @@ function SetupWizard() {
         enabled_modules: formData.enabled_modules,
       }
 
-      // Add optional fields if provided
+      // Add USDA zone if provided
+      if (formData.usda_zone) {
+        submitData.usda_zone = formData.usda_zone
+      }
+
+      // Add optional email fields if provided
       if (formData.smtp_host && formData.smtp_user) {
         submitData.smtp_host = formData.smtp_host
         submitData.smtp_port = parseInt(formData.smtp_port) || 587
@@ -145,11 +155,22 @@ function SetupWizard() {
         if (formData.smtp_password) {
           submitData.smtp_password = formData.smtp_password
         }
+        if (formData.notification_email) {
+          submitData.notification_email = formData.notification_email
+        }
       }
 
+      // Add weather API keys if provided
       if (formData.awn_api_key && formData.awn_app_key) {
         submitData.awn_api_key = formData.awn_api_key
         submitData.awn_app_key = formData.awn_app_key
+      }
+
+      // Add CalDAV settings if enabled
+      if (formData.caldav_enabled && formData.caldav_username && formData.caldav_password) {
+        submitData.caldav_enabled = true
+        submitData.caldav_username = formData.caldav_username
+        submitData.caldav_password = formData.caldav_password
       }
 
       await completeSetupWizard(submitData)
@@ -252,6 +273,22 @@ function SetupWizard() {
       <p className="text-xs text-gray-500">
         Location is used for weather forecasts and frost date calculations
       </p>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          USDA Hardiness Zone (Optional)
+        </label>
+        <input
+          type="text"
+          value={formData.usda_zone}
+          onChange={(e) => updateField('usda_zone', e.target.value)}
+          className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-farm-green"
+          placeholder="e.g., 9b"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Find your zone at planthardiness.ars.usda.gov
+        </p>
+      </div>
     </div>
   )
 
@@ -409,6 +446,61 @@ function SetupWizard() {
               />
             </div>
           </div>
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Send Alerts To (Optional)</label>
+            <input
+              type="email"
+              value={formData.notification_email}
+              onChange={(e) => updateField('notification_email', e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+              placeholder="Defaults to SMTP email if blank"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gray-700/50 rounded-lg p-4">
+        <h3 className="font-medium text-white flex items-center gap-2 mb-4">
+          <Calendar className="w-5 h-5 text-farm-green" />
+          Calendar Sync - CalDAV (Optional)
+        </h3>
+        <div className="space-y-4">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.caldav_enabled}
+              onChange={(e) => updateField('caldav_enabled', e.target.checked)}
+              className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
+            />
+            <span className="text-gray-300">Enable calendar sync with phone/tablet</span>
+          </label>
+          {formData.caldav_enabled && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">CalDAV Username</label>
+                <input
+                  type="text"
+                  value={formData.caldav_username}
+                  onChange={(e) => updateField('caldav_username', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  placeholder="Calendar username"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">CalDAV Password</label>
+                <input
+                  type="password"
+                  value={formData.caldav_password}
+                  onChange={(e) => updateField('caldav_password', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+                  placeholder="Calendar password"
+                />
+              </div>
+            </div>
+          )}
+          <p className="text-xs text-gray-500">
+            Syncs tasks to your phone calendar via Radicale CalDAV server
+          </p>
         </div>
       </div>
 

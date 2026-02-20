@@ -168,7 +168,7 @@ from routers import (
     farm_areas_router,
     production_router,
     auth_router,
-    dev_tracker_router,
+    dev_tracker_router,  # May be None in public release
     workers_router,
     supply_requests_router,
     customer_feedback_router,
@@ -288,7 +288,8 @@ app.include_router(vehicles_router)
 app.include_router(equipment_router)
 app.include_router(farm_areas_router)
 app.include_router(production_router)
-app.include_router(dev_tracker_router)
+if dev_tracker_router:  # Only in dev/private builds
+    app.include_router(dev_tracker_router)
 app.include_router(workers_router)
 app.include_router(supply_requests_router)
 app.include_router(customer_feedback_router)

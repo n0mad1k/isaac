@@ -5,13 +5,16 @@ One-time setup wizard for new installations
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 import os
 import logging
 import subprocess
 import hashlib
 
-from models.database import get_db, AppSetting, User
+from models.database import get_db
+from models.settings import AppSetting
+from models.users import User
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/setup", tags=["setup"])
@@ -23,6 +26,7 @@ class SetupWizardRequest(BaseModel):
     timezone: str = Field(default="America/New_York")
     latitude: float = Field(default=40.7128, ge=-90, le=90)
     longitude: float = Field(default=-74.0060, ge=-180, le=180)
+    usda_zone: Optional[str] = Field(default=None, description="USDA Hardiness Zone (e.g., 9b)")
 
     # Admin account
     admin_username: str = Field(..., min_length=3, max_length=50)
@@ -35,14 +39,20 @@ class SetupWizardRequest(BaseModel):
         "workers", "budget", "weather", "chat", "settings"
     ])
 
-    # Optional settings
+    # Optional settings - Email
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = 587
     smtp_user: Optional[str] = None
     smtp_password: Optional[str] = None
+    notification_email: Optional[str] = Field(default=None, description="Email to receive alerts")
 
     awn_api_key: Optional[str] = None
     awn_app_key: Optional[str] = None
+
+    # CalDAV settings (for calendar sync)
+    caldav_enabled: bool = False
+    caldav_username: Optional[str] = None
+    caldav_password: Optional[str] = None
 
 
 AVAILABLE_MODULES = {
@@ -64,33 +74,37 @@ AVAILABLE_MODULES = {
 }
 
 
-def is_setup_complete(db: Session) -> bool:
+async def is_setup_complete(db: AsyncSession) -> bool:
     """Check if initial setup has been completed"""
-    setting = db.query(AppSetting).filter(AppSetting.key == "initial_setup_complete").first()
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "initial_setup_complete")
+    )
+    setting = result.scalar_one_or_none()
     return setting is not None and setting.value == "true"
 
 
-@router.get("/modules")
+@router.get("/modules/")
 async def get_available_modules():
     """Get list of available modules for setup"""
     return {"modules": AVAILABLE_MODULES}
 
 
-@router.get("/status")
-async def get_setup_status(db: Session = Depends(get_db)):
+@router.get("/status/")
+async def get_setup_status(db: AsyncSession = Depends(get_db)):
     """Check if initial setup is needed"""
+    complete = await is_setup_complete(db)
     return {
-        "setup_complete": is_setup_complete(db),
-        "needs_setup": not is_setup_complete(db)
+        "setup_complete": complete,
+        "needs_setup": not complete
     }
 
 
-@router.post("/wizard")
-async def complete_setup_wizard(config: SetupWizardRequest, db: Session = Depends(get_db)):
+@router.post("/wizard/")
+async def complete_setup_wizard(config: SetupWizardRequest, db: AsyncSession = Depends(get_db)):
     """Complete the initial setup wizard"""
 
     # Check if already set up
-    if is_setup_complete(db):
+    if await is_setup_complete(db):
         raise HTTPException(status_code=400, detail="Setup has already been completed")
 
     try:
@@ -105,7 +119,10 @@ async def complete_setup_wizard(config: SetupWizardRequest, db: Session = Depend
         ]
 
         for key, value in settings_to_save:
-            existing = db.query(AppSetting).filter(AppSetting.key == key).first()
+            result = await db.execute(
+                select(AppSetting).where(AppSetting.key == key)
+            )
+            existing = result.scalar_one_or_none()
             if existing:
                 existing.value = value
             else:
@@ -119,6 +136,10 @@ async def complete_setup_wizard(config: SetupWizardRequest, db: Session = Depend
             "LONGITUDE": str(config.longitude),
         }
 
+        # Add USDA zone if provided
+        if config.usda_zone:
+            env_updates["USDA_ZONE"] = config.usda_zone
+
         # Add optional email settings
         if config.smtp_host and config.smtp_user:
             env_updates["SMTP_HOST"] = config.smtp_host
@@ -126,11 +147,34 @@ async def complete_setup_wizard(config: SetupWizardRequest, db: Session = Depend
             env_updates["SMTP_USER"] = config.smtp_user
             if config.smtp_password:
                 env_updates["SMTP_PASSWORD"] = config.smtp_password
+            # Set notification email (defaults to SMTP user if not provided)
+            notification = config.notification_email or config.smtp_user
+            env_updates["NOTIFICATION_EMAIL"] = notification
+            env_updates["SMTP_FROM"] = f"Isaac Farm Assistant <{config.smtp_user}>"
+            env_updates["EMAIL_ALERTS_ENABLED"] = "true"
 
         # Add optional weather settings
         if config.awn_api_key and config.awn_app_key:
             env_updates["AWN_API_KEY"] = config.awn_api_key
             env_updates["AWN_APP_KEY"] = config.awn_app_key
+
+        # Add CalDAV settings
+        if config.caldav_enabled and config.caldav_username and config.caldav_password:
+            env_updates["CALDAV_URL"] = "http://127.0.0.1:5232"
+            env_updates["CALDAV_USERNAME"] = config.caldav_username
+            env_updates["CALDAV_PASSWORD"] = config.caldav_password
+
+            # Create Radicale htpasswd entry
+            try:
+                subprocess.run(
+                    ["sudo", "htpasswd", "-bB", "/etc/radicale/users",
+                     config.caldav_username, config.caldav_password],
+                    capture_output=True,
+                    timeout=10
+                )
+                logger.info(f"Created Radicale user: {config.caldav_username}")
+            except Exception as e:
+                logger.warning(f"Could not create Radicale user: {e}")
 
         # Read existing .env
         existing_env = {}
@@ -150,25 +194,33 @@ async def complete_setup_wizard(config: SetupWizardRequest, db: Session = Depend
             for key, value in existing_env.items():
                 f.write(f"{key}={value}\n")
 
-        # 3. Create or update admin user
-        existing_user = db.query(User).filter(User.username == config.admin_username).first()
+        # 3. Create admin user
+        result = await db.execute(
+            select(User).where(User.username == config.admin_username)
+        )
+        existing_user = result.scalar_one_or_none()
 
         # Hash password
         salt = os.urandom(32)
         pwd_hash = hashlib.pbkdf2_hmac('sha256', config.admin_password.encode(), salt, 100000)
-        password_hash = salt.hex() + ':' + pwd_hash.hex()
+        hashed_password = salt.hex() + ':' + pwd_hash.hex()
 
         if existing_user:
-            existing_user.password_hash = password_hash
+            existing_user.hashed_password = hashed_password
             existing_user.role = "admin"
             existing_user.is_active = True
         else:
             # Delete any existing admin user first
-            db.query(User).filter(User.username == "admin").delete()
+            result = await db.execute(
+                select(User).where(User.username == "admin")
+            )
+            old_admin = result.scalar_one_or_none()
+            if old_admin:
+                await db.delete(old_admin)
 
             new_user = User(
                 username=config.admin_username,
-                password_hash=password_hash,
+                hashed_password=hashed_password,
                 role="admin",
                 is_active=True
             )
@@ -185,13 +237,16 @@ async def complete_setup_wizard(config: SetupWizardRequest, db: Session = Depend
             logger.warning(f"Could not set system timezone: {e}")
 
         # 5. Mark setup as complete
-        setup_flag = db.query(AppSetting).filter(AppSetting.key == "initial_setup_complete").first()
+        result = await db.execute(
+            select(AppSetting).where(AppSetting.key == "initial_setup_complete")
+        )
+        setup_flag = result.scalar_one_or_none()
         if setup_flag:
             setup_flag.value = "true"
         else:
             db.add(AppSetting(key="initial_setup_complete", value="true"))
 
-        db.commit()
+        await db.commit()
 
         logger.info(f"Setup wizard completed for farm: {config.farm_name}")
 
@@ -203,5 +258,5 @@ async def complete_setup_wizard(config: SetupWizardRequest, db: Session = Depend
 
     except Exception as e:
         logger.error(f"Setup wizard error: {e}")
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=500, detail="An error occurred during setup")
