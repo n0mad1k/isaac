@@ -1,36 +1,43 @@
 #!/bin/bash
-# Levi Kiosk Mode Script
-# Launches Chromium in kiosk mode displaying the dashboard
+# Isaac Kiosk - Minimal X11 + Chromium
+# Displays the dashboard in fullscreen kiosk mode
 
-# Wait for X to be ready
-sleep 5
-
-# Disable screen blanking and power management
+# Disable screen blanking
 xset s off
 xset s noblank
 xset -dpms
 
-# Hide mouse cursor when idle
+# Hide cursor after 0.5 seconds of inactivity
 unclutter -idle 0.5 -root &
 
-# Remove old session data
-rm -rf ~/.config/chromium/Singleton*
+# Start window manager in background (required for minimal X11 setup)
+openbox &
 
-# Start Chromium maximized (not kiosk) so on-screen keyboard can appear above
-# Use https://levi.local to match the SSL certificate's SAN (not http://localhost)
-chromium \
-    --app=https://levi.local \
-    --start-maximized \
+# Wait for backend to be ready
+sleep 5
+
+# Start Chromium in kiosk mode
+chromium-browser \
+    --kiosk \
     --noerrdialogs \
     --disable-infobars \
-    --disable-session-crashed-bubble \
-    --disable-restore-session-state \
     --no-first-run \
+    --enable-features=OverlayScrollbar \
+    --start-fullscreen \
+    --ignore-certificate-errors \
     --disable-translate \
     --disable-features=TranslateUI \
-    --disable-component-update \
-    --check-for-update-interval=31536000 \
-    --disable-pinch \
-    --overscroll-history-navigation=0 \
-    --force-renderer-accessibility \
-    https://levi.local
+    --disk-cache-dir=/tmp/chromium-cache \
+    https://localhost || \
+chromium \
+    --kiosk \
+    --noerrdialogs \
+    --disable-infobars \
+    --no-first-run \
+    --enable-features=OverlayScrollbar \
+    --start-fullscreen \
+    --ignore-certificate-errors \
+    --disable-translate \
+    --disable-features=TranslateUI \
+    --disk-cache-dir=/tmp/chromium-cache \
+    https://localhost
