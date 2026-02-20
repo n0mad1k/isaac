@@ -174,15 +174,20 @@ ok "Radicale CalDAV server"
 # =============================================================================
 log "[8/12] Installing kiosk dependencies..."
 # =============================================================================
-apt-get install -y -qq chromium-browser unclutter xdotool 2>/dev/null || \
-apt-get install -y -qq chromium unclutter xdotool 2>/dev/null || \
-warn "Kiosk deps not available (desktop required)"
-ok "Kiosk mode"
+# Minimal X11 for kiosk (no full desktop environment)
+apt-get install -y -qq \
+    xserver-xorg x11-xserver-utils xinit openbox \
+    chromium-browser unclutter xdotool 2>/dev/null || \
+apt-get install -y -qq \
+    xserver-xorg x11-xserver-utils xinit openbox \
+    chromium unclutter xdotool 2>/dev/null || \
+warn "Kiosk deps not available"
+ok "Kiosk mode (minimal X11)"
 
 # =============================================================================
 log "[9/12] Setting up Isaac directories..."
 # =============================================================================
-mkdir -p "$INSTALL_DIR"/{backend,frontend,deploy,data,logs}
+mkdir -p "$INSTALL_DIR"/{backend,frontend,deploy,data,logs,scripts}
 chown -R "$CURRENT_USER:$CURRENT_USER" "$INSTALL_DIR"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
@@ -255,35 +260,75 @@ StandardError=append:$INSTALL_DIR/logs/backend-error.log
 WantedBy=multi-user.target
 EOF
 
-# Kiosk service (uses HTTPS localhost)
+# Detect chromium binary
+if command -v chromium-browser &>/dev/null; then
+    CHROMIUM_BIN="chromium-browser"
+elif command -v chromium &>/dev/null; then
+    CHROMIUM_BIN="chromium"
+else
+    CHROMIUM_BIN="chromium-browser"  # fallback
+fi
+
+# Kiosk startup script (generated for this environment)
+cat > /opt/isaac/scripts/kiosk.sh << EOF
+#!/bin/bash
+# Isaac Kiosk - Minimal X11 + Chromium
+# Generated during install for this environment
+
+# Disable screen blanking
+xset s off
+xset s noblank
+xset -dpms
+
+# Hide cursor after 0.5 seconds of inactivity
+unclutter -idle 0.5 -root &
+
+# Start window manager in background (required for minimal X11)
+openbox &
+
+# Wait for backend to be ready
+sleep 5
+
+# Start Chromium in kiosk mode
+$CHROMIUM_BIN \\
+    --kiosk \\
+    --noerrdialogs \\
+    --disable-infobars \\
+    --no-first-run \\
+    --enable-features=OverlayScrollbar \\
+    --start-fullscreen \\
+    --ignore-certificate-errors \\
+    --disable-translate \\
+    --disable-features=TranslateUI \\
+    --disk-cache-dir=/tmp/chromium-cache \\
+    https://localhost
+EOF
+chmod +x /opt/isaac/scripts/kiosk.sh
+
+# Kiosk service (starts X via xinit)
 cat > /etc/systemd/system/isaac-kiosk.service << EOF
 [Unit]
 Description=Isaac Dashboard Kiosk
-After=graphical.target
+After=network.target isaac-backend.service
+Wants=isaac-backend.service
 
 [Service]
 Type=simple
 User=$CURRENT_USER
-Environment=DISPLAY=:0
-ExecStartPre=/bin/sleep 10
-ExecStart=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --enable-features=OverlayScrollbar --start-fullscreen --ignore-certificate-errors https://localhost
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=tty
+ExecStart=/usr/bin/xinit /opt/isaac/scripts/kiosk.sh -- :0 vt1 -nocursor
 Restart=always
+RestartSec=10
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target
 EOF
 
-# Nginx with HTTPS
+# Nginx with HTTPS only (no HTTP)
 cat > /etc/nginx/sites-available/isaac << EOF
-# Redirect HTTP to HTTPS
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    server_name _;
-    return 301 https://\$host\$request_uri;
-}
-
-# HTTPS server
+# HTTPS only - no HTTP listener
 server {
     listen 443 ssl default_server;
     listen [::]:443 ssl default_server;
@@ -323,14 +368,12 @@ EOF
 ln -sf /etc/nginx/sites-available/isaac /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
-# Check for port conflicts
-if ss -tlnp | grep -q ':80 '; then
-    warn "Port 80 already in use - stopping conflicting service"
-    systemctl stop apache2 2>/dev/null || true
-fi
+# Disable apache2 if installed (conflicts with nginx)
+systemctl stop apache2 2>/dev/null || true
+systemctl disable apache2 2>/dev/null || true
 
 systemctl daemon-reload
-systemctl enable isaac-backend nginx radicale -q
+systemctl enable isaac-backend nginx radicale isaac-kiosk -q
 
 # Test nginx config before starting
 if ! nginx -t 2>/dev/null; then
@@ -345,51 +388,56 @@ systemctl start isaac-backend radicale 2>/dev/null || true
 ok "Services configured"
 
 # =============================================================================
-# Create default admin user
+# Verification
 # =============================================================================
-ADMIN_PASSWORD=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 12)
+log "Verifying installation..."
 
-# Wait for backend to start
-sleep 3
+ERRORS=0
 
-# Create admin user via Python
-cd "$INSTALL_DIR/backend"
-sudo -u "$CURRENT_USER" bash -c "source venv/bin/activate && python3 -c \"
-import sqlite3
-import hashlib
-import os
-from datetime import datetime
+# Check critical files exist and have content
+check_file() {
+    if [ ! -s "$1" ]; then
+        warn "MISSING or EMPTY: $1"
+        ERRORS=$((ERRORS + 1))
+    fi
+}
 
-DB_PATH = 'data/levi.db'
-os.makedirs('data', exist_ok=True)
+check_file "/opt/isaac/scripts/kiosk.sh"
+check_file "/etc/systemd/system/isaac-backend.service"
+check_file "/etc/systemd/system/isaac-kiosk.service"
+check_file "/etc/nginx/sites-available/isaac"
+check_file "/etc/ssl/isaac/isaac.crt"
+check_file "/etc/ssl/isaac/isaac.key"
+check_file "/opt/isaac/frontend/dist/index.html"
+check_file "/opt/isaac/backend/venv/bin/uvicorn"
 
-# Connect and create users table if needed
-conn = sqlite3.connect(DB_PATH)
-cur = conn.cursor()
+# Check services are enabled
+for svc in isaac-backend nginx radicale isaac-kiosk; do
+    if ! systemctl is-enabled "$svc" &>/dev/null; then
+        warn "Service not enabled: $svc"
+        ERRORS=$((ERRORS + 1))
+    fi
+done
 
-# Check if admin user exists
-cur.execute('SELECT id FROM users WHERE username = ?', ('admin',))
-if cur.fetchone():
-    print('Admin user already exists')
-else:
-    # Hash password
-    password = '$ADMIN_PASSWORD'
-    salt = os.urandom(32)
-    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
-    password_hash = salt.hex() + ':' + pwd_hash.hex()
+# Check nginx config
+if ! nginx -t 2>/dev/null; then
+    warn "Nginx configuration test failed"
+    ERRORS=$((ERRORS + 1))
+fi
 
-    # Insert admin user
-    cur.execute('''
-        INSERT INTO users (username, password_hash, role, is_active, created_at)
-        VALUES (?, ?, ?, ?, ?)
-    ''', ('admin', password_hash, 'admin', 1, datetime.utcnow().isoformat()))
-    conn.commit()
-    print('Admin user created')
+if [ $ERRORS -gt 0 ]; then
+    echo ""
+    echo -e "${RED}╔═══════════════════════════════════════════╗"
+    echo "║     Installation completed with ERRORS    ║"
+    echo "╚═══════════════════════════════════════════╝${NC}"
+    echo ""
+    echo "  Found $ERRORS verification errors."
+    echo "  Please review the warnings above and fix."
+    echo ""
+    exit 1
+fi
 
-conn.close()
-\"" 2>/dev/null || warn "Could not create admin user (database may not be initialized yet)"
-
-ok "Default admin user configured"
+ok "All verification checks passed"
 
 # =============================================================================
 # Done
@@ -413,14 +461,8 @@ echo ""
 echo "  Dashboard: https://$IP"
 echo "  (Self-signed certificate - browser will show warning)"
 echo ""
-echo -e "  ${YELLOW}Default Login:${NC}"
-echo "    Username: admin"
-echo "    Password: $ADMIN_PASSWORD"
-echo ""
-echo -e "  ${RED}IMPORTANT: Save this password! It won't be shown again.${NC}"
-echo ""
 echo -e "  ${YELLOW}Next Steps:${NC}"
 echo "    1. Visit https://$IP in a browser"
-echo "    2. Complete the setup wizard"
-echo "    3. Sign in with the admin credentials above"
+echo "    2. Complete the setup wizard to create your admin account"
+echo "    3. Configure your farm settings and choose which modules to enable"
 echo ""

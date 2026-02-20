@@ -89,16 +89,11 @@ rsync -av --progress \
     --exclude='.claude/' \
     --exclude='deploy.sh' \
     --exclude='deploy-dev.sh' \
-    --exclude='scripts/setup-pi.sh' \
-    --exclude='scripts/deploy-to-pi.sh' \
-    --exclude='scripts/quick-deploy.sh' \
-    --exclude='scripts/prod-api.sh' \
-    --exclude='scripts/dev-tracker.sh' \
-    --exclude='scripts/dev_tracker.db' \
-    --exclude='scripts/install.sh' \
-    --exclude='scripts/personalize.sh' \
+    --exclude='scripts/' \
     --exclude='backend/dev_tracker.db' \
     --exclude='backend/routers/dev_tracker.py' \
+    --exclude='backend/routers/customer_feedback.py' \
+    --exclude='frontend/src/components/FeedbackButton.jsx' \
     --exclude='CLAUDE.md' \
     --exclude='deploy/levi-backend.service' \
     --exclude='deploy/levi-kiosk.service' \
@@ -106,7 +101,6 @@ rsync -av --progress \
     --exclude='deploy/setup.sh' \
     --exclude='deploy/kiosk.sh' \
     --exclude='deploy/install.sh' \
-    --exclude='scripts/create-public-repo.sh' \
     --exclude='data/' \
     --exclude='SECURITY_AUDIT_2026-*.md' \
     --exclude='SECURITY_AUDIT_DEEP_DIVE_*.md' \

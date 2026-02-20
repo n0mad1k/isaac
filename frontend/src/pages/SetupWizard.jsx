@@ -43,7 +43,6 @@ function SetupWizard() {
     notification_email: '',
     awn_api_key: '',
     awn_app_key: '',
-    caldav_enabled: false,
     caldav_username: '',
     caldav_password: '',
   })
@@ -111,6 +110,16 @@ function SetupWizard() {
           return false
         }
         break
+      case 4:
+        if (!formData.caldav_username.trim()) {
+          setError('CalDAV username is required for calendar sync')
+          return false
+        }
+        if (!formData.caldav_password) {
+          setError('CalDAV password is required for calendar sync')
+          return false
+        }
+        break
     }
     return true
   }
@@ -127,6 +136,8 @@ function SetupWizard() {
   }
 
   const handleSubmit = async () => {
+    if (!validateStep()) return
+
     setLoading(true)
     setError('')
 
@@ -166,12 +177,10 @@ function SetupWizard() {
         submitData.awn_app_key = formData.awn_app_key
       }
 
-      // Add CalDAV settings if enabled
-      if (formData.caldav_enabled && formData.caldav_username && formData.caldav_password) {
-        submitData.caldav_enabled = true
-        submitData.caldav_username = formData.caldav_username
-        submitData.caldav_password = formData.caldav_password
-      }
+      // CalDAV settings (required)
+      submitData.caldav_enabled = true
+      submitData.caldav_username = formData.caldav_username
+      submitData.caldav_password = formData.caldav_password
 
       await completeSetupWizard(submitData)
       // Force full page reload to re-check setup status
@@ -462,44 +471,37 @@ function SetupWizard() {
       <div className="bg-gray-700/50 rounded-lg p-4">
         <h3 className="font-medium text-white flex items-center gap-2 mb-4">
           <Calendar className="w-5 h-5 text-farm-green" />
-          Calendar Sync - CalDAV (Optional)
+          Calendar Sync - CalDAV
         </h3>
         <div className="space-y-4">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={formData.caldav_enabled}
-              onChange={(e) => updateField('caldav_enabled', e.target.checked)}
-              className="w-5 h-5 rounded bg-gray-700 border-gray-600 text-farm-green focus:ring-farm-green"
-            />
-            <span className="text-gray-300">Enable calendar sync with phone/tablet</span>
-          </label>
-          {formData.caldav_enabled && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">CalDAV Username</label>
-                <input
-                  type="text"
-                  value={formData.caldav_username}
-                  onChange={(e) => updateField('caldav_username', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
-                  placeholder="Calendar username"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">CalDAV Password</label>
-                <input
-                  type="password"
-                  value={formData.caldav_password}
-                  onChange={(e) => updateField('caldav_password', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
-                  placeholder="Calendar password"
-                />
-              </div>
+          <p className="text-sm text-gray-300">
+            Set up credentials for syncing tasks to your phone/tablet calendar.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">CalDAV Username <span className="text-red-400">*</span></label>
+              <input
+                type="text"
+                value={formData.caldav_username}
+                onChange={(e) => updateField('caldav_username', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+                placeholder="e.g., farm-calendar"
+              />
             </div>
-          )}
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">CalDAV Password <span className="text-red-400">*</span></label>
+              <input
+                type="password"
+                value={formData.caldav_password}
+                onChange={(e) => updateField('caldav_password', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-farm-green"
+                placeholder="Secure password"
+              />
+            </div>
+          </div>
           <p className="text-xs text-gray-500">
-            Syncs tasks to your phone calendar via Radicale CalDAV server
+            These credentials are used to sync tasks to your phone calendar via Radicale CalDAV server.
+            You cannot change these after setup.
           </p>
         </div>
       </div>

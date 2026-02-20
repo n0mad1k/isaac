@@ -81,6 +81,7 @@ AVAILABLE_MODULES = {
     "budget": {"name": "Budget & Finance", "description": "Financial tracking, transactions, and budgeting", "required": False},
     "weather": {"name": "Weather", "description": "Weather data and forecasts", "required": False},
     "chat": {"name": "AI Assistant", "description": "Chat with AI assistant for farm advice", "required": False},
+    "onscreen_keyboard": {"name": "On-Screen Keyboard", "description": "Touch-friendly keyboard for kiosk mode", "required": False},
     "settings": {"name": "Settings", "description": "System configuration and preferences", "required": True},
 }
 

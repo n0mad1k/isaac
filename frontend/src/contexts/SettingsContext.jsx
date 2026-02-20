@@ -21,8 +21,8 @@ function getInitialTheme() {
     return prefersDark ? 'dark' : 'light'
   }
 
-  // Default to dark
-  return 'dark'
+  // Default to light
+  return 'light'
 }
 
 export function SettingsProvider({ children }) {
