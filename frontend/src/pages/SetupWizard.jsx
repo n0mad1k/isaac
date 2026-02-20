@@ -174,8 +174,8 @@ function SetupWizard() {
       }
 
       await completeSetupWizard(submitData)
-      // Redirect to login
-      navigate('/login', { state: { message: 'Setup complete! Please sign in.' } })
+      // Force full page reload to re-check setup status
+      window.location.href = '/login'
     } catch (err) {
       console.error('Setup failed:', err)
       setError(err.response?.data?.detail || 'Setup failed. Please try again.')
