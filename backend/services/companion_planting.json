@@ -1,0 +1,202 @@
+{
+  "tomato": {
+    "companions": ["basil", "carrot", "parsley", "marigold", "borage", "garlic", "onion", "celery", "pepper"],
+    "antagonists": ["fennel", "cabbage", "walnut", "dill", "corn", "broccoli", "cauliflower", "kale"],
+    "notes": "Basil improves flavor and repels flies and mosquitoes. Marigolds repel nematodes. Carrots loosen soil around roots."
+  },
+  "pepper": {
+    "companions": ["basil", "tomato", "carrot", "onion", "parsley", "marigold", "spinach", "oregano"],
+    "antagonists": ["fennel", "beans", "cabbage", "broccoli"],
+    "notes": "Basil repels aphids and spider mites. Marigolds deter many common pests. Tomatoes provide beneficial shade."
+  },
+  "basil": {
+    "companions": ["tomato", "pepper", "oregano", "parsley", "marigold", "lettuce"],
+    "antagonists": ["sage", "rue", "thyme"],
+    "notes": "Improves flavor and growth of tomatoes and peppers. Repels flies, mosquitoes, and thrips."
+  },
+  "cucumber": {
+    "companions": ["beans", "peas", "radish", "sunflower", "lettuce", "dill", "marigold", "corn", "onion"],
+    "antagonists": ["potato", "sage", "mint", "melon"],
+    "notes": "Sunflowers and corn provide trellis support. Radishes deter cucumber beetles. Beans fix nitrogen."
+  },
+  "squash": {
+    "companions": ["corn", "beans", "marigold", "radish", "sunflower", "peas", "borage"],
+    "antagonists": ["potato", "pumpkin"],
+    "notes": "Classic Three Sisters planting with corn and beans. Borage attracts pollinators. Marigolds repel squash bugs."
+  },
+  "zucchini": {
+    "companions": ["corn", "beans", "radish", "marigold", "nasturtium", "peas", "dill"],
+    "antagonists": ["potato", "pumpkin"],
+    "notes": "Nasturtiums serve as trap crop for aphids. Radish deters squash vine borers when interplanted."
+  },
+  "lettuce": {
+    "companions": ["carrot", "radish", "strawberry", "onion", "garlic", "basil", "cilantro", "chive"],
+    "antagonists": ["celery", "parsley"],
+    "notes": "Grows well in shade of taller plants. Radishes mature quickly and make room. Carrots loosen soil."
+  },
+  "carrot": {
+    "companions": ["tomato", "lettuce", "onion", "rosemary", "sage", "peas", "radish", "leek"],
+    "antagonists": ["dill", "celery", "parsnip"],
+    "notes": "Rosemary and sage repel carrot fly. Onions and leeks mask carrot scent from pests. Tomatoes provide shade."
+  },
+  "onion": {
+    "companions": ["carrot", "lettuce", "tomato", "pepper", "beet", "cabbage", "strawberry", "chamomile"],
+    "antagonists": ["beans", "peas", "sage"],
+    "notes": "Strong scent deters many pests including carrot fly and aphids. Chamomile improves flavor."
+  },
+  "garlic": {
+    "companions": ["tomato", "pepper", "beet", "carrot", "lettuce", "strawberry", "raspberry", "rose"],
+    "antagonists": ["beans", "peas", "sage"],
+    "notes": "Natural fungicide and pest deterrent. Repels aphids, Japanese beetles, and spider mites."
+  },
+  "beans": {
+    "companions": ["corn", "squash", "cucumber", "celery", "strawberry", "radish", "marigold", "potato"],
+    "antagonists": ["onion", "garlic", "fennel", "pepper", "sunflower"],
+    "notes": "Fix nitrogen in soil benefiting neighboring plants. Classic Three Sisters companion with corn and squash."
+  },
+  "peas": {
+    "companions": ["carrot", "radish", "cucumber", "corn", "beans", "turnip", "spinach", "lettuce"],
+    "antagonists": ["onion", "garlic", "potato"],
+    "notes": "Fix nitrogen in soil. Grow well on trellises with cucumbers. Cool-season crop pairs well with radishes."
+  },
+  "corn": {
+    "companions": ["beans", "squash", "pumpkin", "cucumber", "peas", "sunflower", "melon"],
+    "antagonists": ["tomato", "celery"],
+    "notes": "Provides natural trellis for beans and support for vining crops. Three Sisters planting is highly productive."
+  },
+  "potato": {
+    "companions": ["beans", "corn", "cabbage", "marigold", "horseradish", "peas", "radish"],
+    "antagonists": ["tomato", "cucumber", "squash", "sunflower", "raspberry"],
+    "notes": "Horseradish deters potato beetles. Beans fix nitrogen. Keep away from tomato family to prevent blight spread."
+  },
+  "broccoli": {
+    "companions": ["onion", "garlic", "celery", "beet", "thyme", "rosemary", "sage", "marigold", "dill"],
+    "antagonists": ["tomato", "strawberry", "pepper", "beans"],
+    "notes": "Aromatic herbs repel cabbage moths. Celery deters white butterflies. Marigolds repel nematodes."
+  },
+  "cabbage": {
+    "companions": ["onion", "garlic", "celery", "dill", "thyme", "rosemary", "sage", "beet", "marigold"],
+    "antagonists": ["tomato", "strawberry", "pepper", "beans", "grape"],
+    "notes": "Strong herbs mask cabbage scent from pests. Celery repels white cabbage butterfly. Dill attracts beneficial wasps."
+  },
+  "cauliflower": {
+    "companions": ["onion", "garlic", "celery", "beet", "thyme", "rosemary", "sage", "spinach", "marigold"],
+    "antagonists": ["tomato", "strawberry", "pepper"],
+    "notes": "Same companion preferences as cabbage family. Benefits from shade during hot weather from taller neighbors."
+  },
+  "kale": {
+    "companions": ["beet", "celery", "onion", "garlic", "dill", "thyme", "rosemary", "marigold", "lettuce"],
+    "antagonists": ["tomato", "strawberry", "pepper", "beans"],
+    "notes": "Hardy brassica that benefits from aromatic herb companions. Lettuce uses shade under kale leaves."
+  },
+  "spinach": {
+    "companions": ["strawberry", "peas", "beans", "cauliflower", "radish", "celery", "onion"],
+    "antagonists": ["potato"],
+    "notes": "Cool-season crop that grows well in shade of taller plants. Strawberries and spinach benefit each other."
+  },
+  "radish": {
+    "companions": ["lettuce", "peas", "beans", "cucumber", "squash", "carrot", "spinach", "nasturtium"],
+    "antagonists": ["hyssop", "grape"],
+    "notes": "Fast-growing trap crop for flea beetles. Loosens soil for root vegetables planted later. Marks slow-germinating rows."
+  },
+  "beet": {
+    "companions": ["onion", "garlic", "lettuce", "cabbage", "broccoli", "cauliflower", "kale", "mint"],
+    "antagonists": ["beans", "mustard"],
+    "notes": "Beet greens add minerals to soil. Grows well with brassicas. Onions and garlic deter pests."
+  },
+  "celery": {
+    "companions": ["beans", "tomato", "cabbage", "broccoli", "cauliflower", "spinach", "onion", "marigold"],
+    "antagonists": ["carrot", "parsnip", "lettuce"],
+    "notes": "Strong scent repels white cabbage butterfly. Benefits from shade of taller crops in hot weather."
+  },
+  "eggplant": {
+    "companions": ["beans", "pepper", "spinach", "thyme", "marigold", "basil", "oregano"],
+    "antagonists": ["fennel", "walnut"],
+    "notes": "Nightshade family member. Benefits from nitrogen-fixing beans. Aromatic herbs deter flea beetles."
+  },
+  "okra": {
+    "companions": ["pepper", "eggplant", "basil", "melon", "cucumber", "sunflower", "lettuce"],
+    "antagonists": ["squash"],
+    "notes": "Heat-loving crop. Provides shade for lettuce. Attracts pollinators with its flowers."
+  },
+  "watermelon": {
+    "companions": ["corn", "sunflower", "radish", "marigold", "nasturtium", "oregano"],
+    "antagonists": ["potato", "cucumber"],
+    "notes": "Needs space to sprawl. Corn provides windbreak. Marigolds deter beetles and nematodes."
+  },
+  "cantaloupe": {
+    "companions": ["corn", "sunflower", "radish", "marigold", "nasturtium", "lettuce"],
+    "antagonists": ["potato", "cucumber"],
+    "notes": "Similar needs to watermelon. Radishes deter melon pests. Lettuce serves as living mulch."
+  },
+  "pumpkin": {
+    "companions": ["corn", "beans", "marigold", "sunflower", "radish", "oregano"],
+    "antagonists": ["potato", "squash"],
+    "notes": "Three Sisters planting works well. Large leaves shade out weeds. Needs ample space."
+  },
+  "strawberry": {
+    "companions": ["lettuce", "spinach", "onion", "garlic", "thyme", "borage", "bean"],
+    "antagonists": ["cabbage", "broccoli", "cauliflower", "fennel"],
+    "notes": "Borage attracts pollinators and improves flavor. Thyme repels worms. Garlic deters pests."
+  },
+  "blueberry": {
+    "companions": ["strawberry", "thyme", "basil", "azalea", "rhododendron"],
+    "antagonists": ["walnut", "tomato", "pepper", "eggplant"],
+    "notes": "Requires acidic soil (pH 4.5-5.5). Mulch with pine needles. Avoid nightshade family nearby."
+  },
+  "raspberry": {
+    "companions": ["garlic", "onion", "marigold", "tansy", "turnip"],
+    "antagonists": ["potato", "tomato", "eggplant", "blackberry"],
+    "notes": "Garlic deters Japanese beetles. Keep away from nightshades to prevent verticillium wilt. Space from blackberries."
+  },
+  "rosemary": {
+    "companions": ["sage", "thyme", "carrot", "cabbage", "beans", "broccoli", "cauliflower"],
+    "antagonists": ["cucumber", "pumpkin", "squash"],
+    "notes": "Repels cabbage moth, carrot fly, and bean beetles. Drought tolerant, plant on edges of beds."
+  },
+  "thyme": {
+    "companions": ["rosemary", "sage", "cabbage", "strawberry", "tomato", "eggplant", "broccoli"],
+    "antagonists": ["basil", "cilantro"],
+    "notes": "Repels cabbage worms and whiteflies. Attracts beneficial insects. Groundcover suppresses weeds."
+  },
+  "sage": {
+    "companions": ["rosemary", "thyme", "cabbage", "carrot", "strawberry", "tomato", "broccoli"],
+    "antagonists": ["cucumber", "onion", "garlic", "basil"],
+    "notes": "Repels cabbage moth and carrot fly. Attracts pollinators when flowering. Improves flavor of nearby herbs."
+  },
+  "oregano": {
+    "companions": ["tomato", "pepper", "basil", "squash", "broccoli", "cauliflower", "cabbage"],
+    "antagonists": [],
+    "notes": "General pest repellent. Attracts beneficial insects. Hardy groundcover in herb gardens."
+  },
+  "mint": {
+    "companions": ["tomato", "cabbage", "broccoli", "peas", "beet"],
+    "antagonists": ["parsley", "chamomile"],
+    "notes": "Repels aphids, flea beetles, and ants. WARNING: Extremely invasive - always grow in containers."
+  },
+  "dill": {
+    "companions": ["cabbage", "onion", "lettuce", "cucumber", "corn", "broccoli"],
+    "antagonists": ["carrot", "tomato", "fennel"],
+    "notes": "Attracts beneficial wasps and hoverflies. Young dill helps cucumbers; mature dill may inhibit them."
+  },
+  "cilantro": {
+    "companions": ["tomato", "pepper", "spinach", "lettuce", "peas", "beans", "anise"],
+    "antagonists": ["fennel", "thyme"],
+    "notes": "Attracts beneficial insects including hoverflies and parasitic wasps. Bolts in heat, plant successionally."
+  },
+  "parsley": {
+    "companions": ["tomato", "pepper", "carrot", "asparagus", "corn", "rose"],
+    "antagonists": ["lettuce", "mint", "onion"],
+    "notes": "Attracts hoverflies that eat aphids. Host plant for swallowtail butterflies. Improves tomato vigor."
+  },
+  "sunflower": {
+    "companions": ["corn", "cucumber", "squash", "lettuce", "melon", "pumpkin"],
+    "antagonists": ["potato", "beans"],
+    "notes": "Attracts pollinators and beneficial insects. Tall varieties provide windbreak and shade. Can serve as trellis."
+  },
+  "marigold": {
+    "companions": ["tomato", "pepper", "cucumber", "squash", "beans", "potato", "broccoli", "cabbage", "kale"],
+    "antagonists": ["beans"],
+    "notes": "Repels nematodes, whiteflies, and many garden pests. French marigolds are most effective. Plant throughout garden."
+  }
+}

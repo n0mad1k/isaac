@@ -1,0 +1,3276 @@
+import React, { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import {
+  DollarSign,
+  Beef,
+  Apple,
+  Calendar,
+  Scale,
+  Trash2,
+  TrendingUp,
+  Plus,
+  X,
+  ShoppingCart,
+  Users,
+  ClipboardList,
+  Edit,
+  CreditCard,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  PiggyBank,
+  Percent,
+  Home as HomeIcon,
+  Gift,
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  Briefcase,
+  Sprout,
+  Receipt,
+  Upload,
+  Clipboard,
+  FileText,
+  Image,
+  Calculator,
+} from 'lucide-react'
+import MottoDisplay from '../components/MottoDisplay'
+import { useSettings } from '../contexts/SettingsContext'
+import {
+  getProductionStats,
+  getLivestockProductions,
+  getPlantHarvests,
+  deleteLivestockProduction,
+  deletePlantHarvest,
+  getSales,
+  createSale,
+  deleteSale,
+  getCustomers,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+  getOrders,
+  createOrder,
+  updateOrder,
+  deleteOrder,
+  addOrderPayment,
+  deleteOrderPayment,
+  completeOrder,
+  sendOrderReceipt,
+  sendOrderInvoice,
+  sendSaleReceipt,
+  sendPaymentReceipt,
+  getScheduledInvoices,
+  createScheduledInvoice,
+  updateScheduledInvoice,
+  deleteScheduledInvoice,
+  sendScheduledInvoice,
+  getFinancialSummary,
+  getOutstandingPayments,
+  getLivestockAllocations,
+  createLivestockAllocation,
+  deleteLivestockAllocation,
+  allocatePersonal,
+  getHarvestAllocations,
+  createHarvestAllocation,
+  deleteHarvestAllocation,
+  allocateConsumed,
+  getExpenses,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  uploadExpenseReceipt,
+  deleteExpenseReceipt,
+  getExpenseReceiptUrl,
+} from '../services/api'
+import { format, parseISO } from 'date-fns'
+import { formatPhoneNumber, displayPhone } from '../services/formatPhone'
+
+const SALE_CATEGORIES = [
+  { value: 'livestock', label: 'Livestock' },
+  { value: 'plant', label: 'Plant/Nursery' },
+  { value: 'produce', label: 'Produce' },
+  { value: 'other', label: 'Other' },
+]
+
+const ORDER_STATUSES = [
+  { value: 'reserved', label: 'Reserved', color: 'bg-blue-600' },
+  { value: 'in_progress', label: 'In Progress', color: 'bg-yellow-600' },
+  { value: 'ready', label: 'Ready', color: 'bg-green-600' },
+  { value: 'completed', label: 'Completed', color: 'bg-surface-hover' },
+  { value: 'cancelled', label: 'Cancelled', color: 'bg-red-600' },
+]
+
+const PAYMENT_TYPES = [
+  { value: 'deposit', label: 'Deposit' },
+  { value: 'partial', label: 'Partial Payment' },
+  { value: 'final', label: 'Final Payment' },
+  { value: 'refund', label: 'Refund' },
+]
+
+const PAYMENT_METHODS = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'check', label: 'Check' },
+  { value: 'venmo', label: 'Venmo' },
+  { value: 'zelle', label: 'Zelle' },
+  { value: 'card', label: 'Card' },
+  { value: 'other', label: 'Other' },
+]
+
+const PORTION_TYPES = [
+  { value: 'whole', label: 'Whole', percentage: 100 },
+  { value: 'half', label: 'Half', percentage: 50 },
+  { value: 'quarter', label: 'Quarter', percentage: 25 },
+  { value: 'custom', label: 'Custom', percentage: null },
+]
+
+const ALLOCATION_TYPES = [
+  { value: 'sale', label: 'Sale', icon: DollarSign, color: 'text-green-400' },
+  { value: 'personal', label: 'Personal', icon: HomeIcon, color: 'text-blue-400' },
+  { value: 'gift', label: 'Gift', icon: Gift, color: 'text-purple-400' },
+  { value: 'loss', label: 'Loss', icon: AlertTriangle, color: 'text-red-400' },
+]
+
+const HARVEST_USE_TYPES = [
+  { value: 'sold', label: 'Sold', icon: DollarSign, color: 'text-green-400' },
+  { value: 'consumed', label: 'Consumed', icon: HomeIcon, color: 'text-blue-400' },
+  { value: 'gifted', label: 'Gifted', icon: Gift, color: 'text-purple-400' },
+  { value: 'preserved', label: 'Preserved', icon: Clock, color: 'text-yellow-400' },
+  { value: 'spoiled', label: 'Spoiled', icon: AlertTriangle, color: 'text-red-400' },
+]
+
+const EXPENSE_CATEGORIES = [
+  { value: 'feed', label: 'Feed' },
+  { value: 'vet', label: 'Vet' },
+  { value: 'processing', label: 'Processing' },
+  { value: 'seeds', label: 'Seeds' },
+  { value: 'equipment', label: 'Equipment' },
+  { value: 'utilities', label: 'Utilities' },
+  { value: 'fuel', label: 'Fuel' },
+  { value: 'supplies', label: 'Supplies' },
+  { value: 'labor', label: 'Labor' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'taxes', label: 'Taxes' },
+  { value: 'fencing', label: 'Fencing' },
+  { value: 'bedding', label: 'Bedding' },
+  { value: 'other', label: 'Other' },
+]
+
+const EXPENSE_SCOPES = [
+  { value: 'business', label: 'Business' },
+  { value: 'homestead', label: 'Homestead' },
+  { value: 'shared', label: 'Shared' },
+]
+
+const MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+function FarmFinances() {
+  const { getSetting } = useSettings()
+  const [searchParams] = useSearchParams()
+  const initialTab = useMemo(() => searchParams.get('tab') || 'overview', [])
+  const [activeTab, setActiveTab] = useState(initialTab)
+  const [loading, setLoading] = useState(true)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+
+  // Data states
+  const [financialSummary, setFinancialSummary] = useState(null)
+  const [livestock, setLivestock] = useState([])
+  const [harvests, setHarvests] = useState([])
+  const [sales, setSales] = useState([])
+  const [customers, setCustomers] = useState([])
+  const [orders, setOrders] = useState([])
+  const [outstandingPayments, setOutstandingPayments] = useState([])
+  const [expenses, setExpenses] = useState([])
+
+  // Modal states
+  const [showSaleModal, setShowSaleModal] = useState(false)
+  const [showCustomerModal, setShowCustomerModal] = useState(false)
+  const [showOrderModal, setShowOrderModal] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showAllocationModal, setShowAllocationModal] = useState(false)
+  const [showHarvestAllocationModal, setShowHarvestAllocationModal] = useState(false)
+  const [showExpenseModal, setShowExpenseModal] = useState(false)
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+
+  // Invoice/Receipt editor state
+  const [invoiceFormData, setInvoiceFormData] = useState({
+    type: 'invoice', // 'invoice' | 'receipt' | 'sale_receipt'
+    orderId: null,
+    saleId: null,
+    toEmail: '',
+    subject: '',
+    customerName: '',
+    description: '',
+    total: 0,
+    totalPaid: 0,
+    balanceDue: 0,
+    customMessage: '',
+    paymentInstructions: '',
+  })
+
+  // Edit states
+  const [editingCustomer, setEditingCustomer] = useState(null)
+  const [editingOrder, setEditingOrder] = useState(null)
+  const [editingExpense, setEditingExpense] = useState(null)
+  const [pendingReceipt, setPendingReceipt] = useState(null)
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null)
+  const [selectedProductionForAllocation, setSelectedProductionForAllocation] = useState(null)
+  const [selectedHarvestForAllocation, setSelectedHarvestForAllocation] = useState(null)
+
+  // Expense scope filter for the modal (which tab opened it)
+  const [expenseModalDefaultScope, setExpenseModalDefaultScope] = useState('business')
+
+  // Form states
+  const [saleFormData, setSaleFormData] = useState({
+    category: 'produce',
+    item_name: '',
+    description: '',
+    quantity: 1,
+    unit: 'each',
+    unit_price: 0,
+    sale_date: format(new Date(), 'yyyy-MM-dd'),
+    customer_id: null,
+  })
+
+  const [customerFormData, setCustomerFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    notes: '',
+  })
+
+  const [orderFormData, setOrderFormData] = useState({
+    customer_id: null,
+    customer_name: '',
+    livestock_production_id: null,
+    description: '',
+    portion_type: 'whole',
+    portion_percentage: 100,
+    estimated_weight: '',
+    price_per_pound: '',
+    estimated_total: '',
+    status: 'reserved',
+    order_date: format(new Date(), 'yyyy-MM-dd'),
+    expected_ready_date: '',
+    notes: '',
+  })
+
+  const [paymentFormData, setPaymentFormData] = useState({
+    payment_type: 'deposit',
+    payment_method: 'cash',
+    amount: '',
+    payment_date: format(new Date(), 'yyyy-MM-dd'),
+    reference: '',
+    sendReceipt: false,
+    notes: '',
+  })
+
+  const [allocationFormData, setAllocationFormData] = useState({
+    allocation_type: 'personal',
+    percentage: '',
+    notes: '',
+  })
+
+  const [harvestAllocationFormData, setHarvestAllocationFormData] = useState({
+    use_type: 'consumed',
+    quantity: '',
+    notes: '',
+  })
+
+  // Scheduled invoice state
+  const [showScheduledInvoiceModal, setShowScheduledInvoiceModal] = useState(false)
+  const [selectedOrderForSchedule, setSelectedOrderForSchedule] = useState(null)
+  const [orderScheduledInvoices, setOrderScheduledInvoices] = useState({}) // { orderId: [invoices] }
+  const [editingScheduledInvoice, setEditingScheduledInvoice] = useState(null)
+  const [scheduledInvoiceFormData, setScheduledInvoiceFormData] = useState({
+    scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+    scheduled_time: '09:00',
+    payment_type: 'partial',
+    amount_due: '',
+    description: '',
+    // Email customization (same as send invoice)
+    recipient_email: '',
+    subject: '',
+    custom_message: '',
+    payment_instructions: '',
+  })
+
+  const [expenseFormData, setExpenseFormData] = useState({
+    category: 'feed',
+    scope: 'business',
+    amount: '',
+    expense_date: format(new Date(), 'yyyy-MM-dd'),
+    description: '',
+    vendor: '',
+    notes: '',
+    business_split_pct: 50,
+    is_recurring: false,
+    recurring_interval: '',
+  })
+
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
+
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const [summaryRes, livestockRes, harvestsRes, salesRes, customersRes, ordersRes, outstandingRes, expensesRes] = await Promise.all([
+        getFinancialSummary(selectedYear),
+        getLivestockProductions({ year: selectedYear }),
+        getPlantHarvests({ year: selectedYear }),
+        getSales({ year: selectedYear }),
+        getCustomers({ active_only: false }),
+        getOrders(),
+        getOutstandingPayments(),
+        getExpenses({ year: selectedYear }),
+      ])
+      setFinancialSummary(summaryRes.data)
+      setLivestock(livestockRes.data)
+      setHarvests(harvestsRes.data)
+      setSales(salesRes.data)
+      setCustomers(customersRes.data)
+      setOrders(ordersRes.data)
+      setOutstandingPayments(outstandingRes.data)
+      setExpenses(expensesRes.data)
+    } catch (error) {
+      console.error('Failed to fetch data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [selectedYear])
+
+  // Customer handlers
+  const handleCustomerSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      if (editingCustomer) {
+        await updateCustomer(editingCustomer.id, customerFormData)
+      } else {
+        await createCustomer(customerFormData)
+      }
+      setShowCustomerModal(false)
+      setEditingCustomer(null)
+      setCustomerFormData({ name: '', email: '', phone: '', address: '', notes: '' })
+      fetchData()
+    } catch (error) {
+      console.error('Failed to save customer:', error)
+      alert('Failed to save customer')
+    }
+  }
+
+  const handleDeleteCustomer = async (id, name) => {
+    if (confirm(`Deactivate customer "${name}"?`)) {
+      try {
+        await deleteCustomer(id)
+        fetchData()
+      } catch (error) {
+        console.error('Failed to delete customer:', error)
+      }
+    }
+  }
+
+  // Order handlers
+  const handleOrderSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const data = {
+        ...orderFormData,
+        estimated_weight: orderFormData.estimated_weight ? parseFloat(orderFormData.estimated_weight) : null,
+        price_per_pound: orderFormData.price_per_pound ? parseFloat(orderFormData.price_per_pound) : null,
+        estimated_total: orderFormData.estimated_total ? parseFloat(orderFormData.estimated_total) : null,
+        customer_id: orderFormData.customer_id || null,
+        livestock_production_id: orderFormData.livestock_production_id || null,
+        // Convert empty date strings to null
+        order_date: orderFormData.order_date || null,
+        expected_ready_date: orderFormData.expected_ready_date || null,
+      }
+      if (editingOrder) {
+        await updateOrder(editingOrder.id, data)
+      } else {
+        await createOrder(data)
+      }
+      setShowOrderModal(false)
+      setEditingOrder(null)
+      resetOrderForm()
+      fetchData()
+    } catch (error) {
+      console.error('Failed to save order:', error)
+      alert('Failed to save order')
+    }
+  }
+
+  const handleDeleteOrder = async (id) => {
+    if (confirm('Delete this order? This cannot be undone.')) {
+      try {
+        await deleteOrder(id)
+        fetchData()
+      } catch (error) {
+        console.error('Failed to delete order:', error)
+      }
+    }
+  }
+
+  const handleCompleteOrder = async (id) => {
+    if (confirm('Mark this order as completed?')) {
+      try {
+        await completeOrder(id)
+        fetchData()
+      } catch (error) {
+        console.error('Failed to complete order:', error)
+      }
+    }
+  }
+
+  // Scheduled Invoice handlers
+  const fetchScheduledInvoices = async (orderId) => {
+    try {
+      const res = await getScheduledInvoices(orderId)
+      setOrderScheduledInvoices(prev => ({ ...prev, [orderId]: res.data }))
+    } catch (error) {
+      console.error('Failed to fetch scheduled invoices:', error)
+    }
+  }
+
+  const handleAddScheduledInvoice = (order) => {
+    setSelectedOrderForSchedule(order)
+    setEditingScheduledInvoice(null)
+    // Get customer email from customers list
+    const customer = customers.find(c => c.id === order.customer_id)
+    setScheduledInvoiceFormData({
+      scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+      scheduled_time: '09:00',
+      payment_type: 'partial',
+      amount_due: '',
+      description: '',
+      // Default email fields like send invoice
+      recipient_email: customer?.email || '',
+      subject: `Payment Reminder - Order #${order.id}`,
+      custom_message: '',
+      payment_instructions: '',
+    })
+    setShowScheduledInvoiceModal(true)
+  }
+
+  const handleEditScheduledInvoice = (order, invoice) => {
+    setSelectedOrderForSchedule(order)
+    setEditingScheduledInvoice(invoice)
+    // Get customer email from customers list for default if not set
+    const customer = customers.find(c => c.id === order.customer_id)
+    setScheduledInvoiceFormData({
+      scheduled_date: invoice.scheduled_date,
+      scheduled_time: invoice.scheduled_time ? invoice.scheduled_time.substring(0, 5) : '09:00',
+      payment_type: invoice.payment_type,
+      amount_due: invoice.amount_due,
+      description: invoice.description || '',
+      // Email fields from saved invoice
+      recipient_email: invoice.recipient_email || customer?.email || '',
+      subject: invoice.subject || `Payment Reminder - Order #${order.id}`,
+      custom_message: invoice.custom_message || '',
+      payment_instructions: invoice.payment_instructions || '',
+    })
+    setShowScheduledInvoiceModal(true)
+  }
+
+  const handleScheduledInvoiceSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const data = {
+        ...scheduledInvoiceFormData,
+        amount_due: parseFloat(scheduledInvoiceFormData.amount_due),
+      }
+      if (editingScheduledInvoice) {
+        await updateScheduledInvoice(editingScheduledInvoice.id, data)
+      } else {
+        await createScheduledInvoice(selectedOrderForSchedule.id, data)
+      }
+      setShowScheduledInvoiceModal(false)
+      // Refresh orders to show the new scheduled invoice in the UI
+      const ordersRes = await getOrders()
+      setOrders(ordersRes.data)
+    } catch (error) {
+      console.error('Failed to save scheduled invoice:', error)
+      alert('Failed to save scheduled invoice')
+    }
+  }
+
+  const handleDeleteScheduledInvoice = async (orderId, invoiceId) => {
+    if (confirm('Delete this scheduled invoice?')) {
+      try {
+        await deleteScheduledInvoice(invoiceId)
+        // Refresh orders to update the UI
+        const ordersRes = await getOrders()
+        setOrders(ordersRes.data)
+      } catch (error) {
+        console.error('Failed to delete scheduled invoice:', error)
+      }
+    }
+  }
+
+  const handleSendScheduledInvoiceNow = async (orderId, invoiceId) => {
+    if (confirm('Send this invoice now?')) {
+      try {
+        await sendScheduledInvoice(invoiceId)
+        // Refresh orders to update the sent status in UI
+        const ordersRes = await getOrders()
+        setOrders(ordersRes.data)
+        alert('Invoice sent successfully')
+      } catch (error) {
+        console.error('Failed to send scheduled invoice:', error)
+        alert('Failed to send invoice. Make sure customer has an email address.')
+      }
+    }
+  }
+
+  // Open invoice/receipt modal with pre-filled data
+  const openInvoiceModal = (type, order = null, sale = null) => {
+    if (type === 'invoice' && order) {
+      // Get customer email from customers list
+      const customer = customers.find(c => c.id === order.customer_id)
+      setInvoiceFormData({
+        type: 'invoice',
+        orderId: order.id,
+        saleId: null,
+        toEmail: customer?.email || order.customer_email || '',
+        subject: `Invoice - Order #${order.id}`,
+        customerName: order.customer_name || '',
+        description: order.description || '',
+        total: order.final_total || order.estimated_total || 0,
+        totalPaid: order.total_paid || 0,
+        balanceDue: order.balance_due || 0,
+        customMessage: '',
+        paymentInstructions: '',
+      })
+    } else if (type === 'receipt' && order) {
+      const customer = customers.find(c => c.id === order.customer_id)
+      setInvoiceFormData({
+        type: 'receipt',
+        orderId: order.id,
+        saleId: null,
+        toEmail: customer?.email || order.customer_email || '',
+        subject: `Receipt - Order #${order.id}`,
+        customerName: order.customer_name || '',
+        description: order.description || '',
+        total: order.final_total || order.estimated_total || 0,
+        totalPaid: order.total_paid || 0,
+        balanceDue: order.balance_due || 0,
+        customMessage: '',
+        paymentInstructions: '',
+      })
+    } else if (type === 'sale_receipt' && sale) {
+      setInvoiceFormData({
+        type: 'sale_receipt',
+        orderId: null,
+        saleId: sale.id,
+        toEmail: sale.customer_email || '',
+        subject: `Receipt - ${sale.item_name}`,
+        customerName: sale.customer_name || '',
+        description: sale.description || sale.item_name || '',
+        total: (sale.quantity * sale.unit_price) || 0,
+        totalPaid: (sale.quantity * sale.unit_price) || 0,
+        balanceDue: 0,
+        customMessage: '',
+        paymentInstructions: '',
+      })
+    }
+    setShowInvoiceModal(true)
+  }
+
+  const handleSendReceipt = (id) => {
+    const order = orders.find(o => o.id === id)
+    if (order) {
+      openInvoiceModal('receipt', order)
+    }
+  }
+
+  const handleSendInvoice = (id) => {
+    const order = orders.find(o => o.id === id)
+    if (order) {
+      openInvoiceModal('invoice', order)
+    }
+  }
+
+  const handleSendSaleReceipt = (id) => {
+    const sale = sales.find(s => s.id === id)
+    if (sale) {
+      openInvoiceModal('sale_receipt', null, sale)
+    }
+  }
+
+  // Actually send the customized invoice/receipt
+  const handleSubmitInvoice = async (e) => {
+    e.preventDefault()
+    try {
+      let res
+      if (invoiceFormData.type === 'invoice') {
+        res = await sendOrderInvoice(invoiceFormData.orderId, {
+          to_email: invoiceFormData.toEmail,
+          subject: invoiceFormData.subject,
+          customer_name: invoiceFormData.customerName,
+          description: invoiceFormData.description,
+          total: invoiceFormData.total,
+          total_paid: invoiceFormData.totalPaid,
+          balance_due: invoiceFormData.balanceDue,
+          custom_message: invoiceFormData.customMessage,
+          payment_instructions: invoiceFormData.paymentInstructions,
+        })
+      } else if (invoiceFormData.type === 'receipt') {
+        res = await sendOrderReceipt(invoiceFormData.orderId, {
+          to_email: invoiceFormData.toEmail,
+          subject: invoiceFormData.subject,
+          customer_name: invoiceFormData.customerName,
+          description: invoiceFormData.description,
+          total: invoiceFormData.total,
+          total_paid: invoiceFormData.totalPaid,
+          balance_due: invoiceFormData.balanceDue,
+          custom_message: invoiceFormData.customMessage,
+        })
+      } else if (invoiceFormData.type === 'sale_receipt') {
+        res = await sendSaleReceipt(invoiceFormData.saleId, {
+          to_email: invoiceFormData.toEmail,
+          subject: invoiceFormData.subject,
+          customer_name: invoiceFormData.customerName,
+          description: invoiceFormData.description,
+          total: invoiceFormData.total,
+          custom_message: invoiceFormData.customMessage,
+        })
+      }
+      alert(res?.data?.message || 'Sent successfully!')
+      setShowInvoiceModal(false)
+    } catch (error) {
+      const msg = error.response?.data?.detail || 'Failed to send'
+      alert(msg)
+    }
+  }
+
+  // Send receipt for a single payment
+  const handleSendPaymentReceipt = async (orderId, paymentId) => {
+    if (!confirm('Send a receipt for this payment?')) return
+    try {
+      const res = await sendPaymentReceipt(orderId, paymentId)
+      alert(res?.data?.message || 'Payment receipt sent!')
+    } catch (error) {
+      const msg = error.response?.data?.detail || 'Failed to send payment receipt'
+      alert(msg)
+    }
+  }
+
+  // Payment handlers
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const shouldSendReceipt = paymentFormData.sendReceipt
+      const orderId = selectedOrderForPayment.id
+
+      // Create the payment
+      const response = await addOrderPayment(orderId, {
+        payment_type: paymentFormData.payment_type,
+        payment_method: paymentFormData.payment_method,
+        amount: parseFloat(paymentFormData.amount),
+        payment_date: paymentFormData.payment_date,
+        reference: paymentFormData.reference,
+        notes: paymentFormData.notes,
+      })
+
+      // Send receipt if requested
+      if (shouldSendReceipt && response?.data?.id) {
+        try {
+          await sendPaymentReceipt(orderId, response.data.id)
+          alert('Payment added and receipt sent!')
+        } catch (receiptError) {
+          console.error('Failed to send receipt:', receiptError)
+          alert('Payment added but failed to send receipt. You can send it manually later.')
+        }
+      }
+
+      setShowPaymentModal(false)
+      setSelectedOrderForPayment(null)
+      setPaymentFormData({
+        payment_type: 'deposit',
+        payment_method: 'cash',
+        amount: '',
+        payment_date: format(new Date(), 'yyyy-MM-dd'),
+        reference: '',
+        notes: '',
+        sendReceipt: false,
+      })
+      fetchData()
+    } catch (error) {
+      console.error('Failed to add payment:', error)
+      alert('Failed to add payment')
+    }
+  }
+
+  const handleDeletePayment = async (orderId, paymentId) => {
+    if (confirm('Delete this payment?')) {
+      try {
+        await deleteOrderPayment(orderId, paymentId)
+        fetchData()
+      } catch (error) {
+        console.error('Failed to delete payment:', error)
+      }
+    }
+  }
+
+  // Sale handlers
+  const handleSaleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await createSale(saleFormData)
+      setShowSaleModal(false)
+      setSaleFormData({
+        category: 'produce',
+        item_name: '',
+        description: '',
+        quantity: 1,
+        unit: 'each',
+        unit_price: 0,
+        sale_date: format(new Date(), 'yyyy-MM-dd'),
+        customer_id: null,
+      })
+      fetchData()
+    } catch (error) {
+      console.error('Failed to create sale:', error)
+      alert('Failed to create sale')
+    }
+  }
+
+  const handleDeleteSale = async (id, name) => {
+    if (confirm(`Delete sale "${name}"?`)) {
+      try {
+        await deleteSale(id)
+        fetchData()
+      } catch (error) {
+        console.error('Failed to delete sale:', error)
+      }
+    }
+  }
+
+  // Livestock/Harvest delete handlers
+  const handleDeleteLivestock = async (id, name) => {
+    if (confirm(`Delete production record for "${name}"?`)) {
+      try {
+        await deleteLivestockProduction(id)
+        fetchData()
+      } catch (error) {
+        console.error('Failed to delete:', error)
+      }
+    }
+  }
+
+  const handleDeleteHarvest = async (id, name) => {
+    if (confirm(`Delete harvest record for "${name}"?`)) {
+      try {
+        await deletePlantHarvest(id)
+        fetchData()
+      } catch (error) {
+        console.error('Failed to delete:', error)
+      }
+    }
+  }
+
+  // Allocation handlers
+  const handleAllocationSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await allocatePersonal(
+        selectedProductionForAllocation.id,
+        parseFloat(allocationFormData.percentage),
+        allocationFormData.notes || null
+      )
+      setShowAllocationModal(false)
+      setSelectedProductionForAllocation(null)
+      setAllocationFormData({ allocation_type: 'personal', percentage: '', notes: '' })
+      fetchData()
+    } catch (error) {
+      console.error('Failed to create allocation:', error)
+      alert('Failed to create allocation')
+    }
+  }
+
+  const handleHarvestAllocationSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      await allocateConsumed(
+        selectedHarvestForAllocation.id,
+        parseFloat(harvestAllocationFormData.quantity),
+        harvestAllocationFormData.notes || null
+      )
+      setShowHarvestAllocationModal(false)
+      setSelectedHarvestForAllocation(null)
+      setHarvestAllocationFormData({ use_type: 'consumed', quantity: '', notes: '' })
+      fetchData()
+    } catch (error) {
+      console.error('Failed to create allocation:', error)
+      alert('Failed to create allocation')
+    }
+  }
+
+  // Expense handlers
+  const handleExpenseSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const data = {
+        ...expenseFormData,
+        amount: parseFloat(expenseFormData.amount),
+        business_split_pct: expenseFormData.scope === 'shared' ? parseFloat(expenseFormData.business_split_pct) : 100,
+      }
+      if (editingExpense) {
+        await updateExpense(editingExpense.id, data)
+      } else {
+        const resp = await createExpense(data)
+        if (pendingReceipt) {
+          const fd = new FormData()
+          fd.append('file', pendingReceipt)
+          try {
+            await uploadExpenseReceipt(resp.data.id, fd)
+          } catch (err) {
+            console.error('Failed to upload receipt:', err)
+          }
+          setPendingReceipt(null)
+        }
+      }
+      setShowExpenseModal(false)
+      setEditingExpense(null)
+      resetExpenseForm()
+      fetchData()
+    } catch (error) {
+      console.error('Failed to save expense:', error)
+      alert('Failed to save expense')
+    }
+  }
+
+  const handleDeleteExpense = async (id, description) => {
+    if (confirm(`Delete expense "${description}"?`)) {
+      try {
+        await deleteExpense(id)
+        fetchData()
+      } catch (error) {
+        console.error('Failed to delete expense:', error)
+      }
+    }
+  }
+
+  const resetOrderForm = () => {
+    setOrderFormData({
+      customer_id: null,
+      customer_name: '',
+      livestock_production_id: null,
+      description: '',
+      portion_type: 'whole',
+      portion_percentage: 100,
+      estimated_weight: '',
+      price_per_pound: '',
+      estimated_total: '',
+      status: 'reserved',
+      order_date: format(new Date(), 'yyyy-MM-dd'),
+      expected_ready_date: '',
+      notes: '',
+    })
+  }
+
+  const resetExpenseForm = () => {
+    setExpenseFormData({
+      category: 'feed',
+      scope: 'business',
+      amount: '',
+      expense_date: format(new Date(), 'yyyy-MM-dd'),
+      description: '',
+      vendor: '',
+      notes: '',
+      business_split_pct: 50,
+      is_recurring: false,
+      recurring_interval: '',
+    })
+  }
+
+  const openExpenseModal = (defaultScope = 'business') => {
+    setEditingExpense(null)
+    setPendingReceipt(null)
+    setExpenseModalDefaultScope(defaultScope)
+    setExpenseFormData({
+      ...expenseFormData,
+      category: 'feed',
+      scope: defaultScope,
+      amount: '',
+      expense_date: format(new Date(), 'yyyy-MM-dd'),
+      description: '',
+      vendor: '',
+      notes: '',
+      business_split_pct: 50,
+      is_recurring: false,
+      recurring_interval: '',
+    })
+    setShowExpenseModal(true)
+  }
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount || 0)
+  }
+
+  const formatAnimalType = (type) => {
+    if (!type) return ''
+    return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  }
+
+  const formatQuality = (quality) => {
+    const colors = {
+      excellent: 'bg-green-600 text-white',
+      good: 'bg-blue-600 text-white',
+      fair: 'bg-yellow-600 text-black',
+      poor: 'bg-red-600 text-white',
+    }
+    return colors[quality] || 'bg-surface-hover text-white'
+  }
+
+  const getCategoryColor = (category) => {
+    const colors = {
+      livestock: 'border-red-500',
+      plant: 'border-green-500',
+      produce: 'border-yellow-500',
+      other: 'border-strong',
+    }
+    return colors[category] || 'border-strong'
+  }
+
+  const getStatusBadge = (status) => {
+    const config = ORDER_STATUSES.find(s => s.value === status)
+    return config ? config : { label: status, color: 'bg-surface-hover' }
+  }
+
+  const getPaymentProgress = (order) => {
+    const total = order.final_total || order.estimated_total || 0
+    if (total === 0) return 0
+    return Math.min(100, ((order.total_paid || 0) / total) * 100)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-farm-green"></div>
+      </div>
+    )
+  }
+
+  const tabs = [
+    { key: 'overview', label: 'Overview', icon: TrendingUp },
+    { key: 'business', label: 'Business', icon: Briefcase },
+    { key: 'homestead', label: 'Homestead', icon: Sprout },
+  ]
+
+  // Filter expenses by scope for each tab
+  const businessExpenses = expenses.filter(e => e.scope === 'business' || e.scope === 'shared')
+  const homesteadExpenses = expenses.filter(e => e.scope === 'homestead' || e.scope === 'shared')
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl font-bold flex items-center gap-2 flex-shrink-0">
+          <DollarSign className="w-7 h-7 text-green-500" />
+          Production
+        </h1>
+        <MottoDisplay />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            className="px-3 py-2 bg-surface border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+          >
+            {years.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              activeTab === tab.key
+                ? 'bg-farm-green text-white'
+                : 'bg-surface text-muted hover:bg-surface-soft'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <OverviewTab
+          summary={financialSummary}
+          outstandingPayments={outstandingPayments}
+          formatCurrency={formatCurrency}
+          onAddPayment={(order) => {
+            setSelectedOrderForPayment(order)
+            setShowPaymentModal(true)
+          }}
+        />
+      )}
+
+      {activeTab === 'business' && (
+        <BusinessTab
+          sales={sales}
+          livestock={livestock}
+          orders={orders}
+          customers={customers}
+          expenses={businessExpenses}
+          formatCurrency={formatCurrency}
+          formatAnimalType={formatAnimalType}
+          getCategoryColor={getCategoryColor}
+          getStatusBadge={getStatusBadge}
+          getPaymentProgress={getPaymentProgress}
+          handleDeleteSale={handleDeleteSale}
+          handleDeleteLivestock={handleDeleteLivestock}
+          handleDeleteOrder={handleDeleteOrder}
+          handleCompleteOrder={handleCompleteOrder}
+          handleSendReceipt={handleSendReceipt}
+          handleSendInvoice={handleSendInvoice}
+          handleDeleteCustomer={handleDeleteCustomer}
+          handleDeleteExpense={handleDeleteExpense}
+          handleDeletePayment={handleDeletePayment}
+          handleSendPaymentReceipt={handleSendPaymentReceipt}
+          onAddSale={() => setShowSaleModal(true)}
+          onAddOrder={() => {
+            setEditingOrder(null)
+            resetOrderForm()
+            setShowOrderModal(true)
+          }}
+          onAddCustomer={() => {
+            setEditingCustomer(null)
+            setCustomerFormData({ name: '', email: '', phone: '', address: '', notes: '' })
+            setShowCustomerModal(true)
+          }}
+          onAddExpense={() => openExpenseModal('business')}
+          onEditCustomer={(customer) => {
+            setEditingCustomer(customer)
+            setCustomerFormData({
+              name: customer.name,
+              email: customer.email || '',
+              phone: customer.phone || '',
+              address: customer.address || '',
+              notes: customer.notes || '',
+            })
+            setShowCustomerModal(true)
+          }}
+          onEditOrder={(order) => {
+            setEditingOrder(order)
+            setOrderFormData({
+              customer_id: order.customer_id,
+              customer_name: order.customer_name || '',
+              livestock_production_id: order.livestock_production_id,
+              description: order.description || '',
+              portion_type: order.portion_type,
+              portion_percentage: order.portion_percentage,
+              estimated_weight: order.estimated_weight || '',
+              price_per_pound: order.price_per_pound || '',
+              estimated_total: order.estimated_total || order.final_total || '',
+              status: order.status,
+              order_date: order.order_date,
+              expected_ready_date: order.expected_ready_date || '',
+              notes: order.notes || '',
+            })
+            setShowOrderModal(true)
+          }}
+          onEditExpense={(expense) => {
+            setEditingExpense(expense)
+            setExpenseFormData({
+              category: expense.category,
+              scope: expense.scope,
+              amount: expense.amount,
+              expense_date: expense.expense_date,
+              description: expense.description,
+              vendor: expense.vendor || '',
+              notes: expense.notes || '',
+              business_split_pct: expense.business_split_pct || 50,
+              is_recurring: expense.is_recurring || false,
+              recurring_interval: expense.recurring_interval || '',
+            })
+            setShowExpenseModal(true)
+          }}
+          onAddPayment={(order) => {
+            setSelectedOrderForPayment(order)
+            setShowPaymentModal(true)
+          }}
+          onAllocate={(prod) => {
+            setSelectedProductionForAllocation(prod)
+            setAllocationFormData({ allocation_type: 'personal', percentage: '', notes: '' })
+            setShowAllocationModal(true)
+          }}
+          handleAddScheduledInvoice={handleAddScheduledInvoice}
+          handleEditScheduledInvoice={handleEditScheduledInvoice}
+          handleDeleteScheduledInvoice={handleDeleteScheduledInvoice}
+          handleSendScheduledInvoiceNow={handleSendScheduledInvoiceNow}
+        />
+      )}
+
+      {activeTab === 'homestead' && (
+        <HomesteadTab
+          harvests={harvests}
+          expenses={homesteadExpenses}
+          summary={financialSummary}
+          formatCurrency={formatCurrency}
+          formatQuality={formatQuality}
+          handleDeleteHarvest={handleDeleteHarvest}
+          handleDeleteExpense={handleDeleteExpense}
+          onAddExpense={() => openExpenseModal('homestead')}
+          onEditExpense={(expense) => {
+            setEditingExpense(expense)
+            setExpenseFormData({
+              category: expense.category,
+              scope: expense.scope,
+              amount: expense.amount,
+              expense_date: expense.expense_date,
+              description: expense.description,
+              vendor: expense.vendor || '',
+              notes: expense.notes || '',
+              business_split_pct: expense.business_split_pct || 50,
+              is_recurring: expense.is_recurring || false,
+              recurring_interval: expense.recurring_interval || '',
+            })
+            setShowExpenseModal(true)
+          }}
+          onAllocate={(harvest) => {
+            setSelectedHarvestForAllocation(harvest)
+            setHarvestAllocationFormData({ use_type: 'consumed', quantity: '', notes: '' })
+            setShowHarvestAllocationModal(true)
+          }}
+        />
+      )}
+
+
+      {/* Sale Modal */}
+      {showSaleModal && (
+        <SaleModal
+          formData={saleFormData}
+          setFormData={setSaleFormData}
+          customers={customers}
+          onSubmit={handleSaleSubmit}
+          onClose={() => setShowSaleModal(false)}
+          formatCurrency={formatCurrency}
+        />
+      )}
+
+      {/* Customer Modal */}
+      {showCustomerModal && (
+        <CustomerModal
+          formData={customerFormData}
+          setFormData={setCustomerFormData}
+          editing={editingCustomer}
+          onSubmit={handleCustomerSubmit}
+          onClose={() => {
+            setShowCustomerModal(false)
+            setEditingCustomer(null)
+          }}
+        />
+      )}
+
+      {/* Order Modal */}
+      {showOrderModal && (
+        <OrderModal
+          formData={orderFormData}
+          setFormData={setOrderFormData}
+          customers={customers}
+          livestock={livestock}
+          editing={editingOrder}
+          onSubmit={handleOrderSubmit}
+          onClose={() => {
+            setShowOrderModal(false)
+            setEditingOrder(null)
+          }}
+          formatCurrency={formatCurrency}
+        />
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedOrderForPayment && (
+        <PaymentModal
+          order={selectedOrderForPayment}
+          formData={paymentFormData}
+          setFormData={setPaymentFormData}
+          onSubmit={handlePaymentSubmit}
+          onClose={() => {
+            setShowPaymentModal(false)
+            setSelectedOrderForPayment(null)
+          }}
+          formatCurrency={formatCurrency}
+        />
+      )}
+
+      {/* Allocation Modal */}
+      {showAllocationModal && selectedProductionForAllocation && (
+        <AllocationModal
+          production={selectedProductionForAllocation}
+          formData={allocationFormData}
+          setFormData={setAllocationFormData}
+          onSubmit={handleAllocationSubmit}
+          onClose={() => {
+            setShowAllocationModal(false)
+            setSelectedProductionForAllocation(null)
+          }}
+          formatCurrency={formatCurrency}
+        />
+      )}
+
+      {/* Harvest Allocation Modal */}
+      {showHarvestAllocationModal && selectedHarvestForAllocation && (
+        <HarvestAllocationModal
+          harvest={selectedHarvestForAllocation}
+          formData={harvestAllocationFormData}
+          setFormData={setHarvestAllocationFormData}
+          onSubmit={handleHarvestAllocationSubmit}
+          onClose={() => {
+            setShowHarvestAllocationModal(false)
+            setSelectedHarvestForAllocation(null)
+          }}
+        />
+      )}
+
+      {/* Scheduled Invoice Modal */}
+      {showScheduledInvoiceModal && selectedOrderForSchedule && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-subtle">
+              <h3 className="text-lg font-semibold">
+                {editingScheduledInvoice ? 'Edit Scheduled Invoice' : 'Schedule Invoice'}
+              </h3>
+              <button onClick={() => setShowScheduledInvoiceModal(false)} className="text-muted hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleScheduledInvoiceSubmit} className="p-4 space-y-4">
+              <div className="bg-surface-soft/50 rounded-lg p-3 text-sm">
+                <div className="font-medium">{selectedOrderForSchedule.customer_name}</div>
+                <div className="text-muted">{selectedOrderForSchedule.description}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-muted mb-1">Send Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={scheduledInvoiceFormData.scheduled_date}
+                    onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-muted mb-1">Send Time</label>
+                  <input
+                    type="time"
+                    value={scheduledInvoiceFormData.scheduled_time}
+                    onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, scheduled_time: e.target.value }))}
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-muted mb-1">Payment Type</label>
+                <select
+                  value={scheduledInvoiceFormData.payment_type}
+                  onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, payment_type: e.target.value }))}
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                >
+                  <option value="deposit">Deposit</option>
+                  <option value="partial">Partial Payment</option>
+                  <option value="final">Final Payment</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-muted mb-1">Amount Due *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={scheduledInvoiceFormData.amount_due}
+                  onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, amount_due: e.target.value }))}
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-muted mb-1">Description</label>
+                <input
+                  type="text"
+                  value={scheduledInvoiceFormData.description}
+                  onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                  placeholder="e.g., Switch to feed payment"
+                />
+              </div>
+
+              {/* Email Customization Fields */}
+              <div className="border-t border-subtle pt-4 mt-4">
+                <div className="text-sm text-muted mb-3">Email Settings</div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-muted mb-1">Recipient Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={scheduledInvoiceFormData.recipient_email}
+                      onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, recipient_email: e.target.value }))}
+                      className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                      placeholder="customer@email.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-muted mb-1">Subject</label>
+                    <input
+                      type="text"
+                      value={scheduledInvoiceFormData.subject}
+                      onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, subject: e.target.value }))}
+                      className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-muted mb-1">Custom Message (optional)</label>
+                    <textarea
+                      value={scheduledInvoiceFormData.custom_message}
+                      onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, custom_message: e.target.value }))}
+                      className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                      rows={3}
+                      placeholder="Add a personal note to include in the email..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-muted mb-1">Payment Instructions</label>
+                    <textarea
+                      value={scheduledInvoiceFormData.payment_instructions}
+                      onChange={(e) => setScheduledInvoiceFormData(prev => ({ ...prev, payment_instructions: e.target.value }))}
+                      className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                      rows={2}
+                      placeholder="Venmo: @username, Zelle: phone@email.com, etc."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setShowScheduledInvoiceModal(false)}
+                  className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors"
+                >
+                  {editingScheduledInvoice ? 'Save Changes' : 'Schedule'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Expense Modal */}
+      {showExpenseModal && (
+        <ExpenseModal
+          formData={expenseFormData}
+          setFormData={setExpenseFormData}
+          editing={editingExpense}
+          onSubmit={handleExpenseSubmit}
+          onClose={() => {
+            setShowExpenseModal(false)
+            setEditingExpense(null)
+            setPendingReceipt(null)
+            resetExpenseForm()
+          }}
+          pendingReceipt={pendingReceipt}
+          setPendingReceipt={setPendingReceipt}
+          formatCurrency={formatCurrency}
+          onReceiptChange={async () => {
+            await fetchData()
+            // Refresh the editing expense to get updated receipt_path
+            if (editingExpense?.id) {
+              try {
+                const resp = await getExpenses()
+                const updated = resp.data.find(e => e.id === editingExpense.id)
+                if (updated) setEditingExpense(updated)
+              } catch (err) { /* ignore */ }
+            }
+          }}
+        />
+      )}
+
+      {/* Invoice/Receipt Editor Modal */}
+      {showInvoiceModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-subtle">
+              <h3 className="text-lg font-semibold">
+                {invoiceFormData.type === 'invoice' ? 'Send Invoice' : 'Send Receipt'}
+              </h3>
+              <button onClick={() => setShowInvoiceModal(false)} className="text-muted hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitInvoice} className="p-4 space-y-4">
+              {/* Recipient Email */}
+              <div>
+                <label className="block text-sm text-muted mb-1">Recipient Email *</label>
+                <input
+                  type="email"
+                  required
+                  value={invoiceFormData.toEmail}
+                  onChange={(e) => setInvoiceFormData(prev => ({ ...prev, toEmail: e.target.value }))}
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                  placeholder="customer@email.com"
+                />
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-sm text-muted mb-1">Subject *</label>
+                <input
+                  type="text"
+                  required
+                  value={invoiceFormData.subject}
+                  onChange={(e) => setInvoiceFormData(prev => ({ ...prev, subject: e.target.value }))}
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                />
+              </div>
+
+              {/* Customer Name */}
+              <div>
+                <label className="block text-sm text-muted mb-1">Customer Name</label>
+                <input
+                  type="text"
+                  value={invoiceFormData.customerName}
+                  onChange={(e) => setInvoiceFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm text-muted mb-1">Description</label>
+                <textarea
+                  value={invoiceFormData.description}
+                  onChange={(e) => setInvoiceFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                  rows={2}
+                />
+              </div>
+
+              {/* Amount Fields */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm text-muted mb-1">Total</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={invoiceFormData.total}
+                    onChange={(e) => {
+                      const total = parseFloat(e.target.value) || 0
+                      setInvoiceFormData(prev => ({
+                        ...prev,
+                        total,
+                        balanceDue: total - prev.totalPaid
+                      }))
+                    }}
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-muted mb-1">Paid</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={invoiceFormData.totalPaid}
+                    onChange={(e) => {
+                      const paid = parseFloat(e.target.value) || 0
+                      setInvoiceFormData(prev => ({
+                        ...prev,
+                        totalPaid: paid,
+                        balanceDue: prev.total - paid
+                      }))
+                    }}
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-muted mb-1">Balance Due</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={invoiceFormData.balanceDue}
+                    onChange={(e) => setInvoiceFormData(prev => ({ ...prev, balanceDue: parseFloat(e.target.value) || 0 }))}
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Custom Message */}
+              <div>
+                <label className="block text-sm text-muted mb-1">Custom Message (optional)</label>
+                <textarea
+                  value={invoiceFormData.customMessage}
+                  onChange={(e) => setInvoiceFormData(prev => ({ ...prev, customMessage: e.target.value }))}
+                  className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                  rows={3}
+                  placeholder="Add a personal note to include in the email..."
+                />
+              </div>
+
+              {/* Payment Instructions (invoice only) */}
+              {invoiceFormData.type === 'invoice' && (
+                <div>
+                  <label className="block text-sm text-muted mb-1">Payment Instructions</label>
+                  <textarea
+                    value={invoiceFormData.paymentInstructions}
+                    onChange={(e) => setInvoiceFormData(prev => ({ ...prev, paymentInstructions: e.target.value }))}
+                    className="w-full bg-surface-soft rounded px-3 py-2 text-white"
+                    rows={2}
+                    placeholder="Venmo: @username, Zelle: phone@email.com, etc."
+                  />
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInvoiceModal(false)}
+                  className="px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded transition-colors flex items-center gap-2"
+                >
+                  <Receipt className="w-4 h-4" />
+                  Send {invoiceFormData.type === 'invoice' ? 'Invoice' : 'Receipt'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ==================== Collapsible Section ====================
+
+function CollapsibleSection({ title, icon: Icon, iconColor, count, children, defaultOpen = true, actions }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+
+  return (
+    <div className="bg-surface rounded-xl overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 hover:bg-surface-soft/50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {isOpen ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
+          {Icon && <Icon className={`w-5 h-5 ${iconColor || 'text-muted'}`} />}
+          <h3 className="text-lg font-semibold">{title}</h3>
+          {count !== undefined && (
+            <span className="text-xs px-2 py-0.5 bg-surface-soft rounded-full text-muted">{count}</span>
+          )}
+        </div>
+        {actions && (
+          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            {actions}
+          </div>
+        )}
+      </button>
+      {isOpen && <div className="px-4 pb-4">{children}</div>}
+    </div>
+  )
+}
+
+// ==================== Tab Components ====================
+
+function OverviewTab({ summary, outstandingPayments, formatCurrency, onAddPayment }) {
+  if (!summary) return null
+
+  return (
+    <div className="space-y-6">
+      {/* Top P&L Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
+            <TrendingUp className="w-4 h-4" />
+            <span className="text-sm">Revenue</span>
+          </div>
+          <div className="text-2xl font-bold text-green-400">
+            {formatCurrency(summary.summary?.total_revenue)}
+          </div>
+        </div>
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
+            <DollarSign className="w-4 h-4" />
+            <span className="text-sm">Expenses</span>
+          </div>
+          <div className="text-2xl font-bold text-yellow-400">
+            {formatCurrency(summary.summary?.total_expenses)}
+          </div>
+          {summary.summary?.expense_breakdown && (
+            <div className="mt-2 text-xs space-y-0.5 border-t border-subtle pt-2">
+              <div className="flex justify-between text-muted">
+                <span>Animal Costs</span>
+                <span>{formatCurrency(summary.summary.expense_breakdown.animal_expenses)}</span>
+              </div>
+              <div className="flex justify-between text-muted">
+                <span>Processing</span>
+                <span>{formatCurrency(summary.summary.expense_breakdown.processing_costs)}</span>
+              </div>
+              {summary.summary.expense_breakdown.business_expenses > 0 && (
+                <div className="flex justify-between text-muted">
+                  <span>Business</span>
+                  <span>{formatCurrency(summary.summary.expense_breakdown.business_expenses)}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
+            <PiggyBank className="w-4 h-4" />
+            <span className="text-sm">Net Profit</span>
+          </div>
+          <div className={`text-2xl font-bold ${(summary.summary?.net_profit || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {formatCurrency(summary.summary?.net_profit)}
+          </div>
+        </div>
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
+            <AlertCircle className="w-4 h-4" />
+            <span className="text-sm">Outstanding</span>
+          </div>
+          <div className="text-2xl font-bold text-orange-400">
+            {formatCurrency(summary.summary?.outstanding_payments)}
+          </div>
+        </div>
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
+            <HomeIcon className="w-4 h-4" />
+            <span className="text-sm">Homestead</span>
+          </div>
+          <div className="text-2xl font-bold text-purple-400">
+            {formatCurrency(summary.summary?.homestead_costs)}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
+            <Beef className="w-4 h-4 text-red-400" />
+            <span className="text-sm">Processed</span>
+          </div>
+          <div className="text-xl font-bold">{summary.livestock?.total_processed || 0}</div>
+          <div className="text-xs text-muted">{(summary.livestock?.total_meat_lbs || 0).toFixed(0)} lbs</div>
+        </div>
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
+            <Apple className="w-4 h-4 text-green-400" />
+            <span className="text-sm">Harvests</span>
+          </div>
+          <div className="text-xl font-bold">{summary.harvests?.total_harvests || 0}</div>
+        </div>
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
+            <ClipboardList className="w-4 h-4 text-blue-400" />
+            <span className="text-sm">Active Orders</span>
+          </div>
+          <div className="text-xl font-bold">{summary.orders?.active_orders || 0}</div>
+        </div>
+        <div className="bg-surface rounded-xl p-4">
+          <div className="flex items-center gap-2 text-muted mb-1">
+            <Scale className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm">Avg Cost/lb</span>
+          </div>
+          <div className="text-xl font-bold text-cyan-400">{formatCurrency(summary.livestock?.avg_cost_per_pound)}</div>
+        </div>
+      </div>
+
+      {/* Monthly Trends */}
+      {summary.monthly_trends && summary.monthly_trends.length > 0 && (
+        <div className="bg-surface rounded-xl p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <Calendar className="w-5 h-5 text-blue-400" />
+            Monthly Trends
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-subtle">
+                  <th className="text-left p-2 text-muted">Month</th>
+                  <th className="text-right p-2 text-muted">Revenue</th>
+                  <th className="text-right p-2 text-muted">Expenses</th>
+                  <th className="text-right p-2 text-muted">Net</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.monthly_trends.map((row) => {
+                  const net = row.revenue - row.expenses
+                  return (
+                    <tr key={row.month} className="border-b border-subtle/50">
+                      <td className="p-2 font-medium">{MONTH_NAMES[row.month]}</td>
+                      <td className="p-2 text-right text-green-400">{formatCurrency(row.revenue)}</td>
+                      <td className="p-2 text-right text-yellow-400">{formatCurrency(row.expenses)}</td>
+                      <td className={`p-2 text-right font-medium ${net >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatCurrency(net)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Outstanding Payments */}
+      {outstandingPayments.length > 0 && (
+        <div className="bg-surface rounded-xl p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <AlertCircle className="w-5 h-5 text-orange-400" />
+            Outstanding Payments ({outstandingPayments.length})
+          </h3>
+          <div className="space-y-3">
+            {outstandingPayments.map((item) => (
+              <div key={item.order.id} className="bg-surface-soft rounded-lg p-3 flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{item.order.customer_name || 'Unknown Customer'}</div>
+                  <div className="text-sm text-muted">{item.order.description}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-orange-400 font-bold">{formatCurrency(item.balance_due)} due</div>
+                  <div className="text-sm text-muted">
+                    {formatCurrency(item.total_paid)} of {formatCurrency(item.total_due)} paid
+                  </div>
+                  <button
+                    onClick={() => onAddPayment(item.order)}
+                    className="mt-1 text-xs text-farm-green hover:text-farm-green-light"
+                  >
+                    + Add Payment
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Expense Breakdown by Category */}
+      {summary.standalone_expenses && Object.keys(summary.standalone_expenses.by_category || {}).length > 0 && (
+        <div className="bg-surface rounded-xl p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <Receipt className="w-5 h-5 text-yellow-400" />
+            Expense Breakdown
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            {Object.entries(summary.standalone_expenses.by_category).sort((a, b) => b[1] - a[1]).map(([cat, amount]) => (
+              <div key={cat} className="bg-surface-soft rounded-lg p-3">
+                <div className="text-sm text-muted capitalize">{cat}</div>
+                <div className="text-lg font-bold text-yellow-400">{formatCurrency(amount)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BusinessTab({
+  sales, livestock, orders, customers, expenses,
+  formatCurrency, formatAnimalType, getCategoryColor, getStatusBadge, getPaymentProgress,
+  handleDeleteSale, handleDeleteLivestock, handleDeleteOrder, handleCompleteOrder, handleSendReceipt, handleSendInvoice,
+  handleDeleteCustomer, handleDeleteExpense, handleDeletePayment, handleSendPaymentReceipt,
+  handleAddScheduledInvoice, handleEditScheduledInvoice, handleDeleteScheduledInvoice, handleSendScheduledInvoiceNow,
+  onAddSale, onAddOrder, onAddCustomer, onAddExpense,
+  onEditCustomer, onEditOrder, onEditExpense,
+  onAddPayment, onAllocate,
+}) {
+  // Production calculator state
+  const [calcMode, setCalcMode] = useState('price_per_lb')
+  const [calcInputs, setCalcInputs] = useState({})
+
+  const CALC_MODES = [
+    { key: 'price_per_lb', label: 'Price per Pound', desc: 'Calculate $/lb from total cost and weight' },
+    { key: 'profit_margin', label: 'Profit Margin', desc: 'Calculate profit and margin % from cost and sell price' },
+    { key: 'break_even', label: 'Break Even', desc: 'Calculate minimum price to cover expenses' },
+    { key: 'revenue', label: 'Revenue Projection', desc: 'Calculate expected revenue from price and quantity' },
+    { key: 'yield_per_acre', label: 'Yield per Acre', desc: 'Calculate production rate per acre' },
+  ]
+
+  const calcResult = useMemo(() => {
+    const get = (key) => parseFloat(calcInputs[key]) || 0
+
+    switch (calcMode) {
+      case 'price_per_lb': {
+        const cost = get('total_cost')
+        const weight = get('total_weight')
+        return weight > 0 ? { value: cost / weight, label: '$/lb', format: 'currency' } : null
+      }
+      case 'profit_margin': {
+        const cost = get('cost')
+        const sellPrice = get('sell_price')
+        const profit = sellPrice - cost
+        const margin = sellPrice > 0 ? (profit / sellPrice) * 100 : 0
+        return {
+          value: profit,
+          label: 'Profit',
+          format: 'currency',
+          secondary: { value: margin, label: 'Margin', format: 'percent' }
+        }
+      }
+      case 'break_even': {
+        const expenses = get('total_expenses')
+        const expectedYield = get('expected_yield')
+        return expectedYield > 0 ? { value: expenses / expectedYield, label: 'Min $/unit', format: 'currency' } : null
+      }
+      case 'revenue': {
+        const price = get('unit_price')
+        const quantity = get('quantity')
+        return { value: price * quantity, label: 'Revenue', format: 'currency' }
+      }
+      case 'yield_per_acre': {
+        const totalYield = get('total_yield')
+        const acres = get('acres')
+        return acres > 0 ? { value: totalYield / acres, label: 'Yield/acre', format: 'number' } : null
+      }
+      default:
+        return null
+    }
+  }, [calcMode, calcInputs])
+
+  const formatResult = (val, fmt) => {
+    if (fmt === 'currency') return formatCurrency(val)
+    if (fmt === 'percent') return `${val.toFixed(1)}%`
+    return val.toFixed(2)
+  }
+
+  const renderCalcInputs = () => {
+    const inputClass = "w-full px-3 py-2 bg-surface-hover border border-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+    const labelClass = "block text-sm text-muted mb-1"
+
+    const updateInput = (key, value) => setCalcInputs(prev => ({ ...prev, [key]: value }))
+
+    switch (calcMode) {
+      case 'price_per_lb':
+        return (
+          <>
+            <div>
+              <label className={labelClass}>Total Cost ($)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.total_cost || ''} onChange={(e) => updateInput('total_cost', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Total Weight (lbs)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.total_weight || ''} onChange={(e) => updateInput('total_weight', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+          </>
+        )
+      case 'profit_margin':
+        return (
+          <>
+            <div>
+              <label className={labelClass}>Your Cost ($)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.cost || ''} onChange={(e) => updateInput('cost', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Sell Price ($)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.sell_price || ''} onChange={(e) => updateInput('sell_price', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+          </>
+        )
+      case 'break_even':
+        return (
+          <>
+            <div>
+              <label className={labelClass}>Total Expenses ($)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.total_expenses || ''} onChange={(e) => updateInput('total_expenses', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Expected Yield (units)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.expected_yield || ''} onChange={(e) => updateInput('expected_yield', e.target.value)} placeholder="0" className={inputClass} />
+            </div>
+          </>
+        )
+      case 'revenue':
+        return (
+          <>
+            <div>
+              <label className={labelClass}>Price per Unit ($)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.unit_price || ''} onChange={(e) => updateInput('unit_price', e.target.value)} placeholder="0.00" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Quantity</label>
+              <input type="number" min="0" step="1" value={calcInputs.quantity || ''} onChange={(e) => updateInput('quantity', e.target.value)} placeholder="0" className={inputClass} />
+            </div>
+          </>
+        )
+      case 'yield_per_acre':
+        return (
+          <>
+            <div>
+              <label className={labelClass}>Total Yield (lbs/units)</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.total_yield || ''} onChange={(e) => updateInput('total_yield', e.target.value)} placeholder="0" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Acres</label>
+              <input type="number" min="0" step="0.01" value={calcInputs.acres || ''} onChange={(e) => updateInput('acres', e.target.value)} placeholder="0" className={inputClass} />
+            </div>
+          </>
+        )
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Production Calculator */}
+      <CollapsibleSection
+        title="Production Calculator"
+        icon={Calculator}
+        iconColor="text-cyan-400"
+        defaultOpen={false}
+      >
+        <div className="bg-surface-soft rounded-lg p-4 space-y-4">
+          {/* Calculator Mode Selector */}
+          <div className="flex flex-wrap gap-2">
+            {CALC_MODES.map((mode) => (
+              <button
+                key={mode.key}
+                onClick={() => { setCalcMode(mode.key); setCalcInputs({}) }}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  calcMode === mode.key
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-surface-hover text-secondary hover:bg-surface-muted'
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-sm text-muted">
+            {CALC_MODES.find(m => m.key === calcMode)?.desc}
+          </p>
+
+          {/* Calculator Inputs */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+            {renderCalcInputs()}
+
+            {/* Result Display */}
+            <div className="bg-surface-hover rounded-lg p-3 text-center">
+              {calcResult ? (
+                <>
+                  <span className="text-sm text-muted block">{calcResult.label}</span>
+                  <span className={`text-2xl font-bold ${calcResult.value >= 0 ? 'text-cyan-400' : 'text-red-400'}`}>
+                    {formatResult(calcResult.value, calcResult.format)}
+                  </span>
+                  {calcResult.secondary && (
+                    <div className="mt-1 pt-1 border-t border-strong">
+                      <span className="text-xs text-muted">{calcResult.secondary.label}: </span>
+                      <span className={`text-sm font-medium ${calcResult.secondary.value >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {formatResult(calcResult.secondary.value, calcResult.secondary.format)}
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <span className="text-muted">Enter values</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Sales Section */}
+      <CollapsibleSection
+        title="Sales"
+        icon={ShoppingCart}
+        iconColor="text-green-400"
+        count={sales.length}
+        actions={
+          <button onClick={onAddSale} className="flex items-center gap-1 px-3 py-1 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors text-sm">
+            <Plus className="w-4 h-4" /> Record Sale
+          </button>
+        }
+      >
+        {sales.length === 0 ? (
+          <p className="text-muted text-sm py-4 text-center">No sales recorded yet</p>
+        ) : (
+          <div className="space-y-3">
+            {sales.map((sale) => (
+              <div key={sale.id} className={`bg-surface-soft rounded-lg p-3 border-l-4 ${getCategoryColor(sale.category)}`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{sale.item_name}</h4>
+                      <span className="text-xs px-2 py-0.5 bg-surface-hover rounded capitalize">{sale.category}</span>
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-sm flex-wrap">
+                      <span className="text-green-400 font-medium">{formatCurrency(sale.total_price)}</span>
+                      <span className="text-muted">{sale.quantity} {sale.unit} @ {formatCurrency(sale.unit_price)}/{sale.unit}</span>
+                      {sale.customer_name && (
+                        <span className="text-muted">{sale.customer_name}</span>
+                      )}
+                      {sale.sale_date && (
+                        <span className="flex items-center gap-1 text-muted">
+                          <Calendar className="w-3 h-3" />
+                          {format(parseISO(sale.sale_date), 'MM/dd/yyyy')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    {sale.customer_email && (
+                      <button onClick={() => handleSendSaleReceipt(sale.id)} className="p-1 text-muted hover:text-amber-400" title="Email Receipt">
+                        <Receipt className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button onClick={() => handleDeleteSale(sale.id, sale.item_name)} className="p-1 text-muted hover:text-red-400">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Livestock Production Section */}
+      <CollapsibleSection
+        title="Livestock Production"
+        icon={Beef}
+        iconColor="text-red-400"
+        count={livestock.length}
+      >
+        {livestock.length === 0 ? (
+          <p className="text-muted text-sm py-4 text-center">No livestock production records. Archive livestock from the Animals page.</p>
+        ) : (
+          <div className="space-y-3">
+            {livestock.map((record) => (
+              <div key={record.id} className="bg-surface-soft rounded-lg p-3 border-l-4 border-red-500">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{record.animal_name}</h4>
+                      <span className="text-sm text-muted">{formatAnimalType(record.animal_type)}</span>
+                      {record.breed && <span className="text-sm text-muted">- {record.breed}</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-4 mt-1 text-sm">
+                      {record.slaughter_date && (
+                        <span className="flex items-center gap-1 text-muted">
+                          <Calendar className="w-3 h-3" />
+                          {format(parseISO(record.slaughter_date), 'MM/dd/yyyy')}
+                        </span>
+                      )}
+                      {record.final_weight && <span className="text-muted">Final: <span className="text-green-400 font-medium">{record.final_weight} lbs</span></span>}
+                      {record.cost_per_pound > 0 && <span className="text-muted">Cost/lb: <span className="text-cyan-400">{formatCurrency(record.cost_per_pound)}</span></span>}
+                      {record.total_expenses > 0 && <span className="text-muted">Expenses: <span className="text-yellow-400">{formatCurrency(record.total_expenses)}</span></span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => onAllocate(record)} className="p-1 text-muted hover:text-blue-400" title="Allocate">
+                      <Percent className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDeleteLivestock(record.id, record.animal_name)} className="p-1 text-muted hover:text-red-400" title="Delete">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Orders & Payments Section */}
+      <CollapsibleSection
+        title="Orders & Payments"
+        icon={ClipboardList}
+        iconColor="text-blue-400"
+        count={orders.length}
+        actions={
+          <button onClick={onAddOrder} className="flex items-center gap-1 px-3 py-1 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors text-sm">
+            <Plus className="w-4 h-4" /> New Order
+          </button>
+        }
+      >
+        {orders.length === 0 ? (
+          <p className="text-muted text-sm py-4 text-center">No orders yet</p>
+        ) : (
+          <div className="space-y-4">
+            {orders.map((order) => {
+              const statusBadge = getStatusBadge(order.status)
+              const progress = getPaymentProgress(order)
+              const total = order.final_total || order.estimated_total || 0
+
+              return (
+                <div key={order.id} className="bg-surface-soft rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{order.customer_name || 'Unknown Customer'}</h4>
+                        <span className={`text-xs px-2 py-0.5 rounded ${statusBadge.color} text-white`}>{statusBadge.label}</span>
+                      </div>
+                      {order.description && <p className="text-muted text-sm mt-1">{order.description}</p>}
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => onEditOrder(order)} className="p-1 text-muted hover:text-blue-400" title="Edit"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleSendReceipt(order.id)} className="p-1 text-muted hover:text-amber-400" title="Email Receipt"><Receipt className="w-4 h-4" /></button>
+                      {order.balance_due > 0 && (
+                        <button onClick={() => handleSendInvoice(order.id)} className="p-1 text-muted hover:text-red-400" title="Send Invoice"><FileText className="w-4 h-4" /></button>
+                      )}
+                      {order.status !== 'completed' && order.status !== 'cancelled' && (
+                        <>
+                          <button onClick={() => handleAddScheduledInvoice(order)} className="p-1 text-muted hover:text-amber-400" title="Schedule Invoice"><Calendar className="w-4 h-4" /></button>
+                          <button onClick={() => handleCompleteOrder(order.id)} className="p-1 text-muted hover:text-green-400" title="Complete"><CheckCircle2 className="w-4 h-4" /></button>
+                        </>
+                      )}
+                      <button onClick={() => handleDeleteOrder(order.id)} className="p-1 text-muted hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-sm mb-3">
+                    <div><span className="text-muted">Portion:</span> <span className="capitalize">{order.portion_type}</span></div>
+                    {total > 0 && <div><span className="text-muted">Total:</span> <span className="text-green-400 font-medium">{formatCurrency(total)}</span></div>}
+                    {order.estimated_weight && <div><span className="text-muted">Est:</span> {order.estimated_weight} lbs</div>}
+                    {order.order_date && <div><span className="text-muted">Date:</span> {format(parseISO(order.order_date), 'MM/dd/yyyy')}</div>}
+                  </div>
+
+                  {/* Payment Progress */}
+                  <div className="mb-2">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-muted">Payment</span>
+                      <span><span className="text-green-400">{formatCurrency(order.total_paid)}</span> / {formatCurrency(total)}</span>
+                    </div>
+                    <div className="w-full bg-surface-hover rounded-full h-1.5">
+                      <div className={`h-1.5 rounded-full ${progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${progress}%` }} />
+                    </div>
+                    {order.balance_due > 0 && <div className="text-right text-xs mt-1 text-orange-400">{formatCurrency(order.balance_due)} remaining</div>}
+                  </div>
+
+                  {/* Payments */}
+                  {order.payments && order.payments.length > 0 && (
+                    <div className="border-t border pt-2 mt-2 space-y-1">
+                      {order.payments.map((payment) => (
+                        <div key={payment.id} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="w-3 h-3 text-muted" />
+                            <span className="capitalize">{payment.payment_type}</span>
+                            <span className="text-muted">via {payment.payment_method}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={payment.payment_type === 'refund' ? 'text-red-400' : 'text-green-400'}>
+                              {payment.payment_type === 'refund' ? '-' : '+'}{formatCurrency(payment.amount)}
+                            </span>
+                            <span className="text-muted">{format(parseISO(payment.payment_date), 'MM/dd/yyyy')}</span>
+                            <button onClick={() => handleSendPaymentReceipt(order.id, payment.id)} className="text-muted hover:text-amber-400" title="Send Receipt"><Receipt className="w-3 h-3" /></button>
+                            <button onClick={() => handleDeletePayment(order.id, payment.id)} className="text-muted hover:text-red-400" title="Delete Payment"><X className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Scheduled Invoices */}
+                  {order.scheduled_invoices && order.scheduled_invoices.length > 0 && (
+                    <div className="border-t border pt-2 mt-2 space-y-1">
+                      <div className="text-xs text-muted mb-1">Scheduled Invoices</div>
+                      {order.scheduled_invoices.map((invoice) => (
+                        <div key={invoice.id} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className={`w-3 h-3 ${invoice.is_sent ? 'text-green-400' : 'text-amber-400'}`} />
+                            <span>{invoice.description || invoice.payment_type}</span>
+                            <span className="text-muted">{format(parseISO(invoice.scheduled_date), 'MM/dd/yyyy')}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-amber-400">{formatCurrency(invoice.amount_due)}</span>
+                            {invoice.is_sent ? (
+                              <span className="text-xs text-green-400">Sent</span>
+                            ) : (
+                              <>
+                                <button onClick={() => handleSendScheduledInvoiceNow(order.id, invoice.id)} className="text-muted hover:text-green-400" title="Send Now"><FileText className="w-3 h-3" /></button>
+                                <button onClick={() => handleEditScheduledInvoice(order, invoice)} className="text-muted hover:text-blue-400" title="Edit"><Edit className="w-3 h-3" /></button>
+                              </>
+                            )}
+                            <button onClick={() => handleDeleteScheduledInvoice(order.id, invoice.id)} className="text-muted hover:text-red-400" title="Delete"><X className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {order.status !== 'completed' && order.status !== 'cancelled' && (
+                    <div className="flex gap-3 mt-2">
+                      <button onClick={() => onAddPayment(order)} className="text-sm text-farm-green hover:text-farm-green-light flex items-center gap-1">
+                        <Plus className="w-3 h-3" /> Add Payment
+                      </button>
+                      <button onClick={() => handleAddScheduledInvoice(order)} className="text-sm text-amber-400 hover:text-amber-300 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" /> Schedule Invoice
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Customers Section */}
+      <CollapsibleSection
+        title="Customers"
+        icon={Users}
+        iconColor="text-purple-400"
+        count={customers.filter(c => c.is_active).length}
+        defaultOpen={false}
+        actions={
+          <button onClick={onAddCustomer} className="flex items-center gap-1 px-3 py-1 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors text-sm">
+            <Plus className="w-4 h-4" /> Add Customer
+          </button>
+        }
+      >
+        {customers.length === 0 ? (
+          <p className="text-muted text-sm py-4 text-center">No customers yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border">
+                  <th className="text-left p-2 text-muted">Name</th>
+                  <th className="text-left p-2 text-muted">Contact</th>
+                  <th className="text-left p-2 text-muted hidden md:table-cell">Notes</th>
+                  <th className="text-right p-2 text-muted">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.filter(c => c.is_active).map((customer) => (
+                  <tr key={customer.id} className="border-b border-subtle/50 hover:bg-surface-soft/30">
+                    <td className="p-2 font-medium">{customer.name}</td>
+                    <td className="p-2 text-muted">
+                      {customer.phone && <div>{displayPhone(customer.phone)}</div>}
+                      {customer.email && <div>{customer.email}</div>}
+                    </td>
+                    <td className="p-2 hidden md:table-cell text-muted italic">{customer.notes}</td>
+                    <td className="p-2 text-right">
+                      <div className="flex justify-end gap-1">
+                        <button onClick={() => onEditCustomer(customer)} className="p-1 text-muted hover:text-blue-400"><Edit className="w-4 h-4" /></button>
+                        <button onClick={() => handleDeleteCustomer(customer.id, customer.name)} className="p-1 text-muted hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Business Expenses Section */}
+      <CollapsibleSection
+        title="Business Expenses"
+        icon={Receipt}
+        iconColor="text-yellow-400"
+        count={expenses.length}
+        defaultOpen={false}
+        actions={
+          <button onClick={onAddExpense} className="flex items-center gap-1 px-3 py-1 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors text-sm">
+            <Plus className="w-4 h-4" /> Add Expense
+          </button>
+        }
+      >
+        <ExpenseList
+          expenses={expenses}
+          formatCurrency={formatCurrency}
+          onEdit={onEditExpense}
+          onDelete={handleDeleteExpense}
+        />
+      </CollapsibleSection>
+    </div>
+  )
+}
+
+function HomesteadTab({
+  harvests, expenses, summary,
+  formatCurrency, formatQuality,
+  handleDeleteHarvest, handleDeleteExpense,
+  onAddExpense, onEditExpense, onAllocate,
+}) {
+  return (
+    <div className="space-y-4">
+      {/* Harvests Section */}
+      <CollapsibleSection
+        title="Harvests"
+        icon={Apple}
+        iconColor="text-green-400"
+        count={harvests.length}
+      >
+        {harvests.length === 0 ? (
+          <p className="text-muted text-sm py-4 text-center">No harvest records. Record harvests from the Plants page.</p>
+        ) : (
+          <div className="space-y-3">
+            {harvests.map((record) => (
+              <div key={record.id} className="bg-surface-soft rounded-lg p-3 border-l-4 border-green-500">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium">{record.plant_name}</h4>
+                      {record.plant_variety && <span className="text-sm text-muted">({record.plant_variety})</span>}
+                      <span className={`text-xs px-2 py-0.5 rounded ${formatQuality(record.quality)}`}>{record.quality}</span>
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-sm">
+                      <span className="text-green-400 font-medium">{record.quantity} {record.unit}</span>
+                      {record.harvest_date && (
+                        <span className="flex items-center gap-1 text-muted">
+                          <Calendar className="w-3 h-3" />
+                          {format(parseISO(record.harvest_date), 'MM/dd/yyyy')}
+                        </span>
+                      )}
+                    </div>
+                    {record.notes && <p className="text-sm text-muted mt-1">{record.notes}</p>}
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => onAllocate(record)} className="p-1 text-muted hover:text-blue-400" title="Track Usage"><Percent className="w-4 h-4" /></button>
+                    <button onClick={() => handleDeleteHarvest(record.id, record.plant_name)} className="p-1 text-muted hover:text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Homestead Expenses Section */}
+      <CollapsibleSection
+        title="Homestead Expenses"
+        icon={Receipt}
+        iconColor="text-yellow-400"
+        count={expenses.length}
+        defaultOpen={false}
+        actions={
+          <button onClick={onAddExpense} className="flex items-center gap-1 px-3 py-1 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors text-sm">
+            <Plus className="w-4 h-4" /> Add Expense
+          </button>
+        }
+      >
+        <ExpenseList
+          expenses={expenses}
+          formatCurrency={formatCurrency}
+          onEdit={onEditExpense}
+          onDelete={handleDeleteExpense}
+        />
+      </CollapsibleSection>
+
+      {/* Personal Use Summary */}
+      {summary && (
+        <CollapsibleSection
+          title="Personal Use Summary"
+          icon={HomeIcon}
+          iconColor="text-purple-400"
+        >
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Meat Kept</div>
+              <div className="text-xl font-bold">{(summary.allocations?.personal_weight || 0).toFixed(0)} lbs</div>
+            </div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Meat Sold</div>
+              <div className="text-xl font-bold">{(summary.allocations?.sold_weight || 0).toFixed(0)} lbs</div>
+            </div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Personal Value</div>
+              <div className="text-xl font-bold text-cyan-400">{formatCurrency(summary.allocations?.personal_cost)}</div>
+            </div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Harvests Consumed</div>
+              <div className="text-xl font-bold text-blue-400">{summary.harvests?.consumed || 0}</div>
+            </div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Preserved</div>
+              <div className="text-xl font-bold text-yellow-400">{summary.harvests?.preserved || 0}</div>
+            </div>
+            <div className="bg-surface-soft rounded-lg p-3">
+              <div className="text-sm text-muted">Gifted</div>
+              <div className="text-xl font-bold text-purple-400">{summary.harvests?.gifted || 0}</div>
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
+    </div>
+  )
+}
+
+// ==================== Expense List Component ====================
+
+function ExpenseList({ expenses, formatCurrency, onEdit, onDelete }) {
+  if (expenses.length === 0) {
+    return <p className="text-muted text-sm py-4 text-center">No expenses recorded</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      {expenses.map((expense) => (
+        <div key={expense.id} className="bg-surface-soft rounded-lg p-3 flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{expense.description}</span>
+              <span className="text-xs px-2 py-0.5 bg-surface-hover rounded capitalize">{expense.category}</span>
+              {expense.scope === 'shared' && (
+                <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                  Shared ({expense.business_split_pct}% biz)
+                </span>
+              )}
+              {expense.is_recurring && (
+                <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded capitalize">
+                  {expense.recurring_interval || 'recurring'}
+                </span>
+              )}
+              {expense.receipt_path && (
+                <a
+                  href={getExpenseReceiptUrl(expense.receipt_path)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs px-2 py-0.5 bg-green-900/50 text-green-300 rounded flex items-center gap-1 hover:bg-green-800/50"
+                  title="View receipt"
+                >
+                  <Receipt className="w-3 h-3" />
+                  Receipt
+                </a>
+              )}
+            </div>
+            <div className="flex items-center gap-4 mt-1 text-sm">
+              <span className="text-yellow-400 font-medium">{formatCurrency(expense.amount)}</span>
+              {expense.vendor && <span className="text-muted">{expense.vendor}</span>}
+              {expense.expense_date && (
+                <span className="flex items-center gap-1 text-muted">
+                  <Calendar className="w-3 h-3" />
+                  {format(parseISO(expense.expense_date), 'MM/dd/yyyy')}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <button onClick={() => onEdit(expense)} className="p-1 text-muted hover:text-blue-400"><Edit className="w-4 h-4" /></button>
+            <button onClick={() => onDelete(expense.id, expense.description)} className="p-1 text-muted hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ==================== Modal Components ====================
+
+function SaleModal({ formData, setFormData, customers, onSubmit, onClose, formatCurrency }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between sticky top-0 bg-surface">
+          <h2 className="text-lg font-semibold">Record Sale</h2>
+          <button onClick={onClose} className="text-muted hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-muted mb-1">Category *</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            >
+              {SALE_CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Customer (Optional)</label>
+            <select
+              value={formData.customer_id || ''}
+              onChange={(e) => setFormData({ ...formData, customer_id: e.target.value ? parseInt(e.target.value) : null })}
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            >
+              <option value="">-- No Customer --</option>
+              {customers.filter(c => c.is_active).map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Item Name *</label>
+            <input
+              type="text"
+              required
+              value={formData.item_name}
+              onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
+              placeholder="e.g., Beef - Ground, Tomato Seedlings, Eggs"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm text-muted mb-1">Quantity *</label>
+              <input
+                type="number"
+                required
+                min="0"
+                step="0.01"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-muted mb-1">Unit</label>
+              <input
+                type="text"
+                value={formData.unit}
+                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                placeholder="lbs, dozen, each"
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-muted mb-1">Price/Unit *</label>
+              <input
+                type="number"
+                required
+                min="0"
+                step="0.01"
+                value={formData.unit_price}
+                onChange={(e) => setFormData({ ...formData, unit_price: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              />
+            </div>
+          </div>
+
+          <div className="bg-surface-soft rounded-lg p-3 text-center">
+            <span className="text-muted">Total:</span>
+            <span className="text-2xl font-bold text-green-400 ml-2">
+              {formatCurrency(formData.quantity * formData.unit_price)}
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Sale Date</label>
+            <input
+              type="date"
+              value={formData.sale_date}
+              onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={2}
+              placeholder="Optional notes"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Record Sale</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function CustomerModal({ formData, setFormData, editing, onSubmit, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between sticky top-0 bg-surface">
+          <h2 className="text-lg font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h2>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-muted mb-1">Name *</label>
+            <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+          <div>
+            <label className="block text-sm text-muted mb-1">Email</label>
+            <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+          <div>
+            <label className="block text-sm text-muted mb-1">Phone</label>
+            <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })} placeholder="(000)000-0000" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+          <div>
+            <label className="block text-sm text-muted mb-1">Address</label>
+            <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} rows={2} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+          <div>
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">{editing ? 'Save Changes' : 'Add Customer'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function OrderModal({ formData, setFormData, customers, livestock, editing, onSubmit, onClose, formatCurrency }) {
+  const [showWeightDetails, setShowWeightDetails] = useState(
+    !!(formData.estimated_weight || formData.price_per_pound)
+  )
+
+  const handlePortionChange = (portionType) => {
+    const portion = PORTION_TYPES.find(p => p.value === portionType)
+    setFormData({
+      ...formData,
+      portion_type: portionType,
+      portion_percentage: portion?.percentage || formData.portion_percentage,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between sticky top-0 bg-surface">
+          <h2 className="text-lg font-semibold">{editing ? 'Edit Order' : 'New Order'}</h2>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-muted mb-1">Customer</label>
+            <select value={formData.customer_id || ''} onChange={(e) => setFormData({ ...formData, customer_id: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+              <option value="">-- Select Customer --</option>
+              {customers.filter(c => c.is_active).map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {!formData.customer_id && (
+            <div>
+              <label className="block text-sm text-muted mb-1">Customer Name (if not in list)</label>
+              <input type="text" value={formData.customer_name} onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Linked Livestock (Optional)</label>
+            <select value={formData.livestock_production_id || ''} onChange={(e) => setFormData({ ...formData, livestock_production_id: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+              <option value="">-- No Link --</option>
+              {livestock.map(l => (
+                <option key={l.id} value={l.id}>{l.animal_name} ({l.animal_type})</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Description</label>
+            <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="e.g., 1/2 Beef - Brody" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-muted mb-1">Portion</label>
+              <select value={formData.portion_type} onChange={(e) => handlePortionChange(e.target.value)} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+                {PORTION_TYPES.map(p => (<option key={p.value} value={p.value}>{p.label}</option>))}
+              </select>
+            </div>
+            {formData.portion_type === 'custom' && (
+              <div>
+                <label className="block text-sm text-muted mb-1">Percentage</label>
+                <input type="number" min="0" max="100" value={formData.portion_percentage} onChange={(e) => setFormData({ ...formData, portion_percentage: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Order Total ($)</label>
+            <input type="number" min="0" step="0.01" value={formData.estimated_total || ''} onChange={(e) => setFormData({ ...formData, estimated_total: e.target.value })} placeholder="Total price for this order" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green text-lg" />
+          </div>
+
+          <button type="button" onClick={() => setShowWeightDetails(!showWeightDetails)} className="text-sm text-muted hover:text-secondary flex items-center gap-1">
+            {showWeightDetails ? '▾' : '▸'} Weight & Price/lb Details (optional)
+          </button>
+
+          {showWeightDetails && (
+            <div className="grid grid-cols-2 gap-4 pl-3 border-l-2 border">
+              <div>
+                <label className="block text-sm text-muted mb-1">Estimated Weight (lbs)</label>
+                <input type="number" min="0" step="0.1" value={formData.estimated_weight} onChange={(e) => setFormData({ ...formData, estimated_weight: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              </div>
+              <div>
+                <label className="block text-sm text-muted mb-1">Price per Pound</label>
+                <input type="number" min="0" step="0.01" value={formData.price_per_pound} onChange={(e) => setFormData({ ...formData, price_per_pound: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-muted mb-1">Order Date</label>
+              <input type="date" value={formData.order_date} onChange={(e) => setFormData({ ...formData, order_date: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            </div>
+            <div>
+              <label className="block text-sm text-muted mb-1">Expected Ready Date</label>
+              <input type="date" value={formData.expected_ready_date} onChange={(e) => setFormData({ ...formData, expected_ready_date: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Status</label>
+            <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+              {ORDER_STATUSES.map(s => (<option key={s.value} value={s.value}>{s.label}</option>))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows={2} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">{editing ? 'Save Changes' : 'Create Order'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function PaymentModal({ order, formData, setFormData, onSubmit, onClose, formatCurrency }) {
+  const remaining = (order.final_total || order.estimated_total || 0) - (order.total_paid || 0)
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Add Payment</h2>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="px-4 py-2 bg-surface-soft/50">
+          <div className="text-sm text-muted">Order: {order.customer_name}</div>
+          <div className="text-sm">Balance: <span className="text-orange-400 font-medium">{formatCurrency(remaining)}</span></div>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-4 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-muted mb-1">Payment Type</label>
+              <select value={formData.payment_type} onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+                {PAYMENT_TYPES.map(t => (<option key={t.value} value={t.value}>{t.label}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-muted mb-1">Method</label>
+              <select value={formData.payment_method} onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green">
+                {PAYMENT_METHODS.map(m => (<option key={m.value} value={m.value}>{m.label}</option>))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Amount *</label>
+            <input type="number" required min="0" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder={`Remaining: ${formatCurrency(remaining)}`} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-muted mb-1">Payment Date</label>
+              <input type="date" value={formData.payment_date} onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            </div>
+            <div>
+              <label className="block text-sm text-muted mb-1">Reference #</label>
+              <input type="text" value={formData.reference} onChange={(e) => setFormData({ ...formData, reference: e.target.value })} placeholder="Check #, ID, etc." className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="sendReceipt"
+              checked={formData.sendReceipt || false}
+              onChange={(e) => setFormData({ ...formData, sendReceipt: e.target.checked })}
+              className="w-4 h-4 rounded border bg-surface-soft text-farm-green focus:ring-farm-green"
+            />
+            <label htmlFor="sendReceipt" className="text-sm text-muted">Send receipt email after adding payment</label>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Add Payment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function AllocationModal({ production, formData, setFormData, onSubmit, onClose, formatCurrency }) {
+  const calculatedWeight = formData.percentage && production.final_weight
+    ? (parseFloat(formData.percentage) / 100) * production.final_weight
+    : 0
+  const calculatedCost = calculatedWeight && production.cost_per_pound
+    ? calculatedWeight * production.cost_per_pound
+    : 0
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Allocate for Personal Use</h2>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="px-4 py-2 bg-surface-soft/50">
+          <div className="text-sm text-muted">{production.animal_name} ({production.animal_type})</div>
+          <div className="text-sm">
+            Total Weight: <span className="font-medium">{production.final_weight} lbs</span>
+            {production.cost_per_pound && (
+              <span className="ml-3">Cost/lb: <span className="text-cyan-400">{formatCurrency(production.cost_per_pound)}</span></span>
+            )}
+          </div>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-muted mb-1">Percentage to Keep *</label>
+            <input type="number" required min="0" max="100" step="0.1" value={formData.percentage} onChange={(e) => setFormData({ ...formData, percentage: e.target.value })} placeholder="e.g., 50 for half" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+
+          {calculatedWeight > 0 && (
+            <div className="bg-surface-soft rounded-lg p-3 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted">Weight:</span>
+                <span className="font-medium">{calculatedWeight.toFixed(1)} lbs</span>
+              </div>
+              {calculatedCost > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted">Cost Value:</span>
+                  <span className="text-cyan-400 font-medium">{formatCurrency(calculatedCost)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Optional notes" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Allocate</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function HarvestAllocationModal({ harvest, formData, setFormData, onSubmit, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Track Harvest Usage</h2>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="px-4 py-2 bg-surface-soft/50">
+          <div className="text-sm text-muted">{harvest.plant_name}</div>
+          <div className="text-sm">Total Harvest: <span className="font-medium">{harvest.quantity} {harvest.unit}</span></div>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-muted mb-1">Quantity Consumed *</label>
+            <div className="flex gap-2">
+              <input type="number" required min="0" step="0.1" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} className="flex-1 px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+              <span className="px-3 py-2 bg-surface-soft border border rounded-lg text-muted">{harvest.unit}</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <input type="text" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Optional notes" className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green" />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">Record Usage</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function ExpenseModal({ formData, setFormData, editing, onSubmit, onClose, formatCurrency, onReceiptChange, pendingReceipt, setPendingReceipt }) {
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = React.useRef(null)
+
+  const handleReceiptUpload = async (file) => {
+    if (!editing?.id) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      await uploadExpenseReceipt(editing.id, fd)
+      if (onReceiptChange) onReceiptChange()
+    } catch (err) {
+      console.error('Failed to upload receipt:', err)
+      alert(err?.userMessage || 'Failed to upload receipt')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handlePaste = async () => {
+    if (!editing?.id) return
+    try {
+      const clipboardItems = await navigator.clipboard.read()
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith('image/')) {
+            const blob = await item.getType(type)
+            const ext = type.split('/')[1] || 'png'
+            const file = new File([blob], `pasted-receipt.${ext}`, { type })
+            await handleReceiptUpload(file)
+            return
+          }
+        }
+      }
+      alert('No image found in clipboard')
+    } catch (err) {
+      console.error('Clipboard paste failed:', err)
+      alert('Could not read clipboard. Try uploading instead.')
+    }
+  }
+
+  const handleDeleteReceipt = async () => {
+    if (!editing?.id) return
+    try {
+      await deleteExpenseReceipt(editing.id)
+      if (onReceiptChange) onReceiptChange()
+    } catch (err) {
+      console.error('Failed to delete receipt:', err)
+    }
+  }
+
+  const receiptUrl = editing?.receipt_path ? getExpenseReceiptUrl(editing.receipt_path) : null
+  const isPdf = editing?.receipt_path?.toLowerCase().endsWith('.pdf')
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-surface rounded-xl p-4 sm:p-6 w-full max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-subtle flex items-center justify-between sticky top-0 bg-surface">
+          <h2 className="text-lg font-semibold">{editing ? 'Edit Expense' : 'Add Expense'}</h2>
+          <button onClick={onClose} className="text-muted hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-muted mb-1">Category *</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            >
+              {EXPENSE_CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-2">Scope *</label>
+            <div className="flex gap-2">
+              {EXPENSE_SCOPES.map(s => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, scope: s.value })}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    formData.scope === s.value
+                      ? 'bg-farm-green text-white'
+                      : 'bg-surface-soft text-muted hover:bg-surface-hover'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Amount *</label>
+            <input
+              type="number"
+              required
+              min="0"
+              step="0.01"
+              value={formData.amount}
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              placeholder="0.00"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Date *</label>
+            <input
+              type="date"
+              required
+              value={formData.expense_date}
+              onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Description *</label>
+            <input
+              type="text"
+              required
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="e.g., Monthly feed order, Vet visit"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Vendor</label>
+            <input
+              type="text"
+              value={formData.vendor}
+              onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
+              placeholder="e.g., Tractor Supply, Local Vet"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          {formData.scope === 'shared' && (
+            <div>
+              <label className="block text-sm text-muted mb-1">Business Split %</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={formData.business_split_pct}
+                  onChange={(e) => setFormData({ ...formData, business_split_pct: parseInt(e.target.value) })}
+                  className="flex-1"
+                />
+                <span className="text-sm w-16 text-right">{formData.business_split_pct}% biz</span>
+              </div>
+              {formData.amount && (
+                <div className="flex justify-between text-xs text-muted mt-1">
+                  <span>Business: {formatCurrency(parseFloat(formData.amount) * formData.business_split_pct / 100)}</span>
+                  <span>Homestead: {formatCurrency(parseFloat(formData.amount) * (100 - formData.business_split_pct) / 100)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.is_recurring}
+                onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
+                className="rounded"
+              />
+              <span className="text-sm text-muted">Recurring expense</span>
+            </label>
+          </div>
+
+          {formData.is_recurring && (
+            <div>
+              <label className="block text-sm text-muted mb-1">Interval</label>
+              <select
+                value={formData.recurring_interval}
+                onChange={(e) => setFormData({ ...formData, recurring_interval: e.target.value })}
+                className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+              >
+                <option value="">Select interval</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="annually">Annually</option>
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-muted mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={2}
+              placeholder="Optional notes"
+              className="w-full px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green"
+            />
+          </div>
+
+          {/* Receipt Section */}
+          <div>
+            <label className="block text-sm text-muted mb-2">Receipt</label>
+            {editing?.id ? (
+              receiptUrl ? (
+                <div className="space-y-2">
+                  <div className="bg-surface-soft rounded-lg p-3">
+                    {isPdf ? (
+                      <a href={receiptUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-blue-400 hover:text-blue-300">
+                        <FileText className="w-8 h-8" />
+                        <span className="text-sm">View PDF Receipt</span>
+                      </a>
+                    ) : (
+                      <a href={receiptUrl} target="_blank" rel="noopener noreferrer">
+                        <img src={receiptUrl} alt="Receipt" className="max-h-32 rounded object-contain" />
+                      </a>
+                    )}
+                  </div>
+                  <button type="button" onClick={handleDeleteReceipt}
+                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                    <Trash2 className="w-3 h-3" /> Remove receipt
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0]
+                      if (file) handleReceiptUpload(file)
+                      e.target.value = ''
+                    }}
+                  />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg text-sm transition-colors disabled:opacity-50">
+                    <Upload className="w-4 h-4" /> {uploading ? 'Uploading...' : 'Upload'}
+                  </button>
+                  <button type="button" onClick={handlePaste} disabled={uploading}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg text-sm transition-colors disabled:opacity-50">
+                    <Clipboard className="w-4 h-4" /> Paste
+                  </button>
+                </div>
+              )
+            ) : (
+              pendingReceipt ? (
+                <div className="flex items-center gap-2 bg-surface-soft rounded-lg p-3">
+                  <Receipt className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <span className="text-sm text-secondary truncate flex-1">{pendingReceipt.name}</span>
+                  <button type="button" onClick={() => setPendingReceipt(null)}
+                    className="text-red-400 hover:text-red-300">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0]
+                      if (file) setPendingReceipt(file)
+                      e.target.value = ''
+                    }}
+                  />
+                  <button type="button" onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg text-sm transition-colors">
+                    <Upload className="w-4 h-4" /> Upload
+                  </button>
+                  <button type="button" onClick={async () => {
+                    try {
+                      const clipboardItems = await navigator.clipboard.read()
+                      for (const item of clipboardItems) {
+                        for (const type of item.types) {
+                          if (type.startsWith('image/')) {
+                            const blob = await item.getType(type)
+                            const ext = type.split('/')[1] || 'png'
+                            setPendingReceipt(new File([blob], `pasted-receipt.${ext}`, { type }))
+                            return
+                          }
+                        }
+                      }
+                      alert('No image found in clipboard')
+                    } catch (err) {
+                      alert('Could not read clipboard. Try uploading instead.')
+                    }
+                  }}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg text-sm transition-colors">
+                    <Clipboard className="w-4 h-4" /> Paste
+                  </button>
+                </div>
+              )
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-subtle">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 bg-surface-soft hover:bg-surface-hover rounded-lg transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-2 bg-farm-green hover:bg-farm-green-light text-white rounded-lg transition-colors">{editing ? 'Save Changes' : 'Add Expense'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default FarmFinances

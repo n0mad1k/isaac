@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+.venv/
+
+# Node
+node_modules/
+dist/
+.npm
+
+# Environment
+.env
+*.env.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+build/
+*.egg-info/
+cert.pem
+
+# Local backup
+.local-backup/
+
+# Security audit reports (contain sensitive vulnerability details)
+SECURITY_AUDIT*.md
+
+# Deploy scripts with personal config (use .example templates)
+deploy.sh
+scripts/deploy-to-pi.sh
+scripts/quick-deploy.sh
+scripts/setup-pi.sh
+
+# Service files with personal config (use .example templates)
+deploy/levi-backend.service
+deploy/levi-kiosk.service
+deploy/isaac-backend.service
+deploy/isaac-kiosk.service
+
+# Keep the .example templates
+!*.example

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Isaac</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+    .icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 12px;
+      color: #4d7c0f;
+    }
+    p {
+      color: #9ca3af;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    button {
+      background: #4d7c0f;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:active {
+      background: #3f6212;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>You're Offline</h1>
+    <p>Isaac needs an internet connection to sync your farm data. Please check your connection and try again.</p>
+    <button onclick="location.reload()">Try Again</button>
+  </div>
+</body>
+</html>
