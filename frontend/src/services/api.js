@@ -887,6 +887,11 @@ export const importChaseStatement = (file, accountId, statementYear) => {
 export const confirmBudgetImport = (data) => api.post('/budget/import/confirm/', data)
 export const runBudgetCategorize = () => api.post('/budget/categorize/')
 
+// Setup Wizard (first-time setup)
+export const getSetupStatus = () => api.get('/setup/status/')
+export const getAvailableModules = () => api.get('/setup/modules/')
+export const completeSetupWizard = (data) => api.post('/setup/wizard/', data)
+
 // AI Chat & Insights
 export const getAiHealth = () => api.get('/chat/health/')
 export const getAiModels = () => api.get('/chat/models/')

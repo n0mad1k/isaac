@@ -176,6 +176,7 @@ from routers import (
     garden_router,
     budget_router,
     chat_router,
+    setup_router,
 )
 from routers.settings import get_setting
 
@@ -273,6 +274,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(setup_router)  # Setup wizard (no auth required)
 app.include_router(auth_router)  # Auth first for setup check
 app.include_router(dashboard_router)
 app.include_router(plants_router)

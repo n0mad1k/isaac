@@ -2,6 +2,27 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.86.0] - 2026-02-20
+
+### Added
+- **Web-Based Setup Wizard** - New first-time setup experience via browser
+  - Replaces command-line personalize.sh script
+  - Multi-step wizard: Farm info, Admin account, Module selection, Integrations
+  - Choose which modules/pages to enable (Dashboard, Tasks, Calendar, Animals, Garden, etc.)
+  - Configure timezone, location, SMTP email, and weather API in one flow
+  - Setup wizard auto-appears on first visit, disappears after completion
+  - install.sh now fully silent - no interactive prompts during installation
+
+## [1.85.83] - 2026-02-20
+
+### Fixed
+- **Budget Transactions Not Loading** - Fixed enum case mismatch causing transactions page to show empty
+  - Some records had lowercase 'credit' instead of uppercase 'CREDIT'
+  - All transaction types now properly validated
+- **Today's Schedule Scrolling** - Schedule now scrolls within its container instead of scrolling whole page
+  - Added internal scrolling with max-height constraint
+  - Long task lists no longer push other dashboard content off screen
+
 ## [1.85.82] - 2026-02-19
 
 ### Fixed

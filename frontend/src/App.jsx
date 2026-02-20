@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import Garden from './pages/Garden'
@@ -17,9 +17,11 @@ import Team from './pages/Team'
 import Budget from './pages/Budget'
 import Login from './pages/Login'
 import AcceptInvite from './pages/AcceptInvite'
+import SetupWizard from './pages/SetupWizard'
 import Layout from './components/Layout'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { SettingsProvider } from './contexts/SettingsContext'
+import { getSetupStatus } from './services/api'
 
 // Protected route wrapper
 function RequireAuth({ children }) {
@@ -39,6 +41,55 @@ function RequireAuth({ children }) {
   }
 
   return children
+}
+
+// Setup check wrapper - redirects to setup wizard if not complete
+function SetupCheckRoutes() {
+  const [setupStatus, setSetupStatus] = useState({ loading: true, needsSetup: false })
+  const location = useLocation()
+
+  useEffect(() => {
+    checkSetup()
+  }, [])
+
+  const checkSetup = async () => {
+    try {
+      const response = await getSetupStatus()
+      setSetupStatus({
+        loading: false,
+        needsSetup: response.data.needs_setup
+      })
+    } catch (err) {
+      // If setup endpoint fails, assume setup is complete (for backwards compat)
+      console.error('Setup check failed:', err)
+      setSetupStatus({ loading: false, needsSetup: false })
+    }
+  }
+
+  if (setupStatus.loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-farm-green"></div>
+      </div>
+    )
+  }
+
+  // If setup is needed and we're not already on the setup page
+  if (setupStatus.needsSetup && location.pathname !== '/setup') {
+    return <Navigate to="/setup" replace />
+  }
+
+  // If setup is complete and we're on the setup page, redirect to login
+  if (!setupStatus.needsSetup && location.pathname === '/setup') {
+    return <Navigate to="/login" replace />
+  }
+
+  return (
+    <Routes>
+      <Route path="/setup" element={<SetupWizard />} />
+      <Route path="/*" element={<ProtectedRoutes />} />
+    </Routes>
+  )
 }
 
 // Protected routes wrapped with auth providers
@@ -86,8 +137,8 @@ function App() {
       <Routes>
         {/* Public routes - no auth providers, no API calls */}
         <Route path="/accept-invite/:token" element={<AcceptInvite />} />
-        {/* All other routes go through auth providers */}
-        <Route path="/*" element={<ProtectedRoutes />} />
+        {/* All other routes go through setup check, then auth providers */}
+        <Route path="/*" element={<SetupCheckRoutes />} />
       </Routes>
     </BrowserRouter>
   )

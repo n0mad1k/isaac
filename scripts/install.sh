@@ -6,6 +6,7 @@
 #
 # Installs:
 #   - Core: Python, Node.js, Nginx, SQLite
+#   - Security: HTTPS (self-signed), Unattended Upgrades
 #   - Remote Access: Tailscale, Cloudflared
 #   - Calendar: Radicale (CalDAV server)
 #   - Kiosk: Chromium for dashboard display
@@ -30,6 +31,7 @@ warn() { echo -e "${YELLOW}[!]${NC} $1"; }
 
 INSTALL_DIR="/opt/isaac"
 CURRENT_USER="${SUDO_USER:-$USER}"
+SSL_DIR="/etc/ssl/isaac"
 
 echo ""
 echo -e "${GREEN}╔═══════════════════════════════════════════╗"
@@ -45,14 +47,14 @@ fi
 export DEBIAN_FRONTEND=noninteractive
 
 # =============================================================================
-log "[1/10] Updating system..."
+log "[1/12] Updating system..."
 # =============================================================================
 apt-get update -qq
 apt-get upgrade -y -qq
 ok "System updated"
 
 # =============================================================================
-log "[2/10] Installing core dependencies..."
+log "[2/12] Installing core dependencies..."
 # =============================================================================
 apt-get install -y -qq \
     python3 python3-pip python3-venv \
@@ -67,7 +69,56 @@ fi
 ok "Core dependencies"
 
 # =============================================================================
-log "[3/10] Installing Tailscale..."
+log "[3/12] Configuring unattended upgrades..."
+# =============================================================================
+apt-get install -y -qq unattended-upgrades apt-listchanges
+
+# Configure unattended-upgrades
+cat > /etc/apt/apt.conf.d/50unattended-upgrades << 'EOF'
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}";
+    "${distro_id}:${distro_codename}-security";
+    "${distro_id}ESMApps:${distro_codename}-apps-security";
+    "${distro_id}ESM:${distro_codename}-infra-security";
+};
+Unattended-Upgrade::Package-Blacklist {
+};
+Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+Unattended-Upgrade::MinimalSteps "true";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "false";
+EOF
+
+# Enable automatic updates
+cat > /etc/apt/apt.conf.d/20auto-upgrades << 'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
+EOF
+
+systemctl enable unattended-upgrades -q 2>/dev/null || true
+ok "Unattended upgrades configured"
+
+# =============================================================================
+log "[4/12] Generating SSL certificate..."
+# =============================================================================
+mkdir -p "$SSL_DIR"
+
+# Generate self-signed certificate (valid for 10 years)
+if [ ! -f "$SSL_DIR/isaac.crt" ]; then
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+        -keyout "$SSL_DIR/isaac.key" \
+        -out "$SSL_DIR/isaac.crt" \
+        -subj "/C=US/ST=State/L=City/O=Isaac/CN=isaac.local" \
+        2>/dev/null
+    chmod 600 "$SSL_DIR/isaac.key"
+    chmod 644 "$SSL_DIR/isaac.crt"
+fi
+ok "SSL certificate generated"
+
+# =============================================================================
+log "[5/12] Installing Tailscale..."
 # =============================================================================
 if ! command -v tailscale &>/dev/null; then
     curl -fsSL https://tailscale.com/install.sh 2>/dev/null | sh >/dev/null 2>&1
@@ -75,7 +126,7 @@ fi
 ok "Tailscale installed (not connected)"
 
 # =============================================================================
-log "[4/10] Installing Cloudflared..."
+log "[6/12] Installing Cloudflared..."
 # =============================================================================
 if ! command -v cloudflared &>/dev/null; then
     curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
@@ -86,7 +137,7 @@ fi
 ok "Cloudflared installed (not configured)"
 
 # =============================================================================
-log "[5/10] Installing Radicale (CalDAV)..."
+log "[7/12] Installing Radicale (CalDAV)..."
 # =============================================================================
 apt-get install -y -qq radicale
 
@@ -121,7 +172,7 @@ systemctl enable radicale -q 2>/dev/null || true
 ok "Radicale CalDAV server"
 
 # =============================================================================
-log "[6/10] Installing kiosk dependencies..."
+log "[8/12] Installing kiosk dependencies..."
 # =============================================================================
 apt-get install -y -qq chromium-browser unclutter xdotool 2>/dev/null || \
 apt-get install -y -qq chromium unclutter xdotool 2>/dev/null || \
@@ -129,7 +180,7 @@ warn "Kiosk deps not available (desktop required)"
 ok "Kiosk mode"
 
 # =============================================================================
-log "[7/10] Setting up Isaac directories..."
+log "[9/12] Setting up Isaac directories..."
 # =============================================================================
 mkdir -p "$INSTALL_DIR"/{backend,frontend,deploy,data,logs}
 chown -R "$CURRENT_USER:$CURRENT_USER" "$INSTALL_DIR"
@@ -148,7 +199,7 @@ fi
 ok "Isaac files"
 
 # =============================================================================
-log "[8/10] Setting up Python backend..."
+log "[10/12] Setting up Python backend..."
 # =============================================================================
 cd "$INSTALL_DIR/backend"
 
@@ -171,7 +222,7 @@ chmod 600 .env
 ok "Python backend"
 
 # =============================================================================
-log "[9/10] Building frontend..."
+log "[11/12] Building frontend..."
 # =============================================================================
 cd "$INSTALL_DIR/frontend"
 sudo -u "$CURRENT_USER" npm install --silent 2>/dev/null || sudo -u "$CURRENT_USER" npm install
@@ -179,7 +230,7 @@ sudo -u "$CURRENT_USER" npm run build 2>/dev/null || sudo -u "$CURRENT_USER" npm
 ok "Frontend built"
 
 # =============================================================================
-log "[10/10] Configuring services..."
+log "[12/12] Configuring services..."
 # =============================================================================
 
 # Isaac backend service
@@ -194,7 +245,7 @@ User=$CURRENT_USER
 Group=$CURRENT_USER
 WorkingDirectory=$INSTALL_DIR/backend
 Environment=PATH=$INSTALL_DIR/backend/venv/bin:/usr/bin
-ExecStart=$INSTALL_DIR/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+ExecStart=$INSTALL_DIR/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
 StandardOutput=append:$INSTALL_DIR/logs/backend.log
@@ -204,7 +255,7 @@ StandardError=append:$INSTALL_DIR/logs/backend-error.log
 WantedBy=multi-user.target
 EOF
 
-# Kiosk service
+# Kiosk service (uses HTTPS localhost)
 cat > /etc/systemd/system/isaac-kiosk.service << EOF
 [Unit]
 Description=Isaac Dashboard Kiosk
@@ -215,19 +266,34 @@ Type=simple
 User=$CURRENT_USER
 Environment=DISPLAY=:0
 ExecStartPre=/bin/sleep 10
-ExecStart=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --enable-features=OverlayScrollbar --start-fullscreen http://localhost
+ExecStart=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --enable-features=OverlayScrollbar --start-fullscreen --ignore-certificate-errors https://localhost
 Restart=always
 
 [Install]
 WantedBy=graphical.target
 EOF
 
-# Nginx
-cat > /etc/nginx/sites-available/isaac << 'EOF'
+# Nginx with HTTPS
+cat > /etc/nginx/sites-available/isaac << EOF
+# Redirect HTTP to HTTPS
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
+    return 301 https://\$host\$request_uri;
+}
+
+# HTTPS server
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+
+    ssl_certificate $SSL_DIR/isaac.crt;
+    ssl_certificate_key $SSL_DIR/isaac.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
 
     root /opt/isaac/frontend/dist;
     index index.html;
@@ -236,16 +302,17 @@ server {
     location ^~ /api/ {
         proxy_pass http://127.0.0.1:8000/;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 300s;
     }
 
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files \$uri \$uri/ /index.html;
     }
 
     gzip on;
@@ -278,6 +345,53 @@ systemctl start isaac-backend radicale 2>/dev/null || true
 ok "Services configured"
 
 # =============================================================================
+# Create default admin user
+# =============================================================================
+ADMIN_PASSWORD=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 12)
+
+# Wait for backend to start
+sleep 3
+
+# Create admin user via Python
+cd "$INSTALL_DIR/backend"
+sudo -u "$CURRENT_USER" bash -c "source venv/bin/activate && python3 -c \"
+import sqlite3
+import hashlib
+import os
+from datetime import datetime
+
+DB_PATH = 'data/levi.db'
+os.makedirs('data', exist_ok=True)
+
+# Connect and create users table if needed
+conn = sqlite3.connect(DB_PATH)
+cur = conn.cursor()
+
+# Check if admin user exists
+cur.execute('SELECT id FROM users WHERE username = ?', ('admin',))
+if cur.fetchone():
+    print('Admin user already exists')
+else:
+    # Hash password
+    password = '$ADMIN_PASSWORD'
+    salt = os.urandom(32)
+    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+    password_hash = salt.hex() + ':' + pwd_hash.hex()
+
+    # Insert admin user
+    cur.execute('''
+        INSERT INTO users (username, password_hash, role, is_active, created_at)
+        VALUES (?, ?, ?, ?, ?)
+    ''', ('admin', password_hash, 'admin', 1, datetime.utcnow().isoformat()))
+    conn.commit()
+    print('Admin user created')
+
+conn.close()
+\"" 2>/dev/null || warn "Could not create admin user (database may not be initialized yet)"
+
+ok "Default admin user configured"
+
+# =============================================================================
 # Done
 # =============================================================================
 IP=$(hostname -I | awk '{print $1}')
@@ -289,14 +403,24 @@ echo "╚═══════════════════════�
 echo ""
 echo "  Installed Services:"
 echo "    ✓ Isaac Backend + Frontend"
-echo "    ✓ Nginx (web server)"
+echo "    ✓ Nginx (HTTPS web server)"
 echo "    ✓ Radicale (CalDAV calendar sync)"
 echo "    ✓ Tailscale (remote access - not connected)"
 echo "    ✓ Cloudflared (tunnel - not configured)"
 echo "    ✓ Kiosk mode (ready)"
+echo "    ✓ Unattended upgrades (security updates)"
 echo ""
-echo "  Dashboard: http://$IP"
+echo "  Dashboard: https://$IP"
+echo "  (Self-signed certificate - browser will show warning)"
 echo ""
-echo -e "  ${YELLOW}Ship to customer. They should run:${NC}"
-echo "    sudo bash /opt/isaac/scripts/personalize.sh"
+echo -e "  ${YELLOW}Default Login:${NC}"
+echo "    Username: admin"
+echo "    Password: $ADMIN_PASSWORD"
+echo ""
+echo -e "  ${RED}IMPORTANT: Save this password! It won't be shown again.${NC}"
+echo ""
+echo -e "  ${YELLOW}Next Steps:${NC}"
+echo "    1. Visit https://$IP in a browser"
+echo "    2. Complete the setup wizard"
+echo "    3. Sign in with the admin credentials above"
 echo ""
