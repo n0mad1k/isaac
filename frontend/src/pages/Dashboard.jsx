@@ -298,7 +298,7 @@ function Dashboard() {
 
         {/* Right Column - natural sizes, scrolls if needed */}
         <div ref={rightColumnRef} className="flex flex-col gap-2 md:gap-3 md:pr-2">
-          <div ref={taskListRef}>
+          <div ref={taskListRef} className="flex flex-col max-h-[50vh] md:max-h-[60vh]">
             {/* Worker/Member filter dropdown - mobile-friendly */}
             {(workers.length > 0 || members.length > 0) && (
               <div className="mb-2 flex items-center gap-2">
@@ -370,6 +370,7 @@ function Dashboard() {
                 }
               }}
               showTimeAndLocation={true}
+              fillContainer={true}
             />
           </div>
 

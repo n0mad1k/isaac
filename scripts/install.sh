@@ -1,330 +1,140 @@
 #!/bin/bash
 # =============================================================================
-# Isaac Installation Script (Private)
+# Isaac Pre-Install Script (Private)
 # =============================================================================
-# Full installation with all integrations:
-# - Tailscale VPN
-# - Cloudflare Tunnel
-# - Email (SMTP)
-# - AI Assistant (Claude/OpenAI/Ollama)
-# - Weather (Ambient Weather)
-# - Translation (LibreTranslate)
+# Silent installation of ALL services - run before shipping to customer
+#
+# Installs:
+#   - Core: Python, Node.js, Nginx, SQLite
+#   - Remote Access: Tailscale, Cloudflared
+#   - Calendar: Radicale (CalDAV server)
+#   - Kiosk: Chromium for dashboard display
+#   - Isaac: Backend + Frontend
+#
+# Customer runs personalize.sh after receiving the Pi
 #
 # Usage: sudo bash install.sh
 # =============================================================================
 
 set -e
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
 NC='\033[0m'
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
-prompt() { echo -en "${CYAN}${BOLD}$1${NC}"; }
-section() { echo -e "\n${BOLD}== $1 ==${NC}\n"; }
+log() { echo -e "${BLUE}[$(date +%H:%M:%S)]${NC} $1"; }
+ok() { echo -e "${GREEN}[OK]${NC} $1"; }
+warn() { echo -e "${YELLOW}[!]${NC} $1"; }
 
-# Configuration
 INSTALL_DIR="/opt/isaac"
-REPO_URL="https://github.com/n0mad1k/isaac.git"
 CURRENT_USER="${SUDO_USER:-$USER}"
 
-clear
 echo ""
-echo -e "${GREEN}╔════════════════════════════════════════╗"
-echo "║    Isaac Farm Assistant Installer      ║"
-echo "║           (Full Setup)                 ║"
-echo "╚════════════════════════════════════════╝${NC}"
+echo -e "${GREEN}╔═══════════════════════════════════════════╗"
+echo "║   Isaac Farm Assistant - Pre-Install      ║"
+echo "╚═══════════════════════════════════════════╝${NC}"
 echo ""
 
-# Check if running as root/sudo
 if [ "$EUID" -ne 0 ]; then
-    log_error "Please run with sudo: sudo bash $0"
+    echo -e "${RED}Run with sudo: sudo bash $0${NC}"
     exit 1
 fi
 
-# =============================================================================
-# Gather ALL configuration upfront
-# =============================================================================
-
-section "Basic Information"
-
-prompt "Farm/Homestead name [My Farm]: "
-read -r FARM_NAME
-FARM_NAME="${FARM_NAME:-My Farm}"
-
-CURRENT_TZ=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "America/New_York")
-prompt "Timezone [$CURRENT_TZ]: "
-read -r TIMEZONE
-TIMEZONE="${TIMEZONE:-$CURRENT_TZ}"
-
-prompt "Latitude (for weather/sunrise) [40.7128]: "
-read -r LATITUDE
-LATITUDE="${LATITUDE:-40.7128}"
-
-prompt "Longitude [-74.0060]: "
-read -r LONGITUDE
-LONGITUDE="${LONGITUDE:--74.0060}"
-
-# -----------------------------------------------------------------------------
-section "Tailscale VPN"
-echo "Tailscale provides secure remote access to your Isaac dashboard."
-echo ""
-
-prompt "Install Tailscale? (Y/n): "
-read -r INSTALL_TAILSCALE
-INSTALL_TAILSCALE="${INSTALL_TAILSCALE:-Y}"
-
-# -----------------------------------------------------------------------------
-section "Cloudflare Tunnel"
-echo "Cloudflare Tunnel provides secure HTTPS access without port forwarding."
-echo ""
-
-prompt "Install Cloudflare Tunnel? (y/N): "
-read -r INSTALL_CLOUDFLARE
-
-if [[ "$INSTALL_CLOUDFLARE" =~ ^[Yy] ]]; then
-    prompt "Cloudflare Tunnel Token: "
-    read -r CF_TUNNEL_TOKEN
-fi
-
-# -----------------------------------------------------------------------------
-section "Email Notifications"
-echo "For daily digests, weather alerts, and task reminders."
-echo ""
-
-prompt "SMTP Host (e.g., smtp.gmail.com) [skip]: "
-read -r SMTP_HOST
-
-if [ -n "$SMTP_HOST" ]; then
-    prompt "SMTP Port [587]: "
-    read -r SMTP_PORT
-    SMTP_PORT="${SMTP_PORT:-587}"
-
-    prompt "SMTP Username/Email: "
-    read -r SMTP_USER
-
-    prompt "SMTP Password: "
-    read -rs SMTP_PASS
-    echo ""
-
-    prompt "Default recipient email: "
-    read -r EMAIL_RECIPIENT
-fi
-
-# -----------------------------------------------------------------------------
-section "AI Assistant"
-echo "Built-in AI chat for farm questions and insights."
-echo "Options: Claude (Anthropic), ChatGPT (OpenAI), or Ollama (local)"
-echo ""
-
-prompt "AI Provider (claude/openai/ollama/skip) [skip]: "
-read -r AI_PROVIDER
-
-case "$AI_PROVIDER" in
-    claude|Claude|CLAUDE)
-        prompt "Anthropic API Key: "
-        read -r ANTHROPIC_API_KEY
-        AI_PROVIDER="claude"
-        ;;
-    openai|OpenAI|OPENAI|chatgpt)
-        prompt "OpenAI API Key: "
-        read -r OPENAI_API_KEY
-        AI_PROVIDER="openai"
-        ;;
-    ollama|Ollama|OLLAMA)
-        prompt "Ollama URL [http://localhost:11434]: "
-        read -r OLLAMA_URL
-        OLLAMA_URL="${OLLAMA_URL:-http://localhost:11434}"
-        AI_PROVIDER="ollama"
-        ;;
-    *)
-        AI_PROVIDER=""
-        ;;
-esac
-
-# -----------------------------------------------------------------------------
-section "Weather Station"
-echo "Connect your Ambient Weather station for local conditions."
-echo "Get keys from: https://ambientweather.net/account"
-echo ""
-
-prompt "Ambient Weather API Key [skip]: "
-read -r AWN_API_KEY
-
-if [ -n "$AWN_API_KEY" ]; then
-    prompt "Ambient Weather App Key: "
-    read -r AWN_APP_KEY
-fi
-
-# -----------------------------------------------------------------------------
-section "Translation Service"
-echo "For translating worker task lists (Spanish, etc.)"
-echo "Options: LibreTranslate (local) or skip"
-echo ""
-
-prompt "Install LibreTranslate for worker translations? (y/N): "
-read -r INSTALL_TRANSLATE
-
-# =============================================================================
-# Confirmation
-# =============================================================================
-echo ""
-echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BOLD}Configuration Summary:${NC}"
-echo "  Farm: $FARM_NAME"
-echo "  Location: $LATITUDE, $LONGITUDE ($TIMEZONE)"
-echo "  Tailscale: $([[ "$INSTALL_TAILSCALE" =~ ^[Yy] ]] && echo "Yes" || echo "No")"
-echo "  Cloudflare: $([[ "$INSTALL_CLOUDFLARE" =~ ^[Yy] ]] && echo "Yes" || echo "No")"
-echo "  Email: $([ -n "$SMTP_HOST" ] && echo "$SMTP_HOST" || echo "Not configured")"
-echo "  AI: $([ -n "$AI_PROVIDER" ] && echo "$AI_PROVIDER" || echo "Not configured")"
-echo "  Weather: $([ -n "$AWN_API_KEY" ] && echo "Ambient Weather" || echo "Not configured")"
-echo "  Translation: $([[ "$INSTALL_TRANSLATE" =~ ^[Yy] ]] && echo "LibreTranslate" || echo "No")"
-echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
-
-prompt "Proceed with installation? (Y/n): "
-read -r CONFIRM
-if [[ "$CONFIRM" =~ ^[Nn] ]]; then
-    echo "Installation cancelled."
-    exit 0
-fi
-
-echo ""
-echo -e "${BOLD}Starting installation...${NC}"
-echo ""
-
-# =============================================================================
-# Step 1: Update system
-# =============================================================================
-log_info "[1/10] Updating system packages..."
 export DEBIAN_FRONTEND=noninteractive
+
+# =============================================================================
+log "[1/10] Updating system..."
+# =============================================================================
 apt-get update -qq
 apt-get upgrade -y -qq
-log_success "System updated"
+ok "System updated"
 
 # =============================================================================
-# Step 2: Install core dependencies
+log "[2/10] Installing core dependencies..."
 # =============================================================================
-log_info "[2/10] Installing core dependencies..."
-
 apt-get install -y -qq \
-    python3 \
-    python3-pip \
-    python3-venv \
-    nginx \
-    git \
-    curl \
-    rsync \
-    sqlite3 \
-    openssl
+    python3 python3-pip python3-venv \
+    nginx git curl rsync sqlite3 openssl \
+    apache2-utils  # for htpasswd (Radicale)
 
 # Node.js 20.x
-if ! command -v node &> /dev/null || [[ $(node -v | cut -d. -f1 | tr -d 'v') -lt 18 ]]; then
-    log_info "Installing Node.js 20.x..."
+if ! command -v node &>/dev/null || [[ $(node -v | cut -d. -f1 | tr -d 'v') -lt 18 ]]; then
     curl -fsSL https://deb.nodesource.com/setup_20.x 2>/dev/null | bash - >/dev/null 2>&1
     apt-get install -y -qq nodejs
 fi
-
-log_success "Core dependencies installed"
+ok "Core dependencies"
 
 # =============================================================================
-# Step 3: Install Tailscale
+log "[3/10] Installing Tailscale..."
 # =============================================================================
-if [[ "$INSTALL_TAILSCALE" =~ ^[Yy] ]]; then
-    log_info "[3/10] Installing Tailscale..."
-
-    if ! command -v tailscale &> /dev/null; then
-        curl -fsSL https://tailscale.com/install.sh | sh >/dev/null 2>&1
-    fi
-
-    log_success "Tailscale installed"
-    log_warn "Run 'sudo tailscale up' after installation to connect"
-else
-    log_info "[3/10] Skipping Tailscale..."
+if ! command -v tailscale &>/dev/null; then
+    curl -fsSL https://tailscale.com/install.sh 2>/dev/null | sh >/dev/null 2>&1
 fi
+ok "Tailscale installed (not connected)"
 
 # =============================================================================
-# Step 4: Install Cloudflare Tunnel
+log "[4/10] Installing Cloudflared..."
 # =============================================================================
-if [[ "$INSTALL_CLOUDFLARE" =~ ^[Yy] ]] && [ -n "$CF_TUNNEL_TOKEN" ]; then
-    log_info "[4/10] Installing Cloudflare Tunnel..."
-
-    if ! command -v cloudflared &> /dev/null; then
-        curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
-        echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main' | tee /etc/apt/sources.list.d/cloudflared.list >/dev/null
-        apt-get update -qq
-        apt-get install -y -qq cloudflared
-    fi
-
-    # Install as service
-    cloudflared service install "$CF_TUNNEL_TOKEN" 2>/dev/null || true
-
-    log_success "Cloudflare Tunnel installed"
-else
-    log_info "[4/10] Skipping Cloudflare Tunnel..."
+if ! command -v cloudflared &>/dev/null; then
+    curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+    echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main' | tee /etc/apt/sources.list.d/cloudflared.list >/dev/null
+    apt-get update -qq
+    apt-get install -y -qq cloudflared
 fi
+ok "Cloudflared installed (not configured)"
 
 # =============================================================================
-# Step 5: Install LibreTranslate
+log "[5/10] Installing Radicale (CalDAV)..."
 # =============================================================================
-if [[ "$INSTALL_TRANSLATE" =~ ^[Yy] ]]; then
-    log_info "[5/10] Installing LibreTranslate..."
+apt-get install -y -qq radicale
 
-    # Install Docker if not present
-    if ! command -v docker &> /dev/null; then
-        curl -fsSL https://get.docker.com | sh >/dev/null 2>&1
-        usermod -aG docker "$CURRENT_USER"
-    fi
+# Configure Radicale
+mkdir -p /etc/radicale /var/lib/radicale/collections
+cat > /etc/radicale/config << 'EOF'
+[server]
+hosts = 127.0.0.1:5232
 
-    # Pull and run LibreTranslate
-    docker pull libretranslate/libretranslate:latest >/dev/null 2>&1
+[auth]
+type = htpasswd
+htpasswd_filename = /etc/radicale/users
+htpasswd_encryption = bcrypt
 
-    # Create systemd service for LibreTranslate
-    cat > /etc/systemd/system/libretranslate.service << 'EOF'
-[Unit]
-Description=LibreTranslate
-After=docker.service
-Requires=docker.service
+[storage]
+filesystem_folder = /var/lib/radicale/collections
 
-[Service]
-Restart=always
-ExecStartPre=-/usr/bin/docker stop libretranslate
-ExecStartPre=-/usr/bin/docker rm libretranslate
-ExecStart=/usr/bin/docker run --name libretranslate -p 5000:5000 libretranslate/libretranslate
-ExecStop=/usr/bin/docker stop libretranslate
+[logging]
+level = warning
+mask_passwords = True
 
-[Install]
-WantedBy=multi-user.target
+[rights]
+type = owner_only
 EOF
 
-    systemctl daemon-reload
-    systemctl enable libretranslate -q
+# Create default user (customer changes via personalize.sh)
+touch /etc/radicale/users
+chown -R radicale:radicale /var/lib/radicale
+chmod 750 /var/lib/radicale
 
-    TRANSLATE_URL="http://localhost:5000"
-    log_success "LibreTranslate installed"
-else
-    log_info "[5/10] Skipping LibreTranslate..."
-    TRANSLATE_URL=""
-fi
+systemctl enable radicale -q 2>/dev/null || true
+ok "Radicale CalDAV server"
 
 # =============================================================================
-# Step 6: Create directories & clone repo
+log "[6/10] Installing kiosk dependencies..."
 # =============================================================================
-log_info "[6/10] Setting up Isaac..."
+apt-get install -y -qq chromium-browser unclutter xdotool 2>/dev/null || \
+apt-get install -y -qq chromium unclutter xdotool 2>/dev/null || \
+warn "Kiosk deps not available (desktop required)"
+ok "Kiosk mode"
 
+# =============================================================================
+log "[7/10] Setting up Isaac directories..."
+# =============================================================================
 mkdir -p "$INSTALL_DIR"/{backend,frontend,deploy,data,logs}
 chown -R "$CURRENT_USER:$CURRENT_USER" "$INSTALL_DIR"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
-
 if [ -f "$SCRIPT_DIR/../backend/requirements.txt" ]; then
     REPO_DIR="$(dirname "$SCRIPT_DIR")"
     if [ "$REPO_DIR" != "$INSTALL_DIR" ]; then
@@ -334,118 +144,48 @@ if [ -f "$SCRIPT_DIR/../backend/requirements.txt" ]; then
               "$REPO_DIR/" "$INSTALL_DIR/"
         chown -R "$CURRENT_USER:$CURRENT_USER" "$INSTALL_DIR"
     fi
-elif [ -d "$INSTALL_DIR/.git" ]; then
-    cd "$INSTALL_DIR"
-    sudo -u "$CURRENT_USER" git pull -q
-else
-    rm -rf "$INSTALL_DIR"/* 2>/dev/null || true
-    sudo -u "$CURRENT_USER" git clone -q "$REPO_URL" "$INSTALL_DIR"
 fi
-
-log_success "Repository ready"
+ok "Isaac files"
 
 # =============================================================================
-# Step 7: Setup Python backend
+log "[8/10] Setting up Python backend..."
 # =============================================================================
-log_info "[7/10] Setting up Python backend..."
-
 cd "$INSTALL_DIR/backend"
 
 if [ ! -d "venv" ]; then
     sudo -u "$CURRENT_USER" python3 -m venv venv
 fi
-
 sudo -u "$CURRENT_USER" bash -c "source venv/bin/activate && pip install --upgrade pip -q && pip install -r requirements.txt -q"
 
-# Generate secret key
+# Minimal .env - customer configures via personalize.sh
+cat > .env << EOF
+# Isaac Configuration - Run personalize.sh to configure
+TIMEZONE=America/New_York
+LATITUDE=40.7128
+LONGITUDE=-74.0060
 SECRET_KEY=$(openssl rand -hex 32)
 ENCRYPTION_KEY=$(openssl rand -hex 32)
-
-# Create comprehensive .env
-cat > .env << EOF
-# =============================================================================
-# Isaac Configuration
-# Generated by install.sh on $(date)
-# =============================================================================
-
-# -----------------------------------------------------------------------------
-# Location & Time
-# -----------------------------------------------------------------------------
-TIMEZONE=$TIMEZONE
-LATITUDE=$LATITUDE
-LONGITUDE=$LONGITUDE
-
-# -----------------------------------------------------------------------------
-# Security
-# -----------------------------------------------------------------------------
-SECRET_KEY=$SECRET_KEY
-ENCRYPTION_KEY=$ENCRYPTION_KEY
-
-# -----------------------------------------------------------------------------
-# Weather - Ambient Weather
-# https://ambientweather.net/account
-# -----------------------------------------------------------------------------
-AWN_API_KEY=${AWN_API_KEY:-}
-AWN_APP_KEY=${AWN_APP_KEY:-}
-
-# -----------------------------------------------------------------------------
-# Email Notifications (SMTP)
-# -----------------------------------------------------------------------------
-SMTP_HOST=${SMTP_HOST:-}
-SMTP_PORT=${SMTP_PORT:-587}
-SMTP_USER=${SMTP_USER:-}
-SMTP_PASSWORD=${SMTP_PASS:-}
-EMAIL_RECIPIENT=${EMAIL_RECIPIENT:-}
-
-# -----------------------------------------------------------------------------
-# AI Assistant
-# Supported: claude, openai, ollama
-# -----------------------------------------------------------------------------
-AI_PROVIDER=${AI_PROVIDER:-}
-ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-OPENAI_API_KEY=${OPENAI_API_KEY:-}
-OLLAMA_URL=${OLLAMA_URL:-}
-
-# -----------------------------------------------------------------------------
-# Translation Service (LibreTranslate)
-# -----------------------------------------------------------------------------
-TRANSLATE_URL=${TRANSLATE_URL:-}
-
-# -----------------------------------------------------------------------------
-# CalDAV Calendar Sync
-# Configure in Settings UI after install
-# -----------------------------------------------------------------------------
-# CALDAV_URL=
-# CALDAV_USERNAME=
-# CALDAV_PASSWORD=
 EOF
-
 chown "$CURRENT_USER:$CURRENT_USER" .env
 chmod 600 .env
-
-log_success "Backend configured"
+ok "Python backend"
 
 # =============================================================================
-# Step 8: Build frontend
+log "[9/10] Building frontend..."
 # =============================================================================
-log_info "[8/10] Building frontend..."
-
 cd "$INSTALL_DIR/frontend"
-
 sudo -u "$CURRENT_USER" npm install --silent 2>/dev/null || sudo -u "$CURRENT_USER" npm install
 sudo -u "$CURRENT_USER" npm run build 2>/dev/null || sudo -u "$CURRENT_USER" npm run build
-
-log_success "Frontend built"
+ok "Frontend built"
 
 # =============================================================================
-# Step 9: Configure systemd & nginx
+log "[10/10] Configuring services..."
 # =============================================================================
-log_info "[9/10] Configuring services..."
 
-# Systemd service
+# Isaac backend service
 cat > /etc/systemd/system/isaac-backend.service << EOF
 [Unit]
-Description=Isaac Farm Assistant Backend
+Description=Isaac Farm Assistant
 After=network.target
 
 [Service]
@@ -464,7 +204,25 @@ StandardError=append:$INSTALL_DIR/logs/backend-error.log
 WantedBy=multi-user.target
 EOF
 
-# Nginx config
+# Kiosk service
+cat > /etc/systemd/system/isaac-kiosk.service << EOF
+[Unit]
+Description=Isaac Dashboard Kiosk
+After=graphical.target
+
+[Service]
+Type=simple
+User=$CURRENT_USER
+Environment=DISPLAY=:0
+ExecStartPre=/bin/sleep 10
+ExecStart=/usr/bin/chromium-browser --kiosk --noerrdialogs --disable-infobars --no-first-run --enable-features=OverlayScrollbar --start-fullscreen http://localhost
+Restart=always
+
+[Install]
+WantedBy=graphical.target
+EOF
+
+# Nginx
 cat > /etc/nginx/sites-available/isaac << 'EOF'
 server {
     listen 80 default_server;
@@ -473,7 +231,6 @@ server {
 
     root /opt/isaac/frontend/dist;
     index index.html;
-
     client_max_body_size 50M;
 
     location ^~ /api/ {
@@ -484,18 +241,11 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
         proxy_read_timeout 300s;
     }
 
     location / {
         try_files $uri $uri/ /index.html;
-    }
-
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
-        expires 1d;
-        add_header Cache-Control "public, immutable";
     }
 
     gzip on;
@@ -506,54 +256,47 @@ EOF
 ln -sf /etc/nginx/sites-available/isaac /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
-systemctl daemon-reload
-systemctl enable isaac-backend -q
-nginx -t -q
-systemctl restart nginx
-
-log_success "Services configured"
-
-# =============================================================================
-# Step 10: Start everything
-# =============================================================================
-log_info "[10/10] Starting services..."
-
-timedatectl set-timezone "$TIMEZONE" 2>/dev/null || true
-
-systemctl start isaac-backend
-[[ "$INSTALL_TRANSLATE" =~ ^[Yy] ]] && systemctl start libretranslate
-
-sleep 3
-
-IP_ADDR=$(hostname -I | awk '{print $1}')
-
-# =============================================================================
-# Done!
-# =============================================================================
-clear
-echo ""
-echo -e "${GREEN}╔════════════════════════════════════════╗"
-echo "║      Installation Complete!            ║"
-echo "╚════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "  ${BOLD}Farm:${NC}       $FARM_NAME"
-echo -e "  ${BOLD}Dashboard:${NC}  http://$IP_ADDR"
-echo ""
-echo -e "  ${BOLD}Services:${NC}"
-if systemctl is-active --quiet isaac-backend; then
-    echo -e "    Isaac Backend:    ${GREEN}Running${NC}"
-else
-    echo -e "    Isaac Backend:    ${RED}Not Running${NC}"
+# Check for port conflicts
+if ss -tlnp | grep -q ':80 '; then
+    warn "Port 80 already in use - stopping conflicting service"
+    systemctl stop apache2 2>/dev/null || true
 fi
-[[ "$INSTALL_TAILSCALE" =~ ^[Yy] ]] && echo -e "    Tailscale:        ${YELLOW}Run 'sudo tailscale up' to connect${NC}"
-[[ "$INSTALL_CLOUDFLARE" =~ ^[Yy] ]] && echo -e "    Cloudflare:       $(systemctl is-active cloudflared 2>/dev/null || echo "Configured")"
-[[ "$INSTALL_TRANSLATE" =~ ^[Yy] ]] && echo -e "    LibreTranslate:   $(systemctl is-active --quiet libretranslate && echo -e "${GREEN}Running${NC}" || echo "Starting...")"
+
+systemctl daemon-reload
+systemctl enable isaac-backend nginx radicale -q
+
+# Test nginx config before starting
+if ! nginx -t 2>/dev/null; then
+    warn "Nginx config test failed"
+    nginx -t  # Show the error
+else
+    systemctl restart nginx || warn "Nginx failed to start - check: journalctl -xeu nginx.service"
+fi
+
+systemctl start isaac-backend radicale 2>/dev/null || true
+
+ok "Services configured"
+
+# =============================================================================
+# Done
+# =============================================================================
+IP=$(hostname -I | awk '{print $1}')
+
 echo ""
-echo -e "  ${YELLOW}Next: Open your browser and create an admin account!${NC}"
+echo -e "${GREEN}╔═══════════════════════════════════════════╗"
+echo "║        Pre-Install Complete!              ║"
+echo "╚═══════════════════════════════════════════╝${NC}"
 echo ""
-echo "  Commands:"
-echo "    Status:   sudo systemctl status isaac-backend"
-echo "    Logs:     tail -f $INSTALL_DIR/logs/backend.log"
-echo "    Restart:  sudo systemctl restart isaac-backend"
-echo "    Config:   sudo nano $INSTALL_DIR/backend/.env"
+echo "  Installed Services:"
+echo "    ✓ Isaac Backend + Frontend"
+echo "    ✓ Nginx (web server)"
+echo "    ✓ Radicale (CalDAV calendar sync)"
+echo "    ✓ Tailscale (remote access - not connected)"
+echo "    ✓ Cloudflared (tunnel - not configured)"
+echo "    ✓ Kiosk mode (ready)"
+echo ""
+echo "  Dashboard: http://$IP"
+echo ""
+echo -e "  ${YELLOW}Ship to customer. They should run:${NC}"
+echo "    sudo bash /opt/isaac/scripts/personalize.sh"
 echo ""
