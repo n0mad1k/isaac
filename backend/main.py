@@ -274,8 +274,9 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(setup_router)  # Setup wizard (no auth required)
-app.include_router(auth_router)  # Auth first for setup check
+if setup_router:
+    app.include_router(setup_router)  # Setup wizard (deleted after use)
+app.include_router(auth_router)  # Auth first
 app.include_router(dashboard_router)
 app.include_router(plants_router)
 app.include_router(animals_router)

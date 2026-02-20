@@ -26,7 +26,10 @@ from .team import router as team_router
 from .garden import router as garden_router
 from .budget import router as budget_router
 from .chat import router as chat_router
-from .setup import router as setup_router
+try:
+    from .setup import router as setup_router
+except ImportError:
+    setup_router = None  # Deleted after setup complete
 
 __all__ = [
     "plants_router",

@@ -10,7 +10,7 @@ from sqlalchemy import select
 import os
 import logging
 import subprocess
-import hashlib
+import bcrypt
 
 from models.database import get_db
 from models.settings import AppSetting
@@ -18,6 +18,17 @@ from models.users import User
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/setup", tags=["setup"])
+
+
+async def require_setup_not_complete(db: AsyncSession = Depends(get_db)):
+    """Dependency that returns 404 if setup is already complete"""
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "initial_setup_complete")
+    )
+    setting = result.scalar_one_or_none()
+    if setting is not None and setting.value == "true":
+        raise HTTPException(status_code=404, detail="Not found")
+    return True
 
 
 class SetupWizardRequest(BaseModel):
@@ -84,8 +95,8 @@ async def is_setup_complete(db: AsyncSession) -> bool:
 
 
 @router.get("/modules/")
-async def get_available_modules():
-    """Get list of available modules for setup"""
+async def get_available_modules(_: bool = Depends(require_setup_not_complete)):
+    """Get list of available modules for setup - 404 if setup complete"""
     return {"modules": AVAILABLE_MODULES}
 
 
@@ -100,12 +111,12 @@ async def get_setup_status(db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/wizard/")
-async def complete_setup_wizard(config: SetupWizardRequest, db: AsyncSession = Depends(get_db)):
-    """Complete the initial setup wizard"""
-
-    # Check if already set up
-    if await is_setup_complete(db):
-        raise HTTPException(status_code=400, detail="Setup has already been completed")
+async def complete_setup_wizard(
+    config: SetupWizardRequest,
+    db: AsyncSession = Depends(get_db),
+    _: bool = Depends(require_setup_not_complete)
+):
+    """Complete the initial setup wizard - 404 if setup already complete"""
 
     try:
         # 1. Update app settings
@@ -200,10 +211,11 @@ async def complete_setup_wizard(config: SetupWizardRequest, db: AsyncSession = D
         )
         existing_user = result.scalar_one_or_none()
 
-        # Hash password
-        salt = os.urandom(32)
-        pwd_hash = hashlib.pbkdf2_hmac('sha256', config.admin_password.encode(), salt, 100000)
-        hashed_password = salt.hex() + ':' + pwd_hash.hex()
+        # Hash password with bcrypt (must match auth.py verify_password)
+        hashed_password = bcrypt.hashpw(
+            config.admin_password.encode(),
+            bcrypt.gensalt()
+        ).decode()
 
         if existing_user:
             existing_user.hashed_password = hashed_password
@@ -249,6 +261,24 @@ async def complete_setup_wizard(config: SetupWizardRequest, db: AsyncSession = D
         await db.commit()
 
         logger.info(f"Setup wizard completed for farm: {config.farm_name}")
+
+        # 6. Delete setup files (security: setup should never be accessible again)
+        try:
+            backend_dir = os.path.dirname(os.path.dirname(__file__))
+            frontend_dir = os.path.join(os.path.dirname(backend_dir), "frontend")
+
+            # Files to delete
+            files_to_delete = [
+                os.path.join(backend_dir, "routers", "setup.py"),
+                os.path.join(frontend_dir, "src", "pages", "SetupWizard.jsx"),
+            ]
+
+            for filepath in files_to_delete:
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    logger.info(f"Deleted setup file: {filepath}")
+        except Exception as e:
+            logger.warning(f"Could not delete setup files: {e}")
 
         return {
             "success": True,
