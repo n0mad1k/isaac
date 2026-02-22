@@ -145,8 +145,16 @@ async def get_soil_moisture_for_watering(db: AsyncSession) -> tuple:
 
 async def check_rain_watering(db: AsyncSession) -> Dict[str, any]:
     """
-    Check plants that are DUE for watering today and decide WATER or SKIP
-    based on accumulated rainfall since last watering decision.
+    Two-phase rain watering check for outdoor plants:
+
+    Phase 1 - Immediate rain detection:
+      If today's rain exceeds a plant's threshold, mark it watered NOW
+      regardless of schedule. This resets the watering timer so the next
+      due date is pushed out from today.
+
+    Phase 2 - Scheduled watering day:
+      For plants DUE today (or overdue), check accumulated rainfall since
+      last watering. If enough rain fell, skip manual watering.
 
     Also checks soil moisture sensor if enabled - if soil is wet enough,
     skip watering regardless of rain accumulation.
@@ -208,12 +216,23 @@ async def check_rain_watering(db: AsyncSession) -> Dict[str, any]:
     daily_rain = await get_daily_rain_totals(db, earliest_date)
     logger.debug(f"Fetched {len(daily_rain)} days of rain data for {len(rain_plants)} plants")
 
+    # Get today's rain total for immediate rain detection
+    today_rain = daily_rain.get(today, 0.0)
+
     for plant in rain_plants:
         # Get the watering interval for current season (zone-adjusted)
         water_days = plant.get_water_days_for_season(usda_zone=usda_zone)
 
         # Use last_watering_decision for schedule, fall back to last_watered
         last_decision = plant.last_watering_decision or plant.last_watered
+
+        # Already made a decision today? Skip
+        if last_decision and last_decision.date() == today:
+            stats["skipped_today"] += 1
+            continue
+
+        # Get threshold for this plant
+        threshold = plant.rain_threshold_inches or 0.25
 
         # Calculate when this plant is next due for watering
         if last_decision:
@@ -224,23 +243,36 @@ async def check_rain_watering(db: AsyncSession) -> Dict[str, any]:
             next_due_date = today
             last_decision_date = today - timedelta(days=water_days)
 
-        # Is this plant due for watering today (or overdue)?
+        # --- Phase 1: Immediate rain detection ---
+        # If today's rain alone exceeds the plant's threshold, mark it
+        # watered NOW regardless of schedule. This resets the timer.
+        if next_due_date > today and today_rain >= threshold:
+            plant.last_watered = now
+            plant.last_watering_decision = now
+            stats["rain_skipped"] += 1
+            decision = {
+                "plant_id": plant.id,
+                "plant_name": plant.name,
+                "water_days": water_days,
+                "accumulated_rain": round(today_rain, 2),
+                "threshold": threshold,
+                "soil_moisture": soil_moisture,
+                "action": "RAIN_WATERED",
+                "reason": f"Significant rain today ({today_rain:.2f}in) >= threshold ({threshold}in)",
+            }
+            stats["decisions"].append(decision)
+            logger.info(f"RAIN-WATERED {plant.name}: {today_rain:.2f}in today >= {threshold}in threshold (not yet due, timer reset)")
+            continue
+
+        # Not due yet and not enough rain today - skip
         if next_due_date > today:
             stats["not_due"] += 1
             continue
 
-        # Already made a decision today? Skip
-        if last_decision and last_decision.date() == today:
-            stats["skipped_today"] += 1
-            continue
-
+        # --- Phase 2: Scheduled watering day (due today or overdue) ---
         # Calculate accumulated rain since last actual watering (not decision)
-        # Rain matters since last time plant actually got water
         rain_check_date = plant.last_watered.date() if plant.last_watered else (today - timedelta(days=water_days))
         accumulated_rain = calculate_rain_since(daily_rain, rain_check_date)
-
-        # Get threshold for this plant
-        threshold = plant.rain_threshold_inches or 0.25
 
         decision = {
             "plant_id": plant.id,
@@ -313,66 +345,85 @@ def parse_sprinkler_schedule(schedule: str) -> Tuple[List[int], Optional[str]]:
 
 async def check_sprinkler_watering(db: AsyncSession) -> Dict[str, int]:
     """
-    Check if any plants should be marked as watered based on sprinkler schedule.
+    Check if any sprinkler plants should be marked as watered.
 
-    This should be called periodically (e.g., every 15-30 minutes).
+    Sprinkler plants get watered in two ways:
+    1. Sprinkler schedule: If today is a scheduled sprinkler day and the time has passed
+    2. Rain: If today's rain exceeds the plant's threshold (sprinkler plants are outside too)
+
     Returns stats about plants updated.
     """
-    stats = {"sprinkler_watered": 0, "skipped": 0}
+    stats = {"sprinkler_watered": 0, "rain_watered": 0, "skipped": 0}
 
     # Get all active plants with sprinkler enabled
     result = await db.execute(
         select(Plant)
         .where(Plant.is_active == True)
         .where(Plant.sprinkler_enabled == True)
-        .where(Plant.sprinkler_schedule.isnot(None))
     )
     sprinkler_plants = result.scalars().all()
+
+    if not sprinkler_plants:
+        return stats
 
     tz = pytz.timezone(settings.timezone)
     now = datetime.now(tz)
     today = now.date()
     current_weekday = now.weekday()  # Monday=0, Sunday=6
-    current_time = now.strftime("%H:%M")
+
+    # Get today's rain for rain-based watering of sprinkler plants
+    daily_rain = await get_daily_rain_totals(db, datetime.combine(today, datetime.min.time()))
+    today_rain = daily_rain.get(today, 0.0)
 
     for plant in sprinkler_plants:
-        schedule_days, schedule_time = parse_sprinkler_schedule(plant.sprinkler_schedule)
-
-        if not schedule_days:
-            stats["skipped"] += 1
-            continue
-
-        # Check if today is a sprinkler day
-        if current_weekday not in schedule_days:
-            continue
-
-        # Check if schedule time has passed today
-        if schedule_time:
-            try:
-                sched_hour, sched_min = map(int, schedule_time.split(":"))
-                sched_datetime = now.replace(hour=sched_hour, minute=sched_min, second=0, microsecond=0)
-
-                # Only mark as watered if the scheduled time has passed today
-                if now < sched_datetime:
-                    continue  # Sprinkler hasn't run yet today
-            except (ValueError, AttributeError):
-                pass  # Invalid time format, skip time check
-
         # Check if already watered today
         if plant.last_watered and plant.last_watered.date() == today:
             stats["skipped"] += 1
             continue
 
-        # Mark as watered (store as naive datetime for DB consistency)
-        naive_now = now.replace(tzinfo=None)
-        plant.last_watered = naive_now
-        plant.last_watering_decision = naive_now
-        stats["sprinkler_watered"] += 1
-        logger.info(f"Sprinkler watered: {plant.name} (schedule: {plant.sprinkler_schedule})")
+        watered = False
+        reason = ""
 
-    if stats["sprinkler_watered"] > 0:
+        # Check 1: Rain — if it rained enough today, mark watered regardless of schedule
+        threshold = plant.rain_threshold_inches or 0.25
+        if today_rain >= threshold:
+            watered = True
+            reason = f"rain ({today_rain:.2f}in >= {threshold}in threshold)"
+            stats["rain_watered"] += 1
+        else:
+            # Check 2: Sprinkler schedule
+            schedule_days, schedule_time = parse_sprinkler_schedule(plant.sprinkler_schedule)
+
+            if not schedule_days:
+                stats["skipped"] += 1
+                continue
+
+            if current_weekday not in schedule_days:
+                continue
+
+            # Check if schedule time has passed today
+            if schedule_time:
+                try:
+                    sched_hour, sched_min = map(int, schedule_time.split(":"))
+                    sched_datetime = now.replace(hour=sched_hour, minute=sched_min, second=0, microsecond=0)
+                    if now < sched_datetime:
+                        continue  # Sprinkler hasn't run yet today
+                except (ValueError, AttributeError):
+                    pass
+
+            watered = True
+            reason = f"sprinkler schedule ({plant.sprinkler_schedule})"
+            stats["sprinkler_watered"] += 1
+
+        if watered:
+            naive_now = now.replace(tzinfo=None)
+            plant.last_watered = naive_now
+            plant.last_watering_decision = naive_now
+            logger.info(f"Sprinkler plant watered: {plant.name} via {reason}")
+
+    if stats["sprinkler_watered"] > 0 or stats["rain_watered"] > 0:
         await db.commit()
-        logger.info(f"Sprinkler watering complete: {stats['sprinkler_watered']} plants watered")
+        logger.info(f"Sprinkler check: {stats['sprinkler_watered']} via schedule, {stats['rain_watered']} via rain")
 
     return stats
 
@@ -409,6 +460,7 @@ async def run_auto_watering_check(db: AsyncSession) -> Dict[str, any]:
     try:
         sprinkler_stats = await check_sprinkler_watering(db)
         stats["sprinkler_watered"] = sprinkler_stats.get("sprinkler_watered", 0)
+        stats["sprinkler_rain_watered"] = sprinkler_stats.get("rain_watered", 0)
         stats["skipped"] += sprinkler_stats.get("skipped", 0)
     except Exception as e:
         logger.error(f"Error in sprinkler watering check: {e}")

@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.86.2] - 2026-02-22
+
+### Fixed
+- **Rain Not Marking Outdoor Plants Watered** - Plants with `receives_rain` or sprinkler enabled now get marked as watered immediately when today's rain exceeds their threshold, regardless of watering schedule
+  - Previously rain only counted on the scheduled watering day, so plants could show as needing water even after heavy rain
+  - Sprinkler plants also benefit from rain detection — if it rains enough, they're marked watered even if it's not a sprinkler day
+
 ## [1.86.1] - 2026-02-21
 
 ### Added
