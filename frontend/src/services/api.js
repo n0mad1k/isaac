@@ -135,6 +135,14 @@ export const uploadAnimalExpenseReceipt = (id, formData) =>
 export const deleteAnimalExpenseReceipt = (id) => api.delete(`/animals/expenses/${id}/receipt/`)
 export const getAnimalExpenseReceiptUrl = (path) =>
   path ? `${api.defaults.baseURL}/animals/expenses/receipts/${path.split('/').pop()}` : null
+// Animal photos
+export const uploadAnimalPhoto = (animalId, formData) =>
+  api.post(`/animals/${animalId}/photo/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+export const deleteAnimalPhoto = (animalId) => api.delete(`/animals/${animalId}/photo/`)
+export const getAnimalPhotoUrl = (filename) =>
+  filename ? `${api.defaults.baseURL}/animals/photos/${filename}` : null
 export const exportAnimalExpenses = (animalId) =>
   `${api.defaults.baseURL}/animals/${animalId}/expenses/export/`
 export const exportAllExpenses = () =>

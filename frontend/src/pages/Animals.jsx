@@ -15,7 +15,8 @@ import {
   createAnimalFeed, updateAnimalFeed, deleteAnimalFeed, getFarmAreas,
   archiveLivestock, createSplitExpense, updateAnimalExpense, deleteAnimalExpense,
   exportAnimalExpenses, exportAllExpenses,
-  uploadAnimalExpenseReceipt, deleteAnimalExpenseReceipt, getAnimalExpenseReceiptUrl
+  uploadAnimalExpenseReceipt, deleteAnimalExpenseReceipt, getAnimalExpenseReceiptUrl,
+  uploadAnimalPhoto, deleteAnimalPhoto, getAnimalPhotoUrl
 } from '../services/api'
 import { format, differenceInDays, parseISO, startOfDay } from 'date-fns'
 
@@ -1304,9 +1305,17 @@ function AnimalCard({
         className="px-3 py-3 cursor-pointer"
         onClick={onToggle}
       >
-        {/* Top row: Icon + Name + Chevron */}
+        {/* Top row: Icon/Photo + Name + Chevron */}
         <div className="flex items-start gap-2">
-          <span className="text-xl flex-shrink-0 mt-0.5">{getAnimalIcon(animal.animal_type)}</span>
+          {animal.photo_path ? (
+            <img
+              src={getAnimalPhotoUrl(animal.photo_path)}
+              alt={animal.name}
+              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+            />
+          ) : (
+            <span className="text-xl flex-shrink-0 mt-0.5">{getAnimalIcon(animal.animal_type)}</span>
+          )}
           <div className="flex-1 min-w-0">
             {/* Name - full width, no truncation on mobile */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -2852,6 +2861,39 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
     needs_blanket_below: animal?.needs_blanket_below || '',
   })
   const [saving, setSaving] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [currentPhoto, setCurrentPhoto] = useState(animal?.photo_path || null)
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file || !animal) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+    setPhotoUploading(true)
+
+    try {
+      const response = await uploadAnimalPhoto(animal.id, formData)
+      setCurrentPhoto(response.data.photo_path)
+    } catch (err) {
+      console.error('Failed to upload photo:', err)
+      alert('Failed to upload photo')
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  const handlePhotoDelete = async () => {
+    if (!animal || !currentPhoto) return
+    if (!confirm('Delete this photo?')) return
+
+    try {
+      await deleteAnimalPhoto(animal.id)
+      setCurrentPhoto(null)
+    } catch (err) {
+      console.error('Failed to delete photo:', err)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -2943,6 +2985,56 @@ function AnimalFormModal({ animal, farmAreas = [], onClose, onSave, isDuplicate 
               </label>
             </div>
           </div>
+
+          {/* Photo Upload - Only for existing animals */}
+          {animal && !isDuplicate && (
+            <div className="flex items-center gap-4">
+              <div className="relative group">
+                {currentPhoto ? (
+                  <div className="relative">
+                    <img
+                      src={getAnimalPhotoUrl(currentPhoto)}
+                      alt={formData.name}
+                      className="w-24 h-24 rounded-lg object-cover border border-subtle"
+                    />
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                      <span className="text-xs text-white">Change</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                        disabled={photoUploading}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handlePhotoDelete}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-error-600 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="w-24 h-24 rounded-lg border-2 border-dashed border-subtle flex flex-col items-center justify-center cursor-pointer hover:border-farm-green transition-colors">
+                    <Image className="w-6 h-6 text-muted mb-1" />
+                    <span className="text-xs text-muted">{photoUploading ? 'Uploading...' : 'Add Photo'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                      disabled={photoUploading}
+                    />
+                  </label>
+                )}
+              </div>
+              <div className="text-sm text-muted">
+                <p>Upload a photo of {formData.name || 'this animal'}</p>
+                <p className="text-xs">JPEG, PNG, GIF, or WebP</p>
+              </div>
+            </div>
+          )}
 
           {/* Basic Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

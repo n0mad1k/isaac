@@ -293,7 +293,8 @@ if dev_tracker_router:  # Only in dev/private builds
     app.include_router(dev_tracker_router)
 app.include_router(workers_router)
 app.include_router(supply_requests_router)
-app.include_router(customer_feedback_router)
+if customer_feedback_router:  # Only in dev/private builds
+    app.include_router(customer_feedback_router)
 app.include_router(team_router)
 app.include_router(garden_router)
 app.include_router(budget_router)

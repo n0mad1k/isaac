@@ -53,6 +53,9 @@ class Animal(Base):
     microchip = Column(String(50))
     registration_number = Column(String(100))
 
+    # Photo
+    photo_path = Column(String(500), nullable=True)  # Path to uploaded photo
+
     # Physical
     color = Column(String(50))
     markings = Column(Text)

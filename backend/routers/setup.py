@@ -128,6 +128,7 @@ async def complete_setup_wizard(
             ("latitude", str(config.latitude)),
             ("longitude", str(config.longitude)),
             ("enabled_modules", json.dumps(config.enabled_modules)),
+            ("theme", "light"),  # Default to light mode
         ]
 
         for key, value in settings_to_save:
@@ -263,23 +264,8 @@ async def complete_setup_wizard(
 
         logger.info(f"Setup wizard completed for farm: {config.farm_name}")
 
-        # 6. Delete setup files (security: setup should never be accessible again)
-        try:
-            backend_dir = os.path.dirname(os.path.dirname(__file__))
-            frontend_dir = os.path.join(os.path.dirname(backend_dir), "frontend")
-
-            # Files to delete
-            files_to_delete = [
-                os.path.join(backend_dir, "routers", "setup.py"),
-                os.path.join(frontend_dir, "src", "pages", "SetupWizard.jsx"),
-            ]
-
-            for filepath in files_to_delete:
-                if os.path.exists(filepath):
-                    os.remove(filepath)
-                    logger.info(f"Deleted setup file: {filepath}")
-        except Exception as e:
-            logger.warning(f"Could not delete setup files: {e}")
+        # Note: Setup endpoints are protected by require_setup_not_complete dependency
+        # which returns 404 after setup is complete, so no need to delete files
 
         return {
             "success": True,

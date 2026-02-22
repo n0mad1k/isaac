@@ -31,6 +31,7 @@ from services.auto_reminders import (
 logger = logging.getLogger(__name__)
 
 RECEIPT_DIR = "data/expense_receipts"
+ANIMAL_PHOTO_DIR = "data/animal_photos"
 
 router = APIRouter(prefix="/animals", tags=["Animals"])
 
@@ -277,6 +278,7 @@ def animal_to_response(animal: Animal) -> dict:
         "color": animal.color,
         "tag_number": animal.tag_number,
         "microchip": animal.microchip,
+        "photo_path": animal.photo_path,
         "sex": animal.sex,
         "birth_date": animal.birth_date,
         "acquisition_date": animal.acquisition_date,
@@ -1429,3 +1431,100 @@ async def delete_animal_feed(
     await db.commit()
 
     return {"message": "Feed deleted"}
+
+
+# ==================== Animal Photo Routes ====================
+
+@router.get("/photos/{filename}")
+async def get_animal_photo(filename: str, user: User = Depends(require_view("animals"))):
+    """Serve an animal photo file"""
+    filepath = os.path.join(ANIMAL_PHOTO_DIR, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    abs_upload_dir = os.path.abspath(ANIMAL_PHOTO_DIR)
+    abs_filepath = os.path.abspath(filepath)
+    if not abs_filepath.startswith(abs_upload_dir):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return FileResponse(
+        filepath,
+        headers={"Content-Security-Policy": "script-src 'none'; object-src 'none'"}
+    )
+
+
+@router.post("/{animal_id}/photo/")
+async def upload_animal_photo(
+    animal_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_edit("animals")),
+):
+    """Upload a photo for an animal"""
+    result = await db.execute(
+        select(Animal).where(Animal.id == animal_id)
+    )
+    animal = result.scalar_one_or_none()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, GIF, WebP")
+
+    os.makedirs(ANIMAL_PHOTO_DIR, exist_ok=True)
+
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"animal_{animal_id}_{uuid.uuid4().hex[:8]}.{ext}"
+    filepath = os.path.join(ANIMAL_PHOTO_DIR, filename)
+
+    # Delete old photo if exists
+    if animal.photo_path:
+        old_filepath = os.path.join(ANIMAL_PHOTO_DIR, os.path.basename(animal.photo_path))
+        if os.path.exists(old_filepath):
+            try:
+                os.remove(old_filepath)
+            except OSError:
+                pass
+
+    try:
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        logger.error(f"Failed to save animal photo: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+    animal.photo_path = filename
+    animal.updated_at = datetime.utcnow()
+    await db.commit()
+
+    return {"photo_path": filename}
+
+
+@router.delete("/{animal_id}/photo/")
+async def delete_animal_photo(
+    animal_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_edit("animals")),
+):
+    """Delete a photo from an animal"""
+    result = await db.execute(
+        select(Animal).where(Animal.id == animal_id)
+    )
+    animal = result.scalar_one_or_none()
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+
+    if animal.photo_path:
+        filepath = os.path.join(ANIMAL_PHOTO_DIR, os.path.basename(animal.photo_path))
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except OSError:
+                pass
+
+    animal.photo_path = None
+    animal.updated_at = datetime.utcnow()
+    await db.commit()
+
+    return {"message": "Photo deleted"}

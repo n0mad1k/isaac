@@ -21,7 +21,10 @@ except ImportError:
     dev_tracker_router = None  # Not available in public release
 from .workers import router as workers_router
 from .supply_requests import router as supply_requests_router
-from .customer_feedback import router as customer_feedback_router
+try:
+    from .customer_feedback import router as customer_feedback_router
+except ImportError:
+    customer_feedback_router = None  # Not available in public release
 from .team import router as team_router
 from .garden import router as garden_router
 from .budget import router as budget_router

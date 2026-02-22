@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Settings, User, Lock, MapPin, Clock, Mail, Cloud, Check, ChevronRight,
-  ChevronLeft, Loader2, AlertCircle, LayoutGrid, Calendar
+  ChevronLeft, Loader2, AlertCircle, LayoutGrid, Calendar, Smartphone, Globe,
+  ExternalLink, CheckCircle2
 } from 'lucide-react'
 import { getAvailableModules, completeSetupWizard } from '../services/api'
 
@@ -24,6 +25,7 @@ function SetupWizard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [modules, setModules] = useState({})
+  const [setupComplete, setSetupComplete] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -183,8 +185,8 @@ function SetupWizard() {
       submitData.caldav_password = formData.caldav_password
 
       await completeSetupWizard(submitData)
-      // Force full page reload to re-check setup status
-      window.location.href = '/login'
+      // Show completion screen with instructions
+      setSetupComplete(true)
     } catch (err) {
       console.error('Setup failed:', err)
       setError(err.response?.data?.detail || 'Setup failed. Please try again.')
@@ -536,6 +538,104 @@ function SetupWizard() {
       </div>
     </div>
   )
+
+  const renderComplete = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-4">
+          <CheckCircle2 className="w-10 h-10 text-green-500" />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">Setup Complete!</h2>
+        <p className="text-muted">Your farm management system is ready to use</p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="bg-surface-soft/50 rounded-lg p-4">
+          <h3 className="font-medium text-white flex items-center gap-2 mb-3">
+            <Smartphone className="w-5 h-5 text-farm-green" />
+            Calendar Sync (CalDAV)
+          </h3>
+          <p className="text-sm text-secondary mb-3">
+            To sync tasks and events to your phone or tablet:
+          </p>
+          <ul className="text-sm text-muted space-y-2 ml-4">
+            <li className="flex items-start gap-2">
+              <span className="text-farm-green mt-1">•</span>
+              <span><strong>iPhone/iPad:</strong> Settings → Calendar → Accounts → Add CalDAV Account</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-farm-green mt-1">•</span>
+              <span><strong>Android:</strong> Install DAVx5 from Play Store and add account</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-farm-green mt-1">•</span>
+              <span><strong>Server URL:</strong> https://YOUR_IP/radicale/</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-farm-green mt-1">•</span>
+              <span><strong>Username/Password:</strong> The CalDAV credentials you just configured</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="bg-surface-soft/50 rounded-lg p-4">
+          <h3 className="font-medium text-white flex items-center gap-2 mb-3">
+            <Globe className="w-5 h-5 text-farm-green" />
+            Remote Access
+          </h3>
+          <p className="text-sm text-secondary mb-3">
+            To access Isaac from outside your home network:
+          </p>
+          <ul className="text-sm text-muted space-y-2 ml-4">
+            <li className="flex items-start gap-2">
+              <span className="text-farm-green mt-1">•</span>
+              <span><strong>Tailscale (Pre-installed):</strong> Run <code className="bg-surface-hover px-1 rounded">sudo tailscale up</code> and install Tailscale on your devices for secure VPN access</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-farm-green mt-1">•</span>
+              <span><strong>Cloudflare Tunnel (Pre-installed):</strong> Run <code className="bg-surface-hover px-1 rounded">cloudflared tunnel login</code> for public access via custom domain</span>
+            </li>
+          </ul>
+          <p className="text-xs text-muted mt-3">
+            See the README for detailed setup instructions.
+          </p>
+        </div>
+      </div>
+
+      <div className="pt-4">
+        <button
+          onClick={() => window.location.href = '/login'}
+          className="w-full px-6 py-3 bg-farm-green hover:bg-farm-green-light rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2"
+        >
+          Continue to Login
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  )
+
+  // Show completion screen if setup is done
+  if (setupComplete) {
+    return (
+      <div className="min-h-screen bg-surface-app flex flex-col">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-farm-green/20 mb-4">
+                <span className="text-4xl">🌿</span>
+              </div>
+            </div>
+            <div className="bg-surface rounded-xl p-8 shadow-xl">
+              {renderComplete()}
+            </div>
+            <p className="text-center text-muted text-sm mt-6">
+              Isaac - Farm & Homestead Management
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-surface-app flex flex-col">

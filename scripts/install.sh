@@ -57,9 +57,9 @@ ok "System updated"
 log "[2/12] Installing core dependencies..."
 # =============================================================================
 apt-get install -y -qq \
-    python3 python3-pip python3-venv \
+    python3 python3-pip python3-venv python3-bcrypt \
     nginx git curl rsync sqlite3 openssl \
-    apache2-utils  # for htpasswd (Radicale)
+    apache2-utils  # for htpasswd (Radicale), python3-bcrypt for Radicale auth
 
 # Node.js 20.x
 if ! command -v node &>/dev/null || [[ $(node -v | cut -d. -f1 | tr -d 'v') -lt 18 ]]; then
@@ -182,6 +182,16 @@ apt-get install -y -qq \
     xserver-xorg x11-xserver-utils xinit openbox \
     chromium unclutter xdotool 2>/dev/null || \
 warn "Kiosk deps not available"
+
+# Add user to groups needed for X11 console access
+usermod -aG tty,video "$CURRENT_USER" 2>/dev/null || true
+
+# Configure Xwrapper to allow users to start X server
+cat > /etc/X11/Xwrapper.config << 'XWRAP'
+allowed_users=anybody
+needs_root_rights=yes
+XWRAP
+
 ok "Kiosk mode (minimal X11)"
 
 # =============================================================================
@@ -280,14 +290,21 @@ xset s off
 xset s noblank
 xset -dpms
 
-# Hide cursor after 0.5 seconds of inactivity
-unclutter -idle 0.5 -root &
+# Hide cursor after 5 seconds of inactivity
+unclutter -idle 5 -root &
 
 # Start window manager in background (required for minimal X11)
 openbox &
 
-# Wait for backend to be ready
-sleep 5
+# Wait for backend to be ready (up to 60 seconds)
+echo "Waiting for Isaac backend..."
+for i in \$(seq 1 60); do
+    if curl -sk https://localhost/api/setup/status/ >/dev/null 2>&1; then
+        echo "Backend ready!"
+        break
+    fi
+    sleep 1
+done
 
 # Start Chromium in kiosk mode
 $CHROMIUM_BIN \\
@@ -305,7 +322,7 @@ $CHROMIUM_BIN \\
 EOF
 chmod +x /opt/isaac/scripts/kiosk.sh
 
-# Kiosk service (starts X via xinit)
+# Kiosk service (starts X via xinit on VT7)
 cat > /etc/systemd/system/isaac-kiosk.service << EOF
 [Unit]
 Description=Isaac Dashboard Kiosk
@@ -315,10 +332,10 @@ Wants=isaac-backend.service
 [Service]
 Type=simple
 User=$CURRENT_USER
-TTYPath=/dev/tty1
+TTYPath=/dev/tty7
 StandardInput=tty
 StandardOutput=tty
-ExecStart=/usr/bin/xinit /opt/isaac/scripts/kiosk.sh -- :0 vt1 -nocursor
+ExecStart=/usr/bin/xinit /opt/isaac/scripts/kiosk.sh -- :0 vt7
 Restart=always
 RestartSec=10
 
@@ -371,6 +388,14 @@ rm -f /etc/nginx/sites-enabled/default
 # Disable apache2 if installed (conflicts with nginx)
 systemctl stop apache2 2>/dev/null || true
 systemctl disable apache2 2>/dev/null || true
+
+# Configure auto-login for kiosk mode (works on any systemd-based Linux)
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $CURRENT_USER --noclear %I \$TERM
+EOF
 
 systemctl daemon-reload
 systemctl enable isaac-backend nginx radicale isaac-kiosk -q

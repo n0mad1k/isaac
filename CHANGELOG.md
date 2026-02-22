@@ -2,6 +2,14 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.86.1] - 2026-02-21
+
+### Added
+- **Animal Photos** - Optional photo upload for animals
+  - Upload photos via animal edit form
+  - Photo displays on animal card in place of type icon
+  - Supports JPEG, PNG, GIF, and WebP formats
+
 ## [1.86.0] - 2026-02-20
 
 ### Added
