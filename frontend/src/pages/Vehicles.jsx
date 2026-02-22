@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Car, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Gauge, Clock, Edit, Calendar, CalendarPlus } from 'lucide-react'
+import { Car, CarFront, Truck, Tractor, Bike, Plus, Check, X, Wrench, ChevronDown, ChevronUp, Gauge, Clock, Edit, Calendar, CalendarPlus } from 'lucide-react'
 import { getVehicles, createVehicle, updateVehicle, deleteVehicle, getVehicleMaintenance, createVehicleMaintenance, updateVehicleMaintenance, completeVehicleMaintenance, deleteVehicleMaintenance, getVehicleTypes, getTasksByEntity, completeTask, deleteTask } from '../services/api'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import EventModal from '../components/EventModal'
@@ -7,12 +7,12 @@ import MottoDisplay from '../components/MottoDisplay'
 import { useSettings } from '../contexts/SettingsContext'
 
 const TYPE_ICONS = {
-  car: '🚗',
-  truck: '🛻',
-  tractor: '🚜',
-  motorcycle: '🏍️',
-  atv: '🏎️',
-  utv: '🚙',
+  car: Car,
+  truck: Truck,
+  tractor: Tractor,
+  motorcycle: Bike,
+  atv: CarFront,
+  utv: CarFront,
 }
 
 // Vehicle types that track hours instead of miles
@@ -318,7 +318,7 @@ function Vehicles() {
               onClick={() => handleExpand(vehicle.id)}
             >
               <div className="flex items-center gap-4">
-                <span className="text-3xl">{TYPE_ICONS[vehicle.type] || '🚗'}</span>
+                {(() => { const Icon = TYPE_ICONS[vehicle.type] || Car; return <Icon className="w-8 h-8 text-primary" /> })()}
                 <div>
                   <div className="font-bold text-lg">{vehicle.name}</div>
                   <div className="text-muted text-sm">
