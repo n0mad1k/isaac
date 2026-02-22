@@ -221,6 +221,7 @@ function BillsSummary() {
   }
 
   const allCats = categories.filter(c => c.is_active)
+  const owners = [...new Set(allCats.filter(c => c.owner).map(c => c.owner))]
   const fixedBills = allCats.filter(c => c.category_type === 'fixed' && isActiveThisMonth(c))
     .sort((a, b) => (a.bill_day || 99) - (b.bill_day || 99) || a.sort_order - b.sort_order)
   const spendingCats = allCats.filter(c => c.category_type === 'variable' && c.name !== 'Roll Over' && c.name !== 'Other')
@@ -624,6 +625,7 @@ function BillsSummary() {
           item={editModal.item}
           itemType={editModal.type}
           accounts={accounts}
+          owners={owners}
           onSave={handleModalSave}
           onClose={() => setEditModal(null)}
         />

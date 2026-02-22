@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.86.3] - 2026-02-22
+
+### Fixed
+- **Budget Person Names Dynamic** - Removed hardcoded "Dane" and "Kelly" from budget pages
+  - Person spending cards, bill sections, and owner dropdowns now derive from actual budget category owners
+  - Backend person spending balances also dynamic — supports any number of owners
+
 ## [1.86.2] - 2026-02-22
 
 ### Fixed

@@ -166,7 +166,7 @@ function BudgetOverview() {
   const totalSpent = variableCats.reduce((s, c) => s + (c.spent || 0), 0)
   const totalRemaining = totalBudget - totalSpent
 
-  // Bills: only main bills (exclude dane/kelly owned bills - those are funded by transfers)
+  // Bills: only main bills (exclude person-owned bills - those are funded by transfers)
   const billsBudgeted = (summary?.categories || []).filter(c => {
     if (!fixedCatIds.has(c.id)) return false
     const cat = categories.find(cc => cc.id === c.id)
@@ -187,8 +187,11 @@ function BudgetOverview() {
     return data
   }
 
+  // Discover unique owners from categories (e.g. "dane", "kelly")
+  const owners = [...new Set(categories.filter(c => c.owner).map(c => c.owner))]
+
   // Build cards: Income, Bills, then remaining for each spending category
-  const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', "Dane Spending", "Kelly Spending"]
+  const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', ...owners.map(o => `${o.charAt(0).toUpperCase() + o.slice(1)} Spending`)]
 
   return (
     <div className="space-y-4">
@@ -232,10 +235,9 @@ function BudgetOverview() {
             <div className="text-base font-bold" style={{ color: 'var(--color-error-500)' }}>{fmt(billsBudgeted)}</div>
           </div>
           {spendingCardCats.map(name => {
-            const isDaneKelly = name.toLowerCase().includes('dane') || name.toLowerCase().includes('kelly')
-            const ownerKey = name.toLowerCase().includes('dane') ? 'dane' : name.toLowerCase().includes('kelly') ? 'kelly' : null
+            const ownerKey = owners.find(o => name.toLowerCase().includes(o.toLowerCase())) || null
 
-            if (isDaneKelly) {
+            if (ownerKey) {
               const personData = getPersonData(ownerKey)
               const available = personData.available
               return (

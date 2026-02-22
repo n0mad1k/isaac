@@ -176,8 +176,9 @@ function MonthlyBudget() {
         if (type === 'spending') category_type = 'variable'
         else if (type === 'transfer') category_type = 'transfer'
 
-        if (addingTo.startsWith('dane')) owner = 'dane'
-        else if (addingTo.startsWith('kelly')) owner = 'kelly'
+        // Detect owner from section key (e.g. "dane-first", "kelly-second")
+        const matchedOwner = owners.find(o => addingTo.startsWith(o))
+        if (matchedOwner) owner = matchedOwner
 
         // For per-period bills, do NOT set bill_day (they appear in both halves)
         // For monthly bills and other types, auto-assign bill_day based on which half they're added to
@@ -284,16 +285,25 @@ function MonthlyBudget() {
   const variableCats = activeCats.filter(c => c.category_type === 'variable' && c.name !== 'Roll Over')
   const transferCats = activeCats.filter(c => c.category_type === 'transfer')
 
+  // Discover unique owners from categories (e.g. "dane", "kelly")
+  const owners = [...new Set(activeCats.filter(c => c.owner).map(c => c.owner))]
+  const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
+
   const isPerPeriod = (cat) => !cat.bill_day && cat.budget_amount > 0
 
   const sortBills = (a, b) => (a.bill_day || 0) - (b.bill_day || 0) || a.sort_order - b.sort_order
 
   const mainBillsFirst = fixedCats.filter(c => !c.owner && ((c.bill_day && c.bill_day <= 14) || isPerPeriod(c))).sort(sortBills)
   const mainBillsSecond = fixedCats.filter(c => !c.owner && ((c.bill_day && c.bill_day >= 15) || isPerPeriod(c))).sort(sortBills)
-  const daneBillsFirst = fixedCats.filter(c => c.owner === 'dane' && ((c.bill_day && c.bill_day <= 14) || isPerPeriod(c))).sort(sortBills)
-  const daneBillsSecond = fixedCats.filter(c => c.owner === 'dane' && ((c.bill_day && c.bill_day >= 15) || isPerPeriod(c))).sort(sortBills)
-  const kellyBillsFirst = fixedCats.filter(c => c.owner === 'kelly' && ((c.bill_day && c.bill_day <= 14) || isPerPeriod(c))).sort(sortBills)
-  const kellyBillsSecond = fixedCats.filter(c => c.owner === 'kelly' && ((c.bill_day && c.bill_day >= 15) || isPerPeriod(c))).sort(sortBills)
+
+  // Build per-owner bill lists dynamically
+  const ownerBills = {}
+  owners.forEach(owner => {
+    ownerBills[owner] = {
+      first: fixedCats.filter(c => c.owner === owner && ((c.bill_day && c.bill_day <= 14) || isPerPeriod(c))).sort(sortBills),
+      second: fixedCats.filter(c => c.owner === owner && ((c.bill_day && c.bill_day >= 15) || isPerPeriod(c))).sort(sortBills),
+    }
+  })
 
   const activeIncome = income.filter(i => i.is_active)
   const incomeFirst = activeIncome.filter(i => i.frequency === 'weekly' || i.frequency === 'biweekly' || !i.pay_day || i.pay_day <= 14)
@@ -325,8 +335,7 @@ function MonthlyBudget() {
       const acct = accounts.find(a => a.id === cat.account_id)
       if (acct) return acct.name
     }
-    if (cat.owner === 'dane') return accounts.find(a => a.name.toLowerCase().includes('dane'))?.name || "Dane's Spending"
-    if (cat.owner === 'kelly') return accounts.find(a => a.name.toLowerCase().includes('kelly'))?.name || "Kelly's Spending"
+    if (cat.owner) return accounts.find(a => a.name.toLowerCase().includes(cat.owner.toLowerCase()))?.name || `${capitalize(cat.owner)}'s Spending`
     return accounts.find(a => a.account_type === 'checking')?.name || 'Main Checking'
   }
 
@@ -512,10 +521,14 @@ function MonthlyBudget() {
   const secondHalfBills = mainBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
   // Monthly total: items without bill_day appear in both halves (amount * 2), items with bill_day are single-half
   const calcMonthlyTotal = (items) => items.reduce((s, c) => s + (c.bill_day ? (c.budget_amount || 0) : (c.budget_amount || 0) * 2), 0)
-  const daneBFirst = daneBillsFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
-  const daneBSecond = daneBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
-  const kellyBFirst = kellyBillsFirst.reduce((s, c) => s + getHalfBillAmount(c), 0)
-  const kellyBSecond = kellyBillsSecond.reduce((s, c) => s + getHalfBillAmount(c), 0)
+  // Per-owner bill totals (computed dynamically)
+  const ownerTotals = {}
+  owners.forEach(owner => {
+    ownerTotals[owner] = {
+      first: (ownerBills[owner]?.first || []).reduce((s, c) => s + getHalfBillAmount(c), 0),
+      second: (ownerBills[owner]?.second || []).reduce((s, c) => s + getHalfBillAmount(c), 0),
+    }
+  })
 
   // Determine which half of the month we're currently in (for card display)
   // Uses referenceDate which respects manual period advance
@@ -559,7 +572,7 @@ function MonthlyBudget() {
     return data
   }
 
-  const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', 'Dane Spending', 'Kelly Spending']
+  const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', ...owners.map(o => `${capitalize(o)} Spending`)]
 
   // ---- Account Overview Calculations ----
   const accountFlows = {}
@@ -710,8 +723,8 @@ function MonthlyBudget() {
 
   const getTransferDest = (cat) => {
     const nl = cat.name.toLowerCase()
-    if (nl.includes('dane')) return "Dane's Spending"
-    if (nl.includes('kelly')) return "Kelly's Spending"
+    const matchedOwner = owners.find(o => nl.includes(o.toLowerCase()))
+    if (matchedOwner) return `${capitalize(matchedOwner)}'s Spending`
     if (nl.includes('house') || nl.includes('travel')) return 'House/Travel Fund'
     return 'Main Checking'
   }
@@ -853,9 +866,8 @@ function MonthlyBudget() {
           <span className="text-sm font-bold" style={{ color: 'var(--color-error-500)' }}>{fmt(cardBills)}</span>
         </div>
         {spendingCardCats.map(name => {
-          const isDaneKelly = name.toLowerCase().includes('dane') || name.toLowerCase().includes('kelly')
-          const ownerKey = name.toLowerCase().includes('dane') ? 'dane' : name.toLowerCase().includes('kelly') ? 'kelly' : null
-          if (isDaneKelly) {
+          const ownerKey = owners.find(o => name.toLowerCase().includes(o.toLowerCase())) || null
+          if (ownerKey) {
             const personData = getPersonData(ownerKey)
             const available = personData.available
             return (
@@ -888,11 +900,12 @@ function MonthlyBudget() {
         {halfSection('End of Month (15th - End)', false)}
       </div>
 
-      {/* Dane & Kelly side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {personSection("Dane", "dane", daneBillsFirst, daneBillsSecond)}
-        {personSection("Kelly", "kelly", kellyBillsFirst, kellyBillsSecond)}
-      </div>
+      {/* Person budgets side by side */}
+      {owners.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {owners.map(owner => personSection(capitalize(owner), owner, ownerBills[owner]?.first || [], ownerBills[owner]?.second || []))}
+        </div>
+      )}
 
       {/* Account Overview */}
       {accountList.length > 0 && (
@@ -954,6 +967,7 @@ function MonthlyBudget() {
           item={editModal.item}
           itemType={editModal.type}
           accounts={accounts}
+          owners={owners}
           onSave={handleModalSave}
           onClose={() => setEditModal(null)}
         />

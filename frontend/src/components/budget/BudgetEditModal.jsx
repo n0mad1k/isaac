@@ -11,7 +11,7 @@ const BILLING_PRESETS = [
   { value: 'custom', label: 'Custom months...' },
 ]
 
-function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
+function BudgetEditModal({ item, itemType, accounts, owners = [], onSave, onClose }) {
   // itemType: 'income' | 'category'
   const isIncome = itemType === 'income'
 
@@ -305,8 +305,9 @@ function BudgetEditModal({ item, itemType, accounts, onSave, onClose }) {
                 <select value={form.owner || ''} onChange={e => update('owner', e.target.value)}
                   className={inputClass} style={inputStyle}>
                   <option value="">Main Budget</option>
-                  <option value="dane">Dane</option>
-                  <option value="kelly">Kelly</option>
+                  {owners.map(o => (
+                    <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>
+                  ))}
                 </select>
               </div>
 
