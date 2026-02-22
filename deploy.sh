@@ -100,8 +100,15 @@ ssh -i $SSH_KEY $REMOTE "
   # Remove dev tracker router (but keep model - needed by customer_feedback)
   rm -f $REMOTE_PATH/backend/routers/dev_tracker.py
 
-  # Remove dev_tracker router imports from __init__ (but keep model import)
-  sed -i '/from .dev_tracker import/d' $REMOTE_PATH/backend/routers/__init__.py 2>/dev/null || true
+  # Remove dev_tracker try/except import block from __init__ and replace with simple assignment
+  python3 -c \"
+content = open('$REMOTE_PATH/backend/routers/__init__.py').read()
+content = content.replace(
+    'try:\n    from .dev_tracker import router as dev_tracker_router\nexcept ImportError:\n    dev_tracker_router = None  # Not available in public release',
+    'dev_tracker_router = None  # Not available in public release'
+)
+open('$REMOTE_PATH/backend/routers/__init__.py', 'w').write(content)
+\" 2>/dev/null || true
   sed -i '/dev_tracker_router/d' $REMOTE_PATH/backend/main.py 2>/dev/null || true
 "
 
