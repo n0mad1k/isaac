@@ -42,6 +42,7 @@ class FarmAreaType(enum.Enum):
 
     # Outdoor/Growing
     GARDEN = "garden"
+    FIELD = "field"
     NURSERY = "nursery"
     FOOD_FOREST = "food_forest"
     ORCHARD = "orchard"

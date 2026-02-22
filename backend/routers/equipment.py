@@ -105,14 +105,14 @@ class EquipmentResponse(BaseModel):
     serial_number: Optional[str]
     purchase_date: Optional[date]
     purchase_price: Optional[float]
-    current_hours: int
+    current_hours: Optional[int] = 0
     location: Optional[str]
     sub_location: Optional[str]
     is_active: bool
     notes: Optional[str]
     image_url: Optional[str]
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     maintenance_count: int = 0
     overdue_count: int = 0
 
@@ -137,7 +137,7 @@ class MaintenanceResponse(BaseModel):
     notes: Optional[str]
     status: str
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
