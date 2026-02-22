@@ -96,21 +96,30 @@ rsync -avz \
 
 # Post-sync: Remove dev-only code from production
 echo "Cleaning dev-only code from production..."
-ssh -i $SSH_KEY $REMOTE "
-  # Remove dev tracker router (but keep model - needed by customer_feedback)
-  rm -f $REMOTE_PATH/backend/routers/dev_tracker.py
+ssh -i $SSH_KEY $REMOTE "rm -f $REMOTE_PATH/backend/routers/dev_tracker.py"
 
-  # Remove dev_tracker try/except import block from __init__ and replace with simple assignment
-  python3 -c \"
-content = open('$REMOTE_PATH/backend/routers/__init__.py').read()
-content = content.replace(
-    'try:\n    from .dev_tracker import router as dev_tracker_router\nexcept ImportError:\n    dev_tracker_router = None  # Not available in public release',
-    'dev_tracker_router = None  # Not available in public release'
-)
-open('$REMOTE_PATH/backend/routers/__init__.py', 'w').write(content)
-\" 2>/dev/null || true
-  sed -i '/dev_tracker_router/d' $REMOTE_PATH/backend/main.py 2>/dev/null || true
-"
+# Remove dev_tracker import block from __init__.py using heredoc (avoids escaping issues)
+ssh -i $SSH_KEY $REMOTE 'python3' << 'PYEOF'
+import re
+try:
+    with open('/opt/levi/backend/routers/__init__.py', 'r') as f:
+        content = f.read()
+    # Replace the try/except import block with simple None assignment
+    pattern = r'try:\n    from \.dev_tracker import router as dev_tracker_router\nexcept ImportError:\n    dev_tracker_router = None.*'
+    replacement = 'dev_tracker_router = None  # Not available in public release'
+    new_content = re.sub(pattern, replacement, content)
+    if new_content != content:
+        with open('/opt/levi/backend/routers/__init__.py', 'w') as f:
+            f.write(new_content)
+        print('Replaced dev_tracker try/except block')
+    else:
+        print('dev_tracker try/except block not found (may already be cleaned)')
+except Exception as e:
+    print(f'Note: {e}')
+PYEOF
+
+# Remove dev_tracker references from main.py
+ssh -i $SSH_KEY $REMOTE "sed -i '/dev_tracker_router/d' $REMOTE_PATH/backend/main.py 2>/dev/null || true"
 
 # Remove pull-from-prod endpoint using heredoc (separate SSH to avoid escaping issues)
 ssh -i $SSH_KEY $REMOTE 'python3' << 'PYEOF'

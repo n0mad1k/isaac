@@ -128,9 +128,9 @@ class SeedResponse(BaseModel):
     spacing: Optional[str]
     row_spacing: Optional[str]
     optimal_germ_temp: Optional[str]
-    sun_requirement: SunRequirement
+    sun_requirement: Optional[SunRequirement] = None
     light_to_germinate: Optional[str]
-    water_requirement: WaterRequirement
+    water_requirement: Optional[WaterRequirement] = None
     soil_type: Optional[str]
     ph_range: Optional[str]
     grow_zones: Optional[str]
@@ -139,18 +139,18 @@ class SeedResponse(BaseModel):
     sow_months: Optional[str]
     harvest_months: Optional[str]
     indoor_start: Optional[str]
-    direct_sow: bool
-    frost_sensitive: bool
-    heat_tolerant: bool
-    drought_tolerant: bool
+    direct_sow: Optional[bool] = False
+    frost_sensitive: Optional[bool] = False
+    heat_tolerant: Optional[bool] = False
+    drought_tolerant: Optional[bool] = False
     height: Optional[str]
     spread: Optional[str]
-    is_perennial: bool
-    is_native: bool
-    attracts_pollinators: bool
-    culinary_use: bool
-    medicinal_use: bool
-    ornamental_use: bool
+    is_perennial: Optional[bool] = False
+    is_native: Optional[bool] = False
+    attracts_pollinators: Optional[bool] = False
+    culinary_use: Optional[bool] = False
+    medicinal_use: Optional[bool] = False
+    ornamental_use: Optional[bool] = False
     special_requirements: Optional[str]
     description: Optional[str]
     growing_notes: Optional[str]

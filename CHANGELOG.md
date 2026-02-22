@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.86.4] - 2026-02-22
+
+### Fixed
+- **Missing FIELD enum in Farm Areas** - Added `FIELD` to `FarmAreaType` enum, resolving 500 errors when farm areas with type FIELD existed in the database
+- **Nullable response fields** - Made `updated_at` optional in Farm Areas, Vehicles, Home Maintenance, and Equipment response models to handle records without timestamps
+  - Also made `current_mileage` and `current_hours` optional in Vehicle and Equipment responses
+
 ## [1.86.3] - 2026-02-22
 
 ### Fixed
