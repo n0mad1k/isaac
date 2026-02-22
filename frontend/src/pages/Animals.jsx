@@ -1544,6 +1544,73 @@ function AnimalCard({
             </button>
           </div>
 
+          {/* Animal Photo */}
+          <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
+            <h4 className="text-sm font-medium mb-3" style={{ color: 'var(--color-text-muted)' }}>Photo</h4>
+            {animal.photo_path ? (
+              <div className="relative group inline-block">
+                <img
+                  src={getAnimalPhotoUrl(animal.photo_path)}
+                  alt={animal.name}
+                  className="max-h-48 rounded-lg object-contain"
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                  <label className="px-3 py-1.5 bg-blue-600 text-white rounded cursor-pointer text-sm">
+                    Change
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files[0]
+                        if (!file) return
+                        const formData = new FormData()
+                        formData.append('file', file)
+                        try {
+                          await uploadAnimalPhoto(animal.id, formData)
+                          onSave()
+                        } catch (err) { console.error('Failed to upload photo:', err) }
+                      }}
+                    />
+                  </label>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      if (!confirm('Delete this photo?')) return
+                      try {
+                        await deleteAnimalPhoto(animal.id)
+                        onSave()
+                      } catch (err) { console.error('Failed to delete photo:', err) }
+                    }}
+                    className="px-3 py-1.5 bg-red-600 text-white rounded text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="inline-flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-farm-green transition-colors" style={{ borderColor: 'var(--color-border-default)' }}>
+                <Upload className="w-5 h-5" style={{ color: 'var(--color-text-muted)' }} />
+                <span style={{ color: 'var(--color-text-muted)' }}>Upload Photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files[0]
+                    if (!file) return
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    try {
+                      await uploadAnimalPhoto(animal.id, formData)
+                      onSave()
+                    } catch (err) { console.error('Failed to upload photo:', err) }
+                  }}
+                />
+              </label>
+            )}
+          </div>
+
           {/* Inline Editable Details */}
           <div className="rounded-lg p-3" style={{ backgroundColor: 'var(--color-bg-tertiary)' }}>
             <h4 className="text-sm font-medium mb-3" style={{ color: 'var(--color-text-muted)' }}>Details</h4>
