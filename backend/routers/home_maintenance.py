@@ -131,7 +131,7 @@ class MaintenanceResponse(BaseModel):
     notes: Optional[str]
     status: str
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

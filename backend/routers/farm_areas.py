@@ -128,7 +128,7 @@ class AreaResponse(BaseModel):
     is_active: bool
     notes: Optional[str]
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     plant_count: int = 0
     animal_count: int = 0
     equipment_count: int = 0
@@ -161,7 +161,7 @@ class MaintenanceResponse(BaseModel):
     notes: Optional[str]
     status: str
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

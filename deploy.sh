@@ -100,10 +100,29 @@ ssh -i $SSH_KEY $REMOTE "
   # Remove dev tracker router (but keep model - needed by customer_feedback)
   rm -f $REMOTE_PATH/backend/routers/dev_tracker.py
 
-  # Remove dev_tracker router imports from __init__ (but keep model import)
-  sed -i '/from .dev_tracker import/d' $REMOTE_PATH/backend/routers/__init__.py 2>/dev/null || true
+  # Remove dev_tracker_router references from main.py
   sed -i '/dev_tracker_router/d' $REMOTE_PATH/backend/main.py 2>/dev/null || true
 "
+
+# Fix routers/__init__.py - replace try/except block with just dev_tracker_router = None
+ssh -i $SSH_KEY $REMOTE 'python3' << 'PYEOF'
+import re
+try:
+    with open('/opt/levi/backend/routers/__init__.py', 'r') as f:
+        content = f.read()
+    # Replace the try/except block for dev_tracker with just the None assignment
+    pattern = r'try:\s*\n\s*from \.dev_tracker import router as dev_tracker_router\s*\n\s*except ImportError:\s*\n\s*dev_tracker_router = None.*?(?=\n(?:from|try|\n|$))'
+    replacement = 'dev_tracker_router = None  # Not available in production'
+    new_content = re.sub(pattern, replacement, content)
+    if new_content != content:
+        with open('/opt/levi/backend/routers/__init__.py', 'w') as f:
+            f.write(new_content)
+        print('Fixed dev_tracker import in routers/__init__.py')
+    else:
+        print('dev_tracker import already removed or not found')
+except Exception as e:
+    print(f'Note: {e}')
+PYEOF
 
 # Remove pull-from-prod endpoint using heredoc (separate SSH to avoid escaping issues)
 ssh -i $SSH_KEY $REMOTE 'python3' << 'PYEOF'

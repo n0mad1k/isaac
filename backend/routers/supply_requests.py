@@ -46,7 +46,7 @@ class SupplyRequestResponse(BaseModel):
     status: RequestStatus
     admin_notes: Optional[str]
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
