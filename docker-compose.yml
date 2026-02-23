@@ -9,7 +9,7 @@ services:
 
   # ── Backend: Python / FastAPI ──────────────────────────
   backend:
-    build:
+    build: # Replace with 'image' pointing to a image deployed to a register
       context: .
       dockerfile: Dockerfile.backend
     container_name: isaac-backend
@@ -17,7 +17,6 @@ services:
     environment:
       DATABASE_URL: "sqlite:////data/isaac.db"
       UPLOAD_DIR: "/data/uploads"
-      SECRET_KEY: "${SECRET_KEY:-change-me-in-production}"
       # ── Optional ──
       # AMBIENT_WEATHER_API_KEY: "${AMBIENT_WEATHER_API_KEY}"
       # AMBIENT_WEATHER_APP_KEY: "${AMBIENT_WEATHER_APP_KEY}"
@@ -38,7 +37,7 @@ services:
 
   # ── Frontend: React + Nginx ────────────────────────────
   frontend:
-    build:
+    build: # Replace with 'image' pointing to a image deployed to a register
       context: .
       dockerfile: Dockerfile.frontend
       args:
