@@ -187,8 +187,12 @@ function BudgetOverview() {
     return data
   }
 
-  // Discover unique owners from categories (e.g. "dane", "kelly")
-  const owners = [...new Set(categories.filter(c => c.owner).map(c => c.owner))]
+  // Discover unique owners from categories AND transfer names (e.g. "Dane Spending" -> "dane")
+  const ownersFromCats = categories.filter(c => c.owner).map(c => c.owner)
+  const ownersFromTransfers = categories
+    .filter(c => c.category_type === 'transfer' && c.name.toLowerCase().endsWith(' spending'))
+    .map(c => c.name.toLowerCase().replace(' spending', ''))
+  const owners = [...new Set([...ownersFromCats, ...ownersFromTransfers])]
 
   // Build cards: Income, Bills, then remaining for each spending category
   const spendingCardCats = ['Gas', 'Groceries', 'Main Spending', ...owners.map(o => `${o.charAt(0).toUpperCase() + o.slice(1)} Spending`)]

@@ -285,8 +285,12 @@ function MonthlyBudget() {
   const variableCats = activeCats.filter(c => c.category_type === 'variable' && c.name !== 'Roll Over')
   const transferCats = activeCats.filter(c => c.category_type === 'transfer')
 
-  // Discover unique owners from categories (e.g. "dane", "kelly")
-  const owners = [...new Set(activeCats.filter(c => c.owner).map(c => c.owner))]
+  // Discover unique owners from categories AND transfer names (e.g. "Dane Spending" -> "dane")
+  const ownersFromCats = activeCats.filter(c => c.owner).map(c => c.owner)
+  const ownersFromTransfers = transferCats
+    .filter(c => c.name.toLowerCase().endsWith(' spending'))
+    .map(c => c.name.toLowerCase().replace(' spending', ''))
+  const owners = [...new Set([...ownersFromCats, ...ownersFromTransfers])]
   const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
   const isPerPeriod = (cat) => !cat.bill_day && cat.budget_amount > 0

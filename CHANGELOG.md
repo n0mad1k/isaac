@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.86.5] - 2026-02-23
+
+### Fixed
+- **Kelly Spending Missing from Budget** - Fixed dynamic owner discovery to also detect owners from transfer category names (e.g. "Kelly Spending"), not just from the `owner` field on bill categories
+  - Affected both backend person spending balances and frontend budget display
+
 ## [1.86.4] - 2026-02-22
 
 ### Fixed

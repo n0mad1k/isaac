@@ -1627,8 +1627,13 @@ async def get_period_summary(
         # Available = Account Balance - Bills This Half
         person_spending_balances = {}
         try:
-            # Dynamically discover owners from categories
-            owner_keys = sorted(set(c.owner for c in categories if c.owner))
+            # Dynamically discover owners from categories AND transfer names
+            owner_set = set(c.owner for c in categories if c.owner)
+            # Also discover from transfer categories named like "Dane Spending"
+            for c in categories:
+                if c.category_type == CategoryType.TRANSFER and c.name.lower().endswith(' spending'):
+                    owner_set.add(c.name.lower().replace(' spending', ''))
+            owner_keys = sorted(owner_set)
             for owner_key in owner_keys:
                 transfer_cat = next(
                     (c for c in categories
