@@ -1,6 +1,7 @@
 #!/bin/bash
-# Dev Tracker Management Script
+# Dev Tracker Management Script (requires admin auth)
 # Usage:
+#   ./dev-tracker.sh auth                           - Login and save session cookie
 #   ./dev-tracker.sh list [pending|testing|verified|backlog]
 #   ./dev-tracker.sh show <id>                      - Show full details of an item
 #   ./dev-tracker.sh add [--backlog] <priority> <title> - Add new item (--backlog sends to backlog)
@@ -11,14 +12,63 @@
 #   ./dev-tracker.sh collab <id> [on|off]           - Mark as needing interactive collaboration
 #   ./dev-tracker.sh failnote <id> <note>           - Update fail note without changing status
 #   ./dev-tracker.sh testnotes <id> <notes>         - Update test notes without changing status
+# Auth: Set DEV_TRACKER_USER and DEV_TRACKER_PASS env vars for non-interactive login
 
 DEV_URL="https://levi.local:8443/api/dev-tracker"
+AUTH_URL="https://levi.local:8443/api/auth/login"
+COOKIE_JAR="$HOME/.dev-tracker-cookies"
+
+# Helper: curl with auth cookies
+auth_curl() {
+    curl -sk -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$@"
+}
+
+# Helper: check if response is auth error and re-auth if needed
+check_auth() {
+    local response="$1"
+    if echo "$response" | grep -q '"Authentication required"' || echo "$response" | grep -q '"Not authenticated"'; then
+        echo "Session expired. Re-authenticating..."
+        do_login
+        return 1  # Signal caller to retry
+    fi
+    return 0
+}
+
+do_login() {
+    if [ -n "$DEV_TRACKER_USER" ] && [ -n "$DEV_TRACKER_PASS" ]; then
+        USER="$DEV_TRACKER_USER"
+        PASS="$DEV_TRACKER_PASS"
+    else
+        read -rp "Username: " USER
+        read -rsp "Password: " PASS
+        echo
+    fi
+    RESULT=$(curl -sk -c "$COOKIE_JAR" -X POST "$AUTH_URL" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "username=$USER&password=$PASS" 2>/dev/null)
+    if echo "$RESULT" | grep -q '"username"'; then
+        echo "Authenticated successfully."
+    else
+        echo "Login failed: $RESULT"
+        exit 1
+    fi
+}
+
+# Auto-login if no cookie jar exists (except for auth and help commands)
+if [ "$1" != "auth" ] && [ -n "$1" ] && [ ! -f "$COOKIE_JAR" ]; then
+    echo "No session found. Logging in..."
+    do_login
+fi
 
 case "$1" in
+    auth)
+        do_login
+        exit 0
+        ;;
     list)
         STATUS_FILTER="$2"
         if [ -n "$STATUS_FILTER" ]; then
-            curl -sk "$DEV_URL/" | python3 -c "
+            auth_curl "$DEV_URL/" | python3 -c "
 import json,sys
 data=json.load(sys.stdin)
 for item in data:
@@ -26,7 +76,7 @@ for item in data:
         collab = '[COLLAB] ' if item.get('requires_collab') else ''
         print(f\"[{item['id']}] {item['priority'].upper()} - {collab}{item['title'][:55]}{'...' if len(item['title']) > 55 else ''}\")"
         else
-            curl -sk "$DEV_URL/" | python3 -c "
+            auth_curl "$DEV_URL/" | python3 -c "
 import json,sys
 data=json.load(sys.stdin)
 pending = [i for i in data if i['status'] == 'pending']
@@ -59,7 +109,7 @@ print(f'\n=== VERIFIED ({len(verified)}) ===')"
             echo "Usage: $0 show <id>"
             exit 1
         fi
-        curl -sk "$DEV_URL/$ID" | python3 -c "
+        auth_curl "$DEV_URL/$ID" | python3 -c "
 import json,sys
 from datetime import datetime
 try:
@@ -137,7 +187,7 @@ except Exception as e:
             JSON="{\"title\": \"$TITLE\", \"priority\": \"$PRIORITY\"}"
         fi
 
-        RESULT=$(curl -sk -X POST "$DEV_URL/" \
+        RESULT=$(auth_curl -X POST "$DEV_URL/" \
             -H "Content-Type: application/json" \
             -d "$JSON" 2>/dev/null)
         if echo "$RESULT" | grep -q '"id"'; then
@@ -168,7 +218,7 @@ except Exception as e:
             VALUE="true"
         fi
 
-        RESULT=$(curl -sk -X PUT "$DEV_URL/$ID" \
+        RESULT=$(auth_curl -X PUT "$DEV_URL/$ID" \
             -H "Content-Type: application/json" \
             -d "{\"requires_collab\": $VALUE}" 2>/dev/null)
 
@@ -208,7 +258,7 @@ except Exception as e:
         TEST_NOTES_ESCAPED=$(echo "$TEST_NOTES" | sed 's/"/\\"/g')
         JSON="{\"status\": \"testing\", \"test_notes\": \"$TEST_NOTES_ESCAPED\"}"
 
-        RESULT=$(curl -sk -X PUT "$DEV_URL/$ID" \
+        RESULT=$(auth_curl -X PUT "$DEV_URL/$ID" \
             -H "Content-Type: application/json" \
             -d "$JSON" 2>/dev/null)
 
@@ -242,7 +292,7 @@ except Exception as e:
         FAIL_NOTE_ESCAPED=$(echo "$FAIL_NOTE" | sed 's/"/\\"/g')
         JSON="{\"fail_note\": \"$FAIL_NOTE_ESCAPED\"}"
 
-        RESULT=$(curl -sk -X PUT "$DEV_URL/$ID" \
+        RESULT=$(auth_curl -X PUT "$DEV_URL/$ID" \
             -H "Content-Type: application/json" \
             -d "$JSON" 2>/dev/null)
 
@@ -276,7 +326,7 @@ except Exception as e:
         TEST_NOTES_ESCAPED=$(echo "$TEST_NOTES" | sed 's/"/\\"/g')
         JSON="{\"test_notes\": \"$TEST_NOTES_ESCAPED\"}"
 
-        RESULT=$(curl -sk -X PUT "$DEV_URL/$ID" \
+        RESULT=$(auth_curl -X PUT "$DEV_URL/$ID" \
             -H "Content-Type: application/json" \
             -d "$JSON" 2>/dev/null)
 
@@ -313,7 +363,7 @@ except Exception as e:
             JSON="{\"status\": \"$STATUS\"}"
         fi
 
-        RESULT=$(curl -sk -X PUT "$DEV_URL/$ID" \
+        RESULT=$(auth_curl -X PUT "$DEV_URL/$ID" \
             -H "Content-Type: application/json" \
             -d "$JSON" 2>/dev/null)
 
@@ -329,6 +379,7 @@ except Exception as e:
     *)
         echo "Dev Tracker CLI"
         echo "Usage:"
+        echo "  $0 auth                              - Login and save session"
         echo "  $0 list [pending|testing|verified|backlog]  - List items"
         echo "  $0 show <id>                        - Show full details of an item"
         echo "  $0 add [--backlog] <priority> <title> - Add new item (--backlog sends to backlog)"
@@ -339,5 +390,7 @@ except Exception as e:
         echo "  $0 collab <id> [on|off]             - Mark as needing interactive fixing with user"
         echo "  $0 failnote <id> <note>             - Update fail note without changing status"
         echo "  $0 testnotes <id> <notes>           - Update test notes without changing status"
+        echo ""
+        echo "Auth: Set DEV_TRACKER_USER and DEV_TRACKER_PASS env vars for non-interactive login"
         ;;
 esac
