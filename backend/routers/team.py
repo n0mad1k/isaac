@@ -53,11 +53,14 @@ from models.team import (
 from models.supply_requests import SupplyRequest, RequestStatus, RequestPriority
 from models.tasks import Task, TaskType, TaskCategory, task_member_assignments
 from routers.auth import require_auth, require_admin
+from services.permissions import require_view, require_create, require_edit, require_delete, require_interact
 from routers.settings import get_setting, set_setting
 from models.users import User
 
 
 router = APIRouter(prefix="/team", tags=["Team"])
+
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 # ============================================
@@ -691,7 +694,7 @@ DEFAULT_TEAM_VALUES = [
 @router.get("/settings/")
 async def get_team_settings(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get team management settings"""
     team_enabled = await get_setting(db, "team_enabled")
@@ -755,7 +758,7 @@ async def update_team_settings(
 @router.get("/overview/")
 async def get_team_overview(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get team overview stats and readiness summary"""
     # Get all active members
@@ -820,7 +823,7 @@ async def get_team_overview(
 @router.get("/skill-matrix/")
 async def get_skill_matrix(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get skills across all team members"""
     result = await db.execute(
@@ -867,7 +870,7 @@ async def get_skill_matrix(
 async def get_members(
     active_only: bool = True,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get all team members"""
     query = select(TeamMember)
@@ -885,7 +888,7 @@ async def get_members(
 async def create_member(
     data: TeamMemberCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_create("team"))
 ):
     """Create a new team member"""
     member = TeamMember(**data.model_dump())
@@ -900,7 +903,7 @@ async def create_member(
 async def get_member(
     member_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get a specific team member"""
     result = await db.execute(
@@ -918,7 +921,7 @@ async def update_member(
     member_id: int,
     data: TeamMemberUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a team member"""
     result = await db.execute(
@@ -949,7 +952,7 @@ async def update_member(
 async def delete_member(
     member_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a team member"""
     result = await db.execute(
@@ -980,7 +983,7 @@ UPLOAD_DIR = "data/team_photos"
 
 
 @router.get("/photos/{filename}")
-async def get_member_photo(filename: str, current_user: User = Depends(require_auth)):
+async def get_member_photo(filename: str, current_user: User = Depends(require_view("team"))):
     """Serve a member photo file"""
     filepath = os.path.join(UPLOAD_DIR, filename)
     if not os.path.exists(filepath):
@@ -1003,7 +1006,7 @@ async def upload_member_photo(
     member_id: int,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Upload a photo for a team member"""
     result = await db.execute(
@@ -1022,7 +1025,11 @@ async def upload_member_photo(
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
     # Generate unique filename
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
     ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    ext = re.sub(r'[^a-zA-Z0-9]', '', ext)[:10]
     filename = f"{member_id}_{uuid.uuid4().hex[:8]}.{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
 
@@ -1035,21 +1042,21 @@ async def upload_member_photo(
 
     # Save new photo
     with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(contents)
 
     # Update member record
     member.photo_path = filepath
     member.updated_at = datetime.utcnow()
     await db.commit()
 
-    return {"photo_path": filepath}
+    return {"photo_path": os.path.basename(filepath)}
 
 
 @router.delete("/members/{member_id}/photo/")
 async def delete_member_photo(
     member_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Delete a member's photo"""
     result = await db.execute(
@@ -1080,7 +1087,7 @@ LOGO_DIR = "data/team_logo"
 
 
 @router.get("/logo/{filename}")
-async def get_team_logo(filename: str, current_user: User = Depends(require_auth)):
+async def get_team_logo(filename: str, current_user: User = Depends(require_view("team"))):
     """Serve the team logo file"""
     filepath = os.path.join(LOGO_DIR, filename)
     if not os.path.exists(filepath):
@@ -1102,13 +1109,18 @@ async def get_team_logo(filename: str, current_user: User = Depends(require_auth
 async def upload_team_logo(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Upload a team logo"""
     # Validate file type
-    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
     if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, GIF, WebP, SVG")
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, GIF, WebP")
+
+    # Read and check file size
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
 
     # Create upload directory if not exists
     os.makedirs(LOGO_DIR, exist_ok=True)
@@ -1122,24 +1134,13 @@ async def upload_team_logo(
 
     # Generate filename
     ext = file.filename.split(".")[-1] if "." in file.filename else "png"
+    ext = re.sub(r'[^a-zA-Z0-9]', '', ext)[:10]
     filename = f"team_logo_{uuid.uuid4().hex[:8]}.{ext}"
     filepath = os.path.join(LOGO_DIR, filename)
 
-    # Save logo (sanitize SVGs to prevent stored XSS)
-    if file.content_type == "image/svg+xml":
-        content = await file.read()
-        text = content.decode("utf-8", errors="replace")
-        # Strip script tags, event handlers, and javascript: URLs
-        text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
-        text = re.sub(r'<script[^>]*/>', '', text, flags=re.IGNORECASE)
-        text = re.sub(r'\s+on\w+\s*=\s*"[^"]*"', '', text, flags=re.IGNORECASE)
-        text = re.sub(r"\s+on\w+\s*=\s*'[^']*'", '', text, flags=re.IGNORECASE)
-        text = re.sub(r'javascript\s*:', '', text, flags=re.IGNORECASE)
-        with open(filepath, "w", encoding="utf-8") as buffer:
-            buffer.write(text)
-    else:
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+    # Save logo
+    with open(filepath, "wb") as buffer:
+        buffer.write(contents)
 
     # Update team_logo setting
     result = await db.execute(
@@ -1152,7 +1153,7 @@ async def upload_team_logo(
         db.add(AppSetting(key="team_logo", value=filepath, description="Team logo image path"))
     await db.commit()
 
-    return {"logo_path": filepath}
+    return {"logo_path": os.path.basename(filepath)}
 
 
 # ============================================
@@ -1164,7 +1165,7 @@ async def get_weight_history(
     member_id: int,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get weight history for a member"""
     result = await db.execute(
@@ -1192,7 +1193,7 @@ async def log_weight(
     member_id: int,
     data: WeightLogCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Log a weight/height entry for a member. At least one of weight or height_inches required."""
     # Validate at least one measurement provided
@@ -1258,7 +1259,7 @@ async def update_weight_log(
     log_id: int,
     data: WeightLogUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a weight/height log entry"""
     result = await db.execute(
@@ -1324,7 +1325,7 @@ async def delete_weight_log(
     member_id: int,
     log_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a weight/height log entry"""
     result = await db.execute(
@@ -1371,7 +1372,7 @@ async def get_vitals_history(
     vital_type: Optional[VitalType] = None,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get vitals history for a member, optionally filtered by type"""
     query = select(MemberVitalsLog).where(MemberVitalsLog.member_id == member_id)
@@ -1401,7 +1402,7 @@ async def get_vitals_history(
 async def get_vitals_averages(
     member_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get average vitals for establishing baselines"""
     result = await db.execute(
@@ -1582,7 +1583,7 @@ async def _calculate_and_store_body_fat(member_id: int, db: AsyncSession, force:
 async def calculate_body_fat(
     member_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Calculate and store body fat from existing taping measurements."""
     # Use force=True since user explicitly requested calculation
@@ -1601,7 +1602,7 @@ async def get_readiness_analysis(
     lookback_days: int = Query(default=35, ge=7, le=90),
     force: bool = Query(default=False, description="Force re-analysis even if data unchanged"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """
     Evidence-based readiness analysis with hash-based change detection.
@@ -1730,7 +1731,7 @@ async def submit_daily_checkin(
     member_id: int,
     data: DailyCheckinInput,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """
     Submit daily check-in with all health metrics in one form.
@@ -1936,7 +1937,7 @@ async def get_fitness_profile(
     member_id: int,
     days_back: int = Query(30, ge=7, le=365),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """
     Get fitness profile with 3-tier performance scores (Civilian/Marine/SF).
@@ -2043,7 +2044,7 @@ async def log_vital(
     member_id: int,
     data: VitalsLogCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Log a vital reading for a member"""
     result = await db.execute(
@@ -2103,7 +2104,7 @@ async def delete_vital(
     member_id: int,
     vital_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a vital reading"""
     result = await db.execute(
@@ -2127,7 +2128,7 @@ async def update_vital(
     vital_id: int,
     data: VitalsLogUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a vital reading"""
     result = await db.execute(
@@ -2161,7 +2162,7 @@ async def update_vital(
 
 @router.get("/vitals/types/")
 async def get_vital_types(
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get available vital types with their units"""
     return [
@@ -2184,7 +2185,7 @@ async def get_medical_history(
     member_id: int,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get medical history for a member"""
     result = await db.execute(
@@ -2213,7 +2214,7 @@ async def log_medical_change(
     member_id: int,
     data: MedicalLogCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Log a medical status change for a member"""
     result = await db.execute(
@@ -2249,7 +2250,7 @@ async def update_medical_status(
     member_id: int,
     data: MedicalStatusUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update medical readiness status for a member"""
     result = await db.execute(
@@ -2292,7 +2293,7 @@ async def update_sick_status(
     member_id: int,
     data: SickStatusUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Update sick/recovery status for a member"""
     result = await db.execute(
@@ -2359,7 +2360,7 @@ async def update_sick_status(
 async def end_recovery_mode(
     member_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """End recovery mode - member is fully back to normal"""
     result = await db.execute(
@@ -2387,7 +2388,7 @@ async def get_sick_history(
     member_id: int,
     limit: int = Query(default=10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get sick period history for a member"""
     result = await db.execute(
@@ -2436,7 +2437,7 @@ async def get_mentoring_sessions(
     member_id: int,
     include_archived: bool = False,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get mentoring sessions for a member"""
     query = select(MentoringSession).where(MentoringSession.member_id == member_id)
@@ -2477,7 +2478,7 @@ async def create_mentoring_session(
     member_id: int,
     data: MentoringSessionCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_create("team"))
 ):
     """Create a new mentoring session"""
     # Verify member exists
@@ -2538,7 +2539,7 @@ async def get_mentoring_session(
     member_id: int,
     session_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get a specific mentoring session"""
     result = await db.execute(
@@ -2579,7 +2580,7 @@ async def update_mentoring_session(
     session_id: int,
     data: MentoringSessionUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a mentoring session"""
     result = await db.execute(
@@ -2606,7 +2607,7 @@ async def update_mentoring_session(
 async def get_current_week_session(
     member_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get or check for current week's session"""
     now = datetime.utcnow()
@@ -2639,7 +2640,7 @@ async def get_values_history(
     member_id: int,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get values assessment history for a member"""
     result = await db.execute(
@@ -2666,7 +2667,7 @@ async def get_values_history(
 @router.get("/values-summary/")
 async def get_values_summary(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get team-wide values alignment trends"""
     # Get all active members
@@ -2727,7 +2728,7 @@ async def get_member_observations(
     weeks: int = 4,
     include_discussed: bool = False,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get observations for a specific member. By default excludes observations already discussed in AAR."""
     local_now = await get_local_now(db)
@@ -2768,7 +2769,7 @@ async def create_observation(
     member_id: int,
     data: ObservationCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Create a new observation"""
     # Verify member exists
@@ -2810,7 +2811,7 @@ async def update_observation(
     observation_id: int,
     data: ObservationUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update an observation"""
     result = await db.execute(
@@ -2832,7 +2833,7 @@ async def update_observation(
 async def delete_observation(
     observation_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete an observation"""
     result = await db.execute(
@@ -2851,7 +2852,7 @@ async def delete_observation(
 async def get_week_observations(
     date: str,  # YYYY-MM-DD format
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get all observations for a specific week (for AAR)"""
     try:
@@ -2907,7 +2908,7 @@ async def get_week_observations(
 async def get_aars(
     limit: int = 10,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get recent AARs"""
     result = await db.execute(
@@ -2935,7 +2936,7 @@ async def get_aars(
 @router.get("/aar/current/")
 async def get_current_aar(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get or create current week's AAR.
 
@@ -3006,7 +3007,7 @@ async def get_current_aar(
 async def create_aar(
     data: AARCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Create a new AAR"""
     # Check if AAR exists for this week
@@ -3088,7 +3089,7 @@ async def update_aar(
     aar_id: int,
     data: AARUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update an AAR"""
     result = await db.execute(
@@ -3218,7 +3219,7 @@ async def update_aar(
 @router.get("/readiness/")
 async def get_team_readiness(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get readiness status for all active members"""
     result = await db.execute(
@@ -3250,7 +3251,7 @@ async def update_member_readiness(
     overall_readiness: ReadinessStatus,
     readiness_notes: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update overall readiness for a member"""
     result = await db.execute(
@@ -3413,7 +3414,7 @@ async def get_all_team_gear(
     assigned_only: bool = False,
     unassigned_only: bool = False,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get all team gear with member info - assigned and unassigned (pool)"""
     query = select(MemberGear)
@@ -3457,7 +3458,7 @@ async def get_all_team_gear(
 async def create_pool_gear(
     data: GearCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_create("team"))
 ):
     """Create unassigned (pool) gear"""
     try:
@@ -3477,7 +3478,7 @@ async def assign_gear(
     gear_id: int,
     data: GearAssign,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Assign gear to a member or unassign to pool"""
     result = await db.execute(
@@ -3523,7 +3524,7 @@ async def assign_gear(
 async def get_team_gear_item(
     gear_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get a specific gear item by ID (regardless of assignment)"""
     result = await db.execute(
@@ -3554,7 +3555,7 @@ async def update_team_gear(
     gear_id: int,
     data: GearUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a gear item (regardless of assignment)"""
     result = await db.execute(
@@ -3578,7 +3579,7 @@ async def update_team_gear(
 async def delete_team_gear(
     gear_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a gear item (regardless of assignment)"""
     result = await db.execute(
@@ -3602,7 +3603,7 @@ async def delete_team_gear(
 async def get_pool_gear_contents(
     gear_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get contents for pool gear (unassigned)"""
     result = await db.execute(
@@ -3620,7 +3621,7 @@ async def create_pool_gear_contents(
     gear_id: int,
     data: GearContentsCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_create("team"))
 ):
     """Add contents to pool gear"""
     # Verify gear exists
@@ -3656,7 +3657,7 @@ async def update_pool_gear_contents(
     content_id: int,
     data: GearContentsUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update pool gear contents item"""
     result = await db.execute(
@@ -3684,7 +3685,7 @@ async def delete_pool_gear_contents(
     gear_id: int,
     content_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete pool gear contents item"""
     result = await db.execute(
@@ -3711,7 +3712,7 @@ async def get_member_gear(
     member_id: int,
     include_inactive: bool = False,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get all gear for a member"""
     # Verify member exists
@@ -3738,7 +3739,7 @@ async def create_member_gear(
     member_id: int,
     data: GearCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_create("team"))
 ):
     """Create a new gear item for a member"""
     # Verify member exists
@@ -3762,7 +3763,7 @@ async def get_gear_item(
     member_id: int,
     gear_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get a specific gear item"""
     result = await db.execute(
@@ -3783,7 +3784,7 @@ async def update_gear_item(
     gear_id: int,
     data: GearUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a gear item"""
     result = await db.execute(
@@ -3811,7 +3812,7 @@ async def delete_gear_item(
     member_id: int,
     gear_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a gear item"""
     result = await db.execute(
@@ -3838,7 +3839,7 @@ async def get_gear_maintenance(
     member_id: int,
     gear_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get maintenance schedules for a gear item"""
     # Verify gear exists and belongs to member
@@ -3868,7 +3869,7 @@ async def create_gear_maintenance(
     gear_id: int,
     data: GearMaintenanceCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_create("team"))
 ):
     """Create a maintenance schedule for a gear item"""
     # Verify gear exists and belongs to member
@@ -3896,7 +3897,7 @@ async def update_gear_maintenance(
     maint_id: int,
     data: GearMaintenanceUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a maintenance schedule"""
     result = await db.execute(
@@ -3925,7 +3926,7 @@ async def delete_gear_maintenance(
     gear_id: int,
     maint_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a maintenance schedule"""
     result = await db.execute(
@@ -3950,7 +3951,7 @@ async def complete_gear_maintenance(
     maint_id: int,
     data: GearMaintenanceComplete,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Mark a maintenance task as complete"""
     result = await db.execute(
@@ -4000,7 +4001,7 @@ async def get_gear_contents(
     member_id: int,
     gear_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get contents for a container gear item"""
     # Verify gear exists and belongs to member
@@ -4030,7 +4031,7 @@ async def create_gear_contents(
     gear_id: int,
     data: GearContentsCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_create("team"))
 ):
     """Add contents to a container gear item"""
     # Verify gear exists and belongs to member
@@ -4063,7 +4064,7 @@ async def update_gear_contents(
     content_id: int,
     data: GearContentsUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a contents item"""
     result = await db.execute(
@@ -4092,7 +4093,7 @@ async def delete_gear_contents(
     gear_id: int,
     content_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a contents item"""
     result = await db.execute(
@@ -4150,7 +4151,7 @@ async def get_member_training(
     member_id: int,
     include_inactive: bool = False,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get all training items for a member"""
     # Verify member exists
@@ -4177,7 +4178,7 @@ async def create_member_training(
     member_id: int,
     data: TrainingCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_create("team"))
 ):
     """Create a new training item for a member"""
     # Verify member exists
@@ -4202,7 +4203,7 @@ async def update_member_training(
     training_id: int,
     data: TrainingUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a training item"""
     result = await db.execute(
@@ -4230,7 +4231,7 @@ async def delete_member_training(
     member_id: int,
     training_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a training item"""
     result = await db.execute(
@@ -4254,7 +4255,7 @@ async def log_training_session(
     training_id: int,
     data: TrainingLogCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Log a training session"""
     result = await db.execute(
@@ -4297,7 +4298,7 @@ async def get_training_history(
     training_id: int,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get training session history"""
     result = await db.execute(
@@ -4314,7 +4315,7 @@ async def get_training_history(
 @router.get("/training-summary/")
 async def get_training_summary(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get team-wide training overview"""
     # Get all active members
@@ -4398,7 +4399,7 @@ async def get_member_appointments(
     member_id: int,
     include_inactive: bool = False,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get all medical appointments for a member"""
     # Verify member exists
@@ -4425,7 +4426,7 @@ async def create_member_appointment(
     member_id: int,
     data: MedicalAppointmentCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_create("team"))
 ):
     """Create a new medical appointment for a member"""
     # Verify member exists
@@ -4450,7 +4451,7 @@ async def update_member_appointment(
     appt_id: int,
     data: MedicalAppointmentUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a medical appointment"""
     result = await db.execute(
@@ -4478,7 +4479,7 @@ async def delete_member_appointment(
     member_id: int,
     appt_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a medical appointment"""
     result = await db.execute(
@@ -4502,7 +4503,7 @@ async def complete_member_appointment(
     appt_id: int,
     data: MedicalAppointmentComplete,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Mark a medical appointment as complete and calculate next due"""
     result = await db.execute(
@@ -4611,7 +4612,7 @@ async def get_member_supply_requests(
     member_id: int,
     status: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get all supply requests for a member"""
     query = select(SupplyRequest).where(SupplyRequest.member_id == member_id)
@@ -4635,7 +4636,7 @@ async def create_member_supply_request(
     member_id: int,
     data: SupplyRequestCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_create("team"))
 ):
     """Create a new supply request for a member"""
     try:
@@ -4677,7 +4678,7 @@ async def update_supply_request(
     request_id: int,
     data: SupplyRequestUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update a supply request"""
     result = await db.execute(select(SupplyRequest).where(SupplyRequest.id == request_id))
@@ -4713,7 +4714,7 @@ async def update_supply_request(
 async def delete_supply_request(
     request_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a supply request"""
     result = await db.execute(select(SupplyRequest).where(SupplyRequest.id == request_id))
@@ -4732,7 +4733,7 @@ async def get_all_supply_requests(
     status: Optional[str] = None,
     priority: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get all supply requests (for admin view)"""
     query = select(SupplyRequest).where(SupplyRequest.member_id.isnot(None))
@@ -4805,7 +4806,7 @@ async def get_member_tasks(
     include_completed: bool = False,
     backlog_only: bool = False,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get tasks assigned to a member (checks both legacy and many-to-many)"""
     query = (
@@ -4838,7 +4839,7 @@ async def get_member_tasks(
 async def get_member_backlog(
     member_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get backlog tasks assigned to a member (checks both legacy and many-to-many)"""
     query = (
@@ -4896,7 +4897,7 @@ def serialize_workout(workout: MemberWorkout):
 
 @router.get("/workout-types/")
 async def get_workout_types(
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get list of available workout types"""
     return [
@@ -4913,7 +4914,7 @@ async def get_member_workouts(
     workout_type: Optional[WorkoutType] = None,
     days_back: Optional[int] = Query(None, ge=1, le=365),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get workout history for a member"""
     # Verify member exists
@@ -4947,7 +4948,7 @@ async def get_workout_stats(
     member_id: int,
     days_back: int = Query(30, ge=1, le=365),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_view("team"))
 ):
     """Get workout statistics for a member over a period"""
     # Verify member exists
@@ -5035,7 +5036,7 @@ async def log_workout(
     member_id: int,
     workout_data: WorkoutCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_interact("team"))
 ):
     """Log a new workout for a member"""
     # Verify member exists
@@ -5086,7 +5087,7 @@ async def update_workout(
     workout_id: int,
     workout_data: WorkoutUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_edit("team"))
 ):
     """Update an existing workout"""
     result = await db.execute(
@@ -5122,7 +5123,7 @@ async def delete_workout(
     member_id: int,
     workout_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_delete("team"))
 ):
     """Delete a workout (soft delete)"""
     result = await db.execute(
@@ -5160,7 +5161,7 @@ class BulkMilestoneUpdate(BaseModel):
 async def get_growth_data(
     member_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth)
+    user: User = Depends(require_view("team"))
 ):
     """Get weight/height history with percentiles for a child member"""
     result = await db.execute(
@@ -5314,7 +5315,7 @@ async def get_growth_curves(
     member_id: int,
     measurement_type: str,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth)
+    user: User = Depends(require_view("team"))
 ):
     """Get percentile reference curves + member data points for charting"""
     if measurement_type not in ("weight", "height", "bmi"):
@@ -5431,7 +5432,7 @@ async def get_growth_curves(
 async def get_growth_reference(
     gender: str,
     measurement_type: str,
-    user: User = Depends(require_auth)
+    user: User = Depends(require_view("team"))
 ):
     """Get raw percentile curves for a given gender and measurement type"""
     if gender not in ("male", "female"):
@@ -5450,7 +5451,7 @@ async def get_growth_reference(
 async def get_member_milestones(
     member_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth)
+    user: User = Depends(require_view("team"))
 ):
     """Get milestone checklist with achieved status for a child member"""
     result = await db.execute(
@@ -5660,7 +5661,7 @@ async def toggle_milestone(
     milestone_id: str,
     data: MilestoneUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth)
+    user: User = Depends(require_interact("team"))
 ):
     """Toggle a developmental milestone as achieved/not achieved"""
     # Verify member exists
@@ -5712,7 +5713,7 @@ async def bulk_toggle_milestones(
     member_id: int,
     data: BulkMilestoneUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth)
+    user: User = Depends(require_interact("team"))
 ):
     """Bulk toggle multiple milestones as achieved/not achieved"""
     result = await db.execute(

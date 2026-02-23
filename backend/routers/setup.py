@@ -240,13 +240,17 @@ async def complete_setup_wizard(
             )
             db.add(new_user)
 
-        # 4. Set system timezone (best effort)
+        # 4. Set system timezone (best effort, with validation)
         try:
-            subprocess.run(
-                ["sudo", "timedatectl", "set-timezone", config.timezone],
-                capture_output=True,
-                timeout=10
-            )
+            import pytz
+            if config.timezone in pytz.all_timezones:
+                subprocess.run(
+                    ["sudo", "timedatectl", "set-timezone", config.timezone],
+                    capture_output=True,
+                    timeout=10
+                )
+            else:
+                logger.warning(f"Invalid timezone provided: {config.timezone}")
         except Exception as e:
             logger.warning(f"Could not set system timezone: {e}")
 

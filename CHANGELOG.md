@@ -2,6 +2,39 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.87.0] - 2026-02-23
+
+### Added
+- **Role-Based Access Control (RBAC)** - Granular permissions on team (107 endpoints), garden (26 endpoints), and supply requests (6 endpoints) routers
+  - Replaces blanket `require_auth` with `require_view`, `require_create`, `require_edit`, `require_delete`, `require_interact` per category
+  - New permission categories: team, garden, supply_requests added to all 5 roles
+- **Dev Tracker Auth** - All 11 dev tracker endpoints now require admin authentication
+- **SSRF Protection** - Plant image URL imports now validate against private/internal IP ranges
+- **Invitation Token Hashing** - Invitation tokens hashed with SHA-256 before database storage
+
+### Changed
+- **Upload Security Hardening** - All file upload endpoints (8 total) now enforce 10MB size limits, sanitize file extensions, and return only basenames
+- **SVG Uploads Rejected** - Team logo upload no longer accepts SVG files
+- **Admin Logs** - Admin log endpoints now require admin role instead of basic auth
+- **Tailscale IP Range** - Narrowed from `100.*` prefix to proper CGNAT range `100.64.0.0/10`
+- **Cookie Consistency** - Login and invite cookies now use identical security flags
+- **FastAPI Docs** - Swagger/ReDoc disabled in production, available only in dev
+- **Nginx Security** - Added X-Content-Type-Options, X-Frame-Options, Referrer-Policy headers
+
+### Fixed
+- **Token Leak** - Removed session token from login response body (cookie-only auth)
+- **Error Message Leaks** - Replaced `str(e)` with generic messages in 14 locations across settings, chat, and health monitor
+- **Bare Excepts** - Fixed 5 bare `except:` clauses to `except Exception:`
+- **Timezone Handling** - Session/user expiry checks now use configured timezone instead of UTC
+- **Setup Timezone** - Validates timezone against pytz before subprocess call
+- **Legacy Session Fallback** - Removed plaintext session token lookup code
+- **Admin Password Reset** - Now generates audit log entry
+- **Rate Limit Dead Code** - Removed unreachable `/api/auth/` skip condition
+- **Log Path Leak** - Admin log 404 no longer exposes server file paths
+
+### Security
+- Addresses 4 HIGH, 13 MEDIUM, and 15 LOW findings from security audit
+
 ## [1.86.5] - 2026-02-23
 
 ### Fixed

@@ -11,6 +11,17 @@ from sqlalchemy.orm import relationship
 from .database import Base
 
 
+def _get_now():
+    """Get current time in configured timezone (naive datetime for DB comparison)"""
+    try:
+        import pytz
+        from config import settings
+        tz = pytz.timezone(settings.timezone)
+        return datetime.now(tz).replace(tzinfo=None)
+    except Exception:
+        return datetime.utcnow()
+
+
 class UserRole(str, Enum):
     """User role levels for access control"""
     ADMIN = "admin"      # Full access - can manage users and all content
@@ -76,6 +87,9 @@ DEFAULT_PERMISSIONS = {
         "production": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
         "workers": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
         "budget": {"view": True, "create": True, "edit": True, "delete": True},
+        "team": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
+        "garden": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
+        "supply_requests": {"view": True, "create": True, "edit": True, "delete": True},
     },
     "editor": {
         "users": {"view": False, "create": False, "edit": False, "delete": False},
@@ -94,6 +108,9 @@ DEFAULT_PERMISSIONS = {
         "production": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
         "workers": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
         "budget": {"view": True, "create": True, "edit": True, "delete": True},
+        "team": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
+        "garden": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
+        "supply_requests": {"view": True, "create": True, "edit": True, "delete": True},
     },
     "viewer": {
         # Viewer: can see everything except settings, users, roles - read-only access
@@ -113,6 +130,9 @@ DEFAULT_PERMISSIONS = {
         "production": {"view": True, "create": False, "interact": False, "edit": False, "delete": False},
         "workers": {"view": True, "create": False, "interact": False, "edit": False, "delete": False},
         "budget": {"view": True, "create": False, "edit": False, "delete": False},
+        "team": {"view": True, "create": False, "interact": False, "edit": False, "delete": False},
+        "garden": {"view": True, "create": False, "interact": False, "edit": False, "delete": False},
+        "supply_requests": {"view": True, "create": False, "edit": False, "delete": False},
     },
     "kiosk": {
         # Kiosk users: passwordless login for kitchen display, full access like editor
@@ -132,6 +152,9 @@ DEFAULT_PERMISSIONS = {
         "production": {"view": True, "create": True, "edit": True, "delete": True},
         "workers": {"view": True, "create": True, "interact": True, "edit": False, "delete": False},
         "budget": {"view": True, "create": True, "edit": True, "delete": True},
+        "team": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
+        "garden": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
+        "supply_requests": {"view": True, "create": True, "edit": True, "delete": True},
     },
     "farmhand": {
         # Farmhand users: only see tasks marked visible_to_farmhands, can interact
@@ -151,6 +174,9 @@ DEFAULT_PERMISSIONS = {
         "production": {"view": False, "create": False, "edit": False, "delete": False},
         "workers": {"view": False, "create": False, "interact": False, "edit": False, "delete": False},
         "budget": {"view": False, "create": False, "edit": False, "delete": False},
+        "team": {"view": True, "create": False, "interact": True, "edit": False, "delete": False},
+        "garden": {"view": True, "create": False, "interact": True, "edit": False, "delete": False},
+        "supply_requests": {"view": True, "create": True, "edit": False, "delete": False},
     },
 }
 
@@ -201,7 +227,7 @@ class User(Base):
         """Check if account has expired"""
         if self.expires_at is None:
             return False
-        return datetime.utcnow() > self.expires_at
+        return _get_now() > self.expires_at
 
 
 class Session(Base):
@@ -225,7 +251,7 @@ class Session(Base):
 
     @property
     def is_expired(self) -> bool:
-        return datetime.utcnow() > self.expires_at
+        return _get_now() > self.expires_at
 
 
 class LoginAttempt(Base):

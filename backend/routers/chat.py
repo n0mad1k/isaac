@@ -765,7 +765,7 @@ async def regenerate_insights(
                 errors.append(f"Unknown type: {t}")
         except Exception as e:
             logger.error(f"Failed to regenerate {t}: {e}")
-            errors.append(f"{t}: {str(e)}")
+            errors.append(f"{t}: generation failed")
 
     return {
         "status": "completed",

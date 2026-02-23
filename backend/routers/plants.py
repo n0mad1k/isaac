@@ -21,12 +21,33 @@ from models.users import User
 from services.permissions import require_view, require_create, require_edit, require_delete, require_interact
 from services.auto_reminders import delete_reminder
 from services.plant_import import plant_import_service
+from urllib.parse import urlparse
+import ipaddress
+import re
+import socket
 from loguru import logger
 
 
 router = APIRouter(prefix="/plants", tags=["Plants"])
 
 PLANT_PHOTO_DIR = "data/plant_photos"
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+def _validate_image_url(url: str) -> bool:
+    """Validate URL is safe for server-side fetch (SSRF protection)"""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        # Block private/internal IPs
+        ip = socket.gethostbyname(parsed.hostname)
+        addr = ipaddress.ip_address(ip)
+        if addr.is_private or addr.is_loopback or addr.is_reserved or addr.is_link_local:
+            return False
+        return True
+    except Exception:
+        return False
 
 
 # Pydantic Schemas
@@ -435,7 +456,7 @@ async def create_plant(
     await db.refresh(db_plant)
 
     # Download image if URL provided (from import flow)
-    if plant.image_url:
+    if plant.image_url and _validate_image_url(plant.image_url):
         try:
             import httpx as dl_httpx
             async with dl_httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
@@ -659,7 +680,7 @@ async def import_plant(
     await db.refresh(plant)
 
     # Download image if available from import data
-    if data.get("image_url"):
+    if data.get("image_url") and _validate_image_url(data["image_url"]):
         try:
             import httpx as dl_httpx
             async with dl_httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
@@ -799,8 +820,14 @@ async def upload_plant_photo(
     # Create upload directory if not exists
     os.makedirs(PLANT_PHOTO_DIR, exist_ok=True)
 
+    # Read and check file size
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+
     # Generate unique filename
     ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    ext = re.sub(r'[^a-zA-Z0-9]', '', ext)[:10]
     filename = f"{plant_id}_{uuid.uuid4().hex[:8]}.{ext}"
     filepath = os.path.join(PLANT_PHOTO_DIR, filename)
 
@@ -813,14 +840,14 @@ async def upload_plant_photo(
 
     # Save new photo
     with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(contents)
 
     # Update plant record
     plant.photo_path = filepath
     plant.updated_at = datetime.utcnow()
     await db.commit()
 
-    return {"photo_path": filepath}
+    return {"photo_path": os.path.basename(filepath)}
 
 
 @router.delete("/{plant_id}/photo/")

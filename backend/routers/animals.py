@@ -17,6 +17,7 @@ import io
 import os
 import shutil
 import logging
+import re
 
 from models.database import get_db
 from models.livestock import Animal, AnimalType, AnimalCategory, AnimalCareLog, AnimalExpense, AnimalCareSchedule, AnimalFeed
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 RECEIPT_DIR = "data/expense_receipts"
 ANIMAL_PHOTO_DIR = "data/animal_photos"
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 
 router = APIRouter(prefix="/animals", tags=["Animals"])
 
@@ -615,7 +617,13 @@ async def upload_expense_receipt(
 
     os.makedirs(RECEIPT_DIR, exist_ok=True)
 
+    # Read and check file size
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+
     ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    ext = re.sub(r'[^a-zA-Z0-9]', '', ext)[:10]
     filename = f"animal_{expense_id}_{uuid.uuid4().hex[:8]}.{ext}"
     filepath = os.path.join(RECEIPT_DIR, filename)
 
@@ -628,7 +636,7 @@ async def upload_expense_receipt(
 
     try:
         with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            buffer.write(contents)
     except Exception as e:
         logger.error(f"Failed to save receipt file: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred")
@@ -636,7 +644,7 @@ async def upload_expense_receipt(
     expense.receipt_path = filepath
     await db.commit()
 
-    return {"receipt_path": filepath}
+    return {"receipt_path": os.path.basename(filepath)}
 
 
 @router.delete("/expenses/{expense_id}/receipt/")
@@ -1474,7 +1482,13 @@ async def upload_animal_photo(
 
     os.makedirs(ANIMAL_PHOTO_DIR, exist_ok=True)
 
+    # Read and check file size
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+
     ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    ext = re.sub(r'[^a-zA-Z0-9]', '', ext)[:10]
     filename = f"animal_{animal_id}_{uuid.uuid4().hex[:8]}.{ext}"
     filepath = os.path.join(ANIMAL_PHOTO_DIR, filename)
 
@@ -1489,7 +1503,7 @@ async def upload_animal_photo(
 
     try:
         with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            buffer.write(contents)
     except Exception as e:
         logger.error(f"Failed to save animal photo: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred")

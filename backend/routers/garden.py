@@ -25,6 +25,7 @@ from models.seeds import Seed
 from models.settings import AppSetting
 from models.users import User
 from routers.auth import require_auth
+from services.permissions import require_view, require_create, require_edit, require_delete, require_interact
 from services.planting_calculator import calculate_planting_schedule, MONTH_NAMES
 from loguru import logger
 from config import settings as app_config
@@ -34,6 +35,7 @@ router = APIRouter(prefix="/garden", tags=["Garden"])
 
 # Directories
 GARDEN_PHOTO_DIR = "data/garden_photos"
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 
 # Load companion planting data at module level
 try:
@@ -175,7 +177,7 @@ async def _get_frost_dates(db: AsyncSession) -> dict:
 @router.get("/frost-dates/")
 async def get_frost_dates(
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_view("garden")),
 ):
     """Get frost date configuration."""
     dates = await _get_frost_dates(db)
@@ -190,7 +192,7 @@ async def get_frost_dates(
 async def update_frost_dates(
     data: FrostDatesUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_edit("garden")),
 ):
     """Update frost dates."""
     # Validate MM/DD format
@@ -234,7 +236,7 @@ async def update_frost_dates(
 async def get_planting_schedule(
     year: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_view("garden")),
 ):
     """Get auto-generated planting schedule based on seed data and frost dates."""
     frost_dates = await _get_frost_dates(db)
@@ -263,7 +265,7 @@ async def get_planting_schedule(
 async def list_planting_events(
     year: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_view("garden")),
 ):
     """List user-created planting events."""
     if year is None:
@@ -300,7 +302,7 @@ async def list_planting_events(
 async def create_planting_event(
     data: PlantingEventCreate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_create("garden")),
 ):
     """Create a planting event."""
     # Validate seed exists
@@ -342,7 +344,7 @@ async def update_planting_event(
     event_id: int,
     data: PlantingEventUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_edit("garden")),
 ):
     """Update a planting event (e.g., drag-and-drop date change)."""
     result = await db.execute(
@@ -374,7 +376,7 @@ async def update_planting_event(
 async def delete_planting_event(
     event_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_delete("garden")),
 ):
     """Delete a planting event."""
     result = await db.execute(
@@ -394,7 +396,7 @@ async def delete_planting_event(
 async def complete_planting_event(
     event_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_interact("garden")),
 ):
     """Mark a planting event as completed."""
     result = await db.execute(
@@ -419,7 +421,7 @@ async def complete_planting_event(
 async def create_succession_planting(
     data: SuccessionCreate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_create("garden")),
 ):
     """Create a succession planting group - multiple events spaced at regular intervals."""
     # Validate seed exists
@@ -484,7 +486,7 @@ async def create_succession_planting(
 async def delete_succession_group(
     group_id: str,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_delete("garden")),
 ):
     """Delete all events in a succession planting group (soft delete)."""
     result = await db.execute(
@@ -521,7 +523,7 @@ async def list_journal_entries(
     end_date: Optional[str] = None,
     tags: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_view("garden")),
 ):
     """List garden journal entries with optional filters."""
     query = select(JournalEntry).where(JournalEntry.is_active == True)
@@ -576,7 +578,7 @@ async def list_journal_entries(
 async def create_journal_entry(
     data: JournalEntryCreate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_create("garden")),
 ):
     """Create a new garden journal entry."""
     try:
@@ -632,7 +634,7 @@ async def update_journal_entry(
     entry_id: int,
     data: JournalEntryUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_edit("garden")),
 ):
     """Update a garden journal entry."""
     result = await db.execute(
@@ -676,7 +678,7 @@ async def update_journal_entry(
 async def delete_journal_entry(
     entry_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_delete("garden")),
 ):
     """Soft delete a garden journal entry."""
     result = await db.execute(
@@ -697,7 +699,7 @@ async def upload_journal_photo(
     entry_id: int,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_edit("garden")),
 ):
     """Upload a photo for a garden journal entry."""
     result = await db.execute(
@@ -711,6 +713,11 @@ async def upload_journal_photo(
     allowed_types = ["image/jpeg", "image/png", "image/webp"]
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, WebP")
+
+    # Read and check file size
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
 
     # Create upload directory if not exists
     os.makedirs(GARDEN_PHOTO_DIR, exist_ok=True)
@@ -732,7 +739,7 @@ async def upload_journal_photo(
     # Save new photo
     try:
         with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            buffer.write(contents)
     except Exception as e:
         logger.error(f"Failed to save journal photo: {e}")
         raise HTTPException(status_code=500, detail="An internal error occurred")
@@ -742,11 +749,11 @@ async def upload_journal_photo(
     entry.updated_at = datetime.utcnow()
     await db.commit()
 
-    return {"photo_path": filepath}
+    return {"photo_path": os.path.basename(filepath)}
 
 
 @router.get("/journal/photos/{filename}")
-async def get_journal_photo(filename: str, user: User = Depends(require_auth)):
+async def get_journal_photo(filename: str, user: User = Depends(require_view("garden"))):
     """Serve a garden journal photo file."""
     filepath = os.path.join(GARDEN_PHOTO_DIR, filename)
     if not os.path.exists(filepath):
@@ -770,7 +777,7 @@ async def get_journal_photo(filename: str, user: User = Depends(require_auth)):
 
 @router.get("/companions/")
 async def get_companion_chart(
-    user: User = Depends(require_auth),
+    user: User = Depends(require_view("garden")),
 ):
     """Return the full companion planting chart."""
     return COMPANION_DATA
@@ -779,7 +786,7 @@ async def get_companion_chart(
 @router.get("/companions/{plant_name}")
 async def get_companions_for_plant(
     plant_name: str,
-    user: User = Depends(require_auth),
+    user: User = Depends(require_view("garden")),
 ):
     """Return companions and antagonists for a specific plant (case-insensitive fuzzy match)."""
     plant_lower = plant_name.lower().strip()
@@ -862,7 +869,7 @@ def _serialize_bed(bed: GardenBed) -> dict:
 @router.get("/beds/")
 async def list_garden_beds(
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_view("garden")),
 ):
     """List all active garden beds with their plantings."""
     result = await db.execute(
@@ -877,7 +884,7 @@ async def list_garden_beds(
 async def create_garden_bed(
     data: GardenBedCreate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_create("garden")),
 ):
     """Create a new garden bed."""
     try:
@@ -910,7 +917,7 @@ async def update_garden_bed(
     bed_id: int,
     data: GardenBedUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_edit("garden")),
 ):
     """Update a garden bed (resize, reposition, rename)."""
     result = await db.execute(
@@ -955,7 +962,7 @@ async def update_garden_bed(
 async def delete_garden_bed(
     bed_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_delete("garden")),
 ):
     """Soft delete a garden bed."""
     result = await db.execute(
@@ -976,7 +983,7 @@ async def add_bed_planting(
     bed_id: int,
     data: BedPlantingCreate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_create("garden")),
 ):
     """Add a plant or seed to a garden bed at a grid position."""
     # Validate bed exists
@@ -1056,7 +1063,7 @@ async def remove_bed_planting(
     bed_id: int,
     planting_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_delete("garden")),
 ):
     """Remove a planting from a garden bed (soft delete)."""
     result = await db.execute(
@@ -1082,7 +1089,7 @@ async def update_bed_planting(
     planting_id: int,
     data: BedPlantingUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_edit("garden")),
 ):
     """Update a bed planting (move within bed, update dates)."""
     result = await db.execute(
@@ -1130,7 +1137,7 @@ async def update_bed_planting(
 @router.get("/overview/")
 async def get_garden_overview(
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_auth),
+    user: User = Depends(require_view("garden")),
 ):
     """Get aggregated garden dashboard data."""
     import pytz

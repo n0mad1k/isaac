@@ -642,7 +642,7 @@ async def get_version_info(user: User = Depends(require_auth)):
     try:
         with open(version_file, "r") as f:
             current_version = f.read().strip()
-    except:
+    except Exception:
         pass
 
     # Read changelog
@@ -665,7 +665,7 @@ async def get_version_info(user: User = Depends(require_auth)):
                 line = line.strip()
                 if line.startswith('- '):
                     recent_changes.append(line[2:])  # Remove "- " prefix
-    except:
+    except Exception:
         pass
 
     # Get current git info
@@ -737,7 +737,7 @@ async def get_version_info(user: User = Depends(require_auth)):
                             "message": parts[1],
                             "time": parts[2],
                         })
-    except:
+    except Exception:
         pass
 
     git_info["recent_commits"] = recent_commits
@@ -1146,7 +1146,7 @@ async def get_recent_commits(user: User = Depends(require_auth)):
                             "message": parts[1],
                             "time": parts[2],
                         })
-    except:
+    except Exception:
         pass
 
     return {"commits": commits}
@@ -1162,7 +1162,7 @@ def strip_ansi_codes(text: str) -> str:
 
 
 @router.get("/admin-logs/files/")
-async def get_log_files(user: User = Depends(require_auth)):
+async def get_log_files(user: User = Depends(require_admin)):
     """Get list of available log files"""
     from pathlib import Path
     import os
@@ -1208,7 +1208,7 @@ async def get_admin_logs(
     level: Optional[str] = None,
     search: Optional[str] = None,
     log_file: Optional[str] = "app",
-    user: User = Depends(require_auth)
+    user: User = Depends(require_admin)
 ):
     """
     Get recent application logs for admin review.
@@ -1235,7 +1235,7 @@ async def get_admin_logs(
     log_path = log_paths.get(log_file, log_paths["app"])
 
     if not log_path.exists():
-        return {"logs": [], "total_lines": 0, "message": f"Log file not found: {log_path}"}
+        return {"logs": [], "total_lines": 0, "message": "Log file not found"}
 
     # Cap lines at 1000 for performance
     lines = min(lines, 1000)
@@ -1698,7 +1698,7 @@ async def test_cold_protection_email(db: AsyncSession = Depends(get_db), admin: 
         email_service = await EmailService.get_configured_service(db)
     except ConfigurationError as e:
         logger.error(f"Email configuration error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Email configuration error")
 
     plant_dicts = [
         {
@@ -1722,7 +1722,7 @@ async def test_cold_protection_email(db: AsyncSession = Depends(get_db), admin: 
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Email configuration error")
 
     if success:
         return {
@@ -2040,7 +2040,7 @@ async def test_daily_digest(db: AsyncSession = Depends(get_db), admin: User = De
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Email configuration error")
 
     if success:
         message = f"Test daily digest sent to {recipients}"
@@ -2135,7 +2135,7 @@ async def test_gear_alerts(db: AsyncSession = Depends(get_db), admin: User = Dep
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Email configuration error")
 
     if success:
         message = f"Gear alerts test sent to {recipients}"
@@ -2200,7 +2200,7 @@ async def test_training_alerts(db: AsyncSession = Depends(get_db), admin: User =
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Email configuration error")
 
     if success:
         message = f"Training alerts test sent to {recipients}"
@@ -2266,7 +2266,7 @@ async def test_medical_alerts(db: AsyncSession = Depends(get_db), admin: User = 
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Email configuration error")
 
     if success:
         message = f"Medical alerts test sent to {recipients}"
@@ -2413,7 +2413,7 @@ async def test_team_alerts_digest(db: AsyncSession = Depends(get_db), admin: Use
         )
     except ConfigurationError as e:
         logger.error(f"Email send configuration error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Email configuration error")
 
     if success:
         message = f"Team alerts digest sent to {recipients}"

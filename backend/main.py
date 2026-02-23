@@ -60,8 +60,18 @@ class LocalNetworkOnlyMiddleware(BaseHTTPMiddleware):
         "172.20.", "172.21.", "172.22.", "172.23.",
         "172.24.", "172.25.", "172.26.", "172.27.",
         "172.28.", "172.29.", "172.30.", "172.31.",
-        "100.",      # Tailscale CGNAT range (100.64.0.0/10)
     )
+
+    @staticmethod
+    def _is_tailscale_ip(ip: str) -> bool:
+        """Check if IP is in Tailscale CGNAT range 100.64.0.0/10 (second octet 64-127)"""
+        if not ip.startswith("100."):
+            return False
+        try:
+            parts = ip.split(".")
+            return 64 <= int(parts[1]) <= 127
+        except (IndexError, ValueError):
+            return False
 
     async def dispatch(self, request: Request, call_next):
         # Get the raw TCP socket IP from ASGI scope (not affected by X-Forwarded-For)
@@ -75,8 +85,8 @@ class LocalNetworkOnlyMiddleware(BaseHTTPMiddleware):
             if socket_ip.startswith("127.") or socket_ip == "::1":
                 return await call_next(request)
 
-            # For non-localhost, check if from allowed local network
-            if not any(socket_ip.startswith(prefix) for prefix in self.LOCAL_NETWORK_PREFIXES):
+            # For non-localhost, check if from allowed local network or Tailscale
+            if not any(socket_ip.startswith(prefix) for prefix in self.LOCAL_NETWORK_PREFIXES) and not self._is_tailscale_ip(socket_ip):
                 from fastapi.responses import JSONResponse
                 logger.warning(f"Blocked request from non-local IP: {socket_ip}")
                 return JSONResponse(
@@ -105,10 +115,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._last_cleanup = time.monotonic()
 
     async def dispatch(self, request: Request, call_next):
-        # Skip rate limiting for auth endpoints (handled by account lockout)
-        if request.url.path.startswith("/api/auth/"):
-            return await call_next(request)
-
         client_ip = request.client.host if request.client else "unknown"
         now = time.monotonic()
         cutoff = now - self.WINDOW
@@ -232,12 +238,16 @@ async def lifespan(app: FastAPI):
     await scheduler.stop()
 
 
-# Create application
+# Create application - disable docs in production
+_docs_url = "/docs" if settings.is_dev_instance else None
+_redoc_url = "/redoc" if settings.is_dev_instance else None
 app = FastAPI(
     title=settings.app_name,
     description="Farm & Homestead Management Assistant",
     version=settings.app_version,
     lifespan=lifespan,
+    docs_url=_docs_url,
+    redoc_url=_redoc_url,
 )
 
 # Security headers - add protective headers to all responses

@@ -10,6 +10,7 @@ from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 import os
+import re
 import uuid
 import shutil
 
@@ -23,6 +24,7 @@ from loguru import logger
 router = APIRouter(prefix="/seeds", tags=["Seeds"])
 
 SEED_PHOTO_DIR = "data/seed_photos"
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 # Pydantic Schemas
@@ -208,11 +210,17 @@ async def upload_seed_photo(
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPEG, PNG, GIF, WebP")
 
+    # Read and check file size
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+
     # Create upload directory if not exists
     os.makedirs(SEED_PHOTO_DIR, exist_ok=True)
 
     # Generate unique filename
     ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    ext = re.sub(r'[^a-zA-Z0-9]', '', ext)[:10]
     filename = f"{seed_id}_{uuid.uuid4().hex[:8]}.{ext}"
     filepath = os.path.join(SEED_PHOTO_DIR, filename)
 
@@ -225,14 +233,14 @@ async def upload_seed_photo(
 
     # Save new photo
     with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(contents)
 
     # Update seed record
     seed.photo_path = filepath
     seed.updated_at = datetime.utcnow()
     await db.commit()
 
-    return {"photo_path": filepath}
+    return {"photo_path": os.path.basename(filepath)}
 
 
 @router.delete("/{seed_id}/photo/")

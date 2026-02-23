@@ -78,7 +78,6 @@ class UserResponse(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    token: str
     user: UserResponse
     expires_at: datetime
 
@@ -296,26 +295,12 @@ async def get_current_user(
     if not token:
         return None
 
-    # Find session by token hash (primary method)
+    # Find session by token hash
     token_hashed = hash_token(token)
     result = await db.execute(
         select(Session).where(Session.token_hash == token_hashed)
     )
     session = result.scalar_one_or_none()
-
-    # Fallback to legacy plaintext lookup (for migration period)
-    if not session:
-        result = await db.execute(
-            select(Session).where(Session.token == token)
-        )
-        session = result.scalar_one_or_none()
-
-        # If found via legacy lookup, migrate to hashed version
-        if session:
-            session.token_hash = token_hashed
-            session.token = f"MIGRATED:{session.id}"  # Placeholder (NOT NULL constraint)
-            await db.commit()
-            logger.debug(f"Migrated session {session.id} to hashed token")
 
     if not session or session.is_expired:
         return None
@@ -434,13 +419,13 @@ async def login(
         key="session_token",
         value=token,
         httponly=True,
-        secure=is_https,  # Secure cookie only over HTTPS
+        secure=is_https,
         samesite="lax",
-        max_age=SESSION_EXPIRY_DAYS * 24 * 60 * 60
+        max_age=SESSION_EXPIRY_DAYS * 24 * 60 * 60,
+        path="/",
     )
 
     return LoginResponse(
-        token=token,
         user=UserResponse(
             id=user.id,
             username=user.username,
@@ -896,6 +881,7 @@ async def update_user(
 async def reset_user_password(
     user_id: int,
     data: AdminPasswordResetRequest,
+    request: Request,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
@@ -914,6 +900,13 @@ async def reset_user_password(
     await db.commit()
 
     logger.info(f"Admin {admin.username} reset password for user: {user.username}")
+    await log_audit(
+        AuditAction.PASSWORD_CHANGE,
+        user_id=user.id,
+        username=user.username,
+        request=request,
+        details={"reset_by": admin.username, "method": "admin_reset"}
+    )
 
     return {"message": "Password reset successfully"}
 
@@ -1310,8 +1303,9 @@ async def invite_user(
     if existing:
         raise HTTPException(status_code=400, detail="A user with this email already exists")
 
-    # Generate secure invitation token
+    # Generate secure invitation token (store hash, send raw in email)
     invitation_token = secrets.token_urlsafe(32)
+    invitation_token_hash = hash_token(invitation_token)
     invitation_expires = get_now() + timedelta(hours=INVITATION_EXPIRY_HOURS)
 
     # Create pending user (no username/password yet)
@@ -1327,7 +1321,7 @@ async def invite_user(
         is_active=False,  # Not active until invitation accepted
         is_farmhand=invite_request.is_farmhand,
         expires_at=invite_request.expires_at,
-        invitation_token=invitation_token,
+        invitation_token=invitation_token_hash,
         invitation_expires_at=invitation_expires,
     )
 
@@ -1437,8 +1431,9 @@ async def resend_invite(
     if pending_user.is_active:
         raise HTTPException(status_code=400, detail="User has already accepted the invitation")
 
-    # Generate new invitation token and extend expiration
-    pending_user.invitation_token = secrets.token_urlsafe(32)
+    # Generate new invitation token (store hash, send raw in email)
+    raw_token = secrets.token_urlsafe(32)
+    pending_user.invitation_token = hash_token(raw_token)
     pending_user.invitation_expires_at = get_now() + timedelta(hours=INVITATION_EXPIRY_HOURS)
 
     await db.commit()
@@ -1453,7 +1448,7 @@ async def resend_invite(
         if not base_url:
             base_url = f"https://{request.headers.get('host', 'isaac.local')}"
 
-        invite_url = f"{base_url}/accept-invite/{pending_user.invitation_token}"
+        invite_url = f"{base_url}/accept-invite/{raw_token}"
 
         subject = "Reminder: You've been invited to Isaac"
         body = f"""
@@ -1507,8 +1502,9 @@ async def get_invitation_info(
     db: AsyncSession = Depends(get_db)
 ):
     """Get information about an invitation (for the accept page)"""
+    token_hashed = hash_token(token)
     result = await db.execute(
-        select(User).where(User.invitation_token == token)
+        select(User).where(User.invitation_token == token_hashed)
     )
     user = result.scalar_one_or_none()
 
@@ -1538,8 +1534,9 @@ async def accept_invitation(
     db: AsyncSession = Depends(get_db)
 ):
     """Accept an invitation and set username/password"""
+    token_hashed = hash_token(token)
     result = await db.execute(
-        select(User).where(User.invitation_token == token)
+        select(User).where(User.invitation_token == token_hashed)
     )
     user = result.scalar_one_or_none()
 
@@ -1592,18 +1589,18 @@ async def accept_invitation(
     await db.commit()
 
     # Set cookie (must be "session_token" to match get_current_user cookie name)
+    is_https = request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https"
     response.set_cookie(
         key="session_token",
         value=session_token,
         httponly=True,
-        secure=True,
+        secure=is_https,
         samesite="lax",
         max_age=SESSION_EXPIRY_DAYS * 24 * 60 * 60,
         path="/",
     )
 
     return LoginResponse(
-        token=session_token,
         user=UserResponse(
             id=user.id,
             username=user.username,

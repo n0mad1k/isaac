@@ -119,7 +119,7 @@ class HealthMonitor:
         except asyncio.TimeoutError:
             return HealthCheck("caldav", HealthStatus.WARNING, "CalDAV request timed out")
         except Exception as e:
-            return HealthCheck("caldav", HealthStatus.WARNING, f"CalDAV error: {str(e)[:100]}")
+            return HealthCheck("caldav", HealthStatus.WARNING, f"CalDAV error: {type(e).__name__}")
 
     def check_calendar_sync_performance(self) -> HealthCheck:
         """Check if calendar sync is running properly.
@@ -191,7 +191,7 @@ class HealthMonitor:
                 return HealthCheck("memory", HealthStatus.WARNING, f"Memory at {used_percent:.1f}% — consider restarting services to free memory", used_percent)
             return HealthCheck("memory", HealthStatus.HEALTHY, f"Memory OK: {used_percent:.1f}%", used_percent)
         except Exception as e:
-            return HealthCheck("memory", HealthStatus.UNKNOWN, f"Memory check failed: {str(e)[:100]}")
+            return HealthCheck("memory", HealthStatus.UNKNOWN, f"Memory check failed: {type(e).__name__}")
 
     def check_disk(self) -> HealthCheck:
         """Check disk space usage"""
@@ -205,7 +205,7 @@ class HealthMonitor:
                 return HealthCheck("disk", HealthStatus.WARNING, f"Disk at {used_percent:.1f}% — clear old backups, logs, or unused files", used_percent)
             return HealthCheck("disk", HealthStatus.HEALTHY, f"Disk OK: {used_percent:.1f}%", used_percent)
         except Exception as e:
-            return HealthCheck("disk", HealthStatus.UNKNOWN, f"Disk check failed: {str(e)[:100]}")
+            return HealthCheck("disk", HealthStatus.UNKNOWN, f"Disk check failed: {type(e).__name__}")
 
     def check_cpu(self) -> HealthCheck:
         """Check CPU load average"""
@@ -220,7 +220,7 @@ class HealthMonitor:
                 return HealthCheck("cpu", HealthStatus.WARNING, f"CPU high (load {load_avg[0]:.2f}/{cpu_count} cores) — background tasks may slow the app", load_percent)
             return HealthCheck("cpu", HealthStatus.HEALTHY, f"CPU OK: load {load_avg[0]:.2f}/{cpu_count} cores", load_percent)
         except Exception as e:
-            return HealthCheck("cpu", HealthStatus.UNKNOWN, f"CPU check failed: {str(e)[:100]}")
+            return HealthCheck("cpu", HealthStatus.UNKNOWN, f"CPU check failed: {type(e).__name__}")
 
     async def run_all_checks(self, db: AsyncSession) -> List[HealthCheck]:
         """Run all health checks"""
