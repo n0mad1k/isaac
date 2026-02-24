@@ -1353,12 +1353,19 @@ function AnimalCard({
                 </span>
               )}
 
-              {/* Feeding info */}
+              {/* Feeding info - show feed type, amount, and frequency */}
               {(animal.feeds?.length > 0 || animal.feed_type) && (
-                <span style={{ color: 'var(--color-teal-600)' }}>
+                <span className="flex items-center gap-1" style={{ color: 'var(--color-teal-600)' }}>
                   {animal.feeds && animal.feeds.length > 0
-                    ? animal.feeds[0].feed_type || 'Feed'
-                    : animal.feed_type || 'Feed'
+                    ? animal.feeds.map((feed, idx) => (
+                        <span key={feed.id || idx} className="flex items-center gap-1">
+                          {idx > 0 && <span style={{ color: 'var(--color-text-muted)' }}>|</span>}
+                          <span className="font-medium">{feed.feed_type || 'Feed'}</span>
+                          {feed.amount && <span style={{ color: 'var(--color-text-secondary)' }}>{feed.amount}</span>}
+                          {feed.frequency && <span style={{ color: 'var(--color-text-muted)' }}>{feed.frequency}</span>}
+                        </span>
+                      ))
+                    : <span>{animal.feed_type || 'Feed'}</span>
                   }
                 </span>
               )}
