@@ -273,6 +273,7 @@ _cors_origins = [
     "http://localhost",
     "http://localhost:5173",   # Vite dev server
     "http://localhost:3000",
+    "https://localhost:443",   # Docker default
     "https://localhost",
 ]
 app.add_middleware(

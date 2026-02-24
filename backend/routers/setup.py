@@ -131,6 +131,29 @@ async def complete_setup_wizard(
             ("theme", "light"),  # Default to light mode
         ]
 
+        # Map module names to individual setting keys the frontend expects
+        MODULE_SETTING_MAP = {
+            "team": ["team_enabled"],
+            "workers": ["worker_tasks_enabled"],
+            "chat": ["ai_enabled"],
+            "budget": ["page_budget_enabled"],
+            "calendar": ["page_calendar_enabled"],
+            "garden": ["page_plants_enabled", "page_seeds_enabled"],
+            "animals": ["page_animals_enabled"],
+            "home": ["page_home_maintenance_enabled"],
+            "vehicles": ["page_vehicles_enabled"],
+            "equipment": ["page_equipment_enabled"],
+            "farm_areas": ["page_farm_areas_enabled", "page_farm_finances_enabled"],
+            "onscreen_keyboard": ["onscreen_keyboard_enabled"],
+        }
+
+        # Create individual enabled/disabled settings from the modules list
+        enabled_set = set(config.enabled_modules)
+        for module_name, setting_keys in MODULE_SETTING_MAP.items():
+            value = "true" if module_name in enabled_set else "false"
+            for setting_key in setting_keys:
+                settings_to_save.append((setting_key, value))
+
         for key, value in settings_to_save:
             result = await db.execute(
                 select(AppSetting).where(AppSetting.key == key)

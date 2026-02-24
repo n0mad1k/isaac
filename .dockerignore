@@ -1,0 +1,37 @@
+# Dependencies (installed in container)
+backend/venv/
+backend/__pycache__/
+frontend/node_modules/
+frontend/dist/
+
+# Environment files (use docker/.env)
+.env
+backend/.env
+
+# Data and logs (use Docker volumes)
+backend/data/
+backend/logs/
+data/
+logs/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Deploy scripts (not needed in container)
+deploy/
+scripts/
+deploy*.sh
+
+# Claude/dev files
+.claude/
+CLAUDE.md
+SECURITY_AUDIT*.md
