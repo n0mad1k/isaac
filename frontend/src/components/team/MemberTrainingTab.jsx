@@ -15,6 +15,15 @@ const TRAINING_CATEGORIES = [
   { value: 'NAVIGATION', label: 'Navigation' },
   { value: 'FITNESS', label: 'Fitness' },
   { value: 'DRIVING', label: 'Driving' },
+  { value: 'CYBER', label: 'Cyber' },
+  { value: 'FABRICATION', label: 'Fabrication' },
+  { value: 'MECHANICAL', label: 'Mechanical' },
+  { value: 'TRADE_SKILLS', label: 'Trade Skills' },
+  { value: 'FOOD_SYSTEMS', label: 'Food Systems' },
+  { value: 'AGRICULTURE', label: 'Agriculture' },
+  { value: 'LEADERSHIP', label: 'Leadership' },
+  { value: 'ENGINEERING', label: 'Engineering' },
+  { value: 'FIELD_CRAFT', label: 'Field Craft' },
   { value: 'OTHER', label: 'Other' }
 ]
 
