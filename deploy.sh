@@ -98,37 +98,70 @@ rsync -avz \
 echo "Cleaning dev-only code from production..."
 ssh -i $SSH_KEY $REMOTE "rm -f $REMOTE_PATH/backend/routers/dev_tracker.py"
 
-# Remove dev_tracker import block from __init__.py
-# Replace the try/except block with a simple None assignment
-ssh -i $SSH_KEY $REMOTE 'python3' << 'PYEOF'
-path = '/opt/levi/backend/routers/__init__.py'
-with open(path, 'r') as f:
-    content = f.read()
+# Write production-safe __init__.py directly (no string surgery - bulletproof)
+echo "Writing production routers/__init__.py..."
+ssh -i $SSH_KEY $REMOTE "cat > $REMOTE_PATH/backend/routers/__init__.py" << 'INITEOF'
+"""
+Isaac API Routers
+"""
 
-old = """try:
-    from .dev_tracker import router as dev_tracker_router
+from .plants import router as plants_router
+from .animals import router as animals_router
+from .tasks import router as tasks_router
+from .weather import router as weather_router
+from .dashboard import router as dashboard_router
+from .seeds import router as seeds_router
+from .settings import router as settings_router
+from .home_maintenance import router as home_maintenance_router
+from .vehicles import router as vehicles_router
+from .equipment import router as equipment_router
+from .farm_areas import router as farm_areas_router
+from .production import router as production_router
+from .auth import router as auth_router
+dev_tracker_router = None  # Not available in public release
+from .workers import router as workers_router
+from .supply_requests import router as supply_requests_router
+try:
+    from .customer_feedback import router as customer_feedback_router
 except ImportError:
-    dev_tracker_router = None  # Not available in public release"""
+    customer_feedback_router = None  # Not available in public release
+from .team import router as team_router
+from .garden import router as garden_router
+from .budget import router as budget_router
+from .chat import router as chat_router
+try:
+    from .setup import router as setup_router
+except ImportError:
+    setup_router = None  # Deleted after setup complete
 
-new = "dev_tracker_router = None  # Not available in public release"
+__all__ = [
+    "plants_router",
+    "animals_router",
+    "tasks_router",
+    "weather_router",
+    "dashboard_router",
+    "seeds_router",
+    "settings_router",
+    "home_maintenance_router",
+    "vehicles_router",
+    "equipment_router",
+    "farm_areas_router",
+    "production_router",
+    "auth_router",
+    "dev_tracker_router",
+    "workers_router",
+    "supply_requests_router",
+    "customer_feedback_router",
+    "team_router",
+    "garden_router",
+    "budget_router",
+    "chat_router",
+    "setup_router",
+]
+INITEOF
 
-if old in content:
-    content = content.replace(old, new)
-    with open(path, 'w') as f:
-        f.write(content)
-    print('Replaced dev_tracker try/except block')
-else:
-    print('dev_tracker try/except block not found (may already be cleaned)')
-
-# Safety check: verify no broken try/except left
-if 'try:\nexcept' in content:
-    print('WARNING: Found empty try/except - fixing')
-    content = content.replace('try:\nexcept ImportError:\n', '')
-    with open(path, 'w') as f:
-        f.write(content)
-PYEOF
-
-# Remove dev_tracker references from main.py
+# Write production-safe main.py (remove dev_tracker lines)
+echo "Cleaning dev_tracker from main.py..."
 ssh -i $SSH_KEY $REMOTE "sed -i '/dev_tracker_router/d' $REMOTE_PATH/backend/main.py 2>/dev/null || true"
 
 # Remove pull-from-prod endpoint using heredoc (separate SSH to avoid escaping issues)
