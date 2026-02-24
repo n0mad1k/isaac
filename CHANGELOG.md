@@ -2,6 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.88.0] - 2026-02-24
+
+### Added
+- **Expanded Training Categories** - Added 9 new categories: Cyber, Fabrication, Mechanical, Trade Skills, Food Systems, Agriculture, Leadership, Engineering, Field Craft
+- **Docker Support** - Full Docker Compose setup with HTTPS, nginx reverse proxy, named volumes for data persistence
+- **Setup Wizard Module Persistence** - Selected modules now properly enable individual settings (team, workers, budget, etc.)
+
+### Fixed
+- **Production Deploy Script** - Fixed dev_tracker stripping that caused backend crash (replaced fragile regex with exact string matching)
+
 ## [1.87.0] - 2026-02-23
 
 ### Added
