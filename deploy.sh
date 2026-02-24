@@ -98,24 +98,34 @@ rsync -avz \
 echo "Cleaning dev-only code from production..."
 ssh -i $SSH_KEY $REMOTE "rm -f $REMOTE_PATH/backend/routers/dev_tracker.py"
 
-# Remove dev_tracker import block from __init__.py using heredoc (avoids escaping issues)
+# Remove dev_tracker import block from __init__.py
+# Replace the try/except block with a simple None assignment
 ssh -i $SSH_KEY $REMOTE 'python3' << 'PYEOF'
-import re
-try:
-    with open('/opt/levi/backend/routers/__init__.py', 'r') as f:
-        content = f.read()
-    # Replace the try/except import block with simple None assignment
-    pattern = r'try:\n    from \.dev_tracker import router as dev_tracker_router\nexcept ImportError:\n    dev_tracker_router = None.*'
-    replacement = 'dev_tracker_router = None  # Not available in public release'
-    new_content = re.sub(pattern, replacement, content)
-    if new_content != content:
-        with open('/opt/levi/backend/routers/__init__.py', 'w') as f:
-            f.write(new_content)
-        print('Replaced dev_tracker try/except block')
-    else:
-        print('dev_tracker try/except block not found (may already be cleaned)')
-except Exception as e:
-    print(f'Note: {e}')
+path = '/opt/levi/backend/routers/__init__.py'
+with open(path, 'r') as f:
+    content = f.read()
+
+old = """try:
+    from .dev_tracker import router as dev_tracker_router
+except ImportError:
+    dev_tracker_router = None  # Not available in public release"""
+
+new = "dev_tracker_router = None  # Not available in public release"
+
+if old in content:
+    content = content.replace(old, new)
+    with open(path, 'w') as f:
+        f.write(content)
+    print('Replaced dev_tracker try/except block')
+else:
+    print('dev_tracker try/except block not found (may already be cleaned)')
+
+# Safety check: verify no broken try/except left
+if 'try:\nexcept' in content:
+    print('WARNING: Found empty try/except - fixing')
+    content = content.replace('try:\nexcept ImportError:\n', '')
+    with open(path, 'w') as f:
+        f.write(content)
 PYEOF
 
 # Remove dev_tracker references from main.py
