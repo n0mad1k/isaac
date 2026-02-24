@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: isaac-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/levi.db
+    volumes:
+      - isaac-data:/app/backend/data
+      - isaac-logs:/app/backend/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: isaac-frontend
+    restart: unless-stopped
+    ports:
+      - "${ISAAC_PORT:-443}:443"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  isaac-data:
+  isaac-logs:
