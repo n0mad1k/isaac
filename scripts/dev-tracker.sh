@@ -44,8 +44,8 @@ do_login() {
         echo
     fi
     RESULT=$(curl -sk -c "$COOKIE_JAR" -X POST "$AUTH_URL" \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -d "username=$USER&password=$PASS" 2>/dev/null)
+        -H "Content-Type: application/json" \
+        -d "{\"username\":\"$USER\",\"password\":\"$PASS\"}" 2>/dev/null)
     if echo "$RESULT" | grep -q '"username"'; then
         echo "Authenticated successfully."
     else
