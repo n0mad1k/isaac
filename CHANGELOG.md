@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.88.1] - 2026-02-25
+
+### Fixed
+- **Task Reactivation on Reschedule** - Moving a completed event to today or a future date now automatically reactivates it (clears completion status) instead of keeping it marked as done
+
 ## [1.88.0] - 2026-02-24
 
 ### Added

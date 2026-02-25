@@ -1149,7 +1149,7 @@ async def update_visit_task(
     task_id: int,
     data: VisitTaskUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_interact("workers"))
+    user: User = Depends(require_edit("workers"))
 ):
     """Update a visit task (including marking complete)"""
     result = await db.execute(
@@ -1307,7 +1307,7 @@ async def toggle_visit_task_backlog(
     visit_id: int,
     task_id: int,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_interact("workers"))
+    user: User = Depends(require_edit("workers"))
 ):
     """Toggle a visit task's backlog status"""
     result = await db.execute(

@@ -1018,6 +1018,15 @@ async def update_task(
         task.alerts_sent = None
         logger.debug(f"Task {task.id}: due date/time/alerts changed, clearing alerts_sent")
 
+    # Reactivate completed task when date is moved to today or future
+    # (only if the user didn't explicitly set is_completed in this update)
+    if (task.due_date != previous_due_date and task.is_completed
+            and task.due_date is not None and task.due_date >= date.today()
+            and updates.is_completed is None):
+        task.is_completed = False
+        task.completed_at = None
+        logger.info(f"Task {task.id}: reactivated - date moved from {previous_due_date} to {task.due_date}")
+
     # Handle multiple member assignment if provided
     new_member_emails = []  # Track newly assigned members for notifications
     new_user_email = None  # Track newly assigned user for notification
