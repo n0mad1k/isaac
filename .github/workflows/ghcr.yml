@@ -78,8 +78,6 @@ jobs:
           # tags: ${{ env.REGISTRY }}/isaac/isaac-backend:latest
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   # ──────────────────────────────────────────────
   # Build & push — Frontend
@@ -121,5 +119,3 @@ jobs:
           # tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
