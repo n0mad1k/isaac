@@ -1,8 +1,9 @@
+name: isaac
 services:
   backend:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.backend
+      dockerfile: docker/backend/Dockerfile
     container_name: isaac-backend
     restart: unless-stopped
     env_file: .env
@@ -23,7 +24,7 @@ services:
   frontend:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.frontend
+      dockerfile: docker/frontend/Dockerfile
     container_name: isaac-frontend
     restart: unless-stopped
     ports:
