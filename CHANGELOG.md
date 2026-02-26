@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.88.3] - 2026-02-25
+
+### Fixed
+- **Mobile Login (HSTS)** - Removed HSTS header from nginx configs (including Docker) that trapped mobile browsers on HTTPS with self-signed certs, preventing API calls
+- **Invitation Cookie** - Fixed hardcoded `secure=True` on invitation acceptance cookie to use dynamic HTTPS detection, matching the login cookie behavior
+
 ## [1.88.2] - 2026-02-25
 
 ### Fixed
