@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.88.2] - 2026-02-25
+
+### Fixed
+- **Mobile Login** - Added missing `path="/"` on login session cookie so it's sent on all API requests (mobile Safari was scoping cookie to `/auth/login` path only)
+
 ## [1.88.1] - 2026-02-25
 
 ### Fixed

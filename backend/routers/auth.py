@@ -436,7 +436,8 @@ async def login(
         httponly=True,
         secure=is_https,  # Secure cookie only over HTTPS
         samesite="lax",
-        max_age=SESSION_EXPIRY_DAYS * 24 * 60 * 60
+        max_age=SESSION_EXPIRY_DAYS * 24 * 60 * 60,
+        path="/",
     )
 
     return LoginResponse(
