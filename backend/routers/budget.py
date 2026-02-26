@@ -987,14 +987,16 @@ async def create_transaction(
         half = 1 if txn_date.day <= 14 else 2
         period_key = f"{txn_date.year}-{txn_date.month:02d}-{half}"
 
-        # Auto-assign Roll Over category for Rollover account transactions
+        # Force Roll Over category for Rollover account transactions
+        # The rollover balance calculation only subtracts transactions with
+        # the "Roll Over" category, so we must always use it for this account.
         category_id = data.category_id
         if data.account_id:
             acct_result = await db.execute(
                 select(BudgetAccount.name).where(BudgetAccount.id == data.account_id)
             )
             acct_name = acct_result.scalar_one_or_none()
-            if acct_name == ROLLOVER_ACCOUNT_NAME and not category_id:
+            if acct_name == ROLLOVER_ACCOUNT_NAME:
                 roll_over_cat = await db.execute(
                     select(BudgetCategory.id).where(BudgetCategory.name == "Roll Over")
                 )
@@ -1075,6 +1077,21 @@ async def update_transaction(
 
         for key, value in data.model_dump(exclude_unset=True).items():
             setattr(txn, key, value)
+
+        # Force Roll Over category for Rollover account transactions
+        acct_id = txn.account_id
+        if acct_id:
+            acct_result = await db.execute(
+                select(BudgetAccount.name).where(BudgetAccount.id == acct_id)
+            )
+            acct_name = acct_result.scalar_one_or_none()
+            if acct_name == ROLLOVER_ACCOUNT_NAME:
+                ro_cat_result = await db.execute(
+                    select(BudgetCategory.id).where(BudgetCategory.name == "Roll Over")
+                )
+                ro_cat_id = ro_cat_result.scalar_one_or_none()
+                if ro_cat_id:
+                    txn.category_id = ro_cat_id
 
         await db.flush()
         await db.refresh(txn)

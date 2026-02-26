@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.89.1] - 2026-02-26
+
+### Fixed
+- **Rollover Transactions** - Transactions on the Rollover account now always use the Roll Over category, even when a different category is selected. Previously, selecting a non-Roll Over category caused the transaction to not reduce the rollover balance.
+
 ## [1.89.0] - 2026-02-25
 
 ### Added
