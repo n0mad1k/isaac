@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.86.2] - 2026-02-25
+
+### Fixed
+- **Mobile Login** - Added missing `path="/"` on login session cookie, removed HSTS from Docker nginx config, and fixed hardcoded `secure=True` on invitation cookie to use dynamic HTTPS detection
+
 ## [1.86.1] - 2026-02-25
 
 ### Fixed

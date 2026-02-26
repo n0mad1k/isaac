@@ -436,7 +436,8 @@ async def login(
         httponly=True,
         secure=is_https,  # Secure cookie only over HTTPS
         samesite="lax",
-        max_age=SESSION_EXPIRY_DAYS * 24 * 60 * 60
+        max_age=SESSION_EXPIRY_DAYS * 24 * 60 * 60,
+        path="/",
     )
 
     return LoginResponse(
@@ -1592,11 +1593,12 @@ async def accept_invitation(
     await db.commit()
 
     # Set cookie (must be "session_token" to match get_current_user cookie name)
+    is_https = request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https"
     response.set_cookie(
         key="session_token",
         value=session_token,
         httponly=True,
-        secure=True,
+        secure=is_https,
         samesite="lax",
         max_age=SESSION_EXPIRY_DAYS * 24 * 60 * 60,
         path="/",
