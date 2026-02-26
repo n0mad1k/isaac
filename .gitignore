@@ -62,3 +62,4 @@ deploy/isaac-kiosk.service
 
 # Keep the .example templates
 !*.example
+.claude/
