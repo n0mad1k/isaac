@@ -1170,6 +1170,17 @@ class CalendarSyncService:
             # If this task's calendar_uid is no longer in calendar, mark as deleted
             # BUT only if: not recurring AND was actually synced (has calendar_synced_at)
             if task.calendar_uid and task.calendar_uid not in calendar_uids:
+                # Check if this is an occurrence of a recurring event (UID ends with _YYYYMMDD)
+                # CalDAV returns the base UID for recurring events, but Isaac stores
+                # individual occurrences with date-suffixed UIDs. Check the base UID too.
+                occurrence_match = re.match(r'^(.+)_(\d{8})$', task.calendar_uid)
+                if occurrence_match:
+                    base_uid = occurrence_match.group(1)
+                    if base_uid in calendar_uids:
+                        # Base recurring event still exists in calendar - keep this occurrence
+                        logger.debug(f"Keeping occurrence '{task.title}' (base UID {base_uid} exists in calendar)")
+                        continue
+
                 is_recurring = task.recurrence and task.recurrence != TaskRecurrence.ONCE
                 if is_recurring:
                     # Never deactivate recurring tasks - they should persist

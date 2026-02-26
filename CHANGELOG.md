@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.89.2] - 2026-02-26
+
+### Fixed
+- **Missing Recurring Events** - CalDAV-synced recurring events (Date night, Horse riding, Sarah massage, Water Plants, Edging Reading/Writing, Workouts, etc.) were being deactivated on every calendar sync. The deletion detection now correctly recognizes occurrence UIDs as belonging to their parent recurring event.
+- **Prod Deploy from Settings** - Fixed the push-to-prod button stripping dev_tracker code with sed, which left broken Python syntax and crashed the prod backend. Now uses Python for safe removal.
+
 ## [1.89.1] - 2026-02-26
 
 ### Fixed
