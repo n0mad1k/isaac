@@ -833,10 +833,24 @@ echo "STEP:cleanup_dev_only"
 # Remove dev-only files from production
 rm -f /opt/levi/backend/routers/dev_tracker.py
 rm -f /opt/levi/backend/models/dev_tracker.py
-# Remove dev_tracker imports
-sed -i '/dev_tracker/d' /opt/levi/backend/routers/__init__.py 2>/dev/null || true
-sed -i '/dev_tracker/d' /opt/levi/backend/models/__init__.py 2>/dev/null || true
+# Remove dev_tracker from main.py (safe - just removes include lines)
 sed -i '/dev_tracker/d' /opt/levi/backend/main.py 2>/dev/null || true
+# Fix routers/__init__.py - replace the try/import/except block with a simple None assignment
+# Using python to safely rewrite the file instead of fragile sed
+python3 -c "
+content = open('/opt/levi/backend/routers/__init__.py').read()
+import re
+# Remove the entire try/except block for dev_tracker (handles any indentation)
+content = re.sub(r'try:\s*\n\s*from \.dev_tracker.*?\n\s*except ImportError:\s*\n\s*dev_tracker_router\s*=\s*None.*?\n', 'dev_tracker_router = None\n', content)
+# Also handle case where sed already stripped the import (empty try/except)
+content = re.sub(r'try:\s*\nexcept ImportError:\s*\n', '', content)
+# Remove any remaining dev_tracker import lines (but keep the None assignment and __all__ entry)
+import re as re2
+content = re2.sub(r'from \.dev_tracker import.*\n', '', content)
+open('/opt/levi/backend/routers/__init__.py', 'w').write(content)
+"
+# Clean dev_tracker from models __init__.py (safe - no try/except there)
+sed -i '/dev_tracker/d' /opt/levi/backend/models/__init__.py 2>/dev/null || true
 # Note: pull-from-prod endpoint stays but returns 403 on prod (checks is_dev_instance)
 echo "Dev-only code cleaned"
 

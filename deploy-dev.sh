@@ -144,6 +144,34 @@ echo "Restarting backend..."
 ssh -i $SSH_KEY $REMOTE "sudo systemctl restart isaac-backend"
 
 echo "=== Dev Deploy Complete ==="
-echo "Test at: https://isaac.local"
+echo "Test at: https://isaac.local:8443"
 echo "Checking backend status..."
 ssh -i $SSH_KEY $REMOTE "sudo systemctl status isaac-backend --no-pager | head -10"
+
+# Safety check: verify prod backend wasn't affected
+echo ""
+echo "Checking prod backend health..."
+PROD_STATUS=$(ssh -i $SSH_KEY $REMOTE "sudo systemctl is-active levi-backend 2>/dev/null")
+if [ "$PROD_STATUS" != "active" ]; then
+    echo "============================================"
+    echo "   WARNING: PROD BACKEND IS DOWN!"
+    echo "============================================"
+    echo "The production backend (levi-backend) is not running."
+    echo "This was NOT caused by the dev deploy, but needs attention."
+    echo ""
+    echo "Attempting auto-recovery..."
+    # Try to get the error
+    ssh -i $SSH_KEY $REMOTE "cd /opt/levi/backend && /opt/levi/backend/venv/bin/python3 -c 'import main' 2>&1" || true
+    echo ""
+    echo "Attempting restart..."
+    ssh -i $SSH_KEY $REMOTE "sudo systemctl restart levi-backend"
+    sleep 3
+    PROD_STATUS2=$(ssh -i $SSH_KEY $REMOTE "sudo systemctl is-active levi-backend 2>/dev/null")
+    if [ "$PROD_STATUS2" = "active" ]; then
+        echo "Prod backend recovered successfully."
+    else
+        echo "Prod backend still failing. Manual intervention needed."
+    fi
+else
+    echo "Prod backend: OK"
+fi
