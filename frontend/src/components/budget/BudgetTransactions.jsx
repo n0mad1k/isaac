@@ -98,7 +98,9 @@ function BudgetTransactions() {
   useEffect(() => { fetchData() }, [fetchData])
 
   // All active categories grouped by type for dropdown
-  const allActiveCategories = categories.filter(c => c.is_active && c.name !== 'Roll Over' && c.name !== 'Other')
+  // Show "Roll Over" category when Rollover account is selected
+  const selectedAccountIsRollover = accounts.find(a => String(a.id) === formData.account_id)?.name === 'Rollover'
+  const allActiveCategories = categories.filter(c => c.is_active && c.name !== 'Other' && (c.name !== 'Roll Over' || selectedAccountIsRollover))
     .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
   const variableCategories = allActiveCategories.filter(c => c.category_type === 'variable')
   const fixedCategories = allActiveCategories.filter(c => c.category_type === 'fixed')
@@ -275,7 +277,16 @@ function BudgetTransactions() {
               <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>Account</label>
               <select
                 value={formData.account_id}
-                onChange={(e) => setFormData(f => ({ ...f, account_id: e.target.value }))}
+                onChange={(e) => {
+                  const newAcctId = e.target.value
+                  const isRollover = accounts.find(a => String(a.id) === newAcctId)?.name === 'Rollover'
+                  const rollOverCat = isRollover ? categories.find(c => c.name === 'Roll Over') : null
+                  setFormData(f => ({
+                    ...f,
+                    account_id: newAcctId,
+                    ...(rollOverCat ? { category_id: String(rollOverCat.id) } : {})
+                  }))
+                }}
                 className="w-full px-2 py-1.5 bg-surface border border-subtle rounded text-sm"
                 style={{ color: 'var(--color-text-primary)' }}
               >

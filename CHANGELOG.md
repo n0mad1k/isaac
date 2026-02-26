@@ -2,16 +2,16 @@
 
 All notable changes to Isaac will be documented in this file.
 
-## [1.88.3] - 2026-02-25
+## [1.89.0] - 2026-02-25
 
-### Fixed
-- **Mobile Login (HSTS)** - Removed HSTS header from nginx configs (including Docker) that trapped mobile browsers on HTTPS with self-signed certs, preventing API calls
-- **Invitation Cookie** - Fixed hardcoded `secure=True` on invitation acceptance cookie to use dynamic HTTPS detection, matching the login cookie behavior
-
-## [1.88.2] - 2026-02-25
-
-### Fixed
-- **Mobile Login** - Added missing `path="/"` on login session cookie so it's sent on all API requests (mobile Safari was scoping cookie to `/auth/login` path only)
+### Added
+- **Rollover Account** - Rollover balance now appears as a selectable account in the budget system
+  - Create transactions against the Rollover account to spend surplus funds
+  - Transfer rollover to other accounts (e.g., savings)
+  - Auto-created on first visit to budget accounts
+  - Balance reflects the calculated rollover from Gas, Groceries, and Main Spending surpluses
+  - Selecting the Rollover account auto-assigns the Roll Over category
+- **Rollover Balance Immediate Updates** - Roll Over transactions now reduce the displayed rollover balance in the current period (previously only updated in future periods)
 
 ## [1.88.1] - 2026-02-25
 

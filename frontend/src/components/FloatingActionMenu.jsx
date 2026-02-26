@@ -968,7 +968,16 @@ function QuickTransactionModal({ onClose }) {
                   <label className="block text-sm mb-1" style={{ color: 'var(--color-text-secondary)' }}>Account *</label>
                   <select
                     value={formData.account_id}
-                    onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
+                    onChange={(e) => {
+                      const newAcctId = e.target.value
+                      const isRollover = accounts.find(a => String(a.id) === newAcctId)?.name === 'Rollover'
+                      const rollOverCat = isRollover ? categories.find(c => c.name === 'Roll Over') : null
+                      setFormData({
+                        ...formData,
+                        account_id: newAcctId,
+                        ...(rollOverCat ? { category_id: String(rollOverCat.id) } : {})
+                      })
+                    }}
                     required
                     className="w-full px-3 py-2 rounded-lg"
                     style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
@@ -990,12 +999,15 @@ function QuickTransactionModal({ onClose }) {
                     style={{ backgroundColor: 'var(--color-input-bg)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)' }}
                   >
                     <option value="">Select category...</option>
-                    {categories
-                      .filter(c => c.is_active && c.category_type !== 'fixed' && c.name !== 'Roll Over' && c.name !== 'Other')
-                      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
-                      .map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
+                    {(() => {
+                      const isRollover = accounts.find(a => String(a.id) === formData.account_id)?.name === 'Rollover'
+                      return categories
+                        .filter(c => c.is_active && c.category_type !== 'fixed' && c.name !== 'Other' && (c.name !== 'Roll Over' || isRollover))
+                        .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+                        .map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))
+                    })()}
                   </select>
                 </div>
 

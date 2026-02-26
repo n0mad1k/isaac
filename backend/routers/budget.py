@@ -354,6 +354,8 @@ async def list_accounts(
     db: AsyncSession = Depends(get_db),
 ):
     try:
+        await _ensure_rollover_account(db)
+        await db.commit()
         result = await db.execute(
             select(BudgetAccount).order_by(BudgetAccount.sort_order, BudgetAccount.name)
         )
@@ -447,6 +449,167 @@ async def _calculate_account_balance(account: BudgetAccount, db: AsyncSession) -
     return round(initial + txn_total, 2)
 
 
+async def _calculate_rollover_balance(db: AsyncSession) -> float:
+    """Calculate the current rollover balance using today's date as reference.
+
+    Rollover = accumulated surplus from Gas, Groceries, Main Spending
+    across completed months minus any Roll Over category transactions.
+    """
+    rollover_balance = 0.0
+    rollover_cats = {"Gas", "Groceries", "Main Spending"}
+    try:
+        # Get all active categories
+        cat_result = await db.execute(
+            select(BudgetCategory).where(BudgetCategory.is_active == True)
+        )
+        categories = cat_result.scalars().all()
+
+        # Find the first transaction date
+        first_txn = await db.execute(
+            select(func.min(BudgetTransaction.transaction_date))
+        )
+        first_date = first_txn.scalar()
+        if not first_date:
+            return 0.0
+
+        rollover_cat_ids = [c.id for c in categories if c.name in rollover_cats]
+        roll_over_cat = next((c for c in categories if c.name == "Roll Over"), None)
+
+        # Skip first month (setup month)
+        first_month_start = date(first_date.year, first_date.month, 1)
+        if first_month_start.month == 12:
+            rollover_start = date(first_month_start.year + 1, 1, 1)
+        else:
+            rollover_start = date(first_month_start.year, first_month_start.month + 1, 1)
+
+        today = date.today()
+        current_month_start = date(today.year, today.month, 1)
+
+        if rollover_start < current_month_start:
+            # Spending on rollover categories in previous months
+            prev_spending_result = await db.execute(
+                select(
+                    BudgetTransaction.category_id,
+                    func.sum(BudgetTransaction.amount).label("total")
+                )
+                .where(
+                    BudgetTransaction.transaction_date >= rollover_start,
+                    BudgetTransaction.transaction_date < current_month_start,
+                    BudgetTransaction.category_id.in_(rollover_cat_ids),
+                )
+                .group_by(BudgetTransaction.category_id)
+            )
+            prev_spending_map = {row[0]: row[1] for row in prev_spending_result.all()}
+
+            # Add monthly budgets for each completed month
+            m_cursor = rollover_start
+            while m_cursor < current_month_start:
+                for cat in categories:
+                    if cat.name not in rollover_cats:
+                        continue
+                    month_budget = cat.monthly_budget if cat.monthly_budget else (cat.budget_amount * 2)
+                    rollover_balance += month_budget
+                if m_cursor.month == 12:
+                    m_cursor = date(m_cursor.year + 1, 1, 1)
+                else:
+                    m_cursor = date(m_cursor.year, m_cursor.month + 1, 1)
+
+            # Subtract actual spending
+            for cat_id, total_spent in prev_spending_map.items():
+                rollover_balance += total_spent  # negative
+
+            # Subtract Roll Over category transactions from previous months
+            if roll_over_cat:
+                ro_result = await db.execute(
+                    select(func.sum(BudgetTransaction.amount))
+                    .where(
+                        BudgetTransaction.category_id == roll_over_cat.id,
+                        BudgetTransaction.transaction_date >= rollover_start,
+                        BudgetTransaction.transaction_date < current_month_start,
+                    )
+                )
+                ro_spent = ro_result.scalar() or 0.0
+                rollover_balance += ro_spent
+
+        # Include current month up to today
+        is_second_half = today.day >= 15
+        if rollover_cat_ids:
+            if is_second_half:
+                # Include first half budget + spending
+                first_half_start = date(today.year, today.month, 1)
+                first_half_end = date(today.year, today.month, 14)
+                for cat in categories:
+                    if cat.name in rollover_cats:
+                        rollover_balance += (cat.budget_amount or 0)
+                fh_result = await db.execute(
+                    select(func.sum(BudgetTransaction.amount))
+                    .where(
+                        BudgetTransaction.transaction_date >= first_half_start,
+                        BudgetTransaction.transaction_date <= first_half_end,
+                        BudgetTransaction.category_id.in_(rollover_cat_ids),
+                    )
+                )
+                fh_spent = fh_result.scalar() or 0.0
+                rollover_balance += fh_spent
+                if roll_over_cat:
+                    fh_ro_result = await db.execute(
+                        select(func.sum(BudgetTransaction.amount))
+                        .where(
+                            BudgetTransaction.category_id == roll_over_cat.id,
+                            BudgetTransaction.transaction_date >= first_half_start,
+                            BudgetTransaction.transaction_date <= first_half_end,
+                        )
+                    )
+                    fh_ro_spent = fh_ro_result.scalar() or 0.0
+                    rollover_balance += fh_ro_spent
+
+            # Subtract current period Roll Over transactions
+            if roll_over_cat:
+                period_start = date(today.year, today.month, 15) if is_second_half else date(today.year, today.month, 1)
+                last_day = monthrange(today.year, today.month)[1]
+                period_end = date(today.year, today.month, last_day) if is_second_half else date(today.year, today.month, 14)
+                current_ro_result = await db.execute(
+                    select(func.sum(BudgetTransaction.amount))
+                    .where(
+                        BudgetTransaction.category_id == roll_over_cat.id,
+                        BudgetTransaction.transaction_date >= period_start,
+                        BudgetTransaction.transaction_date <= period_end,
+                    )
+                )
+                current_ro_spent = current_ro_result.scalar() or 0.0
+                rollover_balance += current_ro_spent
+
+        rollover_balance = round(rollover_balance, 2)
+    except Exception as e:
+        logger.warning(f"Could not calculate rollover balance: {e}")
+
+    return rollover_balance
+
+
+ROLLOVER_ACCOUNT_NAME = "Rollover"
+
+
+async def _ensure_rollover_account(db: AsyncSession) -> BudgetAccount:
+    """Get or create the virtual Rollover account."""
+    result = await db.execute(
+        select(BudgetAccount).where(BudgetAccount.name == ROLLOVER_ACCOUNT_NAME)
+    )
+    account = result.scalar_one_or_none()
+    if not account:
+        account = BudgetAccount(
+            name=ROLLOVER_ACCOUNT_NAME,
+            account_type=AccountType.SAVINGS,
+            institution="Budget Rollover",
+            is_active=True,
+            sort_order=999,
+            initial_balance=0.0,
+        )
+        db.add(account)
+        await db.flush()
+        await db.refresh(account)
+    return account
+
+
 @router.get("/accounts/balances/")
 async def list_accounts_with_balances(
     user: User = Depends(require_view("budget")),
@@ -454,14 +617,24 @@ async def list_accounts_with_balances(
 ):
     """Get all accounts with their computed current balances"""
     try:
+        # Ensure Rollover account exists
+        rollover_acct = await _ensure_rollover_account(db)
+        await db.commit()
+
         result = await db.execute(
             select(BudgetAccount).order_by(BudgetAccount.sort_order, BudgetAccount.name)
         )
         accounts = result.scalars().all()
 
+        # Calculate rollover balance once for the Rollover account
+        rollover_balance = await _calculate_rollover_balance(db)
+
         response = []
         for account in accounts:
-            current_balance = await _calculate_account_balance(account, db)
+            if account.name == ROLLOVER_ACCOUNT_NAME:
+                current_balance = rollover_balance
+            else:
+                current_balance = await _calculate_account_balance(account, db)
             response.append({
                 "id": account.id,
                 "name": account.name,
@@ -495,7 +668,10 @@ async def get_account_detail(
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
 
-        current_balance = await _calculate_account_balance(account, db)
+        if account.name == ROLLOVER_ACCOUNT_NAME:
+            current_balance = await _calculate_rollover_balance(db)
+        else:
+            current_balance = await _calculate_account_balance(account, db)
 
         # Get buckets for this account
         bucket_result = await db.execute(
@@ -811,9 +987,24 @@ async def create_transaction(
         half = 1 if txn_date.day <= 14 else 2
         period_key = f"{txn_date.year}-{txn_date.month:02d}-{half}"
 
+        # Auto-assign Roll Over category for Rollover account transactions
+        category_id = data.category_id
+        if data.account_id:
+            acct_result = await db.execute(
+                select(BudgetAccount.name).where(BudgetAccount.id == data.account_id)
+            )
+            acct_name = acct_result.scalar_one_or_none()
+            if acct_name == ROLLOVER_ACCOUNT_NAME and not category_id:
+                roll_over_cat = await db.execute(
+                    select(BudgetCategory.id).where(BudgetCategory.name == "Roll Over")
+                )
+                ro_cat_id = roll_over_cat.scalar_one_or_none()
+                if ro_cat_id:
+                    category_id = ro_cat_id
+
         txn = BudgetTransaction(
             account_id=data.account_id,
-            category_id=data.category_id,
+            category_id=category_id,
             transaction_date=txn_date,
             description=data.description,
             original_description=data.description,
@@ -1617,6 +1808,30 @@ async def get_period_summary(
                         )
                         fh_ro_spent = fh_ro_result.scalar() or 0.0
                         rollover_balance += fh_ro_spent
+
+                # Also subtract Roll Over transactions from the current viewing period
+                # so using rollover updates the displayed balance immediately.
+                # No double-counting: phase 1 covers prev months only, phase 2
+                # covers first half only (when viewing second half), and this
+                # covers the current viewing window (start_date..end_date).
+                if roll_over_cat:
+                    # For second half: start_date=15th, so this only gets 2nd half txns
+                    # For first half: start_date=1st, end_date=14th
+                    # For full month: start_date=1st, end_date=last day
+                    current_period_start = start_date
+                    if is_second_half:
+                        # Phase 2 already counted first half; only get second half
+                        current_period_start = date(start_date.year, start_date.month, 15)
+                    current_ro_result = await db.execute(
+                        select(func.sum(BudgetTransaction.amount))
+                        .where(
+                            BudgetTransaction.category_id == roll_over_cat.id,
+                            BudgetTransaction.transaction_date >= current_period_start,
+                            BudgetTransaction.transaction_date <= end_date,
+                        )
+                    )
+                    current_ro_spent = current_ro_result.scalar() or 0.0
+                    rollover_balance += current_ro_spent
 
                 rollover_balance = round(rollover_balance, 2)
         except Exception as e:
