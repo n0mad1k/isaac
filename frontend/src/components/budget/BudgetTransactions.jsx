@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Plus, X, Trash2, Pencil, Check } from 'lucide-react'
 import {
   getBudgetTransactions, createBudgetTransaction, updateBudgetTransaction,
-  deleteBudgetTransaction, getBudgetAccounts, getBudgetCategories, getBudgetPeriodReference
+  deleteBudgetTransaction, getBudgetAccounts, getBudgetCategories
 } from '../../services/api'
 import { useSettings } from '../../contexts/SettingsContext'
 
@@ -14,47 +14,27 @@ function BudgetTransactions() {
   const [accounts, setAccounts] = useState([])
   const [categories, setCategories] = useState([])
   const [page, setPage] = useState(0)
-  const [referenceDate, setReferenceDate] = useState(null)
-  const [initialized, setInitialized] = useState(false)
   const pageSize = 50
 
   // Period filter: 'current' = this pay period, 'last' = last pay period, 'month' = full month, 'all' = everything
   const [periodFilter, setPeriodFilter] = useState('current')
 
-  // Load period reference on mount
-  useEffect(() => {
-    const loadReference = async () => {
-      let refDate = new Date()
-      try {
-        const res = await getBudgetPeriodReference()
-        if (res.data?.reference_date) {
-          refDate = new Date(res.data.reference_date + 'T12:00:00')
-        }
-      } catch (err) {
-        console.error('Failed to load period reference:', err)
-      }
-      setReferenceDate(refDate)
-      setInitialized(true)
-    }
-    loadReference()
-  }, [])
-
-  // Calculate date range based on the period reference date (respects manual advance)
+  // Calculate date range based on today's calendar date
   const getDateRange = (filter) => {
-    const ref = referenceDate || new Date()
-    const y = ref.getFullYear()
-    const m = ref.getMonth() + 1
+    const today = new Date()
+    const y = today.getFullYear()
+    const m = today.getMonth() + 1
     const lastDay = new Date(y, m, 0).getDate()
     const mStr = String(m).padStart(2, '0')
 
     if (filter === 'current') {
-      if (ref.getDate() <= 14) {
+      if (today.getDate() <= 14) {
         return { start_date: `${y}-${mStr}-01`, end_date: `${y}-${mStr}-14` }
       } else {
         return { start_date: `${y}-${mStr}-15`, end_date: `${y}-${mStr}-${lastDay}` }
       }
     } else if (filter === 'last') {
-      if (ref.getDate() <= 14) {
+      if (today.getDate() <= 14) {
         const prevM = m === 1 ? 12 : m - 1
         const prevY = m === 1 ? y - 1 : y
         const prevLastDay = new Date(prevY, prevM, 0).getDate()
@@ -81,7 +61,6 @@ function BudgetTransactions() {
   })
 
   const fetchData = useCallback(async () => {
-    if (!initialized) return
     setLoading(true)
     try {
       const dateRange = getDateRange(periodFilter)
@@ -99,7 +78,7 @@ function BudgetTransactions() {
     } finally {
       setLoading(false)
     }
-  }, [page, periodFilter, initialized, referenceDate])
+  }, [page, periodFilter])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -208,12 +187,12 @@ function BudgetTransactions() {
           </button>
           <div className="flex gap-1 flex-wrap">
             {(() => {
-              const ref = referenceDate || new Date()
-              const y = ref.getFullYear(), m = ref.getMonth() + 1
+              const today = new Date()
+              const y = today.getFullYear(), m = today.getMonth() + 1
               const lastDay = new Date(y, m, 0).getDate()
               const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
               let curRange, lastRange
-              if (ref.getDate() <= 14) {
+              if (today.getDate() <= 14) {
                 curRange = `${mn[m-1]} 1-14`
                 const pm = m === 1 ? 12 : m - 1, py = m === 1 ? y - 1 : y
                 const pld = new Date(py, pm, 0).getDate()

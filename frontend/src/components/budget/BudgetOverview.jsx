@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Check, X, Wallet, PiggyBank, CreditCard, Banknote } from 'lucide-react'
-import { getBudgetPeriodSummary, getBudgetCategories, updateBudgetCategory, getAccountsWithBalances, getBudgetPeriodReference } from '../../services/api'
+import { getBudgetPeriodSummary, getBudgetCategories, updateBudgetCategory, getAccountsWithBalances } from '../../services/api'
 
 const ACCOUNT_ICONS = {
   checking: Wallet,
@@ -58,33 +58,15 @@ function BudgetOverview() {
   const [summary, setSummary] = useState(null)
   const [categories, setCategories] = useState([])
   const [accounts, setAccounts] = useState([])
-  const [periods, setPeriods] = useState([])
   const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(0)
   const [editingBudget, setEditingBudget] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
-  const [initialized, setInitialized] = useState(false)
 
-  // Fetch reference date on mount, compute periods from it
-  useEffect(() => {
-    const init = async () => {
-      let refDate = new Date()
-      try {
-        const res = await getBudgetPeriodReference()
-        if (res.data?.reference_date) {
-          refDate = new Date(res.data.reference_date + 'T12:00:00')
-        }
-      } catch (err) {
-        console.error('Failed to fetch period reference:', err)
-      }
-      setPeriods(computePeriods(refDate))
-      setInitialized(true)
-    }
-    init()
-  }, [])
+  // Periods always based on today's calendar date
+  const periods = computePeriods(new Date())
 
   const fetchData = useCallback(async () => {
-    if (!initialized || periods.length === 0) return
     setLoading(true)
     try {
       const period = periods[selectedPeriodIdx] || periods[0]
@@ -101,7 +83,7 @@ function BudgetOverview() {
     } finally {
       setLoading(false)
     }
-  }, [selectedPeriodIdx, initialized, periods])
+  }, [selectedPeriodIdx])
 
   useEffect(() => { fetchData() }, [fetchData])
 
