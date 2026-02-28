@@ -449,15 +449,48 @@ async def _calculate_account_balance(account: BudgetAccount, db: AsyncSession) -
     return round(initial + txn_total, 2)
 
 
-async def _calculate_rollover_balance(db: AsyncSession) -> float:
-    """Calculate the current rollover balance using today's date as reference.
+async def _get_period_reference_date(db: AsyncSession) -> date:
+    """Get the effective period reference date, respecting overrides and auto-expiring stale ones."""
+    from models.settings import AppSetting
+
+    result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "budget_period_reference")
+    )
+    setting = result.scalar_one_or_none()
+
+    if setting and setting.value:
+        try:
+            ref_date = date.fromisoformat(setting.value)
+            today = date.today()
+            # Auto-expire: if the override period has passed (calendar caught up), clear it
+            if ref_date <= today:
+                await db.delete(setting)
+                await db.commit()
+                logger.info(f"Auto-expired stale period override {ref_date}, using today")
+                return today
+            return ref_date
+        except ValueError:
+            pass
+
+    return date.today()
+
+
+async def _calculate_rollover_balance(db: AsyncSession, reference_date: date = None) -> float:
+    """Calculate the current rollover balance using a reference date.
 
     Rollover = accumulated surplus from Gas, Groceries, Main Spending
     across completed months minus any Roll Over category transactions.
+
+    Args:
+        reference_date: The date to calculate rollover as of. If None, uses
+                       the period reference setting or today's date.
     """
     rollover_balance = 0.0
     rollover_cats = {"Gas", "Groceries", "Main Spending"}
     try:
+        if reference_date is None:
+            reference_date = await _get_period_reference_date(db)
+
         # Get all active categories
         cat_result = await db.execute(
             select(BudgetCategory).where(BudgetCategory.is_active == True)
@@ -482,8 +515,8 @@ async def _calculate_rollover_balance(db: AsyncSession) -> float:
         else:
             rollover_start = date(first_month_start.year, first_month_start.month + 1, 1)
 
-        today = date.today()
-        current_month_start = date(today.year, today.month, 1)
+        ref = reference_date
+        current_month_start = date(ref.year, ref.month, 1)
 
         if rollover_start < current_month_start:
             # Spending on rollover categories in previous months
@@ -531,13 +564,13 @@ async def _calculate_rollover_balance(db: AsyncSession) -> float:
                 ro_spent = ro_result.scalar() or 0.0
                 rollover_balance += ro_spent
 
-        # Include current month up to today
-        is_second_half = today.day >= 15
+        # Include current month up to reference date
+        is_second_half = ref.day >= 15
         if rollover_cat_ids:
             if is_second_half:
                 # Include first half budget + spending
-                first_half_start = date(today.year, today.month, 1)
-                first_half_end = date(today.year, today.month, 14)
+                first_half_start = date(ref.year, ref.month, 1)
+                first_half_end = date(ref.year, ref.month, 14)
                 for cat in categories:
                     if cat.name in rollover_cats:
                         rollover_balance += (cat.budget_amount or 0)
@@ -565,9 +598,9 @@ async def _calculate_rollover_balance(db: AsyncSession) -> float:
 
             # Subtract current period Roll Over transactions
             if roll_over_cat:
-                period_start = date(today.year, today.month, 15) if is_second_half else date(today.year, today.month, 1)
-                last_day = monthrange(today.year, today.month)[1]
-                period_end = date(today.year, today.month, last_day) if is_second_half else date(today.year, today.month, 14)
+                period_start = date(ref.year, ref.month, 15) if is_second_half else date(ref.year, ref.month, 1)
+                last_day = monthrange(ref.year, ref.month)[1]
+                period_end = date(ref.year, ref.month, last_day) if is_second_half else date(ref.year, ref.month, 14)
                 current_ro_result = await db.execute(
                     select(func.sum(BudgetTransaction.amount))
                     .where(
@@ -1500,42 +1533,22 @@ async def get_period_reference(
     db: AsyncSession = Depends(get_db),
 ):
     """Get the current budget reference date for pay period calculation.
-    Returns null if using today's date (default behavior)."""
-    from models.settings import AppSetting
+    Auto-expires stale overrides when the calendar catches up."""
+    # Use the shared helper which handles auto-expiry
+    ref_date = await _get_period_reference_date(db)
 
+    # Check if this is still an override (helper may have cleared it)
+    from models.settings import AppSetting
     result = await db.execute(
         select(AppSetting).where(AppSetting.key == "budget_period_reference")
     )
     setting = result.scalar_one_or_none()
+    is_override = setting is not None and setting.value is not None
 
-    if setting and setting.value:
-        try:
-            ref_date = date.fromisoformat(setting.value)
-            # Determine which period this date falls in
-            periods = _get_pay_periods(ref_date.year, ref_date.month)
-            current_period = None
-            for p in periods:
-                if p["start"] <= ref_date <= p["end"]:
-                    current_period = {
-                        "start": p["start"].isoformat(),
-                        "end": p["end"].isoformat(),
-                        "label": p["label"]
-                    }
-                    break
-            return {
-                "reference_date": setting.value,
-                "current_period": current_period,
-                "is_override": True
-            }
-        except ValueError:
-            pass
-
-    # Default: use today
-    today = date.today()
-    periods = _get_pay_periods(today.year, today.month)
+    periods = _get_pay_periods(ref_date.year, ref_date.month)
     current_period = None
     for p in periods:
-        if p["start"] <= today <= p["end"]:
+        if p["start"] <= ref_date <= p["end"]:
             current_period = {
                 "start": p["start"].isoformat(),
                 "end": p["end"].isoformat(),
@@ -1543,9 +1556,9 @@ async def get_period_reference(
             }
             break
     return {
-        "reference_date": today.isoformat(),
+        "reference_date": ref_date.isoformat(),
         "current_period": current_period,
-        "is_override": False
+        "is_override": is_override
     }
 
 

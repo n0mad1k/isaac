@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.89.3] - 2026-02-28
+
+### Fixed
+- **Rollover Period Awareness** - Rollover account balance now respects the active pay period instead of always using today's date. Advancing the period correctly updates rollover values to include the completed period's surplus.
+- **Auto-Expire Period Overrides** - Manual period advances automatically expire when the calendar catches up, so the system naturally follows the calendar without stale overrides.
+
 ## [1.89.2] - 2026-02-26
 
 ### Fixed
