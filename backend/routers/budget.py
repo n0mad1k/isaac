@@ -674,6 +674,75 @@ async def _ensure_period_deposits(db: AsyncSession, period_start: date, period_e
         logger.warning(f"Could not ensure period deposits: {e}")
 
 
+async def _ensure_bill_deductions(db: AsyncSession) -> None:
+    """Auto-deduct bills on their bill_day from linked spending accounts.
+
+    Creates expense transactions on the bill's due date so account balances
+    stay accurate day by day. Only deducts bills where bill_day <= today.
+    """
+    try:
+        today = date.today()
+
+        # Find all fixed categories with owner, account_id, and bill_day
+        cat_result = await db.execute(
+            select(BudgetCategory).where(
+                BudgetCategory.is_active == True,
+                BudgetCategory.category_type == CategoryType.FIXED,
+                BudgetCategory.owner.isnot(None),
+                BudgetCategory.account_id.isnot(None),
+                BudgetCategory.bill_day.isnot(None),
+            )
+        )
+        bills = cat_result.scalars().all()
+
+        for bill in bills:
+            # Check billing_months
+            if bill.billing_months:
+                active_months = [int(m.strip()) for m in bill.billing_months.split(',') if m.strip()]
+                if today.month not in active_months:
+                    continue
+
+            # Only deduct if bill_day has arrived this month
+            if bill.bill_day > today.day:
+                continue
+
+            bill_amount = bill.monthly_budget if bill.monthly_budget else bill.budget_amount
+            if not bill_amount or bill_amount <= 0:
+                continue
+
+            # Check if already deducted this month
+            month_key = f"{today.year}-{today.month:02d}"
+            ref_id = f"auto_bill_{bill.id}_{month_key}"
+            existing = await db.execute(
+                select(BudgetTransaction.id).where(
+                    BudgetTransaction.source_reference_id == ref_id
+                )
+            )
+            if existing.scalar_one_or_none():
+                continue
+
+            # Create the bill deduction on the bill's due date
+            bill_date = date(today.year, today.month, min(bill.bill_day, monthrange(today.year, today.month)[1]))
+            period_half = "1" if bill.bill_day <= 14 else "2"
+            txn = BudgetTransaction(
+                account_id=bill.account_id,
+                category_id=bill.id,
+                transaction_date=bill_date,
+                description=f"{bill.name}",
+                amount=-bill_amount,
+                transaction_type=TransactionType.DEBIT,
+                source=TransactionSource.SYSTEM,
+                source_reference_id=ref_id,
+                period_key=f"{today.year}-{today.month:02d}-{period_half}",
+            )
+            db.add(txn)
+            logger.info(f"Auto-deducted ${bill_amount:.2f} for {bill.name} on day {bill.bill_day} ({month_key})")
+
+        await db.flush()
+    except Exception as e:
+        logger.warning(f"Could not ensure bill deductions: {e}")
+
+
 async def _ensure_rollover_account(db: AsyncSession) -> BudgetAccount:
     """Get or create the virtual Rollover account."""
     result = await db.execute(
@@ -715,6 +784,9 @@ async def list_accounts_with_balances(
             p_start = date(ref_date.year, ref_date.month, 15)
             p_end = date(ref_date.year, ref_date.month, last_day)
         await _ensure_period_deposits(db, p_start, p_end)
+
+        # Auto-deduct bills that are due
+        await _ensure_bill_deductions(db)
 
         await db.commit()
 
@@ -922,6 +994,12 @@ async def create_category(
         db.add(category)
         await db.flush()
         await db.refresh(category)
+
+        # If this is a bill with owner/account/bill_day, auto-deduct if due
+        if (category.category_type == CategoryType.FIXED
+                and category.owner and category.account_id and category.bill_day):
+            await _ensure_bill_deductions(db)
+
         return category
     except Exception as e:
         logger.error(f"Error creating budget category: {e}")
@@ -944,6 +1022,12 @@ async def update_category(
             setattr(category, key, value)
         await db.flush()
         await db.refresh(category)
+
+        # If this is a bill with owner/account/bill_day, auto-deduct if due
+        if (category.category_type == CategoryType.FIXED
+                and category.owner and category.account_id and category.bill_day):
+            await _ensure_bill_deductions(db)
+
         return category
     except HTTPException:
         raise
@@ -1973,8 +2057,12 @@ async def get_period_summary(
                                if c.owner == owner_key
                                and c.id != transfer_cat.id]
 
-                # Helper to calculate bills for a specific half-period
-                def calc_half_bills(year, month, is_first_half):
+                # Helper to calculate UNPAID bills for a specific half-period
+                # Bills auto-deducted on their bill_day are already in account_balance,
+                # so only count bills not yet deducted (bill_day > today or future months)
+                today = date.today()
+
+                def calc_half_bills(year, month, is_first_half, unpaid_only=False):
                     total = 0.0
                     for bill in owned_bills:
                         if bill.billing_months:
@@ -1989,7 +2077,11 @@ async def get_period_summary(
                         if bill.bill_day is not None:
                             bill_in_first = (bill.bill_day <= 14)
                             if is_first_half == bill_in_first:
-                                total += bill.monthly_budget if bill.monthly_budget else bill.budget_amount
+                                bill_amt = bill.monthly_budget if bill.monthly_budget else bill.budget_amount
+                                # Skip bills already auto-deducted (bill_day <= today in current month)
+                                if unpaid_only and year == today.year and month == today.month and bill.bill_day <= today.day:
+                                    continue
+                                total += bill_amt
                         else:
                             if bill.budget_amount and bill.budget_amount > 0:
                                 total += bill.budget_amount
@@ -1999,22 +2091,26 @@ async def get_period_summary(
                 current_month = start_date.month
                 current_year = start_date.year
 
-                # Calculate bills for each half
+                # Calculate ALL bills (for display) and UNPAID bills (for available)
                 first_half_bills = calc_half_bills(current_year, current_month, True)
                 second_half_bills = calc_half_bills(current_year, current_month, False)
+                first_half_unpaid = calc_half_bills(current_year, current_month, True, unpaid_only=True)
+                second_half_unpaid = calc_half_bills(current_year, current_month, False, unpaid_only=True)
 
                 # Determine which half we're viewing
                 if is_first_half:
                     this_half_bills = first_half_bills
+                    this_half_unpaid = first_half_unpaid
                 elif is_second_half:
                     this_half_bills = second_half_bills
+                    this_half_unpaid = second_half_unpaid
                 else:
                     this_half_bills = first_half_bills + second_half_bills
+                    this_half_unpaid = first_half_unpaid + second_half_unpaid
 
-                # Available = Account Balance - Bills This Half
-                # Note: Transactions are already reflected in account_balance
-                # (either through initial_balance or summed transactions)
-                available = account_balance - this_half_bills
+                # Available = Account Balance - Unpaid Bills
+                # Bills already auto-deducted are in account_balance, don't subtract again
+                available = account_balance - this_half_unpaid
 
                 person_spending_balances[owner_key] = {
                     "available": round(available, 2),

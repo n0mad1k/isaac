@@ -2,10 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
-## [1.89.4] - 2026-02-28
+## [1.89.5] - 2026-02-28
 
 ### Added
 - **Auto-Deposit for Spending Accounts** - Transfer categories with linked accounts (Dane Spending, Kelly Spending, etc.) now automatically receive their budget deposit when a new pay period starts. No more manual transfers needed.
+- **Auto-Bill Deductions** - Bills with a set due date (bill_day) are automatically deducted from linked spending accounts on their due date. Adding or updating a bill category triggers immediate deduction if the due date has passed. Available balance only subtracts unpaid bills to prevent double-counting.
 
 ### Fixed
 - **Rollover Period Awareness** - Rollover account balance now respects the active pay period instead of always using today's date. Advancing the period correctly updates rollover values to include the completed period's surplus.
