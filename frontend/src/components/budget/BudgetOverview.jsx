@@ -9,6 +9,19 @@ const ACCOUNT_ICONS = {
   cash: Banknote,
 }
 
+// Format a date range label like "Mar 1-14"
+function fmtRange(start, end) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const s = new Date(start + 'T12:00:00')
+  const e = new Date(end + 'T12:00:00')
+  const sm = months[s.getMonth()]
+  const em = months[e.getMonth()]
+  if (s.getMonth() === e.getMonth()) {
+    return `${sm} ${s.getDate()}-${e.getDate()}`
+  }
+  return `${sm} ${s.getDate()} - ${em} ${e.getDate()}`
+}
+
 // Compute 3 fixed periods from a reference date
 function computePeriods(refDate) {
   const y = refDate.getFullYear(), m = refDate.getMonth() + 1
@@ -18,18 +31,24 @@ function computePeriods(refDate) {
   let thisPeriod, lastPeriod, thisMonth
 
   if (refDate.getDate() <= 14) {
-    thisPeriod = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-14`, label: 'This Period' }
+    const start = `${y}-${mStr}-01`, end = `${y}-${mStr}-14`
+    thisPeriod = { start, end, label: `This Period (${fmtRange(start, end)})` }
     const prevM = m === 1 ? 12 : m - 1
     const prevY = m === 1 ? y - 1 : y
     const prevLastDay = new Date(prevY, prevM, 0).getDate()
     const prevMStr = String(prevM).padStart(2, '0')
-    lastPeriod = { start: `${prevY}-${prevMStr}-15`, end: `${prevY}-${prevMStr}-${prevLastDay}`, label: 'Last Period' }
+    const lStart = `${prevY}-${prevMStr}-15`, lEnd = `${prevY}-${prevMStr}-${prevLastDay}`
+    lastPeriod = { start: lStart, end: lEnd, label: `Last Period (${fmtRange(lStart, lEnd)})` }
   } else {
-    thisPeriod = { start: `${y}-${mStr}-15`, end: `${y}-${mStr}-${lastDay}`, label: 'This Period' }
-    lastPeriod = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-14`, label: 'Last Period' }
+    const start = `${y}-${mStr}-15`, end = `${y}-${mStr}-${lastDay}`
+    thisPeriod = { start, end, label: `This Period (${fmtRange(start, end)})` }
+    const lStart = `${y}-${mStr}-01`, lEnd = `${y}-${mStr}-14`
+    lastPeriod = { start: lStart, end: lEnd, label: `Last Period (${fmtRange(lStart, lEnd)})` }
   }
 
-  thisMonth = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-${lastDay}`, label: 'This Month' }
+  const mStart = `${y}-${mStr}-01`, mEnd = `${y}-${mStr}-${lastDay}`
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  thisMonth = { start: mStart, end: mEnd, label: months[m - 1] }
 
   return [thisPeriod, lastPeriod, thisMonth]
 }

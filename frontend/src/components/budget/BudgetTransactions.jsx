@@ -206,13 +206,29 @@ function BudgetTransactions() {
             <Plus className="w-3.5 h-3.5" />
             Add Transaction
           </button>
-          <div className="flex gap-1">
-            {[
-              { key: 'current', label: 'This Period' },
-              { key: 'last', label: 'Last Period' },
-              { key: 'month', label: 'This Month' },
-              { key: 'all', label: 'All' },
-            ].map(f => (
+          <div className="flex gap-1 flex-wrap">
+            {(() => {
+              const ref = referenceDate || new Date()
+              const y = ref.getFullYear(), m = ref.getMonth() + 1
+              const lastDay = new Date(y, m, 0).getDate()
+              const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+              let curRange, lastRange
+              if (ref.getDate() <= 14) {
+                curRange = `${mn[m-1]} 1-14`
+                const pm = m === 1 ? 12 : m - 1, py = m === 1 ? y - 1 : y
+                const pld = new Date(py, pm, 0).getDate()
+                lastRange = `${mn[pm-1]} 15-${pld}`
+              } else {
+                curRange = `${mn[m-1]} 15-${lastDay}`
+                lastRange = `${mn[m-1]} 1-14`
+              }
+              return [
+                { key: 'current', label: `This Period (${curRange})` },
+                { key: 'last', label: `Last Period (${lastRange})` },
+                { key: 'month', label: mn[m-1] },
+                { key: 'all', label: 'All' },
+              ]
+            })().map(f => (
               <button
                 key={f.key}
                 onClick={() => { setPeriodFilter(f.key); setPage(0) }}
