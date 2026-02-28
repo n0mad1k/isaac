@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Check, X, Wallet, PiggyBank, CreditCard, Banknote } from 'lucide-react'
-import { getBudgetPeriodSummary, getBudgetCategories, updateBudgetCategory, getAccountsWithBalances } from '../../services/api'
+import { getBudgetPeriodSummary, getBudgetCategories, updateBudgetCategory, getAccountsWithBalances, getBudgetPeriodReference } from '../../services/api'
 
 const ACCOUNT_ICONS = {
   checking: Wallet,
@@ -9,46 +9,61 @@ const ACCOUNT_ICONS = {
   cash: Banknote,
 }
 
-// Format a date range label like "Mar 1-14"
+// Format a date range label like "Mar 1-14" or "Feb 28 - Mar 14"
 function fmtRange(start, end) {
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const s = new Date(start + 'T12:00:00')
   const e = new Date(end + 'T12:00:00')
-  const sm = months[s.getMonth()]
-  const em = months[e.getMonth()]
-  if (s.getMonth() === e.getMonth()) {
-    return `${sm} ${s.getDate()}-${e.getDate()}`
-  }
-  return `${sm} ${s.getDate()} - ${em} ${e.getDate()}`
+  if (s.getMonth() === e.getMonth()) return `${mn[s.getMonth()]} ${s.getDate()}-${e.getDate()}`
+  return `${mn[s.getMonth()]} ${s.getDate()} - ${mn[e.getMonth()]} ${e.getDate()}`
 }
 
-// Compute 3 fixed periods from a reference date
-function computePeriods(refDate) {
-  const y = refDate.getFullYear(), m = refDate.getMonth() + 1
-  const lastDay = new Date(y, m, 0).getDate()
-  const mStr = String(m).padStart(2, '0')
+function pad2(n) { return String(n).padStart(2, '0') }
+function fmtDate(y, m, d) { return `${y}-${pad2(m)}-${pad2(d)}` }
+function lastDayOf(y, m) { return new Date(y, m, 0).getDate() }
 
-  let thisPeriod, lastPeriod, thisMonth
+// Compute 3 fixed periods using both today and the reference date.
+// Reference date determines which half-month period we're in (the period END).
+// Today determines the period START (you start spending on payday).
+// This Period = min(today, refPeriodStart) → refPeriodEnd
+function computePeriods(today, refDate) {
+  const ry = refDate.getFullYear(), rm = refDate.getMonth() + 1
 
+  // Reference period end
+  let refStart, refEnd
   if (refDate.getDate() <= 14) {
-    const start = `${y}-${mStr}-01`, end = `${y}-${mStr}-14`
-    thisPeriod = { start, end, label: `This Period (${fmtRange(start, end)})` }
-    const prevM = m === 1 ? 12 : m - 1
-    const prevY = m === 1 ? y - 1 : y
-    const prevLastDay = new Date(prevY, prevM, 0).getDate()
-    const prevMStr = String(prevM).padStart(2, '0')
-    const lStart = `${prevY}-${prevMStr}-15`, lEnd = `${prevY}-${prevMStr}-${prevLastDay}`
-    lastPeriod = { start: lStart, end: lEnd, label: `Last Period (${fmtRange(lStart, lEnd)})` }
+    refStart = fmtDate(ry, rm, 1)
+    refEnd = fmtDate(ry, rm, 14)
   } else {
-    const start = `${y}-${mStr}-15`, end = `${y}-${mStr}-${lastDay}`
-    thisPeriod = { start, end, label: `This Period (${fmtRange(start, end)})` }
-    const lStart = `${y}-${mStr}-01`, lEnd = `${y}-${mStr}-14`
-    lastPeriod = { start: lStart, end: lEnd, label: `Last Period (${fmtRange(lStart, lEnd)})` }
+    refStart = fmtDate(ry, rm, 15)
+    refEnd = fmtDate(ry, rm, lastDayOf(ry, rm))
   }
 
-  const mStart = `${y}-${mStr}-01`, mEnd = `${y}-${mStr}-${lastDay}`
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  thisMonth = { start: mStart, end: mEnd, label: months[m - 1] }
+  // This Period: start from today if it's before the reference period start (advance scenario)
+  const todayStr = fmtDate(today.getFullYear(), today.getMonth() + 1, today.getDate())
+  const thisStart = todayStr < refStart ? todayStr : refStart
+  const thisPeriod = { start: thisStart, end: refEnd, label: `This Period (${fmtRange(thisStart, refEnd)})` }
+
+  // Last Period: the standard half-month before the reference period
+  let lastStart, lastEnd
+  if (refDate.getDate() <= 14) {
+    // Ref is in 1-14, so previous period is 15-end of prior month
+    const prevM = rm === 1 ? 12 : rm - 1
+    const prevY = rm === 1 ? ry - 1 : ry
+    lastStart = fmtDate(prevY, prevM, 15)
+    lastEnd = fmtDate(prevY, prevM, lastDayOf(prevY, prevM))
+  } else {
+    // Ref is in 15-end, so previous period is 1-14 of same month
+    lastStart = fmtDate(ry, rm, 1)
+    lastEnd = fmtDate(ry, rm, 14)
+  }
+  const lastPeriod = { start: lastStart, end: lastEnd, label: `Last Period (${fmtRange(lastStart, lastEnd)})` }
+
+  // This Month: the reference date's month
+  const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const mStart = fmtDate(ry, rm, 1)
+  const mEnd = fmtDate(ry, rm, lastDayOf(ry, rm))
+  const thisMonth = { start: mStart, end: mEnd, label: mn[rm - 1] }
 
   return [thisPeriod, lastPeriod, thisMonth]
 }
@@ -58,15 +73,34 @@ function BudgetOverview() {
   const [summary, setSummary] = useState(null)
   const [categories, setCategories] = useState([])
   const [accounts, setAccounts] = useState([])
+  const [periods, setPeriods] = useState([])
   const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(0)
   const [editingBudget, setEditingBudget] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
-  // Periods always based on today's calendar date
-  const periods = computePeriods(new Date())
+  // Fetch reference date, compute periods from today + reference
+  useEffect(() => {
+    const init = async () => {
+      const today = new Date()
+      let refDate = today
+      try {
+        const res = await getBudgetPeriodReference()
+        if (res.data?.reference_date) {
+          refDate = new Date(res.data.reference_date + 'T12:00:00')
+        }
+      } catch (err) {
+        console.error('Failed to fetch period reference:', err)
+      }
+      setPeriods(computePeriods(today, refDate))
+      setInitialized(true)
+    }
+    init()
+  }, [])
 
   const fetchData = useCallback(async () => {
+    if (!initialized || periods.length === 0) return
     setLoading(true)
     try {
       const period = periods[selectedPeriodIdx] || periods[0]
@@ -83,7 +117,7 @@ function BudgetOverview() {
     } finally {
       setLoading(false)
     }
-  }, [selectedPeriodIdx])
+  }, [selectedPeriodIdx, initialized, periods])
 
   useEffect(() => { fetchData() }, [fetchData])
 

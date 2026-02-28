@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Plus, X, Trash2, Pencil, Check } from 'lucide-react'
 import {
   getBudgetTransactions, createBudgetTransaction, updateBudgetTransaction,
-  deleteBudgetTransaction, getBudgetAccounts, getBudgetCategories
+  deleteBudgetTransaction, getBudgetAccounts, getBudgetCategories, getBudgetPeriodReference
 } from '../../services/api'
 import { useSettings } from '../../contexts/SettingsContext'
 
@@ -14,39 +14,73 @@ function BudgetTransactions() {
   const [accounts, setAccounts] = useState([])
   const [categories, setCategories] = useState([])
   const [page, setPage] = useState(0)
+  const [periodRanges, setPeriodRanges] = useState(null)
+  const [initialized, setInitialized] = useState(false)
   const pageSize = 50
 
   // Period filter: 'current' = this pay period, 'last' = last pay period, 'month' = full month, 'all' = everything
   const [periodFilter, setPeriodFilter] = useState('current')
 
-  // Calculate date range based on today's calendar date
-  const getDateRange = (filter) => {
-    const today = new Date()
-    const y = today.getFullYear()
-    const m = today.getMonth() + 1
-    const lastDay = new Date(y, m, 0).getDate()
-    const mStr = String(m).padStart(2, '0')
+  // Load reference date and precompute period ranges
+  useEffect(() => {
+    const init = async () => {
+      const today = new Date()
+      let refDate = today
+      try {
+        const res = await getBudgetPeriodReference()
+        if (res.data?.reference_date) {
+          refDate = new Date(res.data.reference_date + 'T12:00:00')
+        }
+      } catch (err) {
+        console.error('Failed to load period reference:', err)
+      }
 
-    if (filter === 'current') {
-      if (today.getDate() <= 14) {
-        return { start_date: `${y}-${mStr}-01`, end_date: `${y}-${mStr}-14` }
+      const pad2 = n => String(n).padStart(2, '0')
+      const fmtD = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`
+      const lastDay = (y, m) => new Date(y, m, 0).getDate()
+
+      const ry = refDate.getFullYear(), rm = refDate.getMonth() + 1
+      let refStart, refEnd
+      if (refDate.getDate() <= 14) {
+        refStart = fmtD(ry, rm, 1)
+        refEnd = fmtD(ry, rm, 14)
       } else {
-        return { start_date: `${y}-${mStr}-15`, end_date: `${y}-${mStr}-${lastDay}` }
+        refStart = fmtD(ry, rm, 15)
+        refEnd = fmtD(ry, rm, lastDay(ry, rm))
       }
-    } else if (filter === 'last') {
-      if (today.getDate() <= 14) {
-        const prevM = m === 1 ? 12 : m - 1
-        const prevY = m === 1 ? y - 1 : y
-        const prevLastDay = new Date(prevY, prevM, 0).getDate()
-        const prevMStr = String(prevM).padStart(2, '0')
-        return { start_date: `${prevY}-${prevMStr}-15`, end_date: `${prevY}-${prevMStr}-${prevLastDay}` }
+
+      // This Period starts from today if before ref period start (advance scenario)
+      const todayStr = fmtD(today.getFullYear(), today.getMonth() + 1, today.getDate())
+      const thisStart = todayStr < refStart ? todayStr : refStart
+
+      // Last Period: standard previous half-month
+      let lastStart, lastEnd
+      if (refDate.getDate() <= 14) {
+        const pm = rm === 1 ? 12 : rm - 1, py = rm === 1 ? ry - 1 : ry
+        lastStart = fmtD(py, pm, 15)
+        lastEnd = fmtD(py, pm, lastDay(py, pm))
       } else {
-        return { start_date: `${y}-${mStr}-01`, end_date: `${y}-${mStr}-14` }
+        lastStart = fmtD(ry, rm, 1)
+        lastEnd = fmtD(ry, rm, 14)
       }
-    } else if (filter === 'month') {
-      return { start_date: `${y}-${mStr}-01`, end_date: `${y}-${mStr}-${lastDay}` }
+
+      // This Month = reference month
+      const mStart = fmtD(ry, rm, 1)
+      const mEnd = fmtD(ry, rm, lastDay(ry, rm))
+
+      setPeriodRanges({
+        current: { start_date: thisStart, end_date: refEnd },
+        last: { start_date: lastStart, end_date: lastEnd },
+        month: { start_date: mStart, end_date: mEnd },
+      })
+      setInitialized(true)
     }
-    return {} // 'all' - no filter
+    init()
+  }, [])
+
+  const getDateRange = (filter) => {
+    if (!periodRanges || filter === 'all') return {}
+    return periodRanges[filter] || {}
   }
 
   // Add/Edit form
@@ -61,6 +95,7 @@ function BudgetTransactions() {
   })
 
   const fetchData = useCallback(async () => {
+    if (!initialized) return
     setLoading(true)
     try {
       const dateRange = getDateRange(periodFilter)
@@ -78,7 +113,7 @@ function BudgetTransactions() {
     } finally {
       setLoading(false)
     }
-  }, [page, periodFilter])
+  }, [page, periodFilter, initialized, periodRanges])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -187,24 +222,18 @@ function BudgetTransactions() {
           </button>
           <div className="flex gap-1 flex-wrap">
             {(() => {
-              const today = new Date()
-              const y = today.getFullYear(), m = today.getMonth() + 1
-              const lastDay = new Date(y, m, 0).getDate()
               const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-              let curRange, lastRange
-              if (today.getDate() <= 14) {
-                curRange = `${mn[m-1]} 1-14`
-                const pm = m === 1 ? 12 : m - 1, py = m === 1 ? y - 1 : y
-                const pld = new Date(py, pm, 0).getDate()
-                lastRange = `${mn[pm-1]} 15-${pld}`
-              } else {
-                curRange = `${mn[m-1]} 15-${lastDay}`
-                lastRange = `${mn[m-1]} 1-14`
+              const fmtR = (r) => {
+                if (!r) return ''
+                const s = new Date(r.start_date + 'T12:00:00'), e = new Date(r.end_date + 'T12:00:00')
+                if (s.getMonth() === e.getMonth()) return `${mn[s.getMonth()]} ${s.getDate()}-${e.getDate()}`
+                return `${mn[s.getMonth()]} ${s.getDate()} - ${mn[e.getMonth()]} ${e.getDate()}`
               }
+              const cr = periodRanges?.current, lr = periodRanges?.last, mr = periodRanges?.month
               return [
-                { key: 'current', label: `This Period (${curRange})` },
-                { key: 'last', label: `Last Period (${lastRange})` },
-                { key: 'month', label: mn[m-1] },
+                { key: 'current', label: cr ? `This Period (${fmtR(cr)})` : 'This Period' },
+                { key: 'last', label: lr ? `Last Period (${fmtR(lr)})` : 'Last Period' },
+                { key: 'month', label: mr ? mn[new Date(mr.start_date + 'T12:00:00').getMonth()] : 'Month' },
                 { key: 'all', label: 'All' },
               ]
             })().map(f => (
