@@ -12,7 +12,7 @@
 #   ./dev-tracker.sh failnote <id> <note>           - Update fail note without changing status
 #   ./dev-tracker.sh testnotes <id> <notes>         - Update test notes without changing status
 
-DEV_URL="https://levi.local:8443/api/dev-tracker"
+DEV_URL="https://isaac.local:8443/api/dev-tracker"
 
 case "$1" in
     list)

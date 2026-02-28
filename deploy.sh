@@ -1,15 +1,15 @@
 #!/bin/bash
-# Levi Deploy Script
+# Isaac Deploy Script
 # Safely syncs code to remote server without deleting important files
 
-SSH_KEY="/home/n0mad1k/.ssh/levi"
-REMOTE="n0mad1k@levi.local"
-REMOTE_PATH="/opt/levi"
+SSH_KEY="/home/n0mad1k/.ssh/isaac"
+REMOTE="n0mad1k@isaac.local"
+REMOTE_PATH="/opt/isaac"
 LOCAL_PATH="/home/n0mad1k/Tools/levi"
-LOCK_DIR="/tmp/levi-deploy.lock"
+LOCK_DIR="/tmp/isaac-deploy.lock"
 DEPLOY_TYPE="prod"
 
-echo "=== Deploying Levi (Production) ==="
+echo "=== Deploying Isaac (Production) ==="
 
 # Function to release lock on exit
 cleanup() {
@@ -77,7 +77,7 @@ cd - > /dev/null
 
 # ALWAYS backup database first
 echo "Creating pre-deploy backup..."
-ssh -i $SSH_KEY $REMOTE "/opt/levi/backup.sh"
+ssh -i $SSH_KEY $REMOTE "/opt/isaac/backup.sh"
 
 # Sync backend (excluding venv, data, logs, __pycache__, and dev-only files)
 # Note: dev_tracker model is needed by customer_feedback, so only exclude the router
@@ -168,13 +168,13 @@ ssh -i $SSH_KEY $REMOTE "sed -i '/dev_tracker_router/d' $REMOTE_PATH/backend/mai
 ssh -i $SSH_KEY $REMOTE 'python3' << 'PYEOF'
 import re
 try:
-    with open('/opt/levi/backend/routers/settings.py', 'r') as f:
+    with open('/opt/isaac/backend/routers/settings.py', 'r') as f:
         content = f.read()
     # Remove pull-from-prod endpoint
     pattern = r'@router\.post\("/pull-from-prod/"\).*?(?=@router\.|$)'
     new_content = re.sub(pattern, '', content, flags=re.DOTALL)
     if new_content != content:
-        with open('/opt/levi/backend/routers/settings.py', 'w') as f:
+        with open('/opt/isaac/backend/routers/settings.py', 'w') as f:
             f.write(new_content)
         print('Removed pull-from-prod endpoint')
     else:
@@ -241,13 +241,13 @@ ssh -i $SSH_KEY $REMOTE "cd $REMOTE_PATH/frontend && npm run build"
 
 # Kill any orphaned uvicorn processes before restart
 echo "Killing orphaned processes..."
-ssh -i $SSH_KEY $REMOTE "pkill -f 'uvicorn.*levi.*main:app' || true"
+ssh -i $SSH_KEY $REMOTE "pkill -f 'uvicorn.*isaac.*main:app' || true"
 sleep 1
 
 # Restart backend service
 echo "Restarting backend..."
-ssh -i $SSH_KEY $REMOTE "sudo systemctl restart levi-backend"
+ssh -i $SSH_KEY $REMOTE "sudo systemctl restart isaac-backend"
 
 echo "=== Deploy Complete ==="
 echo "Checking backend status..."
-ssh -i $SSH_KEY $REMOTE "sudo systemctl status levi-backend --no-pager | head -10"
+ssh -i $SSH_KEY $REMOTE "sudo systemctl status isaac-backend --no-pager | head -10"

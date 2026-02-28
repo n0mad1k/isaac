@@ -14,8 +14,8 @@
 #   ./dev-tracker.sh testnotes <id> <notes>         - Update test notes without changing status
 # Auth: Set DEV_TRACKER_USER and DEV_TRACKER_PASS env vars for non-interactive login
 
-DEV_URL="https://levi.local:8443/api/dev-tracker"
-AUTH_URL="https://levi.local:8443/api/auth/login"
+DEV_URL="https://isaac.local:8443/api/dev-tracker"
+AUTH_URL="https://isaac.local:8443/api/auth/login"
 COOKIE_JAR="$HOME/.dev-tracker-cookies"
 
 # Helper: curl with auth cookies

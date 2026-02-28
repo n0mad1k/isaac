@@ -1636,9 +1636,8 @@ from pathlib import Path
 import shutil
 
 # Hardcoded paths for security - prevents path traversal attacks
-# Uses /opt/levi for backwards compatibility with existing deployments
-ISAAC_DATA_DIR = Path("/opt/levi/data")
-ISAAC_LOGS_DIR = Path("/opt/levi/logs")
+ISAAC_DATA_DIR = Path("/opt/isaac/data")
+ISAAC_LOGS_DIR = Path("/opt/isaac/logs")
 
 
 class StorageStats(BaseModel):

@@ -1,5 +1,5 @@
 [Unit]
-Description=Levi Dashboard Kiosk Mode
+Description=Isaac Dashboard Kiosk Mode
 After=graphical.target
 Wants=graphical.target
 
@@ -9,7 +9,7 @@ User=n0mad1k
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/n0mad1k/.Xauthority
 ExecStartPre=/bin/sleep 10
-ExecStart=/opt/levi/deploy/kiosk.sh
+ExecStart=/opt/isaac/deploy/kiosk.sh
 Restart=on-failure
 RestartSec=5
 

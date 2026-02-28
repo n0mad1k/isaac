@@ -1,11 +1,11 @@
 #!/bin/bash
-# Initial Raspberry Pi Setup for Levi
+# Initial Raspberry Pi Setup for Isaac
 # Run this ON the Raspberry Pi ONCE after first boot
 
 set -e
 
 echo "======================================"
-echo "  Raspberry Pi Initial Setup for Levi"
+echo "  Raspberry Pi Initial Setup for Isaac"
 echo "======================================"
 
 # Colors
@@ -44,9 +44,9 @@ apt-get install -y \
     unclutter \
     xdotool
 
-echo -e "${GREEN}[5/7] Creating Levi directories...${NC}"
-mkdir -p /opt/levi/{backend,frontend,deploy,data,logs}
-chown -R n0mad1k:n0mad1k /opt/levi
+echo -e "${GREEN}[5/7] Creating Isaac directories...${NC}"
+mkdir -p /opt/isaac/{backend,frontend,deploy,data,logs}
+chown -R n0mad1k:n0mad1k /opt/isaac
 
 echo -e "${GREEN}[6/7] Configuring system for kiosk mode...${NC}"
 # Disable screen blanking
@@ -67,16 +67,16 @@ echo -e "${GREEN}======================================"
 echo "  Initial Setup Complete!"
 echo "======================================${NC}"
 echo ""
-echo -e "${YELLOW}The Pi is ready for Levi deployment.${NC}"
+echo -e "${YELLOW}The Pi is ready for Isaac deployment.${NC}"
 echo ""
 echo "From your development machine, run:"
 echo "  ./scripts/deploy-to-pi.sh"
 echo ""
 echo "After deployment, configure:"
-echo "  nano /opt/levi/backend/.env"
+echo "  nano /opt/isaac/backend/.env"
 echo ""
-echo "Then start Levi:"
-echo "  sudo systemctl start levi-backend"
+echo "Then start Isaac:"
+echo "  sudo systemctl start isaac-backend"
 echo ""
 echo "Reboot is recommended to apply all changes:"
 echo "  sudo reboot"

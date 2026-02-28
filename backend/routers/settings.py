@@ -812,33 +812,33 @@ export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 echo "STEP:backup"
 # Backup production database
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-mkdir -p /opt/levi/data/backups
-if [ -f /opt/levi/data/levi.db ]; then
-    cp /opt/levi/data/levi.db /opt/levi/data/backups/levi_backup_$TIMESTAMP.db
+mkdir -p /opt/isaac/data/backups
+if [ -f /opt/isaac/data/levi.db ]; then
+    cp /opt/isaac/data/levi.db /opt/isaac/data/backups/levi_backup_$TIMESTAMP.db
     echo "Backed up to levi_backup_$TIMESTAMP.db"
 fi
 
 echo "STEP:sync_backend"
 # Sync backend (exclude venv, data, logs, __pycache__, and dev-only files)
-cd /opt/isaac/backend
+cd /opt/isaac-dev/backend
 for item in *; do
     if [[ "$item" != "venv" && "$item" != "data" && "$item" != "logs" && "$item" != "__pycache__" && "$item" != ".env" ]]; then
-        rm -rf /opt/levi/backend/$item
-        cp -r $item /opt/levi/backend/
+        rm -rf /opt/isaac/backend/$item
+        cp -r $item /opt/isaac/backend/
     fi
 done
 echo "Backend synced"
 
 echo "STEP:cleanup_dev_only"
 # Remove dev-only files from production
-rm -f /opt/levi/backend/routers/dev_tracker.py
-rm -f /opt/levi/backend/models/dev_tracker.py
+rm -f /opt/isaac/backend/routers/dev_tracker.py
+rm -f /opt/isaac/backend/models/dev_tracker.py
 # Remove dev_tracker from main.py (safe - just removes include lines)
-sed -i '/dev_tracker/d' /opt/levi/backend/main.py 2>/dev/null || true
+sed -i '/dev_tracker/d' /opt/isaac/backend/main.py 2>/dev/null || true
 # Fix routers/__init__.py - replace the try/import/except block with a simple None assignment
 # Using python to safely rewrite the file instead of fragile sed
 python3 -c "
-content = open('/opt/levi/backend/routers/__init__.py').read()
+content = open('/opt/isaac/backend/routers/__init__.py').read()
 import re
 # Remove the entire try/except block for dev_tracker (handles any indentation)
 content = re.sub(r'try:\s*\n\s*from \.dev_tracker.*?\n\s*except ImportError:\s*\n\s*dev_tracker_router\s*=\s*None.*?\n', 'dev_tracker_router = None\n', content)
@@ -847,34 +847,34 @@ content = re.sub(r'try:\s*\nexcept ImportError:\s*\n', '', content)
 # Remove any remaining dev_tracker import lines (but keep the None assignment and __all__ entry)
 import re as re2
 content = re2.sub(r'from \.dev_tracker import.*\n', '', content)
-open('/opt/levi/backend/routers/__init__.py', 'w').write(content)
+open('/opt/isaac/backend/routers/__init__.py', 'w').write(content)
 "
 # Clean dev_tracker from models __init__.py (safe - no try/except there)
-sed -i '/dev_tracker/d' /opt/levi/backend/models/__init__.py 2>/dev/null || true
+sed -i '/dev_tracker/d' /opt/isaac/backend/models/__init__.py 2>/dev/null || true
 # Note: pull-from-prod endpoint stays but returns 403 on prod (checks is_dev_instance)
 echo "Dev-only code cleaned"
 
 echo "STEP:sync_frontend"
 # Sync frontend source
-rm -rf /opt/levi/frontend/src
-cp -r /opt/isaac/frontend/src /opt/levi/frontend/src
+rm -rf /opt/isaac/frontend/src
+cp -r /opt/isaac-dev/frontend/src /opt/isaac/frontend/src
 echo "Frontend source synced"
 
 echo "STEP:sync_version"
 # Sync version files
-cp /opt/isaac/VERSION /opt/levi/VERSION
-cp /opt/isaac/CHANGELOG.md /opt/levi/CHANGELOG.md
+cp /opt/isaac-dev/VERSION /opt/isaac/VERSION
+cp /opt/isaac-dev/CHANGELOG.md /opt/isaac/CHANGELOG.md
 echo "Version files synced"
 
 echo "STEP:build_frontend"
 # Build frontend
-cd /opt/levi/frontend
+cd /opt/isaac/frontend
 npm run build
 echo "Frontend built"
 
 echo "STEP:restart_backend"
 # Restart backend
-sudo systemctl restart levi-backend
+sudo systemctl restart isaac-backend
 echo "Backend restarted"
 
 echo "STEP:done"
@@ -936,9 +936,9 @@ async def pull_from_production(admin: User = Depends(require_admin)):
         "message": "",
     }
 
-    dev_db = "/opt/isaac/backend/data/levi.db"
-    prod_db = "/opt/levi/backend/data/levi.db"
-    backup_dir = "/opt/isaac/backend/data/backups"
+    dev_db = "/opt/isaac-dev/backend/data/levi.db"
+    prod_db = "/opt/isaac/backend/data/levi.db"
+    backup_dir = "/opt/isaac-dev/backend/data/backups"
 
     # Initialize variables for dev-only data preservation
     dev_tracker_data = []
@@ -1008,7 +1008,7 @@ async def pull_from_production(admin: User = Depends(require_admin)):
         else:
             results["steps"][-1]["status"] = "error"
             results["steps"][-1]["message"] = "Production database not found"
-            results["message"] = "Production database not found at /opt/levi/backend/data/levi.db"
+            results["message"] = "Production database not found at /opt/isaac/backend/data/levi.db"
             return results
 
         # Step 4: Restore dev-only tables and add missing columns
@@ -1195,8 +1195,8 @@ async def get_log_files(user: User = Depends(require_admin)):
             "size_human": f"{size / 1024 / 1024:.1f} MB" if size > 1024*1024 else f"{size / 1024:.1f} KB"
         })
 
-    # Check systemd logs (from /opt/isaac/logs/ or /opt/levi/logs/)
-    for base in ["/opt/isaac/logs", "/opt/levi/logs"]:
+    # Check systemd logs (from /opt/isaac-dev/logs/ or /opt/isaac/logs/)
+    for base in ["/opt/isaac-dev/logs", "/opt/isaac/logs"]:
         logs_dir = Path(base)
         if logs_dir.exists():
             for log_file in ["backend.log", "backend-error.log"]:
@@ -1243,8 +1243,8 @@ async def get_admin_logs(
     }
     # Also check levi paths
     if not log_paths.get(log_file, Path("")).exists():
-        log_paths["backend"] = Path("/opt/levi/logs/backend.log")
-        log_paths["backend_error"] = Path("/opt/levi/logs/backend-error.log")
+        log_paths["backend"] = Path("/opt/isaac/logs/backend.log")
+        log_paths["backend_error"] = Path("/opt/isaac/logs/backend-error.log")
 
     log_path = log_paths.get(log_file, log_paths["app"])
 

@@ -10,8 +10,8 @@ METHOD="${1:-GET}"
 PATH_URL="$2"
 DATA="$3"
 TOKEN="ljm30jeCKagzDR7zbSqBNlOHL9WiOio8bA-Qy_bLvJ8"
-PI_HOST="n0mad1k@levi.local"
-SSH_KEY="/home/n0mad1k/.ssh/levi"
+PI_HOST="n0mad1k@isaac.local"
+SSH_KEY="/home/n0mad1k/.ssh/isaac"
 BASE_URL="http://127.0.0.1:8000"
 
 if [ -z "$PATH_URL" ]; then

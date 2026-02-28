@@ -5,7 +5,7 @@ Seed default plant tags
 
 import asyncio
 import sys
-sys.path.insert(0, '/opt/levi/backend')
+sys.path.insert(0, '/opt/isaac/backend')
 
 from sqlalchemy import select
 from models.database import async_session

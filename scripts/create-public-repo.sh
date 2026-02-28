@@ -95,9 +95,10 @@ rsync -av --progress \
     --exclude='backend/routers/customer_feedback.py' \
     --exclude='frontend/src/components/FeedbackButton.jsx' \
     --exclude='CLAUDE.md' \
-    --exclude='deploy/levi-backend.service' \
-    --exclude='deploy/levi-kiosk.service' \
-    --exclude='deploy/nginx-levi.conf' \
+    --exclude='deploy/isaac-backend.service' \
+    --exclude='deploy/isaac-dev-backend.service' \
+    --exclude='deploy/isaac-kiosk.service' \
+    --exclude='deploy/nginx-isaac.conf' \
     --exclude='deploy/setup.sh' \
     --exclude='deploy/kiosk.sh' \
     --exclude='deploy/install.sh' \
@@ -149,7 +150,7 @@ sanitize_strings() {
 
             # Username in paths and SSH
             sed -i 's|/home/n0mad1k/Tools/levi|/path/to/isaac|g' "$file"
-            sed -i 's|/home/n0mad1k/.ssh/levi|~/.ssh/isaac|g' "$file"
+            sed -i 's|/home/n0mad1k/.ssh/isaac|~/.ssh/isaac|g' "$file"
             sed -i 's|/home/n0mad1k|/home/your-username|g' "$file"
 
             # Standalone username references (various contexts)
@@ -162,14 +163,11 @@ sanitize_strings() {
             # GitHub username (careful with URLs)
             sed -i 's|github\.com/n0mad1k|github.com/your-username|g' "$file"
 
-            # Hostname replacements (levi.local -> isaac.local already done)
-            # Only replace standalone levi references, not isaac.local
-            sed -i 's/levi\.local/isaac.local/g' "$file"
-            sed -i 's/levi-backend/isaac-backend/g' "$file"
-            sed -i 's/levi-kiosk/isaac-kiosk/g' "$file"
-
-            # Paths with /opt/levi (prod path)
-            sed -i 's|/opt/levi|/opt/isaac|g' "$file"
+            # Hostname and service name replacements (already isaac in source)
+            # These are no-ops now but kept for safety
+            sed -i 's/isaac\.local/isaac.local/g' "$file"
+            sed -i 's/isaac-backend/isaac-backend/g' "$file"
+            sed -i 's/isaac-kiosk/isaac-kiosk/g' "$file"
 
             # IP Address
             sed -i 's/192\.168\.5\.56/<raspberry-pi-ip>/g' "$file"

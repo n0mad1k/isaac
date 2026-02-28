@@ -2,14 +2,14 @@
 # Isaac Dev Deploy Script
 # Syncs code to dev environment for testing before production
 
-SSH_KEY="/home/n0mad1k/.ssh/levi"
-REMOTE="n0mad1k@levi.local"
-REMOTE_PATH="/opt/isaac"
+SSH_KEY="/home/n0mad1k/.ssh/isaac"
+REMOTE="n0mad1k@isaac.local"
+REMOTE_PATH="/opt/isaac-dev"
 LOCAL_PATH="/home/n0mad1k/Tools/levi"
-LOCK_DIR="/tmp/levi-deploy.lock"
+LOCK_DIR="/tmp/isaac-deploy.lock"
 DEPLOY_TYPE="dev"
 
-echo "=== Deploying to Dev (Isaac) ==="
+echo "=== Deploying to Dev (Isaac-Dev) ==="
 
 # Function to release lock on exit
 cleanup() {
@@ -80,7 +80,7 @@ cd - > /dev/null
 
 # Create pre-deploy backup
 echo "Creating pre-deploy backup..."
-ssh -i $SSH_KEY $REMOTE "/opt/isaac/backup.sh"
+ssh -i $SSH_KEY $REMOTE "/opt/isaac-dev/backup.sh"
 
 # Sync backend (excluding venv, data, logs, __pycache__)
 echo "Syncing backend..."
@@ -136,37 +136,37 @@ ssh -i $SSH_KEY $REMOTE "cd $REMOTE_PATH/frontend && npm run build"
 
 # Kill any orphaned uvicorn processes before restart
 echo "Killing orphaned processes..."
-ssh -i $SSH_KEY $REMOTE "pkill -f 'uvicorn.*isaac.*main:app' || true"
+ssh -i $SSH_KEY $REMOTE "pkill -f 'uvicorn.*isaac-dev.*main:app' || true"
 sleep 1
 
 # Restart backend service
 echo "Restarting backend..."
-ssh -i $SSH_KEY $REMOTE "sudo systemctl restart isaac-backend"
+ssh -i $SSH_KEY $REMOTE "sudo systemctl restart isaac-dev-backend"
 
 echo "=== Dev Deploy Complete ==="
 echo "Test at: https://isaac.local:8443"
 echo "Checking backend status..."
-ssh -i $SSH_KEY $REMOTE "sudo systemctl status isaac-backend --no-pager | head -10"
+ssh -i $SSH_KEY $REMOTE "sudo systemctl status isaac-dev-backend --no-pager | head -10"
 
 # Safety check: verify prod backend wasn't affected
 echo ""
 echo "Checking prod backend health..."
-PROD_STATUS=$(ssh -i $SSH_KEY $REMOTE "sudo systemctl is-active levi-backend 2>/dev/null")
+PROD_STATUS=$(ssh -i $SSH_KEY $REMOTE "sudo systemctl is-active isaac-backend 2>/dev/null")
 if [ "$PROD_STATUS" != "active" ]; then
     echo "============================================"
     echo "   WARNING: PROD BACKEND IS DOWN!"
     echo "============================================"
-    echo "The production backend (levi-backend) is not running."
+    echo "The production backend (isaac-backend) is not running."
     echo "This was NOT caused by the dev deploy, but needs attention."
     echo ""
     echo "Attempting auto-recovery..."
     # Try to get the error
-    ssh -i $SSH_KEY $REMOTE "cd /opt/levi/backend && /opt/levi/backend/venv/bin/python3 -c 'import main' 2>&1" || true
+    ssh -i $SSH_KEY $REMOTE "cd /opt/isaac/backend && /opt/isaac/backend/venv/bin/python3 -c 'import main' 2>&1" || true
     echo ""
     echo "Attempting restart..."
-    ssh -i $SSH_KEY $REMOTE "sudo systemctl restart levi-backend"
+    ssh -i $SSH_KEY $REMOTE "sudo systemctl restart isaac-backend"
     sleep 3
-    PROD_STATUS2=$(ssh -i $SSH_KEY $REMOTE "sudo systemctl is-active levi-backend 2>/dev/null")
+    PROD_STATUS2=$(ssh -i $SSH_KEY $REMOTE "sudo systemctl is-active isaac-backend 2>/dev/null")
     if [ "$PROD_STATUS2" = "active" ]; then
         echo "Prod backend recovered successfully."
     else

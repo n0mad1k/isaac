@@ -303,7 +303,7 @@ async def main():
             db_path = arg
 
     if not db_path:
-        db_path = "/opt/levi/backend/data/levi.db"
+        db_path = "/opt/isaac/backend/data/levi.db"
 
     print(f"Database: {db_path}")
     if dry_run:

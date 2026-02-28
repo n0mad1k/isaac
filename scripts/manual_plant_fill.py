@@ -454,7 +454,7 @@ def backup_database(db_path):
 
 
 def main():
-    db_path = sys.argv[1] if len(sys.argv) > 1 else "/opt/levi/backend/data/levi.db"
+    db_path = sys.argv[1] if len(sys.argv) > 1 else "/opt/isaac/backend/data/levi.db"
     dry_run = "--dry-run" in sys.argv
 
     print(f"Database: {db_path}")

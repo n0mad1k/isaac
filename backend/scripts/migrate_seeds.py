@@ -3,7 +3,7 @@ Migrate seeds from plants table to dedicated seeds table
 """
 import asyncio
 import sys
-sys.path.insert(0, '/opt/levi/backend')
+sys.path.insert(0, '/opt/isaac/backend')
 
 from sqlalchemy import select, delete
 from models.database import async_session, init_db

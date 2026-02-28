@@ -265,7 +265,6 @@ app.add_middleware(TrailingSlashMiddleware)
 # CORS middleware - allow frontend access from known local origins
 # Using explicit origins instead of "*" to safely allow credentials
 _cors_origins = [
-    "https://levi.local",
     "https://isaac.local",
     "https://192.168.5.57",
     "https://192.168.5.57:8000",

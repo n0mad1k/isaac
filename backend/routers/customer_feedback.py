@@ -193,7 +193,7 @@ async def list_prod_feedback(
             detail="This action is only available on the dev instance"
         )
 
-    prod_db_path = "/opt/levi/backend/data/levi.db"
+    prod_db_path = "/opt/isaac/backend/data/levi.db"
 
     if not os.path.exists(prod_db_path):
         return []
@@ -263,7 +263,7 @@ async def review_feedback(
             detail="This action is only available on the dev instance"
         )
 
-    prod_db_path = "/opt/levi/backend/data/levi.db"
+    prod_db_path = "/opt/isaac/backend/data/levi.db"
 
     if not os.path.exists(prod_db_path):
         raise HTTPException(status_code=404, detail="Production database not found")
@@ -370,7 +370,7 @@ async def pull_feedback_from_prod(
             detail="This action is only available on the dev instance"
         )
 
-    prod_db_path = "/opt/levi/backend/data/levi.db"
+    prod_db_path = "/opt/isaac/backend/data/levi.db"
 
     if not os.path.exists(prod_db_path):
         raise HTTPException(
@@ -747,7 +747,7 @@ async def get_prod_feedback_status(
             detail="This action is only available on the dev instance"
         )
 
-    prod_db_path = "/opt/levi/backend/data/levi.db"
+    prod_db_path = "/opt/isaac/backend/data/levi.db"
 
     if not os.path.exists(prod_db_path):
         return {"enabled": False, "error": "Production database not found"}
@@ -786,7 +786,7 @@ async def delete_prod_feedback(
             detail="This action is only available on the dev instance"
         )
 
-    prod_db_path = "/opt/levi/backend/data/levi.db"
+    prod_db_path = "/opt/isaac/backend/data/levi.db"
 
     if not os.path.exists(prod_db_path):
         raise HTTPException(status_code=404, detail="Production database not found")
@@ -831,7 +831,7 @@ async def toggle_feedback_on_prod(
             detail="This action is only available on the dev instance"
         )
 
-    prod_db_path = "/opt/levi/backend/data/levi.db"
+    prod_db_path = "/opt/isaac/backend/data/levi.db"
 
     if not os.path.exists(prod_db_path):
         raise HTTPException(

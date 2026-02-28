@@ -211,22 +211,22 @@ Run deploy script after completing changes:
 ```
 
 ### Server Layout (SAME PHYSICAL SERVER)
-Both environments run on the same Pi (levi.local):
+Both environments run on the same Pi (isaac.local):
 
 | Environment | Directory | Service | Port | Database |
 |-------------|-----------|---------|------|----------|
-| **PROD** | `/opt/levi/` | `levi-backend.service` | 8000 | `/opt/levi/backend/data/levi.db` |
-| **DEV** | `/opt/isaac/` | `isaac-backend.service` | 8443 | `/opt/isaac/backend/data/levi.db` |
+| **PROD** | `/opt/isaac/` | `isaac-backend.service` | 8000 | `/opt/isaac/backend/data/levi.db` |
+| **DEV** | `/opt/isaac-dev/` | `isaac-dev-backend.service` | 8443 | `/opt/isaac-dev/backend/data/levi.db` |
 
 ### Dev Environment
-- URL: `https://isaac.local`
-- Directory: `/opt/isaac/`
+- URL: `https://isaac.local:8443`
+- Directory: `/opt/isaac-dev/`
 - Deploy script: `/home/n0mad1k/Tools/levi/deploy-dev.sh`
 - Can deploy to dev more freely, but still ask if unsure
 
 ### Prod Environment
-- URL: `https://levi.local`
-- Directory: `/opt/levi/`
+- URL: `https://isaac.local`
+- Directory: `/opt/isaac/`
 - Deploy script: `/home/n0mad1k/Tools/levi/deploy.sh`
 - **REQUIRES EXPLICIT USER PERMISSION TO DEPLOY**
 
@@ -237,7 +237,7 @@ Both environments run on the same Pi (levi.local):
 /home/n0mad1k/Tools/levi/deploy-dev.sh
 ```
 
-**For PROD (isaac.local / levi.local) - ONLY WHEN USER EXPLICITLY ASKS:**
+**For PROD (isaac.local) - ONLY WHEN USER EXPLICITLY ASKS:**
 ```bash
 /home/n0mad1k/Tools/levi/deploy.sh
 ```
@@ -254,10 +254,10 @@ Both environments run on the same Pi (levi.local):
 
 Use the SSH config alias:
 ```bash
-ssh -i /home/n0mad1k/.ssh/levi n0mad1k@levi.local
+ssh -i /home/n0mad1k/.ssh/isaac n0mad1k@isaac.local
 ```
 
-Or with the host alias `levi` if SSH config is loaded.
+Or with the host alias `isaac` if SSH config is loaded.
 
 ## Nginx Reverse Proxy — Router Prefix Rule
 
@@ -280,9 +280,9 @@ The frontend `api` axios instance has `baseURL: '/api'`, so frontend calls like 
 
 ## Project Structure
 
-- **Backend**: FastAPI Python app at `/opt/levi/backend/`
-- **Frontend**: React/Vite app at `/opt/levi/frontend/`
-- **Service**: `levi-backend.service` (systemd)
+- **Backend**: FastAPI Python app at `/opt/isaac/backend/`
+- **Frontend**: React/Vite app at `/opt/isaac/frontend/`
+- **Service**: `isaac-backend.service` (systemd)
 
 ## Key Files
 

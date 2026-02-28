@@ -16,8 +16,8 @@ from models.settings import AppSetting
 
 
 # Default path on the Pi
-DEFAULT_KB_PATH = "/opt/levi/backend/data/knowledge.db"
-DEFAULT_KB_PATH_DEV = "/opt/isaac/backend/data/knowledge.db"
+DEFAULT_KB_PATH = "/opt/isaac/backend/data/knowledge.db"
+DEFAULT_KB_PATH_DEV = "/opt/isaac-dev/backend/data/knowledge.db"
 
 # Cache the connection to avoid reopening on every query
 _kb_conn: Optional[sqlite3.Connection] = None

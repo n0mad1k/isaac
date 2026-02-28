@@ -1,14 +1,14 @@
 #!/bin/bash
-# Quick Deploy Script for Levi
+# Quick Deploy Script for Isaac
 # Run this from your local machine as your user (not root)
 
 set -e
 
-PI_HOST="levi"
+PI_HOST="isaac"
 LEVI_DIR="/home/n0mad1k/Tools/levi"
 
 echo "======================================"
-echo "  Levi Quick Deploy"
+echo "  Isaac Quick Deploy"
 echo "======================================"
 
 # Step 1: Copy SSH key to Pi if needed
@@ -17,12 +17,12 @@ echo "[Step 1] Checking SSH key setup..."
 if ! ssh -o BatchMode=yes -o ConnectTimeout=5 $PI_HOST "echo ok" 2>/dev/null; then
     echo "SSH key not set up. Copying public key to Pi..."
     echo "You'll need to enter the Pi's password:"
-    ssh-copy-id -i ~/.ssh/levi $PI_HOST
+    ssh-copy-id -i ~/.ssh/isaac $PI_HOST
 fi
 
 echo ""
 echo "[Step 2] Creating directories on Pi..."
-ssh $PI_HOST "sudo mkdir -p /opt/levi/{backend,frontend,deploy,data,logs} && sudo chown -R n0mad1k:n0mad1k /opt/levi"
+ssh $PI_HOST "sudo mkdir -p /opt/isaac/{backend,frontend,deploy,data,logs} && sudo chown -R n0mad1k:n0mad1k /opt/isaac"
 
 echo ""
 echo "[Step 3] Installing dependencies on Pi..."
@@ -58,23 +58,23 @@ rsync -avz --delete \
     --exclude 'node_modules' \
     --exclude 'dist' \
     "$LEVI_DIR/backend/" \
-    "$PI_HOST:/opt/levi/backend/"
+    "$PI_HOST:/opt/isaac/backend/"
 
 rsync -avz --delete \
     --exclude 'node_modules' \
     --exclude 'dist' \
     "$LEVI_DIR/frontend/" \
-    "$PI_HOST:/opt/levi/frontend/"
+    "$PI_HOST:/opt/isaac/frontend/"
 
 rsync -avz \
     "$LEVI_DIR/deploy/" \
-    "$PI_HOST:/opt/levi/deploy/"
+    "$PI_HOST:/opt/isaac/deploy/"
 
 echo ""
 echo "[Step 5] Setting up Python environment and building frontend..."
 ssh $PI_HOST << 'BUILD'
 set -e
-cd /opt/levi
+cd /opt/isaac
 
 # Python setup
 if [ ! -d "backend/venv" ]; then
@@ -118,17 +118,17 @@ ssh $PI_HOST << 'SERVICES'
 set -e
 
 # Copy service files
-sudo cp /opt/levi/deploy/levi-backend.service /etc/systemd/system/
-sudo cp /opt/levi/deploy/levi-kiosk.service /etc/systemd/system/
+sudo cp /opt/isaac/deploy/isaac-backend.service /etc/systemd/system/
+sudo cp /opt/isaac/deploy/isaac-kiosk.service /etc/systemd/system/
 
 # Make kiosk script executable
-sudo chmod +x /opt/levi/deploy/kiosk.sh
+sudo chmod +x /opt/isaac/deploy/kiosk.sh
 
 # Reload systemd
 sudo systemctl daemon-reload
 
 # Enable backend service
-sudo systemctl enable levi-backend
+sudo systemctl enable isaac-backend
 
 echo "Services configured!"
 SERVICES
@@ -139,8 +139,8 @@ ssh $PI_HOST << 'NGINX'
 set -e
 
 # Copy nginx config
-sudo cp /opt/levi/deploy/nginx-levi.conf /etc/nginx/sites-available/levi
-sudo ln -sf /etc/nginx/sites-available/levi /etc/nginx/sites-enabled/
+sudo cp /opt/isaac/deploy/nginx-isaac.conf /etc/nginx/sites-available/isaac
+sudo ln -sf /etc/nginx/sites-available/isaac /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 
 # Test and restart nginx
@@ -151,19 +151,19 @@ echo "Nginx configured!"
 NGINX
 
 echo ""
-echo "[Step 8] Starting Levi backend..."
-ssh $PI_HOST "sudo systemctl restart levi-backend && sleep 2 && sudo systemctl status levi-backend --no-pager"
+echo "[Step 8] Starting Isaac backend..."
+ssh $PI_HOST "sudo systemctl restart isaac-backend && sleep 2 && sudo systemctl status isaac-backend --no-pager"
 
 echo ""
 echo "======================================"
 echo "  Deployment Complete!"
 echo "======================================"
 echo ""
-echo "Dashboard: http://levi.local"
-echo "API Docs:  http://levi.local/api/docs"
+echo "Dashboard: http://isaac.local"
+echo "API Docs:  http://isaac.local/api/docs"
 echo ""
 echo "Next: Configure .env and start kiosk mode"
-echo "  ssh levi"
-echo "  nano /opt/levi/backend/.env"
-echo "  sudo systemctl start levi-kiosk"
+echo "  ssh isaac"
+echo "  nano /opt/isaac/backend/.env"
+echo "  sudo systemctl start isaac-kiosk"
 echo ""

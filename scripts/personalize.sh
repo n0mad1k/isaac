@@ -318,7 +318,7 @@ else
 fi
 
 # Restart services
-systemctl restart isaac-backend 2>/dev/null || systemctl restart levi-backend 2>/dev/null || true
+systemctl restart isaac-backend 2>/dev/null || true
 sleep 3
 
 # Get IP address
@@ -349,7 +349,7 @@ echo -e "  ${GREEN}━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Check service status
-if systemctl is-active --quiet isaac-backend 2>/dev/null || systemctl is-active --quiet levi-backend 2>/dev/null; then
+if systemctl is-active --quiet isaac-backend 2>/dev/null; then
     echo -e "  ${GREEN}●${NC} Isaac is running"
 else
     echo -e "  ${RED}●${NC} Isaac may need to be started manually"

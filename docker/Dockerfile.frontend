@@ -15,11 +15,11 @@ FROM nginx:1.25-alpine
 # Install openssl for self-signed cert generation
 RUN apk add --no-cache openssl
 
-# Generate self-signed certificate (matches Pi path: /etc/nginx/ssl/levi.*)
+# Generate self-signed certificate (matches Pi path: /etc/nginx/ssl/isaac.*)
 RUN mkdir -p /etc/nginx/ssl && \
     openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
-      -keyout /etc/nginx/ssl/levi.key \
-      -out /etc/nginx/ssl/levi.crt \
+      -keyout /etc/nginx/ssl/isaac.key \
+      -out /etc/nginx/ssl/isaac.crt \
       -subj "/C=US/ST=Local/L=Local/O=Isaac/CN=localhost" \
       -addext "subjectAltName=DNS:localhost,DNS:isaac.local,IP:127.0.0.1"
 

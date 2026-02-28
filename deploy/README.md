@@ -4,27 +4,27 @@
 
 ### On the Raspberry Pi:
 
-1. **Clone or copy the project** to `/opt/levi/`
+1. **Clone or copy the project** to `/opt/isaac/`
 
 2. **Run the setup script:**
    ```bash
-   cd /opt/levi/deploy
+   cd /opt/isaac/deploy
    sudo ./install.sh
    ```
 
 3. **Configure your settings:**
    ```bash
-   nano /opt/levi/backend/.env
+   nano /opt/isaac/backend/.env
    ```
 
 4. **Start the service:**
    ```bash
-   sudo systemctl start levi-backend
+   sudo systemctl start isaac-backend
    ```
 
 5. **Access the dashboard:**
-   - Local: http://levi.local:8000
-   - With SSL: https://levi.local:8000
+   - Local: http://isaac.local:8000
+   - With SSL: https://isaac.local:8000
 
 ---
 
@@ -54,7 +54,7 @@ sudo ./setup.sh --with-ssl --with-cloudflare
 
 ## Required Configuration
 
-Edit `/opt/levi/backend/.env` with your settings:
+Edit `/opt/isaac/backend/.env` with your settings:
 
 ### Weather (Required)
 Get API keys from: https://ambientweather.net/account
@@ -108,19 +108,19 @@ CALDAV_PASSWORD=password
 
 ```bash
 # Start/Stop/Restart
-sudo systemctl start levi-backend
-sudo systemctl stop levi-backend
-sudo systemctl restart levi-backend
+sudo systemctl start isaac-backend
+sudo systemctl stop isaac-backend
+sudo systemctl restart isaac-backend
 
 # View logs
-journalctl -u levi-backend -f
+journalctl -u isaac-backend -f
 
 # Check status
-sudo systemctl status levi-backend
+sudo systemctl status isaac-backend
 
 # Enable/Disable auto-start
-sudo systemctl enable levi-backend
-sudo systemctl disable levi-backend
+sudo systemctl enable isaac-backend
+sudo systemctl disable isaac-backend
 ```
 
 ---
@@ -128,7 +128,7 @@ sudo systemctl disable levi-backend
 ## Directory Structure
 
 ```
-/opt/levi/
+/opt/isaac/
 ├── backend/          # Python FastAPI backend
 │   ├── venv/         # Python virtual environment
 │   ├── data/         # SQLite database
@@ -148,10 +148,10 @@ sudo systemctl disable levi-backend
 ### Backend won't start
 ```bash
 # Check logs
-journalctl -u levi-backend -n 50
+journalctl -u isaac-backend -n 50
 
 # Test manually
-cd /opt/levi/backend
+cd /opt/isaac/backend
 source venv/bin/activate
 python -c "import main"
 ```
@@ -159,7 +159,7 @@ python -c "import main"
 ### Frontend not loading
 ```bash
 # Rebuild frontend
-cd /opt/levi/frontend
+cd /opt/isaac/frontend
 npm install
 npm run build
 ```
@@ -167,13 +167,13 @@ npm run build
 ### Database issues
 ```bash
 # Check database
-sqlite3 /opt/levi/backend/data/levi.db ".tables"
+sqlite3 /opt/isaac/backend/data/levi.db ".tables"
 
 # Backup database
-cp /opt/levi/backend/data/levi.db /opt/levi/backend/data/levi.db.backup
+cp /opt/isaac/backend/data/levi.db /opt/isaac/backend/data/levi.db.backup
 ```
 
 ### Permission issues
 ```bash
-sudo chown -R n0mad1k:n0mad1k /opt/levi
+sudo chown -R n0mad1k:n0mad1k /opt/isaac
 ```

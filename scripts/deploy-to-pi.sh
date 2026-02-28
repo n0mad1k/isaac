@@ -1,18 +1,18 @@
 #!/bin/bash
-# Deploy Levi to Raspberry Pi
+# Deploy Isaac to Raspberry Pi
 # Run this from your development machine
 
 set -e
 
 # Configuration
-PI_HOST="levi.local"
+PI_HOST="isaac.local"
 PI_USER="n0mad1k"
-SSH_KEY="$HOME/.ssh/levi"
-REMOTE_DIR="/opt/levi"
+SSH_KEY="$HOME/.ssh/isaac"
+REMOTE_DIR="/opt/isaac"
 LOCAL_DIR="$(dirname "$0")/.."
 
 echo "======================================"
-echo "  Deploying Levi to Raspberry Pi"
+echo "  Deploying Isaac to Raspberry Pi"
 echo "======================================"
 echo "Host: $PI_HOST"
 echo "User: $PI_USER"
@@ -62,7 +62,7 @@ rsync -avz \
 echo "[6/6] Running remote setup..."
 ssh -i "$SSH_KEY" "$PI_USER@$PI_HOST" << 'REMOTE_SCRIPT'
 set -e
-cd /opt/levi
+cd /opt/isaac
 
 # Make scripts executable
 chmod +x deploy/*.sh
@@ -107,17 +107,17 @@ else
 fi
 
 # Setup systemd services if not done
-if [ ! -f "/etc/systemd/system/levi-backend.service" ]; then
+if [ ! -f "/etc/systemd/system/isaac-backend.service" ]; then
     echo "Setting up systemd services..."
-    sudo cp deploy/levi-backend.service /etc/systemd/system/
-    sudo cp deploy/levi-kiosk.service /etc/systemd/system/
+    sudo cp deploy/isaac-backend.service /etc/systemd/system/
+    sudo cp deploy/isaac-kiosk.service /etc/systemd/system/
     sudo systemctl daemon-reload
-    sudo systemctl enable levi-backend
+    sudo systemctl enable isaac-backend
 fi
 
 # Restart backend service
-echo "Restarting Levi backend..."
-sudo systemctl restart levi-backend || sudo systemctl start levi-backend
+echo "Restarting Isaac backend..."
+sudo systemctl restart isaac-backend || sudo systemctl start isaac-backend
 
 echo "Deployment complete!"
 REMOTE_SCRIPT
@@ -127,11 +127,11 @@ echo "======================================"
 echo "  Deployment Complete!"
 echo "======================================"
 echo ""
-echo "Dashboard: http://levi.local"
-echo "API Docs:  http://levi.local/api/docs"
+echo "Dashboard: http://isaac.local"
+echo "API Docs:  http://isaac.local/api/docs"
 echo ""
 echo "Next steps:"
-echo "1. SSH into the Pi: ssh -i ~/.ssh/levi n0mad1k@levi.local"
-echo "2. Configure .env: nano /opt/levi/backend/.env"
-echo "3. Restart: sudo systemctl restart levi-backend"
+echo "1. SSH into the Pi: ssh -i ~/.ssh/isaac n0mad1k@isaac.local"
+echo "2. Configure .env: nano /opt/isaac/backend/.env"
+echo "3. Restart: sudo systemctl restart isaac-backend"
 echo ""

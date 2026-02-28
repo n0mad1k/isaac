@@ -19,10 +19,10 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-LEVI_DIR="/opt/levi"
-LEVI_USER="n0mad1k"
-DATA_DIR="$LEVI_DIR/data"
-LOGS_DIR="$LEVI_DIR/logs"
+ISAAC_DIR="/opt/isaac"
+ISAAC_USER="n0mad1k"
+DATA_DIR="$ISAAC_DIR/data"
+LOGS_DIR="$ISAAC_DIR/logs"
 
 # Parse arguments
 WITH_CLOUDFLARE=false
@@ -90,21 +90,21 @@ echo "  npm version: $(npm -v)"
 # Step 4: Create Directories
 # ============================================
 echo -e "${GREEN}[4/10] Creating directories...${NC}"
-mkdir -p "$LEVI_DIR"/{backend,frontend,deploy,data,logs,certs}
-chown -R "$LEVI_USER:$LEVI_USER" "$LEVI_DIR"
+mkdir -p "$ISAAC_DIR"/{backend,frontend,deploy,data,logs,certs}
+chown -R "$ISAAC_USER:$ISAAC_USER" "$ISAAC_DIR"
 
 # ============================================
 # Step 5: Python Virtual Environment
 # ============================================
 echo -e "${GREEN}[5/10] Setting up Python virtual environment...${NC}"
-cd "$LEVI_DIR/backend"
+cd "$ISAAC_DIR/backend"
 
 if [ ! -d "venv" ]; then
-    sudo -u "$LEVI_USER" python3 -m venv venv
+    sudo -u "$ISAAC_USER" python3 -m venv venv
 fi
 
 # Activate and install dependencies
-sudo -u "$LEVI_USER" bash -c "
+sudo -u "$ISAAC_USER" bash -c "
     source venv/bin/activate
     pip install --upgrade pip wheel setuptools
     pip install -r requirements.txt
@@ -114,11 +114,11 @@ sudo -u "$LEVI_USER" bash -c "
 # Step 6: Frontend Build
 # ============================================
 echo -e "${GREEN}[6/10] Building frontend...${NC}"
-cd "$LEVI_DIR/frontend"
+cd "$ISAAC_DIR/frontend"
 
 if [ -f "package.json" ]; then
-    sudo -u "$LEVI_USER" npm install
-    sudo -u "$LEVI_USER" npm run build
+    sudo -u "$ISAAC_USER" npm install
+    sudo -u "$ISAAC_USER" npm run build
 else
     echo -e "${YELLOW}  Warning: package.json not found, skipping frontend build${NC}"
 fi
@@ -129,16 +129,16 @@ fi
 if [ "$WITH_SSL" = true ]; then
     echo -e "${GREEN}[7/10] Generating SSL certificates...${NC}"
 
-    CERT_DIR="$LEVI_DIR/certs"
+    CERT_DIR="$ISAAC_DIR/certs"
 
     if [ ! -f "$CERT_DIR/server.crt" ]; then
         openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
             -keyout "$CERT_DIR/server.key" \
             -out "$CERT_DIR/server.crt" \
-            -subj "/C=US/ST=State/L=City/O=Isaac/CN=levi.local" \
-            -addext "subjectAltName=DNS:levi.local,DNS:isaac.local,IP:127.0.0.1"
+            -subj "/C=US/ST=State/L=City/O=Isaac/CN=isaac.local" \
+            -addext "subjectAltName=DNS:isaac.local,DNS:isaac,IP:127.0.0.1"
 
-        chown "$LEVI_USER:$LEVI_USER" "$CERT_DIR"/*
+        chown "$ISAAC_USER:$ISAAC_USER" "$CERT_DIR"/*
         chmod 600 "$CERT_DIR/server.key"
         echo "  SSL certificates created in $CERT_DIR"
     else
@@ -180,29 +180,9 @@ fi
 echo -e "${GREEN}[9/10] Configuring systemd services...${NC}"
 
 # Main backend service
-cat > /etc/systemd/system/levi-backend.service << 'EOF'
-[Unit]
-Description=Levi Farm Assistant Backend
-After=network.target
-
-[Service]
-Type=simple
-User=n0mad1k
-Group=n0mad1k
-WorkingDirectory=/opt/levi/backend
-Environment="PATH=/opt/levi/backend/venv/bin"
-ExecStart=/opt/levi/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Dev/Isaac backend service (port 8001)
 cat > /etc/systemd/system/isaac-backend.service << 'EOF'
 [Unit]
-Description=Isaac Farm Assistant Backend (Dev)
+Description=Isaac Farm Assistant Backend
 After=network.target
 
 [Service]
@@ -211,7 +191,27 @@ User=n0mad1k
 Group=n0mad1k
 WorkingDirectory=/opt/isaac/backend
 Environment="PATH=/opt/isaac/backend/venv/bin"
-ExecStart=/opt/isaac/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8001
+ExecStart=/opt/isaac/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Dev backend service (port 8001)
+cat > /etc/systemd/system/isaac-dev-backend.service << 'EOF'
+[Unit]
+Description=Isaac Farm Assistant Backend (Dev)
+After=network.target
+
+[Service]
+Type=simple
+User=n0mad1k
+Group=n0mad1k
+WorkingDirectory=/opt/isaac-dev/backend
+Environment="PATH=/opt/isaac-dev/backend/venv/bin"
+ExecStart=/opt/isaac-dev/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8001
 Restart=always
 RestartSec=10
 
@@ -231,16 +231,16 @@ User=root
 ExecStart=/usr/bin/cloudflared tunnel run
 Restart=always
 RestartSec=10
-EnvironmentFile=/opt/levi/backend/.env
+EnvironmentFile=/opt/isaac/backend/.env
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 # Kiosk mode service
-cat > /etc/systemd/system/levi-kiosk.service << 'EOF'
+cat > /etc/systemd/system/isaac-kiosk.service << 'EOF'
 [Unit]
-Description=Levi Kiosk Mode
+Description=Isaac Kiosk Mode
 After=graphical.target
 
 [Service]
@@ -248,7 +248,7 @@ Type=simple
 User=n0mad1k
 Environment=DISPLAY=:0
 ExecStartPre=/bin/sleep 10
-ExecStart=/opt/levi/deploy/kiosk.sh
+ExecStart=/opt/isaac/deploy/kiosk.sh
 Restart=on-failure
 
 [Install]
@@ -256,7 +256,7 @@ WantedBy=graphical.target
 EOF
 
 systemctl daemon-reload
-systemctl enable levi-backend
+systemctl enable isaac-backend
 
 echo "  Services configured"
 
@@ -266,11 +266,11 @@ echo "  Services configured"
 echo -e "${GREEN}[10/10] Finalizing configuration...${NC}"
 
 # Create .env if it doesn't exist
-if [ ! -f "$LEVI_DIR/backend/.env" ]; then
-    if [ -f "$LEVI_DIR/backend/.env.example" ]; then
-        cp "$LEVI_DIR/backend/.env.example" "$LEVI_DIR/backend/.env"
-        chown "$LEVI_USER:$LEVI_USER" "$LEVI_DIR/backend/.env"
-        chmod 600 "$LEVI_DIR/backend/.env"
+if [ ! -f "$ISAAC_DIR/backend/.env" ]; then
+    if [ -f "$ISAAC_DIR/backend/.env.example" ]; then
+        cp "$ISAAC_DIR/backend/.env.example" "$ISAAC_DIR/backend/.env"
+        chown "$ISAAC_USER:$ISAAC_USER" "$ISAAC_DIR/backend/.env"
+        chmod 600 "$ISAAC_DIR/backend/.env"
         echo -e "${YELLOW}  Created .env from template - please configure it!${NC}"
     fi
 fi
@@ -279,7 +279,7 @@ fi
 timedatectl set-timezone America/New_York
 
 # Final permissions
-chown -R "$LEVI_USER:$LEVI_USER" "$LEVI_DIR"
+chown -R "$ISAAC_USER:$ISAAC_USER" "$ISAAC_DIR"
 
 echo ""
 echo -e "${GREEN}============================================${NC}"
@@ -289,7 +289,7 @@ echo ""
 echo "Next steps:"
 echo ""
 echo -e "${BLUE}1. Configure your .env file:${NC}"
-echo "   nano $LEVI_DIR/backend/.env"
+echo "   nano $ISAAC_DIR/backend/.env"
 echo ""
 echo -e "${BLUE}2. Required settings to configure:${NC}"
 echo "   - AWN_API_KEY and AWN_APP_KEY (weather)"
@@ -302,15 +302,15 @@ echo "   - CLOUDFLARE_TUNNEL_TOKEN (remote access)"
 echo "   - CALDAV settings (calendar sync)"
 echo ""
 echo -e "${BLUE}4. Start the backend:${NC}"
-echo "   sudo systemctl start levi-backend"
+echo "   sudo systemctl start isaac-backend"
 echo ""
 echo -e "${BLUE}5. Access the dashboard:${NC}"
-echo "   http://levi.local:8000"
+echo "   http://isaac.local:8000"
 echo ""
 if [ "$WITH_CLOUDFLARE" = true ]; then
     echo -e "${BLUE}6. For Cloudflare Tunnel:${NC}"
     echo "   sudo cloudflared service install <YOUR_TOKEN>"
     echo ""
 fi
-echo "View logs: journalctl -u levi-backend -f"
+echo "View logs: journalctl -u isaac-backend -f"
 echo ""

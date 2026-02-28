@@ -3723,7 +3723,7 @@ function Settings() {
                 </span>
               </div>
               <a
-                href={versionInfo.is_dev_instance ? 'https://levi.local' : 'https://isaac.local'}
+                href={versionInfo.is_dev_instance ? 'https://isaac.local' : 'https://isaac.local:8443'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1"
@@ -3784,7 +3784,7 @@ function Settings() {
                       Development Instance
                     </div>
                     <div className="text-sm text-muted mt-1">
-                      Push committed changes to production (levi.local)
+                      Push committed changes to production (isaac.local)
                     </div>
                   </div>
                   <button
