@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Check, X, Wallet, PiggyBank, CreditCard, Banknote } from 'lucide-react'
-import { getBudgetPeriodSummary, getBudgetCategories, updateBudgetCategory, getAccountsWithBalances } from '../../services/api'
+import { getBudgetPeriodSummary, getBudgetCategories, updateBudgetCategory, getAccountsWithBalances, getBudgetPeriodReference } from '../../services/api'
 
 const ACCOUNT_ICONS = {
   checking: Wallet,
@@ -9,45 +9,63 @@ const ACCOUNT_ICONS = {
   cash: Banknote,
 }
 
+// Compute 3 fixed periods from a reference date
+function computePeriods(refDate) {
+  const y = refDate.getFullYear(), m = refDate.getMonth() + 1
+  const lastDay = new Date(y, m, 0).getDate()
+  const mStr = String(m).padStart(2, '0')
+
+  let thisPeriod, lastPeriod, thisMonth
+
+  if (refDate.getDate() <= 14) {
+    thisPeriod = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-14`, label: 'This Period' }
+    const prevM = m === 1 ? 12 : m - 1
+    const prevY = m === 1 ? y - 1 : y
+    const prevLastDay = new Date(prevY, prevM, 0).getDate()
+    const prevMStr = String(prevM).padStart(2, '0')
+    lastPeriod = { start: `${prevY}-${prevMStr}-15`, end: `${prevY}-${prevMStr}-${prevLastDay}`, label: 'Last Period' }
+  } else {
+    thisPeriod = { start: `${y}-${mStr}-15`, end: `${y}-${mStr}-${lastDay}`, label: 'This Period' }
+    lastPeriod = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-14`, label: 'Last Period' }
+  }
+
+  thisMonth = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-${lastDay}`, label: 'This Month' }
+
+  return [thisPeriod, lastPeriod, thisMonth]
+}
+
 function BudgetOverview() {
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState(null)
   const [categories, setCategories] = useState([])
   const [accounts, setAccounts] = useState([])
+  const [periods, setPeriods] = useState([])
   const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(0)
   const [editingBudget, setEditingBudget] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
-  // Compute 3 fixed periods from today
-  const computePeriods = () => {
-    const today = new Date()
-    const y = today.getFullYear(), m = today.getMonth() + 1
-    const lastDay = new Date(y, m, 0).getDate()
-    const mStr = String(m).padStart(2, '0')
-
-    let thisPeriod, lastPeriod, thisMonth
-
-    if (today.getDate() <= 14) {
-      thisPeriod = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-14`, label: 'This Period' }
-      const prevM = m === 1 ? 12 : m - 1
-      const prevY = m === 1 ? y - 1 : y
-      const prevLastDay = new Date(prevY, prevM, 0).getDate()
-      const prevMStr = String(prevM).padStart(2, '0')
-      lastPeriod = { start: `${prevY}-${prevMStr}-15`, end: `${prevY}-${prevMStr}-${prevLastDay}`, label: 'Last Period' }
-    } else {
-      thisPeriod = { start: `${y}-${mStr}-15`, end: `${y}-${mStr}-${lastDay}`, label: 'This Period' }
-      lastPeriod = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-14`, label: 'Last Period' }
+  // Fetch reference date on mount, compute periods from it
+  useEffect(() => {
+    const init = async () => {
+      let refDate = new Date()
+      try {
+        const res = await getBudgetPeriodReference()
+        if (res.data?.reference_date) {
+          refDate = new Date(res.data.reference_date + 'T12:00:00')
+        }
+      } catch (err) {
+        console.error('Failed to fetch period reference:', err)
+      }
+      setPeriods(computePeriods(refDate))
+      setInitialized(true)
     }
-
-    thisMonth = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-${lastDay}`, label: 'This Month' }
-
-    return [thisPeriod, lastPeriod, thisMonth]
-  }
-
-  const periods = computePeriods()
+    init()
+  }, [])
 
   const fetchData = useCallback(async () => {
+    if (!initialized || periods.length === 0) return
     setLoading(true)
     try {
       const period = periods[selectedPeriodIdx] || periods[0]
@@ -64,7 +82,7 @@ function BudgetOverview() {
     } finally {
       setLoading(false)
     }
-  }, [selectedPeriodIdx])
+  }, [selectedPeriodIdx, initialized, periods])
 
   useEffect(() => { fetchData() }, [fetchData])
 
