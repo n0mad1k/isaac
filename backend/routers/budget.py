@@ -622,6 +622,58 @@ async def _calculate_rollover_balance(db: AsyncSession, reference_date: date = N
 ROLLOVER_ACCOUNT_NAME = "Rollover"
 
 
+async def _ensure_period_deposits(db: AsyncSession, period_start: date, period_end: date) -> None:
+    """Auto-create deposit transactions for transfer categories with linked accounts.
+
+    For virtual spending accounts (Dane Spending, Kelly Spending, etc.),
+    automatically deposits the budget_amount when a new period starts.
+    Uses a unique source_reference_id to prevent duplicate deposits.
+    """
+    try:
+        # Find all transfer categories with linked accounts and a budget
+        cat_result = await db.execute(
+            select(BudgetCategory).where(
+                BudgetCategory.is_active == True,
+                BudgetCategory.category_type == CategoryType.TRANSFER,
+                BudgetCategory.account_id.isnot(None),
+                BudgetCategory.budget_amount > 0,
+            )
+        )
+        transfer_cats = cat_result.scalars().all()
+
+        period_key = f"{period_start.year}-{period_start.month:02d}-{'1' if period_start.day <= 14 else '2'}"
+
+        for cat in transfer_cats:
+            # Check if deposit already exists for this period
+            ref_id = f"auto_deposit_{cat.id}_{period_key}"
+            existing = await db.execute(
+                select(BudgetTransaction.id).where(
+                    BudgetTransaction.source_reference_id == ref_id
+                )
+            )
+            if existing.scalar_one_or_none():
+                continue
+
+            # Create the deposit transaction
+            txn = BudgetTransaction(
+                account_id=cat.account_id,
+                category_id=cat.id,
+                transaction_date=period_start,
+                description=f"{cat.name} - Period Deposit",
+                amount=cat.budget_amount,
+                transaction_type=TransactionType.CREDIT,
+                source=TransactionSource.SYSTEM,
+                source_reference_id=ref_id,
+                period_key=period_key,
+            )
+            db.add(txn)
+            logger.info(f"Auto-deposited ${cat.budget_amount:.2f} for {cat.name} (period {period_key})")
+
+        await db.flush()
+    except Exception as e:
+        logger.warning(f"Could not ensure period deposits: {e}")
+
+
 async def _ensure_rollover_account(db: AsyncSession) -> BudgetAccount:
     """Get or create the virtual Rollover account."""
     result = await db.execute(
@@ -652,6 +704,18 @@ async def list_accounts_with_balances(
     try:
         # Ensure Rollover account exists
         rollover_acct = await _ensure_rollover_account(db)
+
+        # Auto-deposit for transfer categories (virtual spending accounts)
+        ref_date = await _get_period_reference_date(db)
+        if ref_date.day <= 14:
+            p_start = date(ref_date.year, ref_date.month, 1)
+            p_end = date(ref_date.year, ref_date.month, 14)
+        else:
+            last_day = monthrange(ref_date.year, ref_date.month)[1]
+            p_start = date(ref_date.year, ref_date.month, 15)
+            p_end = date(ref_date.year, ref_date.month, last_day)
+        await _ensure_period_deposits(db, p_start, p_end)
+
         await db.commit()
 
         result = await db.execute(
