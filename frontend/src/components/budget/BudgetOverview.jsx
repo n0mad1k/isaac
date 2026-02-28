@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Check, X, Wallet, PiggyBank, CreditCard, Banknote } from 'lucide-react'
-import { getBudgetPeriodSummary, getBudgetPayPeriods, getBudgetCategories, updateBudgetCategory, getBudgetPeriodReference, getAccountsWithBalances } from '../../services/api'
+import { Check, X, Wallet, PiggyBank, CreditCard, Banknote } from 'lucide-react'
+import { getBudgetPeriodSummary, getBudgetCategories, updateBudgetCategory, getAccountsWithBalances } from '../../services/api'
 
 const ACCOUNT_ICONS = {
   checking: Wallet,
@@ -14,106 +14,59 @@ function BudgetOverview() {
   const [summary, setSummary] = useState(null)
   const [categories, setCategories] = useState([])
   const [accounts, setAccounts] = useState([])
-  const [periods, setPeriods] = useState([])
   const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(0)
-  const [currentYear, setCurrentYear] = useState(null)
-  const [currentMonth, setCurrentMonth] = useState(null)
   const [editingBudget, setEditingBudget] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
-  const [referenceDate, setReferenceDate] = useState(null)
-  const [initializing, setInitializing] = useState(true)
 
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December']
+  // Compute 3 fixed periods from today
+  const computePeriods = () => {
+    const today = new Date()
+    const y = today.getFullYear(), m = today.getMonth() + 1
+    const lastDay = new Date(y, m, 0).getDate()
+    const mStr = String(m).padStart(2, '0')
 
-  // Fetch period reference on mount
-  useEffect(() => {
-    const initFromReference = async () => {
-      try {
-        const res = await getBudgetPeriodReference()
-        const refDate = res.data?.reference_date ? new Date(res.data.reference_date + 'T12:00:00') : new Date()
-        setReferenceDate(refDate)
-        setCurrentYear(refDate.getFullYear())
-        setCurrentMonth(refDate.getMonth() + 1)
-      } catch (err) {
-        const today = new Date()
-        setReferenceDate(today)
-        setCurrentYear(today.getFullYear())
-        setCurrentMonth(today.getMonth() + 1)
-      } finally {
-        setInitializing(false)
-      }
+    let thisPeriod, lastPeriod, thisMonth
+
+    if (today.getDate() <= 14) {
+      thisPeriod = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-14`, label: 'This Period' }
+      const prevM = m === 1 ? 12 : m - 1
+      const prevY = m === 1 ? y - 1 : y
+      const prevLastDay = new Date(prevY, prevM, 0).getDate()
+      const prevMStr = String(prevM).padStart(2, '0')
+      lastPeriod = { start: `${prevY}-${prevMStr}-15`, end: `${prevY}-${prevMStr}-${prevLastDay}`, label: 'Last Period' }
+    } else {
+      thisPeriod = { start: `${y}-${mStr}-15`, end: `${y}-${mStr}-${lastDay}`, label: 'This Period' }
+      lastPeriod = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-14`, label: 'Last Period' }
     }
-    initFromReference()
-  }, [])
 
-  const fetchAccounts = useCallback(async () => {
-    try {
-      const res = await getAccountsWithBalances()
-      setAccounts(res.data || [])
-    } catch (err) {
-      console.error('Failed to fetch accounts:', err)
-    }
-  }, [])
+    thisMonth = { start: `${y}-${mStr}-01`, end: `${y}-${mStr}-${lastDay}`, label: 'This Month' }
 
-  const fetchPeriods = useCallback(async () => {
-    if (initializing || !currentYear || !currentMonth) return
-    try {
-      const [periodsRes, catRes, accountsRes] = await Promise.all([
-        getBudgetPayPeriods(currentYear, currentMonth),
-        getBudgetCategories(),
-        getAccountsWithBalances(),
-      ])
-      const periodData = periodsRes.data || []
-      setCategories(catRes.data || [])
-      setAccounts(accountsRes.data || [])
-      if (periodData.length === 2) {
-        periodData.push({ start: periodData[0].start, end: periodData[1].end, label: 'Full Month' })
-      }
-      setPeriods(periodData)
+    return [thisPeriod, lastPeriod, thisMonth]
+  }
 
-      // Use reference date to determine which period to show
-      const refDateForPeriod = referenceDate || new Date()
-      if (refDateForPeriod.getFullYear() === currentYear && refDateForPeriod.getMonth() + 1 === currentMonth) {
-        setSelectedPeriodIdx(refDateForPeriod.getDate() <= 14 ? 0 : 1)
-      } else {
-        setSelectedPeriodIdx(2)
-      }
-    } catch (err) {
-      console.error('Failed to fetch pay periods:', err)
-    }
-  }, [currentYear, currentMonth, initializing, referenceDate])
+  const periods = computePeriods()
 
-  const fetchSummary = useCallback(async () => {
-    if (periods.length === 0) return
+  const fetchData = useCallback(async () => {
     setLoading(true)
     try {
       const period = periods[selectedPeriodIdx] || periods[0]
-      const res = await getBudgetPeriodSummary(period.start, period.end)
-      setSummary(res.data)
+      const [summaryRes, catRes, accountsRes] = await Promise.all([
+        getBudgetPeriodSummary(period.start, period.end),
+        getBudgetCategories(),
+        getAccountsWithBalances(),
+      ])
+      setSummary(summaryRes.data)
+      setCategories(catRes.data || [])
+      setAccounts(accountsRes.data || [])
     } catch (err) {
-      console.error('Failed to fetch budget summary:', err)
+      console.error('Failed to fetch budget data:', err)
     } finally {
       setLoading(false)
     }
-  }, [periods, selectedPeriodIdx])
+  }, [selectedPeriodIdx])
 
-  useEffect(() => {
-    if (!initializing && currentYear && currentMonth) {
-      fetchPeriods()
-    }
-  }, [fetchPeriods, initializing, currentYear, currentMonth])
-  useEffect(() => { fetchSummary() }, [fetchSummary])
-
-  const goToPrevMonth = () => {
-    if (currentMonth === 1) { setCurrentMonth(12); setCurrentYear(y => y - 1) }
-    else setCurrentMonth(m => m - 1)
-  }
-  const goToNextMonth = () => {
-    if (currentMonth === 12) { setCurrentMonth(1); setCurrentYear(y => y + 1) }
-    else setCurrentMonth(m => m + 1)
-  }
+  useEffect(() => { fetchData() }, [fetchData])
 
   const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0)
   const fmtAccounting = (n) => {
@@ -133,8 +86,7 @@ function BudgetOverview() {
     try {
       await updateBudgetCategory(editingBudget, { budget_amount: parseFloat(editValue) || 0 })
       setEditingBudget(null)
-      fetchPeriods()
-      fetchSummary()
+      fetchData()
     } catch (err) {
       console.error('Failed to update budget:', err)
     } finally {
@@ -199,19 +151,11 @@ function BudgetOverview() {
 
   return (
     <div className="space-y-4">
-      {/* Month & Period Navigation */}
+      {/* Period Navigation */}
       <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border-default)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <button onClick={goToPrevMonth} className="p-1 rounded hover:bg-surface-soft">
-            <ChevronLeft className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
-          </button>
-          <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Budget Overview
-          </h3>
-          <button onClick={goToNextMonth} className="p-1 rounded hover:bg-surface-soft">
-            <ChevronRight className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
-          </button>
-        </div>
+        <h3 className="text-lg font-semibold text-center mb-3" style={{ color: 'var(--color-text-primary)' }}>
+          Budget Overview
+        </h3>
         <div className="flex gap-2 justify-center">
           {periods.map((period, idx) => (
             <button

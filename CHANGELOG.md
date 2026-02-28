@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.89.6] - 2026-02-28
+
+### Fixed
+- **Budget Period Navigation** - Overview now shows 3 fixed views (This Period, Last Period, This Month) instead of arbitrary month browsing with arrows
+- **Transaction Period Filter** - Transactions now use today's date instead of a stale reference date to determine the current pay period, and added "Last Period" filter option
+
 ## [1.89.5] - 2026-02-28
 
 ### Added

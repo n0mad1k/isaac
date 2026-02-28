@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Plus, X, Trash2, Pencil, Check } from 'lucide-react'
 import {
   getBudgetTransactions, createBudgetTransaction, updateBudgetTransaction,
-  deleteBudgetTransaction, getBudgetAccounts, getBudgetCategories, getBudgetPeriodReference
+  deleteBudgetTransaction, getBudgetAccounts, getBudgetCategories
 } from '../../services/api'
 import { useSettings } from '../../contexts/SettingsContext'
 
@@ -14,50 +14,36 @@ function BudgetTransactions() {
   const [accounts, setAccounts] = useState([])
   const [categories, setCategories] = useState([])
   const [page, setPage] = useState(0)
-  const [referenceDate, setReferenceDate] = useState(null)
-  const [initializing, setInitializing] = useState(true)
   const pageSize = 50
 
-  // Period filter: 'current' = current half, 'month' = full month, 'all' = everything
+  // Period filter: 'current' = this pay period, 'last' = last pay period, 'month' = full month, 'all' = everything
   const [periodFilter, setPeriodFilter] = useState('current')
 
-  // Load period reference on mount
-  useEffect(() => {
-    const loadReference = async () => {
-      try {
-        const res = await getBudgetPeriodReference()
-        const refDateStr = res.data?.reference_date
-        if (refDateStr) {
-          setReferenceDate(new Date(refDateStr + 'T12:00:00'))
-        } else {
-          setReferenceDate(new Date())
-        }
-      } catch (err) {
-        console.error('Failed to load period reference:', err)
-        setReferenceDate(new Date())
-      } finally {
-        setInitializing(false)
-      }
-    }
-    loadReference()
-  }, [])
-
-  // Calculate current half-period date range using reference date
+  // Calculate date range based on today's date (not reference date)
   const getDateRange = (filter) => {
-    const refDate = referenceDate || new Date()
-    const y = refDate.getFullYear()
-    const m = refDate.getMonth() + 1
+    const today = new Date()
+    const y = today.getFullYear()
+    const m = today.getMonth() + 1
+    const lastDay = new Date(y, m, 0).getDate()
     const mStr = String(m).padStart(2, '0')
 
     if (filter === 'current') {
-      if (refDate.getDate() <= 14) {
+      if (today.getDate() <= 14) {
         return { start_date: `${y}-${mStr}-01`, end_date: `${y}-${mStr}-14` }
       } else {
-        const lastDay = new Date(y, m, 0).getDate()
         return { start_date: `${y}-${mStr}-15`, end_date: `${y}-${mStr}-${lastDay}` }
       }
+    } else if (filter === 'last') {
+      if (today.getDate() <= 14) {
+        const prevM = m === 1 ? 12 : m - 1
+        const prevY = m === 1 ? y - 1 : y
+        const prevLastDay = new Date(prevY, prevM, 0).getDate()
+        const prevMStr = String(prevM).padStart(2, '0')
+        return { start_date: `${prevY}-${prevMStr}-15`, end_date: `${prevY}-${prevMStr}-${prevLastDay}` }
+      } else {
+        return { start_date: `${y}-${mStr}-01`, end_date: `${y}-${mStr}-14` }
+      }
     } else if (filter === 'month') {
-      const lastDay = new Date(y, m, 0).getDate()
       return { start_date: `${y}-${mStr}-01`, end_date: `${y}-${mStr}-${lastDay}` }
     }
     return {} // 'all' - no filter
@@ -75,7 +61,6 @@ function BudgetTransactions() {
   })
 
   const fetchData = useCallback(async () => {
-    if (initializing) return // Wait for reference date
     setLoading(true)
     try {
       const dateRange = getDateRange(periodFilter)
@@ -93,7 +78,7 @@ function BudgetTransactions() {
     } finally {
       setLoading(false)
     }
-  }, [page, periodFilter, initializing, referenceDate])
+  }, [page, periodFilter])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -202,7 +187,8 @@ function BudgetTransactions() {
           </button>
           <div className="flex gap-1">
             {[
-              { key: 'current', label: 'This Half' },
+              { key: 'current', label: 'This Period' },
+              { key: 'last', label: 'Last Period' },
               { key: 'month', label: 'This Month' },
               { key: 'all', label: 'All' },
             ].map(f => (
