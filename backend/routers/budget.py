@@ -1834,11 +1834,16 @@ async def get_period_summary(
         )
         categories = cat_result.scalars().all()
 
-        # Determine if this is a half-month or full-month period
+        # Use the reference date to determine period type, not start_date
+        # (start_date may include payday from the prior month due to advance)
+        ref_date = await _get_period_reference_date(db)
         days_in_period = (end_date - start_date).days + 1
         is_full_month = days_in_period > 20
-        is_first_half = start_date.day == 1 and not is_full_month
-        is_second_half = start_date.day >= 15 and not is_full_month
+        is_first_half = ref_date.day <= 14 and not is_full_month
+        is_second_half = ref_date.day >= 15 and not is_full_month
+        # Use the reference date's month for all month-based lookups
+        period_month = ref_date.month
+        period_year = ref_date.year
 
         # Get spending by category for the period
         txn_result = await db.execute(
@@ -1904,7 +1909,7 @@ async def get_period_summary(
                     rollover_start = date(first_month_start.year + 1, 1, 1)
                 else:
                     rollover_start = date(first_month_start.year, first_month_start.month + 1, 1)
-                current_month_start = date(start_date.year, start_date.month, 1)
+                current_month_start = date(period_year, period_month, 1)
 
                 if rollover_start < current_month_start:
                     # Get total spent on rollover categories from rollover_start to current month
@@ -1954,8 +1959,8 @@ async def get_period_summary(
 
                 # If viewing the second half, also include the first half's surplus/deficit
                 if is_second_half and rollover_cat_ids:
-                    first_half_start = date(start_date.year, start_date.month, 1)
-                    first_half_end = date(start_date.year, start_date.month, 14)
+                    first_half_start = date(period_year, period_month, 1)
+                    first_half_end = date(period_year, period_month, 14)
 
                     # Add per-period budget for rollover categories (first half)
                     for cat in categories:
@@ -1999,7 +2004,7 @@ async def get_period_summary(
                     current_period_start = start_date
                     if is_second_half:
                         # Phase 2 already counted first half; only get second half
-                        current_period_start = date(start_date.year, start_date.month, 15)
+                        current_period_start = date(period_year, period_month, 15)
                     current_ro_result = await db.execute(
                         select(func.sum(BudgetTransaction.amount))
                         .where(
@@ -2087,15 +2092,12 @@ async def get_period_summary(
                                 total += bill.budget_amount
                     return total
 
-                # Current month
-                current_month = start_date.month
-                current_year = start_date.year
-
+                # Use reference date's month for bill calculations
                 # Calculate ALL bills (for display) and UNPAID bills (for available)
-                first_half_bills = calc_half_bills(current_year, current_month, True)
-                second_half_bills = calc_half_bills(current_year, current_month, False)
-                first_half_unpaid = calc_half_bills(current_year, current_month, True, unpaid_only=True)
-                second_half_unpaid = calc_half_bills(current_year, current_month, False, unpaid_only=True)
+                first_half_bills = calc_half_bills(period_year, period_month, True)
+                second_half_bills = calc_half_bills(period_year, period_month, False)
+                first_half_unpaid = calc_half_bills(period_year, period_month, True, unpaid_only=True)
+                second_half_unpaid = calc_half_bills(period_year, period_month, False, unpaid_only=True)
 
                 # Determine which half we're viewing
                 if is_first_half:
@@ -2126,13 +2128,13 @@ async def get_period_summary(
         # Build category breakdown
         category_summary = []
         total_budgeted = 0.0
-        current_ym = f"{start_date.year}-{start_date.month:02d}"
+        current_ym = f"{period_year}-{period_month:02d}"
 
         for cat in categories:
             # Skip categories not active this month (billing_months filter)
             if cat.billing_months:
                 active_months = [int(m.strip()) for m in cat.billing_months.split(',') if m.strip()]
-                if start_date.month not in active_months:
+                if period_month not in active_months:
                     continue
 
             # Skip categories outside their start_date/end_date range
