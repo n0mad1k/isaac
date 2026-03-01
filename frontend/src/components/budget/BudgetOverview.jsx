@@ -22,14 +22,13 @@ function pad2(n) { return String(n).padStart(2, '0') }
 function fmtDate(y, m, d) { return `${y}-${pad2(m)}-${pad2(d)}` }
 function lastDayOf(y, m) { return new Date(y, m, 0).getDate() }
 
-// Compute 3 fixed periods using both today and the reference date.
-// Reference date determines which half-month period we're in (the period END).
-// Today determines the period START (you start spending on payday).
-// This Period = min(today, refPeriodStart) → refPeriodEnd
-function computePeriods(today, refDate) {
+// Compute 3 fixed periods.
+// refDate = target period reference (e.g. Mar 1 = we're in 1-14 of March)
+// advanceDate = when the advance was done (e.g. Feb 28), or null for default periods
+function computePeriods(refDate, advanceDate) {
   const ry = refDate.getFullYear(), rm = refDate.getMonth() + 1
 
-  // Reference period end
+  // Reference period boundaries (the target period)
   let refStart, refEnd
   if (refDate.getDate() <= 14) {
     refStart = fmtDate(ry, rm, 1)
@@ -39,21 +38,22 @@ function computePeriods(today, refDate) {
     refEnd = fmtDate(ry, rm, lastDayOf(ry, rm))
   }
 
-  // This Period: start from today if it's before the reference period start (advance scenario)
-  const todayStr = fmtDate(today.getFullYear(), today.getMonth() + 1, today.getDate())
-  const thisStart = todayStr < refStart ? todayStr : refStart
+  // This Period: starts from advance date if set, otherwise default period start
+  let thisStart = refStart
+  if (advanceDate) {
+    const advStr = fmtDate(advanceDate.getFullYear(), advanceDate.getMonth() + 1, advanceDate.getDate())
+    if (advStr < refStart) thisStart = advStr
+  }
   const thisPeriod = { start: thisStart, end: refEnd, label: `This Period (${fmtRange(thisStart, refEnd)})` }
 
   // Last Period: the standard half-month before the reference period
   let lastStart, lastEnd
   if (refDate.getDate() <= 14) {
-    // Ref is in 1-14, so previous period is 15-end of prior month
     const prevM = rm === 1 ? 12 : rm - 1
     const prevY = rm === 1 ? ry - 1 : ry
     lastStart = fmtDate(prevY, prevM, 15)
     lastEnd = fmtDate(prevY, prevM, lastDayOf(prevY, prevM))
   } else {
-    // Ref is in 15-end, so previous period is 1-14 of same month
     lastStart = fmtDate(ry, rm, 1)
     lastEnd = fmtDate(ry, rm, 14)
   }
@@ -80,20 +80,23 @@ function BudgetOverview() {
   const [saving, setSaving] = useState(false)
   const [initialized, setInitialized] = useState(false)
 
-  // Fetch reference date, compute periods from today + reference
+  // Fetch reference date + advance date, compute periods
   useEffect(() => {
     const init = async () => {
-      const today = new Date()
-      let refDate = today
+      let refDate = new Date()
+      let advanceDate = null
       try {
         const res = await getBudgetPeriodReference()
         if (res.data?.reference_date) {
           refDate = new Date(res.data.reference_date + 'T12:00:00')
         }
+        if (res.data?.advance_date) {
+          advanceDate = new Date(res.data.advance_date + 'T12:00:00')
+        }
       } catch (err) {
         console.error('Failed to fetch period reference:', err)
       }
-      setPeriods(computePeriods(today, refDate))
+      setPeriods(computePeriods(refDate, advanceDate))
       setInitialized(true)
     }
     init()

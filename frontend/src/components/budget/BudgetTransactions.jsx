@@ -21,15 +21,18 @@ function BudgetTransactions() {
   // Period filter: 'current' = this pay period, 'last' = last pay period, 'month' = full month, 'all' = everything
   const [periodFilter, setPeriodFilter] = useState('current')
 
-  // Load reference date and precompute period ranges
+  // Load reference date + advance date and precompute period ranges
   useEffect(() => {
     const init = async () => {
-      const today = new Date()
-      let refDate = today
+      let refDate = new Date()
+      let advanceDate = null
       try {
         const res = await getBudgetPeriodReference()
         if (res.data?.reference_date) {
           refDate = new Date(res.data.reference_date + 'T12:00:00')
+        }
+        if (res.data?.advance_date) {
+          advanceDate = new Date(res.data.advance_date + 'T12:00:00')
         }
       } catch (err) {
         console.error('Failed to load period reference:', err)
@@ -49,9 +52,12 @@ function BudgetTransactions() {
         refEnd = fmtD(ry, rm, lastDay(ry, rm))
       }
 
-      // This Period starts from today if before ref period start (advance scenario)
-      const todayStr = fmtD(today.getFullYear(), today.getMonth() + 1, today.getDate())
-      const thisStart = todayStr < refStart ? todayStr : refStart
+      // This Period: starts from advance date if set and before ref period start
+      let thisStart = refStart
+      if (advanceDate) {
+        const advStr = fmtD(advanceDate.getFullYear(), advanceDate.getMonth() + 1, advanceDate.getDate())
+        if (advStr < refStart) thisStart = advStr
+      }
 
       // Last Period: standard previous half-month
       let lastStart, lastEnd

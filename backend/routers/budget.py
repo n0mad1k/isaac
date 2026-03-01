@@ -450,7 +450,11 @@ async def _calculate_account_balance(account: BudgetAccount, db: AsyncSession) -
 
 
 async def _get_period_reference_date(db: AsyncSession) -> date:
-    """Get the effective period reference date, respecting overrides and auto-expiring stale ones."""
+    """Get the effective period reference date, respecting overrides and auto-expiring stale ones.
+
+    The reference date points to the TARGET period (e.g. Mar 1 = first half of March).
+    Auto-expires when the target period's end date has passed.
+    """
     from models.settings import AppSetting
 
     result = await db.execute(
@@ -462,11 +466,24 @@ async def _get_period_reference_date(db: AsyncSession) -> date:
         try:
             ref_date = date.fromisoformat(setting.value)
             today = date.today()
-            # Auto-expire: if the override period has passed (calendar caught up), clear it
-            if ref_date <= today:
+            # Calculate when the target period ends
+            if ref_date.day <= 14:
+                target_end = date(ref_date.year, ref_date.month, 14)
+            else:
+                last_day = monthrange(ref_date.year, ref_date.month)[1]
+                target_end = date(ref_date.year, ref_date.month, last_day)
+            # Auto-expire: if today is past the target period end, clear the override
+            if today > target_end:
                 await db.delete(setting)
+                # Also clear the advance date
+                adv_result = await db.execute(
+                    select(AppSetting).where(AppSetting.key == "budget_period_advance_date")
+                )
+                adv_setting = adv_result.scalar_one_or_none()
+                if adv_setting:
+                    await db.delete(adv_setting)
                 await db.commit()
-                logger.info(f"Auto-expired stale period override {ref_date}, using today")
+                logger.info(f"Auto-expired stale period override {ref_date} (target end {target_end}), using today")
                 return today
             return ref_date
         except ValueError:
@@ -1703,8 +1720,16 @@ async def get_period_reference(
                 "label": p["label"]
             }
             break
+    # Get the advance date if it exists
+    adv_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "budget_period_advance_date")
+    )
+    adv_setting = adv_result.scalar_one_or_none()
+    advance_date = adv_setting.value if adv_setting and adv_setting.value else None
+
     return {
         "reference_date": ref_date.isoformat(),
+        "advance_date": advance_date,
         "current_period": current_period,
         "is_override": is_override
     }
@@ -1757,8 +1782,25 @@ async def advance_period(
         )
         db.add(setting)
 
+    # Also store the actual advance date (today) — this is the real period start
+    advance_date_value = date.today().isoformat()
+    adv_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "budget_period_advance_date")
+    )
+    adv_setting = adv_result.scalar_one_or_none()
+    if adv_setting:
+        adv_setting.value = advance_date_value
+        adv_setting.updated_at = datetime.utcnow()
+    else:
+        adv_setting = AppSetting(
+            key="budget_period_advance_date",
+            value=advance_date_value,
+            description="Date the period was manually advanced"
+        )
+        db.add(adv_setting)
+
     await db.commit()
-    logger.info(f"Advanced budget period to {new_value}")
+    logger.info(f"Advanced budget period to {new_value} (advance date: {advance_date_value})")
 
     # Return updated period info
     periods = _get_pay_periods(next_period_start.year, next_period_start.month)
@@ -1795,8 +1837,17 @@ async def reset_period(
 
     if setting:
         await db.delete(setting)
-        await db.commit()
-        logger.info("Reset budget period reference to today")
+
+    # Also clear the advance date
+    adv_result = await db.execute(
+        select(AppSetting).where(AppSetting.key == "budget_period_advance_date")
+    )
+    adv_setting = adv_result.scalar_one_or_none()
+    if adv_setting:
+        await db.delete(adv_setting)
+
+    await db.commit()
+    logger.info("Reset budget period reference to today")
 
     today = date.today()
     periods = _get_pay_periods(today.year, today.month)
