@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.89.8] - 2026-03-01
+
+### Added
+- **Cold Stratification in Garden Planner** - Seeds with cold stratification requirements now show a purple "Cold Stratify" activity in the planting calendar, scheduled the correct number of weeks/days before sowing. Seeds requiring only scarification or soaking get a note on their sow entry instead.
+
 ## [1.89.7] - 2026-03-01
 
 ### Fixed

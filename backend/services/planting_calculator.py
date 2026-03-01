@@ -101,6 +101,46 @@ def parse_weeks_before_frost(text: str) -> Optional[int]:
     return None
 
 
+def parse_stratification_days(text: str) -> Optional[int]:
+    """Parse cold stratification duration from special_requirements.
+
+    Examples:
+        'Cold stratification 4 weeks' → 28
+        'Cold stratification 90 days' → 90
+        'Cold stratification 4-6 weeks required' → 35 (avg of range)
+    """
+    if not text:
+        return None
+
+    text_lower = text.lower()
+    if 'stratif' not in text_lower:
+        return None
+
+    # Try range in weeks: "4-6 weeks"
+    range_weeks = re.search(r'(\d+)\s*[-–]\s*(\d+)\s*weeks?', text_lower)
+    if range_weeks:
+        low, high = int(range_weeks.group(1)), int(range_weeks.group(2))
+        return ((low + high) // 2) * 7
+
+    # Try range in days: "60-90 days"
+    range_days = re.search(r'(\d+)\s*[-–]\s*(\d+)\s*days?', text_lower)
+    if range_days:
+        low, high = int(range_days.group(1)), int(range_days.group(2))
+        return (low + high) // 2
+
+    # Single value in weeks: "4 weeks"
+    single_weeks = re.search(r'(\d+)\s*weeks?', text_lower)
+    if single_weeks:
+        return int(single_weeks.group(1)) * 7
+
+    # Single value in days: "90 days"
+    single_days = re.search(r'(\d+)\s*days?', text_lower)
+    if single_days:
+        return int(single_days.group(1))
+
+    return None
+
+
 def parse_day_range(text: str) -> Optional[Tuple[int, int]]:
     """Parse day range text into (min, max) tuple.
 
@@ -176,6 +216,7 @@ def calculate_planting_schedule(
             "month": m,
             "name": MONTH_NAMES[m],
             "activities": {
+                "cold_stratify": [],
                 "start_indoors": [],
                 "direct_sow": [],
                 "transplant": [],
@@ -258,11 +299,40 @@ def _process_seed(seed, months: list, last_frost: date, first_frost: date, year:
         if seed.frost_sensitive and direct_sow_months:
             direct_sow_months = {m for m in direct_sow_months if m >= last_frost.month or m <= first_frost.month}
 
+        # Check for scarification/soaking (same-day prep, no stratification)
+        has_scarif_soak = False
+        scarif_note = ""
+        if seed.special_requirements:
+            sr_lower = seed.special_requirements.lower()
+            if ('scarif' in sr_lower or 'soak' in sr_lower) and 'stratif' not in sr_lower:
+                has_scarif_soak = True
+                scarif_note = f" — {seed.special_requirements}"
+
         for m in sorted(direct_sow_months):
+            base_notes = seed.sow_months or seed.spring_planting or seed.fall_planting or ""
             months[m - 1]["activities"]["direct_sow"].append({
                 **seed_info,
-                "notes": seed.sow_months or seed.spring_planting or seed.fall_planting or "",
+                "notes": base_notes + scarif_note if has_scarif_soak else base_notes,
             })
+
+    # --- Cold Stratification ---
+    strat_days = parse_stratification_days(getattr(seed, 'special_requirements', None))
+    if strat_days:
+        # Determine which months this seed gets sown
+        sow_months_for_strat = direct_sow_months or indoor_months
+        strat_months_seen = set()
+        for sow_month in sorted(sow_months_for_strat):
+            sow_date_approx = date(year, sow_month, 15)
+            strat_start = sow_date_approx - timedelta(days=strat_days)
+            strat_month = strat_start.month
+            if strat_month not in strat_months_seen:
+                strat_months_seen.add(strat_month)
+                weeks = strat_days // 7
+                duration_label = f"{weeks} weeks" if strat_days % 7 == 0 else f"{strat_days} days"
+                months[strat_month - 1]["activities"]["cold_stratify"].append({
+                    **seed_info,
+                    "notes": f"Start {duration_label} before sowing ({MONTH_NAMES[sow_month]})",
+                })
 
     # --- Transplant ---
     if indoor_months and not seed.direct_sow:

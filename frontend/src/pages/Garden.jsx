@@ -20,6 +20,7 @@ import {
 import { useSettings } from '../contexts/SettingsContext'
 
 const ACTIVITY_COLORS = {
+  cold_stratify: { bg: 'bg-purple-900/40', border: 'border-purple-500', text: 'text-purple-300', label: 'Cold Stratify', bar: 'bg-purple-500' },
   start_indoors: { bg: 'bg-blue-900/40', border: 'border-blue-500', text: 'text-blue-300', label: 'Start Indoors', bar: 'bg-blue-500' },
   direct_sow: { bg: 'bg-green-900/40', border: 'border-green-500', text: 'text-green-300', label: 'Direct Sow', bar: 'bg-green-500' },
   transplant: { bg: 'bg-yellow-900/40', border: 'border-yellow-500', text: 'text-yellow-300', label: 'Transplant', bar: 'bg-yellow-500' },
