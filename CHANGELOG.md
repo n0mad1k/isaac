@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.89.7] - 2026-03-01
+
+### Fixed
+- **Animals Not Loading** - Added missing `photo_path` column to Animal model, which caused a 500 error on all animal API calls
+- **Feeding Schedule Missing** - Dashboard feed widget now loads correctly (was blocked by the animals API error above)
+- **Family Motto Layout** - Motto no longer expands and overlaps other header elements on smaller screens
+
 ## [1.89.6] - 2026-02-28
 
 ### Fixed

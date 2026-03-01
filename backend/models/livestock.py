@@ -118,6 +118,9 @@ class Animal(Base):
     needs_blanket_below = Column(Float)  # Temperature below which they need a blanket
     cold_sensitive = Column(Boolean, default=False)
 
+    # Photo
+    photo_path = Column(String(500), nullable=True)  # Path to uploaded photo
+
     # Status
     is_active = Column(Boolean, default=True)
     status = Column(String(50), default="healthy")  # healthy, injured, sick, sold, deceased, slaughtered
