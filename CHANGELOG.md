@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.1] - 2026-03-02
+
+### Added
+- **Garden Digest Settings** - Monthly planting digest toggle now visible in Settings > Email Notifications; also added daily digest recipient field
+- **Send Garden Digest Button** - New "Send Garden Digest" button in email settings to manually trigger the March garden email on demand
+
 ## [1.90.0] - 2026-03-01
 
 ### Added

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search, Upload, Image, Bot } from 'lucide-react'
-import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, testDailyDigest, testGearAlerts, testTrainingAlerts, testMedicalAlerts, testTeamAlertsDigest, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs, getAllInsights, createInsight, updateInsight, deleteInsight, regenerateInsights } from '../services/api'
+import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, testDailyDigest, testGearAlerts, testTrainingAlerts, testMedicalAlerts, testTeamAlertsDigest, testMonthlyPlantingDigest, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs, getAllInsights, createInsight, updateInsight, deleteInsight, regenerateInsights } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
 
@@ -16,6 +16,7 @@ function Settings() {
   const [sendingTrainingTest, setSendingTrainingTest] = useState(false)
   const [sendingMedicalTest, setSendingMedicalTest] = useState(false)
   const [sendingTeamAlertsDigestTest, setSendingTeamAlertsDigestTest] = useState(false)
+  const [sendingMonthlyPlantingTest, setSendingMonthlyPlantingTest] = useState(false)
   const [syncingCalendar, setSyncingCalendar] = useState(false)
   const [message, setMessage] = useState(null)
   const [hasChanges, setHasChanges] = useState(false)
@@ -801,6 +802,25 @@ function Settings() {
     }
   }
 
+  const handleTestMonthlyPlantingDigest = async () => {
+    setSendingMonthlyPlantingTest(true)
+    try {
+      const response = await testMonthlyPlantingDigest()
+      const data = response.data
+      setMessage({
+        type: 'success',
+        text: `Garden digest for ${data.month} ${data.year} sent to ${data.recipient}!`
+      })
+      setTimeout(() => setMessage(null), 5000)
+    } catch (error) {
+      console.error('Failed to send monthly planting digest:', error)
+      const detail = error.response?.data?.detail || 'Failed to send monthly planting digest'
+      setMessage({ type: 'error', text: detail })
+    } finally {
+      setSendingMonthlyPlantingTest(false)
+    }
+  }
+
   const handleCalendarSync = async () => {
     setSyncingCalendar(true)
     try {
@@ -965,7 +985,7 @@ function Settings() {
   const locationSettings = ['timezone', 'latitude', 'longitude', 'usda_zone']
   const weatherApiSettings = ['awn_api_key', 'awn_app_key']
   const emailServerSettings = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from']
-  const emailSettings = ['email_alerts_enabled', 'email_recipients', 'email_daily_digest', 'email_digest_time', 'email_team_alerts_digest', 'email_team_alerts_time', 'email_team_alerts_recipient']
+  const emailSettings = ['email_alerts_enabled', 'email_recipients', 'email_daily_digest', 'email_digest_time', 'email_digest_recipient', 'email_team_alerts_digest', 'email_team_alerts_time', 'email_team_alerts_recipient', 'email_monthly_planting_digest']
   const alertSettings = ['frost_warning_temp', 'freeze_warning_temp', 'heat_warning_temp', 'wind_warning_speed', 'rain_warning_inches', 'cold_protection_buffer']
   const calendarSettings = ['calendar_enabled', 'calendar_url', 'calendar_username', 'calendar_password', 'calendar_name', 'calendar_sync_interval']
   const cloudflareSettings = ['cloudflare_api_token', 'cloudflare_account_id', 'cloudflare_app_id']
@@ -2035,6 +2055,15 @@ function Settings() {
               >
                 <Send className="w-4 h-4" />
                 {sendingTeamAlertsDigestTest ? 'Sending...' : 'Test All Alerts'}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleTestMonthlyPlantingDigest(); }}
+                disabled={sendingMonthlyPlantingTest}
+                className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white disabled:bg-emerald-800 disabled:cursor-not-allowed rounded-lg transition-colors text-sm"
+                title="Send the monthly garden planting digest for the current month"
+              >
+                <Leaf className="w-4 h-4" />
+                {sendingMonthlyPlantingTest ? 'Sending...' : 'Send Garden Digest'}
               </button>
             </div>
           )}
