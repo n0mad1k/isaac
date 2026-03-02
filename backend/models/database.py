@@ -289,6 +289,48 @@ async def _fix_stale_observations():
             await session.rollback()
 
 
+async def _create_indexes():
+    """Create performance indexes on commonly queried columns (idempotent)"""
+    indexes = [
+        # Tasks - filtered by active status and sorted/filtered by due date constantly
+        "CREATE INDEX IF NOT EXISTS idx_tasks_is_active ON tasks(is_active)",
+        "CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date)",
+        "CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to)",
+        # Budget - transaction date range queries drive the budget page
+        "CREATE INDEX IF NOT EXISTS idx_budget_transactions_date ON budget_transactions(transaction_date)",
+        "CREATE INDEX IF NOT EXISTS idx_budget_transactions_category ON budget_transactions(budget_category_id)",
+        "CREATE INDEX IF NOT EXISTS idx_budget_transactions_account ON budget_transactions(budget_account_id)",
+        "CREATE INDEX IF NOT EXISTS idx_budget_categories_account ON budget_categories(budget_account_id)",
+        "CREATE INDEX IF NOT EXISTS idx_budget_categories_active ON budget_categories(is_active)",
+        "CREATE INDEX IF NOT EXISTS idx_budget_accounts_active ON budget_accounts(is_active)",
+        # Plants - active plant lookups and care schedule queries
+        "CREATE INDEX IF NOT EXISTS idx_plants_is_active ON plants(is_active)",
+        "CREATE INDEX IF NOT EXISTS idx_plants_user_id ON plants(user_id)",
+        # Animals
+        "CREATE INDEX IF NOT EXISTS idx_animals_is_active ON animals(is_active)",
+        # Home maintenance
+        "CREATE INDEX IF NOT EXISTS idx_home_maintenance_active ON home_maintenance(is_active)",
+        # Equipment
+        "CREATE INDEX IF NOT EXISTS idx_equipment_is_active ON equipment(is_active)",
+        # Vehicles
+        "CREATE INDEX IF NOT EXISTS idx_vehicles_is_active ON vehicles(is_active)",
+        # Animal care schedules - frequently queried for dashboard alerts
+        "CREATE INDEX IF NOT EXISTS idx_animal_care_active ON animal_care_schedules(is_active)",
+    ]
+
+    async with async_session() as session:
+        for sql in indexes:
+            try:
+                await session.execute(text(sql))
+            except Exception as e:
+                logger.warning(f"Could not create index: {e}")
+        try:
+            await session.commit()
+            logger.info("Performance indexes verified/created")
+        except Exception as e:
+            logger.warning(f"Could not commit indexes: {e}")
+
+
 async def init_db():
     """Initialize database tables and migrate schema"""
     async with engine.begin() as conn:
@@ -296,6 +338,9 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
         # Add missing columns to existing tables
         await conn.run_sync(_migrate_tables)
+
+    # Create performance indexes on hot query columns
+    await _create_indexes()
 
     # Encrypt any existing plaintext sensitive settings
     await _migrate_sensitive_settings()

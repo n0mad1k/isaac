@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.4] - 2026-03-02
+
+### Changed
+- **Faster Page Loads** - Frontend bundle split from a single 2.1MB file into per-page chunks; pages now load on demand (code splitting). React core, chart libraries, and app pages each land in their own file so the browser only downloads what it needs
+- **Database Performance** - Added 17 indexes on hot query columns (`is_active`, `due_date`, `transaction_date`, and FK join columns) across all major tables; budget, dashboard, and task list queries now hit indexed paths
+
 ## [1.90.3] - 2026-03-02
 
 ### Fixed
