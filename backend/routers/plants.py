@@ -271,6 +271,12 @@ class PlantResponse(BaseModel):
     date_germinated: Optional[datetime] = None
     date_transplanted: Optional[datetime] = None
     growth_stage: Optional[str] = None
+    quantity: Optional[int] = None
+    planting_method: Optional[str] = None
+    expected_harvest_date: Optional[datetime] = None
+    expected_transplant_date: Optional[datetime] = None
+    farm_area_id: Optional[int] = None
+    farm_area_name: Optional[str] = None
 
     is_active: bool
     notes: Optional[str]
@@ -382,6 +388,12 @@ def plant_to_response(plant: Plant) -> dict:
         "date_germinated": plant.date_germinated,
         "date_transplanted": plant.date_transplanted,
         "growth_stage": plant.growth_stage,
+        "quantity": plant.quantity,
+        "planting_method": plant.planting_method,
+        "expected_harvest_date": plant.expected_harvest_date,
+        "expected_transplant_date": plant.expected_transplant_date,
+        "farm_area_id": plant.farm_area_id,
+        "farm_area_name": plant.farm_area.name if plant.farm_area else None,
         "is_active": plant.is_active,
         "notes": plant.notes,
         "references": plant.references,
@@ -713,9 +725,26 @@ async def import_plant(
 
 class StartFromSeedRequest(BaseModel):
     seed_id: int
+    planting_method: str = Field(..., pattern=r"^(direct_sow|indoor_start)$")
+    quantity: int = Field(default=1, ge=1, le=10000)
+    farm_area_id: Optional[int] = None
     date_sown: Optional[str] = None  # YYYY-MM-DD
     location: Optional[str] = Field(None, max_length=200)
     notes: Optional[str] = Field(None, max_length=5000)
+
+
+def _parse_day_range_avg(text: str) -> Optional[int]:
+    """Parse a day range string and return the average. E.g. '60-90 days' -> 75"""
+    if not text:
+        return None
+    import re as _re
+    range_match = _re.search(r'(\d+)\s*[-–]\s*(\d+)', text)
+    if range_match:
+        return (int(range_match.group(1)) + int(range_match.group(2))) // 2
+    single_match = _re.search(r'(\d+)', text)
+    if single_match:
+        return int(single_match.group(1))
+    return None
 
 
 @router.post("/start-from-seed/", response_model=PlantResponse)
@@ -724,16 +753,28 @@ async def start_from_seed(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_create("plants")),
 ):
-    """Create a new plant from a seed, linking them and starting lifecycle tracking."""
+    """Create a new plant from a seed with care schedules, milestones, and lifecycle tracking."""
     from models.seeds import Seed as SeedModel
+    from models.farm_areas import FarmArea
+    from models.tasks import Task as TaskModel, TaskType, TaskCategory
+    from models.settings import AppSetting
+    from services.watering_calculator import generate_water_schedule
+    from config import settings as app_config
 
     result = await db.execute(select(SeedModel).where(SeedModel.id == request.seed_id))
     seed = result.scalar_one_or_none()
     if not seed:
         raise HTTPException(status_code=404, detail="Seed not found")
 
-    # Parse sow date
-    sow_date = None
+    # Validate farm_area_id if provided
+    if request.farm_area_id:
+        area_result = await db.execute(select(FarmArea).where(FarmArea.id == request.farm_area_id))
+        farm_area = area_result.scalar_one_or_none()
+        if not farm_area:
+            raise HTTPException(status_code=404, detail="Farm area not found")
+
+    # Parse sow date (default to today)
+    sow_date = datetime.utcnow()
     if request.date_sown:
         try:
             sow_date = datetime.fromisoformat(request.date_sown)
@@ -751,6 +792,65 @@ async def start_from_seed(
         }
         sun_req = sun_map.get(str(seed.sun_requirement).upper(), SunRequirement.FULL_SUN)
 
+    # Map seed.water_requirement → plant.moisture_preference
+    moisture_map = {
+        "LOW": MoisturePreference.DRY_MOIST,
+        "MODERATE": MoisturePreference.MOIST,
+        "HIGH": MoisturePreference.MOIST_WET,
+    }
+    moisture_pref = None
+    if seed.water_requirement:
+        moisture_pref = moisture_map.get(str(seed.water_requirement).upper().split(".")[-1])
+
+    # Generate water_schedule from moisture preference
+    usda_zone = app_config.usda_zone or "9b"
+    water_schedule = None
+    if moisture_pref:
+        water_schedule = generate_water_schedule(moisture_pref.value, usda_zone)
+
+    # Generate fertilize_schedule based on seed category
+    category_str = str(seed.category).upper().split(".")[-1] if seed.category else "OTHER"
+    if category_str in ("VEGETABLE", "HERB", "MEDICINAL"):
+        fertilize_schedule = "spring:14,summer:14,fall:30,winter:0"
+    elif category_str in ("FRUIT", "VINE"):
+        fertilize_schedule = "spring:30,summer:30,fall:60,winter:0"
+    else:
+        fertilize_schedule = "spring:30,summer:45,fall:0,winter:0"
+
+    # Compute expected_harvest_date
+    expected_harvest_date = None
+    maturity_days = _parse_day_range_avg(seed.days_to_maturity)
+    if maturity_days:
+        expected_harvest_date = sow_date + timedelta(days=maturity_days)
+
+    # Compute expected_transplant_date (indoor_start only)
+    expected_transplant_date = None
+    if request.planting_method == "indoor_start":
+        germ_days = _parse_day_range_avg(seed.days_to_germination) or 14
+        # Get last frost date from settings
+        try:
+            frost_result = await db.execute(
+                select(AppSetting).where(AppSetting.key == "garden_last_frost_date")
+            )
+            frost_setting = frost_result.scalar_one_or_none()
+            last_frost_str = frost_setting.value if frost_setting else "02/15"
+            parts = last_frost_str.split("/")
+            this_year = sow_date.year
+            last_frost_date = datetime(this_year, int(parts[0]), int(parts[1]))
+            # If last frost is already past, use next year
+            if last_frost_date < sow_date:
+                last_frost_date = datetime(this_year + 1, int(parts[0]), int(parts[1]))
+        except Exception:
+            last_frost_date = sow_date + timedelta(days=60)
+
+        # Transplant: max(sow_date + germ_days + 14 hardening off, last_frost + 7)
+        transplant_from_germ = sow_date + timedelta(days=germ_days + 14)
+        transplant_from_frost = last_frost_date + timedelta(days=7)
+        expected_transplant_date = max(transplant_from_germ, transplant_from_frost)
+
+    # Set growth stage
+    growth_stage = "seedling" if request.planting_method == "indoor_start" else "seed"
+
     plant = Plant(
         name=seed.name,
         variety=seed.variety,
@@ -759,18 +859,99 @@ async def start_from_seed(
         seed_id=seed.id,
         date_sown=sow_date,
         date_planted=sow_date,
-        growth_stage="seed",
+        growth_stage=growth_stage,
         grow_zones=seed.grow_zones,
         sun_requirement=sun_req,
         frost_sensitive=seed.frost_sensitive if seed.frost_sensitive else False,
+        moisture_preference=moisture_pref,
+        water_schedule=water_schedule,
+        fertilize_schedule=fertilize_schedule,
+        quantity=request.quantity,
+        planting_method=request.planting_method,
+        expected_harvest_date=expected_harvest_date,
+        expected_transplant_date=expected_transplant_date,
+        farm_area_id=request.farm_area_id,
+        plant_spacing=seed.spacing,
+        soil_requirements=seed.soil_type,
         notes=request.notes or f"Started from seed: {seed.name}",
     )
 
     db.add(plant)
+    await db.flush()  # Get plant.id for task creation
+
+    # Create milestone tasks (auto-synced to CalDAV by scheduler)
+    if expected_harvest_date:
+        harvest_task = TaskModel(
+            title=f"Harvest: {plant.name}",
+            task_type=TaskType.EVENT,
+            category=TaskCategory.GARDEN,
+            due_date=expected_harvest_date.date(),
+            notes=f"auto:plant_harvest_milestone:{plant.id}",
+            plant_id=plant.id,
+        )
+        db.add(harvest_task)
+
+    if expected_transplant_date and request.planting_method == "indoor_start":
+        transplant_task = TaskModel(
+            title=f"Transplant outdoors: {plant.name}",
+            task_type=TaskType.EVENT,
+            category=TaskCategory.GARDEN,
+            due_date=expected_transplant_date.date(),
+            notes=f"auto:plant_transplant_milestone:{plant.id}",
+            plant_id=plant.id,
+        )
+        db.add(transplant_task)
+
     await db.commit()
     await db.refresh(plant)
 
-    logger.info(f"Created plant '{plant.name}' from seed #{seed.id}")
+    logger.info(f"Created plant '{plant.name}' (qty={request.quantity}, method={request.planting_method}) from seed #{seed.id}")
+    return plant_to_response(plant)
+
+
+# ============================================
+# Transplant Recording
+# ============================================
+
+@router.post("/{plant_id}/transplant/", response_model=PlantResponse)
+async def record_transplant(
+    plant_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_interact("plants")),
+):
+    """Record that an indoor-started plant has been transplanted outdoors."""
+    from models.tasks import Task as TaskModel
+
+    result = await db.execute(
+        select(Plant).options(selectinload(Plant.tags), selectinload(Plant.farm_area)).where(Plant.id == plant_id)
+    )
+    plant = result.scalar_one_or_none()
+    if not plant:
+        raise HTTPException(status_code=404, detail="Plant not found")
+
+    if plant.planting_method != "indoor_start":
+        raise HTTPException(status_code=400, detail="Only indoor-started plants can be transplanted")
+
+    if plant.date_transplanted:
+        raise HTTPException(status_code=400, detail="Plant has already been transplanted")
+
+    plant.date_transplanted = datetime.utcnow()
+    plant.growth_stage = "transplanted"
+
+    # Mark transplant milestone task as completed
+    transplant_tasks = await db.execute(
+        select(TaskModel).where(
+            TaskModel.notes.contains(f"auto:plant_transplant_milestone:{plant.id}")
+        )
+    )
+    for task in transplant_tasks.scalars().all():
+        task.is_completed = True
+        task.completed_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(plant)
+
+    logger.info(f"Recorded transplant for plant '{plant.name}' (id={plant.id})")
     return plant_to_response(plant)
 
 

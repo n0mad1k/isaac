@@ -52,6 +52,7 @@ DEFAULT_SETTINGS = {
     "timezone": "America/New_York",
     "ai_enabled": "true",
     "ai_proactive_insights": "true",
+    "email_monthly_planting_digest": "true",
 }
 
 
@@ -432,6 +433,15 @@ class SchedulerService:
 
         # Budget distribution deposits (1st and 15th of month)
         await self.schedule_budget_distributions()
+
+        # Monthly planting digest email - 1st of each month at 7 AM
+        self.scheduler.add_job(
+            self.send_monthly_planting_digest,
+            CronTrigger(day=1, hour=7, minute=0),
+            id="monthly_planting_digest",
+            name="Monthly Planting Digest",
+            replace_existing=True,
+        )
 
         self.scheduler.start()
         logger.info("Scheduler started with all jobs")
@@ -1102,6 +1112,98 @@ class SchedulerService:
                 logger.info(f"Daily digest sent successfully for {today_str}")
         except Exception as e:
             logger.error(f"Error sending daily digest: {e}")
+
+    async def send_monthly_planting_digest(self):
+        """Send monthly planting guide email on the 1st of each month."""
+        # Skip on dev instances
+        if settings.is_dev_instance:
+            logger.info("Skipping monthly planting digest on dev instance")
+            return
+
+        # Check setting
+        digest_enabled = await get_setting_value("email_monthly_planting_digest")
+        if digest_enabled != "true":
+            logger.info("Monthly planting digest is disabled in settings, skipping")
+            return
+
+        # Get recipient
+        recipient = await get_setting_value("email_digest_recipient")
+        if not recipient:
+            recipient = await get_setting_value("email_recipients")
+            if recipient:
+                recipient = recipient.split(",")[0].strip()
+        if not recipient:
+            logger.warning("Monthly planting digest recipient not configured, skipping")
+            return
+
+        logger.info(f"Sending monthly planting digest to {recipient}...")
+        try:
+            async with async_session() as db:
+                from models.seeds import Seed as SeedModel
+                from services.planting_calculator import calculate_planting_schedule, MONTH_NAMES
+                from routers.garden import _get_frost_dates
+
+                # Get frost dates
+                frost_dates = await _get_frost_dates(db)
+
+                # Get all active seeds
+                result = await db.execute(
+                    select(SeedModel).where(SeedModel.is_active == True)
+                )
+                seeds = result.scalars().all()
+
+                if not seeds:
+                    logger.info("No active seeds, skipping monthly planting digest")
+                    return
+
+                # Calculate planting schedule
+                today = date.today()
+                schedule = calculate_planting_schedule(
+                    seeds=seeds,
+                    last_frost_mm_dd=frost_dates["last_frost_date"],
+                    first_frost_mm_dd=frost_dates["first_frost_date"],
+                    year=today.year,
+                )
+
+                # Get current month's activities
+                current_month_idx = today.month - 1  # 0-indexed
+                month_data = schedule["months"][current_month_idx]
+                activities = month_data.get("activities", {})
+                month_name = MONTH_NAMES[today.month]
+
+                # Get active plants for summary
+                plant_result = await db.execute(
+                    select(Plant).where(Plant.is_active == True)
+                )
+                active_plants = plant_result.scalars().all()
+                plant_dicts = [
+                    {
+                        "name": p.name,
+                        "growth_stage": p.growth_stage or "-",
+                        "quantity": p.quantity or 1,
+                        "planting_method": p.planting_method or "-",
+                    }
+                    for p in active_plants
+                ]
+
+                # Check if there's anything to send
+                total_activities = sum(len(activities.get(k, [])) for k in activities)
+                if total_activities == 0 and not active_plants:
+                    logger.info("No planting activities or active plants this month, skipping digest")
+                    return
+
+                # Send email
+                email_service = await self.get_email_service(db)
+                await email_service.send_monthly_planting_digest(
+                    month_name=month_name,
+                    year=today.year,
+                    schedule=activities,
+                    active_plants=plant_dicts,
+                    recipient=recipient,
+                )
+                logger.info(f"Monthly planting digest sent for {month_name} {today.year}")
+        except Exception as e:
+            logger.error(f"Error sending monthly planting digest: {e}")
 
     async def send_team_alerts_digest(self):
         """Send a separate daily email with team alerts (gear, training, medical).

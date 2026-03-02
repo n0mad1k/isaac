@@ -1300,3 +1300,191 @@ class EmailService:
         except Exception as e:
             logger.error(f"Failed to send task assignment notification: {e}")
             return False
+
+    async def send_monthly_planting_digest(
+        self,
+        month_name: str,
+        year: int,
+        schedule: dict,
+        active_plants: List[dict],
+        recipient: str = None,
+    ) -> bool:
+        """Send monthly planting guide email with what to plant, transplant, and harvest.
+
+        Args:
+            month_name: Full month name (e.g., "March")
+            year: Calendar year
+            schedule: Month activities dict from planting_calculator with keys:
+                      cold_stratify, start_indoors, direct_sow, transplant, harvest
+            active_plants: List of active plant dicts with name, growth_stage, quantity, planting_method
+            recipient: Email recipient
+        """
+        if not recipient:
+            logger.error("No recipient specified for monthly planting digest")
+            return False
+
+        subject = f"Garden Guide - {_escape_html(month_name)} {year}"
+
+        # Build sections
+        sections_html = ""
+
+        # Cold Stratify section
+        cold_stratify = schedule.get("cold_stratify", [])
+        if cold_stratify:
+            items = ""
+            for item in cold_stratify:
+                name = _escape_html(item.get("name", ""))
+                note = _escape_html(item.get("note", ""))
+                items += f'<div class="item stratify"><strong>{name}</strong>{f" - {note}" if note else ""}</div>'
+            sections_html += f"""
+            <div class="section">
+                <h2 style="color: #7c3aed;">Cold Stratify ({len(cold_stratify)})</h2>
+                <p style="color: #666; font-size: 13px;">Seeds that need cold treatment to break dormancy</p>
+                {items}
+            </div>"""
+
+        # Start Indoors section
+        start_indoors = schedule.get("start_indoors", [])
+        if start_indoors:
+            items = ""
+            for item in start_indoors:
+                name = _escape_html(item.get("name", ""))
+                depth = _escape_html(item.get("planting_depth", ""))
+                germ = _escape_html(item.get("days_to_germination", ""))
+                details = []
+                if depth:
+                    details.append(f"Depth: {depth}")
+                if germ:
+                    details.append(f"Germ: {germ}")
+                detail_str = f' <small style="color:#666;">({", ".join(details)})</small>' if details else ""
+                items += f'<div class="item indoor"><strong>{name}</strong>{detail_str}</div>'
+            sections_html += f"""
+            <div class="section">
+                <h2 style="color: #7c3aed;">Start Indoors ({len(start_indoors)})</h2>
+                <p style="color: #666; font-size: 13px;">Seeds to start in trays or pots inside</p>
+                {items}
+            </div>"""
+
+        # Direct Sow section
+        direct_sow = schedule.get("direct_sow", [])
+        if direct_sow:
+            items = ""
+            for item in direct_sow:
+                name = _escape_html(item.get("name", ""))
+                depth = _escape_html(item.get("planting_depth", ""))
+                spacing = _escape_html(item.get("spacing", ""))
+                details = []
+                if depth:
+                    details.append(f"Depth: {depth}")
+                if spacing:
+                    details.append(f"Spacing: {spacing}")
+                detail_str = f' <small style="color:#666;">({", ".join(details)})</small>' if details else ""
+                items += f'<div class="item sow"><strong>{name}</strong>{detail_str}</div>'
+            sections_html += f"""
+            <div class="section">
+                <h2 style="color: #16a34a;">Direct Sow ({len(direct_sow)})</h2>
+                <p style="color: #666; font-size: 13px;">Seeds to plant directly in the ground</p>
+                {items}
+            </div>"""
+
+        # Transplant section
+        transplant = schedule.get("transplant", [])
+        if transplant:
+            items = ""
+            for item in transplant:
+                name = _escape_html(item.get("name", ""))
+                note = _escape_html(item.get("note", ""))
+                items += f'<div class="item transplant"><strong>{name}</strong>{f" - {note}" if note else ""}</div>'
+            sections_html += f"""
+            <div class="section">
+                <h2 style="color: #ca8a04;">Transplant Outdoors ({len(transplant)})</h2>
+                <p style="color: #666; font-size: 13px;">Indoor starts ready to move outside</p>
+                {items}
+            </div>"""
+
+        # Harvest section
+        harvest = schedule.get("harvest", [])
+        if harvest:
+            items = ""
+            for item in harvest:
+                name = _escape_html(item.get("name", ""))
+                items += f'<div class="item harvest"><strong>{name}</strong></div>'
+            sections_html += f"""
+            <div class="section">
+                <h2 style="color: #dc2626;">Harvest ({len(harvest)})</h2>
+                <p style="color: #666; font-size: 13px;">Seeds with harvest windows this month</p>
+                {items}
+            </div>"""
+
+        # Active Plants summary
+        if active_plants:
+            rows = ""
+            for p in active_plants[:50]:  # Limit to 50 for email size
+                name = _escape_html(p.get("name", ""))
+                stage = _escape_html(p.get("growth_stage", "-"))
+                qty = p.get("quantity", 1) or 1
+                method = _escape_html(p.get("planting_method", "-") or "-")
+                rows += f"""
+                <tr>
+                    <td style="padding: 6px 10px; border-bottom: 1px solid #eee;">{name}</td>
+                    <td style="padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center;">{stage}</td>
+                    <td style="padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center;">{qty}</td>
+                    <td style="padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center;">{method.replace('_', ' ')}</td>
+                </tr>"""
+            sections_html += f"""
+            <div class="section">
+                <h2 style="color: #2d5a27;">Active Plants ({len(active_plants)})</h2>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead>
+                        <tr style="background: #f0fdf4;">
+                            <th style="padding: 8px 10px; text-align: left; border-bottom: 2px solid #2d5a27;">Name</th>
+                            <th style="padding: 8px 10px; text-align: center; border-bottom: 2px solid #2d5a27;">Stage</th>
+                            <th style="padding: 8px 10px; text-align: center; border-bottom: 2px solid #2d5a27;">Qty</th>
+                            <th style="padding: 8px 10px; text-align: center; border-bottom: 2px solid #2d5a27;">Method</th>
+                        </tr>
+                    </thead>
+                    <tbody>{rows}</tbody>
+                </table>
+            </div>"""
+
+        # No content at all
+        if not sections_html:
+            sections_html = """
+            <div class="section">
+                <p style="text-align: center; color: #666;">No planting activities scheduled for this month.</p>
+            </div>"""
+
+        total_activities = len(cold_stratify) + len(start_indoors) + len(direct_sow) + len(transplant) + len(harvest)
+
+        html_body = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }}
+                .header {{ background: linear-gradient(135deg, #2d5a27 0%, #16a34a 100%); color: white; padding: 25px; text-align: center; }}
+                .header h1 {{ margin: 0 0 5px 0; }}
+                .header p {{ margin: 0; opacity: 0.9; }}
+                .section {{ padding: 15px; border-bottom: 1px solid #eee; }}
+                .section h2 {{ margin-top: 0; font-size: 18px; }}
+                .item {{ padding: 8px 12px; margin: 4px 0; border-radius: 6px; font-size: 14px; }}
+                .item.stratify {{ background: #f5f3ff; border-left: 3px solid #7c3aed; }}
+                .item.indoor {{ background: #faf5ff; border-left: 3px solid #a855f7; }}
+                .item.sow {{ background: #f0fdf4; border-left: 3px solid #16a34a; }}
+                .item.transplant {{ background: #fefce8; border-left: 3px solid #ca8a04; }}
+                .item.harvest {{ background: #fef2f2; border-left: 3px solid #dc2626; }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Garden Guide</h1>
+                <p>{_escape_html(month_name)} {year} &middot; {total_activities} activities</p>
+            </div>
+            {sections_html}
+            <div class="section" style="text-align: center; color: #666; font-size: 12px;">
+                <p>Generated by Isaac - Your Farm Assistant</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        return await self.send_email(subject, html_body, to=recipient, html=True)

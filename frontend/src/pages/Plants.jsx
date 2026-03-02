@@ -8,7 +8,7 @@ import {
 import {
   getPlants, createPlant, updatePlant, deletePlant, addPlantCareLog, getPlantTags, createPlantTag,
   recordPlantHarvest, searchPlantImport, previewPlantImport, importPlant, getFarmAreas, getWaterOverview,
-  uploadPlantPhoto, deletePlantPhoto, getPlantPhotoUrl, createSale, sendSaleReceipt
+  uploadPlantPhoto, deletePlantPhoto, getPlantPhotoUrl, createSale, sendSaleReceipt, transplantPlant
 } from '../services/api'
 import { Download, ExternalLink, Loader2, Camera, Trash2, Upload, Clipboard, DollarSign } from 'lucide-react'
 import EventModal from '../components/EventModal'
@@ -1466,11 +1466,36 @@ function PlantCard({
                 })}
               </div>
               {/* Lifecycle dates */}
-              <div className="flex gap-4 mt-2 text-xs text-muted flex-wrap">
+              <div className="flex gap-4 mt-2 text-xs text-muted flex-wrap items-center">
                 {plant.date_sown && <span>Sown: {formatDate(plant.date_sown)}</span>}
                 {plant.date_germinated && <span>Germinated: {formatDate(plant.date_germinated)}</span>}
                 {plant.date_transplanted && <span>Transplanted: {formatDate(plant.date_transplanted)}</span>}
+                {plant.quantity > 1 && <span>Qty: {plant.quantity}</span>}
+                {plant.planting_method === 'indoor_start' && !plant.date_transplanted && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      if (!confirm(`Mark ${plant.name} as transplanted outdoors?`)) return
+                      try {
+                        await transplantPlant(plant.id)
+                        onRefresh()
+                      } catch (err) {
+                        alert(err.userMessage || 'Failed to record transplant')
+                      }
+                    }}
+                    className="ml-auto px-2 py-1 bg-yellow-600/80 hover:bg-yellow-600 text-white rounded text-xs font-medium flex items-center gap-1"
+                  >
+                    <Sprout className="w-3 h-3" />
+                    Mark Transplanted
+                  </button>
+                )}
               </div>
+              {plant.expected_harvest_date && (
+                <div className="mt-1 text-xs text-muted">
+                  Expected harvest: {formatDate(plant.expected_harvest_date)}
+                  {plant.expected_transplant_date && !plant.date_transplanted && <span className="ml-3">Expected transplant: {formatDate(plant.expected_transplant_date)}</span>}
+                </div>
+              )}
             </div>
           )}
 

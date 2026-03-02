@@ -57,6 +57,10 @@ DEFAULT_SETTINGS = {
         "value": "",
         "description": "Email for team alerts digest (leave empty to use alert recipients)"
     },
+    "email_monthly_planting_digest": {
+        "value": "true",
+        "description": "Send monthly planting guide email on the 1st of each month"
+    },
 
     # Alert thresholds
     "frost_warning_temp": {

@@ -143,6 +143,10 @@ class Plant(Base):
     date_germinated = Column(DateTime)     # When seedling emerged
     date_transplanted = Column(DateTime)   # When moved to final location
     growth_stage = Column(String(30))      # seed, seedling, transplanted, vegetative, flowering, fruiting, harvesting, dormant
+    quantity = Column(Integer, default=1)          # e.g., 30 peppers = 1 row with quantity=30
+    planting_method = Column(String(20))           # "direct_sow" or "indoor_start"
+    expected_harvest_date = Column(DateTime)       # date_sown + days_to_maturity
+    expected_transplant_date = Column(DateTime)    # computed from frost date + germination
 
     # Photo
     photo_path = Column(String(255))

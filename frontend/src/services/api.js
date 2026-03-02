@@ -235,6 +235,7 @@ export const updatePlantingEvent = (id, data) => api.patch(`/garden/events/${id}
 export const deletePlantingEvent = (id) => api.delete(`/garden/events/${id}/`)
 export const completePlantingEvent = (id) => api.post(`/garden/events/${id}/complete/`)
 export const startFromSeed = (data) => api.post('/plants/start-from-seed/', data)
+export const transplantPlant = (id) => api.post(`/plants/${id}/transplant/`)
 
 // Succession Planting
 export const createSuccessionPlanting = (data) => api.post('/garden/events/succession/', data)

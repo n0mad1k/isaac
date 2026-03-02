@@ -2,6 +2,19 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.0] - 2026-03-01
+
+### Added
+- **Seed-to-Plant Tracking** - Enhanced "Plant This Seed" flow with planting method (Direct Sow / Start Indoors), quantity, farm area selection, and date picker
+  - Auto-generates watering and fertilizing schedules based on seed data
+  - Computes expected harvest and transplant dates from seed maturity/germination data
+  - Creates calendar milestone events for harvest and transplant dates
+  - Maps seed water requirements to plant moisture preferences
+- **Transplant Recording** - New "Mark Transplanted" button on indoor-started plants in the Growth Lifecycle section, auto-completes transplant milestone tasks
+- **Monthly Planting Digest Email** - Automated email on the 1st of each month with what to cold stratify, start indoors, direct sow, transplant, and harvest based on your seed catalog and frost dates
+  - Includes active plants summary table with growth stage, quantity, and method
+  - Toggle on/off in Settings (enabled by default)
+
 ## [1.89.8] - 2026-03-01
 
 ### Added

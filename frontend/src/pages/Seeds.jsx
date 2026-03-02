@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Search, Sprout, ChevronDown, ChevronUp, Check, X, Save, Pencil, AlertTriangle, Camera, Trash2, Clipboard, Leaf } from 'lucide-react'
-import { getSeeds, createSeed, updateSeed, deleteSeed, getSeedStats, getSeedCategories, uploadSeedPhoto, deleteSeedPhoto, getSeedPhotoUrl, startFromSeed } from '../services/api'
+import { getSeeds, createSeed, updateSeed, deleteSeed, getSeedStats, getSeedCategories, uploadSeedPhoto, deleteSeedPhoto, getSeedPhotoUrl, startFromSeed, getFarmAreas } from '../services/api'
 import MottoDisplay from '../components/MottoDisplay'
 
 // Reusable inline editable field component
@@ -117,8 +117,9 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
   const [saving, setSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [showPlantForm, setShowPlantForm] = useState(false)
-  const [plantForm, setPlantForm] = useState({ date_sown: '', location: '', notes: '' })
+  const [plantForm, setPlantForm] = useState({ date_sown: '', location: '', notes: '', planting_method: '', quantity: 1, farm_area_id: '' })
   const [planting, setPlanting] = useState(false)
+  const [farmAreas, setFarmAreas] = useState([])
 
   // Track seed updates to reset editData
   const [lastSeedUpdate, setLastSeedUpdate] = useState(seed.updated_at)
@@ -302,7 +303,12 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
             )}
             {!isEditing && seed.is_active && (
               <button
-                onClick={(e) => { e.stopPropagation(); setShowPlantForm(true) }}
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  setPlantForm({ date_sown: '', location: '', notes: '', planting_method: seed.direct_sow ? 'direct_sow' : 'indoor_start', quantity: 1, farm_area_id: '' })
+                  try { const res = await getFarmAreas(); setFarmAreas(res.data || []) } catch { setFarmAreas([]) }
+                  setShowPlantForm(true)
+                }}
                 className="px-3 py-1.5 bg-green-700/60 hover:bg-green-600 rounded text-sm text-white transition-colors flex items-center gap-1"
               >
                 <Leaf className="w-3 h-3" /> Plant This Seed
@@ -710,6 +716,51 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
             <h3 className="text-lg font-semibold text-white mb-1">Plant This Seed</h3>
             <p className="text-sm text-muted mb-4">Create a new plant from <span className="text-green-400">{seed.name}</span></p>
             <div className="space-y-3">
+              {/* Planting Method */}
+              <div>
+                <label className="block text-sm text-secondary mb-1">Planting Method</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPlantForm({ ...plantForm, planting_method: 'direct_sow' })}
+                    className={`flex-1 py-2 rounded font-medium text-sm ${plantForm.planting_method === 'direct_sow' ? 'bg-green-600 text-white' : 'bg-surface-soft text-secondary hover:bg-surface-hover'}`}
+                  >
+                    Direct Sow
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlantForm({ ...plantForm, planting_method: 'indoor_start' })}
+                    className={`flex-1 py-2 rounded font-medium text-sm ${plantForm.planting_method === 'indoor_start' ? 'bg-purple-600 text-white' : 'bg-surface-soft text-secondary hover:bg-surface-hover'}`}
+                  >
+                    Start Indoors
+                  </button>
+                </div>
+              </div>
+              {/* Quantity */}
+              <div>
+                <label className="block text-sm text-secondary mb-1">Quantity</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={plantForm.quantity}
+                  onChange={(e) => setPlantForm({ ...plantForm, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                  className="w-full bg-surface-soft text-white px-3 py-2 rounded"
+                />
+              </div>
+              {/* Farm Area */}
+              <div>
+                <label className="block text-sm text-secondary mb-1">Farm Area</label>
+                <select
+                  value={plantForm.farm_area_id}
+                  onChange={(e) => setPlantForm({ ...plantForm, farm_area_id: e.target.value })}
+                  className="w-full bg-surface-soft text-white px-3 py-2 rounded"
+                >
+                  <option value="">None</option>
+                  {farmAreas.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+              {/* Date Sown */}
               <div>
                 <label className="block text-sm text-secondary mb-1">Date Sown</label>
                 <input
@@ -719,16 +770,7 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
                   className="w-full bg-surface-soft text-white px-3 py-2 rounded"
                 />
               </div>
-              <div>
-                <label className="block text-sm text-secondary mb-1">Location</label>
-                <input
-                  type="text"
-                  value={plantForm.location}
-                  onChange={(e) => setPlantForm({ ...plantForm, location: e.target.value })}
-                  className="w-full bg-surface-soft text-white px-3 py-2 rounded"
-                  placeholder="e.g., Garden bed A, Greenhouse"
-                />
-              </div>
+              {/* Notes */}
               <div>
                 <label className="block text-sm text-secondary mb-1">Notes</label>
                 <textarea
@@ -743,25 +785,32 @@ function SeedCard({ seed, categories, isExpanded, onToggle, onSave, onDelete, on
             <div className="flex gap-2 mt-4">
               <button
                 onClick={async () => {
+                  if (!plantForm.planting_method) {
+                    alert('Please select a planting method')
+                    return
+                  }
                   setPlanting(true)
                   try {
                     await startFromSeed({
                       seed_id: seed.id,
+                      planting_method: plantForm.planting_method,
+                      quantity: plantForm.quantity,
+                      farm_area_id: plantForm.farm_area_id ? parseInt(plantForm.farm_area_id) : null,
                       date_sown: plantForm.date_sown || null,
                       location: plantForm.location || null,
                       notes: plantForm.notes || null,
                     })
                     setShowPlantForm(false)
-                    setPlantForm({ date_sown: '', location: '', notes: '' })
+                    setPlantForm({ date_sown: '', location: '', notes: '', planting_method: '', quantity: 1, farm_area_id: '' })
                     alert(`Plant created from ${seed.name}! Switch to the Plants tab to see it.`)
                   } catch (err) {
                     console.error('Failed to start from seed:', err)
-                    alert('Failed to create plant from seed')
+                    alert(err.userMessage || 'Failed to create plant from seed')
                   } finally {
                     setPlanting(false)
                   }
                 }}
-                disabled={planting}
+                disabled={planting || !plantForm.planting_method}
                 className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2 rounded font-medium flex items-center justify-center gap-2"
               >
                 <Leaf className="w-4 h-4" />
