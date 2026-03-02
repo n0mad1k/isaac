@@ -16,6 +16,7 @@ function Login() {
   const [isDevInstance, setIsDevInstance] = useState(false)
 
   const from = location.state?.from?.pathname || '/'
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false)
 
   useEffect(() => {
     const checkDevInstance = async () => {
@@ -30,6 +31,31 @@ function Login() {
     }
     checkDevInstance()
   }, [])
+
+  // Auto-login support: /login?autologin=kiosk
+  useEffect(() => {
+    if (autoLoginAttempted) return
+    const params = new URLSearchParams(location.search)
+    const autoUser = params.get('autologin')
+    if (autoUser) {
+      setAutoLoginAttempted(true)
+      setUsername(autoUser)
+      setPassword('')
+      // Delay to let state settle, then submit
+      setTimeout(async () => {
+        setLoading(true)
+        try {
+          await login(autoUser, '')
+          navigate(from, { replace: true })
+        } catch (err) {
+          console.error('Auto-login failed:', err)
+          setError('Auto-login failed. Please sign in manually.')
+        } finally {
+          setLoading(false)
+        }
+      }, 100)
+    }
+  }, [location.search])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
