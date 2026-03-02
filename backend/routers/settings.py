@@ -2456,10 +2456,7 @@ async def test_team_alerts_digest(db: AsyncSession = Depends(get_db), admin: Use
 async def test_monthly_planting_digest(db: AsyncSession = Depends(get_db), admin: User = Depends(require_admin)):
     """Send the monthly planting digest email for the current month."""
     from services.email import EmailService, ConfigurationError
-    from models.seeds import Seed as SeedModel
-    from models.plants import Plant
-    from services.planting_calculator import calculate_planting_schedule, MONTH_NAMES
-    from routers.garden import _get_frost_dates
+    from services.scheduler import gather_monthly_digest_data
     from datetime import date
 
     logger.info(f"Test monthly planting digest requested by user {admin.username}")
@@ -2473,44 +2470,19 @@ async def test_monthly_planting_digest(db: AsyncSession = Depends(get_db), admin
         raise HTTPException(status_code=400, detail="No email recipients configured. Go to Settings > Email Notifications to add recipients.")
 
     try:
-        frost_dates = await _get_frost_dates(db)
-
-        seed_result = await db.execute(select(SeedModel).where(SeedModel.is_active == True))
-        seeds = seed_result.scalars().all()
-
         today = date.today()
-        schedule = {}
-        if seeds:
-            planting_schedule = calculate_planting_schedule(
-                seeds=seeds,
-                last_frost_mm_dd=frost_dates["last_frost_date"],
-                first_frost_mm_dd=frost_dates["first_frost_date"],
-                year=today.year,
-            )
-            current_month_idx = today.month - 1
-            month_data = planting_schedule["months"][current_month_idx]
-            schedule = month_data.get("activities", {})
-
-        month_name = MONTH_NAMES[today.month]
-
-        plant_result = await db.execute(select(Plant).where(Plant.is_active == True))
-        active_plants = plant_result.scalars().all()
-        plant_dicts = [
-            {
-                "name": p.name,
-                "growth_stage": p.growth_stage or "-",
-                "quantity": p.quantity or 1,
-                "planting_method": p.planting_method or "-",
-            }
-            for p in active_plants
-        ]
-
+        data = await gather_monthly_digest_data(db, today)
         email_service = await EmailService.get_configured_service(db)
         success = await email_service.send_monthly_planting_digest(
-            month_name=month_name,
-            year=today.year,
-            schedule=schedule,
-            active_plants=plant_dicts,
+            month_name=data["month_name"],
+            year=data["year"],
+            activities=data["activities"],
+            plant_dicts=data["plant_dicts"],
+            plant_care=data["plant_care"],
+            next_month_name=data["next_month_name"],
+            next_activities=data["next_activities"],
+            ai_narrative=data["ai_narrative"],
+            farm_name=data["farm_name"],
             recipient=recipient,
         )
     except ConfigurationError as e:
@@ -2522,9 +2494,9 @@ async def test_monthly_planting_digest(db: AsyncSession = Depends(get_db), admin
 
     if success:
         return {
-            "message": f"Monthly planting digest for {month_name} {today.year} sent to {recipient}",
-            "month": month_name,
-            "year": today.year,
+            "message": f"Monthly planting digest for {data['month_name']} {data['year']} sent to {recipient}",
+            "month": data["month_name"],
+            "year": data["year"],
             "recipient": recipient,
         }
     else:

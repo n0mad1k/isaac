@@ -1305,184 +1305,372 @@ class EmailService:
         self,
         month_name: str,
         year: int,
-        schedule: dict,
-        active_plants: List[dict],
+        activities: dict,
+        plant_dicts: List[dict],
+        plant_care: dict = None,
+        next_month_name: str = "",
+        next_activities: dict = None,
+        ai_narrative: str = None,
+        farm_name: str = "Isaac",
         recipient: str = None,
     ) -> bool:
-        """Send monthly planting guide email with what to plant, transplant, and harvest.
+        """Send monthly planting guide email — rich format with seed specs, plant care, and next month preview.
 
         Args:
             month_name: Full month name (e.g., "March")
             year: Calendar year
-            schedule: Month activities dict from planting_calculator with keys:
-                      cold_stratify, start_indoors, direct_sow, transplant, harvest
-            active_plants: List of active plant dicts with name, growth_stage, quantity, planting_method
+            activities: Enriched activities dict {cold_stratify, start_indoors, direct_sow, transplant, harvest}
+                        Each item includes seed details (planting_depth, spacing, germ info, etc.)
+            plant_dicts: List of active plant dicts
+            plant_care: Dict with keys needs_watering, needs_fertilizing, prune_this_month, harvest_this_month
+            next_month_name: Name of next month for preview
+            next_activities: Next month's activities dict
+            ai_narrative: AI-generated seasonal narrative (optional)
+            farm_name: Name of the farm for email footer
             recipient: Email recipient
         """
         if not recipient:
             logger.error("No recipient specified for monthly planting digest")
             return False
 
-        subject = f"Garden Guide - {_escape_html(month_name)} {year}"
+        plant_care = plant_care or {}
+        next_activities = next_activities or {}
 
-        # Build sections
-        sections_html = ""
+        subject = f"Garden Guide \u2014 {_escape_html(month_name)} {year}"
 
-        # Cold Stratify section
-        cold_stratify = schedule.get("cold_stratify", [])
+        # ── CSS ──────────────────────────────────────────────────────────────
+        css = """
+            body{font-family:Arial,sans-serif;margin:0;padding:10px;background:#f3f4f6;}
+            .wrap{max-width:620px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;}
+            .hdr{background:linear-gradient(135deg,#14532d 0%,#16a34a 100%);color:#fff;padding:28px 25px;}
+            .hdr h1{margin:0 0 4px;font-size:22px;}
+            .hdr .sub{margin:0;font-size:13px;opacity:.85;}
+            .ai{background:#fffbeb;border-left:4px solid #f59e0b;padding:13px 16px;margin:16px 20px 0;border-radius:4px;font-size:13px;color:#78350f;line-height:1.65;}
+            .ai-lbl{font-size:10px;font-weight:bold;color:#b45309;margin-bottom:5px;text-transform:uppercase;letter-spacing:.8px;}
+            .body{padding:0 20px 8px;}
+            .sh{font-size:15px;font-weight:bold;margin:22px 0 4px;padding-bottom:5px;border-bottom:2px solid;}
+            .sdesc{color:#6b7280;font-size:13px;margin:0 0 8px;}
+            .card{border-radius:5px;padding:10px 14px;margin:6px 0;}
+            .cn{font-weight:bold;font-size:14px;margin-bottom:2px;}
+            .ct{font-size:13px;margin-bottom:4px;}
+            .cs{font-size:12px;color:#6b7280;line-height:1.7;}
+            .ctip{font-size:12px;font-style:italic;margin-top:3px;color:#6b7280;}
+            .badge{font-size:10px;padding:1px 7px;border-radius:10px;margin-left:6px;font-weight:normal;vertical-align:middle;}
+            .care{padding:0 20px;}
+            .cah{font-size:14px;font-weight:bold;margin:18px 0 6px;}
+            .cac{background:#f9fafb;border-radius:4px;padding:7px 12px;margin:4px 0;font-size:13px;}
+            .cas{font-size:11px;color:#9ca3af;margin-top:2px;}
+            .nb{background:#f8fafc;margin:20px;border-radius:6px;padding:15px 18px;border:1px solid #e5e7eb;}
+            .nt{font-size:14px;font-weight:bold;color:#374151;margin:0 0 10px;}
+            .pv{font-size:13px;color:#4b5563;margin:5px 0;padding-left:10px;border-left:3px solid #d1d5db;}
+            .ps{padding:0 20px 20px;}
+            .ph{font-size:15px;font-weight:bold;margin:20px 0 8px;color:#14532d;}
+            .pt{width:100%;border-collapse:collapse;font-size:12px;}
+            .pt th{background:#f0fdf4;padding:8px 9px;text-align:left;border-bottom:2px solid #16a34a;white-space:nowrap;font-size:11px;}
+            .pt td{padding:6px 9px;border-bottom:1px solid #f3f4f6;vertical-align:top;}
+            .ft{text-align:center;padding:16px;color:#9ca3af;font-size:11px;border-top:1px solid #e5e7eb;}
+        """
+
+        # ── AI NARRATIVE ─────────────────────────────────────────────────────
+        ai_html = ""
+        if ai_narrative:
+            ai_html = f"""
+            <div class="ai">
+                <div class="ai-lbl">&#10024; AI Garden Insight</div>
+                {_escape_html(ai_narrative)}
+            </div>"""
+
+        # ── HELPER: build spec line ────────────────────────────────────────
+        def specs(*pairs):
+            bits = [f"<b>{lbl}:</b>&nbsp;{_escape_html(str(val))}" for lbl, val in pairs if val]
+            return "&nbsp;&nbsp;&#183;&nbsp;&nbsp;".join(bits)
+
+        def badge(category, bg, color):
+            cat = (category or "").replace("_", " ").title()
+            return f'<span class="badge" style="background:{bg};color:{color};">{_escape_html(cat)}</span>' if cat else ""
+
+        def target_str(iso_date):
+            if not iso_date:
+                return ""
+            try:
+                from datetime import date as _d
+                t = _d.fromisoformat(iso_date)
+                return f"Target: {t.strftime('%m/%d/%Y')}"
+            except Exception:
+                return ""
+
+        # ── PLANTING SECTIONS ─────────────────────────────────────────────
+        planting_html = ""
+
+        # COLD STRATIFY
+        cold_stratify = activities.get("cold_stratify", [])
         if cold_stratify:
-            items = ""
+            cards = ""
             for item in cold_stratify:
-                name = _escape_html(item.get("name", ""))
-                note = _escape_html(item.get("note", ""))
-                items += f'<div class="item stratify"><strong>{name}</strong>{f" - {note}" if note else ""}</div>'
-            sections_html += f"""
-            <div class="section">
-                <h2 style="color: #7c3aed;">Cold Stratify ({len(cold_stratify)})</h2>
-                <p style="color: #666; font-size: 13px;">Seeds that need cold treatment to break dormancy</p>
-                {items}
-            </div>"""
+                n = _escape_html(item.get("name", ""))
+                notes = _escape_html(item.get("notes", "") or "")
+                b = badge(item.get("category"), "#ede9fe", "#6d28d9")
+                cards += f"""
+                <div class="card" style="background:#f5f3ff;border-left:4px solid #7c3aed;">
+                    <div class="cn" style="color:#4c1d95;">{n}{b}</div>
+                    {f'<div class="ct" style="color:#5b21b6;">{notes}</div>' if notes else ""}
+                    <div class="ctip">Refrigerate seeds in damp sand or a sealed damp paper towel at 33&#8211;40&#176;F. Check weekly for mold.</div>
+                </div>"""
+            planting_html += f"""
+            <div class="sh" style="color:#7c3aed;border-color:#7c3aed;">&#10052;&#65039; Cold Stratify ({len(cold_stratify)})</div>
+            <p class="sdesc">Start refrigerating these seeds now to break dormancy before planting.</p>
+            {cards}"""
 
-        # Start Indoors section
-        start_indoors = schedule.get("start_indoors", [])
+        # START INDOORS
+        start_indoors = activities.get("start_indoors", [])
         if start_indoors:
-            items = ""
+            cards = ""
             for item in start_indoors:
-                name = _escape_html(item.get("name", ""))
-                depth = _escape_html(item.get("planting_depth", ""))
-                germ = _escape_html(item.get("days_to_germination", ""))
-                details = []
-                if depth:
-                    details.append(f"Depth: {depth}")
-                if germ:
-                    details.append(f"Germ: {germ}")
-                detail_str = f' <small style="color:#666;">({", ".join(details)})</small>' if details else ""
-                items += f'<div class="item indoor"><strong>{name}</strong>{detail_str}</div>'
-            sections_html += f"""
-            <div class="section">
-                <h2 style="color: #7c3aed;">Start Indoors ({len(start_indoors)})</h2>
-                <p style="color: #666; font-size: 13px;">Seeds to start in trays or pots inside</p>
-                {items}
-            </div>"""
+                n = _escape_html(item.get("name", ""))
+                notes = _escape_html(item.get("notes", "") or "")
+                b = badge(item.get("category"), "#cffafe", "#0e7490")
+                ts = target_str(item.get("target_date", ""))
+                timing = f"{notes}{(' &mdash; ' + ts) if ts else ''}" if (notes or ts) else ""
+                sp = specs(
+                    ("Sow Depth", item.get("planting_depth")),
+                    ("Spacing", item.get("spacing")),
+                    ("Germination", item.get("days_to_germination")),
+                    ("Soil Temp", item.get("optimal_germ_temp")),
+                )
+                light = _escape_html(item.get("light_to_germinate", "") or "")
+                cards += f"""
+                <div class="card" style="background:#ecfeff;border-left:4px solid #0891b2;">
+                    <div class="cn" style="color:#0c4a6e;">{n}{b}</div>
+                    {f'<div class="ct" style="color:#0e7490;">&#9201; {timing}</div>' if timing else ""}
+                    {f'<div class="cs">{sp}</div>' if sp else ""}
+                    {f'<div class="ctip">Light: {light}</div>' if light else ""}
+                </div>"""
+            planting_html += f"""
+            <div class="sh" style="color:#0891b2;border-color:#0891b2;">&#127807; Start Indoors ({len(start_indoors)})</div>
+            <p class="sdesc">Sow in seed trays or small pots. Keep warm and evenly moist until germination.</p>
+            {cards}"""
 
-        # Direct Sow section
-        direct_sow = schedule.get("direct_sow", [])
+        # DIRECT SOW
+        direct_sow = activities.get("direct_sow", [])
         if direct_sow:
-            items = ""
+            cards = ""
             for item in direct_sow:
-                name = _escape_html(item.get("name", ""))
-                depth = _escape_html(item.get("planting_depth", ""))
-                spacing = _escape_html(item.get("spacing", ""))
-                details = []
-                if depth:
-                    details.append(f"Depth: {depth}")
-                if spacing:
-                    details.append(f"Spacing: {spacing}")
-                detail_str = f' <small style="color:#666;">({", ".join(details)})</small>' if details else ""
-                items += f'<div class="item sow"><strong>{name}</strong>{detail_str}</div>'
-            sections_html += f"""
-            <div class="section">
-                <h2 style="color: #16a34a;">Direct Sow ({len(direct_sow)})</h2>
-                <p style="color: #666; font-size: 13px;">Seeds to plant directly in the ground</p>
-                {items}
-            </div>"""
+                n = _escape_html(item.get("name", ""))
+                notes = _escape_html(item.get("notes", "") or "")
+                b = badge(item.get("category"), "#dcfce7", "#15803d")
+                sp = specs(
+                    ("Sow Depth", item.get("planting_depth")),
+                    ("Plant Spacing", item.get("spacing")),
+                    ("Row Spacing", item.get("row_spacing")),
+                    ("Germination", item.get("days_to_germination")),
+                    ("Soil Temp", item.get("optimal_germ_temp")),
+                )
+                special = item.get("special_requirements", "") or ""
+                extra = ""
+                if special and "stratif" not in special.lower():
+                    extra = f'<div class="ctip">&#9888; {_escape_html(special)}</div>'
+                cards += f"""
+                <div class="card" style="background:#f0fdf4;border-left:4px solid #16a34a;">
+                    <div class="cn" style="color:#14532d;">{n}{b}</div>
+                    {f'<div class="ct" style="color:#166534;">&#128197; Window: {notes}</div>' if notes else ""}
+                    {f'<div class="cs">{sp}</div>' if sp else ""}
+                    {extra}
+                </div>"""
+            planting_html += f"""
+            <div class="sh" style="color:#16a34a;border-color:#16a34a;">&#127808; Direct Sow ({len(direct_sow)})</div>
+            <p class="sdesc">Plant directly into garden beds or prepared soil outdoors.</p>
+            {cards}"""
 
-        # Transplant section
-        transplant = schedule.get("transplant", [])
+        # TRANSPLANT
+        transplant = activities.get("transplant", [])
         if transplant:
-            items = ""
+            cards = ""
             for item in transplant:
-                name = _escape_html(item.get("name", ""))
-                note = _escape_html(item.get("note", ""))
-                items += f'<div class="item transplant"><strong>{name}</strong>{f" - {note}" if note else ""}</div>'
-            sections_html += f"""
-            <div class="section">
-                <h2 style="color: #ca8a04;">Transplant Outdoors ({len(transplant)})</h2>
-                <p style="color: #666; font-size: 13px;">Indoor starts ready to move outside</p>
-                {items}
-            </div>"""
+                n = _escape_html(item.get("name", ""))
+                notes = _escape_html(item.get("notes", "") or "")
+                b = badge(item.get("category"), "#fef9c3", "#854d0e")
+                ts = target_str(item.get("target_date", ""))
+                timing = f"{notes}{(' &mdash; ' + ts) if ts else ''}" if (notes or ts) else ""
+                sp = specs(("Final Spacing", item.get("spacing")))
+                cards += f"""
+                <div class="card" style="background:#fefce8;border-left:4px solid #ca8a04;">
+                    <div class="cn" style="color:#713f12;">{n}{b}</div>
+                    {f'<div class="ct" style="color:#92400e;">&#9201; {timing}</div>' if timing else ""}
+                    {f'<div class="cs">{sp}</div>' if sp else ""}
+                    <div class="ctip">Harden off seedlings outdoors 1&#8211;2 hours/day for 5&#8211;7 days before full transplant.</div>
+                </div>"""
+            planting_html += f"""
+            <div class="sh" style="color:#ca8a04;border-color:#ca8a04;">&#127807; Transplant Outdoors ({len(transplant)})</div>
+            <p class="sdesc">Move indoor-started seedlings to their permanent outdoor growing location.</p>
+            {cards}"""
 
-        # Harvest section
-        harvest = schedule.get("harvest", [])
+        # HARVEST WINDOW
+        harvest = activities.get("harvest", [])
         if harvest:
-            items = ""
+            cards = ""
             for item in harvest:
-                name = _escape_html(item.get("name", ""))
-                items += f'<div class="item harvest"><strong>{name}</strong></div>'
-            sections_html += f"""
-            <div class="section">
-                <h2 style="color: #dc2626;">Harvest ({len(harvest)})</h2>
-                <p style="color: #666; font-size: 13px;">Seeds with harvest windows this month</p>
-                {items}
+                n = _escape_html(item.get("name", ""))
+                notes = _escape_html(item.get("notes", "") or "")
+                b = badge(item.get("category"), "#fee2e2", "#991b1b")
+                maturity = _escape_html(item.get("days_to_maturity", "") or "")
+                harvest_notes = _escape_html(item.get("harvest_notes", "") or "")
+                cards += f"""
+                <div class="card" style="background:#fef2f2;border-left:4px solid #dc2626;">
+                    <div class="cn" style="color:#7f1d1d;">{n}{b}</div>
+                    {f'<div class="ct" style="color:#991b1b;">&#128197; {notes}</div>' if notes else ""}
+                    {f'<div class="cs"><b>Days to Maturity:</b>&nbsp;{maturity}</div>' if maturity else ""}
+                    {f'<div class="ctip">{harvest_notes}</div>' if harvest_notes else ""}
+                </div>"""
+            planting_html += f"""
+            <div class="sh" style="color:#dc2626;border-color:#dc2626;">&#127813; Harvest Window ({len(harvest)})</div>
+            <p class="sdesc">These should be producing this month. Check frequently and harvest at peak.</p>
+            {cards}"""
+
+        if not planting_html:
+            planting_html = '<p style="color:#6b7280;text-align:center;padding:20px 0;">No specific planting activities scheduled for this month.</p>'
+
+        # ── PLANT CARE ──────────────────────────────────────────────────────
+        care_html = ""
+        needs_watering = plant_care.get("needs_watering", [])
+        needs_fertilizing = plant_care.get("needs_fertilizing", [])
+        prune_this_month = plant_care.get("prune_this_month", [])
+        harvest_this_month = plant_care.get("harvest_this_month", [])
+
+        if any([needs_watering, needs_fertilizing, prune_this_month, harvest_this_month]):
+            care_blocks = ""
+
+            if needs_watering:
+                items = ""
+                for p in needs_watering:
+                    pn = _escape_html(p.get("name", ""))
+                    qty = p.get("quantity", 1) or 1
+                    od = p.get("days_overdue")
+                    qstr = f" (&times;{qty})" if qty > 1 else ""
+                    odstr = f"{od} day{'s' if od != 1 else ''} overdue" if od else "not yet recorded"
+                    items += f'<div class="cac"><b>{pn}</b>{qstr}<div class="cas">{odstr}</div></div>'
+                care_blocks += f'<div class="cah" style="color:#1d4ed8;">&#128167; Needs Watering ({len(needs_watering)})</div>{items}'
+
+            if needs_fertilizing:
+                items = ""
+                for p in needs_fertilizing:
+                    pn = _escape_html(p.get("name", ""))
+                    qty = p.get("quantity", 1) or 1
+                    od = p.get("days_overdue")
+                    qstr = f" (&times;{qty})" if qty > 1 else ""
+                    odstr = f"{od} day{'s' if od != 1 else ''} overdue" if od else ""
+                    items += f'<div class="cac"><b>{pn}</b>{qstr}<div class="cas">{odstr}</div></div>'
+                care_blocks += f'<div class="cah" style="color:#059669;">&#127807; Needs Fertilizing ({len(needs_fertilizing)})</div>{items}'
+
+            if prune_this_month:
+                items = ""
+                for p in prune_this_month:
+                    pn = _escape_html(p.get("name", ""))
+                    win = _escape_html(p.get("window", "") or "")
+                    pnotes = _escape_html(p.get("notes", "") or "")
+                    items += f'<div class="cac"><b>{pn}</b>{f" &mdash; {win}" if win else ""}<div class="cas">{pnotes}</div></div>'
+                care_blocks += f'<div class="cah" style="color:#7c3aed;">&#9986;&#65039; Prune This Month ({len(prune_this_month)})</div>{items}'
+
+            if harvest_this_month:
+                items = ""
+                for p in harvest_this_month:
+                    pn = _escape_html(p.get("name", ""))
+                    qty = p.get("quantity", 1) or 1
+                    freq = _escape_html(p.get("frequency", "") or "")
+                    hnotes = _escape_html((p.get("notes", "") or "")[:200])
+                    qstr = f" (&times;{qty})" if qty > 1 else ""
+                    items += f'<div class="cac"><b>{pn}</b>{qstr}{f" &mdash; {freq}" if freq else ""}<div class="cas">{hnotes}</div></div>'
+                care_blocks += f'<div class="cah" style="color:#ea580c;">&#127827; Ready to Harvest ({len(harvest_this_month)})</div>{items}'
+
+            care_html = f"""
+            <div style="border-top:1px solid #e5e7eb;margin-top:10px;"></div>
+            <div class="care">
+                <div style="font-size:17px;font-weight:bold;color:#1f2937;margin:20px 0 4px;">Plant Care Needed</div>
+                <p class="sdesc" style="margin:0 0 12px;">Active plants that need attention this month.</p>
+                {care_blocks}
             </div>"""
 
-        # Active Plants summary
-        if active_plants:
+        # ── NEXT MONTH PREVIEW ───────────────────────────────────────────────
+        next_html = ""
+        if next_month_name and next_activities:
             rows = ""
-            for p in active_plants[:50]:  # Limit to 50 for email size
-                name = _escape_html(p.get("name", ""))
+            for key, label, emoji in [
+                ("cold_stratify", "Cold Stratify", "&#10052;&#65039;"),
+                ("start_indoors", "Start Indoors", "&#127807;"),
+                ("direct_sow", "Direct Sow", "&#127808;"),
+                ("transplant", "Transplant", "&#127807;"),
+                ("harvest", "Harvest", "&#127813;"),
+            ]:
+                items_next = next_activities.get(key, [])
+                if items_next:
+                    names = ", ".join(_escape_html(i.get("name", "")) for i in items_next[:6])
+                    more = f" + {len(items_next) - 6} more" if len(items_next) > 6 else ""
+                    rows += f'<div class="pv"><b>{emoji} {label}:</b> {names}{more}</div>'
+            if rows:
+                next_html = f"""
+                <div class="nb">
+                    <div class="nt">&#128197; Coming in {_escape_html(next_month_name)}</div>
+                    {rows}
+                </div>"""
+
+        # ── ACTIVE PLANTS TABLE ──────────────────────────────────────────────
+        plants_html = ""
+        if plant_dicts:
+            rows = ""
+            for p in plant_dicts[:60]:
+                pn = _escape_html(p.get("name", ""))
                 stage = _escape_html(p.get("growth_stage", "-"))
                 qty = p.get("quantity", 1) or 1
-                method = _escape_html(p.get("planting_method", "-") or "-")
+                method = _escape_html(p.get("planting_method", "-"))
+                loc = _escape_html(p.get("location", "") or "")
+                hdate = _escape_html(p.get("expected_harvest_date", "") or "")
                 rows += f"""
                 <tr>
-                    <td style="padding: 6px 10px; border-bottom: 1px solid #eee;">{name}</td>
-                    <td style="padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center;">{stage}</td>
-                    <td style="padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center;">{qty}</td>
-                    <td style="padding: 6px 10px; border-bottom: 1px solid #eee; text-align: center;">{method.replace('_', ' ')}</td>
+                    <td><b>{pn}</b></td>
+                    <td>{stage}</td>
+                    <td style="text-align:center;">{qty}</td>
+                    <td>{method}</td>
+                    <td style="color:#6b7280;">{loc}</td>
+                    <td style="color:#6b7280;">{hdate}</td>
                 </tr>"""
-            sections_html += f"""
-            <div class="section">
-                <h2 style="color: #2d5a27;">Active Plants ({len(active_plants)})</h2>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            note = f'<p style="color:#9ca3af;font-size:11px;margin-top:5px;">Showing first 60 of {len(plant_dicts)} plants.</p>' if len(plant_dicts) > 60 else ""
+            plants_html = f"""
+            <div style="border-top:1px solid #e5e7eb;margin-top:10px;"></div>
+            <div class="ps">
+                <div class="ph">Active Plants ({len(plant_dicts)})</div>
+                <table class="pt">
                     <thead>
-                        <tr style="background: #f0fdf4;">
-                            <th style="padding: 8px 10px; text-align: left; border-bottom: 2px solid #2d5a27;">Name</th>
-                            <th style="padding: 8px 10px; text-align: center; border-bottom: 2px solid #2d5a27;">Stage</th>
-                            <th style="padding: 8px 10px; text-align: center; border-bottom: 2px solid #2d5a27;">Qty</th>
-                            <th style="padding: 8px 10px; text-align: center; border-bottom: 2px solid #2d5a27;">Method</th>
+                        <tr>
+                            <th>Name</th><th>Stage</th><th style="text-align:center;">Qty</th>
+                            <th>Method</th><th>Location</th><th>Est. Harvest</th>
                         </tr>
                     </thead>
                     <tbody>{rows}</tbody>
                 </table>
+                {note}
             </div>"""
 
-        # No content at all
-        if not sections_html:
-            sections_html = """
-            <div class="section">
-                <p style="text-align: center; color: #666;">No planting activities scheduled for this month.</p>
-            </div>"""
-
-        total_activities = len(cold_stratify) + len(start_indoors) + len(direct_sow) + len(transplant) + len(harvest)
+        # ── ASSEMBLE ─────────────────────────────────────────────────────────
+        total_seed_activities = sum(len(activities.get(k, [])) for k in activities)
+        total_care = sum(len(plant_care.get(k, [])) for k in plant_care) if plant_care else 0
 
         html_body = f"""
         <html>
-        <head>
-            <style>
-                body {{ font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }}
-                .header {{ background: linear-gradient(135deg, #2d5a27 0%, #16a34a 100%); color: white; padding: 25px; text-align: center; }}
-                .header h1 {{ margin: 0 0 5px 0; }}
-                .header p {{ margin: 0; opacity: 0.9; }}
-                .section {{ padding: 15px; border-bottom: 1px solid #eee; }}
-                .section h2 {{ margin-top: 0; font-size: 18px; }}
-                .item {{ padding: 8px 12px; margin: 4px 0; border-radius: 6px; font-size: 14px; }}
-                .item.stratify {{ background: #f5f3ff; border-left: 3px solid #7c3aed; }}
-                .item.indoor {{ background: #faf5ff; border-left: 3px solid #a855f7; }}
-                .item.sow {{ background: #f0fdf4; border-left: 3px solid #16a34a; }}
-                .item.transplant {{ background: #fefce8; border-left: 3px solid #ca8a04; }}
-                .item.harvest {{ background: #fef2f2; border-left: 3px solid #dc2626; }}
-            </style>
-        </head>
+        <head><style>{css}</style></head>
         <body>
-            <div class="header">
-                <h1>Garden Guide</h1>
-                <p>{_escape_html(month_name)} {year} &middot; {total_activities} activities</p>
+        <div class="wrap">
+            <div class="hdr">
+                <h1>&#127807; Garden Guide</h1>
+                <p class="sub">{_escape_html(month_name)} {year} &nbsp;&middot;&nbsp; {_escape_html(farm_name)} &nbsp;&middot;&nbsp; {total_seed_activities} planting task{'s' if total_seed_activities != 1 else ''} &nbsp;&middot;&nbsp; {total_care} care alert{'s' if total_care != 1 else ''}</p>
             </div>
-            {sections_html}
-            <div class="section" style="text-align: center; color: #666; font-size: 12px;">
-                <p>Generated by Isaac - Your Farm Assistant</p>
+            {ai_html}
+            <div class="body">
+                {planting_html}
             </div>
+            {care_html}
+            {next_html}
+            {plants_html}
+            <div class="ft">Generated by Isaac &#8212; Your Farm Assistant</div>
+        </div>
         </body>
         </html>
         """

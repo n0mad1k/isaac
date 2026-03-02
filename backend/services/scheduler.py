@@ -248,6 +248,233 @@ def get_sun_moon_data(lat: float = None, lon: float = None) -> dict:
     }
 
 
+async def gather_monthly_digest_data(db, today=None):
+    """Gather all data needed for the monthly garden digest email.
+
+    Enriches schedule activities with seed details (depth, spacing, germ info),
+    computes plant care status (watering, fertilizing, pruning, harvest), builds
+    next month preview, and optionally generates an AI narrative.
+
+    Returns a comprehensive dict, or None if there is nothing to send.
+    """
+    from models.seeds import Seed as SeedModel
+    from models.plants import Plant
+    from models.settings import AppSetting
+    from services.planting_calculator import calculate_planting_schedule, MONTH_NAMES, parse_month_range
+    from routers.garden import _get_frost_dates
+
+    if today is None:
+        today = date.today()
+
+    frost_dates = await _get_frost_dates(db)
+
+    seed_result = await db.execute(select(SeedModel).where(SeedModel.is_active == True))
+    seeds = seed_result.scalars().all()
+    seeds_by_id = {s.id: s for s in seeds}
+
+    def enrich(raw_activities):
+        """Add full seed details to each activity item."""
+        enriched = {}
+        for atype, items in raw_activities.items():
+            enriched[atype] = []
+            for item in items:
+                seed = seeds_by_id.get(item.get("seed_id"))
+                entry = dict(item)
+                if seed:
+                    entry["planting_depth"] = seed.planting_depth or ""
+                    entry["spacing"] = seed.spacing or ""
+                    entry["row_spacing"] = seed.row_spacing or ""
+                    entry["days_to_germination"] = seed.days_to_germination or ""
+                    entry["optimal_germ_temp"] = seed.optimal_germ_temp or ""
+                    entry["light_to_germinate"] = seed.light_to_germinate or ""
+                    entry["special_requirements"] = seed.special_requirements or ""
+                    entry["harvest_notes"] = seed.harvest_notes or ""
+                    entry["days_to_maturity"] = seed.days_to_maturity or ""
+                    entry["water_requirement"] = seed.water_requirement.value.replace("_", " ").title() if seed.water_requirement else ""
+                    entry["sun_requirement"] = seed.sun_requirement.value.replace("_", " ").title() if seed.sun_requirement else ""
+                enriched[atype].append(entry)
+        return enriched
+
+    if seeds:
+        full_sched = calculate_planting_schedule(
+            seeds=seeds,
+            last_frost_mm_dd=frost_dates["last_frost_date"],
+            first_frost_mm_dd=frost_dates["first_frost_date"],
+            year=today.year,
+        )
+        current_activities = enrich(full_sched["months"][today.month - 1].get("activities", {}))
+    else:
+        full_sched = None
+        current_activities = {"cold_stratify": [], "start_indoors": [], "direct_sow": [], "transplant": [], "harvest": []}
+
+    month_name = MONTH_NAMES[today.month]
+
+    # Next month preview
+    next_month_num = today.month % 12 + 1
+    next_year = today.year + (1 if next_month_num == 1 else 0)
+    next_month_name = MONTH_NAMES[next_month_num]
+    next_activities = {}
+    if seeds:
+        try:
+            if next_month_num == 1:
+                next_sched = calculate_planting_schedule(
+                    seeds=seeds,
+                    last_frost_mm_dd=frost_dates["last_frost_date"],
+                    first_frost_mm_dd=frost_dates["first_frost_date"],
+                    year=next_year,
+                )
+                next_activities = enrich(next_sched["months"][0].get("activities", {}))
+            else:
+                next_activities = enrich(full_sched["months"][next_month_num - 1].get("activities", {}))
+        except Exception:
+            next_activities = {}
+
+    # Active plants with care status
+    plant_result = await db.execute(select(Plant).where(Plant.is_active == True))
+    active_plants = plant_result.scalars().all()
+
+    needs_watering = []
+    needs_fertilizing = []
+    prune_this_month = []
+    harvest_this_month = []
+    plant_dicts = []
+
+    for p in active_plants:
+        plant_dicts.append({
+            "name": p.name,
+            "growth_stage": (p.growth_stage or "-").replace("_", " ").title(),
+            "quantity": p.quantity or 1,
+            "planting_method": (p.planting_method or "-").replace("_", " ").title(),
+            "location": p.location or "",
+            "expected_harvest_date": p.expected_harvest_date.strftime("%m/%d/%Y") if p.expected_harvest_date else "",
+            "date_planted": p.date_planted.strftime("%m/%d/%Y") if p.date_planted else "",
+        })
+
+        # Watering check
+        try:
+            nw = p.next_watering
+            if nw:
+                nw_date = nw.date() if hasattr(nw, "date") else nw
+                if nw_date <= today:
+                    needs_watering.append({"name": p.name, "days_overdue": (today - nw_date).days, "quantity": p.quantity or 1})
+            elif p.water_schedule:
+                needs_watering.append({"name": p.name, "days_overdue": None, "quantity": p.quantity or 1})
+        except Exception:
+            pass
+
+        # Fertilizing check
+        try:
+            nf = p.next_fertilizing
+            if nf:
+                nf_date = nf.date() if hasattr(nf, "date") else nf
+                if nf_date <= today:
+                    needs_fertilizing.append({"name": p.name, "days_overdue": (today - nf_date).days, "quantity": p.quantity or 1})
+        except Exception:
+            pass
+
+        # Pruning check
+        if p.prune_months:
+            try:
+                if today.month in parse_month_range(p.prune_months):
+                    prune_this_month.append({"name": p.name, "window": p.prune_months, "notes": p.prune_frequency or ""})
+            except Exception:
+                pass
+
+        # Harvest check
+        in_harvest = False
+        if p.produces_months:
+            try:
+                if today.month in parse_month_range(p.produces_months):
+                    in_harvest = True
+            except Exception:
+                pass
+        if not in_harvest and p.expected_harvest_date:
+            eh_date = p.expected_harvest_date.date() if hasattr(p.expected_harvest_date, "date") else p.expected_harvest_date
+            if eh_date <= today or (eh_date.month == today.month and eh_date.year == today.year):
+                in_harvest = True
+        if in_harvest:
+            harvest_notes = ""
+            try:
+                if p.seed and p.seed.harvest_notes:
+                    harvest_notes = p.seed.harvest_notes
+            except Exception:
+                pass
+            if not harvest_notes:
+                harvest_notes = p.how_to_harvest or ""
+            harvest_this_month.append({
+                "name": p.name,
+                "notes": harvest_notes,
+                "frequency": p.harvest_frequency or "",
+                "quantity": p.quantity or 1,
+            })
+
+    needs_watering.sort(key=lambda x: -(x.get("days_overdue") or 0))
+    needs_fertilizing.sort(key=lambda x: -(x.get("days_overdue") or 0))
+
+    # Farm name
+    farm_row = await db.execute(select(AppSetting).where(AppSetting.key == "farm_name"))
+    farm_setting = farm_row.scalar_one_or_none()
+    farm_name = (farm_setting.value if farm_setting and farm_setting.value else "") or "Isaac"
+
+    # AI narrative (only if ai_enabled and garden domain shared)
+    ai_narrative = None
+    try:
+        ai_enabled = await get_setting_value("ai_enabled")
+        if ai_enabled == "true":
+            from services.ollama_service import get_configured_service as get_ai_service
+            from services.ai_context import get_shared_domains
+            allowed = await get_shared_domains(db)
+            if "garden" in allowed:
+                total_tasks = sum(len(current_activities.get(k, [])) for k in current_activities)
+                care_count = len(needs_watering) + len(needs_fertilizing) + len(prune_this_month)
+                ctx_lines = [
+                    f"Month: {month_name} {today.year}",
+                    f"Last frost: {frost_dates.get('last_frost_date', 'unknown')} | First frost: {frost_dates.get('first_frost_date', 'unknown')}",
+                    f"Planting tasks: {total_tasks} | Active plants: {len(active_plants)}",
+                    f"Care alerts: {care_count} | Harvest ready: {len(harvest_this_month)}",
+                ]
+                if current_activities.get("start_indoors"):
+                    ctx_lines.append("Start indoors: " + ", ".join(i["name"] for i in current_activities["start_indoors"][:5]))
+                if current_activities.get("direct_sow"):
+                    ctx_lines.append("Direct sow: " + ", ".join(i["name"] for i in current_activities["direct_sow"][:5]))
+                if harvest_this_month:
+                    ctx_lines.append("Harvest ready: " + ", ".join(i["name"] for i in harvest_this_month[:5]))
+                service = await get_ai_service(db)
+                try:
+                    ai_narrative = await service.generate(
+                        prompt=(
+                            f"Write a brief, practical monthly garden narrative for {month_name} {today.year}. "
+                            "2-3 sentences on seasonal conditions, key priorities, and any urgent tasks. "
+                            "Be specific and actionable. No greetings or sign-offs."
+                        ),
+                        system_prompt="You are a practical farm and garden assistant. Give concise, seasonal garden advice.",
+                        context="\n".join(ctx_lines),
+                    )
+                    ai_narrative = ai_narrative.strip() if ai_narrative else None
+                finally:
+                    await service.close()
+    except Exception as e:
+        logger.warning(f"AI narrative for garden digest failed: {e}")
+
+    return {
+        "month_name": month_name,
+        "year": today.year,
+        "activities": current_activities,
+        "next_month_name": next_month_name,
+        "next_activities": next_activities,
+        "plant_dicts": plant_dicts,
+        "plant_care": {
+            "needs_watering": needs_watering,
+            "needs_fertilizing": needs_fertilizing,
+            "prune_this_month": prune_this_month,
+            "harvest_this_month": harvest_this_month,
+        },
+        "ai_narrative": ai_narrative,
+        "farm_name": farm_name,
+        "frost_dates": frost_dates,
+    }
+
+
 class SchedulerService:
     """Background task scheduler for Isaac"""
 
@@ -1115,18 +1342,15 @@ class SchedulerService:
 
     async def send_monthly_planting_digest(self):
         """Send monthly planting guide email on the 1st of each month."""
-        # Skip on dev instances
         if settings.is_dev_instance:
             logger.info("Skipping monthly planting digest on dev instance")
             return
 
-        # Check setting
         digest_enabled = await get_setting_value("email_monthly_planting_digest")
         if digest_enabled != "true":
             logger.info("Monthly planting digest is disabled in settings, skipping")
             return
 
-        # Get recipient
         recipient = await get_setting_value("email_digest_recipient")
         if not recipient:
             recipient = await get_setting_value("email_recipients")
@@ -1139,69 +1363,31 @@ class SchedulerService:
         logger.info(f"Sending monthly planting digest to {recipient}...")
         try:
             async with async_session() as db:
-                from models.seeds import Seed as SeedModel
-                from services.planting_calculator import calculate_planting_schedule, MONTH_NAMES
-                from routers.garden import _get_frost_dates
-
-                # Get frost dates
-                frost_dates = await _get_frost_dates(db)
-
-                # Get all active seeds
-                result = await db.execute(
-                    select(SeedModel).where(SeedModel.is_active == True)
-                )
-                seeds = result.scalars().all()
-
-                if not seeds:
-                    logger.info("No active seeds, skipping monthly planting digest")
-                    return
-
-                # Calculate planting schedule
                 today = date.today()
-                schedule = calculate_planting_schedule(
-                    seeds=seeds,
-                    last_frost_mm_dd=frost_dates["last_frost_date"],
-                    first_frost_mm_dd=frost_dates["first_frost_date"],
-                    year=today.year,
-                )
-
-                # Get current month's activities
-                current_month_idx = today.month - 1  # 0-indexed
-                month_data = schedule["months"][current_month_idx]
-                activities = month_data.get("activities", {})
-                month_name = MONTH_NAMES[today.month]
-
-                # Get active plants for summary
-                plant_result = await db.execute(
-                    select(Plant).where(Plant.is_active == True)
-                )
-                active_plants = plant_result.scalars().all()
-                plant_dicts = [
-                    {
-                        "name": p.name,
-                        "growth_stage": p.growth_stage or "-",
-                        "quantity": p.quantity or 1,
-                        "planting_method": p.planting_method or "-",
-                    }
-                    for p in active_plants
-                ]
-
-                # Check if there's anything to send
-                total_activities = sum(len(activities.get(k, [])) for k in activities)
-                if total_activities == 0 and not active_plants:
-                    logger.info("No planting activities or active plants this month, skipping digest")
+                data = await gather_monthly_digest_data(db, today)
+                if not data:
+                    logger.info("No data gathered for monthly planting digest")
                     return
 
-                # Send email
+                total_activities = sum(len(data["activities"].get(k, [])) for k in data["activities"])
+                if total_activities == 0 and not data["plant_dicts"] and not any(v for v in data["plant_care"].values()):
+                    logger.info("No planting activities or plant care needed this month, skipping digest")
+                    return
+
                 email_service = await self.get_email_service(db)
                 await email_service.send_monthly_planting_digest(
-                    month_name=month_name,
-                    year=today.year,
-                    schedule=activities,
-                    active_plants=plant_dicts,
+                    month_name=data["month_name"],
+                    year=data["year"],
+                    activities=data["activities"],
+                    plant_dicts=data["plant_dicts"],
+                    plant_care=data["plant_care"],
+                    next_month_name=data["next_month_name"],
+                    next_activities=data["next_activities"],
+                    ai_narrative=data["ai_narrative"],
+                    farm_name=data["farm_name"],
                     recipient=recipient,
                 )
-                logger.info(f"Monthly planting digest sent for {month_name} {today.year}")
+                logger.info(f"Monthly planting digest sent for {data['month_name']} {data['year']}")
         except Exception as e:
             logger.error(f"Error sending monthly planting digest: {e}")
 

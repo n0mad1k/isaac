@@ -2,6 +2,20 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.2] - 2026-03-02
+
+### Added
+- **Rich Garden Monthly Email** - Completely rebuilt planting digest with full seed specs per activity:
+  - Cold Stratify: duration, refrigeration method tip
+  - Start Indoors: sow depth, spacing, germination days, soil temp, light requirement, target date
+  - Direct Sow: sow depth, plant/row spacing, germination days, soil temp, special requirements (scarification, soaking)
+  - Transplant: target date, final spacing, hardening-off reminder
+  - Harvest Window: days to maturity, how-to-harvest notes
+- **Plant Care Alerts** - Email now includes plants needing watering (sorted by days overdue), fertilizing, pruning this month, and harvest-ready plants with harvest instructions
+- **Next Month Preview** - Shows what's coming next month across all activity types
+- **AI Garden Narrative** - When AI is enabled and garden domain is shared, generates a 2-3 sentence seasonal narrative at the top of the email
+- **Enhanced Active Plants Table** - Now includes location and estimated harvest date columns
+
 ## [1.90.1] - 2026-03-02
 
 ### Added
