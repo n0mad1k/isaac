@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.3] - 2026-03-02
+
+### Fixed
+- **Budget duplicate transactions** - Two separate bugs caused the same transactions to appear in both Last Period and This Period:
+  - Date-only strings from the API (e.g. `2026-02-28`) were parsed as UTC midnight, which shifted one day earlier in negative-offset timezones (e.g. Eastern shows Feb 27 instead of Feb 28). Fixed by parsing date-only strings at noon (`T12:00:00`) so the calendar date is stable across all timezones — consistent with the rest of the codebase
+  - When a period is advanced early (advance_date set), the advance date was included in both Last Period (end = Feb 28) and This Period (start = Feb 28). Last Period end is now capped to the day before advance_date to eliminate the overlap
+
 ## [1.90.2] - 2026-03-02
 
 ### Added

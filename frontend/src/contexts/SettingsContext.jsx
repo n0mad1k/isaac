@@ -156,7 +156,17 @@ export function SettingsProvider({ children }) {
   const formatDate = (date, options = {}) => {
     if (!date) return ''
     const tz = getTimezone()
-    const dateObj = date instanceof Date ? date : new Date(date)
+    // Date-only strings (YYYY-MM-DD) must be parsed at noon, not UTC midnight.
+    // new Date("2026-02-28") creates UTC midnight which shifts to the prior day in
+    // negative-offset timezones. Appending T12:00:00 keeps the date stable across all zones.
+    let dateObj
+    if (date instanceof Date) {
+      dateObj = date
+    } else if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      dateObj = new Date(date + 'T12:00:00')
+    } else {
+      dateObj = new Date(date)
+    }
     if (isNaN(dateObj.getTime())) return ''
 
     // Default to mm/dd/yyyy format

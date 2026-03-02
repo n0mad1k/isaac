@@ -70,6 +70,15 @@ function BudgetTransactions() {
         lastEnd = fmtD(ry, rm, 14)
       }
 
+      // When advance_date extends the current period backward past the natural period start,
+      // cap last period's end to the day before advance_date so the boundary day doesn't
+      // appear in both periods simultaneously.
+      if (advanceDate && thisStart < refStart) {
+        const prevDay = new Date(advanceDate)
+        prevDay.setDate(prevDay.getDate() - 1)
+        lastEnd = fmtD(prevDay.getFullYear(), prevDay.getMonth() + 1, prevDay.getDate())
+      }
+
       // This Month = reference month
       const mStart = fmtD(ry, rm, 1)
       const mEnd = fmtD(ry, rm, lastDay(ry, rm))
