@@ -2,6 +2,12 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.5] - 2026-03-02
+
+### Fixed
+- **Last Period rollover shows current balance, not historical** - When viewing the "Last Period" tab, the Roll Over balance now reflects what the rollover was at the END of that period, not the current rollover. Previously both period tabs always showed the same (current) rollover because the calculation always used today's reference date regardless of which period was selected
+- **Last Period overlap in Overview** - Applied same advance_date cap fix to BudgetOverview (Last Period end = advance_date - 1 day) that was previously only applied to BudgetTransactions
+
 ## [1.90.4] - 2026-03-02
 
 ### Changed

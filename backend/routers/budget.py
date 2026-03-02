@@ -1940,6 +1940,10 @@ async def get_period_summary(
         # Reduced by any Roll Over category transactions (money moved elsewhere)
         # NOTE: The first month of tracking is the "setup" month and does NOT
         # contribute to rollover. Rollover starts accumulating from month 2+.
+        #
+        # IMPORTANT: Use end_date (not ref_date) as the rollover horizon so that
+        # viewing "Last Period" shows what rollover WAS at the end of that period,
+        # not the current rollover. This makes the rollover card meaningful across tabs.
         rollover_balance = 0.0
         rollover_cats = {"Gas", "Groceries", "Main Spending"}
         try:
@@ -1960,7 +1964,13 @@ async def get_period_summary(
                     rollover_start = date(first_month_start.year + 1, 1, 1)
                 else:
                     rollover_start = date(first_month_start.year, first_month_start.month + 1, 1)
-                current_month_start = date(period_year, period_month, 1)
+
+                # Use end_date as the rollover horizon so each period tab shows
+                # the rollover as it stood at the END of that period.
+                ro_ref_year = end_date.year
+                ro_ref_month = end_date.month
+                ro_is_second_half = end_date.day >= 15
+                current_month_start = date(ro_ref_year, ro_ref_month, 1)
 
                 if rollover_start < current_month_start:
                     # Get total spent on rollover categories from rollover_start to current month
@@ -2008,10 +2018,11 @@ async def get_period_summary(
                         ro_spent = ro_result.scalar() or 0.0
                         rollover_balance += ro_spent  # negative spending reduces balance
 
-                # If viewing the second half, also include the first half's surplus/deficit
-                if is_second_half and rollover_cat_ids:
-                    first_half_start = date(period_year, period_month, 1)
-                    first_half_end = date(period_year, period_month, 14)
+                # If the period ends in the second half, also include the first half's
+                # surplus/deficit for the same month (end_date determines second half)
+                if ro_is_second_half and rollover_cat_ids:
+                    first_half_start = date(ro_ref_year, ro_ref_month, 1)
+                    first_half_end = date(ro_ref_year, ro_ref_month, 14)
 
                     # Add per-period budget for rollover categories (first half)
                     for cat in categories:
@@ -2049,13 +2060,11 @@ async def get_period_summary(
                 # covers first half only (when viewing second half), and this
                 # covers the current viewing window (start_date..end_date).
                 if roll_over_cat:
-                    # For second half: start_date=15th, so this only gets 2nd half txns
-                    # For first half: start_date=1st, end_date=14th
-                    # For full month: start_date=1st, end_date=last day
+                    # For second half: phase 2 already counted 1st-14th; only get 15th+
+                    # For first half or full month: start from start_date
                     current_period_start = start_date
-                    if is_second_half:
-                        # Phase 2 already counted first half; only get second half
-                        current_period_start = date(period_year, period_month, 15)
+                    if ro_is_second_half:
+                        current_period_start = date(ro_ref_year, ro_ref_month, 15)
                     current_ro_result = await db.execute(
                         select(func.sum(BudgetTransaction.amount))
                         .where(

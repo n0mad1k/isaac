@@ -57,6 +57,16 @@ function computePeriods(refDate, advanceDate) {
     lastStart = fmtDate(ry, rm, 1)
     lastEnd = fmtDate(ry, rm, 14)
   }
+  // When advance_date extends This Period backward, cap Last Period's end to the
+  // day before advance_date so the same day doesn't appear in both periods
+  if (advanceDate) {
+    const advStr = fmtDate(advanceDate.getFullYear(), advanceDate.getMonth() + 1, advanceDate.getDate())
+    if (advStr < refStart && advStr > lastStart) {
+      const prevDay = new Date(advanceDate)
+      prevDay.setDate(prevDay.getDate() - 1)
+      lastEnd = fmtDate(prevDay.getFullYear(), prevDay.getMonth() + 1, prevDay.getDate())
+    }
+  }
   const lastPeriod = { start: lastStart, end: lastEnd, label: `Last Period (${fmtRange(lastStart, lastEnd)})` }
 
   // This Month: the reference date's month
