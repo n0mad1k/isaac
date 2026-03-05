@@ -81,6 +81,13 @@ function CalendarPage() {
     }
   }, [currentDate, view])
 
+  // Refresh calendar when a task is created from quick-add
+  useEffect(() => {
+    const handler = () => fetchCalendarData()
+    window.addEventListener('task-created', handler)
+    return () => window.removeEventListener('task-created', handler)
+  }, [fetchCalendarData])
+
   const handleSync = async () => {
     setSyncing(true)
     try {

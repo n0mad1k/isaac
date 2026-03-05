@@ -5,7 +5,7 @@ import os
 from playwright.sync_api import sync_playwright
 
 BASE_URL = "https://192.168.1.68"
-OUTPUT_DIR = "/home/n0mad1k/Tools/isaac.wiki/images"
+OUTPUT_DIR = "/home/n0mad1k/tools/isaac.wiki/images"
 USERNAME = "admin"
 PASSWORD = "password"
 

@@ -97,6 +97,7 @@ class WorkerVisitTask(Base):
 
     is_standard = Column(Boolean, default=False)  # True if from standard task template
     standard_task_id = Column(Integer, nullable=True)  # Reference to template (for tracking)
+    source_task_id = Column(Integer, nullable=True)  # Link back to main tasks table (for auto-completion)
 
     is_completed = Column(Boolean, default=False)
     completed_at = Column(DateTime, nullable=True)

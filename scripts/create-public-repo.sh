@@ -12,8 +12,8 @@
 set -e  # Exit on error
 
 # Configuration
-SOURCE_DIR="/home/n0mad1k/Tools/levi"
-PUBLIC_DIR="/home/n0mad1k/Tools/isaac-public"
+SOURCE_DIR="/home/n0mad1k/tools/levi"
+PUBLIC_DIR="/home/n0mad1k/tools/isaac-public"
 SCRIPT_NAME=$(basename "$0")
 
 # Colors for output
@@ -149,7 +149,7 @@ sanitize_strings() {
             sed -i 's/n0mad1k@protonmail\.com/your-email@example.com/g' "$file"
 
             # Username in paths and SSH
-            sed -i 's|/home/n0mad1k/Tools/levi|/path/to/isaac|g' "$file"
+            sed -i 's|/home/n0mad1k/tools/levi|/path/to/isaac|g' "$file"
             sed -i 's|/home/n0mad1k/.ssh/isaac|~/.ssh/isaac|g' "$file"
             sed -i 's|/home/n0mad1k|/home/your-username|g' "$file"
 

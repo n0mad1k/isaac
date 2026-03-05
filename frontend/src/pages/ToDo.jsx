@@ -180,6 +180,16 @@ function ToDo() {
     }
   }, [view])
 
+  // Refresh when a task is created from quick-add
+  useEffect(() => {
+    const handler = () => {
+      if (view === 'metrics') fetchMetrics()
+      else fetchTodos()
+    }
+    window.addEventListener('task-created', handler)
+    return () => window.removeEventListener('task-created', handler)
+  }, [view])
+
   const fetchMetrics = async () => {
     setMetricsLoading(true)
     try {

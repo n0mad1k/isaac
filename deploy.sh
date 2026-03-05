@@ -5,7 +5,7 @@
 SSH_KEY="/home/n0mad1k/.ssh/isaac"
 REMOTE="n0mad1k@isaac.local"
 REMOTE_PATH="/opt/isaac"
-LOCAL_PATH="/home/n0mad1k/Tools/levi"
+LOCAL_PATH="/home/n0mad1k/tools/levi"
 LOCK_DIR="/tmp/isaac-deploy.lock"
 DEPLOY_TYPE="prod"
 
@@ -66,13 +66,13 @@ fi
 echo "Running security audit on Python dependencies..."
 PIP_AUDIT="${HOME}/.local/bin/pip-audit"
 if [[ -x "$PIP_AUDIT" ]] || command -v pip-audit &> /dev/null; then
-    ${PIP_AUDIT:-pip-audit} -r /home/n0mad1k/Tools/levi/backend/requirements.txt --ignore-vuln PYSEC-2024-* 2>/dev/null || echo "  Note: pip-audit found issues (see above)"
+    ${PIP_AUDIT:-pip-audit} -r /home/n0mad1k/tools/levi/backend/requirements.txt --ignore-vuln PYSEC-2024-* 2>/dev/null || echo "  Note: pip-audit found issues (see above)"
 else
     echo "  Skipped: pip-audit not installed (pipx install pip-audit)"
 fi
 
 echo "Running security audit on Node dependencies..."
-cd /home/n0mad1k/Tools/levi/frontend && npm audit --audit-level=high 2>/dev/null || echo "  Note: npm audit found issues (see above)"
+cd /home/n0mad1k/tools/levi/frontend && npm audit --audit-level=high 2>/dev/null || echo "  Note: npm audit found issues (see above)"
 cd - > /dev/null
 
 # ALWAYS backup database first
@@ -91,7 +91,7 @@ rsync -avz \
   --exclude '.env' \
   --exclude 'routers/dev_tracker.py' \
   -e "ssh -i $SSH_KEY" \
-  /home/n0mad1k/Tools/levi/backend/ \
+  /home/n0mad1k/tools/levi/backend/ \
   $REMOTE:$REMOTE_PATH/backend/
 
 # Post-sync: Remove dev-only code from production
@@ -190,7 +190,7 @@ rsync -avz \
   --exclude 'dist/' \
   --exclude 'pages/DevTracker.jsx' \
   -e "ssh -i $SSH_KEY" \
-  /home/n0mad1k/Tools/levi/frontend/src/ \
+  /home/n0mad1k/tools/levi/frontend/src/ \
   $REMOTE:$REMOTE_PATH/frontend/src/
 
 # Clean dev-only frontend files
@@ -213,26 +213,26 @@ ssh -i $SSH_KEY $REMOTE "
 echo "Syncing frontend config..."
 rsync -avz \
   -e "ssh -i $SSH_KEY" \
-  /home/n0mad1k/Tools/levi/frontend/package.json \
-  /home/n0mad1k/Tools/levi/frontend/vite.config.js \
-  /home/n0mad1k/Tools/levi/frontend/tailwind.config.js \
-  /home/n0mad1k/Tools/levi/frontend/postcss.config.js \
-  /home/n0mad1k/Tools/levi/frontend/index.html \
+  /home/n0mad1k/tools/levi/frontend/package.json \
+  /home/n0mad1k/tools/levi/frontend/vite.config.js \
+  /home/n0mad1k/tools/levi/frontend/tailwind.config.js \
+  /home/n0mad1k/tools/levi/frontend/postcss.config.js \
+  /home/n0mad1k/tools/levi/frontend/index.html \
   $REMOTE:$REMOTE_PATH/frontend/
 
 # Sync frontend public directory (PWA assets, icons, manifest, etc.)
 echo "Syncing frontend public assets..."
 rsync -avz \
   -e "ssh -i $SSH_KEY" \
-  /home/n0mad1k/Tools/levi/frontend/public/ \
+  /home/n0mad1k/tools/levi/frontend/public/ \
   $REMOTE:$REMOTE_PATH/frontend/public/
 
 # Sync VERSION and CHANGELOG for version tracking
 echo "Syncing version info..."
 rsync -avz \
   -e "ssh -i $SSH_KEY" \
-  /home/n0mad1k/Tools/levi/VERSION \
-  /home/n0mad1k/Tools/levi/CHANGELOG.md \
+  /home/n0mad1k/tools/levi/VERSION \
+  /home/n0mad1k/tools/levi/CHANGELOG.md \
   $REMOTE:$REMOTE_PATH/
 
 # Rebuild frontend on remote

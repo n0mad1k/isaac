@@ -5,7 +5,7 @@
 set -e
 
 PI_HOST="isaac"
-LEVI_DIR="/home/n0mad1k/Tools/levi"
+LEVI_DIR="/home/n0mad1k/tools/levi"
 
 echo "======================================"
 echo "  Isaac Quick Deploy"

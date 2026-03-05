@@ -612,6 +612,55 @@ async def assign_task_to_worker(
 
     # Assign to worker
     task.assigned_to_worker_id = worker_id
+
+    # Also add as a one-off visit task on the worker's current visit
+    visit_result = await db.execute(
+        select(WorkerVisit).where(
+            WorkerVisit.worker_id == worker_id,
+            WorkerVisit.status == VisitStatus.IN_PROGRESS
+        )
+    )
+    visit = visit_result.scalar_one_or_none()
+
+    if not visit:
+        # Create a new visit if none exists
+        visit = WorkerVisit(
+            worker_id=worker_id,
+            visit_date=datetime.utcnow(),
+            status=VisitStatus.IN_PROGRESS
+        )
+        db.add(visit)
+        await db.flush()
+        logger.info(f"Created new visit for worker {worker_id} during task assignment")
+
+    # Check if this task is already on the visit (avoid duplicates)
+    existing = await db.execute(
+        select(WorkerVisitTask).where(
+            WorkerVisitTask.visit_id == visit.id,
+            WorkerVisitTask.title == task.title
+        )
+    )
+    if not existing.scalar_one_or_none():
+        # Get max sort order for placement at end
+        max_order_result = await db.execute(
+            select(WorkerVisitTask.sort_order)
+            .where(WorkerVisitTask.visit_id == visit.id)
+            .order_by(WorkerVisitTask.sort_order.desc())
+            .limit(1)
+        )
+        max_order = max_order_result.scalar() or 0
+
+        visit_task = WorkerVisitTask(
+            visit_id=visit.id,
+            title=task.title,
+            description=task.description,
+            sort_order=max_order + 1,
+            is_standard=False,
+            source_task_id=task.id
+        )
+        db.add(visit_task)
+        logger.info(f"Added task '{task.title}' as visit task for worker {worker_id}")
+
     await db.commit()
 
     logger.info(f"Assigned task {task_id} to worker '{worker.name}' (worker_id={worker_id})")
@@ -1160,15 +1209,46 @@ async def update_visit_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    completing = False
+    uncompleting = False
     for key, value in data.model_dump(exclude_unset=True).items():
         if key == "is_completed" and value:
             task.is_completed = True
             task.completed_at = datetime.utcnow()
+            completing = True
         elif key == "is_completed" and not value:
             task.is_completed = False
             task.completed_at = None
+            uncompleting = True
         else:
             setattr(task, key, value)
+
+    # If this visit task is linked to a main task, sync completion status
+    if task.source_task_id and (completing or uncompleting):
+        source_result = await db.execute(select(Task).where(Task.id == task.source_task_id))
+        source_task = source_result.scalar_one_or_none()
+        if source_task:
+            if completing:
+                source_task.is_completed = True
+                source_task.completed_at = datetime.utcnow()
+                source_task.completion_count = (source_task.completion_count or 0) + 1
+                source_task.last_completed = datetime.utcnow()
+                source_task.updated_at = datetime.utcnow()
+                # Update source entity (home_maint, etc.) last_completed
+                if source_task.notes and source_task.notes.startswith("auto:"):
+                    from routers.tasks import update_source_entity_on_complete
+                    await update_source_entity_on_complete(db, source_task.notes)
+                    # Mark auto-reminder as inactive so next sync creates a new one
+                    RECURRING_AUTO_TYPES = ("auto:plant_", "auto:vehicle_", "auto:equipment_", "auto:home_", "auto:farm_", "auto:animal_", "auto:care_group:")
+                    if any(source_task.notes.startswith(p) for p in RECURRING_AUTO_TYPES):
+                        source_task.is_active = False
+                logger.info(f"Completed source task {task.source_task_id} via visit task completion")
+            elif uncompleting:
+                source_task.is_completed = False
+                source_task.completed_at = None
+                source_task.is_active = True
+                source_task.updated_at = datetime.utcnow()
+                logger.info(f"Uncompleted source task {task.source_task_id} via visit task")
 
     await db.commit()
     await db.refresh(task)
