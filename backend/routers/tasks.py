@@ -1018,6 +1018,85 @@ async def update_task(
         task.alerts_sent = None
         logger.debug(f"Task {task.id}: due date/time/alerts changed, clearing alerts_sent")
 
+    # When an auto-reminder task is rescheduled, update the notes key and source entity
+    if task.due_date != previous_due_date and task.notes and previous_due_date and task.due_date:
+        if "auto:care_group:" in task.notes:
+            # Update care_group notes: auto:care_group:OLD_DATE_name -> auto:care_group:NEW_DATE_name
+            match = re.search(r'auto:care_group:(\d{4}-\d{2}-\d{2})_(.+)', task.notes)
+            if match:
+                old_date_str, care_name = match.group(1), match.group(2)
+                new_notes = f"auto:care_group:{task.due_date.isoformat()}_{care_name}"
+                task.notes = new_notes
+                logger.info(f"Task {task.id}: updated care_group notes from {old_date_str} to {task.due_date.isoformat()}")
+                # Update manual_due_date on all matching care schedules so scheduler respects the reschedule
+                from models.livestock import AnimalCareSchedule
+                care_result = await db.execute(
+                    select(AnimalCareSchedule).where(
+                        AnimalCareSchedule.is_active == True,
+                        AnimalCareSchedule.name.ilike(care_name)
+                    )
+                )
+                for schedule in care_result.scalars().all():
+                    schedule.manual_due_date = task.due_date
+                    logger.info(f"Updated care schedule {schedule.id} ({schedule.name}) manual_due_date to {task.due_date}")
+        elif "auto:animal_care_schedule:" in task.notes:
+            # Individual care schedule task - update manual_due_date
+            match = re.search(r'auto:animal_care_schedule:(\d+)', task.notes)
+            if match:
+                schedule_id = int(match.group(1))
+                from models.livestock import AnimalCareSchedule
+                care_result = await db.execute(
+                    select(AnimalCareSchedule).where(AnimalCareSchedule.id == schedule_id)
+                )
+                schedule = care_result.scalar_one_or_none()
+                if schedule:
+                    schedule.manual_due_date = task.due_date
+                    logger.info(f"Updated care schedule {schedule.id} ({schedule.name}) manual_due_date to {task.due_date}")
+        elif "auto:home_maint:" in task.notes:
+            match = re.search(r'auto:home_maint:(\d+)', task.notes)
+            if match:
+                from models.home_maintenance import HomeMaintenance
+                hm_result = await db.execute(
+                    select(HomeMaintenance).where(HomeMaintenance.id == int(match.group(1)))
+                )
+                hm = hm_result.scalar_one_or_none()
+                if hm:
+                    hm.manual_due_date = datetime.combine(task.due_date, datetime.min.time())
+                    logger.info(f"Updated HomeMaintenance {hm.id} ({hm.name}) manual_due_date to {task.due_date}")
+        elif "auto:vehicle_maint:" in task.notes:
+            match = re.search(r'auto:vehicle_maint:(\d+)', task.notes)
+            if match:
+                from models.vehicles import VehicleMaintenance
+                vm_result = await db.execute(
+                    select(VehicleMaintenance).where(VehicleMaintenance.id == int(match.group(1)))
+                )
+                vm = vm_result.scalar_one_or_none()
+                if vm and hasattr(vm, 'manual_due_date'):
+                    vm.manual_due_date = datetime.combine(task.due_date, datetime.min.time())
+                    logger.info(f"Updated VehicleMaintenance {vm.id} manual_due_date to {task.due_date}")
+        elif "auto:equipment_maint:" in task.notes:
+            match = re.search(r'auto:equipment_maint:(\d+)', task.notes)
+            if match:
+                from models.equipment import EquipmentMaintenance
+                em_result = await db.execute(
+                    select(EquipmentMaintenance).where(EquipmentMaintenance.id == int(match.group(1)))
+                )
+                em = em_result.scalar_one_or_none()
+                if em and hasattr(em, 'manual_due_date'):
+                    em.manual_due_date = datetime.combine(task.due_date, datetime.min.time())
+                    logger.info(f"Updated EquipmentMaintenance {em.id} manual_due_date to {task.due_date}")
+        elif "auto:farm_maint:" in task.notes:
+            match = re.search(r'auto:farm_maint:(\d+)', task.notes)
+            if match:
+                from models.farm_areas import FarmAreaMaintenance
+                fm_result = await db.execute(
+                    select(FarmAreaMaintenance).where(FarmAreaMaintenance.id == int(match.group(1)))
+                )
+                fm = fm_result.scalar_one_or_none()
+                if fm and hasattr(fm, 'manual_due_date'):
+                    fm.manual_due_date = datetime.combine(task.due_date, datetime.min.time())
+                    logger.info(f"Updated FarmAreaMaintenance {fm.id} manual_due_date to {task.due_date}")
+
     # Reactivate completed task when date is moved to today or future
     # (only if the user didn't explicitly set is_completed in this update)
     if (task.due_date != previous_due_date and task.is_completed
