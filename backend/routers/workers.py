@@ -637,7 +637,7 @@ async def assign_task_to_worker(
     existing = await db.execute(
         select(WorkerVisitTask).where(
             WorkerVisitTask.visit_id == visit.id,
-            WorkerVisitTask.title == task.title
+            WorkerVisitTask.source_task_id == task.id
         )
     )
     if not existing.scalar_one_or_none():

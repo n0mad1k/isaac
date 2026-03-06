@@ -1002,6 +1002,7 @@ async def update_task(
 
     # Track current assignments before update for notification purposes
     previous_user_id = task.assigned_to_user_id
+    previous_worker_id = task.assigned_to_worker_id
 
     # Track current due_date/due_time to detect changes
     previous_due_date = task.due_date
@@ -1145,6 +1146,53 @@ async def update_task(
         task.completed_at = datetime.utcnow()
         task.completion_count = (task.completion_count or 0) + 1
         task.last_completed = datetime.utcnow()
+
+    # If worker assignment changed, add as a visit task on the worker's current visit
+    if task.assigned_to_worker_id and task.assigned_to_worker_id != previous_worker_id:
+        from models.workers import WorkerVisit, WorkerVisitTask, VisitStatus
+        visit_result = await db.execute(
+            select(WorkerVisit).where(
+                WorkerVisit.worker_id == task.assigned_to_worker_id,
+                WorkerVisit.status == VisitStatus.IN_PROGRESS
+            )
+        )
+        visit = visit_result.scalar_one_or_none()
+        if not visit:
+            from models.workers import Worker
+            visit = WorkerVisit(
+                worker_id=task.assigned_to_worker_id,
+                visit_date=datetime.utcnow(),
+                status=VisitStatus.IN_PROGRESS
+            )
+            db.add(visit)
+            await db.flush()
+            logger.info(f"Created new visit for worker {task.assigned_to_worker_id} during task update")
+
+        # Avoid duplicates by checking source_task_id
+        existing = await db.execute(
+            select(WorkerVisitTask).where(
+                WorkerVisitTask.visit_id == visit.id,
+                WorkerVisitTask.source_task_id == task.id
+            )
+        )
+        if not existing.scalar_one_or_none():
+            max_order_result = await db.execute(
+                select(WorkerVisitTask.sort_order)
+                .where(WorkerVisitTask.visit_id == visit.id)
+                .order_by(WorkerVisitTask.sort_order.desc())
+                .limit(1)
+            )
+            max_order = max_order_result.scalar() or 0
+            visit_task = WorkerVisitTask(
+                visit_id=visit.id,
+                title=task.title,
+                description=task.description,
+                sort_order=max_order + 1,
+                is_standard=False,
+                source_task_id=task.id
+            )
+            db.add(visit_task)
+            logger.info(f"Added task '{task.title}' (id={task.id}) as visit task for worker {task.assigned_to_worker_id}")
 
     task.updated_at = datetime.utcnow()
     await db.commit()
