@@ -1,15 +1,13 @@
 // Isaac PWA Service Worker
-const CACHE_NAME = 'isaac-v3-20260302';
+const CACHE_NAME = 'isaac-v4';
 const OFFLINE_URL = '/offline.html';
 
-// Assets to cache immediately
+// Only cache the offline fallback page
 const PRECACHE_ASSETS = [
-  '/',
   '/offline.html',
-  '/manifest.json',
 ];
 
-// Install event - cache essential assets
+// Install event - cache offline page only
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -18,7 +16,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up ALL old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -31,39 +29,17 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - network first, fallback to cache
+// Fetch event - network only, offline fallback for navigation
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
-
-  // Skip API requests - always go to network
   if (event.request.url.includes('/api/')) return;
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Clone and cache successful responses
-        if (response.ok) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(event.request)
-          .then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // If it's a navigation request, show offline page
-            if (event.request.mode === 'navigate') {
-              return caches.match(OFFLINE_URL);
-            }
-            return new Response('Offline', { status: 503 });
-          });
-      })
-  );
+  // Only intercept navigation requests (page loads) for offline fallback
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+    );
+  }
+  // All other requests (JS, CSS, images) go straight to network/browser cache
+  // Hashed assets are cached by the browser via nginx Cache-Control headers
 });
