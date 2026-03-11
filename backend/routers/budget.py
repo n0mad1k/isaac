@@ -700,12 +700,11 @@ async def _ensure_bill_deductions(db: AsyncSession) -> None:
     try:
         today = date.today()
 
-        # Find all fixed categories with owner, account_id, and bill_day
+        # Find all fixed categories with account_id and bill_day
         cat_result = await db.execute(
             select(BudgetCategory).where(
                 BudgetCategory.is_active == True,
                 BudgetCategory.category_type == CategoryType.FIXED,
-                BudgetCategory.owner.isnot(None),
                 BudgetCategory.account_id.isnot(None),
                 BudgetCategory.bill_day.isnot(None),
             )
@@ -1012,9 +1011,9 @@ async def create_category(
         await db.flush()
         await db.refresh(category)
 
-        # If this is a bill with owner/account/bill_day, auto-deduct if due
+        # If this is a bill with account/bill_day, auto-deduct if due
         if (category.category_type == CategoryType.FIXED
-                and category.owner and category.account_id and category.bill_day):
+                and category.account_id and category.bill_day):
             await _ensure_bill_deductions(db)
 
         return category
@@ -1040,9 +1039,9 @@ async def update_category(
         await db.flush()
         await db.refresh(category)
 
-        # If this is a bill with owner/account/bill_day, auto-deduct if due
+        # If this is a bill with account/bill_day, auto-deduct if due
         if (category.category_type == CategoryType.FIXED
-                and category.owner and category.account_id and category.bill_day):
+                and category.account_id and category.bill_day):
             await _ensure_bill_deductions(db)
 
         return category

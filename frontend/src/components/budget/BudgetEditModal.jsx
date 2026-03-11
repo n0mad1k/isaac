@@ -34,7 +34,7 @@ const computeBiannualMonths = (startMonth) => {
   return [m, ((m + 5) % 12) + 1].sort((a, b) => a - b)
 }
 
-function BudgetEditModal({ item, itemType, accounts, owners = [], onSave, onClose }) {
+function BudgetEditModal({ item, itemType, accounts, owners = [], onSave, onClose, isNew = false }) {
   // itemType: 'income' | 'category'
   const isIncome = itemType === 'income'
 
@@ -195,7 +195,7 @@ function BudgetEditModal({ item, itemType, accounts, owners = [], onSave, onClos
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--color-border-default)' }}>
           <h3 className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
-            Edit {isIncome ? 'Income' : catType === 'fixed' ? 'Bill' : catType === 'variable' ? 'Spending Budget' : 'Transfer'}
+            {isNew ? 'Add' : 'Edit'} {isIncome ? 'Income' : catType === 'fixed' ? 'Bill' : catType === 'variable' ? 'Spending Budget' : 'Transfer'}
           </h3>
           <button onClick={onClose} className="p-1 rounded hover:bg-surface-soft">
             <X className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
@@ -424,7 +424,7 @@ function BudgetEditModal({ item, itemType, accounts, owners = [], onSave, onClos
             </button>
             <button onClick={handleSave} disabled={saving}
               className="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? 'Saving...' : isNew ? 'Add' : 'Save Changes'}
             </button>
           </div>
         </div>

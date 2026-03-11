@@ -251,9 +251,17 @@ function MonthlyBudget() {
 
   const handleModalSave = async (id, data) => {
     if (editModal?.type === 'income') {
-      await updateBudgetIncome(id, data)
+      if (editModal.isNew) {
+        await createBudgetIncome(data)
+      } else {
+        await updateBudgetIncome(id, data)
+      }
     } else {
-      await updateBudgetCategory(id, data)
+      if (editModal.isNew) {
+        await createBudgetCategory(data)
+      } else {
+        await updateBudgetCategory(id, data)
+      }
     }
     fetchData()
   }
@@ -662,9 +670,8 @@ function MonthlyBudget() {
           const freqLabel = inc.frequency === 'weekly' ? ' (weekly)' : inc.frequency === 'biweekly' ? ' (bi-weekly)' : ''
           return lineRow('income', inc.id, inc.pay_day, `${inc.name}${freqLabel}`, halfAmt, incAcct?.name || moneyMarketName, true, true)
         })}
-        {addForm(`${sectionKey}-income`)}
         <div className="flex justify-end px-2 py-0.5">
-          <button onClick={() => openAddForm(`${sectionKey}-income`, 'income')}
+          <button onClick={() => setEditModal({ item: { name: '', amount: 0, pay_day: 1, frequency: 'monthly', account_id: '', is_active: true }, type: 'income', isNew: true })}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Income
           </button>
@@ -679,9 +686,8 @@ function MonthlyBudget() {
               const destAcct = cat.account_id ? (accounts.find(a => a.id === cat.account_id)?.name || 'Unknown') : getTransferDest(cat)
               return lineRow('category', cat.id, cat.bill_day, `Move To ${cat.name}`, amt, destAcct, false, true)
             })}
-            {addForm(`${sectionKey}-dist`)}
             <div className="flex justify-end px-2 py-0.5">
-              <button onClick={() => openAddForm(`${sectionKey}-dist`, 'transfer')}
+              <button onClick={() => setEditModal({ item: { category_type: 'transfer', is_active: true, monthly_budget: 0, budget_amount: 0, bill_day: '', account_id: '', destination_account_id: '', billing_months: '', owner: '', start_date: '', end_date: '' }, type: 'category', isNew: true })}
                 className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
                 <Plus className="w-3 h-3" /> Add Transfer
               </button>
@@ -697,9 +703,8 @@ function MonthlyBudget() {
               if (amt <= 0) return null
               return lineRow('category', cat.id, cat.bill_day, cat.name, amt, getAccountName(cat), false, true)
             })}
-            {addForm(`${sectionKey}-spending`)}
             <div className="flex justify-end px-2 py-0.5">
-              <button onClick={() => openAddForm(`${sectionKey}-spending`, 'spending')}
+              <button onClick={() => setEditModal({ item: { category_type: 'variable', is_active: true, monthly_budget: 0, budget_amount: 0, bill_day: '', account_id: '', billing_months: '', owner: '', start_date: '', end_date: '' }, type: 'category', isNew: true })}
                 className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
                 <Plus className="w-3 h-3" /> Add Spending
               </button>
@@ -714,9 +719,8 @@ function MonthlyBudget() {
           </>
         )}
 
-        {addForm(`${sectionKey}-bills`)}
         <div className="flex justify-end px-2 py-1">
-          <button onClick={() => openAddForm(`${sectionKey}-bills`, 'bill')}
+          <button onClick={() => setEditModal({ item: { category_type: 'fixed', is_active: true, monthly_budget: 0, budget_amount: 0, bill_day: '', account_id: '', billing_months: '', owner: '', start_date: '', end_date: '' }, type: 'category', isNew: true })}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Bill
           </button>
@@ -778,9 +782,8 @@ function MonthlyBudget() {
             <span style={{ color: 'var(--color-text-muted)' }}>Total: <span className="font-semibold" style={{ color: firstHalfRemaining >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(firstHalfRemaining)}</span></span>
           </div>
         </div>
-        {addForm(`${ownerKey}-first`)}
         <div className="flex justify-end px-2 py-0.5">
-          <button onClick={() => openAddForm(`${ownerKey}-first`, 'bill')}
+          <button onClick={() => setEditModal({ item: { category_type: 'fixed', is_active: true, monthly_budget: 0, budget_amount: 0, bill_day: '', account_id: '', billing_months: '', owner: owner, start_date: '', end_date: '' }, type: 'category', isNew: true })}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
           </button>
@@ -796,9 +799,8 @@ function MonthlyBudget() {
             <span style={{ color: 'var(--color-text-muted)' }}>Total: <span className="font-semibold" style={{ color: secondHalfRemaining >= 0 ? 'var(--color-success-500)' : 'var(--color-error-500)' }}>{fmt(secondHalfRemaining)}</span></span>
           </div>
         </div>
-        {addForm(`${ownerKey}-second`)}
         <div className="flex justify-end px-2 py-0.5">
-          <button onClick={() => openAddForm(`${ownerKey}-second`, 'bill')}
+          <button onClick={() => setEditModal({ item: { category_type: 'fixed', is_active: true, monthly_budget: 0, budget_amount: 0, bill_day: '', account_id: '', billing_months: '', owner: owner, start_date: '', end_date: '' }, type: 'category', isNew: true })}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
           </button>
@@ -972,6 +974,7 @@ function MonthlyBudget() {
           itemType={editModal.type}
           accounts={accounts}
           owners={owners}
+          isNew={editModal.isNew || false}
           onSave={handleModalSave}
           onClose={() => setEditModal(null)}
         />
