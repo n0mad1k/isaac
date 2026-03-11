@@ -783,7 +783,7 @@ function MonthlyBudget() {
           </div>
         </div>
         <div className="flex justify-end px-2 py-0.5">
-          <button onClick={() => setEditModal({ item: { category_type: 'fixed', is_active: true, monthly_budget: 0, budget_amount: 0, bill_day: '', account_id: '', billing_months: '', owner: owner, start_date: '', end_date: '' }, type: 'category', isNew: true })}
+          <button onClick={() => setEditModal({ item: { category_type: 'fixed', is_active: true, monthly_budget: 0, budget_amount: 0, bill_day: '', account_id: '', billing_months: '', owner: ownerKey, start_date: '', end_date: '' }, type: 'category', isNew: true })}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
           </button>
@@ -800,7 +800,7 @@ function MonthlyBudget() {
           </div>
         </div>
         <div className="flex justify-end px-2 py-0.5">
-          <button onClick={() => setEditModal({ item: { category_type: 'fixed', is_active: true, monthly_budget: 0, budget_amount: 0, bill_day: '', account_id: '', billing_months: '', owner: owner, start_date: '', end_date: '' }, type: 'category', isNew: true })}
+          <button onClick={() => setEditModal({ item: { category_type: 'fixed', is_active: true, monthly_budget: 0, budget_amount: 0, bill_day: '', account_id: '', billing_months: '', owner: ownerKey, start_date: '', end_date: '' }, type: 'category', isNew: true })}
             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded hover:bg-surface-soft" style={{ color: 'var(--color-text-muted)' }}>
             <Plus className="w-3 h-3" /> Add Line
           </button>
