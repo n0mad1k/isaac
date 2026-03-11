@@ -214,15 +214,9 @@ function BillsSummary() {
 
   const totalMoneyIn = summary?.expected_income || 0
 
-  const isActiveThisMonth = (cat) => {
-    if (!cat.billing_months) return true
-    const months = cat.billing_months.split(',').map(m => parseInt(m.trim()))
-    return months.includes(currentMonth)
-  }
-
   const allCats = categories.filter(c => c.is_active)
   const owners = [...new Set(allCats.filter(c => c.owner).map(c => c.owner))]
-  const fixedBills = allCats.filter(c => c.category_type === 'fixed' && isActiveThisMonth(c))
+  const fixedBills = allCats.filter(c => c.category_type === 'fixed')
     .sort((a, b) => (a.bill_day || 99) - (b.bill_day || 99) || a.sort_order - b.sort_order)
   const spendingCats = allCats.filter(c => c.category_type === 'variable' && c.name !== 'Roll Over' && c.name !== 'Other')
     .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
@@ -240,12 +234,13 @@ function BillsSummary() {
   const getAcctName = (id) => accounts.find(a => a.id === id)?.name || ''
 
   const getRecurrenceLabel = (cat) => {
+    if (cat.billing_months) {
+      const count = cat.billing_months.split(',').length
+      if (count === 1) return 'yearly'
+      if (count <= 4) return 'quarterly'
+      if (count <= 7) return 'seasonal'
+    }
     if (cat.end_date) return 'payment plan'
-    if (!cat.billing_months) return ''
-    const count = cat.billing_months.split(',').length
-    if (count === 1) return 'yearly'
-    if (count <= 4) return 'quarterly'
-    if (count <= 7) return 'seasonal'
     return ''
   }
 
