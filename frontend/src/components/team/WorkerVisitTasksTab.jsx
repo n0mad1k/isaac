@@ -57,6 +57,8 @@ function WorkerVisitTasksTab({ worker }) {
   const [saving, setSaving] = useState(false)
   const [draggedTaskId, setDraggedTaskId] = useState(null)
   const [showBacklog, setShowBacklog] = useState(true)
+  const [editingVisitTaskId, setEditingVisitTaskId] = useState(null)
+  const [editingVisitTaskTitle, setEditingVisitTaskTitle] = useState('')
   const [showOriginal, setShowOriginal] = useState(false) // Toggle for showing original English text
 
   // Check if worker has a non-English language (translation is active)
@@ -242,6 +244,34 @@ function WorkerVisitTasksTab({ worker }) {
     } finally {
       setSaving(false)
     }
+  }
+
+  // Inline edit for visit tasks
+  const handleStartEditVisitTask = (task) => {
+    setEditingVisitTaskId(task.id)
+    setEditingVisitTaskTitle(getTaskTitle(task))
+  }
+
+  const handleSaveEditVisitTask = async () => {
+    if (!editingVisitTaskTitle.trim() || !currentVisit || saving) return
+    setSaving(true)
+    try {
+      await updateWorkerVisitTask(worker.id, currentVisit.id, editingVisitTaskId, {
+        title: editingVisitTaskTitle.trim()
+      })
+      setEditingVisitTaskId(null)
+      setEditingVisitTaskTitle('')
+      await loadData()
+    } catch (err) {
+      console.error('Failed to update visit task:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancelEditVisitTask = () => {
+    setEditingVisitTaskId(null)
+    setEditingVisitTaskTitle('')
   }
 
   // Drag and drop for reordering
@@ -492,39 +522,79 @@ function WorkerVisitTasksTab({ worker }) {
                       <Circle className={`w-5 h-5 ${idx === 0 ? 'text-green-400 hover:text-green-300' : 'text-muted hover:text-green-400'}`} />
                     </button>
                     <div className="flex-1 min-w-0">
-                      <span className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
-                        {getTaskTitle(task)}
-                      </span>
-                      {task.is_standard && (
-                        <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
-                          {t('standard', 'Standard')}
-                        </span>
-                      )}
-                      {!task.is_standard && (
-                        <span className="ml-2 text-xs px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
-                          {t('thisVisit', 'This Visit')}
-                        </span>
-                      )}
-                      {idx === 0 && (
-                        <span className="ml-2 text-xs px-1.5 py-0.5 bg-green-600 text-white rounded">
-                          {t('doNext', 'DO NEXT')}
-                        </span>
+                      {editingVisitTaskId === task.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editingVisitTaskTitle}
+                            onChange={(e) => setEditingVisitTaskTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEditVisitTask()
+                              if (e.key === 'Escape') handleCancelEditVisitTask()
+                            }}
+                            className="flex-1 bg-surface-soft border border-subtle rounded px-2 py-1 text-sm focus:outline-none focus:border-farm-green"
+                            autoFocus
+                          />
+                          <button onClick={handleSaveEditVisitTask} className="p-1 text-green-400 hover:text-green-300">
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                          <button onClick={handleCancelEditVisitTask} className="p-1 text-muted hover:text-white">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <span
+                            className="font-medium cursor-pointer hover:underline"
+                            style={{ color: 'var(--color-text-primary)' }}
+                            onClick={() => handleStartEditVisitTask(task)}
+                            title="Click to edit"
+                          >
+                            {getTaskTitle(task)}
+                          </span>
+                          {task.is_standard && (
+                            <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                              {t('standard', 'Standard')}
+                            </span>
+                          )}
+                          {!task.is_standard && (
+                            <span className="ml-2 text-xs px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                              {t('thisVisit', 'This Visit')}
+                            </span>
+                          )}
+                          {idx === 0 && (
+                            <span className="ml-2 text-xs px-1.5 py-0.5 bg-green-600 text-white rounded">
+                              {t('doNext', 'DO NEXT')}
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleToggleBacklog(task)}
-                      className="p-1 text-muted hover:text-yellow-400 flex-shrink-0"
-                      title={t('moveToBacklog', 'Move to backlog')}
-                    >
-                      <Archive className="w-4 h-4" />
-                    </button>
-                    {!task.is_standard && (
-                      <button
-                        onClick={() => handleDeleteVisitTask(task.id)}
-                        className="p-1 text-muted hover:text-red-400 flex-shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    {editingVisitTaskId !== task.id && (
+                      <>
+                        <button
+                          onClick={() => handleStartEditVisitTask(task)}
+                          className="p-1 text-muted hover:text-blue-400 flex-shrink-0"
+                          title="Edit task"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleToggleBacklog(task)}
+                          className="p-1 text-muted hover:text-yellow-400 flex-shrink-0"
+                          title={t('moveToBacklog', 'Move to backlog')}
+                        >
+                          <Archive className="w-4 h-4" />
+                        </button>
+                        {!task.is_standard && (
+                          <button
+                            onClick={() => handleDeleteVisitTask(task.id)}
+                            className="p-1 text-muted hover:text-red-400 flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 ))}
@@ -556,32 +626,73 @@ function WorkerVisitTasksTab({ worker }) {
                               <Circle className="w-5 h-5 text-muted hover:text-green-400" />
                             </button>
                             <div className="flex-1 min-w-0">
-                              <span className="text-secondary">{getTaskTitle(task)}</span>
-                              {task.is_standard && (
-                                <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
-                                  {t('standard', 'Standard')}
-                                </span>
-                              )}
-                              {!task.is_standard && (
-                                <span className="ml-2 text-xs px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
-                                  {t('thisVisit', 'This Visit')}
-                                </span>
+                              {editingVisitTaskId === task.id ? (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={editingVisitTaskTitle}
+                                    onChange={(e) => setEditingVisitTaskTitle(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleSaveEditVisitTask()
+                                      if (e.key === 'Escape') handleCancelEditVisitTask()
+                                    }}
+                                    className="flex-1 bg-surface-soft border border-subtle rounded px-2 py-1 text-sm focus:outline-none focus:border-farm-green"
+                                    autoFocus
+                                  />
+                                  <button onClick={handleSaveEditVisitTask} className="p-1 text-green-400 hover:text-green-300">
+                                    <CheckCircle className="w-4 h-4" />
+                                  </button>
+                                  <button onClick={handleCancelEditVisitTask} className="p-1 text-muted hover:text-white">
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <span
+                                    className="text-secondary cursor-pointer hover:underline"
+                                    onClick={() => handleStartEditVisitTask(task)}
+                                    title="Click to edit"
+                                  >
+                                    {getTaskTitle(task)}
+                                  </span>
+                                  {task.is_standard && (
+                                    <span className="ml-2 text-xs px-1.5 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                                      {t('standard', 'Standard')}
+                                    </span>
+                                  )}
+                                  {!task.is_standard && (
+                                    <span className="ml-2 text-xs px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                                      {t('thisVisit', 'This Visit')}
+                                    </span>
+                                  )}
+                                </>
                               )}
                             </div>
-                            <button
-                              onClick={() => handleToggleBacklog(task)}
-                              className="p-1 text-muted hover:text-green-400 flex-shrink-0"
-                              title={t('moveToActive', 'Move to active')}
-                            >
-                              <Inbox className="w-4 h-4" />
-                            </button>
-                            {!task.is_standard && (
-                              <button
-                                onClick={() => handleDeleteVisitTask(task.id)}
-                                className="p-1 text-muted hover:text-red-400 flex-shrink-0"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                            {editingVisitTaskId !== task.id && (
+                              <>
+                                <button
+                                  onClick={() => handleStartEditVisitTask(task)}
+                                  className="p-1 text-muted hover:text-blue-400 flex-shrink-0"
+                                  title="Edit task"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleToggleBacklog(task)}
+                                  className="p-1 text-muted hover:text-green-400 flex-shrink-0"
+                                  title={t('moveToActive', 'Move to active')}
+                                >
+                                  <Inbox className="w-4 h-4" />
+                                </button>
+                                {!task.is_standard && (
+                                  <button
+                                    onClick={() => handleDeleteVisitTask(task.id)}
+                                    className="p-1 text-muted hover:text-red-400 flex-shrink-0"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </>
                             )}
                           </div>
                         ))}
