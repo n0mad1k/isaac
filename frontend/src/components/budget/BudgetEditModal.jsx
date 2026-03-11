@@ -5,11 +5,34 @@ const MONTH_ABBREVS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', '
 
 const BILLING_PRESETS = [
   { value: '', label: 'Every month' },
-  { value: '1,4,7,10', label: 'Quarterly (Jan, Apr, Jul, Oct)' },
+  { value: 'quarterly', label: 'Quarterly (every 3 months)' },
   { value: '4,5,6,7,8,9,10', label: 'Seasonal (Apr-Oct)' },
-  { value: '1,7', label: 'Twice a year (Jan, Jul)' },
+  { value: 'biannual', label: 'Twice a year (every 6 months)' },
   { value: 'custom', label: 'Custom months...' },
 ]
+
+const isQuarterlyPattern = (months) => {
+  if (!months || months.length !== 4) return false
+  const sorted = [...months].sort((a, b) => a - b)
+  return sorted.every((m, i) => i === 0 || ((m - sorted[i - 1] + 12) % 12 === 3) || (m - sorted[i - 1] === 3))
+}
+
+const isBiannualPattern = (months) => {
+  if (!months || months.length !== 2) return false
+  const sorted = [...months].sort((a, b) => a - b)
+  const gap = sorted[1] - sorted[0]
+  return gap === 6
+}
+
+const computeQuarterlyMonths = (startMonth) => {
+  const m = startMonth || (new Date().getMonth() + 1)
+  return [m, ((m + 2) % 12) + 1, ((m + 5) % 12) + 1, ((m + 8) % 12) + 1].sort((a, b) => a - b)
+}
+
+const computeBiannualMonths = (startMonth) => {
+  const m = startMonth || (new Date().getMonth() + 1)
+  return [m, ((m + 5) % 12) + 1].sort((a, b) => a - b)
+}
 
 function BudgetEditModal({ item, itemType, accounts, owners = [], onSave, onClose }) {
   // itemType: 'income' | 'category'
@@ -58,12 +81,19 @@ function BudgetEditModal({ item, itemType, accounts, owners = [], onSave, onClos
       if (!bm) {
         setBillingMode('')
       } else {
-        const preset = BILLING_PRESETS.find(p => p.value === bm)
-        if (preset) {
-          setBillingMode(bm)
+        const months = bm.split(',').map(m => parseInt(m.trim())).filter(n => !isNaN(n))
+        if (isQuarterlyPattern(months)) {
+          setBillingMode('quarterly')
+        } else if (isBiannualPattern(months)) {
+          setBillingMode('biannual')
         } else {
-          setBillingMode('custom')
-          setCustomMonths(bm.split(',').map(m => parseInt(m.trim())).filter(n => !isNaN(n)))
+          const preset = BILLING_PRESETS.find(p => p.value === bm)
+          if (preset) {
+            setBillingMode(bm)
+          } else {
+            setBillingMode('custom')
+            setCustomMonths(months)
+          }
         }
       }
     }
@@ -108,7 +138,19 @@ function BudgetEditModal({ item, itemType, accounts, owners = [], onSave, onClos
         }
 
         // Handle billing months
-        if (billingMode === 'custom') {
+        if (billingMode === 'quarterly') {
+          const startMonth = data.bill_day ? new Date().getMonth() + 1 : new Date().getMonth() + 1
+          // Preserve existing quarterly months if already set, otherwise compute from current month
+          const existingMonths = form.billing_months ? form.billing_months.split(',').map(m => parseInt(m.trim())).filter(n => !isNaN(n)) : []
+          data.billing_months = (existingMonths.length === 4 && isQuarterlyPattern(existingMonths))
+            ? existingMonths.join(',')
+            : computeQuarterlyMonths(startMonth).join(',')
+        } else if (billingMode === 'biannual') {
+          const existingMonths = form.billing_months ? form.billing_months.split(',').map(m => parseInt(m.trim())).filter(n => !isNaN(n)) : []
+          data.billing_months = (existingMonths.length === 2 && isBiannualPattern(existingMonths))
+            ? existingMonths.join(',')
+            : computeBiannualMonths(new Date().getMonth() + 1).join(',')
+        } else if (billingMode === 'custom') {
           data.billing_months = customMonths.length > 0 ? customMonths.join(',') : null
         } else if (billingMode) {
           data.billing_months = billingMode

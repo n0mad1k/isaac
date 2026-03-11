@@ -452,12 +452,26 @@ function BillsSummary() {
                 <option value="">Account...</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
-              <select value={newBillingMonths} onChange={(e) => setNewBillingMonths(e.target.value)}
+              <select value={newBillingMonths} onChange={(e) => {
+                  const v = e.target.value
+                  if (v === 'quarterly') {
+                    const m = currentMonth
+                    const months = [m, ((m + 2) % 12) + 1, ((m + 5) % 12) + 1, ((m + 8) % 12) + 1]
+                      .sort((a, b) => a - b).join(',')
+                    setNewBillingMonths(months)
+                  } else if (v === 'biannual') {
+                    const m = currentMonth
+                    const months = [m, ((m + 5) % 12) + 1].sort((a, b) => a - b).join(',')
+                    setNewBillingMonths(months)
+                  } else {
+                    setNewBillingMonths(v)
+                  }
+                }}
                 className="px-1 py-0.5 bg-surface border border rounded text-xs" style={{ color: 'var(--color-text-primary)' }}>
                 <option value="">Every month</option>
-                <option value="1,4,7,10">Quarterly</option>
+                <option value="quarterly">Quarterly</option>
                 <option value="4,5,6,7,8,9,10">Apr-Oct</option>
-                <option value="1,7">Twice/year</option>
+                <option value="biannual">Twice/year</option>
               </select>
               <input type="month" placeholder="End date" value={newEndDate} onChange={(e) => setNewEndDate(e.target.value)}
                 className="px-1 py-0.5 bg-surface border border rounded text-xs" style={{ color: 'var(--color-text-primary)' }}
