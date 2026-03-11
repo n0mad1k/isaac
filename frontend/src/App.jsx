@@ -25,6 +25,11 @@ const Login = lazy(() => import('./pages/Login'))
 const AcceptInvite = lazy(() => import('./pages/AcceptInvite'))
 const SetupWizard = lazy(() => import('./pages/SetupWizard'))
 
+// Auto-reload on stale chunk errors after deploy
+window.addEventListener('vite:preloadError', () => {
+  window.location.reload()
+})
+
 // Shared loading fallback shown while a page chunk is downloading
 function PageLoader() {
   return (
