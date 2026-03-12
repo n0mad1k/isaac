@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.6] - 2026-03-12
+
+### Fixed
+- **Kiosk user visit task completion** - Kiosk users (editor role with kiosk flag) were denied access when completing visit tasks because the endpoint required edit permission. Changed to interact permission, matching the existing complete_worker_task and complete_visit endpoints
+
 ## [1.90.5] - 2026-03-02
 
 ### Fixed
