@@ -1198,7 +1198,7 @@ async def update_visit_task(
     task_id: int,
     data: VisitTaskUpdate,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(require_edit("workers"))
+    user: User = Depends(require_interact("workers"))
 ):
     """Update a visit task (including marking complete)"""
     result = await db.execute(
