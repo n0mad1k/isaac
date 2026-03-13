@@ -164,9 +164,26 @@ else
 fi
 DEPS
 
-# Step 4: Sync files
+# Step 4: Set up git repo (before rsync so rsync overrides are preserved)
 echo ""
-echo "[Step 4/8] Syncing files to Pi..."
+echo "[Step 4/8] Setting up git repo for updates..."
+$SSH_CMD "$SSH_TARGET" "REMOTE_DIR=$REMOTE_DIR bash -s" << 'GITSETUP'
+cd "$REMOTE_DIR"
+if [ ! -d ".git" ]; then
+    echo "Initializing git repo..."
+    git init -b main
+    git remote add origin https://github.com/n0mad1k/isaac.git 2>/dev/null || true
+fi
+# Pull latest public repo as the base
+git fetch origin main
+git reset --hard origin/main
+git branch -M main
+echo "Git repo aligned to origin/main."
+GITSETUP
+
+# Step 5: Sync local overrides on top of public repo
+echo ""
+echo "[Step 5/8] Syncing files to Pi..."
 rsync -avz --delete \
     -e "ssh -i $SSH_KEY" \
     --exclude '__pycache__' \
@@ -193,32 +210,15 @@ rsync -avz \
     "$LOCAL_DIR/deploy/" \
     "$SSH_TARGET:$REMOTE_DIR/deploy/"
 
-# Sync VERSION and CHANGELOG for version tracking
 rsync -avz \
     -e "ssh -i $SSH_KEY" \
     "$LOCAL_DIR/VERSION" \
     "$LOCAL_DIR/CHANGELOG.md" \
     "$SSH_TARGET:$REMOTE_DIR/"
 
-# Initialize git repo for version checking and self-update
-echo "Setting up git repo for updates..."
-$SSH_CMD "$SSH_TARGET" "REMOTE_DIR=$REMOTE_DIR bash -s" << 'GITSETUP'
-cd "$REMOTE_DIR"
-if [ ! -d ".git" ]; then
-    echo "Initializing git repo for update tracking..."
-    git init
-    git remote add origin https://github.com/n0mad1k/isaac.git 2>/dev/null || true
-    git fetch origin main --depth=1
-    git reset origin/main
-    echo "Git repo initialized."
-else
-    echo "Git repo already exists."
-fi
-GITSETUP
-
 # Step 5: Python environment and frontend build
 echo ""
-echo "[Step 5/8] Setting up Python environment and building frontend..."
+echo "[Step 6/9] Setting up Python environment and building frontend..."
 $SSH_CMD "$SSH_TARGET" "REMOTE_DIR=$REMOTE_DIR bash -s" << 'BUILD'
 set -e
 cd "$REMOTE_DIR"
@@ -263,7 +263,7 @@ BUILD
 
 # Step 6: Systemd services
 echo ""
-echo "[Step 6/8] Setting up systemd services..."
+echo "[Step 7/9] Setting up systemd services..."
 $SSH_CMD "$SSH_TARGET" "REMOTE_DIR=$REMOTE_DIR PI_USER=$PI_USER bash -s" << 'SERVICES'
 set -e
 
@@ -303,7 +303,7 @@ SERVICES
 
 # Step 7: Nginx
 echo ""
-echo "[Step 7/8] Configuring Nginx..."
+echo "[Step 8/9] Configuring Nginx..."
 $SSH_CMD "$SSH_TARGET" "REMOTE_DIR=$REMOTE_DIR bash -s" << 'NGINX'
 set -e
 
@@ -355,7 +355,7 @@ NGINX
 
 # Step 8: Start backend
 echo ""
-echo "[Step 8/8] Starting Isaac backend..."
+echo "[Step 9/9] Starting Isaac backend..."
 $SSH_CMD "$SSH_TARGET" "sudo systemctl restart isaac-backend && sleep 2 && sudo systemctl status isaac-backend --no-pager"
 
 echo ""

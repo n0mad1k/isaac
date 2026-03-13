@@ -773,20 +773,48 @@ async def update_application(admin: User = Depends(require_admin)):
     }
 
     try:
-        # Pull latest changes
+        output_lines = []
+
+        # Fetch latest from remote
         result = subprocess.run(
-            ["git", "pull", "origin", "main"],
+            ["git", "fetch", "origin", "main"],
             capture_output=True, text=True, cwd=project_dir
         )
-        results["git_pull"] = result.stdout + result.stderr
+        output_lines.append(result.stdout + result.stderr)
 
-        if result.returncode == 0:
-            results["success"] = True
-            results["message"] = "Update successful. Restart the service to apply changes."
-        else:
-            results["message"] = f"Git pull failed: {result.stderr}"
+        if result.returncode != 0:
+            results["message"] = f"Git fetch failed: {result.stderr}"
+            return results
+
+        # Reset to origin/main (works regardless of local state)
+        result = subprocess.run(
+            ["git", "reset", "--hard", "origin/main"],
+            capture_output=True, text=True, cwd=project_dir
+        )
+        output_lines.append(result.stdout + result.stderr)
+
+        if result.returncode != 0:
+            results["message"] = f"Git reset failed: {result.stderr}"
+            return results
+
+        # Rebuild frontend
+        frontend_dir = os.path.join(project_dir, "frontend")
+        if os.path.isdir(frontend_dir):
+            result = subprocess.run(
+                ["npm", "run", "build"],
+                capture_output=True, text=True, cwd=frontend_dir
+            )
+            output_lines.append(result.stdout + result.stderr)
+            if result.returncode != 0:
+                results["git_pull"] = "\n".join(output_lines)
+                results["message"] = "Code updated but frontend build failed. Check logs."
+                return results
+
+        results["git_pull"] = "\n".join(output_lines)
+        results["success"] = True
+        results["message"] = "Update successful. Restart the service to apply changes."
     except Exception as e:
-        logger.error(f"Git update failed: {e}")
+        logger.error(f"Update failed: {e}")
         results["message"] = "Update failed. Check server logs for details."
 
     return results
