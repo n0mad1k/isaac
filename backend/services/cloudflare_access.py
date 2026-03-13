@@ -3,7 +3,7 @@ Cloudflare Access Service
 Manages user email access in Cloudflare Access policies
 """
 
-import aiohttp
+import httpx
 from loguru import logger
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,19 +42,18 @@ class CloudflareAccessService:
         """Get all policies for the configured application"""
         url = f"{self.BASE_URL}/accounts/{self.account_id}/access/apps/{self.app_id}/policies"
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=self.headers) as response:
-                if response.status != 200:
-                    error = await response.text()
-                    logger.error(f"Failed to get CF policies: {error}")
-                    return None
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=self.headers)
+            if response.status_code != 200:
+                logger.error(f"Failed to get CF policies: {response.text}")
+                return None
 
-                data = await response.json()
-                if not data.get("success"):
-                    logger.error(f"CF API error: {data.get('errors')}")
-                    return None
+            data = response.json()
+            if not data.get("success"):
+                logger.error(f"CF API error: {data.get('errors')}")
+                return None
 
-                return data.get("result", [])
+            return data.get("result", [])
 
     async def get_policy_emails(self, policy_id: str) -> Optional[List[str]]:
         """Get list of emails from a policy's include rules"""
@@ -144,22 +143,21 @@ class CloudflareAccessService:
             f"{self.BASE_URL}/accounts/{self.account_id}/access/policies/{policy_id}",
         ]
 
-        async with aiohttp.ClientSession() as session:
+        async with httpx.AsyncClient() as client:
             for url in endpoints:
-                async with session.put(url, headers=self.headers, json=update_data) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data.get("success"):
-                            logger.info(f"Added {email} to Cloudflare Access policy")
-                            return True
+                response = await client.put(url, headers=self.headers, json=update_data)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("success"):
+                        logger.info(f"Added {email} to Cloudflare Access policy")
+                        return True
 
-                    error = await response.text()
-                    # If it's a reusable policy error, try the next endpoint
-                    if "reusable policies" in error.lower():
-                        logger.debug(f"Policy is reusable, trying alternate endpoint")
-                        continue
+                error = response.text
+                if "reusable policies" in error.lower():
+                    logger.debug(f"Policy is reusable, trying alternate endpoint")
+                    continue
 
-                    logger.error(f"Failed to update CF policy: {error}")
+                logger.error(f"Failed to update CF policy: {error}")
 
             return False
 
@@ -231,22 +229,21 @@ class CloudflareAccessService:
             f"{self.BASE_URL}/accounts/{self.account_id}/access/policies/{policy_id}",
         ]
 
-        async with aiohttp.ClientSession() as session:
+        async with httpx.AsyncClient() as client:
             for url in endpoints:
-                async with session.put(url, headers=self.headers, json=update_data) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data.get("success"):
-                            logger.info(f"Removed {email} from Cloudflare Access policy")
-                            return True
+                response = await client.put(url, headers=self.headers, json=update_data)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("success"):
+                        logger.info(f"Removed {email} from Cloudflare Access policy")
+                        return True
 
-                    error = await response.text()
-                    # If it's a reusable policy error, try the next endpoint
-                    if "reusable policies" in error.lower():
-                        logger.debug(f"Policy is reusable, trying alternate endpoint")
-                        continue
+                error = response.text
+                if "reusable policies" in error.lower():
+                    logger.debug(f"Policy is reusable, trying alternate endpoint")
+                    continue
 
-                    logger.error(f"Failed to update CF policy: {error}")
+                logger.error(f"Failed to update CF policy: {error}")
 
             return False
 

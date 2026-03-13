@@ -4,7 +4,7 @@ Monitors system health and sends alerts when issues are detected.
 """
 
 import asyncio
-import aiohttp
+import httpx
 import psutil
 import os
 from datetime import datetime, timedelta
@@ -58,17 +58,15 @@ class HealthMonitor:
     async def check_api_health(self) -> HealthCheck:
         """Check if the API is responding"""
         try:
-            # Health monitoring runs on prod (port 8000)
             port = 8000
-            timeout = aiohttp.ClientTimeout(total=5)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 url = f"http://127.0.0.1:{port}/health"
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        return HealthCheck("api", HealthStatus.HEALTHY, f"API responding on port {port}")
-                    else:
-                        return HealthCheck("api", HealthStatus.WARNING, f"API returned status {response.status}")
-        except asyncio.TimeoutError:
+                response = await client.get(url)
+                if response.status_code == 200:
+                    return HealthCheck("api", HealthStatus.HEALTHY, f"API responding on port {port}")
+                else:
+                    return HealthCheck("api", HealthStatus.WARNING, f"API returned status {response.status_code}")
+        except httpx.TimeoutException:
             return HealthCheck("api", HealthStatus.CRITICAL, "API request timed out")
         except Exception as e:
             logger.error(f"API health check failed: {e}")
@@ -106,17 +104,14 @@ class HealthMonitor:
             return HealthCheck("caldav", HealthStatus.WARNING, "CalDAV enabled but not fully configured — set URL, username, and password in Settings")
 
         try:
-            timeout = aiohttp.ClientTimeout(total=10)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                # Try to reach radicale
-                check_url = url.rstrip('/') + '/'
-                auth = aiohttp.BasicAuth(username, password)
-                async with session.options(check_url, auth=auth, ssl=False) as response:
-                    if response.status in [200, 204, 207]:
-                        return HealthCheck("caldav", HealthStatus.HEALTHY, "CalDAV server responding")
-                    else:
-                        return HealthCheck("caldav", HealthStatus.WARNING, f"CalDAV returned status {response.status}")
-        except asyncio.TimeoutError:
+            check_url = url.rstrip('/') + '/'
+            async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
+                response = await client.options(check_url, auth=(username, password))
+                if response.status_code in [200, 204, 207]:
+                    return HealthCheck("caldav", HealthStatus.HEALTHY, "CalDAV server responding")
+                else:
+                    return HealthCheck("caldav", HealthStatus.WARNING, f"CalDAV returned status {response.status_code}")
+        except httpx.TimeoutException:
             return HealthCheck("caldav", HealthStatus.WARNING, "CalDAV request timed out")
         except Exception as e:
             return HealthCheck("caldav", HealthStatus.WARNING, f"CalDAV error: {type(e).__name__}")
