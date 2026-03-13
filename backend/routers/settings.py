@@ -641,7 +641,7 @@ async def get_version_info(user: User = Depends(require_auth)):
     import os
 
     # Read version from VERSION file
-    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "VERSION")
+    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "VERSION")
     current_version = "unknown"
     try:
         with open(version_file, "r") as f:
@@ -650,7 +650,7 @@ async def get_version_info(user: User = Depends(require_auth)):
         pass
 
     # Read changelog
-    changelog_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "CHANGELOG.md")
+    changelog_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "CHANGELOG.md")
     changelog = ""
     recent_changes = []
     try:
@@ -763,7 +763,7 @@ async def update_application(admin: User = Depends(require_admin)):
     import subprocess
     import os
 
-    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "VERSION")
+    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "VERSION")
     project_dir = os.path.dirname(version_file)
 
     results = {
@@ -1173,7 +1173,7 @@ async def get_recent_commits(user: User = Depends(require_auth)):
     import subprocess
     import os
 
-    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "VERSION")
+    version_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "VERSION")
     project_dir = os.path.dirname(version_file)
 
     commits = []

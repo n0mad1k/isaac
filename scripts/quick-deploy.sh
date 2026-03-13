@@ -278,7 +278,7 @@ Type=simple
 User=$PI_USER
 Group=$PI_USER
 WorkingDirectory=$REMOTE_DIR/backend
-Environment="PATH=$REMOTE_DIR/backend/venv/bin"
+Environment="PATH=$REMOTE_DIR/backend/venv/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=$REMOTE_DIR/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=10
