@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search, Upload, Image, Bot } from 'lucide-react'
+import { Settings as SettingsIcon, Save, RotateCcw, Mail, Thermometer, RefreshCw, Send, Calendar, Bell, PawPrint, Leaf, Wrench, Clock, Eye, EyeOff, Book, Users, UserPlus, Shield, Trash2, ToggleLeft, ToggleRight, Edit2, Key, X, Check, ShieldCheck, ChevronDown, ChevronRight, Plus, MapPin, Cloud, Server, HardDrive, AlertTriangle, MessageSquare, ExternalLink, Sun, Moon, Languages, UsersRound, Target, FileText, Search, Upload, Image, Bot, Download } from 'lucide-react'
 import { getSettings, updateSetting, resetSetting, resetAllSettings, testColdProtectionEmail, testCalendarSync, testDailyDigest, testGearAlerts, testTrainingAlerts, testMedicalAlerts, testTeamAlertsDigest, testMonthlyPlantingDigest, getUsers, createUser, updateUser, updateUserRole, toggleUserStatus, deleteUser, resetUserPassword, inviteUser, resendInvite, getRoles, createRole, updateRole, deleteRole, getPermissionCategories, getStorageStats, clearLogs, getVersionInfo, updateApplication, pushToProduction, pullFromProduction, checkFeedbackEnabled, getMyFeedback, updateMyFeedback, deleteMyFeedback, submitFeedback, getLogFiles, getAppLogs, clearAppLogs, uploadTeamLogo, runHealthCheck, getHealthLogs, getHealthSummary, clearHealthLogs, getAllInsights, createInsight, updateInsight, deleteInsight, regenerateInsights } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import MottoDisplay from '../components/MottoDisplay'
@@ -3760,25 +3760,33 @@ function Settings() {
                 )}
               </div>
 
-              {/* Update Button */}
+              {/* Update Buttons */}
               <div className="flex flex-col items-end gap-2">
                 {versionInfo.git?.has_updates && (
                   <span className="px-2 py-1 bg-green-600/30 text-green-400 text-xs rounded-full">
                     {versionInfo.git.commits_behind} update{versionInfo.git.commits_behind > 1 ? 's' : ''} available
                   </span>
                 )}
-                <button
-                  onClick={handleUpdate}
-                  disabled={updating || !versionInfo.git?.has_updates}
-                  className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                    versionInfo.git?.has_updates
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-surface-soft text-muted cursor-not-allowed'
-                  }`}
-                >
-                  <RefreshCw className={`w-4 h-4 ${updating ? 'animate-spin' : ''}`} />
-                  {updating ? 'Updating...' : versionInfo.git?.has_updates ? 'Update Now' : 'Up to Date'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchVersionInfo}
+                    disabled={loadingVersion}
+                    className="px-3 py-2 rounded-lg flex items-center gap-2 bg-surface-soft hover:bg-surface-soft/80 text-secondary"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loadingVersion ? 'animate-spin' : ''}`} />
+                    {loadingVersion ? 'Checking...' : 'Check for Updates'}
+                  </button>
+                  {versionInfo.git?.has_updates && (
+                    <button
+                      onClick={handleUpdate}
+                      disabled={updating}
+                      className="px-4 py-2 rounded-lg flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Download className={`w-4 h-4 ${updating ? 'animate-spin' : ''}`} />
+                      {updating ? 'Updating...' : 'Update Now'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
