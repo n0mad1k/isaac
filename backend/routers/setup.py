@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 import os
 import logging
 import subprocess
@@ -232,7 +232,7 @@ async def complete_setup_wizard(
 
         # 3. Create admin user
         result = await db.execute(
-            select(User).where(User.username == config.admin_username)
+            select(User).where(func.lower(User.username) == config.admin_username.lower())
         )
         existing_user = result.scalar_one_or_none()
 
@@ -249,7 +249,7 @@ async def complete_setup_wizard(
         else:
             # Delete any existing admin user first
             result = await db.execute(
-                select(User).where(User.username == "admin")
+                select(User).where(func.lower(User.username) == "admin")
             )
             old_admin = result.scalar_one_or_none()
             if old_admin:

@@ -13,7 +13,7 @@ import pytz
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from pydantic import BaseModel, Field, EmailStr, validator
 from loguru import logger
 from passlib.context import CryptContext
@@ -206,10 +206,9 @@ async def is_account_locked(username: str, db: AsyncSession) -> tuple[bool, int]
     cutoff = now - timedelta(minutes=LOCKOUT_DURATION_MINUTES)
 
     # Count recent attempts from database
-    from sqlalchemy import func
     result = await db.execute(
         select(func.count(LoginAttempt.id)).where(
-            LoginAttempt.username == username,
+            func.lower(LoginAttempt.username) == username.lower(),
             LoginAttempt.timestamp > cutoff
         )
     )
@@ -219,7 +218,7 @@ async def is_account_locked(username: str, db: AsyncSession) -> tuple[bool, int]
         # Get oldest attempt to calculate unlock time
         result = await db.execute(
             select(LoginAttempt.timestamp).where(
-                LoginAttempt.username == username,
+                func.lower(LoginAttempt.username) == username.lower(),
                 LoginAttempt.timestamp > cutoff
             ).order_by(LoginAttempt.timestamp.asc()).limit(1)
         )
@@ -234,16 +233,15 @@ async def is_account_locked(username: str, db: AsyncSession) -> tuple[bool, int]
 
 async def record_failed_attempt(username: str, ip: str, db: AsyncSession) -> None:
     """Record a failed login attempt to database."""
-    attempt = LoginAttempt(username=username, ip_address=ip, timestamp=get_now())
+    attempt = LoginAttempt(username=username.lower(), ip_address=ip, timestamp=get_now())
     db.add(attempt)
     await db.commit()
 
     # Count for logging
-    from sqlalchemy import func
     cutoff = get_now() - timedelta(minutes=LOCKOUT_DURATION_MINUTES)
     result = await db.execute(
         select(func.count(LoginAttempt.id)).where(
-            LoginAttempt.username == username,
+            func.lower(LoginAttempt.username) == username.lower(),
             LoginAttempt.timestamp > cutoff
         )
     )
@@ -254,7 +252,7 @@ async def record_failed_attempt(username: str, ip: str, db: AsyncSession) -> Non
 async def clear_failed_attempts(username: str, db: AsyncSession) -> None:
     """Clear failed login attempts after successful login."""
     await db.execute(
-        delete(LoginAttempt).where(LoginAttempt.username == username)
+        delete(LoginAttempt).where(func.lower(LoginAttempt.username) == username.lower())
     )
     await db.commit()
 
@@ -374,9 +372,9 @@ async def login(
             detail=f"Account temporarily locked due to too many failed attempts. Try again in {remaining_minutes} minute(s)."
         )
 
-    # Find user
+    # Find user (case-insensitive)
     result = await db.execute(
-        select(User).where(User.username == data.username)
+        select(User).where(func.lower(User.username) == data.username.lower())
     )
     user = result.scalar_one_or_none()
 
@@ -645,9 +643,9 @@ async def create_user(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new user (admin only)"""
-    # Check for existing username
+    # Check for existing username (case-insensitive)
     result = await db.execute(
-        select(User).where(User.username == data.username)
+        select(User).where(func.lower(User.username) == data.username.lower())
     )
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -824,9 +822,9 @@ async def update_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     # Update username if provided
-    if data.username is not None and data.username != user.username:
+    if data.username is not None and data.username.lower() != user.username.lower():
         existing = await db.execute(
-            select(User).where(User.username == data.username, User.id != user_id)
+            select(User).where(func.lower(User.username) == data.username.lower(), User.id != user_id)
         )
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Username already exists")
@@ -1553,9 +1551,9 @@ async def accept_invitation(
     if user.is_active:
         raise HTTPException(status_code=400, detail="Invitation already accepted")
 
-    # Check if username is already taken
+    # Check if username is already taken (case-insensitive)
     result = await db.execute(
-        select(User).where(User.username == accept_request.username)
+        select(User).where(func.lower(User.username) == accept_request.username.lower())
     )
     existing = result.scalar_one_or_none()
     if existing and existing.id != user.id:

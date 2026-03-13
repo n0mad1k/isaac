@@ -59,6 +59,9 @@ async def check_permission(
     action: str
 ) -> bool:
     """Check if user has a specific permission."""
+    # Admins always have full access
+    if user.role.value == "admin":
+        return True
     permissions = await get_user_permissions(user, db)
     return has_permission(permissions, category, action)
 

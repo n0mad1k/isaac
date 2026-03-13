@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.7] - 2026-03-13
+
+### Fixed
+- **Case-insensitive login** - Username login is now case-insensitive (e.g. "john" and "John" both work). Applied to login, user creation, user update, and invitation acceptance
+- **Admin permission bypass** - Admin users now bypass all permission checks, fixing 403 errors on newer modules (garden, team) that weren't in the original permissions list
+- **Default permissions updated** - Added team and garden categories to all default role permissions
+
 ## [1.90.6] - 2026-03-12
 
 ### Fixed

@@ -76,6 +76,8 @@ DEFAULT_PERMISSIONS = {
         "production": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
         "workers": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
         "budget": {"view": True, "create": True, "edit": True, "delete": True},
+        "team": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
+        "garden": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
     },
     "editor": {
         "users": {"view": False, "create": False, "edit": False, "delete": False},
@@ -94,6 +96,8 @@ DEFAULT_PERMISSIONS = {
         "production": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
         "workers": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
         "budget": {"view": True, "create": True, "edit": True, "delete": True},
+        "team": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
+        "garden": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
     },
     "viewer": {
         # Viewer: can see everything except settings, users, roles - read-only access
@@ -113,6 +117,8 @@ DEFAULT_PERMISSIONS = {
         "production": {"view": True, "create": False, "interact": False, "edit": False, "delete": False},
         "workers": {"view": True, "create": False, "interact": False, "edit": False, "delete": False},
         "budget": {"view": True, "create": False, "edit": False, "delete": False},
+        "team": {"view": True, "create": False, "interact": False, "edit": False, "delete": False},
+        "garden": {"view": True, "create": False, "interact": False, "edit": False, "delete": False},
     },
     "kiosk": {
         # Kiosk users: passwordless login for kitchen display, full access like editor
@@ -132,6 +138,8 @@ DEFAULT_PERMISSIONS = {
         "production": {"view": True, "create": True, "edit": True, "delete": True},
         "workers": {"view": True, "create": True, "interact": True, "edit": False, "delete": False},
         "budget": {"view": True, "create": True, "edit": True, "delete": True},
+        "team": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
+        "garden": {"view": True, "create": True, "interact": True, "edit": True, "delete": True},
     },
     "farmhand": {
         # Farmhand users: only see tasks marked visible_to_farmhands, can interact
