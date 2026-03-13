@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.9] - 2026-03-13
+
+### Changed
+- **Check for Updates button** - Version & Updates page now has a dedicated "Check for Updates" button instead of only checking on page load
+
 ## [1.90.8] - 2026-03-13
 
 ### Fixed
