@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.10] - 2026-03-13
+
+### Fixed
+- **Version check and self-update** - Fixed systemd PATH so git and npm are available to the backend, enabling update checks and self-update to work correctly
+
 ## [1.90.9] - 2026-03-13
 
 ### Changed
