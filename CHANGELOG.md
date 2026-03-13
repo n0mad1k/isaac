@@ -2,6 +2,11 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.11] - 2026-03-13
+
+### Changed
+- **Auto-reload after update** - Browser now automatically refreshes after a successful update so you see the new version immediately
+
 ## [1.90.10] - 2026-03-13
 
 ### Fixed
