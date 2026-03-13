@@ -3741,27 +3741,6 @@ function Settings() {
           <div className="text-muted">Loading version info...</div>
         ) : versionInfo ? (
           <div className="space-y-4">
-            {/* Environment Switcher */}
-            <div className="flex items-center justify-between p-3 bg-surface-soft/50 rounded-lg mb-4">
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${versionInfo.is_dev_instance ? 'bg-orange-600/30 text-orange-400' : 'bg-green-600/30 text-green-400'}`}>
-                  {versionInfo.is_dev_instance ? 'DEV' : 'PROD'}
-                </span>
-                <span className="text-sm text-muted">
-                  {versionInfo.is_dev_instance ? 'Development Instance' : 'Production Instance'}
-                </span>
-              </div>
-              <a
-                href={versionInfo.is_dev_instance ? 'https://isaac.local' : 'https://isaac.local:8443'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-farm-green hover:text-green-400 flex items-center gap-1"
-              >
-                <Server className="w-4 h-4" />
-                Switch to {versionInfo.is_dev_instance ? 'Production' : 'Dev'}
-              </a>
-            </div>
-
             {/* Current Version */}
             <div className="flex items-center justify-between">
               <div>
