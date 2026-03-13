@@ -2,6 +2,13 @@
 
 All notable changes to Isaac will be documented in this file.
 
+## [1.90.8] - 2026-03-13
+
+### Fixed
+- **Self-update system** - Update button now works reliably on fresh installs
+- **aiohttp dependency removed** - Health monitor and Cloudflare services no longer require aiohttp (uses httpx)
+- **Deploy script improvements** - quick-deploy.sh is now fully dynamic with CLI args and auto-installs all dependencies
+
 ## [1.90.7] - 2026-03-13
 
 ### Fixed
