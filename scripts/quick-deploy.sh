@@ -193,6 +193,29 @@ rsync -avz \
     "$LOCAL_DIR/deploy/" \
     "$SSH_TARGET:$REMOTE_DIR/deploy/"
 
+# Sync VERSION and CHANGELOG for version tracking
+rsync -avz \
+    -e "ssh -i $SSH_KEY" \
+    "$LOCAL_DIR/VERSION" \
+    "$LOCAL_DIR/CHANGELOG.md" \
+    "$SSH_TARGET:$REMOTE_DIR/"
+
+# Initialize git repo for version checking and self-update
+echo "Setting up git repo for updates..."
+$SSH_CMD "$SSH_TARGET" "REMOTE_DIR=$REMOTE_DIR bash -s" << 'GITSETUP'
+cd "$REMOTE_DIR"
+if [ ! -d ".git" ]; then
+    echo "Initializing git repo for update tracking..."
+    git init
+    git remote add origin https://github.com/n0mad1k/isaac.git 2>/dev/null || true
+    git fetch origin main --depth=1
+    git reset origin/main
+    echo "Git repo initialized."
+else
+    echo "Git repo already exists."
+fi
+GITSETUP
+
 # Step 5: Python environment and frontend build
 echo ""
 echo "[Step 5/8] Setting up Python environment and building frontend..."
