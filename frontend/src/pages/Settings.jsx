@@ -339,8 +339,8 @@ function Settings() {
     try {
       const response = await updateApplication()
       if (response.data.success) {
-        setMessage({ type: 'success', text: response.data.message })
-        fetchVersionInfo() // Refresh version info
+        setMessage({ type: 'success', text: 'Update complete! Reloading...' })
+        setTimeout(() => window.location.reload(), 2000)
       } else {
         setMessage({ type: 'error', text: response.data.message || 'Update failed' })
       }
