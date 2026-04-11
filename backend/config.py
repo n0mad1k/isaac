@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "Isaac"
     app_version: str = Field(default_factory=get_version)
-    debug: bool = False
+    debug: bool = True
     is_dev_instance: bool = False  # Set to True for dev environment
 
     # Database (using levi.db for backwards compatibility)
@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     awn_api_key: Optional[str] = Field(default=None, description="Ambient Weather API Key")
     awn_app_key: Optional[str] = Field(default=None, description="Ambient Weather Application Key")
     weather_poll_interval: int = 300  # seconds (5 minutes)
+    forecast_provider: str = "nws"
 
     # Email Settings (Protonmail)
     smtp_host: str = "smtp.protonmail.ch"

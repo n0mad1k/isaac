@@ -62,3 +62,5 @@ deploy/isaac-kiosk.service
 # Keep the .example templates
 !*.example
 .claude/
+# gerg58 added syncthing exclusion
+.stfolder/

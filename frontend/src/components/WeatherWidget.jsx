@@ -12,7 +12,7 @@ import {
   CloudLightning,
   Clock,
 } from 'lucide-react'
-import { getWeatherForecast, getRainForecast } from '../services/api'
+import { getWeatherForecast, getRainForecast, getSettings } from '../services/api'
 import { useSettings } from '../contexts/SettingsContext'
 
 function WeatherWidget({ weather, className = '' }) {
@@ -20,16 +20,22 @@ function WeatherWidget({ weather, className = '' }) {
   const [forecast, setForecast] = useState(null)
   const [forecastLoading, setForecastLoading] = useState(true)
   const [rainForecast, setRainForecast] = useState(null)
+  const [unitSystem, setUnitSystem] = useState('us')
+  const [windDirStyle, setWindDirStyle] = useState('compass')
 
   useEffect(() => {
     const fetchForecast = async () => {
       try {
-        const [forecastRes, rainRes] = await Promise.all([
+        const [forecastRes, rainRes, settingsRes] = await Promise.all([
           getWeatherForecast(),
-          getRainForecast()
+          getRainForecast(),
+          getSettings()
         ])
         setForecast(forecastRes.data.forecast)
         setRainForecast(rainRes.data)
+        const s = settingsRes.data?.settings || {}
+        setUnitSystem(s.weather_units?.value === 'metric' ? 'metric' : 'us')
+        setWindDirStyle(s.wind_direction_style?.value === 'degrees' ? 'degrees' : 'compass')
       } catch (error) {
         console.error('Failed to fetch forecast:', error)
       } finally {
@@ -54,9 +60,32 @@ function WeatherWidget({ weather, className = '' }) {
     )
   }
 
+  // isMetric is sourced from the fetched settings (unitSystem state),
+  // not from weather.units which is not reliably present in the prop.
+  const isMetric = unitSystem === 'metric'
+
+  // Unit-aware thresholds
+  const RAIN_THRESHOLD      = isMetric ? 2.5 : 0.1   // 0.1 in ≈ 2.5 mm
+  const TEMP_EXTREME_HEAT   = isMetric ? 35  : 95
+  const TEMP_HOT            = isMetric ? 32  : 90
+  const TEMP_WARM           = isMetric ? 27  : 80
+  const TEMP_FREEZING       = isMetric ? 0   : 32
+  const TEMP_COLD           = isMetric ? 7   : 45
+  const TEMP_COOL           = isMetric ? 13  : 55
+  const COLOR_VERY_HOT      = isMetric ? 32  : 90
+  const COLOR_HOT           = isMetric ? 21  : 70
+  const COLOR_MILD          = isMetric ? 13  : 55
+  const COLOR_COOL          = isMetric ? 7   : 45
+  const COLOR_COLD          = isMetric ? 2   : 35
+  const COLOR_NEAR_FREEZE   = isMetric ? 0   : 32
+  // Display labels
+  const windUnit            = isMetric ? 'km/h' : 'mph'
+  const rainUnit            = isMetric ? 'mm'   : 'in'
+  const rainDecimals        = isMetric ? 1      : 2
+
   const getWeatherIcon = () => {
     const iconColor = 'var(--color-text-secondary)'
-    if (weather.rain_rate > 0 || weather.rain_today >= 0.1) {
+    if (weather.rain_rate > 0 || weather.rain_today >= RAIN_THRESHOLD) {
       return <CloudRain className="w-16 h-16" style={{ color: iconColor }} />
     }
     if (weather.humidity > 80) {
@@ -68,15 +97,15 @@ function WeatherWidget({ weather, className = '' }) {
   const getConditionText = () => {
     // "Raining" = actively raining right now
     if (weather.rain_rate > 0) return 'Raining'
-    // "Rainy" = significant rain today (> 0.1")
-    if (weather.rain_today >= 0.1) return 'Rainy'
+    // "Rainy" = significant rain today
+    if (weather.rain_today >= RAIN_THRESHOLD) return 'Rainy'
     if (weather.humidity > 80) return 'Cloudy'
-    if (weather.temperature > 95) return 'Extreme Heat'
-    if (weather.temperature > 90) return 'Hot'
-    if (weather.temperature > 80) return 'Warm'
-    if (weather.temperature < 32) return 'Freezing'
-    if (weather.temperature < 45) return 'Cold'
-    if (weather.temperature < 55) return 'Cool'
+    if (weather.temperature > TEMP_EXTREME_HEAT) return 'Extreme Heat'
+    if (weather.temperature > TEMP_HOT) return 'Hot'
+    if (weather.temperature > TEMP_WARM) return 'Warm'
+    if (weather.temperature < TEMP_FREEZING) return 'Freezing'
+    if (weather.temperature < TEMP_COLD) return 'Cold'
+    if (weather.temperature < TEMP_COOL) return 'Cool'
     return 'Clear'
   }
 
@@ -85,13 +114,13 @@ function WeatherWidget({ weather, className = '' }) {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
     if (!isDark) return 'var(--color-text-primary)'
     // Colors only for dark mode
-    if (temp >= 90) return '#dc2626'  // red-600 - very hot
-    if (temp >= 70) return '#ef4444'  // red-500 - warm/hot
-    if (temp >= 55) return '#f97316'  // orange-500 - mild
-    if (temp >= 45) return '#67e8f9'  // cyan-300 - cool
-    if (temp >= 35) return '#22d3ee'  // cyan-400 - cold
-    if (temp >= 32) return '#38bdf8'  // sky-400 - near freezing
-    return '#3b82f6'                   // blue-500 - freezing
+    if (temp >= COLOR_VERY_HOT)    return '#dc2626'  // red-600 - very hot
+    if (temp >= COLOR_HOT)         return '#ef4444'  // red-500 - warm/hot
+    if (temp >= COLOR_MILD)        return '#f97316'  // orange-500 - mild
+    if (temp >= COLOR_COOL)        return '#67e8f9'  // cyan-300 - cool
+    if (temp >= COLOR_COLD)        return '#22d3ee'  // cyan-400 - cold
+    if (temp >= COLOR_NEAR_FREEZE) return '#38bdf8'  // sky-400 - near freezing
+    return '#3b82f6'                                  // blue-500 - freezing
   }
 
   // Static background color
@@ -132,7 +161,7 @@ function WeatherWidget({ weather, className = '' }) {
           <div className="scale-75 origin-left">{getWeatherIcon()}</div>
           <div>
             <div className="text-4xl font-bold" style={{ color: getTempColor(weather.temperature) }}>
-              {Math.round(weather.temperature)}°
+              {Math.round(weather.temperature)}°{isMetric ? 'C' : 'F'}
             </div>
             <div className="text-sm" style={{ color: 'var(--color-text-primary)' }}>{getConditionText()}</div>
           </div>
@@ -143,13 +172,13 @@ function WeatherWidget({ weather, className = '' }) {
           <div className="flex items-center gap-1">
             <TrendingUp className="w-3 h-3" style={{ color: 'var(--color-error-600)' }} />
             <span className="font-semibold" style={{ color: 'var(--color-error-600)' }}>
-              {weather.temp_high_today ? Math.round(weather.temp_high_today) : '--'}°
+              {weather.temp_high_today ? Math.round(weather.temp_high_today) : '--'}°{isMetric ? 'C' : 'F'}
             </span>
           </div>
           <div className="flex items-center gap-1">
             <TrendingDown className="w-3 h-3" style={{ color: 'var(--color-teal-600)' }} />
             <span className="font-semibold" style={{ color: 'var(--color-teal-600)' }}>
-              {weather.temp_low_today ? Math.round(weather.temp_low_today) : '--'}°
+              {weather.temp_low_today ? Math.round(weather.temp_low_today) : '--'}°{isMetric ? 'C' : 'F'}
             </span>
           </div>
           {/* Rain Forecast Indicator */}
@@ -183,7 +212,7 @@ function WeatherWidget({ weather, className = '' }) {
         <div className="flex items-center gap-1.5">
           <Thermometer className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-text-secondary)' }} />
           <span style={{ color: 'var(--color-text-primary)' }}>Feels</span>
-          <span className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{Math.round(weather.feels_like)}°</span>
+          <span className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{Math.round(weather.feels_like)}°{isMetric ? 'C' : 'F'}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Droplets className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-teal-600)' }} />
@@ -193,12 +222,17 @@ function WeatherWidget({ weather, className = '' }) {
         <div className="flex items-center gap-1.5">
           <Wind className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-text-secondary)' }} />
           <span style={{ color: 'var(--color-text-primary)' }}>Wind</span>
-          <span className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{Math.round(weather.wind_speed)} {weather.wind_direction}</span>
+          <span className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
+            {Math.round(weather.wind_speed)} {isMetric ? 'km/h' : 'mph'}{' '}
+            {windDirStyle === 'degrees' && weather.wind_direction_degrees != null
+              ? `${weather.wind_direction_degrees}°`
+              : weather.wind_direction}
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
           <CloudRain className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-teal-600)' }} />
           <span style={{ color: 'var(--color-text-primary)' }}>Rain</span>
-          <span className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{weather.rain_today?.toFixed(2) || '0'}"</span>
+          <span className="font-semibold" style={{ color: 'var(--color-text-secondary)' }}>{weather.rain_today != null ? weather.rain_today.toFixed(rainDecimals) : '0'} {rainUnit}</span>
         </div>
       </div>
 
@@ -232,10 +266,10 @@ function WeatherWidget({ weather, className = '' }) {
                 </div>
                 <div className="flex justify-center gap-1 text-sm">
                   {day.high && (
-                    <span className="font-semibold" style={{ color: 'var(--color-error-600)' }}>{day.high}°</span>
+                    <span className="font-semibold" style={{ color: 'var(--color-error-600)' }}>{day.high}°{isMetric ? 'C' : 'F'}</span>
                   )}
                   {day.low && (
-                    <span style={{ color: 'var(--color-teal-600)' }}>{day.low}°</span>
+                    <span style={{ color: 'var(--color-teal-600)' }}>{day.low}°{isMetric ? 'C' : 'F'}</span>
                   )}
                 </div>
                 <div className="text-[10px] leading-tight line-clamp-2 mt-1"

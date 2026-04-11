@@ -111,7 +111,11 @@ DEFAULT_SETTINGS = {
         "value": "",
         "description": "Mission statement or motto displayed on each page"
     },
-
+    "wind_direction_style": {
+        "value": "compass",
+        "description": "Wind direction display: compass (N, NNE…) or degrees (0–360°)"
+    },
+    
     # Calendar sync settings
     "calendar_enabled": {
         "value": "false",
@@ -275,6 +279,14 @@ DEFAULT_SETTINGS = {
     "awn_soil_moisture_threshold": {
         "value": "50",
         "description": "Soil moisture percentage above which to skip watering (0-100)"
+    },
+    "forecast_provider": {
+        "value": "nws",
+        "description": "Forecast provider: nws (US only) or open_meteo (global)"
+    },
+    "weather_units": {
+        "value": "us",
+        "description": "Unit system for weather display: us (°F, mph, inHg, in) or metric (°C, km/h, hPa, mm)"
     },
 
     # === Farm/Business Settings ===
@@ -1698,7 +1710,8 @@ async def test_cold_protection_email(db: AsyncSession = Depends(get_db), admin: 
     buffer_degrees = int(buffer_value) if buffer_value else 7
 
     # Get forecast
-    forecast_service = NWSForecastService()
+    #forecast_service = NWSForecastService()
+    forecast_service: Union[NWSForecastService, OpenMeteoForecastService] = Depends(get_forecast_service),
     forecast = await forecast_service.get_forecast_simple()
     forecast_low = None
     if forecast:
