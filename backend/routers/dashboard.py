@@ -6,7 +6,7 @@ Consolidated data for the dashboard view
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, or_, and_
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import datetime, date, timedelta
 from pydantic import BaseModel
 import httpx
@@ -25,14 +25,14 @@ from models.home_maintenance import HomeMaintenance
 from models.users import User
 from models.settings import AppSetting
 from models.team import TeamMember
-from services.weather import WeatherService, NWSForecastService
+from services.weather import WeatherService, NWSForecastService, OpenMeteoForecastService
 from services.scheduler import get_sun_moon_data
 from routers.auth import get_current_user, require_auth, require_admin
+from routers.weather import get_forecast_service
 
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 weather_service = WeatherService()
-forecast_service = NWSForecastService()
 
 
 # Response Schemas
@@ -41,7 +41,8 @@ class DashboardWeather(BaseModel):
     feels_like: Optional[float]
     humidity: Optional[int]
     wind_speed: Optional[float]
-    wind_direction: Optional[str]
+    wind_direction: Optional[str]        # compass string e.g. "NNE"
+    wind_direction_degrees: Optional[int] = None  # raw degrees e.g. 247
     rain_today: Optional[float]
     uv_index: Optional[int]
     reading_time: Optional[str]
@@ -122,7 +123,8 @@ class DashboardResponse(BaseModel):
 @router.get("/", response_model=DashboardResponse)
 async def get_dashboard(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_auth)
+    current_user: User = Depends(require_auth),
+    forecast_service: Union[NWSForecastService, OpenMeteoForecastService] = Depends(get_forecast_service)
 ):
     """Get all dashboard data in a single request.
     For farm hand users: filters tasks to only show those marked visible_to_farmhands,
@@ -157,6 +159,7 @@ async def get_dashboard(
             humidity=summary["humidity"],
             wind_speed=summary["wind_speed"],
             wind_direction=summary["wind_direction"],
+            wind_direction_degrees=summary.get("wind_direction_degrees"),
             rain_today=summary["rain_today"],
             uv_index=summary["uv_index"],
             reading_time=summary["reading_time"],
@@ -164,16 +167,34 @@ async def get_dashboard(
             temp_low_today=temp_low,
         )
     else:
-        # Fallback to NWS observation if no stored readings
-        nws_forecast_service = NWSForecastService()
-        nws_obs = await nws_forecast_service.get_current_observation()
+        # Fallback to NWS/open_meteo observation if no stored readings
+        nws_obs = await forecast_service.get_current_observation()
         if nws_obs:
+            # Convert raw wind direction degrees to compass string
+            _obs_wind_deg = nws_obs.get("wind_direction")
+            if _obs_wind_deg is not None:
+                try:
+                    _deg_int = int(float(_obs_wind_deg))
+                    _compass_pts = [
+                        "N","NNE","NE","ENE","E","ESE","SE","SSE",
+                        "S","SSW","SW","WSW","W","WNW","NW","NNW"
+                    ]
+                    _obs_wind_compass = _compass_pts[round(_deg_int / 22.5) % 16]
+                except (ValueError, TypeError):
+                    logger.warning(f"Dashboard: unparseable wind_direction value from observation")
+                    _obs_wind_compass = None
+                    _deg_int = None
+            else:
+                _obs_wind_compass = None
+                _deg_int = None
+
             weather_data = DashboardWeather(
                 temperature=nws_obs.get("temp_outdoor"),
                 feels_like=nws_obs.get("temp_outdoor"),
                 humidity=int(nws_obs.get("humidity_outdoor")) if nws_obs.get("humidity_outdoor") else None,
                 wind_speed=nws_obs.get("wind_speed"),
-                wind_direction=str(nws_obs.get("wind_direction")) if nws_obs.get("wind_direction") else None,
+                wind_direction=_obs_wind_compass,
+                wind_direction_degrees=_deg_int,
                 rain_today=None,
                 uv_index=None,
                 reading_time=nws_obs.get("timestamp"),
@@ -1461,7 +1482,11 @@ async def get_calendar_week(
 
 
 @router.get("/cold-protection/")
-async def get_cold_protection_needed(db: AsyncSession = Depends(get_db), user: User = Depends(require_auth)):
+async def get_cold_protection_needed(
+    db: AsyncSession = Depends(get_db), 
+    user: User = Depends(require_auth),
+    forecast_service: Union[NWSForecastService, OpenMeteoForecastService] = Depends(get_forecast_service)
+    ):
     """
     Get plants that need cold protection based on today's forecast low temperature.
     Only returns data if there are plants that need protection.
@@ -1493,7 +1518,8 @@ async def get_cold_protection_needed(db: AsyncSession = Depends(get_db), user: U
             logger.error(f"Cold protection invalid timezone '{tz_name}', falling back to America/New_York: {e}")
             app_tz = pytz.timezone("America/New_York")
 
-        now = datetime.now(app_tz)
+        # now = datetime.now(app_tz)
+        now = datetime.now(timezone.utc)
 
         # Find the next nighttime period that hasn't ended yet
         for period in forecast:
@@ -1501,10 +1527,15 @@ async def get_cold_protection_needed(db: AsyncSession = Depends(get_db), user: U
                 # This is a night period - check if it's still upcoming or current
                 end_time_str = period.get("end_time")
                 if end_time_str:
+                    logger.debug(f"Inside night period tz_name is {tz_name} end_time_str is {end_time_str}")
                     try:
                         # Parse ISO format with timezone
                         end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
-                        # Only use this period if it ends more than 2 hours from now
+                        # If for some reason it's still naive, force UTC
+                        if end_time.tzinfo is None:
+                            end_time = end_time.replace(tzinfo=timezone.utc)
+                        logger.debug(f"<end_time is {end_time}, now is {now}")
+                       # Only use this period if it ends more than 2 hours from now
                         # (so we don't show an overnight that's about to end)
                         if end_time > now + timedelta(hours=2):
                             forecast_low = period.get("temperature")

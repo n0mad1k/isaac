@@ -1067,6 +1067,48 @@ function Settings() {
       )
     }
 
+    // Forecast provider dropdown
+    if (key === 'forecast_provider') {
+      return (
+        <select
+          value={setting.value || 'nws'}
+          onChange={(e) => handleChange(key, e.target.value)}
+          className="px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green w-full"
+        >
+          <option value="nws">National Weather Service (US only)</option>
+          <option value="open_meteo">Open-Meteo (Global, no API key required)</option>
+        </select>
+      )
+    }
+
+    // Weather unit system dropdown
+    if (key === 'weather_units') {
+      return (
+        <select
+          value={setting.value || 'us'}
+          onChange={(e) => handleChange(key, e.target.value)}
+          className="px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green w-full"
+        >
+          <option value="us">US units — °F, mph, inHg, inches</option>
+          <option value="metric">Metric units — °C, km/h, hPa, mm</option>
+        </select>
+      )
+    }
+
+    // Wind direction style dropdown
+    if (key === 'wind_direction_style') {
+      return (
+        <select
+          value={setting.value || 'compass'}
+          onChange={(e) => handleChange(key, e.target.value)}
+          className="px-3 py-2 bg-surface-soft border border rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green w-full"
+        >
+          <option value="compass">Compass points (N, NNE, NE…)</option>
+          <option value="degrees">Degrees (0–360°)</option>
+        </select>
+      )
+    }
+
     if (isBooleanSetting) {
       return (
         <label className="relative inline-flex items-center cursor-pointer">
@@ -1954,11 +1996,17 @@ function Settings() {
           {expandedSections.weatherApi && (
             <div className="mt-4">
               <p className="text-sm text-muted mb-4">
-                Connect your Ambient Weather station for real-time local weather data.
-                Get API keys from <a href="https://ambientweather.net/account" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">ambientweather.net/account</a>.
-                Leave blank to use NWS forecast data only.
+                Choose a forecast provider and display preferences, then optionally connect your
+                Ambient Weather station for real-time local sensor data. Use{' '}
+                <span className="text-white">NWS</span> if your location is in the US;{' '}
+                <span className="text-white">Open-Meteo</span> works anywhere in the world (no
+                API key required). Get AWN keys from{' '}
+                <a href="https://ambientweather.net/account" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">ambientweather.net/account</a>.
               </p>
               <div className="space-y-4">
+                {renderSettingCard('forecast_provider')}
+                {renderSettingCard('weather_units')}
+                {renderSettingCard('wind_direction_style')}
                 {weatherApiSettings.map(key => renderSettingCard(key))}
               </div>
             </div>
