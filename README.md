@@ -243,8 +243,6 @@ Manage external workers and farm hands with multi-language support.
 
 ### Weather Integration
 
-![Weather Settings](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/settings-weather.png)
-
 - **Ambient Weather** integration — real-time data from your personal weather station every 5 minutes
 - **NOAA fallback** — if no weather station, Isaac uses National Weather Service data based on your coordinates
 - **Conditions tracked**: temperature (indoor/outdoor), humidity, wind speed/gust/direction, barometric pressure, rain rate, UV index, solar radiation
@@ -267,8 +265,6 @@ Manage external workers and farm hands with multi-language support.
 ---
 
 ### Email Notifications
-
-![Email Settings](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/settings-email-notifications.png)
 
 - **Daily digest** — morning email with today's tasks, weather forecast, overdue items, and alerts
 - **Weather alerts** — frost, freeze, heat, wind, and rain warning emails
