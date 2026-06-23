@@ -297,8 +297,6 @@ Keep your household and farm crew organized.
 
 Manage external workers and farm hands with multi-language support.
 
-![Worker Tasks](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/worker-tasks.png)
-
 - **Worker profiles** with contact info, role, and language preference (English/Spanish)
 - **Task assignment** — create and assign tasks to workers with priority, due date, and location
 - **Task status tracking** — pending, in progress, completed, blocked (with reason)
@@ -325,8 +323,6 @@ Manage external workers and farm hands with multi-language support.
 ---
 
 ### AI Assistant
-
-![AI Chat](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/ai-chat.png)
 
 - **Built-in chat** powered by Claude, ChatGPT, or Ollama (local, free)
 - **Context-aware** — the AI sees your garden data, animal records, weather, tasks, fitness data, budget, and production when answering questions
