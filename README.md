@@ -63,23 +63,12 @@ Plan, plant, and track everything that grows on your property.
 - **Seed catalog** with planting depth, spacing, germination time, and days to maturity
 - **Seed inventory** tracking with supplier and source info
 
-![Garden Planner](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/garden-planner.png)
-
 - **Garden planner** with frost date awareness and month-by-month planting view
 - **Growing season progress** indicator based on your first and last frost dates
 - **Succession planting** support with configurable intervals
-
-![Garden Layout](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/garden-layout.png)
-
 - **Garden bed designer** — raised beds, in-ground, containers, rows, and greenhouses
 - **Plant placement** within beds with dimensions
-
-![Companion Planting](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/garden-companions.png)
-
 - **Companion planting** reference chart — see which plants grow well together and which to keep apart
-
-![Garden Journal](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/garden-journal.png)
-
 - **Garden journal** — log observations over time with photos and notes
 - **Import plants** from PFAF and Permapeople databases with one click
 
@@ -95,10 +84,6 @@ Plan, plant, and track everything that grows on your property.
 From the family dog to the whole herd.
 
 ![All Animals](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/animals-all.png)
-
-![Pets](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/animals-pets.png)
-
-![Livestock](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/animals-livestock.png)
 
 - **Pets and livestock** with health records, feeding schedules, and expense tracking
 - **Animal profiles** — breed, birth date, weight, gender, location, photos, and notes
@@ -120,17 +105,10 @@ Never forget a chore, appointment, or maintenance item again.
 
 ![To Do Today](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/todo-today.png)
 
-![To Do Upcoming](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/todo-upcoming.png)
-
 - **8 task views**: Today, Upcoming, This Week, This Month, All, Backlog, Overdue, and Metrics
-
-![To Do Metrics](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/todo-metrics.png)
-
 - **Completion metrics** — track your productivity streaks and completion rates
 
 ![Calendar Week](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/calendar-week.png)
-
-![Calendar Month](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/calendar-month.png)
 
 - **Calendar** with day, week, and month views — auto-scrolls to current hour
 - **Recurring tasks** — daily, weekly, monthly, or any custom interval with day-of-week selection
@@ -177,28 +155,11 @@ Household finances and farm business in one place.
 
 - **Budget overview** with income, spending categories, and account balances
 
-![Monthly Budget](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/budget-monthly.png)
-
 - **Budget vs. actual** comparison charts by month and category
-
-![Bills](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/budget-bills.png)
-
 - **Bill tracking** with due dates, payment status, and recurring bills
-
-![Transactions](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/budget-transactions.png)
-
 - **Transaction management** with category assignment and date tracking
-
-![Accounts](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/budget-accounts.png)
-
 - **Multiple accounts** — checking, savings, farm operations, travel fund, or any custom account
-
-![Statement Import](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/budget-import.png)
-
 - **Bank statement import** — CSV and OFX formats with duplicate detection
-
-![Budget Settings](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/budget-settings.png)
-
 - **Budget settings** — configure categories, accounts, and budget periods
 
 ---
@@ -211,16 +172,12 @@ Track what your farm produces and earns.
 
 - **Financial overview** — income, expenses, and profit at a glance
 
-![Farm Business](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/finances-business.png)
-
 - **Sales tracking** — record produce, livestock, and product sales
 - **Customer management** — profiles with contact info and purchase history
 - **Orders and invoicing** — create orders, track status (reserved, in progress, ready, completed), generate invoices
 - **Payment tracking** — deposits, partial payments, refunds with multiple methods (cash, check, Venmo, Zelle, card)
 - **Invoice emailing** — send invoices and receipts directly to customers
 - **Farm expense categories** — feed, vet, processing, seeds, equipment, utilities, fuel, supplies, labor, insurance, taxes, fencing, bedding
-
-![Homestead Production](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/finances-homestead.png)
 
 - **Homestead production** — track what you grow and raise for personal use
 - **Livestock production** — processing records with cost-per-pound calculations
@@ -238,26 +195,13 @@ Keep your household and farm crew organized.
 - **Member profiles** with detailed dossiers — contact info, role, bio, photos
 - **Team readiness assessment** — see who needs training updates, medical renewals, or gear attention
 
-![Member Dossier](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/team-dossier.png)
-
 - **Detailed dossier** per member with 10 tabs: Profile, Tasks, Gear, Supplies, Training, Medical, Mentoring, Observations, Health Data, and Fitness
-
-![Team Gear](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/team-gear.png)
-
 - **Gear inventory** — track what's assigned, what's in the pool, and what needs repair
 - **Gear condition tracking** — green (ready), yellow (needs attention), red (down)
-
-![Supply Requests](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/team-supplies.png)
-
 - **Supply requests** — team members can request items with urgency levels and status tracking
-
-![Weekly AAR](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/team-aar.png)
-
 - **Weekly AAR** (After Action Review) — structured team reflection for continuous improvement
 
 **Child Growth Tracking:**
-
-![Growth Charts](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/team-growth.png)
 
 - **Growth charts** for children under 13 — weight, height, and BMI percentiles plotted against CDC curves
 - **Size guide** — clothing and shoe size estimates with "size up soon" alerts
@@ -265,25 +209,17 @@ Keep your household and farm crew organized.
 
 **Health & Readiness Monitoring:**
 
-![Health Data](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/team-health.png)
-
 - **Readiness assessment** — overall score with physical breakdown (autonomic recovery, cardiovascular, immune health, activity level)
 - **Risk flags** — automatic alerts for low scores with recommendations
 - **Vital tracking** — weight, blood pressure, heart rate, temperature, and body measurements
 
 **Fitness Tracking:**
 
-![Fitness](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/team-fitness.png)
-
 - **Fitness scoring** — run, ruck, swim, bike, row, strength, HIIT, mobility, and PT test scoring
 - **Age and gender-adjusted standards** with tier classification (elite through minimal)
 - **Workout logging** — track every session with distance, time, weight, and reps
 
 **Training & Medical:**
-
-![Training](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/team-training.png)
-
-![Medical](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/team-medical.png)
 
 - **Training records** — certifications, skills inventory, expiration tracking
 - **Medical history** — health records, vaccinations, dental, vision, and renewal alerts
@@ -350,32 +286,12 @@ Manage external workers and farm hands with multi-language support.
 
 ![Settings](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/settings.png)
 
-![Feature Toggles](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/settings-features.png)
-
 - **Feature toggles** — enable only the modules you need (garden, animals, vehicles, equipment, home, farm areas, team, fitness, health, budget, farm finances, production, workers, AI chat, kiosk)
-
-![Roles](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/settings-roles.png)
-
 - **Role-based permissions** — Admin, Editor, Viewer, Kiosk, Farmhand, or fully custom roles with granular permission matrix
-
-![Users](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/settings-users.png)
-
 - **User management** — create accounts, assign roles, send invite links, set expiration dates
-
-![Alerts](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/settings-alerts.png)
-
 - **Weather thresholds** — set your own frost, freeze, heat, wind, and rain alert levels
-
-![Display](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/settings-display.png)
-
 - **Display settings** — 12h/24h time, theme selection, farm name, logo upload, Bible verse toggle
-
-![AI Settings](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/settings-ai.png)
-
 - **AI configuration** — choose provider, set API keys, manage knowledge base
-
-![Calendar Settings](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/settings-calendar.png)
-
 - **Calendar sync** — bi-directional with iPhone/Android via CalDAV (Radicale included)
 - **Kiosk mode** — full-screen dashboard for a dedicated barn or kitchen screen
 - **Setup wizard** — guided first-run configuration for new installations
