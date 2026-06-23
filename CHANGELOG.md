@@ -29,7 +29,7 @@ All notable changes to Isaac will be documented in this file.
 - `backend/start.sh` is now versioned in the repo and deployed via the standard sync.
 
 ### Changed
-- `start.sh` fail-loud on Infisical miss: if `ISAAC_SECRET_BACKEND=infisical` and `creds get PROD_SECRET_KEY` returns empty, service refuses to start with a recovery hint instead of silently falling back to `.env`.
+- `start.sh` fail-loud on secrets backend miss: if `ISAAC_SECRET_BACKEND=infisical` and the secret key cannot be fetched, service refuses to start with a recovery hint instead of silently falling back to `.env`.
 - Encryption decrypt-probe semantic: passes if at least one `enc::` row decrypts (or none exist); only fails when rows exist and none decrypt. Partial orphan rows log a warning but allow startup.
 
 ### Fixed
