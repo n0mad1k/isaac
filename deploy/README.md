@@ -175,5 +175,5 @@ cp /opt/isaac/backend/data/levi.db /opt/isaac/backend/data/levi.db.backup
 
 ### Permission issues
 ```bash
-sudo chown -R n0mad1k:n0mad1k /opt/isaac
+sudo chown -R your_user:your_user /opt/isaac
 ```
