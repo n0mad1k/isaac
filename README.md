@@ -49,8 +49,6 @@ Plan, plant, and track everything that grows on your property.
 
 ![Garden Overview](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/garden-overview.png)
 
-![Garden Plants](https://raw.githubusercontent.com/wiki/n0mad1k/isaac/images/garden-plants.png)
-
 - **Plant tracking** with watering, fertilizing, pruning, and harvesting schedules
 - **Growth stage tracking** — seed, seedling, transplanted, vegetative, flowering, fruiting, harvesting, dormant
 - **Photo documentation** — upload multiple photos per plant
