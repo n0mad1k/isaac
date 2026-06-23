@@ -1,0 +1,54 @@
+# Isaac - Farm & Homestead Assistant
+# Backend Dependencies
+
+# Web Framework
+fastapi==0.125.0
+uvicorn[standard]==0.34.0
+python-multipart==0.0.22
+
+# Database
+sqlalchemy==2.0.36
+aiosqlite==0.20.0
+greenlet==3.3.0
+
+# Scheduling
+apscheduler==3.10.4
+
+# Email
+aiosmtplib==3.0.2
+email-validator==2.2.0
+
+# HTTP Client (for weather API)
+httpx==0.28.1
+
+# CalDAV sync
+caldav==1.4.0
+
+# Date/Time handling
+python-dateutil==2.9.0
+pytz==2024.2
+astral==3.2  # Accurate sunrise/sunset/twilight calculations
+
+# Environment/Config
+python-dotenv==1.0.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# HTML Parsing (for plant data import)
+beautifulsoup4==4.12.3
+lxml==5.3.0
+
+# Security
+passlib[bcrypt]==1.7.4
+cryptography==44.0.1
+
+# PDF Parsing (budget statement import)
+pdfplumber==0.11.9
+pdfminer.six>=20251230
+
+# AI (Claude)
+anthropic>=0.39.0
+
+# Utilities
+loguru==0.7.3
+psutil==5.9.8  # System resource monitoring
